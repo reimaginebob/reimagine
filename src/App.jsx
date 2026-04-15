@@ -121,7 +121,37 @@ const S={
 }
 
 function Btn({onClick,disabled,secondary,small,children,style={}}){const base=small?S.sm:secondary?S.sec:S.btn;return <button style={{...base,opacity:disabled?0.5:1,...style}} onClick={onClick} disabled={disabled}>{children}</button>}
-function Loading({msg='Generating your analysis…'}){return <div style={{textAlign:'center',padding:'40px 0',color:C.gray}}><Loader2 size={26} style={{color:C.gold,animation:'spin 0.9s linear infinite',margin:'0 auto 14px',display:'block'}}/><style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style><div style={{fontSize:14,color:C.grayL,marginBottom:5}}>{msg}</div><div style={{fontSize:12,color:C.gray,opacity:.7}}>This may take 30–60 seconds</div></div>}
+const QUOTES=[
+  {text:"Everything can be taken from a person but one thing: the last of the human freedoms — to choose one's attitude in any given set of circumstances.",author:"Viktor Frankl"},
+  {text:"Begin with the end in mind.",author:"Stephen Covey"},
+  {text:"The key is not to prioritize what's on your schedule, but to schedule your priorities.",author:"Stephen Covey"},
+  {text:"Seek first to understand, then to be understood.",author:"Stephen Covey"},
+  {text:"Proactive people carry their own weather with them.",author:"Stephen Covey"},
+  {text:"Success is peace of mind which is a direct result of self-satisfaction in knowing you made the effort to become the best you are capable of becoming.",author:"John Wooden"},
+  {text:"Don't let what you cannot do interfere with what you can do.",author:"John Wooden"},
+  {text:"It's not what you know, it's what you use that makes a difference.",author:"John Wooden"},
+  {text:"Leaders must be close enough to relate to others, but far enough ahead to motivate them.",author:"John Maxwell"},
+  {text:"The pessimist complains about the wind. The optimist expects it to change. The leader adjusts the sails.",author:"John Maxwell"},
+  {text:"Talent is a gift, but character is a choice.",author:"John Maxwell"},
+  {text:"He who has a why to live can bear almost any how.",author:"Viktor Frankl"},
+  {text:"Between stimulus and response there is a space. In that space is our power to choose our response.",author:"Viktor Frankl"},
+]
+
+function Loading({msg='Generating your analysis…'}){
+  const[qi,setQi]=useState(Math.floor(Math.random()*QUOTES.length))
+  useEffect(()=>{const t=setInterval(()=>setQi(i=>(i+1)%QUOTES.length),6000);return()=>clearInterval(t)},[])
+  const q=QUOTES[qi]
+  return <div style={{textAlign:'center',padding:'48px 24px',maxWidth:560,margin:'0 auto'}}>
+    <Loader2 size={28} style={{color:C.gold,animation:'spin 0.9s linear infinite',margin:'0 auto 20px',display:'block'}}/>
+    <style>{\`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}\`}</style>
+    <div style={{fontSize:16,color:C.grayL,marginBottom:28}}>{msg}</div>
+    <div style={{borderLeft:\`3px solid \${C.gold}\`,paddingLeft:20,textAlign:'left',marginBottom:8}}>
+      <div style={{fontSize:17,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:8}}>"{q.text}"</div>
+      <div style={{fontSize:14,color:C.gold,fontWeight:600}}>{q.author}</div>
+    </div>
+    <div style={{fontSize:13,color:C.gray,marginTop:20,opacity:.7}}>This may take 1–2 minutes</div>
+  </div>
+}
 function ErrBox({msg}){return <div style={S.err}><AlertCircle size={13} color={C.err} style={{flexShrink:0,marginTop:1}}/><span>{msg}</span></div>}
 function FileUpload({label,hint,onFile,fileName,accept=".pdf,.doc,.docx,.txt"}){
   const ref=useRef();const[drag,setDrag]=useState(false)
@@ -139,15 +169,19 @@ function OutPanel({text,onCopy,copied}){return <div style={S.out}><div style={{d
 
 function RefineBox({value,onChange,onRegenerate}){
   const[open,setOpen]=useState(false)
-  return <div style={{marginTop:12,border:`1px solid ${C.border}`,borderRadius:10,overflow:'hidden'}}>
-    <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:C.panel,border:'none',padding:'11px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',color:C.grayL,fontSize:13,fontFamily:'inherit',textAlign:'left'}}>
-      <span>Does this feel right? Add context to refine.</span>
-      <span style={{fontSize:10,color:C.gray,display:'inline-block',transform:open?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}}>▼</span>
+  return <div style={{marginTop:16,border:`2px solid ${C.border}`,borderRadius:12,overflow:'hidden',background:'#F7F8FA'}}>
+    <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <div style={{width:8,height:8,borderRadius:'50%',background:C.gold,flexShrink:0}}/>
+        <span style={{fontSize:17,fontWeight:600,color:'#1A2540'}}>Does this feel right?</span>
+        <span style={{fontSize:15,color:C.gray}}>Add context to refine.</span>
+      </div>
+      <span style={{fontSize:12,color:C.gray,display:'inline-block',transform:open?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}}>▼</span>
     </button>
-    {open&&<div style={{background:C.card,padding:'14px 16px'}}>
-      <div style={{fontSize:15,color:C.gray,marginBottom:10,lineHeight:1.65}}>If anything feels off — wrong tone, missing context, something we misread — describe it here and we'll adjust.</div>
-      <textarea style={{...S.ta,minHeight:70}} value={value} onChange={e=>onChange(e.target.value)} placeholder="e.g. The seniority level feels too junior… you missed that I ran a P&L… the environment description doesn't match how I actually work…"/>
-      <div style={{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}}>
+    {open&&<div style={{background:'#FFFFFF',padding:'16px 20px',borderTop:`1px solid ${C.border}`}}>
+      <div style={{fontSize:15,color:C.gray,marginBottom:12,lineHeight:1.65}}>If anything feels off — wrong tone, missing context, something we misread — describe it here and we'll adjust.</div>
+      <textarea style={{...S.ta,minHeight:80}} value={value} onChange={e=>onChange(e.target.value)} placeholder="e.g. The seniority level feels too junior… you missed that I ran a P&L… the environment description doesn't match how I actually work…"/>
+      <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
         <Btn onClick={()=>{setOpen(false);onRegenerate(value)}}><RotateCcw size={13}/>Regenerate with this context</Btn>
         <Btn secondary onClick={()=>{onChange('');setOpen(false);onRegenerate('')}}><RotateCcw size={13}/>Regenerate from scratch</Btn>
       </div>
@@ -496,11 +530,16 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         <OutPanel text={outputs.p4} onCopy={copy} copied={copied}/>
         <RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} onRegenerate={v=>{out('p4','');generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Refining your opportunity landscape…'})}}/>
         <div style={{...S.card,marginTop:8}}>
-          <div style={{fontWeight:600,color:C.cream,fontSize:13,marginBottom:4}}>Select up to 3 options to explore further.</div>
-          <div style={{fontSize:15,color:C.gray,marginBottom:12,lineHeight:1.6}}>Copy the role or path name from above and paste it here. Pick what made you lean in, not just what feels safe.</div>
-          {['A','B','C'].map((l,i)=><div key={l} style={S.field}><label style={S.label}>Option {l}</label><input style={S.inp} value={deepOpts[i]} onChange={e=>setDeepOpts(d=>d.map((v,j)=>j===i?e.target.value:v))} placeholder={`Paste an option from the list above…`}/></div>)}
-          {deepOpts.filter(Boolean).length>0&&<div style={S.row}><Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn></div>}
-          {deepOpts.filter(Boolean).length===0&&<div style={{fontSize:15,color:C.gray}}>Enter at least one option above to continue.</div>}
+          <div style={{fontWeight:600,color:'#1A2540',fontSize:17,marginBottom:4}}>Select up to 3 options to explore further.</div>
+          <div style={{fontSize:15,color:C.gray,marginBottom:16,lineHeight:1.6}}>Type the role or path that caught your attention. Pick what made you lean in, not just what feels safe.</div>
+          {['A','B','C'].map((l,i)=><div key={l} style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
+            <div onClick={()=>setDeepOpts(d=>d.map((v,j)=>j===i?(v?'':'?'):''))} style={{width:22,height:22,borderRadius:6,border:`2px solid ${deepOpts[i]&&deepOpts[i]!=='?'?C.gold:C.border}`,background:deepOpts[i]&&deepOpts[i]!=='?'?`${C.gold}20`:'white',flexShrink:0,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              {deepOpts[i]&&deepOpts[i]!=='?'&&<Check size={13} color={C.gold} strokeWidth={3}/>}
+            </div>
+            <input style={{...S.inp,flex:1}} value={deepOpts[i]==='?'?'':deepOpts[i]} onChange={e=>setDeepOpts(d=>d.map((v,j)=>j===i?e.target.value:v))} placeholder={`Type or paste option ${l} from the list above…`}/>
+          </div>)}
+          {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={S.row}><Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn></div>}
+          {deepOpts.filter(v=>v&&v!=='?').length===0&&<div style={{fontSize:15,color:C.gray}}>Enter at least one option above to continue.</div>}
         </div>
       </>}
       {err&&<ErrBox msg={err}/>}
