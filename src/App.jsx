@@ -122,19 +122,128 @@ const S={
 
 function Btn({onClick,disabled,secondary,small,children,style={}}){const base=small?S.sm:secondary?S.sec:S.btn;return <button style={{...base,opacity:disabled?0.5:1,...style}} onClick={onClick} disabled={disabled}>{children}</button>}
 const QUOTES=[
+  // Viktor Frankl — purpose, resilience
   {text:"Everything can be taken from a person but one thing: the last of the human freedoms — to choose one's attitude in any given set of circumstances.",author:"Viktor Frankl"},
+  {text:"He who has a why to live can bear almost any how.",author:"Viktor Frankl"},
+  {text:"Between stimulus and response there is a space. In that space is our power to choose our response.",author:"Viktor Frankl"},
+  {text:"Life is never made unbearable by circumstances, but only by lack of meaning and purpose.",author:"Viktor Frankl"},
+  {text:"When we are no longer able to change a situation, we are challenged to change ourselves.",author:"Viktor Frankl"},
+  {text:"Each person is questioned by life; and they can only answer to life by answering for their own life.",author:"Viktor Frankl"},
+  {text:"The meaning of life is to give life meaning.",author:"Viktor Frankl"},
+  // Stephen Covey — purpose, service
   {text:"Begin with the end in mind.",author:"Stephen Covey"},
   {text:"The key is not to prioritize what's on your schedule, but to schedule your priorities.",author:"Stephen Covey"},
   {text:"Seek first to understand, then to be understood.",author:"Stephen Covey"},
   {text:"Proactive people carry their own weather with them.",author:"Stephen Covey"},
+  {text:"Most of us spend too much time on what is urgent and not enough time on what is important.",author:"Stephen Covey"},
+  {text:"I am not a product of my circumstances. I am a product of my decisions.",author:"Stephen Covey"},
+  {text:"Trust is the glue of life. It's the most essential ingredient in effective communication.",author:"Stephen Covey"},
+  // John Wooden — resilience, purpose, courage
   {text:"Success is peace of mind which is a direct result of self-satisfaction in knowing you made the effort to become the best you are capable of becoming.",author:"John Wooden"},
   {text:"Don't let what you cannot do interfere with what you can do.",author:"John Wooden"},
   {text:"It's not what you know, it's what you use that makes a difference.",author:"John Wooden"},
+  {text:"Things turn out best for the people who make the best of the way things turn out.",author:"John Wooden"},
+  {text:"Never mistake activity for achievement.",author:"John Wooden"},
+  {text:"Ability may get you to the top, but it takes character to keep you there.",author:"John Wooden"},
+  {text:"Be more concerned with your character than your reputation, because your character is what you really are.",author:"John Wooden"},
+  // John Maxwell — leadership, purpose, courage
   {text:"Leaders must be close enough to relate to others, but far enough ahead to motivate them.",author:"John Maxwell"},
   {text:"The pessimist complains about the wind. The optimist expects it to change. The leader adjusts the sails.",author:"John Maxwell"},
   {text:"Talent is a gift, but character is a choice.",author:"John Maxwell"},
-  {text:"He who has a why to live can bear almost any how.",author:"Viktor Frankl"},
-  {text:"Between stimulus and response there is a space. In that space is our power to choose our response.",author:"Viktor Frankl"},
+  {text:"A leader is one who knows the way, goes the way, and shows the way.",author:"John Maxwell"},
+  {text:"The greatest day in your life and mine is when we take total responsibility for our attitudes.",author:"John Maxwell"},
+  {text:"You will never change your life until you change something you do daily.",author:"John Maxwell"},
+  {text:"Small disciplines repeated with consistency every day lead to great achievements gained slowly over time.",author:"John Maxwell"},
+  // Angela Duckworth — grit, resilience, purpose
+  {text:"Enthusiasm is common. Endurance is rare.",author:"Angela Duckworth"},
+  {text:"Grit is living life like it's a marathon, not a sprint.",author:"Angela Duckworth"},
+  {text:"Our potential is one thing. What we do with it is quite another.",author:"Angela Duckworth"},
+  {text:"The real obstacle to self-control isn't knowing what to do but doing what you know.",author:"Angela Duckworth"},
+  {text:"At its core, the idea of grit is simple. Interests, practice, purpose, and hope.",author:"Angela Duckworth"},
+  {text:"Nobody wants to show you the hours and hours of becoming. They'd rather show you the highlight reel.",author:"Angela Duckworth"},
+  {text:"Greatness is doing the right things over and over until they become natural.",author:"Angela Duckworth"},
+  // Simon Sinek — purpose, service, courage
+  {text:"Start with why.",author:"Simon Sinek"},
+  {text:"Working hard for something we don't care about is called stress. Working hard for something we love is called passion.",author:"Simon Sinek"},
+  {text:"The goal is not to be perfect by the end. The goal is to be better today.",author:"Simon Sinek"},
+  {text:"Leadership is not about being in charge. It is about taking care of those in your charge.",author:"Simon Sinek"},
+  {text:"Dream big. Start small. But most of all, start.",author:"Simon Sinek"},
+  {text:"The courage to admit what we don't know is the beginning of wisdom.",author:"Simon Sinek"},
+  {text:"People don't buy what you do; they buy why you do it.",author:"Simon Sinek"},
+  // Brené Brown — courage, vulnerability, resilience
+  {text:"Courage starts with showing up and letting ourselves be seen.",author:"Brené Brown"},
+  {text:"Vulnerability is not winning or losing; it's having the courage to show up and be seen when we have no control over the outcome.",author:"Brené Brown"},
+  {text:"You can't get to courage without walking through vulnerability.",author:"Brené Brown"},
+  {text:"Talk to yourself like you would to someone you love.",author:"Brené Brown"},
+  {text:"Owning our story and loving ourselves through that process is the bravest thing we'll ever do.",author:"Brené Brown"},
+  {text:"The dark does not destroy the light; it defines it. It's our fear of the dark that casts our joy into the shadows.",author:"Brené Brown"},
+  {text:"Staying vulnerable is a risk we have to take if we want to experience connection.",author:"Brené Brown"},
+  // Maya Angelou — resilience, courage, purpose
+  {text:"You may not control all the events that happen to you, but you can decide not to be reduced by them.",author:"Maya Angelou"},
+  {text:"Nothing will work unless you do.",author:"Maya Angelou"},
+  {text:"We may encounter many defeats but we must not be defeated.",author:"Maya Angelou"},
+  {text:"I've learned that people will forget what you said, people will forget what you did, but people will never forget how you made them feel.",author:"Maya Angelou"},
+  {text:"My mission in life is not merely to survive, but to thrive.",author:"Maya Angelou"},
+  {text:"Success is liking yourself, liking what you do, and liking how you do it.",author:"Maya Angelou"},
+  {text:"If you don't like something, change it. If you can't change it, change your attitude.",author:"Maya Angelou"},
+  // Nelson Mandela — resilience, courage, purpose
+  {text:"It always seems impossible until it's done.",author:"Nelson Mandela"},
+  {text:"The greatest glory in living lies not in never falling, but in rising every time we fall.",author:"Nelson Mandela"},
+  {text:"Education is the most powerful weapon which you can use to change the world.",author:"Nelson Mandela"},
+  {text:"I never lose. I either win or I learn.",author:"Nelson Mandela"},
+  {text:"Courage is not the absence of fear, but the triumph over it.",author:"Nelson Mandela"},
+  {text:"Real leaders must be ready to sacrifice all for the freedom of their people.",author:"Nelson Mandela"},
+  // Warren Buffett — patience, purpose, self-knowledge
+  {text:"Someone is sitting in the shade today because someone planted a tree a long time ago.",author:"Warren Buffett"},
+  {text:"The most important investment you can make is in yourself.",author:"Warren Buffett"},
+  {text:"It takes 20 years to build a reputation and five minutes to ruin it.",author:"Warren Buffett"},
+  {text:"The best thing I ever did was choose the right heroes.",author:"Warren Buffett"},
+  {text:"I always knew I was going to be rich. I don't think I ever doubted it for a minute.",author:"Warren Buffett"},
+  // Theodore Roosevelt — courage, resilience, service
+  {text:"Do what you can, with what you have, where you are.",author:"Theodore Roosevelt"},
+  {text:"It is not the critic who counts; not the man who points out how the strong man stumbles. The credit belongs to the man who is actually in the arena.",author:"Theodore Roosevelt"},
+  {text:"Believe you can and you're halfway there.",author:"Theodore Roosevelt"},
+  {text:"Keep your eyes on the stars, and your feet on the ground.",author:"Theodore Roosevelt"},
+  {text:"Far and away the best prize that life offers is the chance to work hard at work worth doing.",author:"Theodore Roosevelt"},
+  // Abraham Lincoln — resilience, purpose, courage
+  {text:"Give me six hours to chop down a tree and I will spend the first four sharpening the axe.",author:"Abraham Lincoln"},
+  {text:"I am not bound to win, but I am bound to be true.",author:"Abraham Lincoln"},
+  {text:"The best way to predict your future is to create it.",author:"Abraham Lincoln"},
+  {text:"Whatever you are, be a good one.",author:"Abraham Lincoln"},
+  {text:"I walk slowly, but I never walk backward.",author:"Abraham Lincoln"},
+  // Winston Churchill — resilience, courage
+  {text:"Success is not final, failure is not fatal: it is the courage to continue that counts.",author:"Winston Churchill"},
+  {text:"If you're going through hell, keep going.",author:"Winston Churchill"},
+  {text:"The pessimist sees difficulty in every opportunity. The optimist sees opportunity in every difficulty.",author:"Winston Churchill"},
+  {text:"We make a living by what we get, but we make a life by what we give.",author:"Winston Churchill"},
+  {text:"Continuous effort — not strength or intelligence — is the key to unlocking our potential.",author:"Winston Churchill"},
+  // Peter Drucker — purpose, service, effectiveness
+  {text:"The best way to predict the future is to create it.",author:"Peter Drucker"},
+  {text:"Efficiency is doing things right. Effectiveness is doing the right things.",author:"Peter Drucker"},
+  {text:"What gets measured gets managed.",author:"Peter Drucker"},
+  {text:"The purpose of a business is to create a customer.",author:"Peter Drucker"},
+  {text:"Knowledge has to be improved, challenged, and increased constantly, or it vanishes.",author:"Peter Drucker"},
+  {text:"The most important thing in communication is to hear what isn't being said.",author:"Peter Drucker"},
+  // Jim Collins — purpose, resilience, discipline
+  {text:"Good is the enemy of great.",author:"Jim Collins"},
+  {text:"The signature of mediocrity is not an unwillingness to change. It is chronic inconsistency.",author:"Jim Collins"},
+  {text:"Great vision without great people is irrelevant.",author:"Jim Collins"},
+  {text:"Greatness is not a function of circumstance. Greatness, it turns out, is largely a matter of conscious choice.",author:"Jim Collins"},
+  // Marcus Aurelius — resilience, purpose, stoicism
+  {text:"You have power over your mind — not outside events. Realize this, and you will find strength.",author:"Marcus Aurelius"},
+  {text:"The impediment to action advances action. What stands in the way becomes the way.",author:"Marcus Aurelius"},
+  {text:"Waste no more time arguing what a good person should be. Be one.",author:"Marcus Aurelius"},
+  {text:"Accept the things to which fate binds you, and love the people with whom fate brings you together.",author:"Marcus Aurelius"},
+  {text:"Very little is needed to make a happy life; it is all within yourself, in your way of thinking.",author:"Marcus Aurelius"},
+  // Daniel Pink — motivation, purpose, curiosity
+  {text:"The most successful people are not those who eliminate fear but those who act despite it.",author:"Daniel Pink"},
+  {text:"Goals that people set for themselves and that are devoted to attaining mastery are usually healthy.",author:"Daniel Pink"},
+  {text:"Human beings have an innate inner drive to be autonomous, self-determined, and connected to one another.",author:"Daniel Pink"},
+  // Adam Grant — curiosity, resilience, service
+  {text:"The hallmark of originality is rejecting the default and exploring whether a better option exists.",author:"Adam Grant"},
+  {text:"In a world that changes faster than ever, we cannot just accumulate knowledge — we need to question it.",author:"Adam Grant"},
+  {text:"The greatest communicators don't talk at people. They think with them.",author:"Adam Grant"},
+  {text:"Rethinking is a skill. The ability to update beliefs and strategies is a competitive advantage.",author:"Adam Grant"},
 ]
 
 function Loading({msg='Generating your analysis…'}){
@@ -355,7 +464,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         {[
           ['Your resume','Any format. It doesn\'t need to be polished — we\'ll help you get the most out of it.'],
           ['An assessment (recommended)','Affintus is free and takes 15 minutes. If you already have StrengthsFinder, Hogan, DiSC, MBTI, or any other assessment, those work just as well. Bring whatever you have.'],
-          ['About 20–30 minutes','You can save and return at any point. Your progress is stored automatically.'],
+          ['About 20–30 minutes','You can save and return at any point. Your progress is stored automatically in this browser on this device — so come back the same way you started.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
           <div><span style={{fontWeight:600,fontSize:20,color:C.cream}}>{t}. </span><span style={{fontSize:20,color:C.gray,lineHeight:1.6}}>{d}</span></div>
@@ -775,7 +884,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           <div style={{fontSize:15,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
         </div>
         {[['Your Functional Identity','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Crash Course','p9',outputs.p9],["Devil's Advocate",'p10',outputs.p10]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
-        <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:15,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> Close this and return at any time — everything will be here.</div>
+        <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:15,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
         <div style={{marginTop:10,textAlign:'right'}}><Btn small onClick={reset}><RotateCcw size={11}/>Start a New Session</Btn></div>
       </>}
     </div>}
