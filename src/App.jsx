@@ -980,7 +980,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         <div style={S.row}><Btn secondary onClick={()=>out('income','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>
       </>}
       {err&&<ErrBox msg={err}/>}
-    </div>}
+    </div>
 
     default:return null
   }}
