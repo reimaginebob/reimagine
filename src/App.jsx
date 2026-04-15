@@ -965,7 +965,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         </div>
         <div style={{marginTop:10,textAlign:'right'}}><Btn small onClick={reset}><RotateCcw size={11}/>Start a New Session</Btn></div>
       </>}
-    </div>
+    </div>}
 
     case'income':return <div>
       <div style={S.tag('#7AB87A')}>Bonus Module</div>
