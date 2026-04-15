@@ -26,10 +26,10 @@ RULES:
 - Never use em dashes. Use commas, periods, or colons instead.`
 
 const C = {
-  bg:'#0A1628',panel:'#0F1E30',card:'#132840',input:'#0F2035',
-  border:'#1C3450',gold:'#C8924A',goldL:'#DBA96A',
-  cream:'#EDE8E0',creamD:'#B8B0A4',gray:'#6A7D90',grayL:'#8FA4B8',
-  ok:'#4A9E72',err:'#C05858'
+  bg:'#F7F8FA',panel:'#FFFFFF',card:'#FFFFFF',input:'#F3F4F6',
+  border:'#E2E5EA',gold:'#C8924A',goldL:'#A06828',
+  cream:'#1A2540',creamD:'#374258',gray:'#6B7A99',grayL:'#4A5568',
+  ok:'#2E7D52',err:'#C0392B'
 }
 
 async function callClaude(prompt, opts={}) {
@@ -54,8 +54,8 @@ async function extractText(file){
 function Inline({text}){
   const parts=text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/)
   return <>{parts.map((p,i)=>{
-    if(p.startsWith('**')&&p.endsWith('**'))return <strong key={i} style={{color:C.cream,fontWeight:600}}>{p.slice(2,-2)}</strong>
-    if(p.startsWith('*')&&p.endsWith('*'))return <em key={i} style={{color:C.goldL}}>{p.slice(1,-1)}</em>
+    if(p.startsWith('**')&&p.endsWith('**'))return <strong key={i} style={{color:"#1A2540",fontWeight:600}}>{p.slice(2,-2)}</strong>
+    if(p.startsWith('*')&&p.endsWith('*'))return <em key={i} style={{color:C.gold}}>{p.slice(1,-1)}</em>
     return <span key={i}>{p}</span>
   })}</>
 }
@@ -63,15 +63,15 @@ function Inline({text}){
 function MD({text}){
   if(!text)return null
   return <div>{text.split('\n').map((line,i)=>{
-    if(line.startsWith('### '))return <h3 key={i} style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:600,color:C.goldL,margin:'16px 0 6px'}}>{line.slice(4)}</h3>
-    if(line.startsWith('## '))return <h2 key={i} style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,color:C.gold,margin:'18px 0 8px',borderBottom:`1px solid ${C.border}`,paddingBottom:7}}>{line.slice(3)}</h2>
-    if(line.startsWith('# '))return <h1 key={i} style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:C.cream,margin:'20px 0 8px'}}>{line.slice(2)}</h1>
+    if(line.startsWith('### '))return <h3 key={i} style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:600,color:"#A06828",margin:'16px 0 6px'}}>{line.slice(4)}</h3>
+    if(line.startsWith('## '))return <h2 key={i} style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,color:"#C8924A",margin:'18px 0 8px',borderBottom:`1px solid ${C.border}`,paddingBottom:7}}>{line.slice(3)}</h2>
+    if(line.startsWith('# '))return <h1 key={i} style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:"#1A2540",margin:'20px 0 8px'}}>{line.slice(2)}</h1>
     if(line.trim()==='---')return <hr key={i} style={{border:'none',borderTop:`1px solid ${C.border}`,margin:'16px 0'}}/>
-    if(line.startsWith('- ')||line.startsWith('* '))return <div key={i} style={{display:'flex',gap:10,margin:'4px 0',paddingLeft:8,alignItems:'flex-start'}}><span style={{color:C.gold,flexShrink:0,marginTop:2}}>◆</span><span style={{color:C.creamD,lineHeight:1.65,fontSize:14}}><Inline text={line.slice(2)}/></span></div>
+    if(line.startsWith('- ')||line.startsWith('* '))return <div key={i} style={{display:'flex',gap:10,margin:'4px 0',paddingLeft:8,alignItems:'flex-start'}}><span style={{color:C.gold,flexShrink:0,marginTop:2}}>◆</span><span style={{color:"#374258",lineHeight:1.65,fontSize:15}}><Inline text={line.slice(2)}/></span></div>
     const nm=line.match(/^(\d+)\. (.*)/)
-    if(nm)return <div key={i} style={{display:'flex',gap:10,margin:'4px 0',paddingLeft:8}}><span style={{color:C.gold,flexShrink:0,fontWeight:600,minWidth:20,fontSize:13}}>{nm[1]}.</span><span style={{color:C.creamD,lineHeight:1.65,fontSize:14}}><Inline text={nm[2]}/></span></div>
+    if(nm)return <div key={i} style={{display:'flex',gap:10,margin:'4px 0',paddingLeft:8}}><span style={{color:C.gold,flexShrink:0,fontWeight:600,minWidth:20,fontSize:14}}>{nm[1]}.</span><span style={{color:"#374258",lineHeight:1.65,fontSize:15}}><Inline text={nm[2]}/></span></div>
     if(line.trim()==='')return <div key={i} style={{height:9}}/>
-    return <p key={i} style={{margin:'3px 0',color:C.creamD,lineHeight:1.7,fontSize:14}}><Inline text={line}/></p>
+    return <p key={i} style={{margin:'3px 0',color:"#374258",lineHeight:1.7,fontSize:15}}><Inline text={line}/></p>
   })}</div>
 }
 
@@ -101,9 +101,9 @@ const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',as
 const ALL=['welcome','location','resume','assessment','values','reputation','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','p10','complete']
 
 const S={
-  title:{fontFamily:'Georgia,serif',fontSize:34,fontWeight:700,color:C.cream,margin:'0 0 10px',lineHeight:1.2},
+  title:{fontFamily:'Georgia,serif',fontSize:34,fontWeight:700,color:"#1A2540",margin:'0 0 10px',lineHeight:1.2},
   sub:{fontSize:16,color:C.gray,margin:'0 0 24px',lineHeight:1.65,maxWidth:540},
-  card:{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:'20px 24px',marginBottom:16},
+  card:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderRadius:12,padding:'20px 24px',marginBottom:16,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
   label:{display:'block',fontSize:11,fontWeight:700,color:C.grayL,margin:'0 0 7px',letterSpacing:'1px',textTransform:'uppercase'},
   inp:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'},
   ta:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'11px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',resize:'vertical',boxSizing:'border-box',lineHeight:1.6,minHeight:90},
@@ -111,7 +111,7 @@ const S={
   btn:{background:C.gold,color:C.bg,border:'none',borderRadius:8,padding:'11px 22px',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
   sec:{background:'transparent',color:C.grayL,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 18px',fontSize:15,fontWeight:500,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
   sm:{background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:6,padding:'5px 11px',fontSize:12,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:5},
-  out:{background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:'20px 24px',marginTop:14},
+  out:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderRadius:10,padding:'20px 24px',marginTop:14,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
   err:{background:`${C.err}15`,border:`1px solid ${C.err}40`,borderRadius:8,padding:'11px 15px',color:C.err,fontSize:13,marginTop:12,display:'flex',gap:8,alignItems:'flex-start'},
   note:{background:`${C.gold}12`,border:`1px solid ${C.gold}30`,borderRadius:8,padding:'11px 15px',color:C.goldL,fontSize:13,marginBottom:14,lineHeight:1.6},
   row:{display:'flex',gap:10,marginTop:20,flexWrap:'wrap'},
@@ -154,7 +154,7 @@ function RefineBox({value,onChange,onRegenerate}){
     </div>}
   </div>
 }
-function Sidebar({step,done,onNav}){return <div style={{width:260,background:C.panel,borderRight:`1px solid ${C.border}`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>{PHASES.map(ph=><div key={ph.id} style={{marginBottom:3}}><div style={{fontSize:11,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:ph.color,padding:'5px 14px 3px',display:'flex',alignItems:'center',gap:5}}><div style={{width:5,height:5,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 28px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:active?`${ph.color}15`:'transparent',borderLeft:`2px solid ${active?ph.color:'transparent'}`,fontSize:15,color:active?C.cream:isDone?C.grayL:C.gray,transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${active?ph.color:isDone?C.ok:C.border}`,background:isDone?C.ok:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color={C.bg} strokeWidth={3}/>}</div>{META[sid]}</div>})}</div>)}</div>}
+function Sidebar({step,done,onNav}){return <div style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>{PHASES.map(ph=><div key={ph.id} style={{marginBottom:3}}><div style={{fontSize:11,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:ph.color,padding:'5px 14px 3px',display:'flex',alignItems:'center',gap:5}}><div style={{width:5,height:5,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 28px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:active?`${ph.color}25`:'transparent',borderLeft:`2px solid ${active?ph.color:'transparent'}`,fontSize:15,color:active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${active?ph.color:isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div>{META[sid]}</div>})}</div>)}</div>}
 
 export default function PivotEngine(){
   const IP={loc:{country:'',city:'',work:''},resume:'',resumeFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''}}
@@ -701,7 +701,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
   return <>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     <div style={{minHeight:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column'}}>
-      <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+      <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <div>
           <div style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:700,color:C.gold}}>Reimagine</div>
           <div style={{fontSize:11,color:C.gray,letterSpacing:'1.5px',textTransform:'uppercase',marginTop:1}}>Your career. Your future. · Career Club</div>
