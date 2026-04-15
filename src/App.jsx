@@ -101,15 +101,15 @@ const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',as
 const ALL=['welcome','location','resume','assessment','values','reputation','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','p10','complete']
 
 const S={
-  title:{fontFamily:'Georgia,serif',fontSize:28,fontWeight:700,color:C.cream,margin:'0 0 10px',lineHeight:1.2},
-  sub:{fontSize:14,color:C.gray,margin:'0 0 24px',lineHeight:1.65,maxWidth:540},
+  title:{fontFamily:'Georgia,serif',fontSize:30,fontWeight:700,color:C.cream,margin:'0 0 10px',lineHeight:1.2},
+  sub:{fontSize:16,color:C.gray,margin:'0 0 24px',lineHeight:1.65,maxWidth:540},
   card:{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:'20px 24px',marginBottom:16},
   label:{display:'block',fontSize:11,fontWeight:700,color:C.grayL,margin:'0 0 7px',letterSpacing:'1px',textTransform:'uppercase'},
   inp:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'},
   ta:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'11px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',resize:'vertical',boxSizing:'border-box',lineHeight:1.6,minHeight:90},
   sel:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',cursor:'pointer'},
-  btn:{background:C.gold,color:C.bg,border:'none',borderRadius:8,padding:'11px 22px',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
-  sec:{background:'transparent',color:C.grayL,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 18px',fontSize:14,fontWeight:500,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
+  btn:{background:C.gold,color:C.bg,border:'none',borderRadius:8,padding:'11px 22px',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
+  sec:{background:'transparent',color:C.grayL,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 18px',fontSize:15,fontWeight:500,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
   sm:{background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:6,padding:'5px 11px',fontSize:12,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:5},
   out:{background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:'20px 24px',marginTop:14},
   err:{background:`${C.err}15`,border:`1px solid ${C.err}40`,borderRadius:8,padding:'11px 15px',color:C.err,fontSize:13,marginTop:12,display:'flex',gap:8,alignItems:'flex-start'},
@@ -323,7 +323,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           ['About 20–30 minutes','You can save and return at any point. Your progress is stored automatically.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
-          <div><span style={{fontWeight:600,fontSize:13,color:C.cream}}>{t}. </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
+          <div><span style={{fontWeight:600,fontSize:14,color:C.cream}}>{t}. </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
         </div>)}
         <div style={{marginTop:4,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
           <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{color:C.goldL,fontSize:13}}>Take the free Affintus assessment before you start →</a>
@@ -344,10 +344,10 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           </div>
           <div style={{flex:1}}>
             <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:3,flexWrap:'wrap'}}>
-              <span style={{fontWeight:600,fontSize:13,color:C.cream}}>{phase}</span>
+              <span style={{fontWeight:600,fontSize:14,color:C.cream}}>{phase}</span>
               <span style={{fontSize:11,color:C.gray}}>{time}</span>
             </div>
-            <div style={{fontSize:12,color:C.gray,lineHeight:1.65}}>{desc}</div>
+            <div style={{fontSize:14,color:C.gray,lineHeight:1.65}}>{desc}</div>
           </div>
         </div>)}
       </div>
@@ -360,7 +360,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           ['You only need one yes.','The goal is not to generate a list of plausible options. It\'s to find the one path worth committing to.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
-          <div><span style={{fontWeight:600,fontSize:13,color:C.cream}}>{t} </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
+          <div><span style={{fontWeight:600,fontSize:14,color:C.cream}}>{t} </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
         </div>)}
       </div>
 
