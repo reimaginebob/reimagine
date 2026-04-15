@@ -67,11 +67,11 @@ function MD({text}){
     if(line.startsWith('## '))return <h2 key={i} style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,color:"#C8924A",margin:'18px 0 8px',borderBottom:`1px solid ${C.border}`,paddingBottom:7}}>{line.slice(3)}</h2>
     if(line.startsWith('# '))return <h1 key={i} style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:"#1A2540",margin:'20px 0 8px'}}>{line.slice(2)}</h1>
     if(line.trim()==='---')return <hr key={i} style={{border:'none',borderTop:`1px solid ${C.border}`,margin:'16px 0'}}/>
-    if(line.startsWith('- ')||line.startsWith('* '))return <div key={i} style={{display:'flex',gap:10,margin:'4px 0',paddingLeft:8,alignItems:'flex-start'}}><span style={{color:C.gold,flexShrink:0,marginTop:2}}>◆</span><span style={{color:"#374258",lineHeight:1.65,fontSize:15}}><Inline text={line.slice(2)}/></span></div>
+    if(line.startsWith('- ')||line.startsWith('* '))return <div key={i} style={{display:'flex',gap:10,margin:'4px 0',paddingLeft:8,alignItems:'flex-start'}}><span style={{color:C.gold,flexShrink:0,marginTop:2}}>◆</span><span style={{color:"#374258",lineHeight:1.65,fontSize:20}}><Inline text={line.slice(2)}/></span></div>
     const nm=line.match(/^(\d+)\. (.*)/)
-    if(nm)return <div key={i} style={{display:'flex',gap:10,margin:'4px 0',paddingLeft:8}}><span style={{color:C.gold,flexShrink:0,fontWeight:600,minWidth:20,fontSize:14}}>{nm[1]}.</span><span style={{color:"#374258",lineHeight:1.65,fontSize:15}}><Inline text={nm[2]}/></span></div>
+    if(nm)return <div key={i} style={{display:'flex',gap:10,margin:'4px 0',paddingLeft:8}}><span style={{color:C.gold,flexShrink:0,fontWeight:600,minWidth:20,fontSize:14}}>{nm[1]}.</span><span style={{color:"#374258",lineHeight:1.65,fontSize:20}}><Inline text={nm[2]}/></span></div>
     if(line.trim()==='')return <div key={i} style={{height:9}}/>
-    return <p key={i} style={{margin:'3px 0',color:"#374258",lineHeight:1.7,fontSize:15}}><Inline text={line}/></p>
+    return <p key={i} style={{margin:'3px 0',color:"#374258",lineHeight:1.7,fontSize:20}}><Inline text={line}/></p>
   })}</div>
 }
 
@@ -154,7 +154,7 @@ function RefineBox({value,onChange,onRegenerate}){
     </div>}
   </div>
 }
-function Sidebar({step,done,onNav}){return <div style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>{PHASES.map(ph=><div key={ph.id} style={{marginBottom:3}}><div style={{fontSize:11,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:ph.color,padding:'5px 14px 3px',display:'flex',alignItems:'center',gap:5}}><div style={{width:5,height:5,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 28px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:active?`${ph.color}25`:'transparent',borderLeft:`2px solid ${active?ph.color:'transparent'}`,fontSize:15,color:active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${active?ph.color:isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div>{META[sid]}</div>})}</div>)}</div>}
+function Sidebar({step,done,onNav}){return <div style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>{PHASES.map(ph=><div key={ph.id} style={{marginBottom:3}}><div style={{fontSize:11,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:ph.color,padding:'5px 14px 3px',display:'flex',alignItems:'center',gap:5}}><div style={{width:5,height:5,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 28px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:active?`${ph.color}25`:'transparent',borderLeft:`2px solid ${active?ph.color:'transparent'}`,fontSize:18,color:active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${active?ph.color:isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div>{META[sid]}</div>})}</div>)}</div>}
 
 export default function PivotEngine(){
   const IP={loc:{country:'',city:'',work:''},resume:'',resumeFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''}}
@@ -323,7 +323,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           ['About 20–30 minutes','You can save and return at any point. Your progress is stored automatically.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
-          <div><span style={{fontWeight:600,fontSize:15,color:C.cream}}>{t}. </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
+          <div><span style={{fontWeight:600,fontSize:20,color:C.cream}}>{t}. </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
         </div>)}
         <div style={{marginTop:4,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
           <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{color:C.goldL,fontSize:13}}>Take the free Affintus assessment before you start →</a>
@@ -344,10 +344,10 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           </div>
           <div style={{flex:1}}>
             <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:3,flexWrap:'wrap'}}>
-              <span style={{fontWeight:600,fontSize:15,color:C.cream}}>{phase}</span>
+              <span style={{fontWeight:600,fontSize:20,color:C.cream}}>{phase}</span>
               <span style={{fontSize:11,color:C.gray}}>{time}</span>
             </div>
-            <div style={{fontSize:15,color:C.gray,lineHeight:1.65}}>{desc}</div>
+            <div style={{fontSize:20,color:C.gray,lineHeight:1.65}}>{desc}</div>
           </div>
         </div>)}
       </div>
@@ -360,7 +360,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           ['You only need one yes.','The goal is not to generate a list of plausible options. It\'s to find the one path worth committing to.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
-          <div><span style={{fontWeight:600,fontSize:15,color:C.cream}}>{t} </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
+          <div><span style={{fontWeight:600,fontSize:20,color:C.cream}}>{t} </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
         </div>)}
       </div>
 
@@ -629,7 +629,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         <Trophy size={32} color={C.gold} style={{margin:'0 auto 14px',display:'block'}}/>
         <h1 style={{...S.title,fontSize:26,textAlign:'center',marginBottom:8}}>You've done the work.</h1>
         <p style={{fontSize:13,color:C.goldL,lineHeight:1.5,fontFamily:'Georgia,serif',fontStyle:'italic',marginBottom:6}}>Your career. Your future.</p>
-        <p style={{fontSize:13,color:C.gray,lineHeight:1.7,maxWidth:400,margin:'0 auto'}}>Everything below is yours — your identity, your target, your story, your strategy. Come back anytime to review or refine.</p>
+        <p style={{fontSize:20,color:C.gray,lineHeight:1.7,maxWidth:500,margin:'0 auto'}}>Everything below is yours — your identity, your target, your story, your strategy. Come back anytime to review or refine.</p>
       </div>
 
       {!surveyDone&&<div style={{...S.card,marginBottom:22,border:`1px solid ${C.gold}40`}}>
