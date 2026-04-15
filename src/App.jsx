@@ -937,7 +937,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           <div>
             <div style={{fontSize:11,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:'#7AB87A',marginBottom:6}}>Bonus module</div>
             <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#FFFFFF',marginBottom:6}}>Income Now</div>
-            <div style={{fontSize:14,color:'#CBD5E0',lineHeight:1.65,maxWidth:420}}>Don't wait for the perfect role. While your search is underway, we'll build you a freelance and consulting presence — Upwork, Fiverr, fractional opportunities, and a one sheet — ready to generate income this week.</div>
+            <div style={{fontSize:18,color:'#CBD5E0',lineHeight:1.65,maxWidth:420}}>While your search is underway, we'll build you a freelance and consulting presence — Upwork, Fiverr, fractional opportunities, and a one sheet — ready to generate income this week.</div>
           </div>
           <Btn onClick={()=>nav('income')} style={{background:'#7AB87A',flexShrink:0}}>Generate My Income Plan <ChevronRight size={14}/></Btn>
         </div>
