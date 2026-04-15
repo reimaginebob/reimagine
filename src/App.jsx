@@ -80,7 +80,7 @@ const P={
   p2:(pr,o1)=>`Building on resume analysis, sharing three additional data layers.\n\nPRIOR ANALYSIS: ${o1}\n\nASSESSMENT (${pr.assessType||'provided'}): ${pr.assess||'None'}\nVALUES: ${pr.values}\nPASSIONS: ${pr.passions}\n\n**1. THE HOW ANALYSIS** — Cross-reference assessment signals with Translated Accomplishments specifically.\n**2. THE ENVIRONMENT FILTER** — Culture, pace, structure where this person thrives. Be specific.\n**3. PASSION LOG** — Confirm passions registered, note immediate patterns.`,
   p3:(pr,o1,o2)=>{const rep=[pr.rep.memory&&`Praise: ${pr.rep.memory}`,pr.rep.emergency&&`Emergency: ${pr.rep.emergency}`,pr.rep.twoWords&&`Superpower: "${pr.rep.twoWords}"`,pr.rep.other&&`Other: ${pr.rep.other}`].filter(Boolean).join('\n');return rep?`PRIOR ANALYSIS: ${o1}\n${o2}\nREPUTATION:\n${rep}\n\n**1. THE GOLDEN THREAD** — Consistent theme across accomplishments, wiring, and what others say.\n**2. THE FUNCTIONAL IDENTITY** — 2-sentence value proposition: no industry names, no job titles, no past employers.`:`PRIOR ANALYSIS: ${o1}\n${o2}\n\nNo reputation data. Generate a REPUTATION HYPOTHESIS from the other data — label it as inference. Then write a preliminary FUNCTIONAL IDENTITY — 2-sentence value proposition, no titles or industry names.`},
   p4:(pr,o1,o2,o3)=>`Generate the complete opportunity landscape. EXACT ORDER: Lane 3 first, Lane 2 second, Lane 1 last.\n\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\nPROFILE: ${o1}\n${o2}\n${o3}\n\nApply location/work filter. If geography limits options, say so clearly and offer three paths. Do NOT pad lists.\n\n**LANE 3 — THE REINVENTION** (first, up to 8): Ikigai intersection — skills + passion + market need + compensation at seniority. For each: Title/Role, Vehicle, 3–4 sentence rationale. Push beyond the obvious.\n\n**LANE 2 — THE ECOSYSTEM PIVOT** (second, up to 10): Start with a thorough ecosystem map naming: clients, vendors, consultants, upstream/downstream players, trade associations, educators, regulators, adjacent industries. Be genuinely thorough. For each option: Title, Organization Type, Vehicle, EMPATHY ADVANTAGE in one specific sentence.\n\n**LANE 1 — THE UPGRADE** (last, up to 6): Modernized version of core function. For each: what changed in this role in 3 years, then PRIORITIZED credential list ranked (1) highest impact, (2) achievable 30–90 days, (3) achievable this week.`,
-  p5:(pr,outs,opts)=>`Deep dive on selected options.\nA: ${opts[0]||''}  B: ${opts[1]||''}  C: ${opts[2]||''}\n\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\n\nFor EACH option:\n**1. WHY THIS FITS** — Evidence-grounded, specific. Reference all supporting Translated Accomplishments. Goal: convince the user themselves.\n**2. THE DAY IN THE LIFE** — What do they solve Tuesday at 10am? Concrete enough to feel it.\n**3. THE PIVOT EXPLANATION** — 4–6 sentences as logical evolution. Then distilled 2-sentence version.\n**4. THE HONEST CHALLENGE** — One legitimate obstacle, named plainly. Most direct path to close it.`,
+  p5:(pr,outs,opts)=>`Deep dive on selected options. Generate all options that were provided (up to 3).\nA: ${opts[0]||''}  B: ${opts[1]||''}  C: ${opts[2]||''}\n\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\n\nFor EACH option provided, use EXACTLY this structure with these exact headers:\n\n## OPTION A\n### REALITY CHECK\n**What this role is actually called:** List 3-4 real job titles seen on postings for this type of role.\n**What the job description says:** The 3-4 responsibilities that appear in almost every posting. Use real job description language.\n**What you will actually spend your time on:** Answer these five questions plainly and honestly:\n- What problems do you solve most often?\n- Who do you work with day to day?\n- Where does your time actually go?\n- What does success look like in the first 90 days?\n- What is the hardest part that never makes it into the job posting?\n**What they are really looking for:** The 2-3 things that separate candidates who get offers from those who do not. Be direct. State the unstated requirements.\n\n### WHY YOU FIT\n3-4 specific connections between this person's Translated Accomplishments and what this role actually requires. No padding. Each connection names the accomplishment and maps it to a specific requirement. Evidence only.\n\n### THE HONEST BRIEF\n**The pivot in two sentences:** How to explain this career move as a logical evolution. Natural and confident, not defensive.\n**The one real obstacle:** The single most legitimate gap or concern a hiring manager would have. Named plainly.\n**The fastest path to close it:** One specific, achievable action. Not generic advice.\n\n(Repeat exact same structure for OPTION B and OPTION C if provided)`,
   p6:(pr,outs,sel)=>`User pursues: **${sel}**\n\nWrite three "Tell Me About Yourself" versions — 30, 60, 90 seconds. Same person, different depths. Natural, conversational, spoken-word. No corporate language.\n\nStructure: (1) THE PERSON — Functional Identity, who they are and how wired. (2) THE PROOF — Translated Accomplishments supporting the pattern, framed as make/save/mitigate. (3) THE PIVOT — Connect to ${sel} as natural evolution.\n\nPROFILE: ${outs.p1}\n${outs.p3}\n\nLabel: **[30 SECONDS]** / **[60 SECONDS]** / **[90 SECONDS]**`,
   p7:(pr,outs,sel)=>`Complete Go-to-Market Strategy for: **${sel}** — no job boards.\n\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\n\n**PART 1 — THE HIRING EXECUTIVE**: Describe the most likely hiring executive for this role: their title(s), the type and size of organization they work in, the core business challenge they are accountable for solving, and why this person's background gives them a credible perspective. Be concrete and specific.\n\n**PART 2 — TARGET COMPANY LIST**: Search the web. Generate 20-30 companies organized by lane.\nPRIORITIZE companies showing signs of growth and investment: recent VC/PE funding, acquisitions, geographic or product expansion, headcount growth on LinkedIn, Best Companies lists.\nFLAG/REMOVE companies showing contraction: layoffs past 12 months, hiring freezes, major leadership departures, restructuring.\nMixed signals: include with a warning note. Geography restricts below 20? Say so clearly.\n\nFor each company, search for:\n1. The actual name of the person most likely to be the hiring decision-maker for this role. Check LinkedIn, company website, press releases, and news. If found, include their name and LinkedIn URL. If not found, write "Contact not identified."\n2. The company email convention — search for patterns from public sources (press releases, website contact pages, news quotes with email addresses). State the likely format (e.g. firstname@company.com or f.lastname@company.com). If a specific person's email is publicly listed, include it. Do not guess — only state what can be reasonably inferred from public information.\n\nFORMAT: Each company MUST be on a single line using EXACTLY this pipe-separated format with no exceptions:\nName | Why it fits | Growth signal | Contact name & LinkedIn | Email convention | www.website.com\nThe website must be the last field. Do not put any field on a separate line. Every single company entry must follow this exact format.\n\n**PART 3 — OUTREACH TEMPLATE**: Using the strongest company as an example, write one 4-6 sentence message.\nCRITICAL TONE RULES FOR THE MESSAGE: Write like a real person, not a consultant. Short sentences. Plain words. No jargon. No buzzwords like "architecting," "ecosystem," "leverage," "talent intelligence," "platform," "synergy," or "space." If a word would look at home on a LinkedIn thought-leader post, cut it. The observation in sentence 1 must be a plain factual statement — something the reader already knows is true about their company, stated simply. Sentences 2-3 connect one specific accomplishment to one specific problem they likely have. Sentence 4 asks for 15 minutes as a peer-to-peer conversation, not a job inquiry. The whole message should sound like it came from a thoughtful human being, not a marketing tool.\nThen: a personalization guide with 3 elements to tailor per company.\n\n**PART 4 — LINKEDIN SIGNAL TWEAK**: One specific headline change. Explain why this phrasing works better.`,
   p8:(pr,outs,sel)=>`Reposition LinkedIn for: **${sel}**\nPROFILE: ${outs.p1}\n${outs.p3}\nRESUME: ${pr.resume}\n\n1. THREE HEADLINE OPTIONS — each optimizing something different (search visibility, human resonance, authority signaling). Give a reason to choose.\n2. THE ABOUT SECTION — ~200 words, first person, natural voice. Pivot as feature. Accomplishments as make/save/mitigate.\n3. EXPERIENCE REFRAME — Most recent role, top 3–4 bullets rewritten for transferable skills relevant to ${sel}. Each passes the "so what?" test.`,
@@ -657,21 +657,66 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       {err&&<ErrBox msg={err}/>}
     </div>
 
-    case'p5':return <div>
-      <div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>
-      <h1 style={S.title}>The Deep Dive</h1>
-      <p style={S.sub}>We'll make the full case for each option you selected: why it fits, what the day-to-day looks like, how to explain the transition, and the one real challenge to prepare for.</p>
-      {deepOpts.filter(Boolean).length>0&&<div style={{...S.note,marginBottom:16}}>Exploring: {deepOpts.filter(Boolean).map((o,i)=><strong key={i} style={{color:C.cream,marginRight:12}}>{o}</strong>)}</div>}
-      {!outputs.p5&&!loading&&deepOpts.filter(Boolean).length>0&&<Btn onClick={()=>generate('p5',()=>P.p5(pc,outputs,deepOpts),{maxTokens:5000,msg:'Building your deep dive…'})}><Sparkles size={14}/>Explore These Options</Btn>}
-      {deepOpts.filter(Boolean).length===0&&!outputs.p5&&<div style={{...S.err,marginTop:0}}><AlertCircle size={13} color={C.err} style={{flexShrink:0}}/><span>Go back to The Wide View and select at least one option to explore.</span></div>}
-      {loading&&<Loading msg={loadMsg||'Building your deep dive on each option…'}/>}
-      {outputs.p5&&<>
-        <OutPanel text={outputs.p5} onCopy={copy} copied={copied}/>
-        <RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} onRegenerate={v=>{out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:5000,msg:'Rebuilding your deep dive…'})}}/>
-        <div style={S.row}><Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p4')}}><RotateCcw size={13}/>Try Different Options</Btn><Btn onClick={()=>advance('p5','decision')}>Make My Decision <ChevronRight size={14}/></Btn></div>
-      </>}
-      {err&&<ErrBox msg={err}/>}
-    </div>
+    case'p5':{
+      const[activeTab,setActiveTab]=useState(0)
+      const filledOpts=deepOpts.filter(v=>v&&v!=='?')
+
+      const parseOptions=(text)=>{
+        if(!text)return[]
+        const parts=text.split(/^## OPTION [ABC]/m).filter(Boolean)
+        return parts.map(part=>{
+          const sections={title:'',reality:'',fit:'',brief:''}
+          const realityMatch=part.match(/### REALITY CHECK([\s\S]*?)(?=### WHY YOU FIT|### THE HONEST BRIEF|$)/)
+          const fitMatch=part.match(/### WHY YOU FIT([\s\S]*?)(?=### THE HONEST BRIEF|$)/)
+          const briefMatch=part.match(/### THE HONEST BRIEF([\s\S]*?)$/)
+          sections.reality=realityMatch?realityMatch[1].trim():''
+          sections.fit=fitMatch?fitMatch[1].trim():''
+          sections.brief=briefMatch?briefMatch[1].trim():''
+          return sections
+        })
+      }
+
+      const parsed=parseOptions(outputs.p5)
+      const sectionStyle={background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'20px 24px',marginBottom:12,boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}
+      const sectionLabel={fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold,marginBottom:10,display:'block'}
+
+      return <div>
+        <div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>
+        <h1 style={S.title}>The Deep Dive</h1>
+        <p style={S.sub}>A clear-eyed look at each option — what the role really is, why you fit, and what to know before you pursue it.</p>
+        {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{...S.note,marginBottom:16}}>Exploring: {filledOpts.map((o,i)=><strong key={i} style={{color:'#1A2540',marginRight:12}}>{o}</strong>)}</div>}
+        {!outputs.p5&&!loading&&filledOpts.length>0&&<Btn onClick={()=>generate('p5',()=>P.p5(pc,outputs,deepOpts),{maxTokens:6000,msg:'Building your deep dive…'})}><Sparkles size={14}/>Explore These Options</Btn>}
+        {filledOpts.length===0&&!outputs.p5&&<div style={{...S.err,marginTop:0}}><AlertCircle size={13} color={C.err} style={{flexShrink:0}}/><span>Go back to The Wide View and select at least one option to explore.</span></div>}
+        {loading&&<Loading msg={loadMsg||'Building your deep dive…'}/>}
+        {outputs.p5&&<>
+          <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
+            {filledOpts.map((opt,i)=><button key={i} onClick={()=>setActiveTab(i)} style={{padding:'10px 20px',borderRadius:8,border:`2px solid ${activeTab===i?C.gold:C.border}`,background:activeTab===i?`${C.gold}15`:'white',color:activeTab===i?C.goldL:'#4A5568',fontSize:15,fontWeight:activeTab===i?600:400,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s'}}>{opt}</button>)}
+          </div>
+          {parsed[activeTab]&&<>
+            <div style={sectionStyle}>
+              <span style={sectionLabel}>Reality Check</span>
+              <MD text={parsed[activeTab].reality}/>
+            </div>
+            <div style={sectionStyle}>
+              <span style={sectionLabel}>Why You Fit</span>
+              <MD text={parsed[activeTab].fit}/>
+            </div>
+            <div style={sectionStyle}>
+              <span style={sectionLabel}>The Honest Brief</span>
+              <MD text={parsed[activeTab].brief}/>
+            </div>
+          </>}
+          {!parsed[activeTab]&&<div style={S.out}><MD text={outputs.p5}/></div>}
+          <RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} onRegenerate={v=>{out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000,msg:'Rebuilding your deep dive…'})}}/>
+          <div style={S.row}>
+            <Btn secondary onClick={()=>out('p5','')}><RotateCcw size={13}/>Regenerate</Btn>
+            <Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p4')}}><ArrowLeft size={13}/>Try Different Options</Btn>
+            <Btn onClick={()=>advance('p5','decision')}>Make My Decision <ChevronRight size={14}/></Btn>
+          </div>
+        </>}
+        {err&&<ErrBox msg={err}/>}
+      </div>
+    }
 
     case'decision':return <div>
       <div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>
