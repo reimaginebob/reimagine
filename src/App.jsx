@@ -450,8 +450,12 @@ A senior people-strategy leader who turns workforce challenges into measurable b
 
   const rStep=()=>{switch(step){
     case'welcome':return <div>
-      <div style={{fontFamily:'Georgia,serif',fontSize:32,fontWeight:700,color:C.cream,lineHeight:1.15,marginBottom:6,maxWidth:500}}>Reimagine</div>
-      <div style={{fontFamily:'Georgia,serif',fontSize:18,fontWeight:400,color:C.goldL,marginBottom:16}}>Your career. Your future.</div>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="380" height="132" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block',marginBottom:8}}>
+        <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.18"/>
+        <circle cx="44" cy="60" r="18" fill="#e4572e"/>
+        <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#0e1a2b">Re<tspan fill="#e4572e">imagine</tspan></text>
+        <text x="92" y="132" fontSize="26" fontWeight="700" letterSpacing="-0.3" fill="#55617a">Your <tspan fontWeight="800" fill="#0e1a2b">Career</tspan>. Your <tspan fontWeight="900" fill="#e4572e">Future</tspan>.</text>
+      </svg>
       <p style={{...S.sub,fontSize:14,maxWidth:560}}>Reimagine is a step-by-step career strategy tool built on the framework from Making Your Own Weather by Bob Goodwin. It takes what you've done, how you're wired, and what you care about — and turns that into a concrete plan for what comes next.</p>
 
       <div style={{...S.card,marginBottom:16}}>
@@ -846,9 +850,12 @@ A senior people-strategy leader who turns workforce challenges into measurable b
 
     case'complete':{if(!done.includes('complete'))markDone('complete');return <div>
       <div style={{background:`linear-gradient(135deg,${C.panel} 0%,${C.card} 100%)`,border:`1px solid ${C.gold}35`,borderRadius:16,padding:'36px',textAlign:'center',marginBottom:22}}>
-        <Trophy size={32} color={C.gold} style={{margin:'0 auto 14px',display:'block'}}/>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="260" height="60" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block',margin:'0 auto 16px'}}>
+          <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.18"/>
+          <circle cx="44" cy="60" r="18" fill="#e4572e"/>
+          <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#0e1a2b">Re<tspan fill="#e4572e">imagine</tspan></text>
+        </svg>
         <h1 style={{...S.title,fontSize:26,textAlign:'center',marginBottom:8}}>You've done the work.</h1>
-        <p style={{fontSize:17,color:C.goldL,lineHeight:1.5,fontFamily:'Georgia,serif',fontStyle:'italic',marginBottom:6}}>Your career. Your future.</p>
         <p style={{fontSize:20,color:C.gray,lineHeight:1.7,maxWidth:500,margin:'0 auto'}}>Everything below is yours — your identity, your target, your story, your strategy. Come back anytime to review or refine.</p>
       </div>
 
@@ -961,8 +968,11 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     <div style={{minHeight:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column'}}>
       <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <div>
-          <div style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:700,color:C.gold}}>Reimagine</div>
-          <div style={{fontSize:11,color:C.gray,letterSpacing:'1.5px',textTransform:'uppercase',marginTop:1}}>Your career. Your future. · Career Club</div>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="148" height="34" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
+            <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.25"/>
+            <circle cx="44" cy="60" r="18" fill="#e4572e"/>
+            <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#FFFFFF">Re<tspan fill="#e4572e">imagine</tspan></text>
+          </svg>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           <div style={{fontSize:11,color:C.gray}}>{prog}% complete</div>
