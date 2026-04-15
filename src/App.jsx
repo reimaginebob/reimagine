@@ -101,7 +101,7 @@ const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',as
 const ALL=['welcome','location','resume','assessment','values','reputation','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','p10','complete']
 
 const S={
-  title:{fontFamily:'Georgia,serif',fontSize:30,fontWeight:700,color:C.cream,margin:'0 0 10px',lineHeight:1.2},
+  title:{fontFamily:'Georgia,serif',fontSize:34,fontWeight:700,color:C.cream,margin:'0 0 10px',lineHeight:1.2},
   sub:{fontSize:16,color:C.gray,margin:'0 0 24px',lineHeight:1.65,maxWidth:540},
   card:{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:'20px 24px',marginBottom:16},
   label:{display:'block',fontSize:11,fontWeight:700,color:C.grayL,margin:'0 0 7px',letterSpacing:'1px',textTransform:'uppercase'},
@@ -154,7 +154,7 @@ function RefineBox({value,onChange,onRegenerate}){
     </div>}
   </div>
 }
-function Sidebar({step,done,onNav}){return <div style={{width:220,background:C.panel,borderRight:`1px solid ${C.border}`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>{PHASES.map(ph=><div key={ph.id} style={{marginBottom:3}}><div style={{fontSize:10,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:ph.color,padding:'5px 14px 3px',display:'flex',alignItems:'center',gap:5}}><div style={{width:5,height:5,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'7px 14px 7px 28px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:active?`${ph.color}15`:'transparent',borderLeft:`2px solid ${active?ph.color:'transparent'}`,fontSize:13,color:active?C.cream:isDone?C.grayL:C.gray,transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${active?ph.color:isDone?C.ok:C.border}`,background:isDone?C.ok:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color={C.bg} strokeWidth={3}/>}</div>{META[sid]}</div>})}</div>)}</div>}
+function Sidebar({step,done,onNav}){return <div style={{width:260,background:C.panel,borderRight:`1px solid ${C.border}`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>{PHASES.map(ph=><div key={ph.id} style={{marginBottom:3}}><div style={{fontSize:11,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:ph.color,padding:'5px 14px 3px',display:'flex',alignItems:'center',gap:5}}><div style={{width:5,height:5,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 28px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:active?`${ph.color}15`:'transparent',borderLeft:`2px solid ${active?ph.color:'transparent'}`,fontSize:15,color:active?C.cream:isDone?C.grayL:C.gray,transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${active?ph.color:isDone?C.ok:C.border}`,background:isDone?C.ok:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color={C.bg} strokeWidth={3}/>}</div>{META[sid]}</div>})}</div>)}</div>}
 
 export default function PivotEngine(){
   const IP={loc:{country:'',city:'',work:''},resume:'',resumeFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''}}
@@ -323,7 +323,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           ['About 20–30 minutes','You can save and return at any point. Your progress is stored automatically.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
-          <div><span style={{fontWeight:600,fontSize:14,color:C.cream}}>{t}. </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
+          <div><span style={{fontWeight:600,fontSize:15,color:C.cream}}>{t}. </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
         </div>)}
         <div style={{marginTop:4,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
           <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{color:C.goldL,fontSize:13}}>Take the free Affintus assessment before you start →</a>
@@ -344,10 +344,10 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           </div>
           <div style={{flex:1}}>
             <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:3,flexWrap:'wrap'}}>
-              <span style={{fontWeight:600,fontSize:14,color:C.cream}}>{phase}</span>
+              <span style={{fontWeight:600,fontSize:15,color:C.cream}}>{phase}</span>
               <span style={{fontSize:11,color:C.gray}}>{time}</span>
             </div>
-            <div style={{fontSize:14,color:C.gray,lineHeight:1.65}}>{desc}</div>
+            <div style={{fontSize:15,color:C.gray,lineHeight:1.65}}>{desc}</div>
           </div>
         </div>)}
       </div>
@@ -360,7 +360,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           ['You only need one yes.','The goal is not to generate a list of plausible options. It\'s to find the one path worth committing to.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
-          <div><span style={{fontWeight:600,fontSize:14,color:C.cream}}>{t} </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
+          <div><span style={{fontWeight:600,fontSize:15,color:C.cream}}>{t} </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
         </div>)}
       </div>
 
@@ -704,7 +704,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <div>
           <div style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:700,color:C.gold}}>Reimagine</div>
-          <div style={{fontSize:9,color:C.gray,letterSpacing:'1.5px',textTransform:'uppercase',marginTop:1}}>Your career. Your future. · Career Club</div>
+          <div style={{fontSize:11,color:C.gray,letterSpacing:'1.5px',textTransform:'uppercase',marginTop:1}}>Your career. Your future. · Career Club</div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           <div style={{fontSize:11,color:C.gray}}>{prog}% complete</div>
