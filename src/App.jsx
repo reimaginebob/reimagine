@@ -36,7 +36,7 @@ async function callClaude(prompt, opts={}) {
   const{webSearch=false,highTemp=false,maxTokens=4000}=opts
   const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined
   const body={model:"claude-sonnet-4-20250514",max_tokens:maxTokens,temperature:highTemp?1.0:0.7,system:SYS,messages:[{role:"user",content:prompt}],...(tools&&{tools})}
-  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+  const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
   if(!res.ok){const e=await res.json();throw new Error(e.error?.message||"API error")}
   const data=await res.json()
   return data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n")
@@ -178,8 +178,8 @@ export default function PivotEngine(){
   const[surveySubmitted,setSurveySubmitted]=useState(false)
   const setSv=(k,v)=>setSurvey(s=>({...s,[k]:v}))
 
-  useEffect(()=>{const load=async()=>{try{const r=await window.storage.get('pe_v3');if(r){const d=JSON.parse(r.value);if(d.step)setStep(d.step);if(d.profile)setProfile(d.profile);if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen)}}catch{}};load()},[])
-  useEffect(()=>{const save=async()=>{try{await window.storage.set('pe_v3',JSON.stringify({step,profile,outputs,done,deepOpts,chosen}))}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen])
+  useEffect(()=>{const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(d.profile);if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen)}}catch{}};load()},[])
+  useEffect(()=>{const save=async()=>{try{localStorage.setItem('pe_v3',JSON.stringify({step,profile,outputs,done,deepOpts,chosen}))}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen])
 
   const pr=(f,v)=>setProfile(p=>({...p,[f]:v}))
   const loc=(f,v)=>setProfile(p=>({...p,loc:{...p.loc,[f]:v}}))
@@ -190,7 +190,7 @@ export default function PivotEngine(){
   const nav=(to)=>{setStep(to);setErr(null)}
   const generate=async(key,fn,opts={})=>{setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(fn(),opts);out(key,r)}catch(e){setErr(e.message)}finally{setLoading(false)}}
   const copy=(text)=>{navigator.clipboard.writeText(text);setCopied(true);setTimeout(()=>setCopied(false),2000)}
-  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{await window.storage.delete('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:''})}}
+  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:''})}}
   const prog=Math.round((ALL.indexOf(step)/(ALL.length-1))*100)
   const pc={loc:profile.loc,resume:profile.resume,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep}
 
