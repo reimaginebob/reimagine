@@ -82,7 +82,7 @@ const P={
   p4:(pr,o1,o2,o3)=>`Generate the complete opportunity landscape. EXACT ORDER: Lane 3 first, Lane 2 second, Lane 1 last.\n\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\nPROFILE: ${o1}\n${o2}\n${o3}\n\nApply location/work filter. If geography limits options, say so clearly and offer three paths. Do NOT pad lists.\n\n**LANE 3 — THE REINVENTION** (first, up to 8): Ikigai intersection — skills + passion + market need + compensation at seniority. For each: Title/Role, Vehicle, 3–4 sentence rationale. Push beyond the obvious.\n\n**LANE 2 — THE ECOSYSTEM PIVOT** (second, up to 10): Start with a thorough ecosystem map naming: clients, vendors, consultants, upstream/downstream players, trade associations, educators, regulators, adjacent industries. Be genuinely thorough. For each option: Title, Organization Type, Vehicle, EMPATHY ADVANTAGE in one specific sentence.\n\n**LANE 1 — THE UPGRADE** (last, up to 6): Modernized version of core function. For each: what changed in this role in 3 years, then PRIORITIZED credential list ranked (1) highest impact, (2) achievable 30–90 days, (3) achievable this week.`,
   p5:(pr,outs,opts)=>`Deep dive on selected options.\nA: ${opts[0]||''}  B: ${opts[1]||''}  C: ${opts[2]||''}\n\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\n\nFor EACH option:\n**1. WHY THIS FITS** — Evidence-grounded, specific. Reference all supporting Translated Accomplishments. Goal: convince the user themselves.\n**2. THE DAY IN THE LIFE** — What do they solve Tuesday at 10am? Concrete enough to feel it.\n**3. THE PIVOT EXPLANATION** — 4–6 sentences as logical evolution. Then distilled 2-sentence version.\n**4. THE HONEST CHALLENGE** — One legitimate obstacle, named plainly. Most direct path to close it.`,
   p6:(pr,outs,sel)=>`User pursues: **${sel}**\n\nWrite three "Tell Me About Yourself" versions — 30, 60, 90 seconds. Same person, different depths. Natural, conversational, spoken-word. No corporate language.\n\nStructure: (1) THE PERSON — Functional Identity, who they are and how wired. (2) THE PROOF — Translated Accomplishments supporting the pattern, framed as make/save/mitigate. (3) THE PIVOT — Connect to ${sel} as natural evolution.\n\nPROFILE: ${outs.p1}\n${outs.p3}\n\nLabel: **[30 SECONDS]** / **[60 SECONDS]** / **[90 SECONDS]**`,
-  p7:(pr,outs,sel)=>`Complete Go-to-Market Strategy for: **${sel}** — no job boards.\n\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\n\n**PART 1 — THE HIRING EXECUTIVE**: Describe the most likely hiring executive for this role: their title(s), the type and size of organization they work in, the core business challenge they are accountable for solving, and why this person's background gives them a credible perspective. Be concrete and specific.\n\n**PART 2 — TARGET COMPANY LIST**: Search the web. Generate 20-30 companies organized by lane.\nPRIORITIZE companies showing signs of growth and investment: recent VC/PE funding, acquisitions, geographic or product expansion, headcount growth on LinkedIn, Best Companies lists.\nFLAG/REMOVE companies showing contraction: layoffs past 12 months, hiring freezes, major leadership departures, restructuring.\nMixed signals: include with a warning note. Geography restricts below 20? Say so clearly.\nFormat each line: Name | Why it fits | Growth signal | Best contact title\nInclude the company website URL for each entry.\n\n**PART 3 — OUTREACH TEMPLATE**: Using the strongest company as an example, write one 4-6 sentence message.\nCRITICAL TONE RULES FOR THE MESSAGE: Write like a real person, not a consultant. Short sentences. Plain words. No jargon. No buzzwords like "architecting," "ecosystem," "leverage," "talent intelligence," "platform," "synergy," or "space." If a word would look at home on a LinkedIn thought-leader post, cut it. The observation in sentence 1 must be a plain factual statement — something the reader already knows is true about their company, stated simply. Sentences 2-3 connect one specific accomplishment to one specific problem they likely have. Sentence 4 asks for 15 minutes as a peer-to-peer conversation, not a job inquiry. The whole message should sound like it came from a thoughtful human being, not a marketing tool.\nThen: a personalization guide with 3 elements to tailor per company.\n\n**PART 4 — LINKEDIN SIGNAL TWEAK**: One specific headline change. Explain why this phrasing works better.`,
+  p7:(pr,outs,sel)=>`Complete Go-to-Market Strategy for: **${sel}** — no job boards.\n\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\n\n**PART 1 — THE HIRING EXECUTIVE**: Describe the most likely hiring executive for this role: their title(s), the type and size of organization they work in, the core business challenge they are accountable for solving, and why this person's background gives them a credible perspective. Be concrete and specific.\n\n**PART 2 — TARGET COMPANY LIST**: Search the web. Generate 20-30 companies organized by lane.\nPRIORITIZE companies showing signs of growth and investment: recent VC/PE funding, acquisitions, geographic or product expansion, headcount growth on LinkedIn, Best Companies lists.\nFLAG/REMOVE companies showing contraction: layoffs past 12 months, hiring freezes, major leadership departures, restructuring.\nMixed signals: include with a warning note. Geography restricts below 20? Say so clearly.\n\nFor each company, search for:\n1. The actual name of the person most likely to be the hiring decision-maker for this role. Check LinkedIn, company website, press releases, and news. If found, include their name and LinkedIn URL. If not found, write "Contact not identified."\n2. The company email convention — search for patterns from public sources (press releases, website contact pages, news quotes with email addresses). State the likely format (e.g. firstname@company.com or f.lastname@company.com). If a specific person's email is publicly listed, include it. Do not guess — only state what can be reasonably inferred from public information.\n\nFORMAT: Each company MUST be on a single line using EXACTLY this pipe-separated format with no exceptions:\nName | Why it fits | Growth signal | Contact name & LinkedIn | Email convention | www.website.com\nThe website must be the last field. Do not put any field on a separate line. Every single company entry must follow this exact format.\n\n**PART 3 — OUTREACH TEMPLATE**: Using the strongest company as an example, write one 4-6 sentence message.\nCRITICAL TONE RULES FOR THE MESSAGE: Write like a real person, not a consultant. Short sentences. Plain words. No jargon. No buzzwords like "architecting," "ecosystem," "leverage," "talent intelligence," "platform," "synergy," or "space." If a word would look at home on a LinkedIn thought-leader post, cut it. The observation in sentence 1 must be a plain factual statement — something the reader already knows is true about their company, stated simply. Sentences 2-3 connect one specific accomplishment to one specific problem they likely have. Sentence 4 asks for 15 minutes as a peer-to-peer conversation, not a job inquiry. The whole message should sound like it came from a thoughtful human being, not a marketing tool.\nThen: a personalization guide with 3 elements to tailor per company.\n\n**PART 4 — LINKEDIN SIGNAL TWEAK**: One specific headline change. Explain why this phrasing works better.`,
   p8:(pr,outs,sel)=>`Reposition LinkedIn for: **${sel}**\nPROFILE: ${outs.p1}\n${outs.p3}\nRESUME: ${pr.resume}\n\n1. THREE HEADLINE OPTIONS — each optimizing something different (search visibility, human resonance, authority signaling). Give a reason to choose.\n2. THE ABOUT SECTION — ~200 words, first person, natural voice. Pivot as feature. Accomplishments as make/save/mitigate.\n3. EXPERIENCE REFRAME — Most recent role, top 3–4 bullets rewritten for transferable skills relevant to ${sel}. Each passes the "so what?" test.`,
   p9:(pr,outs,sel)=>`${sel} — credible outsider needs to sound like a native in one session.\nLearning signals: ${pr.assess?pr.assess.substring(0,300):'Balanced learner.'}\n\n1. THE LINGO — 10 essential terms/acronyms. For each: plain-language definition + example sentence.\n2. THE TECH STACK — Top 3 tools practitioners rely on. What each does, why it matters, what knowing it signals.\n3. THE THOUGHT LEADERS — 3 people to follow on LinkedIn now. Who, what they post, what following teaches.\n4. THE FASTEST CREDIBILITY MOVE — One specific action in 7 days. Specific and achievable.`,
   p10:(pr,outs,sel)=>`You are now a skeptical hiring manager evaluating this person for: **${sel}**\nBACKGROUND: ${outs.p1.substring(0,500)}\nFUNCTIONAL IDENTITY: ${outs.p3.substring(0,350)}\n\n1. THE HARD QUESTION — The single most legitimate concern a decision-maker would have about this candidate. State it plainly.\n2. THE RESPONSE — A confident, specific answer grounded in their Functional Identity, Translated Accomplishments, and wiring. No deflection. Show how the background is actually a strength.\n3. THE PRACTICE NOTE — One specific thing to practice saying aloud before the first real conversation. Explain what to say and why it works.`,
@@ -210,6 +210,7 @@ export default function PivotEngine(){
   const[surveyDone,setSurveyDone]=useState(false)
   const[survey,setSurvey]=useState({nps:null,valuable:'',confidence:null,accuracy:null,open:''})
   const[surveySubmitted,setSurveySubmitted]=useState(false)
+  const[surveySubmitting,setSurveySubmitting]=useState(false)
   const setSv=(k,v)=>setSurvey(s=>({...s,[k]:v}))
 
   useEffect(()=>{const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(d.profile);if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen)}}catch{}};load()},[])
@@ -507,6 +508,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     </div>
 
     case'p3':return <div>
+      {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
+
       <div style={S.tag('#8A7AB8')}>Phase 1 · Know Your Value</div>
       <h1 style={S.title}>Brand Synthesis</h1>
       <p style={S.sub}>The final data layer. We synthesize everything into your Golden Thread and Functional Identity: a crisp, title-free statement of what you bring to any organization.</p>
@@ -580,6 +583,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     </div>
 
     case'p6':return <div>
+      {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
+
       <div style={S.tag('#C8924A')}>Phase 3 · Tell Your Story</div>
       <h1 style={S.title}>Your Bridge Story</h1>
       <p style={S.sub}>Three versions of your "Tell Me About Yourself" — 30, 60, and 90 seconds. Written to be said aloud.</p>
@@ -591,6 +596,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     </div>
 
     case'p7':return <div>
+      {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
+
       <div style={S.tag('#B86A6A')}>Phase 4 · Find Your Market</div>
       <h1 style={S.title}>Go-to-Market Strategy</h1>
       <p style={S.sub}>Most hiring happens before a posting goes live — or without one ever going live. Your target company list and outreach strategy. No job boards.</p>
@@ -616,7 +623,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
             <Btn onClick={()=>{
               const lines=outputs.p7.split('\n').filter(l=>l.includes('|')&&l.trim().length>10&&!l.match(/^[\s|:-]+$/))
               const csv=lines.length>2
-                ?'Company,Why it fits,Growth signal,Contact title,Website\n'+lines.map(l=>{const p=l.split('|').map(s=>s.trim());return p.map(s=>`"${s.replace(/"/g,'""')}"`).join(',')}).join('\n')
+                ?'Company,Why it fits,Growth signal,Contact name & LinkedIn,Email convention,Website\n'+lines.map(l=>{const p=l.split('|').map(s=>s.trim());return p.map(s=>`"${s.replace(/"/g,'""')}"`).join(',')}).join('\n')
                 :outputs.p7
               const blob=new Blob([csv],{type:'text/csv'})
               const url=URL.createObjectURL(blob)
@@ -640,6 +647,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     </div>
 
     case'p8':return <div>
+      {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
+
       <div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>
       <h1 style={S.title}>LinkedIn Remix</h1>
       <p style={S.sub}>Your LinkedIn profile is the first thing target buyers see after you reach out. We'll rewrite your headline, About section, and experience bullets.</p>
@@ -650,6 +659,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     </div>
 
     case'p_res':return <div>
+      {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
+
       <div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>
       <h1 style={S.title}>Resume Refresh</h1>
       <p style={S.sub}>Your resume, rewritten to speak directly to your new direction. Same career, new framing — every bullet tied to a business result relevant to where you're headed.</p>
@@ -661,6 +672,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     </div>
 
     case'p9':return <div>
+      {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
+
       <div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>
       <h1 style={S.title}>The Crash Course</h1>
       <p style={S.sub}>You're entering this field as a credible outsider. This gives you what you need to sound like a native in one focused study session.</p>
@@ -671,6 +684,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     </div>
 
     case'p10':return <div>
+      {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
+
       <div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>
       <h1 style={S.title}>The Devil's Advocate</h1>
       <p style={S.sub}>The best defense is preparation. We surface the hardest question you'll face in a real room — then give you the answer. You'll hear it here before you hear it there.</p>
@@ -729,13 +744,23 @@ A senior people-strategy leader who turns workforce challenges into measurable b
 
           <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
             <Btn onClick={async()=>{
+              setSurveySubmitting(true)
               try{
                 await fetch('https://script.google.com/macros/s/AKfycbz5RgmQgmqM4qhar3YviuoPMbDvdSKSOJlRX6-qmbQKOI7t6IbnETxkc-NfG3m4LitAtg/exec',{method:'POST',body:JSON.stringify({...survey,chosen,timestamp:new Date().toISOString()})})
               }catch{}
+              setSurveySubmitting(false)
               setSurveySubmitted(true)
             }}>Submit Feedback</Btn>
             <Btn secondary onClick={()=>setSurveyDone(true)}>No thanks</Btn>
           </div>
+          {surveySubmitting&&<div style={{marginTop:20,padding:'20px',background:'#F7F8FA',borderRadius:10,textAlign:'center'}}>
+            <Loader2 size={22} style={{color:C.gold,animation:'spin 0.9s linear infinite',margin:'0 auto 12px',display:'block'}}/>
+            <div style={{fontSize:15,color:C.grayL,marginBottom:16}}>Sending your feedback…</div>
+            <div style={{borderLeft:`3px solid ${C.gold}`,paddingLeft:16,textAlign:'left'}}>
+              <div style={{fontSize:15,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:6}}>"{QUOTES[Math.floor(Math.random()*QUOTES.length)].text}"</div>
+              <div style={{fontSize:13,color:C.gold,fontWeight:600}}>{QUOTES[Math.floor(Math.random()*QUOTES.length)].author}</div>
+            </div>
+          </div>}
         </>:<div style={{textAlign:'center',padding:'20px 0'}}>
           <div style={{fontSize:22,marginBottom:10}}>🙏</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:16,color:C.cream,marginBottom:6}}>Thank you — this means a lot.</div>
