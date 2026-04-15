@@ -680,7 +680,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       {err&&<ErrBox msg={err}/>}
     </div>
 
-    case'complete':return <div>
+    case'complete':{if(!done.includes('complete'))markDone('complete');return <div>
       <div style={{background:`linear-gradient(135deg,${C.panel} 0%,${C.card} 100%)`,border:`1px solid ${C.gold}35`,borderRadius:16,padding:'36px',textAlign:'center',marginBottom:22}}>
         <Trophy size={32} color={C.gold} style={{margin:'0 auto 14px',display:'block'}}/>
         <h1 style={{...S.title,fontSize:26,textAlign:'center',marginBottom:8}}>You've done the work.</h1>
@@ -753,7 +753,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:15,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> Close this and return at any time — everything will be here.</div>
         <div style={{marginTop:10,textAlign:'right'}}><Btn small onClick={reset}><RotateCcw size={11}/>Start a New Session</Btn></div>
       </>}
-    </div>
+    </div>}
 
     default:return null
   }}
