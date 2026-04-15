@@ -932,28 +932,6 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         </div>
         {[['Your Functional Identity','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Crash Course','p9',outputs.p9],["Devil's Advocate",'p10',outputs.p10],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
 
-        <div style={{marginTop:8,marginBottom:16,background:'#FFFBF5',border:`2px solid ${C.gold}50`,borderRadius:12,overflow:'hidden'}}>
-          <div style={{padding:'20px 24px'}}>
-            <div style={{display:'flex',alignItems:'flex-start',gap:14,marginBottom:outputs.p_income?16:0}}>
-              <div style={{flex:1}}>
-                <div style={{fontFamily:'Georgia,serif',fontSize:18,fontWeight:600,color:'#1A2540',marginBottom:6}}>Income Now</div>
-                <div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>Your next move is in motion — but it takes time. This plan identifies ways to generate income in the next 30 days using what you already know, plus bridge work that builds your case for where you're headed.</div>
-              </div>
-              {!outputs.p_income&&!loading&&<Btn onClick={()=>generate('p_income',()=>P.p_income(pc,outputs,chosen),{maxTokens:4000,msg:'Building your Income Now plan…'})} style={{flexShrink:0}}><Sparkles size={14}/>Generate My Plan</Btn>}
-            </div>
-            {loading&&loadMsg==='Building your Income Now plan…'&&<Loading msg="Building your Income Now plan…"/>}
-            {outputs.p_income&&<>
-              <div style={{borderTop:`1px solid ${C.border}`,paddingTop:16}}>
-                <MD text={outputs.p_income}/>
-              </div>
-              <div style={{display:'flex',gap:8,marginTop:14,flexWrap:'wrap'}}>
-                <Btn small onClick={()=>copy(outputs.p_income)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn>
-                <Btn small secondary onClick={()=>out('p_income','')}><RotateCcw size={11}/>Regenerate</Btn>
-              </div>
-            </>}
-            {err&&<ErrBox msg={err}/>}
-          </div>
-        </div>
         <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:15,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
         <div style={{marginTop:16,background:'linear-gradient(135deg,#1A2540 0%,#2A3F60 100%)',borderRadius:12,padding:'24px 28px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
           <div>
