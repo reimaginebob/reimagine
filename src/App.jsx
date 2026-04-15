@@ -711,14 +711,14 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           <div style={S.field}>
             <label style={S.label}>How has your confidence about your next move changed?</label>
             <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:4}}>
-              {[['Much less confident',-2],['Less confident',-1],['About the same',0],['More confident',1],['Much more confident',2]].map(([label,val])=><button key={val} onClick={()=>setSv('confidence',val)} style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${survey.confidence===val?C.gold:C.border}`,background:survey.confidence===val?`${C.gold}20`:'transparent',color:survey.confidence===val?C.goldL:C.grayL,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>)}
+              {[['Much less confident'],['Less confident'],['About the same'],['More confident'],['Much more confident']].map(([label])=><button key={label} onClick={()=>setSv('confidence',label)} style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${survey.confidence===label?C.gold:C.border}`,background:survey.confidence===label?`${C.gold}20`:'transparent',color:survey.confidence===label?C.goldL:C.grayL,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>)}
             </div>
           </div>
 
           <div style={S.field}>
             <label style={S.label}>How well did Reimagine capture who you are and what you bring?</label>
             <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:4}}>
-              {[['Missed the mark',1],['Partially',2],['Mostly right',3],['Very well',4],['Nailed it',5]].map(([label,val])=><button key={val} onClick={()=>setSv('accuracy',val)} style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${survey.accuracy===val?C.gold:C.border}`,background:survey.accuracy===val?`${C.gold}20`:'transparent',color:survey.accuracy===val?C.goldL:C.grayL,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>)}
+              {[['Missed the mark'],['Partially'],['Mostly right'],['Very well'],['Nailed it']].map(([label])=><button key={label} onClick={()=>setSv('accuracy',label)} style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${survey.accuracy===label?C.gold:C.border}`,background:survey.accuracy===label?`${C.gold}20`:'transparent',color:survey.accuracy===label?C.goldL:C.grayL,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>)}
             </div>
           </div>
 
