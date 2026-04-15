@@ -139,10 +139,10 @@ const QUOTES=[
 
 function Loading({msg='Generating your analysis…'}){
   const[qi,setQi]=useState(Math.floor(Math.random()*QUOTES.length))
-  useEffect(()=>{const t=setInterval(()=>setQi(i=>(i+1)%QUOTES.length),6000);return()=>clearInterval(t)},[])
+  useEffect(()=>{const t=setInterval(()=>setQi(i=>(i+1)%QUOTES.length),8000);return()=>clearInterval(t)},[])
   const q=QUOTES[qi]
   return <div style={{textAlign:'center',padding:'48px 24px',maxWidth:560,margin:'0 auto'}}>
-    <Loader2 size={28} style={{color:C.gold,animation:'spin 3.0s linear infinite',margin:'0 auto 20px',display:'block'}}/>
+    <Loader2 size={28} style={{color:C.gold,animation:'spin 0.9s linear infinite',margin:'0 auto 20px',display:'block'}}/>
     <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
     <div style={{fontSize:16,color:C.grayL,marginBottom:28}}>{msg}</div>
     <div style={{borderLeft:`3px solid ${C.gold}`,paddingLeft:20,textAlign:'left',marginBottom:8}}>
