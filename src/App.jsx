@@ -108,7 +108,7 @@ const S={
   inp:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'},
   ta:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'11px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',resize:'vertical',boxSizing:'border-box',lineHeight:1.6,minHeight:90},
   sel:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',cursor:'pointer'},
-  btn:{background:C.gold,color:C.bg,border:'none',borderRadius:8,padding:'11px 22px',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
+  btn:{background:C.gold,color:C.bg,border:'none',borderRadius:8,padding:'11px 22px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
   sec:{background:'transparent',color:C.grayL,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 18px',fontSize:15,fontWeight:500,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
   sm:{background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:6,padding:'5px 11px',fontSize:12,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:5},
   out:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderRadius:10,padding:'20px 24px',marginTop:14,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
@@ -131,7 +131,7 @@ function FileUpload({label,hint,onFile,fileName,accept=".pdf,.doc,.docx,.txt"}){
       onClick={()=>ref.current.click()} onDragOver={e=>{e.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)}
       onDrop={e=>{e.preventDefault();setDrag(false);if(e.dataTransfer.files[0])onFile(e.dataTransfer.files[0])}}>
       <input ref={ref} type="file" accept={accept} style={{display:'none'}} onChange={e=>e.target.files[0]&&onFile(e.target.files[0])}/>
-      {fileName?<><div style={{color:C.ok,marginBottom:3,fontSize:14}}><Check size={12} style={{display:'inline',marginRight:5}}/>{fileName}</div><div style={{fontSize:11,color:C.gray}}>Click to replace</div></>:<><Upload size={17} color={C.gray} style={{margin:'0 auto 7px',display:'block'}}/><div style={{fontSize:13,color:C.grayL}}>{hint||'Drop file or click to browse'}</div></>}
+      {fileName?<><div style={{color:C.ok,marginBottom:3,fontSize:14}}><Check size={12} style={{display:'inline',marginRight:5}}/>{fileName}</div><div style={{fontSize:13,color:C.gray}}>Click to replace</div></>:<><Upload size={17} color={C.gray} style={{margin:'0 auto 7px',display:'block'}}/><div style={{fontSize:15,color:C.grayL}}>{hint||'Drop file or click to browse'}</div></>}
     </div>
   </div>
 }
@@ -145,7 +145,7 @@ function RefineBox({value,onChange,onRegenerate}){
       <span style={{fontSize:10,color:C.gray,display:'inline-block',transform:open?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}}>▼</span>
     </button>
     {open&&<div style={{background:C.card,padding:'14px 16px'}}>
-      <div style={{fontSize:12,color:C.gray,marginBottom:10,lineHeight:1.65}}>If anything feels off — wrong tone, missing context, something we misread — describe it here and we'll adjust.</div>
+      <div style={{fontSize:15,color:C.gray,marginBottom:10,lineHeight:1.65}}>If anything feels off — wrong tone, missing context, something we misread — describe it here and we'll adjust.</div>
       <textarea style={{...S.ta,minHeight:70}} value={value} onChange={e=>onChange(e.target.value)} placeholder="e.g. The seniority level feels too junior… you missed that I ran a P&L… the environment description doesn't match how I actually work…"/>
       <div style={{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}}>
         <Btn onClick={()=>{setOpen(false);onRegenerate(value)}}><RotateCcw size={13}/>Regenerate with this context</Btn>
@@ -316,14 +316,14 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <p style={{...S.sub,fontSize:14,maxWidth:560}}>Reimagine is a step-by-step career strategy tool built on the framework from Making Your Own Weather by Bob Goodwin. It takes what you've done, how you're wired, and what you care about — and turns that into a concrete plan for what comes next.</p>
 
       <div style={{...S.card,marginBottom:16}}>
-        <div style={{fontSize:11,fontWeight:700,color:C.gold,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:14}}>Before you begin</div>
+        <div style={{fontSize:13,fontWeight:700,color:C.gold,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:14}}>Before you begin</div>
         {[
           ['Your resume','Any format. It doesn\'t need to be polished — we\'ll help you get the most out of it.'],
           ['An assessment (recommended)','Affintus is free and takes 15 minutes. If you already have StrengthsFinder, Hogan, DiSC, MBTI, or any other assessment, those work just as well. Bring whatever you have.'],
           ['About 20–30 minutes','You can save and return at any point. Your progress is stored automatically.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
-          <div><span style={{fontWeight:600,fontSize:20,color:C.cream}}>{t}. </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
+          <div><span style={{fontWeight:600,fontSize:20,color:C.cream}}>{t}. </span><span style={{fontSize:20,color:C.gray,lineHeight:1.6}}>{d}</span></div>
         </div>)}
         <div style={{marginTop:4,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
           <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{color:C.goldL,fontSize:13}}>Take the free Affintus assessment before you start →</a>
@@ -331,7 +331,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       </div>
 
       <div style={{...S.card,marginBottom:16}}>
-        <div style={{fontSize:11,fontWeight:700,color:C.gold,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:14}}>How it works</div>
+        <div style={{fontSize:13,fontWeight:700,color:C.gold,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:14}}>How it works</div>
         {[
           ['1','Know Your Value','We translate your career history into language that travels across industries. Job titles and jargon stripped out. Business impact in.','~10 min','#8A7AB8'],
           ['2','Explore Options','We map three lanes of possibility — from a modernized version of what you do today, to paths you may never have considered. Then we go deep on the ones that resonate.','~15 min','#6AB88A'],
@@ -339,13 +339,13 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           ['4','Find Your Market','We research real companies that are growing and likely hiring, build your target list, and write your opening outreach message.','~10 min','#B86A6A'],
           ['5','Get Ready','We rewrite your LinkedIn and resume for your new direction, teach you the language of your new field, and prepare you for the hardest question you\'ll face in a room.','~15 min','#6A8AB8'],
         ].map(([num,phase,desc,time,color])=><div key={num} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
-          <div style={{width:28,height:28,borderRadius:'50%',background:`${color}25`,border:`1.5px solid ${color}60`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:12,fontWeight:700,color}}>
+          <div style={{width:28,height:28,borderRadius:'50%',background:`${color}25`,border:`1.5px solid ${color}60`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:15,fontWeight:700,color}}>
             {num}
           </div>
           <div style={{flex:1}}>
             <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:3,flexWrap:'wrap'}}>
               <span style={{fontWeight:600,fontSize:20,color:C.cream}}>{phase}</span>
-              <span style={{fontSize:11,color:C.gray}}>{time}</span>
+              <span style={{fontSize:15,color:C.gray}}>{time}</span>
             </div>
             <div style={{fontSize:20,color:C.gray,lineHeight:1.65}}>{desc}</div>
           </div>
@@ -353,14 +353,14 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       </div>
 
       <div style={{...S.card,marginBottom:20}}>
-        <div style={{fontSize:11,fontWeight:700,color:C.gold,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:12}}>A few things worth knowing</div>
+        <div style={{fontSize:13,fontWeight:700,color:C.gold,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:12}}>A few things worth knowing</div>
         {[
           ['This is iterative, not linear.','Every output has a "Does this feel right?" option. If something is off, tell us and we\'ll adjust before moving on.'],
           ['There are no wrong answers in the intake.','The questions about your passions and values are not trick questions. Answer them honestly, not strategically.'],
           ['You only need one yes.','The goal is not to generate a list of plausible options. It\'s to find the one path worth committing to.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
-          <div><span style={{fontWeight:600,fontSize:20,color:C.cream}}>{t} </span><span style={{fontSize:13,color:C.gray,lineHeight:1.6}}>{d}</span></div>
+          <div><span style={{fontWeight:600,fontSize:20,color:C.cream}}>{t} </span><span style={{fontSize:20,color:C.gray,lineHeight:1.6}}>{d}</span></div>
         </div>)}
       </div>
 
@@ -397,7 +397,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
         {fileLoading&&<Loading msg="Reading your file…"/>}
         <div style={S.field}><label style={S.label}>Or paste resume text</label><textarea style={{...S.ta,minHeight:160}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} placeholder="Paste your resume text here…"/></div>
-        {profile.resume&&<div style={{fontSize:12,color:C.ok}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
+        {profile.resume&&<div style={{fontSize:14,color:C.ok}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
       </div>
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('location')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.resume?advance('resume','assessment'):setErr('Please provide your resume.')}>Continue <ChevronRight size={14}/></Btn></div>
@@ -426,8 +426,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <h1 style={S.title}>Values & Passions</h1>
       <p style={S.sub}>These two inputs separate a list of plausible options from a list of right options. Don't filter for professional relevance — that's our job.</p>
       <div style={S.card}>
-        <div style={S.field}><label style={S.label}>Core Values — 3 to 5 non-negotiables</label><div style={{fontSize:12,color:C.gray,marginBottom:7,lineHeight:1.6}}>The conditions under which you do your best work and feel most like yourself.</div><textarea style={{...S.ta,minHeight:70}} value={profile.values} onChange={e=>pr('values',e.target.value)} placeholder="e.g. Independence, Family, Justice, Stability, Wealth creation, Cooperation, Service, Faith, Intellectual challenge…"/></div>
-        <div style={S.field}><label style={S.label}>Passions & Interests — 3 to 5 topics</label><div style={{fontSize:12,color:C.gray,marginBottom:7,lineHeight:1.6}}>Topics you read about for fun or could talk about for 30 minutes with zero preparation.</div><textarea style={{...S.ta,minHeight:70}} value={profile.passions} onChange={e=>pr('passions',e.target.value)} placeholder="e.g. Formula 1, Fintech, Sustainability, Youth sports, Horses, Gaming, Geopolitics, Fashion, Addiction recovery…"/></div>
+        <div style={S.field}><label style={S.label}>Core Values — 3 to 5 non-negotiables</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>The conditions under which you do your best work and feel most like yourself.</div><textarea style={{...S.ta,minHeight:70}} value={profile.values} onChange={e=>pr('values',e.target.value)} placeholder="e.g. Independence, Family, Justice, Stability, Wealth creation, Cooperation, Service, Faith, Intellectual challenge…"/></div>
+        <div style={S.field}><label style={S.label}>Passions & Interests — 3 to 5 topics</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>Topics you read about for fun or could talk about for 30 minutes with zero preparation.</div><textarea style={{...S.ta,minHeight:70}} value={profile.passions} onChange={e=>pr('passions',e.target.value)} placeholder="e.g. Formula 1, Fintech, Sustainability, Youth sports, Horses, Gaming, Geopolitics, Fashion, Addiction recovery…"/></div>
       </div>
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('assessment')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.values&&profile.passions?advance('values','reputation'):setErr('Please fill in both fields.')}>Continue <ChevronRight size={14}/></Btn></div>
@@ -438,8 +438,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <h1 style={S.title}>Your Reputation</h1>
       <p style={S.sub}>The hardest input to gather — and the most valuable. We're looking for external data: what others actually see in you.</p>
       <div style={S.card}>
-        {[['memory','The Memory',"Think of a specific moment at work when someone thanked you or praised you. What was the situation and what did they say?"],['emergency','The Emergency Call','If your former team had a critical problem right now, what type of situation would they call you to handle?'],['twoWords','The Two Words','If your best former manager described your professional superpower in exactly two words, what would they be?'],['other','Additional Feedback','Performance reviews, LinkedIn recommendations, 360 feedback — paste anything here.']].map(([f,lbl,hint])=><div key={f} style={S.field}><label style={S.label}>{lbl}</label><div style={{fontSize:12,color:C.gray,marginBottom:7,lineHeight:1.6}}>{hint}</div><textarea style={{...S.ta,minHeight:f==='other'?90:62}} value={profile.rep[f]} onChange={e=>rep(f,e.target.value)}/></div>)}
-        <div style={{fontSize:12,color:C.gray,fontStyle:'italic'}}>If you leave all blank, we'll generate a reputation hypothesis from your other data and ask you to validate it.</div>
+        {[['memory','The Memory',"Think of a specific moment at work when someone thanked you or praised you. What was the situation and what did they say?"],['emergency','The Emergency Call','If your former team had a critical problem right now, what type of situation would they call you to handle?'],['twoWords','The Two Words','If your best former manager described your professional superpower in exactly two words, what would they be?'],['other','Additional Feedback','Performance reviews, LinkedIn recommendations, 360 feedback — paste anything here.']].map(([f,lbl,hint])=><div key={f} style={S.field}><label style={S.label}>{lbl}</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>{hint}</div><textarea style={{...S.ta,minHeight:f==='other'?90:62}} value={profile.rep[f]} onChange={e=>rep(f,e.target.value)}/></div>)}
+        <div style={{fontSize:14,color:C.gray,fontStyle:'italic'}}>If you leave all blank, we'll generate a reputation hypothesis from your other data and ask you to validate it.</div>
       </div>
       <div style={S.row}><Btn secondary onClick={()=>nav('values')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('reputation','p1')}>Begin Phase 1 <ChevronRight size={14}/></Btn></div>
     </div>
@@ -497,10 +497,10 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         <RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} onRegenerate={v=>{out('p4','');generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Refining your opportunity landscape…'})}}/>
         <div style={{...S.card,marginTop:8}}>
           <div style={{fontWeight:600,color:C.cream,fontSize:13,marginBottom:4}}>Select up to 3 options to explore further.</div>
-          <div style={{fontSize:12,color:C.gray,marginBottom:12,lineHeight:1.6}}>Copy the role or path name from above and paste it here. Pick what made you lean in, not just what feels safe.</div>
+          <div style={{fontSize:15,color:C.gray,marginBottom:12,lineHeight:1.6}}>Copy the role or path name from above and paste it here. Pick what made you lean in, not just what feels safe.</div>
           {['A','B','C'].map((l,i)=><div key={l} style={S.field}><label style={S.label}>Option {l}</label><input style={S.inp} value={deepOpts[i]} onChange={e=>setDeepOpts(d=>d.map((v,j)=>j===i?e.target.value:v))} placeholder={`Paste an option from the list above…`}/></div>)}
           {deepOpts.filter(Boolean).length>0&&<div style={S.row}><Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn></div>}
-          {deepOpts.filter(Boolean).length===0&&<div style={{fontSize:12,color:C.gray}}>Enter at least one option above to continue.</div>}
+          {deepOpts.filter(Boolean).length===0&&<div style={{fontSize:15,color:C.gray}}>Enter at least one option above to continue.</div>}
         </div>
       </>}
       {err&&<ErrBox msg={err}/>}
@@ -528,13 +528,13 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <p style={S.sub}>Read through the deep dive. There is no wrong answer — the goal is a choice you can commit to, not a perfect choice. You only need one yes.</p>
       <div style={S.card}>
         <label style={S.label}>I've decided to pursue…</label>
-        <div style={{fontSize:12,color:C.gray,marginBottom:10,lineHeight:1.6}}>Type the role or path you're committing to. This becomes the foundation for Phases 3–5.</div>
+        <div style={{fontSize:15,color:C.gray,marginBottom:10,lineHeight:1.6}}>Type the role or path you're committing to. This becomes the foundation for Phases 3–5.</div>
         <textarea style={{...S.ta,minHeight:75}} value={chosen} onChange={e=>setChosen(e.target.value)} placeholder="e.g. Fractional CMO in the B2B SaaS ecosystem, Vendor-side consultant in healthcare, Independent financial planner focused on sustainable investing…"/>
       </div>
       <div style={S.card}>
         <div style={{fontWeight:600,color:C.cream,fontSize:13,marginBottom:9}}>Not ready yet?</div>
         <Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p5')}}>Explore different options →</Btn>
-        <div style={{fontSize:12,color:C.gray,marginTop:9}}>Or close the tool and come back — your progress is saved automatically.</div>
+        <div style={{fontSize:15,color:C.gray,marginTop:9}}>Or close the tool and come back — your progress is saved automatically.</div>
       </div>
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn onClick={()=>chosen?advance('decision','p6'):setErr('Please enter your decision to continue.')}>Build My Bridge Story <ChevronRight size={14}/></Btn></div>
@@ -571,7 +571,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           <div style={S.out}><div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p7)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div><MD text={part12}/></div>
           <div style={{margin:'16px 0',padding:'14px 20px',background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderRadius:10,display:'flex',alignItems:'center',gap:12}}>
             <div style={{fontSize:18,flexShrink:0}}>📋</div>
-            <div><div style={{fontWeight:600,fontSize:13,color:C.goldL,marginBottom:2}}>Company list download</div><div style={{fontSize:12,color:C.gray,lineHeight:1.6}}>One-click CSV export is available in the full app. Use Copy All above to grab the list for now.</div></div>
+            <div><div style={{fontWeight:600,fontSize:13,color:C.goldL,marginBottom:2}}>Company list download</div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>One-click CSV export is available in the full app. Use Copy All above to grab the list for now.</div></div>
           </div>
           {part34&&<div style={S.out}><MD text={part34}/></div>}
           <div style={S.row}>
@@ -628,14 +628,14 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <div style={{background:`linear-gradient(135deg,${C.panel} 0%,${C.card} 100%)`,border:`1px solid ${C.gold}35`,borderRadius:16,padding:'36px',textAlign:'center',marginBottom:22}}>
         <Trophy size={32} color={C.gold} style={{margin:'0 auto 14px',display:'block'}}/>
         <h1 style={{...S.title,fontSize:26,textAlign:'center',marginBottom:8}}>You've done the work.</h1>
-        <p style={{fontSize:13,color:C.goldL,lineHeight:1.5,fontFamily:'Georgia,serif',fontStyle:'italic',marginBottom:6}}>Your career. Your future.</p>
+        <p style={{fontSize:17,color:C.goldL,lineHeight:1.5,fontFamily:'Georgia,serif',fontStyle:'italic',marginBottom:6}}>Your career. Your future.</p>
         <p style={{fontSize:20,color:C.gray,lineHeight:1.7,maxWidth:500,margin:'0 auto'}}>Everything below is yours — your identity, your target, your story, your strategy. Come back anytime to review or refine.</p>
       </div>
 
       {!surveyDone&&<div style={{...S.card,marginBottom:22,border:`1px solid ${C.gold}40`}}>
         {!surveySubmitted?<>
           <div style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:600,color:C.cream,marginBottom:4}}>Before you go — 60 seconds of feedback</div>
-          <div style={{fontSize:12,color:C.gray,marginBottom:20,lineHeight:1.6}}>You're helping us make this better for everyone who comes after you. All questions are optional.</div>
+          <div style={{fontSize:16,color:C.gray,marginBottom:20,lineHeight:1.6}}>You're helping us make this better for everyone who comes after you. All questions are optional.</div>
 
           <div style={S.field}>
             <label style={S.label}>How likely are you to recommend Reimagine to someone in career transition?</label>
@@ -683,13 +683,13 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         </>:<div style={{textAlign:'center',padding:'20px 0'}}>
           <div style={{fontSize:22,marginBottom:10}}>🙏</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:16,color:C.cream,marginBottom:6}}>Thank you — this means a lot.</div>
-          <div style={{fontSize:13,color:C.gray,marginBottom:16,lineHeight:1.6}}>Your feedback goes directly to the team building Reimagine. We read every response.</div>
+          <div style={{fontSize:16,color:C.gray,marginBottom:16,lineHeight:1.6}}>Your feedback goes directly to the team building Reimagine. We read every response.</div>
           <Btn onClick={()=>setSurveyDone(true)}>See my results <ChevronRight size={13}/></Btn>
         </div>}
       </div>}
 
       {surveyDone&&<>
-        {[['Your Functional Identity','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Crash Course','p9',outputs.p9],["Devil's Advocate",'p10',outputs.p10]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:C.cream}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:12,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
+        {[['Your Functional Identity','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Crash Course','p9',outputs.p9],["Devil's Advocate",'p10',outputs.p10]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:C.cream}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
         <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:12,color:C.gray,lineHeight:1.7}}><strong style={{color:C.grayL}}>Your progress is saved.</strong> Close this tool and return at any time — your work will be here.</div>
         <div style={{marginTop:10,textAlign:'right'}}><Btn small onClick={reset}><RotateCcw size={11}/>Start a New Session</Btn></div>
       </>}
