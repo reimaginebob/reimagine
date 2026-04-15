@@ -608,9 +608,26 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         const part34=splitPoint>0?outputs.p7.slice(splitPoint):''
         return <>
           <div style={S.out}><div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p7)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div><MD text={part12}/></div>
-          <div style={{margin:'16px 0',padding:'14px 20px',background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderRadius:10,display:'flex',alignItems:'center',gap:12}}>
-            <div style={{fontSize:18,flexShrink:0}}>📋</div>
-            <div><div style={{fontWeight:600,fontSize:13,color:C.goldL,marginBottom:2}}>Company list download</div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>One-click CSV export is available in the full app. Use Copy All above to grab the list for now.</div></div>
+          <div style={{margin:'16px 0',padding:'16px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:15,color:'#1A2540',marginBottom:3}}>Download your company list</div>
+              <div style={{fontSize:14,color:C.goldL}}>Save as a spreadsheet to track outreach, add notes, and share with your network.</div>
+            </div>
+            <Btn onClick={()=>{
+              const lines=outputs.p7.split('\n').filter(l=>l.includes('|')&&l.trim().length>10&&!l.match(/^[\s|:-]+$/))
+              const csv=lines.length>2
+                ?'Company,Why it fits,Growth signal,Contact title,Website\n'+lines.map(l=>{const p=l.split('|').map(s=>s.trim());return p.map(s=>`"${s.replace(/"/g,'""')}"`).join(',')}).join('\n')
+                :outputs.p7
+              const blob=new Blob([csv],{type:'text/csv'})
+              const url=URL.createObjectURL(blob)
+              const a=document.createElement('a')
+              a.href=url
+              a.download='target_companies.csv'
+              document.body.appendChild(a)
+              a.click()
+              document.body.removeChild(a)
+              URL.revokeObjectURL(url)
+            }} style={{flexShrink:0}}>Download CSV</Btn>
           </div>
           {part34&&<div style={S.out}><MD text={part34}/></div>}
           <div style={S.row}>
