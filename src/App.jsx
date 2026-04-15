@@ -86,7 +86,8 @@ const P={
   p8:(pr,outs,sel)=>`Reposition LinkedIn for: **${sel}**\nPROFILE: ${outs.p1}\n${outs.p3}\nRESUME: ${pr.resume}\n\n1. THREE HEADLINE OPTIONS — each optimizing something different (search visibility, human resonance, authority signaling). Give a reason to choose.\n2. THE ABOUT SECTION — ~200 words, first person, natural voice. Pivot as feature. Accomplishments as make/save/mitigate.\n3. EXPERIENCE REFRAME — Most recent role, top 3–4 bullets rewritten for transferable skills relevant to ${sel}. Each passes the "so what?" test.`,
   p9:(pr,outs,sel)=>`${sel} — credible outsider needs to sound like a native in one session.\nLearning signals: ${pr.assess?pr.assess.substring(0,300):'Balanced learner.'}\n\n1. THE LINGO — 10 essential terms/acronyms. For each: plain-language definition + example sentence.\n2. THE TECH STACK — Top 3 tools practitioners rely on. What each does, why it matters, what knowing it signals.\n3. THE THOUGHT LEADERS — 3 people to follow on LinkedIn now. Who, what they post, what following teaches.\n4. THE FASTEST CREDIBILITY MOVE — One specific action in 7 days. Specific and achievable.`,
   p10:(pr,outs,sel)=>`You are now a skeptical hiring manager evaluating this person for: **${sel}**\nBACKGROUND: ${outs.p1.substring(0,500)}\nFUNCTIONAL IDENTITY: ${outs.p3.substring(0,350)}\n\n1. THE HARD QUESTION — The single most legitimate concern a decision-maker would have about this candidate. State it plainly.\n2. THE RESPONSE — A confident, specific answer grounded in their Functional Identity, Translated Accomplishments, and wiring. No deflection. Show how the background is actually a strength.\n3. THE PRACTICE NOTE — One specific thing to practice saying aloud before the first real conversation. Explain what to say and why it works.`,
-  p_res:(pr,outs,sel)=>`Rewrite this resume to target: **${sel}**\nPROFILE: ${outs.p1}\n${outs.p3}\nORIGINAL RESUME:\n${pr.resume}\n\n1. REPOSITIONED SUMMARY: 3-4 sentences at the top. First person, natural voice. Positions this career arc as a logical path toward ${sel}. No titles or company names. Frame the pivot as an asset.\n2. EXPERIENCE REWRITE: For each role in the last 10 years, rewrite the top 3-4 bullets. Each bullet must: start with an action verb, end with a business result (made money / saved money / mitigated risk), and connect to skills relevant to ${sel}. Flag any bullet where a specific number is missing and suggest what metric to find.\n3. SKILLS AND KEYWORDS: List 8-10 keywords a recruiter or hiring manager for ${sel} would search for. Note which are already in the resume and which to add.`
+  p_res:(pr,outs,sel)=>`Rewrite this resume to target: **${sel}**\nPROFILE: ${outs.p1}\n${outs.p3}\nORIGINAL RESUME:\n${pr.resume}\n\n1. REPOSITIONED SUMMARY: 3-4 sentences at the top. First person, natural voice. Positions this career arc as a logical path toward ${sel}. No titles or company names. Frame the pivot as an asset.\n2. EXPERIENCE REWRITE: For each role in the last 10 years, rewrite the top 3-4 bullets. Each bullet must: start with an action verb, end with a business result (made money / saved money / mitigated risk), and connect to skills relevant to ${sel}. Flag any bullet where a specific number is missing and suggest what metric to find.\n3. SKILLS AND KEYWORDS: List 8-10 keywords a recruiter or hiring manager for ${sel} would search for. Note which are already in the resume and which to add.`,
+  income:(pr,outs,sel)=>`Generate a complete Income Now plan for this professional. They are pursuing: **${sel}** as their longer-term goal, but need to generate income during the transition.\n\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\nPASSIONS: ${pr.passions}\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\n\n**PART 1 — RECOMMENDED TRACKS**: Which combination of income tracks fits this person — Gig Platforms (Upwork/Fiverr), Fractional Leadership, or Passion-Adjacent Consulting — and why. Make a genuine call based on their seniority and skills. Do not recommend all three equally.\n\n**PART 2 — GIG PLATFORM PROFILE** (if applicable):\nUpwork: Professional title, bio (150 words max), top 3 services with one-line descriptions and suggested hourly rate range.\nFiverr: Gig title, gig description (200 words), three package tiers (Basic/Standard/Premium) with deliverables and price points.\nRate guidance must reflect their actual seniority. Do not underprice senior professionals.\n\n**PART 3 — FRACTIONAL PITCH** (if applicable): One tight paragraph for cold LinkedIn outreach or email. Plain language, no jargon. Specific about what they do and the business result it creates. Clear call to action at the end.\n\n**PART 4 — PASSION-ADJACENT OPPORTUNITIES**: 3-5 genuine consulting or fractional niches at the intersection of their professional skills and stated passions. For each: the niche, the specific buyer type, why this person's combination is valuable, and one sentence on how to find the first client.\n\n**PART 5 — THE ONE SHEET**: Complete text for a professional one sheet. Sections: Who I Am (2 sentences, no job titles), What I Offer (3 service bullets), Who I Serve (specific buyer description), What You Can Expect (2-3 outcome statements framed as made money/saved money/mitigated risk), How to Engage Me (rates, availability, contact). Ready to paste into a Word doc.\n\n**PART 6 — SETUP CHECKLIST**: Step by step for getting live fast.\nUpwork: account creation, profile completion, first proposal strategy.\nFiverr: account setup, gig creation, tips for the first order.\nLinkedIn Services: how to enable and optimize the Services tab.\nOne immediate action they can take today.\n\nTone: direct, practical, no hype. This person is capable and experienced.`
 }
 
 const PHASES=[
@@ -96,9 +97,10 @@ const PHASES=[
   {id:3,label:'Tell Your Story',color:'#C8924A',steps:['p6']},
   {id:4,label:'Find Your Market',color:'#B86A6A',steps:['p7']},
   {id:5,label:'Get Ready',color:'#6A8AB8',steps:['p8','p_res','p9','p10','complete']},
+  {id:6,label:'Income Now',color:'#7AB87A',steps:['income']},
 ]
-const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',assessment:'Assessments',values:'Values & Passions',reputation:'Reputation',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',p5:'The Deep Dive',decision:'Your Decision',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Crash Course',p10:"Devil's Advocate",complete:'Complete'}
-const ALL=['welcome','location','resume','assessment','values','reputation','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','p10','complete']
+const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',assessment:'Assessments',values:'Values & Passions',reputation:'Reputation',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',p5:'The Deep Dive',decision:'Your Decision',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Crash Course',p10:"Devil's Advocate",complete:'Complete',income:'Income Now'}
+const ALL=['welcome','location','resume','assessment','values','reputation','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','p10','complete','income']
 
 const S={
   title:{fontFamily:'Georgia,serif',fontSize:34,fontWeight:700,color:"#1A2540",margin:'0 0 10px',lineHeight:1.2},
@@ -301,7 +303,7 @@ function Sidebar({step,done,onNav}){return <div style={{width:260,background:'#1
 
 export default function PivotEngine(){
   const IP={loc:{country:'',city:'',work:''},resume:'',resumeFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''}}
-  const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:''}
+  const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',income:''}
   const[step,setStep]=useState('welcome')
   const[profile,setProfile]=useState(IP)
   const[outputs,setOutputs]=useState(IO)
@@ -928,10 +930,56 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           <Check size={16} color={C.ok} strokeWidth={2.5}/>
           <div style={{fontSize:15,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
         </div>
-        {[['Your Functional Identity','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Crash Course','p9',outputs.p9],["Devil's Advocate",'p10',outputs.p10]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
+        {[['Your Functional Identity','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Crash Course','p9',outputs.p9],["Devil's Advocate",'p10',outputs.p10],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
+
+        <div style={{marginTop:8,marginBottom:16,background:'#FFFBF5',border:`2px solid ${C.gold}50`,borderRadius:12,overflow:'hidden'}}>
+          <div style={{padding:'20px 24px'}}>
+            <div style={{display:'flex',alignItems:'flex-start',gap:14,marginBottom:outputs.p_income?16:0}}>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:'Georgia,serif',fontSize:18,fontWeight:600,color:'#1A2540',marginBottom:6}}>Income Now</div>
+                <div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>Your next move is in motion — but it takes time. This plan identifies ways to generate income in the next 30 days using what you already know, plus bridge work that builds your case for where you're headed.</div>
+              </div>
+              {!outputs.p_income&&!loading&&<Btn onClick={()=>generate('p_income',()=>P.p_income(pc,outputs,chosen),{maxTokens:4000,msg:'Building your Income Now plan…'})} style={{flexShrink:0}}><Sparkles size={14}/>Generate My Plan</Btn>}
+            </div>
+            {loading&&loadMsg==='Building your Income Now plan…'&&<Loading msg="Building your Income Now plan…"/>}
+            {outputs.p_income&&<>
+              <div style={{borderTop:`1px solid ${C.border}`,paddingTop:16}}>
+                <MD text={outputs.p_income}/>
+              </div>
+              <div style={{display:'flex',gap:8,marginTop:14,flexWrap:'wrap'}}>
+                <Btn small onClick={()=>copy(outputs.p_income)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn>
+                <Btn small secondary onClick={()=>out('p_income','')}><RotateCcw size={11}/>Regenerate</Btn>
+              </div>
+            </>}
+            {err&&<ErrBox msg={err}/>}
+          </div>
+        </div>
         <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:15,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
+        <div style={{marginTop:16,background:'linear-gradient(135deg,#1A2540 0%,#2A3F60 100%)',borderRadius:12,padding:'24px 28px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:'#7AB87A',marginBottom:6}}>Bonus module</div>
+            <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#FFFFFF',marginBottom:6}}>Income Now</div>
+            <div style={{fontSize:14,color:'#CBD5E0',lineHeight:1.65,maxWidth:420}}>Don't wait for the perfect role. While your search is underway, we'll build you a freelance and consulting presence — Upwork, Fiverr, fractional opportunities, and a one sheet — ready to generate income this week.</div>
+          </div>
+          <Btn onClick={()=>nav('income')} style={{background:'#7AB87A',flexShrink:0}}>Generate My Income Plan <ChevronRight size={14}/></Btn>
+        </div>
         <div style={{marginTop:10,textAlign:'right'}}><Btn small onClick={reset}><RotateCcw size={11}/>Start a New Session</Btn></div>
       </>}
+    </div>
+
+    case'income':return <div>
+      <div style={S.tag('#7AB87A')}>Bonus Module</div>
+      <h1 style={S.title}>Income Now</h1>
+      <p style={S.sub}>Your longer-term search is underway. This module builds everything you need to generate income while you get there — gig platform profiles, a fractional pitch, passion-adjacent consulting niches, and a one sheet ready to use today.</p>
+      <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>Targeting: <strong>{chosen||'your chosen direction'}</strong></div>
+      {!outputs.income&&!loading&&<Btn onClick={()=>generate('income',()=>P.income(pc,outputs,chosen),{maxTokens:6000,msg:'Building your Income Now plan…'})} style={{background:'#7AB87A'}}><Sparkles size={14}/>Build My Income Plan</Btn>}
+      {loading&&<Loading msg="Building your Income Now plan — this one is thorough…"/>}
+      {outputs.income&&<>
+        <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
+        <RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} onRegenerate={v=>{out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000})}}/>
+        <div style={S.row}><Btn secondary onClick={()=>out('income','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>
+      </>}
+      {err&&<ErrBox msg={err}/>}
     </div>}
 
     default:return null
