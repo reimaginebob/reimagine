@@ -35,7 +35,7 @@ const C = {
 async function callClaude(prompt, opts={}) {
   const{webSearch=false,highTemp=false,maxTokens=4000}=opts
   const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined
-  const body={model:"claude-sonnet-4-20250514",max_tokens:maxTokens,temperature:highTemp?1.0:0.7,system:SYS,messages:[{role:"user",content:prompt}],...(tools&&{tools})}
+  const body={model:"claude-sonnet-4-5",max_tokens:maxTokens,temperature:highTemp?1.0:0.7,system:SYS,messages:[{role:"user",content:prompt}],...(tools&&{tools})}
   const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
   if(!res.ok){const e=await res.json();throw new Error(e.error?.message||"API error")}
   const data=await res.json()
