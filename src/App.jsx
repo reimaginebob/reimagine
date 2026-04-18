@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import * as mammoth from "mammoth"
 import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy } from "lucide-react"
+import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 
 const SYS = `You are an expert Career Transition Strategist within the Reimagine, a career strategy tool by Career Club, based on Making Your Own Weather by Bob Goodwin.
 
@@ -295,14 +296,15 @@ function RefineBox({value,onChange,onRegenerate}){
 function Sidebar({step,done,onNav}){return <div style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>{PHASES.map(ph=><div key={ph.id} style={{marginBottom:3}}><div style={{fontSize:11,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:ph.color,padding:'5px 14px 3px',display:'flex',alignItems:'center',gap:5}}><div style={{width:5,height:5,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||(sid==='income'&&done.includes('complete')),isComplete=sid==='complete'&&isDone;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 28px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?`${ph.color}25`:'transparent',borderLeft:`2px solid ${isComplete?C.ok:active?ph.color:'transparent'}`,fontSize:18,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?ph.color:isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div>{META[sid]}</div>})}</div>)}</div>}
 
 export default function PivotEngine(){
+  const isDemo=new URLSearchParams(window.location.search).get('demo')==='true'
   const IP={loc:{country:'',city:'',work:''},resume:'',resumeFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''}}
   const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',income:''}
-  const[step,setStep]=useState('welcome')
-  const[profile,setProfile]=useState(IP)
-  const[outputs,setOutputs]=useState(IO)
-  const[done,setDone]=useState([])
-  const[deepOpts,setDeepOpts]=useState(['','',''])
-  const[chosen,setChosen]=useState('')
+  const[step,setStep]=useState(isDemo?'complete':'welcome')
+  const[profile,setProfile]=useState(isDemo?demoProfile:IP)
+  const[outputs,setOutputs]=useState(isDemo?demoOutputs:IO)
+  const[done,setDone]=useState(isDemo?[...demoDone]:[])
+  const[deepOpts,setDeepOpts]=useState(isDemo?[...demoDeepOpts]:['','',''])
+  const[chosen,setChosen]=useState(isDemo?demoChosen:'')
   const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:''})
   const setFb=(k,v)=>setFeedback(f=>({...f,[k]:v}))
   const[loading,setLoading]=useState(false)
@@ -311,14 +313,14 @@ export default function PivotEngine(){
   const[copied,setCopied]=useState(false)
   const[csvCopied,setCsvCopied]=useState(false)
   const[fileLoading,setFileLoading]=useState(false)
-  const[surveyDone,setSurveyDone]=useState(false)
+  const[surveyDone,setSurveyDone]=useState(isDemo)
   const[survey,setSurvey]=useState({nps:null,valuable:'',confidence:null,accuracy:null,open:''})
   const[surveySubmitted,setSurveySubmitted]=useState(false)
   const[surveySubmitting,setSurveySubmitting]=useState(false)
   const setSv=(k,v)=>setSurvey(s=>({...s,[k]:v}))
 
-  useEffect(()=>{const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(d.profile);if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen)}}catch{}};load()},[])
-  useEffect(()=>{const save=async()=>{try{localStorage.setItem('pe_v3',JSON.stringify({step,profile,outputs,done,deepOpts,chosen}))}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen])
+  useEffect(()=>{if(isDemo)return;const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(d.profile);if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen)}}catch{}};load()},[])
+  useEffect(()=>{if(isDemo)return;const save=async()=>{try{localStorage.setItem('pe_v3',JSON.stringify({step,profile,outputs,done,deepOpts,chosen}))}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen])
 
   const pr=(f,v)=>setProfile(p=>({...p,[f]:v}))
   const loc=(f,v)=>setProfile(p=>({...p,loc:{...p.loc,[f]:v}}))
@@ -507,7 +509,10 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         </div>)}
       </div>
 
-      <div style={S.row}><Btn onClick={()=>advance('welcome','location')}>Let's get started <ChevronRight size={14}/></Btn></div>
+      {!isDemo&&<div style={S.row}>
+        <Btn onClick={()=>advance('welcome','location')}>Let's get started <ChevronRight size={14}/></Btn>
+        <Btn secondary onClick={()=>{window.location.href='/?demo=true'}}>See a completed example first</Btn>
+      </div>}
     </div>
 
     case'location':return <div>
@@ -591,12 +596,12 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <div style={S.tag('#8A7AB8')}>Phase 1 · Know Your Value</div>
       <h1 style={S.title}>Resume Analysis</h1>
       <p style={S.sub}>We strip away job titles and industry jargon to find your universal value — what you've actually been doing for the businesses that employed you.</p>
-      {!outputs.p1&&!loading&&<Btn onClick={()=>generate('p1',()=>P.p1(pc))}><Sparkles size={14}/>Analyze My Resume</Btn>}
+      {!isDemo&&!outputs.p1&&!loading&&<Btn onClick={()=>generate('p1',()=>P.p1(pc))}><Sparkles size={14}/>Analyze My Resume</Btn>}
       {loading&&<Loading msg={loadMsg||'Analyzing your career and translating accomplishments…'}/>}
       {outputs.p1&&<>
         <OutPanel text={outputs.p1} onCopy={copy} copied={copied}/>
-        <RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} onRegenerate={v=>{out('p1','');generate('p1',()=>P.p1(pc)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>
-        <div style={S.row}><Btn secondary onClick={()=>out('p1','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p1','p2')}>Continue <ChevronRight size={14}/></Btn></div>
+        {!isDemo&&<RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} onRegenerate={v=>{out('p1','');generate('p1',()=>P.p1(pc)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p1','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p1','p2')}>Continue <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -605,12 +610,12 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <div style={S.tag('#8A7AB8')}>Phase 1 · Know Your Value</div>
       <h1 style={S.title}>Wiring & Compass</h1>
       <p style={S.sub}>We layer in how you're built — your assessment, values, and passions — to understand not just what you've done, but why you do it well and where you'll thrive.</p>
-      {!outputs.p2&&!loading&&<Btn onClick={()=>generate('p2',()=>P.p2(pc,outputs.p1))}><Sparkles size={14}/>Analyze My Wiring</Btn>}
+      {!isDemo&&!outputs.p2&&!loading&&<Btn onClick={()=>generate('p2',()=>P.p2(pc,outputs.p1))}><Sparkles size={14}/>Analyze My Wiring</Btn>}
       {loading&&<Loading msg="Cross-referencing assessment, values, and accomplishments…"/>}
       {outputs.p2&&<>
         <OutPanel text={outputs.p2} onCopy={copy} copied={copied}/>
-        <RefineBox value={feedback.p2} onChange={v=>setFb('p2',v)} onRegenerate={v=>{out('p2','');generate('p2',()=>P.p2(pc,outputs.p1)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>
-        <div style={S.row}><Btn secondary onClick={()=>out('p2','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p2','p3')}>Continue <ChevronRight size={14}/></Btn></div>
+        {!isDemo&&<RefineBox value={feedback.p2} onChange={v=>setFb('p2',v)} onRegenerate={v=>{out('p2','');generate('p2',()=>P.p2(pc,outputs.p1)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p2','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p2','p3')}>Continue <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -621,12 +626,12 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <div style={S.tag('#8A7AB8')}>Phase 1 · Know Your Value</div>
       <h1 style={S.title}>Brand Synthesis</h1>
       <p style={S.sub}>The final data layer. We synthesize everything into your Golden Thread and Functional Identity: a crisp, title-free statement of what you bring to any organization.</p>
-      {!outputs.p3&&!loading&&<Btn onClick={()=>generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}><Sparkles size={14}/>Synthesize My Brand</Btn>}
+      {!isDemo&&!outputs.p3&&!loading&&<Btn onClick={()=>generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}><Sparkles size={14}/>Synthesize My Brand</Btn>}
       {loading&&<Loading msg="Finding the pattern across all your data…"/>}
       {outputs.p3&&<>
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
-        <RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} onRegenerate={v=>{out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>
-        <div style={S.row}><Btn secondary onClick={()=>out('p3','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p3','p4')}>Begin Phase 2 <ChevronRight size={14}/></Btn></div>
+        {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} onRegenerate={v=>{out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p3','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p3','p4')}>Begin Phase 2 <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -635,12 +640,12 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>
       <h1 style={S.title}>The Wide View</h1>
       <p style={S.sub}>Before choosing, see the full picture. Three lanes of possibilities — starting with the ones furthest from where you've been, so you can consider what's genuinely possible before defaulting to the familiar.</p>
-      {!outputs.p4&&!loading&&<Btn onClick={()=>generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3),{highTemp:true,maxTokens:5000,msg:'Mapping your opportunity landscape — this takes a moment…'})}><Sparkles size={14}/>Generate My Options</Btn>}
+      {!isDemo&&!outputs.p4&&!loading&&<Btn onClick={()=>generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3),{highTemp:true,maxTokens:5000,msg:'Mapping your opportunity landscape — this takes a moment…'})}><Sparkles size={14}/>Generate My Options</Btn>}
       {loading&&<Loading msg={loadMsg||'Mapping your full opportunity landscape across all three lanes…'}/>}
       {outputs.p4&&<>
         <OutPanel text={outputs.p4} onCopy={copy} copied={copied}/>
-        <RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} onRegenerate={v=>{out('p4','');generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Refining your opportunity landscape…'})}}/>
-        <div style={{...S.card,marginTop:8}}>
+        {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} onRegenerate={v=>{out('p4','');generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Refining your opportunity landscape…'})}}/>}
+        {!isDemo&&<div style={{...S.card,marginTop:8}}>
           <div style={{fontWeight:600,color:'#1A2540',fontSize:17,marginBottom:4}}>Select up to 3 options to explore further.</div>
           <div style={{fontSize:15,color:C.gray,marginBottom:16,lineHeight:1.6}}>Type the role or path that caught your attention. Pick what made you lean in, not just what feels safe.</div>
           {['A','B','C'].map((l,i)=><div key={l} style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
@@ -651,7 +656,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           </div>)}
           {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={S.row}><Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn></div>}
           {deepOpts.filter(v=>v&&v!=='?').length===0&&<div style={{fontSize:15,color:C.gray}}>Enter at least one option above to continue.</div>}
-        </div>
+        </div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -684,8 +689,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         <h1 style={S.title}>The Deep Dive</h1>
         <p style={S.sub}>A clear-eyed look at each option — what the role really is, why you fit, and what to know before you pursue it.</p>
         {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{...S.note,marginBottom:16}}>Exploring: {filledOpts.map((o,i)=><strong key={i} style={{color:'#1A2540',marginRight:12}}>{o}</strong>)}</div>}
-        {!outputs.p5&&!loading&&filledOpts.length>0&&<Btn onClick={()=>generate('p5',()=>P.p5(pc,outputs,deepOpts),{maxTokens:6000,msg:'Building your deep dive…'})}><Sparkles size={14}/>Explore These Options</Btn>}
-        {filledOpts.length===0&&!outputs.p5&&<div style={{...S.err,marginTop:0}}><AlertCircle size={13} color={C.err} style={{flexShrink:0}}/><span>Go back to The Wide View and select at least one option to explore.</span></div>}
+        {!isDemo&&!outputs.p5&&!loading&&filledOpts.length>0&&<Btn onClick={()=>generate('p5',()=>P.p5(pc,outputs,deepOpts),{maxTokens:6000,msg:'Building your deep dive…'})}><Sparkles size={14}/>Explore These Options</Btn>}
+        {!isDemo&&filledOpts.length===0&&!outputs.p5&&<div style={{...S.err,marginTop:0}}><AlertCircle size={13} color={C.err} style={{flexShrink:0}}/><span>Go back to The Wide View and select at least one option to explore.</span></div>}
         {loading&&<Loading msg={loadMsg||'Building your deep dive…'}/>}
         {outputs.p5&&<>
           <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
@@ -706,12 +711,12 @@ A senior people-strategy leader who turns workforce challenges into measurable b
             </div>
           </>}
           {!parsed[activeTab]&&<div style={S.out}><MD text={outputs.p5}/></div>}
-          <RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} onRegenerate={v=>{out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000,msg:'Rebuilding your deep dive…'})}}/>
-          <div style={S.row}>
+          {!isDemo&&<RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} onRegenerate={v=>{out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000,msg:'Rebuilding your deep dive…'})}}/>}
+          {!isDemo&&<div style={S.row}>
             <Btn secondary onClick={()=>out('p5','')}><RotateCcw size={13}/>Regenerate</Btn>
             <Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p4')}}><ArrowLeft size={13}/>Try Different Options</Btn>
             <Btn onClick={()=>advance('p5','decision')}>Make My Decision <ChevronRight size={14}/></Btn>
-          </div>
+          </div>}
         </>}
         {err&&<ErrBox msg={err}/>}
       </div>
@@ -721,18 +726,23 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>
       <h1 style={S.title}>Your Decision</h1>
       <p style={S.sub}>Read through the deep dive. There is no wrong answer — the goal is a choice you can commit to, not a perfect choice. You only need one yes.</p>
-      <div style={S.card}>
-        <label style={S.label}>I've decided to pursue…</label>
-        <div style={{fontSize:15,color:C.gray,marginBottom:10,lineHeight:1.6}}>Type the role or path you're committing to. This becomes the foundation for Phases 3–5.</div>
-        <textarea style={{...S.ta,minHeight:75}} value={chosen} onChange={e=>setChosen(e.target.value)} placeholder="e.g. Fractional CMO in the B2B SaaS ecosystem, Vendor-side consultant in healthcare, Independent financial planner focused on sustainable investing…"/>
-      </div>
-      <div style={S.card}>
-        <div style={{fontWeight:600,color:C.cream,fontSize:13,marginBottom:9}}>Not ready yet?</div>
-        <Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p5')}}>Explore different options →</Btn>
-        <div style={{fontSize:15,color:C.gray,marginTop:9}}>Or close the tool and come back — your progress is saved automatically.</div>
-      </div>
-      {err&&<ErrBox msg={err}/>}
-      <div style={S.row}><Btn onClick={()=>chosen?advance('decision','p6'):setErr('Please enter your decision to continue.')}>Build My Bridge Story <ChevronRight size={14}/></Btn></div>
+      {isDemo?<div style={S.card}>
+        <label style={S.label}>Pursuing</label>
+        <div style={{fontSize:17,color:C.cream,fontWeight:600,lineHeight:1.6}}>{chosen}</div>
+      </div>:<>
+        <div style={S.card}>
+          <label style={S.label}>I've decided to pursue…</label>
+          <div style={{fontSize:15,color:C.gray,marginBottom:10,lineHeight:1.6}}>Type the role or path you're committing to. This becomes the foundation for Phases 3–5.</div>
+          <textarea style={{...S.ta,minHeight:75}} value={chosen} onChange={e=>setChosen(e.target.value)} placeholder="e.g. Fractional CMO in the B2B SaaS ecosystem, Vendor-side consultant in healthcare, Independent financial planner focused on sustainable investing…"/>
+        </div>
+        <div style={S.card}>
+          <div style={{fontWeight:600,color:C.cream,fontSize:13,marginBottom:9}}>Not ready yet?</div>
+          <Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p5')}}>Explore different options →</Btn>
+          <div style={{fontSize:15,color:C.gray,marginTop:9}}>Or close the tool and come back — your progress is saved automatically.</div>
+        </div>
+        {err&&<ErrBox msg={err}/>}
+        <div style={S.row}><Btn onClick={()=>chosen?advance('decision','p6'):setErr('Please enter your decision to continue.')}>Build My Bridge Story <ChevronRight size={14}/></Btn></div>
+      </>}
     </div>
 
     case'p6':return <div>
@@ -742,9 +752,9 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <h1 style={S.title}>Your Bridge Story</h1>
       <p style={S.sub}>Three versions of your "Tell Me About Yourself" — 30, 60, and 90 seconds. Written to be said aloud.</p>
       <div style={S.note}>Pursuing: <strong style={{color:C.cream}}>{chosen}</strong></div>
-      {!outputs.p6&&!loading&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
+      {!isDemo&&!outputs.p6&&!loading&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
       {loading&&<Loading msg="Crafting your bridge story in three lengths…"/>}
-      {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/><div style={S.row}><Btn secondary onClick={()=>out('p6','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p6','p7')}>Build My Go-to-Market <ChevronRight size={14}/></Btn></div></>}
+      {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p6','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p6','p7')}>Build My Go-to-Market <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -755,7 +765,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <h1 style={S.title}>Go-to-Market Strategy</h1>
       <p style={S.sub}>Most hiring happens before a posting goes live — or without one ever going live. Your target company list and outreach strategy. No job boards.</p>
       <div style={S.note}><strong style={{color:C.gold}}>Live research enabled.</strong> We search for companies that are growing, investing, and most likely to be hiring — and flag ones showing signs of contraction.</div>
-      {!outputs.p7&&!loading&&<Btn onClick={()=>generate('p7',()=>P.p7(pc,outputs,chosen),{webSearch:true,maxTokens:6000,msg:'Researching target companies and building your strategy…'})}><Sparkles size={14}/>Build My Strategy</Btn>}
+      {!isDemo&&!outputs.p7&&!loading&&<Btn onClick={()=>generate('p7',()=>P.p7(pc,outputs,chosen),{webSearch:true,maxTokens:6000,msg:'Researching target companies and building your strategy…'})}><Sparkles size={14}/>Build My Strategy</Btn>}
       {loading&&<Loading msg={loadMsg||'Researching companies and building your outreach strategy…'}/>}
       {outputs.p7&&(()=>{
         const downloadCSV=()=>{
@@ -790,10 +800,10 @@ A senior people-strategy leader who turns workforce challenges into measurable b
             }} style={{flexShrink:0}}>Download CSV</Btn>
           </div>
           {part34&&<div style={S.out}><MD text={part34}/></div>}
-          <div style={S.row}>
+          {!isDemo&&<div style={S.row}>
             <Btn secondary onClick={()=>out('p7','')}><RotateCcw size={13}/>Regenerate</Btn>
             <Btn onClick={()=>advance('p7','p8')}>Begin Preparation <ChevronRight size={14}/></Btn>
-          </div>
+          </div>}
         </>
       })()}
       {err&&<ErrBox msg={err}/>}
@@ -805,9 +815,9 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>
       <h1 style={S.title}>LinkedIn Remix</h1>
       <p style={S.sub}>Your LinkedIn profile is the first thing target buyers see after you reach out. We'll rewrite your headline, About section, and experience bullets.</p>
-      {!outputs.p8&&!loading&&<Btn onClick={()=>generate('p8',()=>P.p8(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Remix My LinkedIn</Btn>}
+      {!isDemo&&!outputs.p8&&!loading&&<Btn onClick={()=>generate('p8',()=>P.p8(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Remix My LinkedIn</Btn>}
       {loading&&<Loading msg="Rewriting your LinkedIn for your new direction…"/>}
-      {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/><div style={S.row}><Btn secondary onClick={()=>out('p8','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p8','p_res')}>Continue <ChevronRight size={14}/></Btn></div></>}
+      {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p8','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p8','p_res')}>Continue <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -818,9 +828,9 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <h1 style={S.title}>Resume Refresh</h1>
       <p style={S.sub}>Your resume, rewritten to speak directly to your new direction. Same career, new framing — every bullet tied to a business result relevant to where you're headed.</p>
       <div style={S.note}>Targeting: <strong style={{color:C.cream}}>{chosen}</strong></div>
-      {!outputs.p_res&&!loading&&<Btn onClick={()=>generate('p_res',()=>P.p_res(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Refresh My Resume</Btn>}
+      {!isDemo&&!outputs.p_res&&!loading&&<Btn onClick={()=>generate('p_res',()=>P.p_res(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Refresh My Resume</Btn>}
       {loading&&<Loading msg="Rewriting your resume for your new direction…"/>}
-      {outputs.p_res&&<><OutPanel text={outputs.p_res} onCopy={copy} copied={copied}/><div style={S.row}><Btn secondary onClick={()=>out('p_res','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p_res','p9')}>Continue <ChevronRight size={14}/></Btn></div></>}
+      {outputs.p_res&&<><OutPanel text={outputs.p_res} onCopy={copy} copied={copied}/>{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p_res','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p_res','p9')}>Continue <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -830,9 +840,9 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>
       <h1 style={S.title}>The Crash Course</h1>
       <p style={S.sub}>You're entering this field as a credible outsider. This gives you what you need to sound like a native in one focused study session.</p>
-      {!outputs.p9&&!loading&&<Btn onClick={()=>generate('p9',()=>P.p9(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Build My Crash Course</Btn>}
+      {!isDemo&&!outputs.p9&&!loading&&<Btn onClick={()=>generate('p9',()=>P.p9(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Build My Crash Course</Btn>}
       {loading&&<Loading msg="Building your industry crash course…"/>}
-      {outputs.p9&&<><OutPanel text={outputs.p9} onCopy={copy} copied={copied}/><div style={S.row}><Btn secondary onClick={()=>out('p9','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p9','p10')}>Final Step <ChevronRight size={14}/></Btn></div></>}
+      {outputs.p9&&<><OutPanel text={outputs.p9} onCopy={copy} copied={copied}/>{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p9','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p9','p10')}>Final Step <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -842,9 +852,9 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>
       <h1 style={S.title}>The Devil's Advocate</h1>
       <p style={S.sub}>The best defense is preparation. We surface the hardest question you'll face in a real room — then give you the answer. You'll hear it here before you hear it there.</p>
-      {!outputs.p10&&!loading&&<Btn onClick={()=>generate('p10',()=>P.p10(pc,outputs,chosen),{maxTokens:2000})}><Sparkles size={14}/>Face the Hardest Question</Btn>}
+      {!isDemo&&!outputs.p10&&!loading&&<Btn onClick={()=>generate('p10',()=>P.p10(pc,outputs,chosen),{maxTokens:2000})}><Sparkles size={14}/>Face the Hardest Question</Btn>}
       {loading&&<Loading msg="Preparing your toughest challenge and best defense…"/>}
-      {outputs.p10&&<><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/><div style={S.row}><Btn secondary onClick={()=>out('p10','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p10','complete')}>Complete My Reimagine <ChevronRight size={14}/></Btn></div></>}
+      {outputs.p10&&<><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/>{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p10','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p10','complete')}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -941,7 +951,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           </div>
           <Btn onClick={()=>nav('income')} style={{background:'#7AB87A',flexShrink:0}}>Generate My Income Plan <ChevronRight size={14}/></Btn>
         </div>
-        <div style={{marginTop:10,textAlign:'right'}}><Btn small onClick={reset}><RotateCcw size={11}/>Start a New Session</Btn></div>
+        {!isDemo&&<div style={{marginTop:10,textAlign:'right'}}><Btn small onClick={reset}><RotateCcw size={11}/>Start a New Session</Btn></div>}
       </>}
     </div>}
 
@@ -950,12 +960,12 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <h1 style={S.title}>Income Now</h1>
       <p style={S.sub}>Your longer-term search is underway. This module builds everything you need to generate income while you get there — gig platform profiles, a fractional pitch, passion-adjacent consulting niches, and a one sheet ready to use today.</p>
       <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>Targeting: <strong>{chosen||'your chosen direction'}</strong></div>
-      {!outputs.income&&!loading&&<Btn onClick={()=>generate('income',()=>P.income(pc,outputs,chosen),{maxTokens:6000,msg:'Building your Income Now plan…'})} style={{background:'#7AB87A'}}><Sparkles size={14}/>Build My Income Plan</Btn>}
+      {!isDemo&&!outputs.income&&!loading&&<Btn onClick={()=>generate('income',()=>P.income(pc,outputs,chosen),{maxTokens:6000,msg:'Building your Income Now plan…'})} style={{background:'#7AB87A'}}><Sparkles size={14}/>Build My Income Plan</Btn>}
       {loading&&<Loading msg="Building your Income Now plan — this one is thorough…"/>}
       {outputs.income&&<>
         <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
-        <RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} onRegenerate={v=>{out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000})}}/>
-        <div style={S.row}><Btn secondary onClick={()=>out('income','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>
+        {!isDemo&&<RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} onRegenerate={v=>{out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000})}}/>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('income','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -966,6 +976,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
   return <>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     <div style={{minHeight:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column'}}>
+      {isDemo&&<div style={{background:'linear-gradient(90deg,#C8924A,#e4572e)',padding:'10px 24px',textAlign:'center',fontSize:14,fontWeight:600,color:'#fff',letterSpacing:'0.5px'}}>You're viewing a demo with sample data. <a href="/" style={{color:'#fff',textDecoration:'underline',marginLeft:8}}>Start your own Reimagine</a></div>}
       <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <div>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="148" height="34" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
