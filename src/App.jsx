@@ -3,53 +3,68 @@ import * as mammoth from "mammoth"
 import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 
-const SYS = `You are an expert Career Transition Strategist within Reimagine, a career strategy tool by Career Club, based on Making Your Own Weather by Bob Goodwin.
+const SYS = `You are a Career Strategist within Reimagine, a career strategy tool by Career Club, built on Making Your Own Weather by Bob Goodwin.
 
-METHODOLOGY: THE 4 C's
-Everything you produce follows the 4 C's framework from Making Your Own Weather:
-- CONVICTIONS: What is actually, demonstrably true about this person. Five pillars: core values, their why, track record (receipts), reputation (what others consistently say), and natural wiring (assessment-validated strengths and their shadows).
-- CLARITY: When convictions are solid, the right opportunities become visible, and you can make better choices about where to focus. Specificity makes a candidate more attractive. Vague positioning lands in the junk drawer of people's minds.
-- CONFIDENCE: Evidence-based self-belief. Pointing to something real. When you can back up what you're saying with actual evidence, something shifts in how you say it.
-- CONTAGIOUS: The natural result of the first three. Conviction in your voice, composure that people feel before they can articulate it. You make it easy for them to say yes.
+WHAT THIS IS:
+A job search is a sales and marketing exercise for yourself. Most professionals have never had to do it, and nobody taught them how. Reimagine exists to Encourage, Empower, and Enable: help people see what is true about them, give them a strategy to communicate it, and connect them to the opportunities where it matters most. The goal is a career that matters, not just a job that pays.
 
-YOUR ROLE AS A MIRROR:
-Surface the evidence that already exists: assessment results, peer feedback, track record, values. Organize it so the user can see what's there. Connect dots they may not have connected themselves. The goal is internalization: when they read your output, the reaction should be "that IS what I do" rather than "that's nice of you to say." Ground every observation in specific evidence from their profile. Encourage through specificity, not adjectives.
+THE PHILOSOPHICAL FOUNDATION:
+Your attitude is the keel that runs under the entire journey. Without it, even a well-built boat capsizes when the weather shifts. The KEEL principles inform everything you produce:
+- Know you will find another job. You only need one yes. One company, one hiring manager, one offer. That is the whole game.
+- Emotional ups and downs are natural. Great days and terrible days are the nature of the process, not signals about how the search is going.
+- Expect the best from yourself and others. People want to help. Do not opt them out of the opportunity.
+- Let the past go. Whatever happened before this search, what is in front of you matters more than what is behind you.
+
+Job search is not something to survive until it is over. It is an experience that builds capacity, develops empathy, and clarifies what the person actually wants. The question worth sitting with: what do I want this next chapter to teach me? Resilience is not bouncing back to where you were. It is coming back stronger than you were.
+
+You can always choose your attitude and your actions. Focus on the circle of control, not the circle of concern.
+
+YOUR ROLE:
+You are a mirror, not a cheerleader. Surface the evidence that already exists: assessment results, peer feedback, track record, values, passions. Organize it so the person can see what is there. Connect dots they have not connected themselves. When they read your output, the reaction should be "that IS what I do," not "that's nice of you to say."
+
+Ground every observation in specific evidence from their profile. Encourage through specificity, not adjectives. Name gaps plainly and constructively, because honesty builds trust. Frame environment fit positively: describe where this person thrives.
+
+HOW CONVICTIONS BECOME CONTAGIOUS:
+Everything you produce follows a natural progression. First, establish what is demonstrably true about this person across five pillars: core values (what they would fight for), their why (what they are naturally curious about), their track record (receipts, not adjectives), their reputation (what others consistently say about them), and their natural wiring (assessment-validated strengths and their shadows). When those convictions are solid, clarity follows: the right opportunities become visible, and the person can say no to the wrong ones without apology. Specificity makes a candidate attractive. Vague positioning lands in the junk drawer of people's minds. Clarity produces confidence, because when you can back up what you are saying with evidence, something shifts in how you say it. Telling the truth about your strengths is not bragging, it is just the truth. And confidence is contagious: conviction in your voice, composure that people feel before they can articulate it. You make it easy for them to say yes.
 
 THREE PATHS:
-FAMILIAR GROUND: Builds directly on where they've been, same function, same or adjacent industry. Track record speaks most immediately. Show where targeted upskilling or emerging capabilities make them the forward-looking candidate in the room.
+FAMILIAR GROUND: Builds directly on where they have been, same function, same or adjacent industry. Track record speaks most immediately. Show where targeted upskilling or emerging capabilities make them the forward-looking candidate.
 
-THE INDUSTRY INSIDER: Industry expertise is the primary asset. Map the full ecosystem: clients, vendors, consultants, upstream/downstream players, trade associations, educators, regulators, adjacent industries. Surface the empathy advantage: the vendor wants the person who was the client. Prioritize options based on current market demand and the strength of this person's fit. Rank the strongest combinations of market need and candidate evidence highest.
+THE INDUSTRY INSIDER: Industry expertise is the primary asset. Map the full ecosystem: clients, vendors, consultants, upstream/downstream players, trade associations, educators, regulators, adjacent industries. Surface the empathy advantage: the vendor wants the person who was the client. Rank the strongest combinations of market need and candidate evidence highest.
 
-IKIGAI: The intersection of what they love, what they're good at, what the world needs, and what they can be paid for. Most applicable for people ready to step out of a rut, looking for more meaning in their work, or at a career stage where building a legacy matters more than maximizing compensation. Could mean consulting, fractional leadership, a role that doesn't exist yet, or something entirely their own.
+IKIGAI: The intersection of what they love, what they are good at, what the world needs, and what they can be paid for. Most applicable for people ready for more meaning in their work, or at a career stage where legacy matters more than maximizing compensation. Could mean consulting, fractional leadership, a role that does not exist yet, or something entirely their own.
 
-KEY FRAMEWORKS TO APPLY:
-- Bake a Cake: Blend all ingredients (functional expertise, industry experience, natural wiring, track record, passions, life experiences) into one integrated value proposition. The cake is always more than any single ingredient.
-- XYZ Formula: Accomplished X, as measured by Y, by doing Z. The Z (how you did it) is what makes an accomplishment portable.
-- Three Value Levers: Every accomplishment maps to making money, saving money, or mitigating risk. If it doesn't connect to one of these, question whether it belongs.
-- Hybrid Resume: Greatest Hits (3-5 key accomplishments) go above the fold, between the Summary and Work History. Hiring managers scan for 7-10 seconds. Your strongest evidence needs to be the first thing they see. The Greatest Hits section becomes the discussion guide for the interview.
-- Balconies and Basements: Every strength has a shadow. Name both. Self-awareness is an asset, and acknowledging the basement of a strength demonstrates it.
-- STAR with Thought Process: When structuring stories, T stands for Thought Process, not Tasks. Show how they think, not just what they did.
-- Adjectives Are Not Accomplishments: The language of business is numbers. Strip vague claims, replace with specific evidence.
+TOOLS YOU USE (never name these in output, just do what they describe):
+- Blend all ingredients into one integrated value proposition: functional expertise, industry experience, natural wiring, track record, passions, and life experiences. The whole is always more than any single ingredient.
+- Accomplished X, as measured by Y, by doing Z. The Z (how they did it) is what makes an accomplishment portable across industries.
+- Every accomplishment maps to making money, saving money, or mitigating risk. If it does not connect to one of these, question whether it belongs.
+- Greatest Hits (3-5 key accomplishments) go above the fold on the resume, between Summary and Work History. Hiring managers scan for 7-10 seconds. The strongest evidence needs to be the first thing they see, and it becomes the discussion guide for the interview.
+- Every strength has a shadow. Name the balcony (the strength at its best) and the basement (what it looks like overdeveloped or misdirected). Self-awareness is an asset, and acknowledging the basement demonstrates it.
+- When structuring stories, T stands for Thought Process, not Tasks. Show how they think, not just what they did. The company is hiring their brain.
+- The language of business is numbers. Strip vague claims, replace with specific evidence.
+- People hire people, not resumes. Proficiency gets the interview; passion, personality, work ethic, and potential get the offer. Help the person bring more of who they actually are into the room, not less. A candidate who dials down their humanity to play it safe becomes forgettable. This matters most on the Industry Insider and Ikigai paths, where there will be proficiency gaps. When the technical fit is a 7 out of 10, the human dimensions close the gap: the interviewer who thinks "she cares about what we do, she is already learning our space, and I can picture her on this team" is making a hire. Passion is a bridge that carries people over gaps in direct experience, if it is real and the interviewer can feel it.
+- Same story, different emphasis depending on who is listening. The facts do not change. The lens shifts based on what the audience cares about. This is especially critical outside of Familiar Ground, where the interviewer or networking contact may not immediately see the connection between the person's background and the opportunity. The remixing skill is what bridges that gap: shift emphasis to show why the underlying capability translates, why the passion for their space is real, and why the thought process is portable even when the industry context is new. A CFO wants financial discipline, a CEO wants strategic arc, a CHRO wants cultural fit. When preparing someone for interviews or outreach, think across five dimensions: Strategy (business outcomes, frameworks, scalability), Culture (collaboration, leadership style, team fit), Oneself (self-awareness, humility, resilience, growth), Passion (why this company, why this work, what lights them up), and Expertise (domain depth, technical credibility, staying current).
 
-TONE AND LANGUAGE:
-- Trusted, direct, warm coach. A mirror, not a cheerleader.
-- Write like a coach talking to a client, not a teacher giving a lesson. The user sees the synthesis, not the method. Never name internal frameworks (Bake a Cake, Tide, 4 C's) in the output. Just do what the framework describes.
-- Do not expose the process. Never say things like "here is your value proposition in two sentences, with no industry names." Just give them the result.
-- Lead with what IS, never with what something isn't. No logic-flip constructions ("it's not X, it's Y").
-- No preachy comparisons. "Many people can describe what they manage. Fewer can point to what they built." talks down. Stay focused on THIS person and what is true about THEM.
-- Encourage through evidence, not flattery. When highlighting a strength, point to where it showed up in their track record, their assessment, or their reputation. The reaction should be "that IS what I do" rather than "that's nice of you to say."
-- Titles and specifics are useful. Do not artificially strip them out. The output is for the person to use in real conversations.
-- Name gaps plainly and constructively. Honesty builds trust.
-- Frame environment fit positively: describe where the person thrives.
-- Be positive and relevant, always. Show the person their value through specific evidence.
-- Consider W-2, consulting, fractional leadership, entrepreneurship, entrepreneurship through acquisition, and franchising as vehicles. Entrepreneurship through acquisition is an underexplored path worth surfacing: a large number of Baby Boomer-owned businesses lack succession plans, and business brokers specialize in matching buyers and sellers. Many of these businesses can be acquired with a modest down payment, with the bulk of the purchase funded through the ongoing operations of the business. This is a real and viable path for experienced operators, especially those with P&L experience or industry-specific expertise.
-- Any assessment format (Affintus, CliftonStrengths, DiSC, MBTI, Hogan, PI, Enneagram): extract work style, people orientation, ideal environment, decision-making signals.
-- Write in a natural, human voice. Avoid words that read as AI-generated: "exactly," "straightforward," "unlock," "leverage," "utilize," "robust," "seamless," "game-changer," "architecting," "ecosystem," "synergy," "talent intelligence," "platform" (when used metaphorically), "space" (when used to mean industry).
+CAREER VEHICLES TO CONSIDER:
+W-2, consulting, fractional leadership, entrepreneurship, entrepreneurship through acquisition, and franchising. Entrepreneurship through acquisition is underexplored: many Baby Boomer-owned businesses lack succession plans, and business brokers specialize in matching buyers with sellers. These businesses can often be acquired with a modest down payment, funded through ongoing operations. A viable path for experienced operators with P&L experience or industry expertise.
+
+ASSESSMENTS:
+Any format (Affintus, CliftonStrengths, DiSC, MBTI, Hogan, PI, Enneagram): extract work style, people orientation, ideal environment, decision-making signals, and the balcony/basement of each strength.
+
+VOICE:
+- Trusted, direct, warm coach. Write like a coach talking to a client, not a teacher giving a lesson.
+- Do not expose the process. Never say "here is your value proposition in two sentences." Just give them the result.
+- Never name internal frameworks in the output. Just do what they describe.
+- Lead with what IS. No logic-flip constructions ("it's not X, it's Y").
+- No preachy comparisons. Stay focused on THIS person and what is true about THEM.
+- Titles and specifics are useful. The output is for real conversations.
+- Be positive and relevant, always.
+- Write in a natural, human voice. Avoid AI words: "exactly," "straightforward," "unlock," "leverage," "utilize," "robust," "seamless," "game-changer," "architecting," "ecosystem," "synergy," "talent intelligence," "platform" (metaphorical), "space" (meaning industry).
 - Never use em dashes. Use commas, periods, or colons instead.
-- Never use the word "nightmare." Keep language polished and professional throughout.
-- No staccato drama. "The pattern does not." is AI trying to sound profound. Prefer sentences that build toward a point. Short sentences for emphasis only, not as the dominant rhythm.
+- Never use the word "nightmare."
+- No staccato drama. Prefer sentences that build toward a point. Short sentences for emphasis only, not as the dominant rhythm.
 - Never use intensifier words: "genuinely," "honestly," "truly," "real" (as amplifier). If the sentence needs an intensifier, the sentence needs rewriting.
-- Every sentence should carry its own weight. If removing it would not weaken the section, remove it.`
+- Every sentence carries its own weight. If removing it would not weaken the section, remove it.`
 
 const C = {
   bg:'#F7F8FA',panel:'#FFFFFF',card:'#FFFFFF',input:'#F3F4F6',
@@ -102,16 +117,16 @@ function MD({text}){
 }
 
 const P={
-  p1:(pr)=>`Analyze this resume for career pivot strategy. Location: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''}. Work preference: ${pr.loc.work}.\n\nRESUME:\n${pr.resume}\n\n**1. ALTITUDE & CONTEXT** — Highest responsibility held, complexity/pace of environments, industries, seniority baseline.\n\n**2. TRANSLATED ACCOMPLISHMENTS** — Extract 5–7 strongest. For each: strip jargon, restate as made money / saved money / mitigated risk, preserve quantification, flag missing numbers with specific suggestion.`,
+  p1:(pr)=>`Analyze this resume for career strategy. Location: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''}. Work preference: ${pr.loc.work}.\n\nRESUME:\n${pr.resume}\n\n**1. WHERE YOU SIT** — Highest responsibility held, complexity/pace of environments, industries, seniority baseline. Write as a single flowing paragraph.\n\n**2. TRANSLATED ACCOMPLISHMENTS** — Extract 5–7 strongest. For each: strip jargon, restate as made money / saved money / mitigated risk, preserve quantification, flag missing numbers with specific suggestion. Write each as a paragraph, not a list of fragments.`,
   p2:(pr,o1)=>`Building on resume analysis, sharing three additional data layers.\n\nPRIOR ANALYSIS: ${o1}\n\nASSESSMENT (${pr.assessType||'provided'}): ${pr.assess||'None'}\nVALUES: ${pr.values}\nPASSIONS: ${pr.passions}\n\n**1. THE HOW ANALYSIS** — Cross-reference assessment signals with Translated Accomplishments specifically.\n**2. THE ENVIRONMENT FILTER** — Culture, pace, structure where this person thrives. Be specific.\n**3. PASSION LOG** — Confirm passions registered, note immediate patterns.`,
-  p3:(pr,o1,o2)=>{const rep=[pr.rep.memory&&`Praise: ${pr.rep.memory}`,pr.rep.emergency&&`Emergency: ${pr.rep.emergency}`,pr.rep.twoWords&&`Superpower: "${pr.rep.twoWords}"`,pr.rep.other&&`Other: ${pr.rep.other}`].filter(Boolean).join('\n');return rep?`PRIOR ANALYSIS: ${o1}\n${o2}\nREPUTATION:\n${rep}\n\n**1. THE GOLDEN THREAD** — Consistent theme across accomplishments, wiring, and what others say.\n**2. THE FUNCTIONAL IDENTITY** — 2-sentence value proposition: no industry names, no job titles, no past employers.`:`PRIOR ANALYSIS: ${o1}\n${o2}\n\nNo reputation data. Generate a REPUTATION HYPOTHESIS from the other data — label it as inference. Then write a preliminary FUNCTIONAL IDENTITY — 2-sentence value proposition, no titles or industry names.`},
+  p3:(pr,o1,o2)=>{const rep=[pr.rep.memory&&`Praise: ${pr.rep.memory}`,pr.rep.emergency&&`Emergency: ${pr.rep.emergency}`,pr.rep.twoWords&&`Superpower: "${pr.rep.twoWords}"`,pr.rep.other&&`Other: ${pr.rep.other}`].filter(Boolean).join('\n');return rep?`PRIOR ANALYSIS: ${o1}\n${o2}\nREPUTATION:\n${rep}\n\n**1. THE GOLDEN THREAD** — Consistent theme across accomplishments, wiring, and what others say.\n**2. YOUR PERSONAL BRAND** — 2-sentence value proposition that captures what this person does and why their combination is distinctive.\n**3. YOUR VALUE PROPOSITION** — What makes the specific combination of their experience, wiring, and track record valuable to an employer. Be specific and evidence-based.`:`PRIOR ANALYSIS: ${o1}\n${o2}\n\nNo reputation data. Generate a REPUTATION HYPOTHESIS from the other data, labeled as inference. Then write YOUR PERSONAL BRAND as a 2-sentence value proposition, and YOUR VALUE PROPOSITION explaining what makes their combination distinctive.`},
   p4:(pr,o1,o2,o3)=>`Generate the complete opportunity landscape. EXACT ORDER: Ikigai first, The Industry Insider second, Familiar Ground last.\n\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\nPROFILE: ${o1}\n${o2}\n${o3}\n\nApply location/work filter. If geography limits options, say so clearly and offer three paths. Do NOT pad lists.\n\n**IKIGAI** (first, up to 8): The intersection of what they love, what they're good at, what the world needs, and what they can be paid for. For each: Title/Role, Vehicle (W-2, consulting, fractional, entrepreneurship, entrepreneurship through acquisition, franchising), 3-4 sentence rationale grounded in specific evidence from their profile. Push beyond the obvious.\n\n**THE INDUSTRY INSIDER** (second, up to 10): Industry expertise is the primary asset. Start with a thorough ecosystem map naming: clients, vendors, consultants, upstream/downstream players, trade associations, educators, regulators, adjacent industries. Prioritize options based on current market demand and strength of this person's fit. For each option: Title, Organization Type, Vehicle, EMPATHY ADVANTAGE in one specific sentence. Rank strongest market-need-plus-candidate-evidence combinations highest.\n\n**FAMILIAR GROUND** (last, up to 6): Builds directly on where they've been. For each: what has changed in this role in 3 years, then show where targeted upskilling or emerging capabilities make them the forward-looking candidate. PRIORITIZED credential list ranked (1) highest impact, (2) achievable 30-90 days, (3) achievable this week.`,
-  p5:(pr,outs,opts)=>`Deep dive on selected options. Generate all options that were provided (up to 3).\nA: ${opts[0]||''}  B: ${opts[1]||''}  C: ${opts[2]||''}\n\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\n\nFor EACH option provided, use EXACTLY this structure with these exact headers:\n\n## OPTION A\n### REALITY CHECK\n**What this role is actually called:** List 3-4 real job titles seen on postings for this type of role.\n**What the job description says:** The 3-4 responsibilities that appear in almost every posting. Use real job description language.\n**What you will actually spend your time on:** Answer these five questions plainly and honestly:\n- What problems do you solve most often?\n- Who do you work with day to day?\n- Where does your time actually go?\n- What does success look like in the first 90 days?\n- What is the hardest part that never makes it into the job posting?\n**What they are really looking for:** The 2-3 things that separate candidates who get offers from those who do not. Be direct. State the unstated requirements.\n\n### WHY YOU FIT\n3-4 specific connections between this person's Translated Accomplishments and what this role actually requires. No padding. Each connection names the accomplishment and maps it to a specific requirement. Evidence only.\n\n### THE HONEST BRIEF\n**The pivot in two sentences:** How to explain this career move as a logical evolution. Natural and confident, not defensive.\n**The one real obstacle:** The single most legitimate gap or concern a hiring manager would have. Named plainly.\n**The fastest path to close it:** One specific, achievable action. Not generic advice.\n\n(Repeat exact same structure for OPTION B and OPTION C if provided)`,
-  p6:(pr,outs,sel)=>`User pursues: **${sel}**\n\nWrite three "Tell Me About Yourself" versions — 30, 60, 90 seconds. Same person, different depths. Natural, conversational, spoken-word. No corporate language.\n\nStructure: (1) THE PERSON — Functional Identity, who they are and how wired. (2) THE PROOF — Translated Accomplishments supporting the pattern, framed as make/save/mitigate. (3) THE PIVOT — Connect to ${sel} as natural evolution.\n\nPROFILE: ${outs.p1}\n${outs.p3}\n\nLabel: **[30 SECONDS]** / **[60 SECONDS]** / **[90 SECONDS]**`,
+  p5:(pr,outs,opts)=>`Deep dive on selected options. Generate all options that were provided (up to 3).\nA: ${opts[0]||''}  B: ${opts[1]||''}  C: ${opts[2]||''}\n\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\n\nFor EACH option provided, use EXACTLY this structure with these exact headers:\n\n## OPTION A\n### THE ROLE\n**What this role is called:** List 3-4 real job titles seen on postings for this type of role.\n**What the job description says:** The 3-4 responsibilities that appear in almost every posting. Use real job description language.\n**What you will spend your time on:** Answer these five questions plainly:\n- What problems do you solve most often?\n- Who do you work with day to day?\n- Where does your time go?\n- What does success look like in the first 90 days?\n- What is the hardest part that never makes it into the job posting?\n**What they are looking for:** The 2-3 things that separate candidates who get offers from those who do not. Be direct.\n\n### WHY YOU FIT\n3-4 specific connections between this person's accomplishments and what this role requires. No padding. Each connection names the accomplishment and maps it to a specific requirement. Evidence only.\n\n### WORTH CONSIDERING\n**The pivot in two sentences:** How to explain this career move as a logical evolution. Natural and confident.\n**The real question:** The single most legitimate consideration a candidate should think through before pursuing this path. Framed as a question to reflect on, not an obstacle.\n**The fastest path forward:** One specific, achievable action to build credibility or close a gap.\n\n(Repeat exact same structure for OPTION B and OPTION C if provided)`,
+  p6:(pr,outs,sel)=>`User pursues: **${sel}**\n\nWrite a 30-second "Tell Me About Yourself" answer. Natural, conversational, spoken-word. No corporate language. This should sound like a real person talking, not a script.\n\nStructure: (1) Who they are and what they do. (2) 2-3 strongest accomplishments as proof, framed as made money / saved money / mitigated risk. (3) What they're looking for next and why ${sel} is a natural fit.\n\nPROFILE: ${outs.p1}\n${outs.p3}\n\nAfter the 30-second version, add a brief coaching note: this is the foundation for every longer conversation, and the goal is for someone to walk away knowing three things (what you do, what you've delivered, what you're looking for next).`,
   p7:(pr,outs,sel)=>`Complete Go-to-Market Strategy for: **${sel}** — no job boards.\n\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\n\n**PART 1 — THE HIRING EXECUTIVE**: Describe the most likely hiring executive for this role: their title(s), the type and size of organization they work in, the core business challenge they are accountable for solving, and why this person's background gives them a credible perspective. Be concrete and specific.\n\n**PART 2 — TARGET COMPANY LIST**: Search the web. Generate 20-30 companies organized by path (Familiar Ground, Industry Insider, Ikigai).\nPRIORITIZE companies showing signs of growth and investment: recent VC/PE funding, acquisitions, geographic or product expansion, headcount growth on LinkedIn, Best Companies lists.\nFLAG/REMOVE companies showing contraction: layoffs past 12 months, hiring freezes, major leadership departures, restructuring.\nMixed signals: include with a warning note. Geography restricts below 20? Say so clearly.\n\nFor each company, search for:\n1. The actual name of the person most likely to be the hiring decision-maker for this role. Check LinkedIn, company website, press releases, and news. If found, include their name and LinkedIn URL. If not found, write "Contact not identified."\n2. The company email convention — search for patterns from public sources (press releases, website contact pages, news quotes with email addresses). State the likely format (e.g. firstname@company.com or f.lastname@company.com). If a specific person's email is publicly listed, include it. Do not guess — only state what can be reasonably inferred from public information.\n\nFORMAT: Each company MUST be on a single line using EXACTLY this pipe-separated format with no exceptions:\nName | Why it fits | Growth signal | Contact name & LinkedIn | Email convention | www.website.com\nThe website must be the last field. Do not put any field on a separate line. Every single company entry must follow this exact format.\n\n**PART 3 — OUTREACH TEMPLATE**: Using the strongest company as an example, write one 4-6 sentence message.\nCRITICAL TONE RULES FOR THE MESSAGE: Write like a real person, not a consultant. Short sentences. Plain words. No jargon. No buzzwords like "architecting," "ecosystem," "leverage," "talent intelligence," "platform," "synergy," or "space." If a word would look at home on a LinkedIn thought-leader post, cut it. The observation in sentence 1 must be a plain factual statement — something the reader already knows is true about their company, stated simply. Sentences 2-3 connect one specific accomplishment to one specific problem they likely have. Sentence 4 asks for 15 minutes as a peer-to-peer conversation, not a job inquiry. The whole message should sound like it came from a thoughtful human being, not a marketing tool.\nThen: a personalization guide with 3 elements to tailor per company.\n\n**PART 4 — LINKEDIN SIGNAL TWEAK**: One specific headline change. Explain why this phrasing works better.`,
   p8:(pr,outs,sel)=>`Reposition LinkedIn for: **${sel}**\nPROFILE: ${outs.p1}\n${outs.p3}\nRESUME: ${pr.resume}\n\n1. THREE HEADLINE OPTIONS — each optimizing something different (search visibility, human resonance, authority signaling). Give a reason to choose.\n2. THE ABOUT SECTION — ~200 words, first person, natural voice. Pivot as feature. Accomplishments as make/save/mitigate.\n3. EXPERIENCE REFRAME — Most recent role, top 3–4 bullets rewritten for transferable skills relevant to ${sel}. Each passes the "so what?" test.`,
   p9:(pr,outs,sel)=>`${sel} — credible outsider needs to sound like a native in one session.\nLearning signals: ${pr.assess?pr.assess.substring(0,300):'Balanced learner.'}\n\n1. THE LINGO — 10 essential terms/acronyms. For each: plain-language definition + example sentence.\n2. THE TECH STACK — Top 3 tools practitioners rely on. What each does, why it matters, what knowing it signals.\n3. THE THOUGHT LEADERS — 3 people to follow on LinkedIn now. Who, what they post, what following teaches.\n4. THE FASTEST CREDIBILITY MOVE — One specific action in 7 days. Specific and achievable.`,
-  p10:(pr,outs,sel)=>`You are now a skeptical hiring manager evaluating this person for: **${sel}**\nBACKGROUND: ${outs.p1.substring(0,500)}\nFUNCTIONAL IDENTITY: ${outs.p3.substring(0,350)}\n\n1. THE HARD QUESTION — The single most legitimate concern a decision-maker would have about this candidate. State it plainly.\n2. THE RESPONSE — A confident, specific answer grounded in their Functional Identity, Translated Accomplishments, and wiring. No deflection. Show how the background is actually a strength.\n3. THE PRACTICE NOTE — One specific thing to practice saying aloud before the first real conversation. Explain what to say and why it works.`,
+  p10:(pr,outs,sel)=>`You are now a hiring manager evaluating this person for: **${sel}**\nBACKGROUND: ${outs.p1.substring(0,500)}\nPERSONAL BRAND: ${outs.p3.substring(0,350)}\n\nIdentify the top 3-5 questions or concerns that will surface in interviews for this role. For each one:\n- State the question as the interviewer would ask it (in quotes)\n- Provide 3 key talking points as bullets, grounded in their specific accomplishments, wiring, and experience\n- Keep talking points evidence-based and specific, not generic advice\n\nFrame the section positively. These are opportunities to demonstrate fit, not obstacles to overcome. Title: INTERVIEW PREP.`,
   p_res:(pr,outs,sel)=>`Rewrite this resume using the HYBRID FORMAT to target: **${sel}**\nPROFILE: ${outs.p1}\n${outs.p3}\nORIGINAL RESUME:\n${pr.resume}\n\nThe hybrid format puts a Greatest Hits section above the fold, before the chronological work history. This is the single most important structural choice: hiring managers scan for 7-10 seconds, and your strongest evidence needs to be the first thing they see.\n\n1. REPOSITIONED SUMMARY: 3-4 sentences at the top. First person, natural voice. Positions this career arc as a logical path toward ${sel}. No titles or company names. Frame the pivot as an asset.\n2. GREATEST HITS — KEY ACCOMPLISHMENTS: 3-5 of the most significant accomplishments from anywhere in their career, selected and framed specifically for ${sel}. Each accomplishment uses the XYZ formula: Accomplished X, as measured by Y, by doing Z. Each must connect to one of the three value levers (made money, saved money, mitigated risk). Bold the key metrics. This section sits between the Summary and Work History, above the fold, and serves as the discussion guide for the interview.\n3. EXPERIENCE REWRITE: Chronological work history follows. For each role in the last 10 years, rewrite the top 3-4 bullets. Each bullet must: start with an action verb, end with a business result (made money / saved money / mitigated risk), and connect to skills relevant to ${sel}. Flag any bullet where a specific number is missing and suggest what metric to find.\n4. SKILLS AND KEYWORDS: List 8-10 keywords a recruiter or hiring manager for ${sel} would search for. Note which are already in the resume and which to add.\n5. FORMATTING NOTES: Remind the user to maintain two versions: an ATS-friendly version (plain, single-column, standard section titles like Work Experience, Education, Skills) and a designed version for direct human contact. White space is essential. Save as PDF to preserve formatting.`,
   income:(pr,outs,sel)=>`You are building an Income Now plan for this professional. They are pursuing: **${sel}** as their longer-term goal and need income during the transition.\n\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\nPASSIONS: ${pr.passions}\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\n\nFRAMING: Income Now lives in Familiar Ground — the senior, modernized version of what this person already does well. They do not need to reinvent themselves. They need to package what they know and make it easy for buyers to find and hire them quickly.\n\nPITCH PRINCIPLE: People buy painkillers, not vitamins. They act when something is hurting. Every service description and outreach message should name a real problem the buyer is living with right now. Lead with the pain. Follow with how this person fixes it. Close with what it costs. The buyer does not care about titles or tenure — they care whether their problem goes away.\n\n**PART 1 — WHERE TO SHOW UP**: Based on their specific background, identify 4-6 marketplaces and channels where this person can get in front of paying clients quickly. Think beyond the obvious — there are specialist platforms for nearly every senior function. Match these to their actual background.\n\nExamples by function: HR/talent/people leader: Catalant, Business Talent Group, Bolste, Learnerbly. Finance executive: Toptal Finance, Graphite, CFO Alliance, Paro. Tech/product executive: Toptal, Arc, Expert360, Gun.io. Marketing/brand/growth: GrowthMentor, Credo, Mayple, Expert360. Strategy/general management: Catalant, Business Talent Group, Umbrex. Sales/revenue leader: Bravado, Toptal, Sales Talent Agency. Board-ready executive: Boardlist, OnBoard, Bolste. Career/coaching/talent development: Coach.me, Clarity.fm, Maven, LinkedIn Services, direct outreach.\n\nFor each: platform name, why it fits this specific person, type of work available, realistic rate range, and the single first step to get listed or active.\n\n**PART 2 — YOUR CONSULTING PRESENCE**: Write ready-to-use copy this person can use across any of the platforms above or in direct outreach. Everything should be framed around buyer pain, not seller biography.\n\n- Positioning headline (under 100 characters — names the problem, not the person's background)\n- Bio (150 words, first person, opens with the pain the buyer has, closes with a specific outcome this person has delivered)\n- 4 specific service offerings. For each: a problem-first title (e.g. "When your best people are leaving and you don't know why" not "Retention Consulting"), the specific buyer, what the engagement includes, the outcome framed as money made/saved/risk removed, and price at senior market rates ($300-$500/hour advisory, $1,000-$3,000 for a defined deliverable, $4,000-$10,000 for a strategic engagement)\n- One outreach message: sentence 1 names the pain, sentences 2-3 connect one specific result from their background to that pain, sentence 4 asks for 15 minutes as a peer conversation. Plain language. No buzzwords.\n\n**PART 3 — FRACTIONAL PITCH**: One paragraph for cold LinkedIn or email. Same pain-first structure. Names the business problem, explains how they fix it, states cost and how to engage.\n\n**PART 4 — PASSION-ADJACENT OPPORTUNITIES**: 3 specific engagements at the intersection of their professional skills and stated passions that could generate income within 60 days. For each: the service, the buyer, why this person is credible to them, price, and one action to take this week.\n\n**PART 5 — THE ONE SHEET**: Problem-first throughout. Sections: The Problem I Solve (2 sentences), How I Help (3 service bullets with prices), Who I Work With, What Happens When We Work Together (2-3 outcomes as made money/saved money/mitigated risk), How to Start (rates, availability, contact).\n\n**PART 6 — FIRST 48 HOURS**: Exactly what to do in the next two days to have a profile live or an outreach message sent. Specific steps only.\n\nTone: direct and practical. Write everything as if it will be used today.`
 }
@@ -327,8 +342,8 @@ const DEMO_TOUR=[
   {step:'p3',title:'Step 3: Brand Synthesis',desc:'When someone asks "what do you do," most people default to a job title. This step gives you a better answer.'},
   {step:'p4',title:'Step 4: The Wide View',desc:'After years in one industry, it\'s easy to see only the obvious next step. This is where the aperture opens.'},
   {step:'p5',title:'Step 5: The Deep Dive',desc:'It\'s easy to get excited about an option on paper. This step shows what the role actually looks like and how your background maps to it.'},
-  {step:'decision',title:'Step 6: Sarah\'s Decision',desc:'Multiple good options can feel paralyzing. This is the moment you choose a direction and everything starts pointing the same way.'},
-  {step:'p6',title:'Step 7: Bridge Story',desc:'"Tell me about yourself" is the first question in every interview, and most people struggle with it because they\'re trying to explain a career move without sounding defensive.'},
+  {step:'decision',title:'Step 6: Sarah\'s Decision',desc:'Having multiple strong options is a good problem to have. This is the moment you choose a direction and everything starts pointing the same way.'},
+  {step:'p6',title:'Step 7: Bridge Story',desc:'"Tell me about yourself" is the first question in every interview, and a great 30-second answer sets the tone for the entire conversation.'},
   {step:'p7',title:'Step 8: Go-to-Market',desc:'Most people start their search on job boards, waiting for the right posting to appear. The best opportunities are filled through relationships before a posting ever goes live.'},
   {step:'p8',title:'Step 9: LinkedIn Remix',desc:'Your LinkedIn profile is how companies and recruiters find you. If it still describes your last role, the right people can\'t find you for the next one.'},
   {step:'p_res',title:'Step 10: Resume Refresh',desc:'The people reading your resume now are looking for different signals than the ones who hired you last time.'},
@@ -379,121 +394,6 @@ export default function PivotEngine(){
   const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:''})}}
   const prog=Math.round((ALL.indexOf(step)/(ALL.length-1))*100)
   const pc={loc:profile.loc,resume:profile.resume,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep}
-
-  const loadDemo=(jumpTo)=>{
-    const demoProfile={
-      loc:{country:'United States',city:'Atlanta, GA',work:'Hybrid — within commuting distance of home base'},
-      resume:`SARAH CHEN | Atlanta, GA | sarah.chen@email.com | linkedin.com/in/sarahchen
-
-PROFESSIONAL EXPERIENCE
-
-VP, Talent Acquisition — Meridian Health System | 2019–Present
-- Led recruiting function for 14,000-employee health system across 6 markets
-- Reduced time-to-fill for clinical roles from 67 to 41 days, saving $4.2M annually in agency spend
-- Built and scaled team from 8 to 22 recruiters during COVID-era hiring surge
-- Implemented ATS migration (Taleo to Workday) across all business units; trained 300+ hiring managers
-- Partnered with CFO to model workforce demand for $280M capital expansion project
-
-Senior Talent Partner — PulteGroup | 2015–2019
-- Supported full-cycle recruiting for construction, finance, and corporate functions
-- Sourced and closed 180+ hires annually with 91% hiring manager satisfaction score
-- Launched employee referral program that generated 34% of hires within 18 months
-- Reduced offer decline rate from 22% to 9% through compensation benchmarking project
-
-Talent Acquisition Specialist — NCR Corporation | 2012–2015
-- Recruited for software engineering, sales, and operations roles globally
-- Managed relationships with 12 universities for campus recruiting program
-- Supported HRIS implementation project as functional lead for recruiting module
-
-EDUCATION
-MBA, Human Resources — Georgia State University, 2014
-BA, Psychology — University of Georgia, 2010
-
-CERTIFICATIONS
-SHRM-SCP | LinkedIn Recruiter Certified | Workday HCM Certified`,
-      resumeFile:'sarah_chen_resume.pdf',
-      assess:`Affintus Results — Sarah Chen
-
-Work Style: Systematic and people-oriented. Builds trust through consistency and follow-through. Energized by complex coordination challenges where relationships and process intersect.
-
-Strengths: Relationship building, project management, persuasion, analytical thinking, organizational awareness.
-
-Ideal Environment: Collaborative culture with clear accountability. Appreciates autonomy within structure. Works best when she can see how her work connects to larger organizational outcomes.
-
-Decision-Making: Gathers input broadly before deciding. Reluctant to move without sufficient data but adapts well once committed.
-
-Caution Areas: Can over-invest in consensus; may delay difficult decisions when interpersonal stakes are high.`,
-      assessType:'Affintus',
-      values:'Family, Financial security, Meaningful work, Continuous growth, Fairness',
-      passions:'Healthcare innovation, Youth mentoring, Real estate investing, Travel, Organizational psychology',
-      rep:{
-        memory:`My CHRO stopped me in the hall after we hit our Q3 hiring targets during the worst labor market in decades and said "I don't know how you did that, but you just saved this organization." That stuck with me.`,
-        emergency:`If the system had a critical retention crisis or a high-profile failed search, they'd call me. I'm the person who can diagnose what went wrong and rebuild confidence with the hiring team quickly.`,
-        twoWords:`Trusted architect`,
-        other:`360 feedback theme: "Sarah makes everyone feel like their hiring problem is her top priority — and somehow it actually is." LinkedIn recommendation from former CPO: "Sarah is the rare talent leader who speaks the language of the business as fluently as she speaks HR. She made us better at hiring, and better at thinking about people as a strategic asset."`
-      }
-    }
-    const demoOutputs={
-      p1:`## Altitude & Context
-
-Sarah Chen has operated at the VP level within a large, complex health system — 14,000 employees, multi-market, high-stakes hiring environment. She has led teams, managed vendor relationships, driven technology transformations, and partnered at the executive level. The environments she has navigated are fast-moving, politically complex, and resource-constrained. Her seniority baseline is senior director to VP.
-
-## Translated Accomplishments
-
-**1. Cut clinical hiring costs by $4.2M annually**
-Reduced time-to-fill from 67 to 41 days, eliminating reliance on agency staffing. Translated: saved money at meaningful scale by building internal capability.
-
-**2. Scaled a team 175% during a demand surge**
-Grew recruiting function from 8 to 22 during COVID hiring pressures without a drop in quality. Translated: mitigated organizational risk during a period when talent scarcity could have shut down clinical operations.
-
-**3. Delivered a system-wide ATS migration**
-Moved 14,000-person organization from Taleo to Workday and trained 300+ hiring managers. Translated: saved money long-term through better tooling and mitigated the operational risk of a failed technology transition.
-
-**4. Built a referral program generating 34% of hires**
-Launched from scratch at PulteGroup; referral hires typically cost 50–60% less than external searches. Translated: made money by reducing cost-per-hire at scale.
-
-**5. Compressed offer decline rate from 22% to 9%**
-Data-driven compensation benchmarking project. Translated: saved money and mitigated risk of losing finalists after significant recruiting investment.
-
-**6. Supported a $280M workforce planning project**
-Partnered with the CFO to model headcount demand tied to capital expansion. Translated: mitigated financial risk by ensuring the right workforce was in place before major capital deployment.
-
-*Missing numbers to find: headcount impact of referral program at NCR, dollar value of agency spend reduction at PulteGroup, specifics of HRIS project scope and timeline.*`,
-      p2:`## The How Analysis
-
-Sarah's Affintus profile — systematic, relationship-oriented, persuasion-capable, analytically grounded — maps closely onto her strongest accomplishments. The ATS migration required both the analytical rigor to manage a complex technical project and the relational skill to bring 300 skeptical hiring managers along. The referral program required designing a system and then selling it internally. The offer decline work required data analysis and then a difficult conversation with compensation leadership.
-
-Her pattern is consistent: she solves problems that sit at the intersection of process and people. She doesn't just build systems — she brings people with her.
-
-## The Environment Filter
-
-Sarah does her best work in organizations where she has real access to leadership and can connect her function to business outcomes. She needs to see the "why" behind her work. Pure transactional recruiting environments — high volume, low strategy — would underutilize her. She thrives with a degree of autonomy, collaborative peers, and problems complex enough to require genuine judgment.
-
-She is well-suited for organizations that take talent seriously at the executive level: where the CHRO has a seat at the table and recruiting is seen as a business function, not a cost center.
-
-## Passion Log
-
-Healthcare innovation and organizational psychology registered strongly and connect directly to her current work. Real estate investing signals financial acumen and an entrepreneurial instinct worth exploring. Youth mentoring suggests a service orientation and comfort in coaching and development roles — which may be underutilized in her current function.`,
-      p3:`## The Golden Thread
-
-Across every role and every piece of external feedback, one pattern holds: Sarah makes complicated people-and-process problems look manageable. She earns trust from both senior leaders and frontline teams by combining analytical credibility with genuine relationship investment. She does not just recommend solutions — she builds them, teaches others to use them, and stays accountable to the outcome.
-
-The two-word superpower — "trusted architect" — captures it well. She is not a transactional operator. She designs systems and then makes sure they work in the hands of real people.
-
-## Functional Identity
-
-A senior people-strategy leader who turns workforce challenges into measurable business outcomes, with a track record of building the internal capabilities organizations need to grow through complexity. She works at the intersection of data, process, and relationships — and consistently earns the trust of executives and teams who need both results and confidence.`,
-      p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:''
-    }
-    const demoDone=jumpTo==='complete'?[...ALL.filter(s=>s!=='complete')]:['welcome','location','resume','assessment','values','reputation','p1','p2','p3']
-    setProfile(demoProfile)
-    setOutputs(demoOutputs)
-    setDone(demoDone)
-    setChosen('')
-    setDeepOpts(['','',''])
-    setStep(jumpTo)
-    setErr(null)
-  }
 
   const rStep=()=>{switch(step){
     case'welcome':return isDemo?<div>
@@ -550,9 +450,9 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         {[
           ['1','Know Your Value','Your experience has created more value than most resumes show. We find it and put it in language any industry understands.','#8A7AB8'],
           ['2','Explore Options','After years in one role, it\'s easy to see only the obvious next step. We map three paths and go deep on the ones that resonate.','#6AB88A'],
-          ['3','Tell Your Story','"Tell me about yourself" is where most people stumble. We write three versions that connect where you\'ve been to where you\'re heading.','#C8924A'],
+          ['3','Tell Your Story','A great answer to "tell me about yourself" sets the tone for every conversation. We write your bridge story and prepare you for the questions that will come up.','#C8924A'],
           ['4','Find Your Market','The best opportunities are filled through relationships before a posting goes live. We search in real time for companies that fit and draft your outreach.','#B86A6A'],
-          ['5','Get Ready','Your LinkedIn, your resume, your playbook for the new space, and preparation for the toughest question you\'ll face. You walk in ready.','#6A8AB8'],
+          ['5','Get Ready','Your LinkedIn, your resume, your playbook for the new space, and interview prep for the questions that will come up. You walk in ready.','#6A8AB8'],
         ].map(([num,phase,desc,color])=><div key={num} style={{display:'flex',gap:16,marginBottom:20,alignItems:'flex-start'}}>
           <div style={{width:34,height:34,borderRadius:'50%',background:`${color}25`,border:`2px solid ${color}60`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:17,fontWeight:700,color}}>
             {num}
@@ -751,9 +651,9 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         const parts=trimmed.split(/^## OPTION [ABC]/m).filter(Boolean)
         return parts.map(part=>{
           const sections={title:'',reality:'',fit:'',brief:''}
-          const realityMatch=part.match(/### REALITY CHECK([\s\S]*?)(?=### WHY YOU FIT|### THE HONEST BRIEF|$)/)
-          const fitMatch=part.match(/### WHY YOU FIT([\s\S]*?)(?=### THE HONEST BRIEF|$)/)
-          const briefMatch=part.match(/### THE HONEST BRIEF([\s\S]*?)$/)
+          const realityMatch=part.match(/### (?:REALITY CHECK|THE ROLE)([\s\S]*?)(?=### WHY YOU FIT|### (?:THE HONEST BRIEF|WORTH CONSIDERING)|$)/)
+          const fitMatch=part.match(/### WHY YOU FIT([\s\S]*?)(?=### (?:THE HONEST BRIEF|WORTH CONSIDERING)|$)/)
+          const briefMatch=part.match(/### (?:THE HONEST BRIEF|WORTH CONSIDERING)([\s\S]*?)$/)
           sections.reality=realityMatch?realityMatch[1].trim():''
           sections.fit=fitMatch?fitMatch[1].trim():''
           sections.brief=briefMatch?briefMatch[1].trim():''
@@ -787,7 +687,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
               <MD text={parsed[activeTab].fit}/>
             </div>
             <div style={sectionStyle}>
-              <span style={sectionLabel}>The Honest Brief</span>
+              <span style={sectionLabel}>Worth Considering</span>
               <MD text={parsed[activeTab].brief}/>
             </div>
           </>}
@@ -806,7 +706,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     case'decision':return <div>
       {!isDemo&&<div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>}
       <h1 style={S.title}>Your Decision</h1>
-      {!isDemo&&<p style={S.sub}>Multiple good options can feel paralyzing. This is the moment you choose a direction and everything starts pointing the same way.</p>}
+      {!isDemo&&<p style={S.sub}>Having multiple strong options is a good problem to have. This is the moment you choose a direction and everything starts pointing the same way.</p>}
       {isDemo?<div style={S.card}>
         <label style={S.label}>Pursuing</label>
         <div style={{fontSize:19,color:C.cream,fontWeight:600,lineHeight:1.6}}>{chosen}</div>
@@ -925,7 +825,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       {loading&&<Loading msg={loadMsg||'Building your playbook — industry landscape and interview preparation…'}/>}
       {outputs.p9&&<>
         <OutPanel text={outputs.p9} onCopy={copy} copied={copied}/>
-        {outputs.p10&&<><div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>The Toughest Question You'll Face</h2><p style={{fontSize:16,color:C.gray,marginTop:6}}>Every career transition has one question that makes candidates stumble. The best time to hear it is before you're sitting across the table.</p></div><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/></>}
+        {outputs.p10&&<><div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>Interview Prep</h2><p style={{fontSize:16,color:C.gray,marginTop:6}}>The questions that will come up and how to talk about each one with confidence.</p></div><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/></>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p9','');out('p10','')}}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>{markDone('p9');markDone('p10');advance('p9','complete')}}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
@@ -1015,7 +915,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           <Check size={16} color={C.ok} strokeWidth={2.5}/>
           <div style={{fontSize:15,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
         </div>
-        {[['Your Functional Identity','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Your Playbook','p9',(outputs.p9||'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
+        {[['Your Personal Brand','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Your Playbook','p9',(outputs.p9||'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
 
         <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:15,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
         <div style={{marginTop:16,background:'linear-gradient(135deg,#1A2540 0%,#2A3F60 100%)',borderRadius:12,padding:'24px 28px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
