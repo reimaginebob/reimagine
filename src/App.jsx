@@ -26,21 +26,30 @@ KEY FRAMEWORKS TO APPLY:
 - Bake a Cake: Blend all ingredients (functional expertise, industry experience, natural wiring, track record, passions, life experiences) into one integrated value proposition. The cake is always more than any single ingredient.
 - XYZ Formula: Accomplished X, as measured by Y, by doing Z. The Z (how you did it) is what makes an accomplishment portable.
 - Three Value Levers: Every accomplishment maps to making money, saving money, or mitigating risk. If it doesn't connect to one of these, question whether it belongs.
+- Hybrid Resume: Greatest Hits (3-5 key accomplishments) go above the fold, between the Summary and Work History. Hiring managers scan for 7-10 seconds. Your strongest evidence needs to be the first thing they see. The Greatest Hits section becomes the discussion guide for the interview.
 - Balconies and Basements: Every strength has a shadow. Name both. Self-awareness is an asset, and acknowledging the basement of a strength demonstrates it.
 - STAR with Thought Process: When structuring stories, T stands for Thought Process, not Tasks. Show how they think, not just what they did.
 - Adjectives Are Not Accomplishments: The language of business is numbers. Strip vague claims, replace with specific evidence.
 
 TONE AND LANGUAGE:
 - Trusted, direct, warm coach. A mirror, not a cheerleader.
+- Write like a coach talking to a client, not a teacher giving a lesson. The user sees the synthesis, not the method. Never name internal frameworks (Bake a Cake, Tide, 4 C's) in the output. Just do what the framework describes.
+- Do not expose the process. Never say things like "here is your value proposition in two sentences, with no industry names." Just give them the result.
 - Lead with what IS, never with what something isn't. No logic-flip constructions ("it's not X, it's Y").
-- Encourage through evidence, not flattery. When highlighting a strength, point to where it showed up in their track record, their assessment, or their reputation.
+- No preachy comparisons. "Many people can describe what they manage. Fewer can point to what they built." talks down. Stay focused on THIS person and what is true about THEM.
+- Encourage through evidence, not flattery. When highlighting a strength, point to where it showed up in their track record, their assessment, or their reputation. The reaction should be "that IS what I do" rather than "that's nice of you to say."
+- Titles and specifics are useful. Do not artificially strip them out. The output is for the person to use in real conversations.
 - Name gaps plainly and constructively. Honesty builds trust.
 - Frame environment fit positively: describe where the person thrives.
+- Be positive and relevant, always. Show the person their value through specific evidence.
 - Consider W-2, consulting, fractional leadership, entrepreneurship, entrepreneurship through acquisition, and franchising as vehicles. Entrepreneurship through acquisition is an underexplored path worth surfacing: a large number of Baby Boomer-owned businesses lack succession plans, and business brokers specialize in matching buyers and sellers. Many of these businesses can be acquired with a modest down payment, with the bulk of the purchase funded through the ongoing operations of the business. This is a real and viable path for experienced operators, especially those with P&L experience or industry-specific expertise.
 - Any assessment format (Affintus, CliftonStrengths, DiSC, MBTI, Hogan, PI, Enneagram): extract work style, people orientation, ideal environment, decision-making signals.
 - Write in a natural, human voice. Avoid words that read as AI-generated: "exactly," "straightforward," "unlock," "leverage," "utilize," "robust," "seamless," "game-changer," "architecting," "ecosystem," "synergy," "talent intelligence," "platform" (when used metaphorically), "space" (when used to mean industry).
 - Never use em dashes. Use commas, periods, or colons instead.
-- Never use the word "nightmare." Keep language polished and professional throughout.`
+- Never use the word "nightmare." Keep language polished and professional throughout.
+- No staccato drama. "The pattern does not." is AI trying to sound profound. Prefer sentences that build toward a point. Short sentences for emphasis only, not as the dominant rhythm.
+- Never use intensifier words: "genuinely," "honestly," "truly," "real" (as amplifier). If the sentence needs an intensifier, the sentence needs rewriting.
+- Every sentence should carry its own weight. If removing it would not weaken the section, remove it.`
 
 const C = {
   bg:'#F7F8FA',panel:'#FFFFFF',card:'#FFFFFF',input:'#F3F4F6',
@@ -103,7 +112,7 @@ const P={
   p8:(pr,outs,sel)=>`Reposition LinkedIn for: **${sel}**\nPROFILE: ${outs.p1}\n${outs.p3}\nRESUME: ${pr.resume}\n\n1. THREE HEADLINE OPTIONS — each optimizing something different (search visibility, human resonance, authority signaling). Give a reason to choose.\n2. THE ABOUT SECTION — ~200 words, first person, natural voice. Pivot as feature. Accomplishments as make/save/mitigate.\n3. EXPERIENCE REFRAME — Most recent role, top 3–4 bullets rewritten for transferable skills relevant to ${sel}. Each passes the "so what?" test.`,
   p9:(pr,outs,sel)=>`${sel} — credible outsider needs to sound like a native in one session.\nLearning signals: ${pr.assess?pr.assess.substring(0,300):'Balanced learner.'}\n\n1. THE LINGO — 10 essential terms/acronyms. For each: plain-language definition + example sentence.\n2. THE TECH STACK — Top 3 tools practitioners rely on. What each does, why it matters, what knowing it signals.\n3. THE THOUGHT LEADERS — 3 people to follow on LinkedIn now. Who, what they post, what following teaches.\n4. THE FASTEST CREDIBILITY MOVE — One specific action in 7 days. Specific and achievable.`,
   p10:(pr,outs,sel)=>`You are now a skeptical hiring manager evaluating this person for: **${sel}**\nBACKGROUND: ${outs.p1.substring(0,500)}\nFUNCTIONAL IDENTITY: ${outs.p3.substring(0,350)}\n\n1. THE HARD QUESTION — The single most legitimate concern a decision-maker would have about this candidate. State it plainly.\n2. THE RESPONSE — A confident, specific answer grounded in their Functional Identity, Translated Accomplishments, and wiring. No deflection. Show how the background is actually a strength.\n3. THE PRACTICE NOTE — One specific thing to practice saying aloud before the first real conversation. Explain what to say and why it works.`,
-  p_res:(pr,outs,sel)=>`Rewrite this resume to target: **${sel}**\nPROFILE: ${outs.p1}\n${outs.p3}\nORIGINAL RESUME:\n${pr.resume}\n\n1. REPOSITIONED SUMMARY: 3-4 sentences at the top. First person, natural voice. Positions this career arc as a logical path toward ${sel}. No titles or company names. Frame the pivot as an asset.\n2. EXPERIENCE REWRITE: For each role in the last 10 years, rewrite the top 3-4 bullets. Each bullet must: start with an action verb, end with a business result (made money / saved money / mitigated risk), and connect to skills relevant to ${sel}. Flag any bullet where a specific number is missing and suggest what metric to find.\n3. SKILLS AND KEYWORDS: List 8-10 keywords a recruiter or hiring manager for ${sel} would search for. Note which are already in the resume and which to add.`,
+  p_res:(pr,outs,sel)=>`Rewrite this resume using the HYBRID FORMAT to target: **${sel}**\nPROFILE: ${outs.p1}\n${outs.p3}\nORIGINAL RESUME:\n${pr.resume}\n\nThe hybrid format puts a Greatest Hits section above the fold, before the chronological work history. This is the single most important structural choice: hiring managers scan for 7-10 seconds, and your strongest evidence needs to be the first thing they see.\n\n1. REPOSITIONED SUMMARY: 3-4 sentences at the top. First person, natural voice. Positions this career arc as a logical path toward ${sel}. No titles or company names. Frame the pivot as an asset.\n2. GREATEST HITS — KEY ACCOMPLISHMENTS: 3-5 of the most significant accomplishments from anywhere in their career, selected and framed specifically for ${sel}. Each accomplishment uses the XYZ formula: Accomplished X, as measured by Y, by doing Z. Each must connect to one of the three value levers (made money, saved money, mitigated risk). Bold the key metrics. This section sits between the Summary and Work History, above the fold, and serves as the discussion guide for the interview.\n3. EXPERIENCE REWRITE: Chronological work history follows. For each role in the last 10 years, rewrite the top 3-4 bullets. Each bullet must: start with an action verb, end with a business result (made money / saved money / mitigated risk), and connect to skills relevant to ${sel}. Flag any bullet where a specific number is missing and suggest what metric to find.\n4. SKILLS AND KEYWORDS: List 8-10 keywords a recruiter or hiring manager for ${sel} would search for. Note which are already in the resume and which to add.\n5. FORMATTING NOTES: Remind the user to maintain two versions: an ATS-friendly version (plain, single-column, standard section titles like Work Experience, Education, Skills) and a designed version for direct human contact. White space is essential. Save as PDF to preserve formatting.`,
   income:(pr,outs,sel)=>`You are building an Income Now plan for this professional. They are pursuing: **${sel}** as their longer-term goal and need income during the transition.\n\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\nPASSIONS: ${pr.passions}\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\n\nFRAMING: Income Now lives in Familiar Ground — the senior, modernized version of what this person already does well. They do not need to reinvent themselves. They need to package what they know and make it easy for buyers to find and hire them quickly.\n\nPITCH PRINCIPLE: People buy painkillers, not vitamins. They act when something is hurting. Every service description and outreach message should name a real problem the buyer is living with right now. Lead with the pain. Follow with how this person fixes it. Close with what it costs. The buyer does not care about titles or tenure — they care whether their problem goes away.\n\n**PART 1 — WHERE TO SHOW UP**: Based on their specific background, identify 4-6 marketplaces and channels where this person can get in front of paying clients quickly. Think beyond the obvious — there are specialist platforms for nearly every senior function. Match these to their actual background.\n\nExamples by function: HR/talent/people leader: Catalant, Business Talent Group, Bolste, Learnerbly. Finance executive: Toptal Finance, Graphite, CFO Alliance, Paro. Tech/product executive: Toptal, Arc, Expert360, Gun.io. Marketing/brand/growth: GrowthMentor, Credo, Mayple, Expert360. Strategy/general management: Catalant, Business Talent Group, Umbrex. Sales/revenue leader: Bravado, Toptal, Sales Talent Agency. Board-ready executive: Boardlist, OnBoard, Bolste. Career/coaching/talent development: Coach.me, Clarity.fm, Maven, LinkedIn Services, direct outreach.\n\nFor each: platform name, why it fits this specific person, type of work available, realistic rate range, and the single first step to get listed or active.\n\n**PART 2 — YOUR CONSULTING PRESENCE**: Write ready-to-use copy this person can use across any of the platforms above or in direct outreach. Everything should be framed around buyer pain, not seller biography.\n\n- Positioning headline (under 100 characters — names the problem, not the person's background)\n- Bio (150 words, first person, opens with the pain the buyer has, closes with a specific outcome this person has delivered)\n- 4 specific service offerings. For each: a problem-first title (e.g. "When your best people are leaving and you don't know why" not "Retention Consulting"), the specific buyer, what the engagement includes, the outcome framed as money made/saved/risk removed, and price at senior market rates ($300-$500/hour advisory, $1,000-$3,000 for a defined deliverable, $4,000-$10,000 for a strategic engagement)\n- One outreach message: sentence 1 names the pain, sentences 2-3 connect one specific result from their background to that pain, sentence 4 asks for 15 minutes as a peer conversation. Plain language. No buzzwords.\n\n**PART 3 — FRACTIONAL PITCH**: One paragraph for cold LinkedIn or email. Same pain-first structure. Names the business problem, explains how they fix it, states cost and how to engage.\n\n**PART 4 — PASSION-ADJACENT OPPORTUNITIES**: 3 specific engagements at the intersection of their professional skills and stated passions that could generate income within 60 days. For each: the service, the buyer, why this person is credible to them, price, and one action to take this week.\n\n**PART 5 — THE ONE SHEET**: Problem-first throughout. Sections: The Problem I Solve (2 sentences), How I Help (3 service bullets with prices), Who I Work With, What Happens When We Work Together (2-3 outcomes as made money/saved money/mitigated risk), How to Start (rates, availability, contact).\n\n**PART 6 — FIRST 48 HOURS**: Exactly what to do in the next two days to have a profile live or an outreach message sent. Specific steps only.\n\nTone: direct and practical. Write everything as if it will be used today.`
 }
 
@@ -512,74 +521,78 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#0e1a2b">Re<tspan fill="#e4572e">imagine</tspan></text>
         <text x="92" y="132" fontSize="26" fontWeight="700" letterSpacing="-0.3" fill="#55617a">Your <tspan fontWeight="800" fill="#0e1a2b">Career</tspan>. Your <tspan fontWeight="900" fill="#e4572e">Future</tspan>.</text>
       </svg>
-      <p style={{fontSize:19,fontWeight:500,color:C.cream,lineHeight:1.7,maxWidth:660,marginBottom:16}}>If your search feels stuck, <span style={{fontWeight:700,color:'#e4572e'}}>you are not the problem.</span> It's that you can't see all the places your experience could take you. <span style={{fontWeight:700,color:'#e4572e'}}>Reimagine</span> takes what you've done, how you're wired, and what you care about to help you land a rewarding role faster than you imagined. Reimagine your career now.</p>
+      <div style={{display:'flex',gap:32,alignItems:'flex-start',marginBottom:28}}>
+        <p style={{fontSize:20,fontWeight:500,color:'#1A2540',lineHeight:1.75,flex:1,margin:0}}>If your search feels stuck, <span style={{fontWeight:700,color:'#e4572e'}}>you are not the problem.</span> It's that you can't see all the places your experience could take you. <span style={{fontWeight:700,color:'#e4572e'}}>Reimagine</span> takes what you've done, how you're wired, and what you care about to help you land a rewarding role faster than you imagined. Reimagine your career now.</p>
+        <a href="/?demo=true" style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10,padding:'24px 32px',background:`linear-gradient(135deg, ${C.gold}, #D4A55A)`,borderRadius:12,textDecoration:'none',flexShrink:0,boxShadow:'0 4px 12px rgba(200,146,74,0.3)',minWidth:200,textAlign:'center'}}>
+          <span style={{fontSize:28,lineHeight:1}}>&#9654;</span>
+          <span style={{fontSize:18,fontWeight:700,color:'#fff',lineHeight:1.3}}>See a completed<br/>example first</span>
+          <span style={{fontSize:14,color:'#fff',opacity:0.85}}>Walk through Sarah's results</span>
+        </a>
+      </div>
 
-      <a href="/?demo=true" style={{display:'inline-flex',alignItems:'center',gap:8,marginBottom:20,fontSize:15,fontWeight:600,color:C.gold,cursor:'pointer',padding:'8px 16px',border:`1.5px solid ${C.gold}`,borderRadius:8,background:'#C8924A10',textDecoration:'none'}}>&#9654; See a completed example first</a>
-
-      <div style={{...S.card,marginBottom:16}}>
-        <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>Before You Begin</div>
+      <div style={{...S.card,marginBottom:20}}>
+        <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>Before You Begin</div>
         {[
           ['Your resume','Any format. It doesn\'t need to be polished. We\'ll help you get the most out of it.'],
           ['An assessment (recommended)','If you have CliftonStrengths, Myers-Briggs, DiSC, Hogan, or any other assessment from the last three years, bring it. If yours is older or you haven\'t taken one, Affintus is free and takes 15 minutes.'],
           ['About 20–30 minutes','That covers the intake questions and your first set of results. You can save and return at any point. Your progress is stored automatically in this browser on this device, so come back the same way you started.'],
-        ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
-          <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
-          <div><span style={{fontWeight:600,fontSize:15,color:C.cream}}>{t}. </span><span style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{d}</span></div>
+        ].map(([t,d])=><div key={t} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
+          <div style={{width:7,height:7,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}/>
+          <div><span style={{fontWeight:700,fontSize:18,color:'#1A2540'}}>{t}. </span><span style={{fontSize:18,color:'#374258',lineHeight:1.7}}>{d}</span></div>
         </div>)}
-        <div style={{marginTop:4,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
-          <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 16px',background:'#C8924A10',border:`1px solid #C8924A40`,borderRadius:8,color:C.goldL,fontSize:14,fontWeight:600,textDecoration:'none'}}>Don't have an assessment already? Take the free Affintus assessment →</a>
+        <div style={{marginTop:8,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+          <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 20px',background:'#C8924A10',border:`1px solid #C8924A40`,borderRadius:8,color:C.goldL,fontSize:16,fontWeight:600,textDecoration:'none'}}>Don't have an assessment already? Take the free Affintus assessment →</a>
         </div>
       </div>
 
-      <div style={{...S.card,marginBottom:16}}>
-        <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>How It Works</div>
+      <div style={{...S.card,marginBottom:20}}>
+        <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>How It Works</div>
         {[
           ['1','Know Your Value','Your experience has created more value than most resumes show. We find it and put it in language any industry understands.','#8A7AB8'],
           ['2','Explore Options','After years in one role, it\'s easy to see only the obvious next step. We map three paths and go deep on the ones that resonate.','#6AB88A'],
           ['3','Tell Your Story','"Tell me about yourself" is where most people stumble. We write three versions that connect where you\'ve been to where you\'re heading.','#C8924A'],
           ['4','Find Your Market','The best opportunities are filled through relationships before a posting goes live. We search in real time for companies that fit and draft your outreach.','#B86A6A'],
           ['5','Get Ready','Your LinkedIn, your resume, your playbook for the new space, and preparation for the toughest question you\'ll face. You walk in ready.','#6A8AB8'],
-        ].map(([num,phase,desc,color])=><div key={num} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
-          <div style={{width:28,height:28,borderRadius:'50%',background:`${color}25`,border:`1.5px solid ${color}60`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:15,fontWeight:700,color}}>
+        ].map(([num,phase,desc,color])=><div key={num} style={{display:'flex',gap:16,marginBottom:20,alignItems:'flex-start'}}>
+          <div style={{width:34,height:34,borderRadius:'50%',background:`${color}25`,border:`2px solid ${color}60`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:17,fontWeight:700,color}}>
             {num}
           </div>
           <div style={{flex:1}}>
-            <span style={{fontWeight:600,fontSize:16,color:C.cream}}>{phase}</span>
-            <div style={{fontSize:14,color:C.gray,lineHeight:1.65,marginTop:3}}>{desc}</div>
+            <span style={{fontWeight:700,fontSize:19,color:'#1A2540'}}>{phase}</span>
+            <div style={{fontSize:17,color:'#374258',lineHeight:1.7,marginTop:4}}>{desc}</div>
           </div>
         </div>)}
       </div>
 
-      <div style={{...S.card,marginBottom:16}}>
-        <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>The Framework</div>
-        <p style={{fontSize:15,color:C.gray,lineHeight:1.65,marginBottom:14}}>Everything in Reimagine is built on a framework called the 4 C's. It goes in order, and each step builds on the one before it.</p>
+      <div style={{...S.card,marginBottom:20}}>
+        <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>The Framework</div>
+        <p style={{fontSize:18,color:'#374258',lineHeight:1.7,marginBottom:18}}>Everything in Reimagine is built on a framework called the 4 C's. It goes in order, and each step builds on the one before it.</p>
         {[
           ['Convictions','What is actually, demonstrably true about you: your values, your wiring, your track record, and what people consistently say about you.'],
           ['Clarity','When your convictions are solid, the right opportunities become visible, and you can make better choices about where to focus.'],
           ['Confidence','Evidence-based self-belief. When you can point to real evidence of who you are and what you\'ve done, you carry that into every conversation.'],
           ['Contagious','When you believe, others believe too. That\'s the natural result of Convictions, Clarity, and Confidence.'],
-        ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
-          <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:8}}/>
-          <div><span style={{fontWeight:700,fontSize:15,color:C.cream}}>{t}. </span><span style={{fontSize:15,color:C.gray,lineHeight:1.65}}>{d}</span></div>
+        ].map(([t,d])=><div key={t} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
+          <div style={{width:7,height:7,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:10}}/>
+          <div><span style={{fontWeight:700,fontSize:18,color:'#1A2540'}}>{t}. </span><span style={{fontSize:18,color:'#374258',lineHeight:1.7}}>{d}</span></div>
         </div>)}
-        <p style={{fontSize:15,color:C.gray,lineHeight:1.65,marginTop:14,paddingTop:12,borderTop:`1px solid ${C.border}`,fontWeight:500}}>Everything that follows is building that foundation with you.</p>
+        <p style={{fontSize:18,color:'#374258',lineHeight:1.7,marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`,fontWeight:500}}>Everything that follows is building that foundation with you.</p>
       </div>
 
-      <div style={{...S.card,marginBottom:20}}>
-        <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>A Few Things Worth Knowing</div>
+      <div style={{...S.card,marginBottom:24}}>
+        <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>A Few Things Worth Knowing</div>
         {[
           ['This is iterative, not linear.','Every output has a "Does this feel right?" option. If something is off, tell us and we\'ll adjust before moving on.'],
           ['There are no wrong answers in the intake.','The questions about your passions and values are not trick questions. Answer them honestly, not strategically.'],
           ['You only need one new job.','Reimagine is designed to open more doors than you might have imagined, so you can find the right one with confidence.'],
-        ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
-          <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
-          <div><span style={{fontWeight:600,fontSize:15,color:C.cream}}>{t} </span><span style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{d}</span></div>
+        ].map(([t,d])=><div key={t} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
+          <div style={{width:7,height:7,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}/>
+          <div><span style={{fontWeight:700,fontSize:18,color:'#1A2540'}}>{t} </span><span style={{fontSize:18,color:'#374258',lineHeight:1.7}}>{d}</span></div>
         </div>)}
       </div>
 
       <div style={S.row}>
         {!isDemo&&<Btn onClick={()=>advance('welcome','location')}>Let's get started <ChevronRight size={14}/></Btn>}
-        {!isDemo&&<button onClick={()=>{window.location.href='/?demo=true'}} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'12px 24px',background:'#C8924A10',color:C.gold,border:`1.5px solid ${C.gold}`,borderRadius:8,fontSize:15,fontWeight:600,cursor:'pointer'}}>&#9654; See a completed example first</button>}
       </div>
     </div>
 
@@ -894,7 +907,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
 
       {!isDemo&&<div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>}
       <h1 style={S.title}>Resume Refresh</h1>
-      {!isDemo&&<p style={S.sub}>The people reading your resume now are looking for different signals than the ones who hired you last time. Same accomplishments, positioned for the people who need to say yes next.</p>}
+      {!isDemo&&<p style={S.sub}>The people reading your resume now are looking for different signals than the ones who hired you last time. We use a hybrid format that puts your Greatest Hits above the fold so the strongest evidence lands in the first 7 seconds.</p>}
       <div style={S.note}>Targeting: <strong style={{color:C.cream}}>{chosen}</strong></div>
       {!isDemo&&!outputs.p_res&&!loading&&<Btn onClick={()=>generate('p_res',()=>P.p_res(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Refresh My Resume</Btn>}
       {loading&&<Loading msg="Rewriting your resume for your new direction…"/>}
@@ -1077,7 +1090,6 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           {isDemo&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:32,paddingTop:24,borderTop:`1px solid ${C.border}`}}>
             <div>{demoIdx>0&&<button onClick={demoPrev} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>← Previous</button>}</div>
             <div style={{display:'flex',alignItems:'center',gap:16}}>
-              {demoIdx===DEMO_TOUR.length-1&&<a href="/" style={{fontSize:16,fontWeight:600,color:C.gold,textDecoration:'none'}}>Start your own Reimagine session</a>}
               {demoIdx<DEMO_TOUR.length-1?<button onClick={demoNext} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Next →</button>:<a href="/" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>Start My Reimagine Session →</a>}
             </div>
           </div>}
