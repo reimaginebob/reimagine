@@ -371,7 +371,7 @@ Ask yourself: do I want to operate (do the work) or design (build the system)? I
 
 p6: `## QUICK TAKEAWAY
 
-Your bridge story works because it **shows the pattern you've built at scale and signals the type of role that energizes you next**. The core message: you turn talent problems into business results, you've delivered at scale in healthcare, and you're looking to build that infrastructure in a growth-stage digital health company. **This narrative works as a pivot from large-organization operator to startup builder.**
+Your bridge story works because it shows the pattern you've built at scale and signals the type of role that energizes you next. **The core message: you turn talent problems into business results, you've delivered at scale in healthcare, and you're looking to build that infrastructure in a growth-stage digital health company.** This narrative works as a pivot from large-organization operator to startup builder.
 
 ---
 
@@ -421,28 +421,89 @@ That you'll slow them down with process, that you'll be too corporate for a star
 
 ### Digital Health and Telehealth (Growth Stage)
 
-Teladoc Health | Largest telehealth platform, needs senior people ops as it integrates post-acquisition teams | Acquired Livongo for $18.5B, expanding chronic care | VP People, Sarah Martinez | firstname.lastname@teladochealth.com | www.teladochealth.com
-Ro | DTC health platform scaling clinical operations across multiple verticals | $500M+ raised, expanding into weight loss and fertility | Chief People Officer, open role | firstname@ro.co | www.ro.co
-Hims & Hers | Telehealth platform going from startup to enterprise, needs operational maturity in people function | Revenue doubled YoY, 1M+ subscribers | VP People Ops, reporting to CHRO | firstname@hims.com | www.forhims.com
-Talkspace | Mental health platform expanding B2B enterprise contracts | Partnership with major health plans | VP Talent & People, Karen Liu | firstname.lastname@talkspace.com | www.talkspace.com
-Omada Health | Chronic care management with employer and payer clients | $200M+ raised, 1,500+ enterprise clients | CPO, David Park | firstname@omadahealth.com | www.omadahealth.com
+**Teladoc Health**
+Why it fits: Largest telehealth platform, needs senior people ops as it integrates post-acquisition teams
+Growth signal: Acquired Livongo for $18.5B, expanding chronic care
+Contact: VP People, Sarah Martinez
+Email: firstname.lastname@teladochealth.com | www.teladochealth.com
+
+**Ro**
+Why it fits: DTC health platform scaling clinical operations across multiple verticals
+Growth signal: $500M+ raised, expanding into weight loss and fertility
+Contact: Chief People Officer, open role
+Email: firstname@ro.co | www.ro.co
+
+**Hims & Hers**
+Why it fits: Telehealth platform going from startup to enterprise, needs operational maturity in people function
+Growth signal: Revenue doubled YoY, 1M+ subscribers
+Contact: VP People Ops, reporting to CHRO
+Email: firstname@hims.com | www.forhims.com
+
+**Talkspace**
+Why it fits: Mental health platform expanding B2B enterprise contracts
+Growth signal: Partnership with major health plans
+Contact: VP Talent & People, Karen Liu
+Email: firstname.lastname@talkspace.com | www.talkspace.com
+
+**Omada Health**
+Why it fits: Chronic care management with employer and payer clients
+Growth signal: $200M+ raised, 1,500+ enterprise clients
+Contact: CPO, David Park
+Email: firstname@omadahealth.com | www.omadahealth.com
 
 ### Clinical Decision Support and AI
 
-Tempus | AI-driven precision medicine, rapid headcount growth | $8B+ valuation, expanding beyond oncology | SVP People, reporting to CEO | firstname.lastname@tempus.com | www.tempus.com
-Flatiron Health | Oncology data platform (Roche-owned) with clinical research focus | Expanding real-world evidence platform | VP People Operations | firstname@flatiron.com | www.flatiron.com
-PathAI | AI pathology platform scaling commercial operations | $255M Series D, expanding clinical partnerships | Head of People, open role | firstname@pathai.com | www.pathai.com
+**Tempus**
+Why it fits: AI-driven precision medicine, rapid headcount growth
+Growth signal: $8B+ valuation, expanding beyond oncology
+Contact: SVP People, reporting to CEO
+Email: firstname.lastname@tempus.com | www.tempus.com
+
+**Flatiron Health**
+Why it fits: Oncology data platform (Roche-owned) with clinical research focus
+Growth signal: Expanding real-world evidence platform
+Contact: VP People Operations
+Email: firstname@flatiron.com | www.flatiron.com
+
+**PathAI**
+Why it fits: AI pathology platform scaling commercial operations
+Growth signal: $255M Series D, expanding clinical partnerships
+Contact: Head of People, open role
+Email: firstname@pathai.com | www.pathai.com
 
 ### Health Data and Interoperability
 
-Komodo Health | Healthcare data analytics scaling enterprise sales | $600M+ raised, 150+ enterprise clients | VP People & Culture | firstname@komodohealth.com | www.komodohealth.com
-Health Catalyst | Data and analytics for health systems, public company | Acquired KPI Ninja and Twistle, expanding platform | CHRO, Linda Llewellyn | firstname.lastname@healthcatalyst.com | www.healthcatalyst.com
-Truveta | Health data platform backed by 30+ health systems | Raised $200M+, building EHR data network | VP People, early team | firstname@truveta.com | www.truveta.com
+**Komodo Health**
+Why it fits: Healthcare data analytics scaling enterprise sales
+Growth signal: $600M+ raised, 150+ enterprise clients
+Contact: VP People & Culture
+Email: firstname@komodohealth.com | www.komodohealth.com
+
+**Health Catalyst**
+Why it fits: Data and analytics for health systems, public company
+Growth signal: Acquired KPI Ninja and Twistle, expanding platform
+Contact: CHRO, Linda Llewellyn
+Email: firstname.lastname@healthcatalyst.com | www.healthcatalyst.com
+
+**Truveta**
+Why it fits: Health data platform backed by 30+ health systems
+Growth signal: Raised $200M+, building EHR data network
+Contact: VP People, early team
+Email: firstname@truveta.com | www.truveta.com
 
 ### Healthcare Staffing and Workforce Tech
 
-Incredible Health | Nurse hiring platform, Sarah understands clinical staffing intimately | $80M Series B, expanding to allied health | VP People, Romina Holder | firstname@incrediblehealth.com | www.incrediblehealth.com
-Trusted Health | Travel nurse and clinical staffing platform | Acquired by Ingenovis, scaling nationally | Head of People Ops | firstname@trustedhealth.com | www.trustedhealth.com
+**Incredible Health**
+Why it fits: Nurse hiring platform, your clinical staffing expertise translates directly
+Growth signal: $80M Series B, expanding to allied health
+Contact: VP People, Romina Holder
+Email: firstname@incrediblehealth.com | www.incrediblehealth.com
+
+**Trusted Health**
+Why it fits: Travel nurse and clinical staffing platform
+Growth signal: Acquired by Ingenovis, scaling nationally
+Contact: Head of People Ops
+Email: firstname@trustedhealth.com | www.trustedhealth.com
 
 ---
 
@@ -616,7 +677,7 @@ Talent Strategy | Chief People Officer | VP People Operations | Talent Acquisiti
 
 p9: `## QUICK TAKEAWAY
 
-**The biggest vocabulary gap: venture capital terminology** (Series B/C, burn rate, runway, ARR). The most important tool to know: Workday HCM (you already have this). **One credibility move this week: publish a 600-word LinkedIn article** on a specific problem you've solved, positioning yourself as someone who thinks strategically about scaling talent.
+**Key terminology for your conversations**: venture capital language (Series B/C, burn rate, runway, ARR) will come up frequently in interviews and networking with digital health companies. The most important tool to know: Workday HCM (you already have this). **One credibility move this week: publish a 600-word LinkedIn article** on a specific problem you've solved, positioning yourself as someone who thinks strategically about scaling talent.
 
 ---
 
