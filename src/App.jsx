@@ -486,16 +486,29 @@ A senior people-strategy leader who turns workforce challenges into measurable b
   }
 
   const rStep=()=>{switch(step){
-    case'welcome':return <div>
+    case'welcome':return isDemo?<div>
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="380" height="132" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block',marginBottom:8}}>
         <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.18"/>
         <circle cx="44" cy="60" r="18" fill="#e4572e"/>
         <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#0e1a2b">Re<tspan fill="#e4572e">imagine</tspan></text>
         <text x="92" y="132" fontSize="26" fontWeight="700" letterSpacing="-0.3" fill="#55617a">Your <tspan fontWeight="800" fill="#0e1a2b">Career</tspan>. Your <tspan fontWeight="900" fill="#e4572e">Future</tspan>.</text>
       </svg>
-      <p style={{fontSize:17,fontWeight:500,color:C.cream,lineHeight:1.65,maxWidth:620,marginBottom:12}}>If your search feels stuck, <strong>you are not the problem.</strong> It's that you can't see all the places your experience could take you. <strong>Reimagine</strong> takes what you've done, how you're wired, and what you care about to help you land a rewarding role faster than you imagined. Reimagine your career now.</p>
 
-      {!isDemo&&<a href="/?demo=true" style={{display:'inline-flex',alignItems:'center',gap:8,marginBottom:20,fontSize:15,fontWeight:600,color:C.gold,cursor:'pointer',padding:'8px 16px',border:`1.5px solid ${C.gold}`,borderRadius:8,background:'#C8924A10',textDecoration:'none'}}>&#9654; See a completed example first</a>}
+      <div style={{...S.card,marginBottom:20,background:'#FAFBFC',borderLeft:`3px solid ${C.gold}`}}>
+        <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>Meet Sarah Chen</div>
+        <p style={{fontSize:16,color:'#374258',lineHeight:1.7,marginBottom:12}}>Sarah is a VP of Talent Acquisition in healthcare with 15 years of experience. She came to Reimagine with her resume, a CliftonStrengths assessment, and a sense that her next chapter should look different.</p>
+        <p style={{fontSize:16,color:'#374258',lineHeight:1.7,marginBottom:0}}>What follows is what Reimagine built for her: a complete career strategy from personal brand through go-to-market plan. Every section is real output from the tool. Use the Next button to walk through each step.</p>
+      </div>
+    </div>:<div>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="380" height="132" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block',marginBottom:8}}>
+        <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.18"/>
+        <circle cx="44" cy="60" r="18" fill="#e4572e"/>
+        <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#0e1a2b">Re<tspan fill="#e4572e">imagine</tspan></text>
+        <text x="92" y="132" fontSize="26" fontWeight="700" letterSpacing="-0.3" fill="#55617a">Your <tspan fontWeight="800" fill="#0e1a2b">Career</tspan>. Your <tspan fontWeight="900" fill="#e4572e">Future</tspan>.</text>
+      </svg>
+      <p style={{fontSize:17,fontWeight:500,color:C.cream,lineHeight:1.65,maxWidth:620,marginBottom:12}}>If your search feels stuck, <span style={{fontWeight:700,color:'#e4572e'}}>you are not the problem.</span> It's that you can't see all the places your experience could take you. <span style={{fontWeight:700,color:C.gold}}>Reimagine</span> takes what you've done, how you're wired, and what you care about to help you land a rewarding role faster than you imagined. Reimagine your career now.</p>
+
+      <a href="/?demo=true" style={{display:'inline-flex',alignItems:'center',gap:8,marginBottom:20,fontSize:15,fontWeight:600,color:C.gold,cursor:'pointer',padding:'8px 16px',border:`1.5px solid ${C.gold}`,borderRadius:8,background:'#C8924A10',textDecoration:'none'}}>&#9654; See a completed example first</a>
 
       <div style={{...S.card,marginBottom:16}}>
         <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>Before You Begin</div>
@@ -545,12 +558,6 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         </div>)}
         <p style={{fontSize:15,color:C.gray,lineHeight:1.65,marginTop:14,paddingTop:12,borderTop:`1px solid ${C.border}`,fontWeight:500}}>Everything that follows is building that foundation with you.</p>
       </div>
-
-      {isDemo&&<div style={{...S.card,marginBottom:16,background:'#FAFBFC',border:`1.5px solid ${C.gold}40`}}>
-        <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>Meet Sarah Chen</div>
-        <p style={{fontSize:15,color:C.gray,lineHeight:1.65,marginBottom:10}}>Sarah is a senior HR and talent acquisition leader with 15 years of experience in healthcare and technology. She came to Reimagine with her resume, her CliftonStrengths Top 5, and a sense that her next move should be something different from what she had always done.</p>
-        <p style={{fontSize:15,color:C.gray,lineHeight:1.65}}>What you're about to see is what Reimagine produced for her: a complete career strategy from personal brand through go-to-market plan. Every section is real output from the tool. Click through at your own pace.</p>
-      </div>}
 
       <div style={{...S.card,marginBottom:20}}>
         <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>A Few Things Worth Knowing</div>
@@ -1028,7 +1035,6 @@ A senior people-strategy leader who turns workforce challenges into measurable b
   return <>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     <div style={{minHeight:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column'}}>
-      {isDemo&&<div style={{background:'linear-gradient(90deg,#C8924A,#e4572e)',padding:'10px 24px',textAlign:'center',fontSize:14,fontWeight:600,color:'#fff',letterSpacing:'0.5px'}}>You're viewing Sarah Chen's demo. <a href="/" style={{color:'#fff',textDecoration:'underline',marginLeft:8}}>Start your own Reimagine session</a></div>}
       <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <div>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="148" height="34" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
@@ -1037,25 +1043,50 @@ A senior people-strategy leader who turns workforce challenges into measurable b
             <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#FFFFFF">Re<tspan fill="#e4572e">imagine</tspan></text>
           </svg>
         </div>
-        {isDemo?<div style={{display:'flex',alignItems:'center',gap:12}}>
-          <div style={{fontSize:11,color:C.gray}}>Step {demoIdx+1} of {DEMO_TOUR.length}</div>
-          <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${((demoIdx+1)/DEMO_TOUR.length)*100}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
-        </div>:<div style={{display:'flex',alignItems:'center',gap:12}}>
-          <div style={{fontSize:11,color:C.gray}}>{prog}% complete</div>
-          <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
-        </div>}
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          {isDemo?<>
+            <div style={{fontSize:11,color:C.gray}}>Step {demoIdx+1} of {DEMO_TOUR.length}</div>
+            <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${((demoIdx+1)/DEMO_TOUR.length)*100}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
+          </>:<>
+            <div style={{fontSize:11,color:C.gray}}>{prog}% complete</div>
+            <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
+          </>}
+        </div>
       </div>
       <div style={{display:'flex',flex:1,minHeight:0}}>
-        {!isDemo&&<Sidebar step={step} done={done} onNav={nav}/>}
-        <div style={{flex:1,padding:'30px 38px 60px',overflowY:'auto',maxWidth:isDemo?860:800,margin:isDemo?'0 auto':undefined}}>
-          {demoGuide&&step!=='welcome'&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14,padding:'0 4px'}}>
-            <div style={{fontSize:14,fontWeight:700,color:C.gold,letterSpacing:'0.5px'}}>{demoGuide.title}</div>
-            <div style={{fontSize:12,color:C.gray}}>{demoIdx+1} of {DEMO_TOUR.length}</div>
+        <div style={{width:260,background:'#1A2540',borderRight:'1px solid #0F1A30',padding:'16px 0',overflowY:'auto',flexShrink:0,position:'relative'}}>
+          {isDemo&&<div style={{pointerEvents:'none'}}>
+            <Sidebar step={step} done={done} onNav={()=>{}}/>
           </div>}
-          {isDemo&&step!=='welcome'?<div style={{pointerEvents:'none',opacity:1}}>{rStep()}</div>:rStep()}
+          {!isDemo&&<Sidebar step={step} done={done} onNav={nav}/>}
+          {isDemo&&step!=='welcome'&&<div style={{position:'absolute',top:0,left:0,right:0,bottom:0,pointerEvents:'none'}}>
+            {(()=>{
+              const tourStep=DEMO_TOUR[demoIdx]?.step
+              const allSidebarSteps=['welcome','location','resume','assessment','values','reputation','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','complete','income']
+              const idx=allSidebarSteps.indexOf(tourStep)
+              if(idx<0)return null
+              const top=idx*36+48
+              return <div style={{position:'absolute',right:-6,top,transform:'translateY(-50%)',zIndex:10}}>
+                <div style={{width:0,height:0,borderTop:'8px solid transparent',borderBottom:'8px solid transparent',borderRight:`10px solid ${C.gold}`}}/>
+              </div>
+            })()}
+          </div>}
+        </div>
+        <div style={{flex:1,padding:'30px 38px 60px',overflowY:'auto',maxWidth:800}}>
+          {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:20,background:'#FAFBFC'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:12}}>
+              <div style={{fontSize:15,fontWeight:700,color:C.gold}}>{demoGuide.title}</div>
+              <div style={{fontSize:12,color:C.gray}}>{demoIdx+1} of {DEMO_TOUR.length}</div>
+            </div>
+            <p style={{fontSize:16,color:'#374258',lineHeight:1.7,margin:0,fontStyle:'italic'}}>{demoGuide.desc}</p>
+          </div>}
+          {isDemo&&step!=='welcome'?<div style={{pointerEvents:'none'}}>{rStep()}</div>:rStep()}
           {isDemo&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:24,paddingTop:20,borderTop:`1px solid ${C.border}`}}>
             <div>{demoIdx>0&&<button onClick={demoPrev} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 20px',background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>← Previous</button>}</div>
-            <div>{demoIdx<DEMO_TOUR.length-1?<button onClick={demoNext} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 20px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Next →</button>:<a href="/" style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 20px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>Start My Reimagine Session →</a>}</div>
+            <div style={{display:'flex',alignItems:'center',gap:16}}>
+              {demoIdx===DEMO_TOUR.length-1&&<a href="/" style={{fontSize:14,fontWeight:600,color:C.gold,textDecoration:'none'}}>Start your own Reimagine session</a>}
+              {demoIdx<DEMO_TOUR.length-1?<button onClick={demoNext} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 20px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Next →</button>:<a href="/" style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 20px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>Start My Reimagine Session →</a>}
+            </div>
           </div>}
         </div>
       </div>
