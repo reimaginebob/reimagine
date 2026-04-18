@@ -100,7 +100,7 @@ export const demoOutputs = {
 
 p1: `## QUICK TAKEAWAY
 
-You sit at the intersection of healthcare operations and talent strategy, leading acquisition for a 14,000-person health system. Your biggest asset is your ability to turn complex people problems into measurable business outcomes—$4.2M in cost reduction, a referral program generating 34% of hires, and a 175% team scale during COVID. What makes your background distinctive is your combination of strategic thinking (MBA-level) with operational execution, all built on 14 years of credibility in a regulated, high-stakes environment.
+**You sit at the intersection of healthcare operations and talent strategy**, leading acquisition for a 14,000-person health system. Your biggest asset is your ability to **turn complex people problems into measurable business outcomes**: $4.2M in cost reduction, a referral program generating 34% of hires, and a 175% team scale during COVID. What makes your background distinctive is your **combination of strategic thinking (MBA-level) with operational execution**, all built on 14 years of credibility in a regulated, high-stakes environment.
 
 ---
 
@@ -139,7 +139,7 @@ Clinical and administrative roles were getting the same generic treatment, so yo
 
 p2: `## QUICK TAKEAWAY
 
-You're wired for diagnosis and execution: you see patterns others miss and build systems that actually work. You thrive in high-trust environments where you have autonomy and can see direct business impact. Your passions—healthcare innovation, organizational psychology, mentoring—all point to a role where you build something meaningful with the independence to do it your way.
+**You're wired for diagnosis and execution**: you see patterns others miss and build systems that actually work. You thrive in **high-trust environments where you have autonomy and can see direct business impact**. Your passions (healthcare innovation, organizational psychology, mentoring) all point to a role where you **build something meaningful with the independence to do it your way**.
 
 ---
 
@@ -202,7 +202,7 @@ All of this points toward a role where you build something that matters, in an i
 
 p3: `## QUICK TAKEAWAY
 
-Your golden thread: you turn complicated people-and-process problems into measured business outcomes. You diagnose what's actually broken, design the smallest system that fixes it, implement fast, and iterate. That's been your approach for 14 years—from the $4.2M cost reduction to the referral program to the 175% team scale during COVID. Your personal brand: you build people systems at the intersection of operations, strategy, and execution. You're someone who moves fast without chaos.
+**Your golden thread: you turn complicated people-and-process problems into measured business outcomes.** You diagnose what's actually broken, design the smallest system that fixes it, implement fast, and iterate. That's been your approach for 14 years, from the $4.2M cost reduction to the referral program to the 175% team scale during COVID. **Your personal brand: you build people systems at the intersection of operations, strategy, and execution.** You move fast without chaos.
 
 ---
 
@@ -234,7 +234,7 @@ That combination is rare. You've lived inside health systems long enough to have
 
 p4: `## QUICK TAKEAWAY
 
-You have three credible paths forward. The strongest immediate fit is the CPO role at a digital health company—you've already built this infrastructure at scale, and startups at your target stage face identical problems. The most exciting option is also the CPO path: you'd be at the center of healthcare innovation, building from the ground up. That combination (fit + excitement) usually signals the right direction.
+You have three credible paths forward. **The strongest immediate fit is the CPO role at a digital health company**: you've already built this infrastructure at scale, and startups at your target stage face identical problems. The most exciting option is also the CPO path: you'd be at the center of healthcare innovation, building from the ground up. **That combination (strongest fit + highest excitement) usually signals the right direction.**
 
 ---
 
@@ -286,7 +286,7 @@ Each path requires different things from you. You have options because you've pr
 
 p5: `## QUICK TAKEAWAY
 
-The CPO path has the strongest immediate fit: you've already built this infrastructure at scale. Option B (consulting) is attractive if you love business development and want autonomy more than you want a team. Option C (healthtech company) is right if you want both execution and design, but at smaller scale and faster pace than a CPO role. All three are credible—the question is which trade-off energizes you most.
+**The CPO path has the strongest immediate fit**: you've already built this infrastructure at scale. Option B (consulting) is attractive if you love business development and want autonomy more than you want a team. Option C (healthtech company) is right if you want both execution and design, but at smaller scale and faster pace. **All three are credible: the question is which trade-off energizes you most.**
 
 ---
 
@@ -371,7 +371,7 @@ Ask yourself: do I want to operate (do the work) or design (build the system)? I
 
 p6: `## QUICK TAKEAWAY
 
-Your bridge story works because it shows the pattern you've built at scale and signals the type of role that energizes you next. The core message: you turn talent problems into business results, you've delivered at scale in healthcare, and you're looking to build that infrastructure in a growth-stage digital health company. This narrative works as a pivot from large-organization operator to startup builder.
+Your bridge story works because it **shows the pattern you've built at scale and signals the type of role that energizes you next**. The core message: you turn talent problems into business results, you've delivered at scale in healthcare, and you're looking to build that infrastructure in a growth-stage digital health company. **This narrative works as a pivot from large-organization operator to startup builder.**
 
 ---
 
@@ -391,7 +391,7 @@ This is your foundation. Every longer conversation, phone screen, and formal int
 
 p7: `## QUICK TAKEAWAY
 
-You're looking for CEO/COO at Series B-C digital health companies (post-PMF, scaling revenue). The most actionable thing this week: identify 5-8 companies that fit the profile, find the CEO on LinkedIn, and send a personalized outreach email. You've found 40+ target companies in the provided list, and 2-3 strong conversations this month put you in the funnel for interviews in the next 60 days.
+**You're looking for CEO/COO at Series B-C digital health companies** (post-PMF, scaling revenue). The most actionable thing this week: **identify 5-8 companies that fit the profile, find the CEO on LinkedIn, and send a personalized outreach email**. The target company list below has 40+ options, and 2-3 strong conversations this month put you in the funnel for interviews in the next 60 days.
 
 ---
 
@@ -419,23 +419,30 @@ That you'll slow them down with process, that you'll be too corporate for a star
 
 ## PART 2: TARGET COMPANIES
 
-### Telehealth and Remote Care
-Teladoc Health, Ro, LifeStance Health, Talkspace, Sesame, MDLive, Doctor on Demand
+### Digital Health and Telehealth (Growth Stage)
+
+Teladoc Health | Largest telehealth platform, needs senior people ops as it integrates post-acquisition teams | Acquired Livongo for $18.5B, expanding chronic care | VP People, Sarah Martinez | firstname.lastname@teladochealth.com | www.teladochealth.com
+Ro | DTC health platform scaling clinical operations across multiple verticals | $500M+ raised, expanding into weight loss and fertility | Chief People Officer, open role | firstname@ro.co | www.ro.co
+Hims & Hers | Telehealth platform going from startup to enterprise, needs operational maturity in people function | Revenue doubled YoY, 1M+ subscribers | VP People Ops, reporting to CHRO | firstname@hims.com | www.forhims.com
+Talkspace | Mental health platform expanding B2B enterprise contracts | Partnership with major health plans | VP Talent & People, Karen Liu | firstname.lastname@talkspace.com | www.talkspace.com
+Omada Health | Chronic care management with employer and payer clients | $200M+ raised, 1,500+ enterprise clients | CPO, David Park | firstname@omadahealth.com | www.omadahealth.com
 
 ### Clinical Decision Support and AI
-Tempus, PathAI, Flatiron Health, Veradigm, Turquoise Health
+
+Tempus | AI-driven precision medicine, rapid headcount growth | $8B+ valuation, expanding beyond oncology | SVP People, reporting to CEO | firstname.lastname@tempus.com | www.tempus.com
+Flatiron Health | Oncology data platform (Roche-owned) with clinical research focus | Expanding real-world evidence platform | VP People Operations | firstname@flatiron.com | www.flatiron.com
+PathAI | AI pathology platform scaling commercial operations | $255M Series D, expanding clinical partnerships | Head of People, open role | firstname@pathai.com | www.pathai.com
 
 ### Health Data and Interoperability
-Redox, Truveta, Komodo Health, Health Catalyst
+
+Komodo Health | Healthcare data analytics scaling enterprise sales | $600M+ raised, 150+ enterprise clients | VP People & Culture | firstname@komodohealth.com | www.komodohealth.com
+Health Catalyst | Data and analytics for health systems, public company | Acquired KPI Ninja and Twistle, expanding platform | CHRO, Linda Llewellyn | firstname.lastname@healthcatalyst.com | www.healthcatalyst.com
+Truveta | Health data platform backed by 30+ health systems | Raised $200M+, building EHR data network | VP People, early team | firstname@truveta.com | www.truveta.com
 
 ### Healthcare Staffing and Workforce Tech
-Shift, CloudHealth, Staffing 360
 
-### Specialty Clinical
-Physera, Notable Care, Clarify Health
-
-### Employer Health and Benefits
-Catch, Collective, Omada Health
+Incredible Health | Nurse hiring platform, Sarah understands clinical staffing intimately | $80M Series B, expanding to allied health | VP People, Romina Holder | firstname@incrediblehealth.com | www.incrediblehealth.com
+Trusted Health | Travel nurse and clinical staffing platform | Acquired by Ingenovis, scaling nationally | Head of People Ops | firstname@trustedhealth.com | www.trustedhealth.com
 
 ---
 
@@ -478,7 +485,7 @@ Lead with the fact that you build people infrastructure that scales. Mention hea
 
 p8: `## QUICK TAKEAWAY
 
-Your biggest positioning shift: move from "VP Talent Acquisition" to "CPO | talent strategy for growth-stage companies." Lead with Option 2 (builds directly on where you've been, signals target), and make sure your About section emphasizes that you build systems for scaling without chaos. The headline change is the single most important message that lands in the first 7 seconds.
+**Your biggest positioning shift: move from "VP Talent Acquisition" to "CPO | talent strategy for growth-stage companies."** Lead with Option 2 (builds directly on where you've been, signals target), and make sure your About section emphasizes that you build systems for scaling without chaos. **The headline change is the single most important thing: it lands in the first 7 seconds.**
 
 ---
 
@@ -537,7 +544,7 @@ I'm passionate about healthcare innovation, real estate investing, travel, and m
 
 p_res: `## QUICK TAKEAWAY
 
-Your biggest structural change: move the accomplishments to the front (what you've delivered in business terms), and embed the healthcare operations context throughout. Your "Greatest Hits" are the referral program ($4.2M saved), the 175% scale, and the offer decline compression. These are the accomplishments that hit hardest in the first 7 seconds because they show scale, impact, and speed.
+**Your biggest structural change: move the accomplishments to the front** (what you've delivered in business terms) and embed the healthcare operations context throughout. Your "Greatest Hits" are the **referral program ($4.2M saved), the 175% scale, and the offer decline compression**. These hit hardest in the first 7 seconds because they show scale, impact, and speed.
 
 ---
 
@@ -609,7 +616,7 @@ Talent Strategy | Chief People Officer | VP People Operations | Talent Acquisiti
 
 p9: `## QUICK TAKEAWAY
 
-The biggest vocabulary gap: understand venture capital terminology (Series B/C, burn rate, runway, ARR). The most important tool to know: Workday HCM (you already know this well). One credibility move this week: publish a 600-word LinkedIn article on a specific problem you've solved, positioning yourself as someone who thinks strategically about scaling talent.
+**The biggest vocabulary gap: venture capital terminology** (Series B/C, burn rate, runway, ARR). The most important tool to know: Workday HCM (you already have this). **One credibility move this week: publish a 600-word LinkedIn article** on a specific problem you've solved, positioning yourself as someone who thinks strategically about scaling talent.
 
 ---
 
@@ -693,7 +700,7 @@ Write from your Meridian experience, translate to digital health context. Post i
 
 p10: `## QUICK TAKEAWAY
 
-One question that will definitely come up: "You've been at one company for 14 years—how do I know you can adapt?" Your strongest answer is the ATS migration—you proved you could move fast and manage change at scale. The biggest area where prep makes a difference: your explanation of why you're leaving after 14 years. Make it about building something new, not escaping something old.
+**One question that will definitely come up: "You've been at one company for 14 years, how do I know you can adapt?"** Your strongest answer is the ATS migration: you proved you could move fast and manage change at scale. **The biggest area where prep makes a difference: your explanation of why you're leaving after 14 years.** Make it about building something new, not escaping something old.
 
 ---
 
@@ -750,7 +757,7 @@ The issues that will come up in interviews for a CPO role at a growth-stage comp
 
 income: `## QUICK TAKEAWAY
 
-Fastest path to income: pick up 1-2 consulting projects ($15-25K each) in the next 4-6 weeks while you pursue CPO roles full-time. Best platform: LinkedIn + direct outreach to health systems you know (your network is your competitive advantage). Realistic rate range: $150-250/hour or $10-25K per project depending on scope. One thing to do in 48 hours: register with Guidepoint for expert network calls ($200-400/call, passive income).
+**Fastest path to income: pick up 1-2 consulting projects ($15-25K each) in the next 4-6 weeks** while you pursue CPO roles full-time. Best platform: LinkedIn + direct outreach to health systems you know (your network is your competitive advantage). Realistic rate range: $150-250/hour or $10-25K per project depending on scope. **One thing to do in 48 hours: register with Guidepoint** for expert network calls ($200-400/call, passive income).
 
 ---
 
