@@ -113,16 +113,16 @@ const PHASES=[
   {id:2,label:'Explore Options',color:'#6AB88A',steps:['p4','p5','decision']},
   {id:3,label:'Tell Your Story',color:'#C8924A',steps:['p6']},
   {id:4,label:'Find Your Market',color:'#B86A6A',steps:['p7']},
-  {id:5,label:'Get Ready',color:'#6A8AB8',steps:['p8','p_res','p9','p10','complete']},
+  {id:5,label:'Get Ready',color:'#6A8AB8',steps:['p8','p_res','p9','complete']},
   {id:6,label:'Income Now',color:'#7AB87A',steps:['income']},
 ]
-const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',assessment:'Assessments',values:'Values & Passions',reputation:'Reputation',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',p5:'The Deep Dive',decision:'Your Decision',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Crash Course',p10:"Devil's Advocate",complete:'Complete',income:'Income Now'}
-const ALL=['welcome','location','resume','assessment','values','reputation','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','p10','complete','income']
+const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',assessment:'Assessments',values:'Values & Passions',reputation:'Reputation',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',p5:'The Deep Dive',decision:'Your Decision',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now'}
+const ALL=['welcome','location','resume','assessment','values','reputation','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','complete','income']
 
 const S={
   title:{fontFamily:'Georgia,serif',fontSize:34,fontWeight:700,color:"#1A2540",margin:'0 0 10px',lineHeight:1.2},
-  sub:{fontSize:16,color:C.gray,margin:'0 0 24px',lineHeight:1.65,maxWidth:540},
-  card:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderRadius:12,padding:'20px 24px',marginBottom:16,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
+  sub:{fontSize:16,color:C.gray,margin:'0 0 24px',lineHeight:1.65,maxWidth:600},
+  card:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'28px 32px',marginBottom:16,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
   label:{display:'block',fontSize:11,fontWeight:700,color:C.grayL,margin:'0 0 7px',letterSpacing:'1px',textTransform:'uppercase'},
   inp:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'},
   ta:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'11px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',resize:'vertical',boxSizing:'border-box',lineHeight:1.6,minHeight:90},
@@ -130,7 +130,7 @@ const S={
   btn:{background:C.gold,color:C.bg,border:'none',borderRadius:8,padding:'11px 22px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
   sec:{background:'transparent',color:C.grayL,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 18px',fontSize:15,fontWeight:500,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
   sm:{background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:6,padding:'5px 11px',fontSize:12,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:5},
-  out:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderRadius:10,padding:'20px 24px',marginTop:14,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
+  out:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'28px 32px',marginTop:14,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
   err:{background:`${C.err}15`,border:`1px solid ${C.err}40`,borderRadius:8,padding:'11px 15px',color:C.err,fontSize:13,marginTop:12,display:'flex',gap:8,alignItems:'flex-start'},
   note:{background:`${C.gold}12`,border:`1px solid ${C.gold}30`,borderRadius:8,padding:'11px 15px',color:C.goldL,fontSize:13,marginBottom:14,lineHeight:1.6},
   row:{display:'flex',gap:10,marginTop:20,flexWrap:'wrap'},
@@ -311,16 +311,33 @@ function RefineBox({value,onChange,onRegenerate}){
 }
 function Sidebar({step,done,onNav}){return <div style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>{PHASES.map(ph=><div key={ph.id} style={{marginBottom:3}}><div style={{fontSize:11,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:ph.color,padding:'5px 14px 3px',display:'flex',alignItems:'center',gap:5}}><div style={{width:5,height:5,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||(sid==='income'&&done.includes('complete')),isComplete=sid==='complete'&&isDone;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 28px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?`${ph.color}25`:'transparent',borderLeft:`2px solid ${isComplete?C.ok:active?ph.color:'transparent'}`,fontSize:18,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?ph.color:isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div>{META[sid]}</div>})}</div>)}</div>}
 
+const DEMO_TOUR=[
+  {step:'welcome',title:'Meet Sarah Chen',desc:''},
+  {step:'p1',title:'Step 1: Know Your Value',desc:'Your experience has created more value than most resumes show. This step finds it and puts it in language any industry understands.'},
+  {step:'p2',title:'Step 2: Wiring & Compass',desc:'Most people take assessments and file them away. This step connects how you\'re wired to the work you do best and the environment where you thrive.'},
+  {step:'p3',title:'Step 3: Brand Synthesis',desc:'When someone asks "what do you do," most people default to a job title. This step gives you a better answer.'},
+  {step:'p4',title:'Step 4: The Wide View',desc:'After years in one industry, it\'s easy to see only the obvious next step. This is where the aperture opens.'},
+  {step:'p5',title:'Step 5: The Deep Dive',desc:'It\'s easy to get excited about an option on paper. This step shows what the role actually looks like and how your background maps to it.'},
+  {step:'decision',title:'Step 6: Sarah\'s Decision',desc:'Multiple good options can feel paralyzing. This is the moment you choose a direction and everything starts pointing the same way.'},
+  {step:'p6',title:'Step 7: Bridge Story',desc:'"Tell me about yourself" is the first question in every interview, and most people struggle with it because they\'re trying to explain a career move without sounding defensive.'},
+  {step:'p7',title:'Step 8: Go-to-Market',desc:'Most people start their search on job boards, waiting for the right posting to appear. The best opportunities are filled through relationships before a posting ever goes live.'},
+  {step:'p8',title:'Step 9: LinkedIn Remix',desc:'Your LinkedIn profile is how companies and recruiters find you. If it still describes your last role, the right people can\'t find you for the next one.'},
+  {step:'p_res',title:'Step 10: Resume Refresh',desc:'The people reading your resume now are looking for different signals than the ones who hired you last time.'},
+  {step:'p9',title:'Step 11: Your Playbook',desc:'Walking into a conversation in a new space without knowing the vocabulary or the current landscape costs credibility fast.'},
+  {step:'income',title:'Bonus: Income Now',desc:'A job search takes time. Having income flowing while you search changes everything: you make better decisions when you\'re choosing, not settling.'},
+]
+
 export default function PivotEngine(){
   const isDemo=new URLSearchParams(window.location.search).get('demo')==='true'
   const IP={loc:{country:'',city:'',work:''},resume:'',resumeFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''}}
   const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',income:''}
-  const[step,setStep]=useState(isDemo?'complete':'welcome')
+  const[step,setStep]=useState(isDemo?'welcome':'welcome')
   const[profile,setProfile]=useState(isDemo?demoProfile:IP)
   const[outputs,setOutputs]=useState(isDemo?demoOutputs:IO)
   const[done,setDone]=useState(isDemo?[...demoDone]:[])
   const[deepOpts,setDeepOpts]=useState(isDemo?[...demoDeepOpts]:['','',''])
   const[chosen,setChosen]=useState(isDemo?demoChosen:'')
+  const[demoIdx,setDemoIdx]=useState(0)
   const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:''})
   const setFb=(k,v)=>setFeedback(f=>({...f,[k]:v}))
   const[loading,setLoading]=useState(false)
@@ -344,7 +361,9 @@ export default function PivotEngine(){
   const out=(k,v)=>setOutputs(o=>({...o,[k]:v}))
   const markDone=(sid)=>setDone(d=>d.includes(sid)?d:[...d,sid])
   const advance=(from,to)=>{markDone(from);setStep(to);setErr(null)}
-  const nav=(to)=>{setStep(to);setErr(null)}
+  const nav=(to)=>{if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null)}
+  const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);window.scrollTo(0,0)}}
+  const demoPrev=()=>{if(demoIdx>0){const prev=demoIdx-1;setDemoIdx(prev);setStep(DEMO_TOUR[prev].step);window.scrollTo(0,0)}}
   const generate=async(key,fn,opts={})=>{setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(fn(),opts);out(key,r)}catch(e){setErr(e.message)}finally{setLoading(false)}}
   const copy=(text)=>{navigator.clipboard.writeText(text);setCopied(true);setTimeout(()=>setCopied(false),2000)}
   const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:''})}}
@@ -474,7 +493,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#0e1a2b">Re<tspan fill="#e4572e">imagine</tspan></text>
         <text x="92" y="132" fontSize="26" fontWeight="700" letterSpacing="-0.3" fill="#55617a">Your <tspan fontWeight="800" fill="#0e1a2b">Career</tspan>. Your <tspan fontWeight="900" fill="#e4572e">Future</tspan>.</text>
       </svg>
-      <p style={{fontSize:17,fontWeight:500,color:C.cream,lineHeight:1.65,maxWidth:620,marginBottom:12}}>Reimagine is a career strategy tool that takes what you've done, how you're wired, and what you care about and builds a concrete plan for what comes next.</p>
+      <p style={{fontSize:17,fontWeight:500,color:C.cream,lineHeight:1.65,maxWidth:620,marginBottom:12}}>If your search feels stuck, <strong>you are not the problem.</strong> It's that you can't see all the places your experience could take you. <strong>Reimagine</strong> takes what you've done, how you're wired, and what you care about to help you land a rewarding role faster than you imagined. Reimagine your career now.</p>
 
       {!isDemo&&<a href="/?demo=true" style={{display:'inline-flex',alignItems:'center',gap:8,marginBottom:20,fontSize:15,fontWeight:600,color:C.gold,cursor:'pointer',padding:'8px 16px',border:`1.5px solid ${C.gold}`,borderRadius:8,background:'#C8924A10',textDecoration:'none'}}>&#9654; See a completed example first</a>}
 
@@ -496,11 +515,11 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       <div style={{...S.card,marginBottom:16}}>
         <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>How It Works</div>
         {[
-          ['1','Know Your Value','We translate your career history into language that travels across industries and connects your accomplishments to the value they created.','#8A7AB8'],
-          ['2','Explore Options','We map three paths: Familiar Ground, The Industry Insider, and Ikigai. From building on where you have been, to reimagining where your expertise and passions could take you. Then we go deep on the ones that resonate.','#6AB88A'],
-          ['3','Tell Your Story','We write three versions of your "Tell me about yourself," 30, 60, and 90 seconds, as a confident, natural bridge from where you\'ve been to where you\'re going.','#C8924A'],
-          ['4','Find Your Market','We research real companies that are growing and likely hiring, build your target list, and write your opening outreach message.','#B86A6A'],
-          ['5','Get Ready','We offer specific recommendations for your LinkedIn and resume, teach you the language of your target field, and prepare you for the hardest question you\'ll face in a room.','#6A8AB8'],
+          ['1','Know Your Value','Your experience has created more value than most resumes show. We find it and put it in language any industry understands.','#8A7AB8'],
+          ['2','Explore Options','After years in one role, it\'s easy to see only the obvious next step. We map three paths and go deep on the ones that resonate.','#6AB88A'],
+          ['3','Tell Your Story','"Tell me about yourself" is where most people stumble. We write three versions that connect where you\'ve been to where you\'re heading.','#C8924A'],
+          ['4','Find Your Market','The best opportunities are filled through relationships before a posting goes live. We search in real time for companies that fit and draft your outreach.','#B86A6A'],
+          ['5','Get Ready','Your LinkedIn, your resume, your playbook for the new space, and preparation for the toughest question you\'ll face. You walk in ready.','#6A8AB8'],
         ].map(([num,phase,desc,color])=><div key={num} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
           <div style={{width:28,height:28,borderRadius:'50%',background:`${color}25`,border:`1.5px solid ${color}60`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:15,fontWeight:700,color}}>
             {num}
@@ -631,7 +650,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     case'p1':return <div>
       <div style={S.tag('#8A7AB8')}>Phase 1 · Know Your Value</div>
       <h1 style={S.title}>Resume Analysis</h1>
-      <p style={S.sub}>We strip away job titles and industry jargon to find your universal value — what you've actually been doing for the businesses that employed you.</p>
+      <p style={S.sub}>Your experience has created more value than most resumes show. This step finds it and puts it in language any industry understands.</p>
       {!isDemo&&!outputs.p1&&!loading&&<Btn onClick={()=>generate('p1',()=>P.p1(pc))}><Sparkles size={14}/>Analyze My Resume</Btn>}
       {loading&&<Loading msg={loadMsg||'Analyzing your career and translating accomplishments…'}/>}
       {outputs.p1&&<>
@@ -645,7 +664,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     case'p2':return <div>
       <div style={S.tag('#8A7AB8')}>Phase 1 · Know Your Value</div>
       <h1 style={S.title}>Wiring & Compass</h1>
-      <p style={S.sub}>We layer in how you're built — your assessment, values, and passions — to understand not just what you've done, but why you do it well and where you'll thrive.</p>
+      <p style={S.sub}>Most people take assessments and file them away. This step connects how you're wired to the work you do best and the environment where you thrive.</p>
       {!isDemo&&!outputs.p2&&!loading&&<Btn onClick={()=>generate('p2',()=>P.p2(pc,outputs.p1))}><Sparkles size={14}/>Analyze My Wiring</Btn>}
       {loading&&<Loading msg="Cross-referencing assessment, values, and accomplishments…"/>}
       {outputs.p2&&<>
@@ -661,7 +680,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
 
       <div style={S.tag('#8A7AB8')}>Phase 1 · Know Your Value</div>
       <h1 style={S.title}>Brand Synthesis</h1>
-      <p style={S.sub}>The final data layer. We synthesize everything into your Golden Thread and Functional Identity: a crisp, title-free statement of what you bring to any organization.</p>
+      <p style={S.sub}>When someone asks "what do you do," most people default to a job title. This step gives you a better answer: a clear statement of what you do and what it produces.</p>
       {!isDemo&&!outputs.p3&&!loading&&<Btn onClick={()=>generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}><Sparkles size={14}/>Synthesize My Brand</Btn>}
       {loading&&<Loading msg="Finding the pattern across all your data…"/>}
       {outputs.p3&&<>
@@ -675,7 +694,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     case'p4':return <div>
       <div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>
       <h1 style={S.title}>The Wide View</h1>
-      <p style={S.sub}>Before choosing, see the full picture. Three paths: Ikigai, The Industry Insider, and Familiar Ground, starting with the ones furthest from where you've been, so you can consider what's genuinely possible before narrowing your focus.</p>
+      <p style={S.sub}>After years in one industry, it's easy to see only the obvious next step. This is where the aperture opens: three paths, each grounded in your specific evidence.</p>
       {!isDemo&&!outputs.p4&&!loading&&<Btn onClick={()=>generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3),{highTemp:true,maxTokens:5000,msg:'Mapping your opportunity landscape — this takes a moment…'})}><Sparkles size={14}/>Generate My Options</Btn>}
       {loading&&<Loading msg={loadMsg||'Mapping your full opportunity landscape across all three paths…'}/>}
       {outputs.p4&&<>
@@ -724,7 +743,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       return <div>
         <div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>
         <h1 style={S.title}>The Deep Dive</h1>
-        <p style={S.sub}>A clear-eyed look at each option — what the role really is, why you fit, and what to know before you pursue it.</p>
+        <p style={S.sub}>It's easy to get excited about an option on paper. This step shows what the role actually looks like and how your background maps to it.</p>
         {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{...S.note,marginBottom:16}}>Exploring: {filledOpts.map((o,i)=><strong key={i} style={{color:'#1A2540',marginRight:12}}>{o}</strong>)}</div>}
         {!isDemo&&!outputs.p5&&!loading&&filledOpts.length>0&&<Btn onClick={()=>generate('p5',()=>P.p5(pc,outputs,deepOpts),{maxTokens:6000,msg:'Building your deep dive…'})}><Sparkles size={14}/>Explore These Options</Btn>}
         {!isDemo&&filledOpts.length===0&&!outputs.p5&&<div style={{...S.err,marginTop:0}}><AlertCircle size={13} color={C.err} style={{flexShrink:0}}/><span>Go back to The Wide View and select at least one option to explore.</span></div>}
@@ -762,7 +781,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     case'decision':return <div>
       <div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>
       <h1 style={S.title}>Your Decision</h1>
-      <p style={S.sub}>Read through the deep dive. There is no wrong answer — the goal is a choice you can commit to, not a perfect choice. You only need one yes.</p>
+      <p style={S.sub}>Multiple good options can feel paralyzing. This is the moment you choose a direction and everything starts pointing the same way.</p>
       {isDemo?<div style={S.card}>
         <label style={S.label}>Pursuing</label>
         <div style={{fontSize:17,color:C.cream,fontWeight:600,lineHeight:1.6}}>{chosen}</div>
@@ -787,7 +806,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
 
       <div style={S.tag('#C8924A')}>Phase 3 · Tell Your Story</div>
       <h1 style={S.title}>Your Bridge Story</h1>
-      <p style={S.sub}>Three versions of your "Tell Me About Yourself" — 30, 60, and 90 seconds. Written to be said aloud.</p>
+      <p style={S.sub}>"Tell me about yourself" is the first question in every interview, and most people struggle with it. Three versions that connect where you've been to where you're heading.</p>
       <div style={S.note}>Pursuing: <strong style={{color:C.cream}}>{chosen}</strong></div>
       {!isDemo&&!outputs.p6&&!loading&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
       {loading&&<Loading msg="Crafting your bridge story in three lengths…"/>}
@@ -800,7 +819,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
 
       <div style={S.tag('#B86A6A')}>Phase 4 · Find Your Market</div>
       <h1 style={S.title}>Go-to-Market Strategy</h1>
-      <p style={S.sub}>Most hiring happens before a posting goes live — or without one ever going live. Your target company list and outreach strategy. No job boards.</p>
+      <p style={S.sub}>The best opportunities are filled through relationships before a posting ever goes live. We search in real time for companies that fit your background and draft personalized outreach to the people you'd want to reach.</p>
       <div style={S.note}><strong style={{color:C.gold}}>Live research enabled.</strong> We search for companies that are growing, investing, and most likely to be hiring — and flag ones showing signs of contraction.</div>
       {!isDemo&&!outputs.p7&&!loading&&<Btn onClick={()=>generate('p7',()=>P.p7(pc,outputs,chosen),{webSearch:true,maxTokens:6000,msg:'Researching target companies and building your strategy…'})}><Sparkles size={14}/>Build My Strategy</Btn>}
       {loading&&<Loading msg={loadMsg||'Researching companies and building your outreach strategy…'}/>}
@@ -851,7 +870,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
 
       <div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>
       <h1 style={S.title}>LinkedIn Remix</h1>
-      <p style={S.sub}>Your LinkedIn profile is the first thing target buyers see after you reach out. We'll rewrite your headline, About section, and experience bullets.</p>
+      <p style={S.sub}>Your LinkedIn profile is how companies and recruiters find you. If it still describes your last role, the right people can't find you for the next one.</p>
       {!isDemo&&!outputs.p8&&!loading&&<Btn onClick={()=>generate('p8',()=>P.p8(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Remix My LinkedIn</Btn>}
       {loading&&<Loading msg="Rewriting your LinkedIn for your new direction…"/>}
       {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p8','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p8','p_res')}>Continue <ChevronRight size={14}/></Btn></div>}</>}
@@ -863,7 +882,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
 
       <div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>
       <h1 style={S.title}>Resume Refresh</h1>
-      <p style={S.sub}>Your resume, rewritten to speak directly to your new direction. Same career, new framing — every bullet tied to a business result relevant to where you're headed.</p>
+      <p style={S.sub}>The people reading your resume now are looking for different signals than the ones who hired you last time. Same accomplishments, positioned for the people who need to say yes next.</p>
       <div style={S.note}>Targeting: <strong style={{color:C.cream}}>{chosen}</strong></div>
       {!isDemo&&!outputs.p_res&&!loading&&<Btn onClick={()=>generate('p_res',()=>P.p_res(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Refresh My Resume</Btn>}
       {loading&&<Loading msg="Rewriting your resume for your new direction…"/>}
@@ -875,25 +894,19 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
 
       <div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>
-      <h1 style={S.title}>The Crash Course</h1>
-      <p style={S.sub}>You're entering this field as a credible outsider. This gives you what you need to sound like a native in one focused study session.</p>
-      {!isDemo&&!outputs.p9&&!loading&&<Btn onClick={()=>generate('p9',()=>P.p9(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Build My Crash Course</Btn>}
-      {loading&&<Loading msg="Building your industry crash course…"/>}
-      {outputs.p9&&<><OutPanel text={outputs.p9} onCopy={copy} copied={copied}/>{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p9','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p9','p10')}>Final Step <ChevronRight size={14}/></Btn></div>}</>}
+      <h1 style={S.title}>Your Playbook</h1>
+      <p style={S.sub}>Walking into a conversation in a new space without knowing the vocabulary or the current landscape costs credibility fast. This is everything you need to walk in confident and prepared.</p>
+      {!isDemo&&!outputs.p9&&!loading&&<Btn onClick={async()=>{setLoading(true);setErr(null);setLoadMsg('Building your playbook...');try{const[r1,r2]=await Promise.all([callClaude(P.p9(pc,outputs,chosen),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen),{maxTokens:2000})]);out('p9',r1);out('p10',r2)}catch(e){setErr(e.message)}finally{setLoading(false)}}}><Sparkles size={14}/>Build My Playbook</Btn>}
+      {loading&&<Loading msg={loadMsg||'Building your playbook — industry landscape and interview preparation…'}/>}
+      {outputs.p9&&<>
+        <OutPanel text={outputs.p9} onCopy={copy} copied={copied}/>
+        {outputs.p10&&<><div style={{marginTop:20,marginBottom:8}}><h2 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,color:C.gold,margin:0}}>The Toughest Question You'll Face</h2><p style={{fontSize:14,color:C.gray,marginTop:4}}>Every career transition has one question that makes candidates stumble. The best time to hear it is before you're sitting across the table.</p></div><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/></>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p9','');out('p10','')}}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>{markDone('p9');markDone('p10');advance('p9','complete')}}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}
+      </>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
-    case'p10':return <div>
-      {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
-
-      <div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>
-      <h1 style={S.title}>The Devil's Advocate</h1>
-      <p style={S.sub}>The best defense is preparation. We surface the hardest question you'll face in a real room — then give you the answer. You'll hear it here before you hear it there.</p>
-      {!isDemo&&!outputs.p10&&!loading&&<Btn onClick={()=>generate('p10',()=>P.p10(pc,outputs,chosen),{maxTokens:2000})}><Sparkles size={14}/>Face the Hardest Question</Btn>}
-      {loading&&<Loading msg="Preparing your toughest challenge and best defense…"/>}
-      {outputs.p10&&<><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/>{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p10','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p10','complete')}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}</>}
-      {err&&<ErrBox msg={err}/>}
-    </div>
+    case'p10':return <div>{nav('p9')}</div>
 
     case'complete':{if(!done.includes('complete'))markDone('complete');return <div>
       <div style={{background:`linear-gradient(135deg,${C.panel} 0%,${C.card} 100%)`,border:`1px solid ${C.gold}35`,borderRadius:16,padding:'36px',textAlign:'center',marginBottom:22}}>
@@ -977,14 +990,14 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           <Check size={16} color={C.ok} strokeWidth={2.5}/>
           <div style={{fontSize:15,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
         </div>
-        {[['Your Functional Identity','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Crash Course','p9',outputs.p9],["Devil's Advocate",'p10',outputs.p10],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
+        {[['Your Functional Identity','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Your Playbook','p9',(outputs.p9||'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
 
         <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:15,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
         <div style={{marginTop:16,background:'linear-gradient(135deg,#1A2540 0%,#2A3F60 100%)',borderRadius:12,padding:'24px 28px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
           <div>
             <div style={{fontSize:11,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:'#7AB87A',marginBottom:6}}>Bonus module</div>
             <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#FFFFFF',marginBottom:6}}>Income Now</div>
-            <div style={{fontSize:18,color:'#CBD5E0',lineHeight:1.65,maxWidth:420}}>While your search is underway, we'll build you a freelance and consulting presence — Upwork, Fiverr, fractional opportunities, and a one sheet — ready to generate income this week.</div>
+            <div style={{fontSize:18,color:'#CBD5E0',lineHeight:1.65,maxWidth:420}}>A job search takes time. Having income flowing while you search changes everything. Consulting, fractional leadership, and advisory opportunities matched to your seniority and expertise.</div>
           </div>
           <Btn onClick={()=>nav('income')} style={{background:'#7AB87A',flexShrink:0}}>Generate My Income Plan <ChevronRight size={14}/></Btn>
         </div>
@@ -995,7 +1008,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     case'income':return <div>
       <div style={S.tag('#7AB87A')}>Bonus Module</div>
       <h1 style={S.title}>Income Now</h1>
-      <p style={S.sub}>Your longer-term search is underway. This module builds everything you need to generate income while you get there — gig platform profiles, a fractional pitch, passion-adjacent consulting niches, and a one sheet ready to use today.</p>
+      <p style={S.sub}>A job search takes time. Having income flowing while you search changes everything: you make better decisions when you're choosing, not settling.</p>
       <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>Targeting: <strong>{chosen||'your chosen direction'}</strong></div>
       {!isDemo&&!outputs.income&&!loading&&<Btn onClick={()=>generate('income',()=>P.income(pc,outputs,chosen),{maxTokens:6000,msg:'Building your Income Now plan…'})} style={{background:'#7AB87A'}}><Sparkles size={14}/>Build My Income Plan</Btn>}
       {loading&&<Loading msg="Building your Income Now plan — this one is thorough…"/>}
@@ -1010,10 +1023,12 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     default:return null
   }}
 
+  const demoGuide=isDemo&&DEMO_TOUR[demoIdx]?DEMO_TOUR[demoIdx]:null
+
   return <>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     <div style={{minHeight:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column'}}>
-      {isDemo&&<div style={{background:'linear-gradient(90deg,#C8924A,#e4572e)',padding:'10px 24px',textAlign:'center',fontSize:14,fontWeight:600,color:'#fff',letterSpacing:'0.5px'}}>See how it works with Sarah's example below, then <a href="/" style={{color:'#fff',textDecoration:'underline',marginLeft:8}}>start your own Reimagine session</a></div>}
+      {isDemo&&<div style={{background:'linear-gradient(90deg,#C8924A,#e4572e)',padding:'10px 24px',textAlign:'center',fontSize:14,fontWeight:600,color:'#fff',letterSpacing:'0.5px'}}>You're viewing Sarah Chen's demo. <a href="/" style={{color:'#fff',textDecoration:'underline',marginLeft:8}}>Start your own Reimagine session</a></div>}
       <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <div>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="148" height="34" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
@@ -1022,14 +1037,27 @@ A senior people-strategy leader who turns workforce challenges into measurable b
             <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#FFFFFF">Re<tspan fill="#e4572e">imagine</tspan></text>
           </svg>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:12}}>
+        {isDemo?<div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{fontSize:11,color:C.gray}}>Step {demoIdx+1} of {DEMO_TOUR.length}</div>
+          <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${((demoIdx+1)/DEMO_TOUR.length)*100}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
+        </div>:<div style={{display:'flex',alignItems:'center',gap:12}}>
           <div style={{fontSize:11,color:C.gray}}>{prog}% complete</div>
           <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
-        </div>
+        </div>}
       </div>
       <div style={{display:'flex',flex:1,minHeight:0}}>
-        <Sidebar step={step} done={done} onNav={nav}/>
-        <div style={{flex:1,padding:'30px 38px 60px',overflowY:'auto',maxWidth:800}}>{rStep()}</div>
+        {!isDemo&&<Sidebar step={step} done={done} onNav={nav}/>}
+        <div style={{flex:1,padding:'30px 38px 60px',overflowY:'auto',maxWidth:isDemo?860:800,margin:isDemo?'0 auto':undefined}}>
+          {demoGuide&&step!=='welcome'&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14,padding:'0 4px'}}>
+            <div style={{fontSize:14,fontWeight:700,color:C.gold,letterSpacing:'0.5px'}}>{demoGuide.title}</div>
+            <div style={{fontSize:12,color:C.gray}}>{demoIdx+1} of {DEMO_TOUR.length}</div>
+          </div>}
+          {isDemo&&step!=='welcome'?<div style={{pointerEvents:'none',opacity:1}}>{rStep()}</div>:rStep()}
+          {isDemo&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:24,paddingTop:20,borderTop:`1px solid ${C.border}`}}>
+            <div>{demoIdx>0&&<button onClick={demoPrev} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 20px',background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>← Previous</button>}</div>
+            <div>{demoIdx<DEMO_TOUR.length-1?<button onClick={demoNext} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 20px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Next →</button>:<a href="/" style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 20px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>Start My Reimagine Session →</a>}</div>
+          </div>}
+        </div>
       </div>
     </div>
   </>
