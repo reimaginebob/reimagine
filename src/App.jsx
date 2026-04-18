@@ -80,9 +80,9 @@ function Inline({text}){
 function MD({text}){
   if(!text)return null
   return <div>{text.split('\n').map((line,i)=>{
-    if(line.startsWith('### '))return <h3 key={i} style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:600,color:"#A06828",margin:'16px 0 6px'}}>{line.slice(4)}</h3>
-    if(line.startsWith('## '))return <h2 key={i} style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,color:"#C8924A",margin:'18px 0 8px',borderBottom:`1px solid ${C.border}`,paddingBottom:7}}>{line.slice(3)}</h2>
-    if(line.startsWith('# '))return <h1 key={i} style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:"#1A2540",margin:'20px 0 8px'}}>{line.slice(2)}</h1>
+    if(line.startsWith('### '))return <h3 key={i} style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:"#A06828",margin:'18px 0 8px'}}>{line.slice(4)}</h3>
+    if(line.startsWith('## '))return <h2 key={i} style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:"#C8924A",margin:'22px 0 10px',borderBottom:`1px solid ${C.border}`,paddingBottom:8}}>{line.slice(3)}</h2>
+    if(line.startsWith('# '))return <h1 key={i} style={{fontFamily:'Georgia,serif',fontSize:26,fontWeight:700,color:"#1A2540",margin:'24px 0 10px'}}>{line.slice(2)}</h1>
     if(line.trim()==='---')return <hr key={i} style={{border:'none',borderTop:`1px solid ${C.border}`,margin:'16px 0'}}/>
     if(line.startsWith('- ')||line.startsWith('* '))return <div key={i} style={{display:'flex',gap:10,margin:'4px 0',paddingLeft:8,alignItems:'flex-start'}}><span style={{color:C.gold,flexShrink:0,marginTop:2}}>◆</span><span style={{color:"#374258",lineHeight:1.65,fontSize:20}}><Inline text={line.slice(2)}/></span></div>
     const nm=line.match(/^(\d+)\. (.*)/)
@@ -120,23 +120,23 @@ const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',as
 const ALL=['welcome','location','resume','assessment','values','reputation','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','complete','income']
 
 const S={
-  title:{fontFamily:'Georgia,serif',fontSize:36,fontWeight:700,color:"#1A2540",margin:'0 0 12px',lineHeight:1.2},
-  sub:{fontSize:17,color:C.gray,margin:'0 0 26px',lineHeight:1.7,maxWidth:640},
-  card:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'30px 36px',marginBottom:18,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
-  label:{display:'block',fontSize:11,fontWeight:700,color:C.grayL,margin:'0 0 7px',letterSpacing:'1px',textTransform:'uppercase'},
-  inp:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'},
-  ta:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'11px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',resize:'vertical',boxSizing:'border-box',lineHeight:1.6,minHeight:90},
-  sel:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',cursor:'pointer'},
-  btn:{background:C.gold,color:C.bg,border:'none',borderRadius:8,padding:'11px 22px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
-  sec:{background:'transparent',color:C.grayL,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 18px',fontSize:15,fontWeight:500,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
-  sm:{background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:6,padding:'5px 11px',fontSize:12,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:5},
-  out:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'30px 36px',marginTop:16,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
-  err:{background:`${C.err}15`,border:`1px solid ${C.err}40`,borderRadius:8,padding:'11px 15px',color:C.err,fontSize:13,marginTop:12,display:'flex',gap:8,alignItems:'flex-start'},
-  note:{background:`${C.gold}12`,border:`1px solid ${C.gold}30`,borderRadius:8,padding:'11px 15px',color:C.goldL,fontSize:13,marginBottom:14,lineHeight:1.6},
-  row:{display:'flex',gap:10,marginTop:20,flexWrap:'wrap'},
-  field:{marginBottom:16},
-  tag:(color)=>({display:'inline-block',background:`${color}18`,color,border:`1px solid ${color}35`,borderRadius:20,padding:'3px 11px',fontSize:11,fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:12}),
-  quote:{borderLeft:`3px solid ${C.gold}`,paddingLeft:16,color:C.gray,fontStyle:'italic',fontSize:14,lineHeight:1.75,margin:'18px 0'},
+  title:{fontFamily:'Georgia,serif',fontSize:38,fontWeight:700,color:"#1A2540",margin:'0 0 14px',lineHeight:1.2},
+  sub:{fontSize:18,color:C.gray,margin:'0 0 28px',lineHeight:1.7,maxWidth:700},
+  card:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'32px 38px',marginBottom:20,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
+  label:{display:'block',fontSize:13,fontWeight:700,color:C.grayL,margin:'0 0 8px',letterSpacing:'1px',textTransform:'uppercase'},
+  inp:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 15px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'},
+  ta:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 15px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',resize:'vertical',boxSizing:'border-box',lineHeight:1.6,minHeight:90},
+  sel:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 15px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',cursor:'pointer'},
+  btn:{background:C.gold,color:C.bg,border:'none',borderRadius:8,padding:'12px 24px',fontSize:17,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
+  sec:{background:'transparent',color:C.grayL,border:`1px solid ${C.border}`,borderRadius:8,padding:'11px 20px',fontSize:16,fontWeight:500,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
+  sm:{background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:6,padding:'6px 13px',fontSize:13,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:5},
+  out:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'32px 38px',marginTop:18,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
+  err:{background:`${C.err}15`,border:`1px solid ${C.err}40`,borderRadius:8,padding:'12px 16px',color:C.err,fontSize:15,marginTop:12,display:'flex',gap:8,alignItems:'flex-start'},
+  note:{background:`${C.gold}12`,border:`1px solid ${C.gold}30`,borderRadius:8,padding:'14px 18px',color:C.goldL,fontSize:15,marginBottom:16,lineHeight:1.65},
+  row:{display:'flex',gap:12,marginTop:24,flexWrap:'wrap'},
+  field:{marginBottom:18},
+  tag:(color)=>({display:'inline-block',background:`${color}18`,color,border:`1px solid ${color}35`,borderRadius:20,padding:'4px 13px',fontSize:12,fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:14}),
+  quote:{borderLeft:`3px solid ${C.gold}`,paddingLeft:18,color:C.gray,fontStyle:'italic',fontSize:16,lineHeight:1.75,margin:'20px 0'},
 }
 
 function Btn({onClick,disabled,secondary,small,children,style={}}){const base=small?S.sm:secondary?S.sec:S.btn;return <button style={{...base,opacity:disabled?0.5:1,...style}} onClick={onClick} disabled={disabled}>{children}</button>}
@@ -265,7 +265,7 @@ function Loading({msg='Generating your analysis…'}){
   return <div style={{textAlign:'center',padding:'48px 24px',maxWidth:560,margin:'0 auto'}}>
     <Loader2 size={28} style={{color:C.gold,animation:'spin 0.9s linear infinite',margin:'0 auto 20px',display:'block'}}/>
     <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
-    <div style={{fontSize:16,color:C.grayL,marginBottom:28}}>{msg}</div>
+    <div style={{fontSize:18,color:C.grayL,marginBottom:28}}>{msg}</div>
     <div style={{borderLeft:`3px solid ${C.gold}`,paddingLeft:20,textAlign:'left',marginBottom:8}}>
       <div style={{fontSize:17,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:8}}>"{q.text}"</div>
       <div style={{fontSize:14,color:C.gold,fontWeight:600}}>{q.author}</div>
@@ -294,13 +294,13 @@ function RefineBox({value,onChange,onRegenerate}){
     <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <div style={{width:8,height:8,borderRadius:'50%',background:C.gold,flexShrink:0}}/>
-        <span style={{fontSize:17,fontWeight:600,color:'#1A2540'}}>Does this feel right?</span>
-        <span style={{fontSize:15,color:C.gray}}>Add context to refine.</span>
+        <span style={{fontSize:18,fontWeight:600,color:'#1A2540'}}>Does this feel right?</span>
+        <span style={{fontSize:16,color:C.gray}}>Add context to refine.</span>
       </div>
       <span style={{fontSize:12,color:C.gray,display:'inline-block',transform:open?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}}>▼</span>
     </button>
     {open&&<div style={{background:'#FFFFFF',padding:'16px 20px',borderTop:`1px solid ${C.border}`}}>
-      <div style={{fontSize:15,color:C.gray,marginBottom:12,lineHeight:1.65}}>If anything feels off — wrong tone, missing context, something we misread — describe it here and we'll adjust.</div>
+      <div style={{fontSize:16,color:C.gray,marginBottom:12,lineHeight:1.65}}>If anything feels off — wrong tone, missing context, something we misread — describe it here and we'll adjust.</div>
       <textarea style={{...S.ta,minHeight:80}} value={value} onChange={e=>onChange(e.target.value)} placeholder="e.g. The seniority level feels too junior… you missed that I ran a P&L… the environment description doesn't match how I actually work…"/>
       <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
         <Btn onClick={()=>{setOpen(false);onRegenerate(value)}}><RotateCcw size={13}/>Regenerate with this context</Btn>
@@ -309,7 +309,7 @@ function RefineBox({value,onChange,onRegenerate}){
     </div>}
   </div>
 }
-function Sidebar({step,done,onNav,isDemo}){return <div style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>{PHASES.map(ph=><div key={ph.id} style={{marginBottom:3}}><div style={{fontSize:11,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:ph.color,padding:'5px 14px 3px',display:'flex',alignItems:'center',gap:5}}><div style={{width:5,height:5,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||(sid==='income'&&done.includes('complete')),isComplete=sid==='complete'&&isDone;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 28px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}30`:`${ph.color}25`):'transparent',borderLeft:`2px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{META[sid]}</span>{isDemo&&active&&<span style={{fontSize:10,color:C.gold,fontWeight:700,letterSpacing:'0.5px'}}>◀</span>}</div>})}</div>)}</div>}
+function Sidebar({step,done,onNav,isDemo}){return <div style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>{PHASES.map(ph=><div key={ph.id} style={{marginBottom:3}}><div style={{fontSize:11,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:ph.color,padding:'5px 14px 3px',display:'flex',alignItems:'center',gap:5}}><div style={{width:5,height:5,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||(sid==='income'&&done.includes('complete')),isComplete=sid==='complete'&&isDone;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 28px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}30`:`${ph.color}25`):'transparent',borderLeft:`2px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{META[sid]}</span>{isDemo&&active&&<span style={{fontSize:10,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'2px 8px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}</div>}
 
 const DEMO_TOUR=[
   {step:'welcome',title:'Meet Sarah Chen',desc:''},
@@ -338,6 +338,7 @@ export default function PivotEngine(){
   const[deepOpts,setDeepOpts]=useState(isDemo?[...demoDeepOpts]:['','',''])
   const[chosen,setChosen]=useState(isDemo?demoChosen:'')
   const[demoIdx,setDemoIdx]=useState(0)
+  const[activeTab,setActiveTab]=useState(0)
   const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:''})
   const setFb=(k,v)=>setFeedback(f=>({...f,[k]:v}))
   const[loading,setLoading]=useState(false)
@@ -713,8 +714,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         <OutPanel text={outputs.p4} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} onRegenerate={v=>{out('p4','');generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Refining your opportunity landscape…'})}}/>}
         {!isDemo&&<div style={{...S.card,marginTop:8}}>
-          <div style={{fontWeight:600,color:'#1A2540',fontSize:17,marginBottom:4}}>Select up to 3 options to explore further.</div>
-          <div style={{fontSize:15,color:C.gray,marginBottom:16,lineHeight:1.6}}>Type the role or path that caught your attention. Pick what made you lean in, not just what feels safe.</div>
+          <div style={{fontWeight:600,color:'#1A2540',fontSize:19,marginBottom:6}}>Select up to 3 options to explore further.</div>
+          <div style={{fontSize:17,color:C.gray,marginBottom:18,lineHeight:1.65}}>Type the role or path that caught your attention. Pick what made you lean in, not just what feels safe.</div>
           {['A','B','C'].map((l,i)=><div key={l} style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
             <div onClick={()=>setDeepOpts(d=>d.map((v,j)=>j===i?(v?'':'?'):''))} style={{width:22,height:22,borderRadius:6,border:`2px solid ${deepOpts[i]&&deepOpts[i]!=='?'?C.gold:C.border}`,background:deepOpts[i]&&deepOpts[i]!=='?'?`${C.gold}20`:'white',flexShrink:0,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
               {deepOpts[i]&&deepOpts[i]!=='?'&&<Check size={13} color={C.gold} strokeWidth={3}/>}
@@ -729,7 +730,6 @@ A senior people-strategy leader who turns workforce challenges into measurable b
     </div>
 
     case'p5':{
-      const[activeTab,setActiveTab]=useState(0)
       const filledOpts=deepOpts.filter(v=>v&&v!=='?')
 
       const parseOptions=(text)=>{
@@ -749,8 +749,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       }
 
       const parsed=parseOptions(outputs.p5)
-      const sectionStyle={background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'20px 24px',marginBottom:12,boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}
-      const sectionLabel={fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold,marginBottom:10,display:'block'}
+      const sectionStyle={background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'24px 28px',marginBottom:14,boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}
+      const sectionLabel={fontSize:13,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold,marginBottom:12,display:'block'}
 
       return <div>
         {!isDemo&&<div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>}
@@ -762,7 +762,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         {loading&&<Loading msg={loadMsg||'Building your deep dive…'}/>}
         {outputs.p5&&<>
           <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
-            {filledOpts.map((opt,i)=><button key={i} onClick={()=>setActiveTab(i)} style={{padding:'10px 20px',borderRadius:8,border:`2px solid ${activeTab===i?C.gold:C.border}`,background:activeTab===i?`${C.gold}15`:'white',color:activeTab===i?C.goldL:'#4A5568',fontSize:15,fontWeight:activeTab===i?600:400,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s'}}>{opt}</button>)}
+            {filledOpts.map((opt,i)=><button key={i} onClick={()=>setActiveTab(i)} style={{padding:'12px 22px',borderRadius:8,border:`2px solid ${activeTab===i?C.gold:C.border}`,background:activeTab===i?`${C.gold}15`:'white',color:activeTab===i?C.goldL:'#4A5568',fontSize:17,fontWeight:activeTab===i?600:400,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s'}}>{opt}</button>)}
           </div>
           {parsed[activeTab]&&<>
             <div style={sectionStyle}>
@@ -796,7 +796,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       {!isDemo&&<p style={S.sub}>Multiple good options can feel paralyzing. This is the moment you choose a direction and everything starts pointing the same way.</p>}
       {isDemo?<div style={S.card}>
         <label style={S.label}>Pursuing</label>
-        <div style={{fontSize:17,color:C.cream,fontWeight:600,lineHeight:1.6}}>{chosen}</div>
+        <div style={{fontSize:19,color:C.cream,fontWeight:600,lineHeight:1.6}}>{chosen}</div>
       </div>:<>
         <div style={S.card}>
           <label style={S.label}>I've decided to pursue…</label>
@@ -848,8 +848,8 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           <div style={S.out}><div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p7)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div><MD text={part12}/></div>
           <div style={{margin:'16px 0',padding:'16px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
             <div>
-              <div style={{fontWeight:700,fontSize:15,color:'#1A2540',marginBottom:3}}>Download your company list</div>
-              <div style={{fontSize:14,color:C.goldL}}>Save as a spreadsheet to track outreach, add notes, and share with your network.</div>
+              <div style={{fontWeight:700,fontSize:17,color:'#1A2540',marginBottom:4}}>Download your company list</div>
+              <div style={{fontSize:16,color:C.goldL}}>Save as a spreadsheet to track outreach, add notes, and share with your network.</div>
             </div>
             <Btn onClick={()=>{
               const lines=outputs.p7.split('\n').filter(l=>l.includes('|')&&l.trim().length>10&&!l.match(/^[\s|:-]+$/))
@@ -912,7 +912,7 @@ A senior people-strategy leader who turns workforce challenges into measurable b
       {loading&&<Loading msg={loadMsg||'Building your playbook — industry landscape and interview preparation…'}/>}
       {outputs.p9&&<>
         <OutPanel text={outputs.p9} onCopy={copy} copied={copied}/>
-        {outputs.p10&&<><div style={{marginTop:20,marginBottom:8}}><h2 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,color:C.gold,margin:0}}>The Toughest Question You'll Face</h2><p style={{fontSize:14,color:C.gray,marginTop:4}}>Every career transition has one question that makes candidates stumble. The best time to hear it is before you're sitting across the table.</p></div><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/></>}
+        {outputs.p10&&<><div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>The Toughest Question You'll Face</h2><p style={{fontSize:16,color:C.gray,marginTop:6}}>Every career transition has one question that makes candidates stumble. The best time to hear it is before you're sitting across the table.</p></div><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/></>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p9','');out('p10','')}}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>{markDone('p9');markDone('p10');advance('p9','complete')}}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
@@ -1065,20 +1065,20 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           </div>}
           {!isDemo&&<Sidebar step={step} done={done} onNav={nav}/>}
         </div>
-        <div style={{flex:1,padding:'40px 48px 60px',overflowY:'auto',maxWidth:860}}>
-          {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{marginBottom:28,paddingBottom:24,borderBottom:`1px solid ${C.border}`}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8}}>
-              <div style={{fontSize:13,fontWeight:700,color:C.gold,letterSpacing:'0.5px'}}>{demoGuide.title}</div>
-              <div style={{fontSize:12,color:C.gray}}>{demoIdx+1} of {DEMO_TOUR.length}</div>
+        <div style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
+          {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
+              <h2 style={{fontFamily:'Georgia,serif',fontSize:26,fontWeight:700,color:'#1A2540',margin:0}}>{demoGuide.title}</h2>
+              <div style={{fontSize:13,color:C.gray,flexShrink:0,marginLeft:16}}>{demoIdx+1} of {DEMO_TOUR.length}</div>
             </div>
-            <p style={{fontSize:17,color:'#374258',lineHeight:1.75,margin:0}}>{demoGuide.desc}</p>
+            <p style={{fontSize:18,color:'#374258',lineHeight:1.75,margin:0}}>{demoGuide.desc}</p>
           </div>}
           {isDemo&&step!=='welcome'?<div style={{pointerEvents:'none'}}>{rStep()}</div>:rStep()}
-          {isDemo&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:24,paddingTop:20,borderTop:`1px solid ${C.border}`}}>
-            <div>{demoIdx>0&&<button onClick={demoPrev} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 20px',background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>← Previous</button>}</div>
+          {isDemo&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:32,paddingTop:24,borderTop:`1px solid ${C.border}`}}>
+            <div>{demoIdx>0&&<button onClick={demoPrev} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>← Previous</button>}</div>
             <div style={{display:'flex',alignItems:'center',gap:16}}>
-              {demoIdx===DEMO_TOUR.length-1&&<a href="/" style={{fontSize:14,fontWeight:600,color:C.gold,textDecoration:'none'}}>Start your own Reimagine session</a>}
-              {demoIdx<DEMO_TOUR.length-1?<button onClick={demoNext} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 20px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Next →</button>:<a href="/" style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 20px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>Start My Reimagine Session →</a>}
+              {demoIdx===DEMO_TOUR.length-1&&<a href="/" style={{fontSize:16,fontWeight:600,color:C.gold,textDecoration:'none'}}>Start your own Reimagine session</a>}
+              {demoIdx<DEMO_TOUR.length-1?<button onClick={demoNext} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Next →</button>:<a href="/" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>Start My Reimagine Session →</a>}
             </div>
           </div>}
         </div>
