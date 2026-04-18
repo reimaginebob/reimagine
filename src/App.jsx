@@ -474,48 +474,47 @@ A senior people-strategy leader who turns workforce challenges into measurable b
         <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#0e1a2b">Re<tspan fill="#e4572e">imagine</tspan></text>
         <text x="92" y="132" fontSize="26" fontWeight="700" letterSpacing="-0.3" fill="#55617a">Your <tspan fontWeight="800" fill="#0e1a2b">Career</tspan>. Your <tspan fontWeight="900" fill="#e4572e">Future</tspan>.</text>
       </svg>
-      <p style={{fontSize:17,fontWeight:500,color:C.cream,lineHeight:1.65,maxWidth:620,marginBottom:20}}>Reimagine is a career strategy tool that takes what you've done, how you're wired, and what you care about and builds a concrete plan for what comes next.</p>
+      <p style={{fontSize:17,fontWeight:500,color:C.cream,lineHeight:1.65,maxWidth:620,marginBottom:12}}>Reimagine is a career strategy tool that takes what you've done, how you're wired, and what you care about and builds a concrete plan for what comes next.</p>
+
+      {!isDemo&&<a href="/?demo=true" style={{display:'inline-flex',alignItems:'center',gap:8,marginBottom:20,fontSize:15,fontWeight:600,color:C.gold,cursor:'pointer',padding:'8px 16px',border:`1.5px solid ${C.gold}`,borderRadius:8,background:'#C8924A10',textDecoration:'none'}}>&#9654; See a completed example first</a>}
 
       <div style={{...S.card,marginBottom:16}}>
-        <div style={{fontSize:13,fontWeight:700,color:C.gold,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:14}}>Before you begin</div>
+        <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>Before You Begin</div>
         {[
-          ['Your resume','Any format. It doesn\'t need to be polished — we\'ll help you get the most out of it.'],
+          ['Your resume','Any format. It doesn\'t need to be polished. We\'ll help you get the most out of it.'],
           ['An assessment (recommended)','If you have CliftonStrengths, Myers-Briggs, DiSC, Hogan, or any other assessment from the last three years, bring it. If yours is older or you haven\'t taken one, Affintus is free and takes 15 minutes.'],
           ['About 20–30 minutes','That covers the intake questions and your first set of results. You can save and return at any point. Your progress is stored automatically in this browser on this device, so come back the same way you started.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
-          <div><span style={{fontWeight:600,fontSize:20,color:C.cream}}>{t}. </span><span style={{fontSize:20,color:C.gray,lineHeight:1.6}}>{d}</span></div>
+          <div><span style={{fontWeight:600,fontSize:15,color:C.cream}}>{t}. </span><span style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{d}</span></div>
         </div>)}
         <div style={{marginTop:4,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
-          <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{color:C.goldL,fontSize:13}}>Don't have an assessment already? Take the free Affintus assessment →</a>
+          <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:6,padding:'10px 16px',background:'#C8924A10',border:`1px solid #C8924A40`,borderRadius:8,color:C.goldL,fontSize:14,fontWeight:600,textDecoration:'none'}}>Don't have an assessment already? Take the free Affintus assessment →</a>
         </div>
       </div>
 
       <div style={{...S.card,marginBottom:16}}>
-        <div style={{fontSize:13,fontWeight:700,color:C.gold,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:14}}>How it works</div>
+        <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>How It Works</div>
         {[
-          ['1','Know Your Value','We translate your career history into language that travels across industries and connects your accomplishments to the value they created.','~10 min','#8A7AB8'],
-          ['2','Explore Options','We map three paths: Familiar Ground, The Industry Insider, and Ikigai. From building on where you have been, to reimagining where your expertise and passions could take you. Then we go deep on the ones that resonate.','~15 min','#6AB88A'],
-          ['3','Tell Your Story','We write three versions of your "Tell me about yourself" — 30, 60, and 90 seconds — as a confident, natural bridge from where you\'ve been to where you\'re going.','~5 min','#C8924A'],
-          ['4','Find Your Market','We research real companies that are growing and likely hiring, build your target list, and write your opening outreach message.','~10 min','#B86A6A'],
-          ['5','Get Ready','We offer specific recommendations for your LinkedIn and resume, teach you the language of your target field, and prepare you for the hardest question you\'ll face in a room.','~15 min','#6A8AB8'],
-        ].map(([num,phase,desc,time,color])=><div key={num} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
+          ['1','Know Your Value','We translate your career history into language that travels across industries and connects your accomplishments to the value they created.','#8A7AB8'],
+          ['2','Explore Options','We map three paths: Familiar Ground, The Industry Insider, and Ikigai. From building on where you have been, to reimagining where your expertise and passions could take you. Then we go deep on the ones that resonate.','#6AB88A'],
+          ['3','Tell Your Story','We write three versions of your "Tell me about yourself," 30, 60, and 90 seconds, as a confident, natural bridge from where you\'ve been to where you\'re going.','#C8924A'],
+          ['4','Find Your Market','We research real companies that are growing and likely hiring, build your target list, and write your opening outreach message.','#B86A6A'],
+          ['5','Get Ready','We offer specific recommendations for your LinkedIn and resume, teach you the language of your target field, and prepare you for the hardest question you\'ll face in a room.','#6A8AB8'],
+        ].map(([num,phase,desc,color])=><div key={num} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
           <div style={{width:28,height:28,borderRadius:'50%',background:`${color}25`,border:`1.5px solid ${color}60`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:15,fontWeight:700,color}}>
             {num}
           </div>
           <div style={{flex:1}}>
-            <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:3,flexWrap:'wrap'}}>
-              <span style={{fontWeight:600,fontSize:20,color:C.cream}}>{phase}</span>
-              <span style={{fontSize:15,color:C.gray}}>{time}</span>
-            </div>
-            <div style={{fontSize:20,color:C.gray,lineHeight:1.65}}>{desc}</div>
+            <span style={{fontWeight:600,fontSize:16,color:C.cream}}>{phase}</span>
+            <div style={{fontSize:14,color:C.gray,lineHeight:1.65,marginTop:3}}>{desc}</div>
           </div>
         </div>)}
       </div>
 
       <div style={{...S.card,marginBottom:16}}>
-        <div style={{fontSize:13,fontWeight:700,color:C.gold,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:14}}>The framework</div>
-        <p style={{fontSize:20,color:C.gray,lineHeight:1.65,marginBottom:14}}>Everything in Reimagine is built on a framework called the 4 C's. It goes in order, and each step builds on the one before it.</p>
+        <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>The Framework</div>
+        <p style={{fontSize:15,color:C.gray,lineHeight:1.65,marginBottom:14}}>Everything in Reimagine is built on a framework called the 4 C's. It goes in order, and each step builds on the one before it.</p>
         {[
           ['Convictions','What is actually, demonstrably true about you: your values, your wiring, your track record, and what people consistently say about you.'],
           ['Clarity','When your convictions are solid, the right opportunities become visible, and you can make better choices about where to focus.'],
@@ -523,33 +522,33 @@ A senior people-strategy leader who turns workforce challenges into measurable b
           ['Contagious','When you believe, others believe too. That\'s the natural result of Convictions, Clarity, and Confidence.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:8}}/>
-          <div><span style={{fontWeight:700,fontSize:20,color:C.cream}}>{t}. </span><span style={{fontSize:20,color:C.gray,lineHeight:1.65}}>{d}</span></div>
+          <div><span style={{fontWeight:700,fontSize:15,color:C.cream}}>{t}. </span><span style={{fontSize:15,color:C.gray,lineHeight:1.65}}>{d}</span></div>
         </div>)}
-        <p style={{fontSize:20,color:C.gray,lineHeight:1.65,marginTop:14,paddingTop:12,borderTop:`1px solid ${C.border}`}}>Everything that follows is building that foundation with you.</p>
+        <p style={{fontSize:15,color:C.gray,lineHeight:1.65,marginTop:14,paddingTop:12,borderTop:`1px solid ${C.border}`,fontWeight:500}}>Everything that follows is building that foundation with you.</p>
       </div>
 
       {isDemo&&<div style={{...S.card,marginBottom:16,background:'#FAFBFC',border:`1.5px solid ${C.gold}40`}}>
-        <div style={{fontSize:13,fontWeight:700,color:C.gold,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:14}}>Meet Sarah Chen</div>
-        <p style={{fontSize:20,color:C.gray,lineHeight:1.65,marginBottom:10}}>Sarah is a senior HR and talent acquisition leader with 15 years of experience in healthcare and technology. She came to Reimagine with her resume, her CliftonStrengths Top 5, and a sense that her next move should be something different from what she had always done.</p>
-        <p style={{fontSize:20,color:C.gray,lineHeight:1.65}}>What you're about to see is what Reimagine produced for her: a complete career strategy from personal brand through go-to-market plan. Every section is real output from the tool. Click through at your own pace.</p>
+        <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>Meet Sarah Chen</div>
+        <p style={{fontSize:15,color:C.gray,lineHeight:1.65,marginBottom:10}}>Sarah is a senior HR and talent acquisition leader with 15 years of experience in healthcare and technology. She came to Reimagine with her resume, her CliftonStrengths Top 5, and a sense that her next move should be something different from what she had always done.</p>
+        <p style={{fontSize:15,color:C.gray,lineHeight:1.65}}>What you're about to see is what Reimagine produced for her: a complete career strategy from personal brand through go-to-market plan. Every section is real output from the tool. Click through at your own pace.</p>
       </div>}
 
       <div style={{...S.card,marginBottom:20}}>
-        <div style={{fontSize:13,fontWeight:700,color:C.gold,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:12}}>A few things worth knowing</div>
+        <div style={{fontSize:18,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16,paddingBottom:10,borderBottom:`2px solid ${C.gold}`}}>A Few Things Worth Knowing</div>
         {[
           ['This is iterative, not linear.','Every output has a "Does this feel right?" option. If something is off, tell us and we\'ll adjust before moving on.'],
           ['There are no wrong answers in the intake.','The questions about your passions and values are not trick questions. Answer them honestly, not strategically.'],
           ['You only need one new job.','Reimagine is designed to open more doors than you might have imagined, so you can find the right one with confidence.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:12,marginBottom:12,alignItems:'flex-start'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:6}}/>
-          <div><span style={{fontWeight:600,fontSize:20,color:C.cream}}>{t} </span><span style={{fontSize:20,color:C.gray,lineHeight:1.6}}>{d}</span></div>
+          <div><span style={{fontWeight:600,fontSize:15,color:C.cream}}>{t} </span><span style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{d}</span></div>
         </div>)}
       </div>
 
-      {!isDemo&&<div style={S.row}>
-        <Btn onClick={()=>advance('welcome','location')}>Let's get started <ChevronRight size={14}/></Btn>
-        <Btn secondary onClick={()=>{window.location.href='/?demo=true'}}>See a completed example first</Btn>
-      </div>}
+      <div style={S.row}>
+        {!isDemo&&<Btn onClick={()=>advance('welcome','location')}>Let's get started <ChevronRight size={14}/></Btn>}
+        {!isDemo&&<button onClick={()=>{window.location.href='/?demo=true'}} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'12px 24px',background:'#C8924A10',color:C.gold,border:`1.5px solid ${C.gold}`,borderRadius:8,fontSize:15,fontWeight:600,cursor:'pointer'}}>&#9654; See a completed example first</button>}
+      </div>
     </div>
 
     case'location':return <div>
