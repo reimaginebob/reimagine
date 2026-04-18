@@ -32,7 +32,7 @@ FAMILIAR GROUND: Builds directly on where they have been, same function, same or
 
 THE INDUSTRY INSIDER: Industry expertise is the primary asset. Map the full ecosystem: clients, vendors, consultants, upstream/downstream players, trade associations, educators, regulators, adjacent industries. Surface the empathy advantage: the vendor wants the person who was the client. Rank the strongest combinations of market need and candidate evidence highest.
 
-IKIGAI: The intersection of what they love, what they are good at, what the world needs, and what they can be paid for. Most applicable for people ready for more meaning in their work, or at a career stage where legacy matters more than maximizing compensation. Could mean consulting, fractional leadership, a role that does not exist yet, or something entirely their own.
+WORK THAT MATTERS (Ikigai): The intersection of what they love, what they are good at, what the world needs, and what they can be paid for. Most applicable for people ready for more meaning in their work, or at a career stage where legacy matters more than maximizing compensation. Could mean consulting, fractional leadership, a role that does not exist yet, or something entirely their own. In output, use "Work That Matters" as the section header, and explain that it is built on the Ikigai framework.
 
 TOOLS YOU USE (never name these in output, just do what they describe):
 - Blend all ingredients into one integrated value proposition: functional expertise, industry experience, natural wiring, track record, passions, and life experiences. The whole is always more than any single ingredient.
@@ -42,7 +42,7 @@ TOOLS YOU USE (never name these in output, just do what they describe):
 - Every strength has a flip side. Name where the person shines (the strength at its best) and where to watch out (what it looks like overdeveloped or misdirected). Self-awareness is an asset, and naming the watch-out demonstrates it. In output, use headers like "Where You Shine" and "Where to Watch Out," never "balcony," "basement," "shadow," or "assessment signal."
 - When structuring stories, T stands for Thought Process, not Tasks. Show how they think, not just what they did. The company is hiring their brain.
 - The language of business is numbers. Strip vague claims, replace with specific evidence.
-- People hire people, not resumes. Proficiency gets the interview; passion, personality, work ethic, and potential get the offer. Help the person bring more of who they actually are into the room, not less. A candidate who dials down their humanity to play it safe becomes forgettable. This matters most on the Industry Insider and Ikigai paths, where there will be proficiency gaps. When the technical fit is a 7 out of 10, the human dimensions close the gap: the interviewer who thinks "she cares about what we do, she is already learning our space, and I can picture her on this team" is making a hire. Passion is a bridge that carries people over gaps in direct experience, if it is real and the interviewer can feel it.
+- People hire people, not resumes. Proficiency gets the interview; passion, personality, work ethic, and potential get the offer. Help the person bring more of who they actually are into the room, not less. A candidate who dials down their humanity to play it safe becomes forgettable. This matters most on the Industry Insider and Work That Matters paths, where there will be proficiency gaps. When the technical fit is a 7 out of 10, the human dimensions close the gap: the interviewer who thinks "she cares about what we do, she is already learning our space, and I can picture her on this team" is making a hire. Passion is a bridge that carries people over gaps in direct experience, if it is real and the interviewer can feel it.
 - Same story, different emphasis depending on who is listening. The facts do not change. The lens shifts based on what the audience cares about. This is especially critical outside of Familiar Ground, where the interviewer or networking contact may not immediately see the connection between the person's background and the opportunity. The remixing skill is what bridges that gap: shift emphasis to show why the underlying capability translates, why the passion for their space is real, and why the thought process is portable even when the industry context is new. A CFO wants financial discipline, a CEO wants strategic arc, a CHRO wants cultural fit. When preparing someone for interviews or outreach, think across five dimensions: Strategy (business outcomes, frameworks, scalability), Culture (collaboration, leadership style, team fit), Oneself (self-awareness, humility, resilience, growth), Passion (why this company, why this work, what lights them up), and Expertise (domain depth, technical credibility, staying current).
 
 CAREER VEHICLES TO CONSIDER:
@@ -121,10 +121,10 @@ const P={
   p1:(pr)=>`Analyze this resume for career strategy. Location: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''}. Work preference: ${pr.loc.work}.\n\nRESUME:\n${pr.resume}\n\nSTART your response with:\n## QUICK TAKEAWAY\n3-4 sentences: where this person sits in the market, their biggest asset, and the one thing that makes their background distinctive. Plain language, no headers inside this section.\n\nThen continue with the full analysis:\n\n## WHERE YOU SIT\nHighest responsibility held, complexity/pace of environments, industries, seniority baseline. Write as a single flowing paragraph.\n\n## TRANSLATED ACCOMPLISHMENTS\nExtract 5–7 strongest. For each: strip jargon, restate as made money / saved money / mitigated risk, preserve quantification, flag missing numbers with specific suggestion. Write each as a paragraph, not a list of fragments.`,
   p2:(pr,o1)=>`Building on resume analysis, sharing three additional data layers.\n\nPRIOR ANALYSIS: ${o1}\n\nASSESSMENT (${pr.assessType||'provided'}): ${pr.assess||'None'}\nVALUES: ${pr.values}\nPASSIONS: ${pr.passions}\n\nSTART your response with:\n## QUICK TAKEAWAY\n3-4 sentences: how this person is wired, the environment where they do their best work, and the connection between their passions and professional strengths. Plain language, no headers inside this section.\n\nThen continue with the full analysis:\n\n## HOW YOU GET THINGS DONE\nCross-reference what the assessment reveals about how this person works with their Translated Accomplishments. Show the connection between wiring and results.\n\n## WHERE YOU THRIVE\nCulture, pace, structure, and environment where this person does their best work. Be specific.\n\n## WHAT LIGHTS YOU UP\nConfirm passions and causes registered, note immediate patterns between passions and professional strengths.`,
   p3:(pr,o1,o2)=>{const rep=[pr.rep.memory&&`Praise: ${pr.rep.memory}`,pr.rep.emergency&&`Emergency: ${pr.rep.emergency}`,pr.rep.twoWords&&`Superpower: "${pr.rep.twoWords}"`,pr.rep.other&&`Other: ${pr.rep.other}`].filter(Boolean).join('\n');return rep?`PRIOR ANALYSIS: ${o1}\n${o2}\nREPUTATION:\n${rep}\n\nSTART your response with:\n## QUICK TAKEAWAY\nThe golden thread in 2-3 sentences: the single consistent theme that runs through this person's accomplishments, wiring, and reputation. Then their 2-sentence personal brand. Plain language, no headers inside this section.\n\nThen continue with the full analysis:\n\n## THE GOLDEN THREAD\nConsistent theme across accomplishments, wiring, and what others say.\n\n## YOUR PERSONAL BRAND\n2-sentence value proposition that captures what this person does and why their combination is distinctive.\n\n## YOUR VALUE PROPOSITION\nWhat makes the specific combination of their experience, wiring, and track record valuable to an employer. Be specific and evidence-based.`:`PRIOR ANALYSIS: ${o1}\n${o2}\n\nNo reputation data.\n\nSTART your response with:\n## QUICK TAKEAWAY\nThe golden thread in 2-3 sentences: the single consistent theme inferred from this person's data. Then their 2-sentence personal brand. Plain language, no headers inside this section.\n\nThen continue:\n\n## REPUTATION HYPOTHESIS\nGenerate from the other data, labeled as inference.\n\n## YOUR PERSONAL BRAND\n2-sentence value proposition.\n\n## YOUR VALUE PROPOSITION\nWhat makes their combination distinctive.`},
-  p4:(pr,o1,o2,o3)=>`Generate the complete opportunity landscape. EXACT ORDER: Ikigai first, The Industry Insider second, Familiar Ground last.\n\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\nPROFILE: ${o1}\n${o2}\n${o3}\n\nApply location/work filter. If geography limits options, say so clearly and offer three paths. Do NOT pad lists.\n\nSTART your response with:\n## QUICK TAKEAWAY\n4-5 sentences: how many total options you found across the three paths, which path looks strongest for this person and why, and the single most exciting option with a one-sentence reason. Plain language, no headers inside this section.\n\nThen continue with the full analysis:\n\n**IKIGAI** (first, up to 8): The intersection of what they love, what they're good at, what the world needs, and what they can be paid for. For each: Title/Role, Vehicle (W-2, consulting, fractional, entrepreneurship, entrepreneurship through acquisition, franchising), 3-4 sentence rationale grounded in specific evidence from their profile. Push beyond the obvious.\n\n**THE INDUSTRY INSIDER** (second, up to 10): Industry expertise is the primary asset. Start with a thorough ecosystem map naming: clients, vendors, consultants, upstream/downstream players, trade associations, educators, regulators, adjacent industries. Prioritize options based on current market demand and strength of this person's fit. For each option: Title, Organization Type, Vehicle, EMPATHY ADVANTAGE in one specific sentence. Rank strongest market-need-plus-candidate-evidence combinations highest.\n\n**FAMILIAR GROUND** (last, up to 6): Builds directly on where they've been. For each: what has changed in this role in 3 years, then show where targeted upskilling or emerging capabilities make them the forward-looking candidate. PRIORITIZED credential list ranked (1) highest impact, (2) achievable 30-90 days, (3) achievable this week.`,
+  p4:(pr,o1,o2,o3)=>`Generate the complete opportunity landscape. EXACT ORDER: Ikigai first, The Industry Insider second, Familiar Ground last.\n\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\nPROFILE: ${o1}\n${o2}\n${o3}\n\nApply location/work filter. If geography limits options, say so clearly and offer three paths. Do NOT pad lists.\n\nSTART your response with:\n## QUICK TAKEAWAY\n4-5 sentences: how many total options you found across the three paths, which path looks strongest for this person and why, and the single most exciting option with a one-sentence reason. Plain language, no headers inside this section.\n\nThen continue with the full analysis:\n\n**WORK THAT MATTERS** (first, up to 8):\nStart with a bolded one-paragraph explanation: This path is built on the Japanese concept of Ikigai: the intersection of what you love, what you are good at, what the world needs, and what you can be paid for. It is for people ready for more meaning in their work, or at a career stage where legacy matters more than maximizing compensation. These options may stretch beyond your current title, but they are grounded in who you actually are.\n\nFor each: Title/Role, Vehicle (W-2, consulting, fractional, entrepreneurship, entrepreneurship through acquisition, franchising), 3-4 sentence rationale grounded in specific evidence from their profile. Push beyond the obvious.\n\n**THE INDUSTRY INSIDER** (second, up to 10):\nStart with a bolded one-paragraph explanation: You know your industry from the inside. This path maps the full ecosystem of players around your experience: clients, vendors, consultants, regulators, adjacent industries. The empathy advantage is real. The vendor wants the person who was the client. These options put your industry knowledge to work in a new seat.\n\nStart with a thorough ecosystem map naming: clients, vendors, consultants, upstream/downstream players, trade associations, educators, regulators, adjacent industries. Prioritize options based on current market demand and strength of this person's fit. For each option: Title, Organization Type, Vehicle, EMPATHY ADVANTAGE in one specific sentence. Rank strongest market-need-plus-candidate-evidence combinations highest.\n\n**FAMILIAR GROUND** (last, up to 6):\nStart with a bolded one-paragraph explanation: This path builds directly on where you have been: same function, same or adjacent industry. Your track record speaks most immediately here. The key is showing you are the forward-looking candidate, not just the experienced one.\n\nFor each: what has changed in this role in 3 years, then show where targeted upskilling or emerging capabilities make them the forward-looking candidate. PRIORITIZED credential list ranked (1) highest impact, (2) achievable 30-90 days, (3) achievable this week.`,
   p5:(pr,outs,opts)=>`Deep dive on selected options. Generate all options that were provided (up to 3).\nA: ${opts[0]||''}  B: ${opts[1]||''}  C: ${opts[2]||''}\n\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\n\nSTART your response with:\n## QUICK TAKEAWAY\nFor each selected option, one sentence on why this person is a fit and one sentence on what to think through before pursuing it. Then state which option has the strongest immediate fit and why. Plain language, no headers inside this section.\n\nThen for EACH option provided, use EXACTLY this structure with these exact headers:\n\n## OPTION A\n### THE ROLE\n**What this role is called:** List 3-4 real job titles seen on postings for this type of role.\n**What the job description says:** The 3-4 responsibilities that appear in almost every posting. Use real job description language.\n**What you will spend your time on:** Answer these five questions plainly:\n- What problems do you solve most often?\n- Who do you work with day to day?\n- Where does your time go?\n- What does success look like in the first 90 days?\n- What is the hardest part that never makes it into the job posting?\n**What they are looking for:** The 2-3 things that separate candidates who get offers from those who do not. Be direct.\n\n### WHY YOU FIT\n3-4 specific connections between this person's accomplishments and what this role requires. No padding. Each connection names the accomplishment and maps it to a specific requirement. Evidence only.\n\n### WORTH CONSIDERING\n**The pivot in two sentences:** How to explain this career move as a logical evolution. Natural and confident.\n**The real question:** The single most legitimate consideration a candidate should think through before pursuing this path. Framed as a question to reflect on, not an obstacle.\n**The fastest path forward:** One specific, achievable action to build credibility or close a gap.\n\n(Repeat exact same structure for OPTION B and OPTION C if provided)`,
-  p6:(pr,outs,sel)=>`User pursues: **${sel}**\n\nSTART your response with:\n## QUICK TAKEAWAY\n2-3 sentences: the core message of this bridge story and why it works as a pivot narrative. Plain language, no headers inside this section.\n\nThen write a 30-second "Tell Me About Yourself" answer. Natural, conversational, spoken-word. No corporate language. This should sound like a real person talking, not a script.\n\nStructure: (1) Who they are and what they do. (2) 2-3 strongest accomplishments as proof, framed as made money / saved money / mitigated risk. (3) What they're looking for next and why ${sel} is a natural fit.\n\nPROFILE: ${outs.p1}\n${outs.p3}\n\nAfter the 30-second version, add a brief coaching note: this is the foundation for every longer conversation, and the goal is for someone to walk away knowing three things (what you do, what you've delivered, what you're looking for next).`,
-  p7:(pr,outs,sel)=>`Complete Go-to-Market Strategy for: **${sel}** — no job boards.\n\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\n\nSTART your response with:\n## QUICK TAKEAWAY\n4-5 sentences: who the hiring executive is (title and context), how many target companies you found and across which paths, and the single most actionable thing to do this week to start building pipeline. Plain language, no headers inside this section.\n\nThen continue with the full strategy:\n\n**PART 1 — THE HIRING EXECUTIVE**: Describe the most likely hiring executive for this role: their title(s), the type and size of organization they work in, the core business challenge they are accountable for solving, and why this person's background gives them a credible perspective. Be concrete and specific.\n\n**PART 2 — TARGET COMPANY LIST**: Search the web. Generate 20-30 companies organized by path (Familiar Ground, Industry Insider, Ikigai).\nPRIORITIZE companies showing signs of growth and investment: recent VC/PE funding, acquisitions, geographic or product expansion, headcount growth on LinkedIn, Best Companies lists.\nFLAG/REMOVE companies showing contraction: layoffs past 12 months, hiring freezes, major leadership departures, restructuring.\nMixed signals: include with a warning note. Geography restricts below 20? Say so clearly.\n\nFor each company, search for:\n1. The actual name of the person most likely to be the hiring decision-maker for this role. Check LinkedIn, company website, press releases, and news. If found, include their name and LinkedIn URL. If not found, write "Contact not identified."\n2. The company email convention — search for patterns from public sources (press releases, website contact pages, news quotes with email addresses). State the likely format (e.g. firstname@company.com or f.lastname@company.com). If a specific person's email is publicly listed, include it. Do not guess — only state what can be reasonably inferred from public information.\n\nFORMAT: Each company MUST be on a single line using EXACTLY this pipe-separated format with no exceptions:\nName | Why it fits | Growth signal | Contact name & LinkedIn | Email convention | www.website.com\nThe website must be the last field. Do not put any field on a separate line. Every single company entry must follow this exact format.\n\n**PART 3 — OUTREACH TEMPLATE**: Using the strongest company as an example, write one 4-6 sentence message.\nCRITICAL TONE RULES FOR THE MESSAGE: Write like a real person, not a consultant. Short sentences. Plain words. No jargon. No buzzwords like "architecting," "ecosystem," "leverage," "talent intelligence," "platform," "synergy," or "space." If a word would look at home on a LinkedIn thought-leader post, cut it. The observation in sentence 1 must be a plain factual statement — something the reader already knows is true about their company, stated simply. Sentences 2-3 connect one specific accomplishment to one specific problem they likely have. Sentence 4 asks for 15 minutes as a peer-to-peer conversation, not a job inquiry. The whole message should sound like it came from a thoughtful human being, not a marketing tool.\nThen: a personalization guide with 3 elements to tailor per company.\n\n**PART 4 — LINKEDIN SIGNAL TWEAK**: One specific headline change. Explain why this phrasing works better.`,
+  p6:(pr,outs,sel)=>`User pursues: **${sel}**\n\nSTART your response with:\n## QUICK TAKEAWAY\n2-3 sentences: the core message of this bridge story and why it works as a pivot narrative. Plain language, no headers inside this section.\n\nThen write a 30-second "Tell Me About Yourself" answer. Natural, conversational, spoken-word. No corporate language. This should sound like a real person talking, not a script.\n\nStructure: (1) Who they are and what they do. (2) 2-3 strongest accomplishments as proof, framed as made money / saved money / mitigated risk. (3) What they're looking for next and why ${sel} is a natural fit.\n\nPROFILE: ${outs.p1}\n${outs.p3}\n\nAfter the 30-second version, add a brief coaching note under the header "## The Three Things They Remember". This is the foundation for every longer conversation. The goal is for someone to walk away knowing three things. Present these as three bold bullet points:\n- **What you do** — [specific to this person]\n- **What you've delivered** — [specific evidence]\n- **What you're looking for next** — [specific to their chosen path]\nEnd with one sentence explaining that when you tell this story, the listener should immediately see why the chosen path makes sense.`,
+  p7:(pr,outs,sel)=>`Complete Go-to-Market Strategy for: **${sel}** — no job boards.\n\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\nOPPORTUNITY LANDSCAPE: ${outs.p4?outs.p4.substring(0,500):''}\n\nCRITICAL: Determine which lane this role belongs to by looking at where it appeared in the opportunity landscape above. Then focus the target company list accordingly:\n- If Familiar Ground: companies should be direct competitors, similar organizations, and adjacent players in the same industry. You may include a few Industry Insider companies where the person's industry expertise translates.\n- If Industry Insider: focus on the broader ecosystem (clients, vendors, consultants, adjacent industries). Some Familiar Ground overlap is fine.\n- If Work That Matters (Ikigai): this is its own category. Focus on companies and organizations aligned with the person's passion, purpose, and unique combination. Do NOT mix in Familiar Ground or Industry Insider companies unless they genuinely fit the Ikigai vision.\nDo NOT organize the company list by all three lanes. Organize by relevance to the chosen role.\n\nRESEARCH ACCURACY: When identifying companies, verify names carefully. LHH stands for Lee Hecht Harrison (not Lee Hee Hahn). Double-check company names, parent companies, and any "formerly known as" references against your training data. If you are not confident in a company detail, say so rather than fabricating.\n\nSTART your response with:\n## QUICK TAKEAWAY\n4-5 sentences: who the hiring executive is (title and context), how many target companies you found, and the single most actionable thing to do this week to start building pipeline. Plain language, no headers inside this section.\n\nThen continue with the full strategy:\n\n**PART 1 — THE HIRING EXECUTIVE**: Describe the most likely hiring executive for this role: their title(s), the type and size of organization they work in, the core business challenge they are accountable for solving, and why this person's background gives them a credible perspective. Be concrete and specific.\n\n**PART 2 — TARGET COMPANY LIST**: Search the web. Generate 20-30 companies organized by path (Familiar Ground, Industry Insider, Ikigai).\nPRIORITIZE companies showing signs of growth and investment: recent VC/PE funding, acquisitions, geographic or product expansion, headcount growth on LinkedIn, Best Companies lists.\nFLAG/REMOVE companies showing contraction: layoffs past 12 months, hiring freezes, major leadership departures, restructuring.\nMixed signals: include with a warning note. Geography restricts below 20? Say so clearly.\n\nFor each company, search for:\n1. The actual name of the person most likely to be the hiring decision-maker for this role. Check LinkedIn, company website, press releases, and news. If found, include their name and LinkedIn URL. If not found, write "Contact not identified."\n2. The company email convention — search for patterns from public sources (press releases, website contact pages, news quotes with email addresses). State the likely format (e.g. firstname@company.com or f.lastname@company.com). If a specific person's email is publicly listed, include it. Do not guess — only state what can be reasonably inferred from public information.\n\nFORMAT: Each company MUST be on a single line using EXACTLY this pipe-separated format with no exceptions:\nName | Why it fits | Growth signal | Contact name & LinkedIn | Email convention | www.website.com\nThe website must be the last field. Do not put any field on a separate line. Every single company entry must follow this exact format.\n\n**PART 3 — OUTREACH TEMPLATE**: Using the strongest company as an example, write one 4-6 sentence message.\nCRITICAL TONE RULES FOR THE MESSAGE: Write like a real person, not a consultant. Short sentences. Plain words. No jargon. No buzzwords like "architecting," "ecosystem," "leverage," "talent intelligence," "platform," "synergy," or "space." If a word would look at home on a LinkedIn thought-leader post, cut it. The observation in sentence 1 must be a plain factual statement — something the reader already knows is true about their company, stated simply. Sentences 2-3 connect one specific accomplishment to one specific problem they likely have. Sentence 4 asks for 15 minutes as a peer-to-peer conversation, not a job inquiry. The whole message should sound like it came from a thoughtful human being, not a marketing tool.\nThen: a personalization guide with 3 elements to tailor per company.\n\n**PART 4 — LINKEDIN SIGNAL TWEAK**: One specific headline change. Explain why this phrasing works better.`,
   p8:(pr,outs,sel)=>`Reposition LinkedIn for: **${sel}**\nPROFILE: ${outs.p1}\n${outs.p3}\nRESUME: ${pr.resume}\n\nSTART your response with:\n## QUICK TAKEAWAY\n3 sentences: the single biggest positioning shift for this person's LinkedIn, which of the three headlines you would lead with and why, and the key message the About section needs to land. Plain language, no headers inside this section.\n\nThen continue with the full rewrite:\n\n1. THREE HEADLINE OPTIONS — each optimizing something different (search visibility, human resonance, authority signaling). Give a reason to choose.\n2. THE ABOUT SECTION — ~200 words, first person, natural voice. Pivot as feature. Accomplishments as make/save/mitigate.\n3. EXPERIENCE REFRAME — Most recent role, top 3–4 bullets rewritten for transferable skills relevant to ${sel}. Each passes the "so what?" test.`,
   p9:(pr,outs,sel)=>`${sel} — credible outsider needs to sound like a native in one session.\nLearning signals: ${pr.assess?pr.assess.substring(0,300):'Balanced learner.'}\n\nSTART your response with:\n## QUICK TAKEAWAY\n3 sentences: the biggest vocabulary gap this person needs to close, the single most important tool to know, and the one credibility move that will make the biggest difference this week. Plain language, no headers inside this section.\n\nThen continue with the full playbook:\n\n1. THE LINGO — 10 essential terms/acronyms. For each: plain-language definition + example sentence.\n2. THE TECH STACK — Top 3 tools practitioners rely on. What each does, why it matters, what knowing it signals.\n3. THE THOUGHT LEADERS — 3 people to follow on LinkedIn now. Who, what they post, what following teaches.\n4. THE FASTEST CREDIBILITY MOVE — One specific action in 7 days. Specific and achievable.`,
   p10:(pr,outs,sel)=>`You are now a hiring manager evaluating this person for: **${sel}**\nBACKGROUND: ${outs.p1.substring(0,500)}\nPERSONAL BRAND: ${outs.p3.substring(0,350)}\n\nSTART your response with:\n## QUICK TAKEAWAY\n3 sentences: the one question that will definitely come up and what makes this person's answer strong, plus the biggest area where preparation will make the difference. Plain language, no headers inside this section.\n\nThen continue with the full prep:\n\nIdentify the top 3-5 questions or concerns that will surface in interviews for this role. For each one:\n- State the question as the interviewer would ask it (in quotes)\n- Provide 3 key talking points as bullets, grounded in their specific accomplishments, wiring, and experience\n- Keep talking points evidence-based and specific, not generic advice\n\nFrame the section positively. These are opportunities to demonstrate fit, not obstacles to overcome. Title: INTERVIEW PREP.`,
@@ -133,13 +133,13 @@ const P={
 }
 
 const PHASES=[
-  {id:0,label:'Orientation',color:'#6A9BB8',steps:['welcome','location','resume','assessment','values','reputation']},
-  {id:1,label:'Know Your Value',color:'#8A7AB8',steps:['p1','p2','p3']},
-  {id:2,label:'Explore Options',color:'#6AB88A',steps:['p4','p5','decision']},
+  {id:0,label:'Orientation',color:'#8A9BB8',steps:['welcome','location','resume','assessment','values','reputation']},
+  {id:1,label:'Know Your Value',color:'#C8924A',steps:['p1','p2','p3']},
+  {id:2,label:'Explore Options',color:'#C8924A',steps:['p4','p5','decision']},
   {id:3,label:'Tell Your Story',color:'#C8924A',steps:['p6']},
-  {id:4,label:'Find Your Market',color:'#B86A6A',steps:['p7']},
-  {id:5,label:'Get Ready',color:'#6A8AB8',steps:['p8','p_res','p9','complete']},
-  {id:6,label:'Income Now',color:'#7AB87A',steps:['income']},
+  {id:4,label:'Find Your Market',color:'#C8924A',steps:['p7']},
+  {id:5,label:'Get Ready',color:'#C8924A',steps:['p8','p_res','p9','complete']},
+  {id:6,label:'Income Now',color:'#C8924A',steps:['income']},
 ]
 const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',p5:'The Deep Dive',decision:'Your Decision',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now'}
 const ALL=['welcome','location','resume','assessment','values','reputation','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','complete','income']
@@ -344,8 +344,8 @@ function RefineBox({value,onChange,onRegenerate}){
     <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <div style={{width:8,height:8,borderRadius:'50%',background:C.gold,flexShrink:0}}/>
-        <span style={{fontSize:18,fontWeight:600,color:'#1A2540'}}>Does this feel right?</span>
-        <span style={{fontSize:16,color:C.gray}}>Add context to refine.</span>
+        <span style={{fontSize:18,fontWeight:600,color:'#1A2540'}}>Want to make changes?</span>
+        <span style={{fontSize:16,color:C.gray}}>Did we miss something? Add it here.</span>
       </div>
       <span style={{fontSize:12,color:C.gray,display:'inline-block',transform:open?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}}>▼</span>
     </button>
@@ -366,7 +366,7 @@ const DEMO_TOUR=[
   {step:'p1',title:'Step 1: Know Your Value',desc:'Your experience has created more value than most resumes show. This step finds it and puts it in language any industry understands.'},
   {step:'p2',title:'Step 2: Wiring & Compass',desc:'Most people take assessments and file them away. This step connects how you\'re wired to the work you do best and the environment where you thrive.'},
   {step:'p3',title:'Step 3: Brand Synthesis',desc:'When someone asks "what do you do," most people default to a job title. This step gives you a better answer.'},
-  {step:'p4',title:'Step 4: The Wide View',desc:'After years in one industry, it\'s easy to see only the obvious next step. This step shows you three directions you might not have considered.'},
+  {step:'p4',title:'Step 4: The Wide View',desc:'Most people see one or two obvious next steps. This step maps out a wider landscape of options you might not have considered.'},
   {step:'p5',title:'Step 5: The Deep Dive',desc:'It\'s easy to get excited about an option on paper. This step shows what the role actually looks like and how your background maps to it.'},
   {step:'decision',title:'Step 6: Sarah\'s Decision',desc:'Having multiple strong options is a good problem to have. This is the moment you choose a direction and everything starts pointing the same way.'},
   {step:'p6',title:'Step 7: Bridge Story',desc:'"Tell me about yourself" is the first question in every interview, and a great 30-second answer sets the tone for the entire conversation.'},
@@ -396,6 +396,7 @@ export default function PivotEngine(){
   const[err,setErr]=useState(null)
   const[copied,setCopied]=useState(false)
   const[csvCopied,setCsvCopied]=useState(false)
+  const[deepExpanded,setDeepExpanded]=useState(false)
   const[fileLoading,setFileLoading]=useState(false)
   const[surveyDone,setSurveyDone]=useState(isDemo)
   const[survey,setSurvey]=useState({nps:null,valuable:'',confidence:null,accuracy:null,open:''})
@@ -411,8 +412,8 @@ export default function PivotEngine(){
   const rep=(f,v)=>setProfile(p=>({...p,rep:{...p.rep,[f]:v}}))
   const out=(k,v)=>setOutputs(o=>({...o,[k]:v}))
   const markDone=(sid)=>setDone(d=>d.includes(sid)?d:[...d,sid])
-  const advance=(from,to)=>{markDone(from);setStep(to);setErr(null)}
-  const nav=(to)=>{if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null)}
+  const advance=(from,to)=>{markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
+  const nav=(to)=>{if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null);window.scrollTo(0,0)}
   const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);window.scrollTo(0,0)}}
   const demoPrev=()=>{if(demoIdx>0){const prev=demoIdx-1;setDemoIdx(prev);setStep(DEMO_TOUR[prev].step);window.scrollTo(0,0)}}
   const generate=async(key,fn,opts={})=>{setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(fn(),opts);out(key,r)}catch(e){setErr(e.message)}finally{setLoading(false)}}
@@ -523,7 +524,7 @@ export default function PivotEngine(){
     </div>
 
     case'location':return <div>
-      <div style={S.tag('#6A9BB8')}>Phase 0 · Orientation</div>
+      <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
       <h1 style={S.title}>Location & Work Preferences</h1>
       <p style={S.sub}>This shapes every opportunity we generate and every company we identify.</p>
       <div style={S.card}>
@@ -545,7 +546,7 @@ export default function PivotEngine(){
     </div>
 
     case'resume':return <div>
-      <div style={S.tag('#6A9BB8')}>Phase 0 · Orientation</div>
+      <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
       <h1 style={S.title}>Your Resume</h1>
       <p style={S.sub}>Upload your most recent resume. It doesn't need to be perfect — finding the value you may have undersold is part of what we do here.</p>
       <div style={S.card}>
@@ -559,7 +560,7 @@ export default function PivotEngine(){
     </div>
 
     case'assessment':return <div>
-      <div style={S.tag('#6A9BB8')}>Phase 0 · Orientation</div>
+      <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
       <h1 style={S.title}>Assessment Data</h1>
       <p style={S.sub}>Most people either don't know how they're naturally wired, or can't connect it to the work they do best. This closes that gap.</p>
       <div style={S.card}>
@@ -577,7 +578,7 @@ export default function PivotEngine(){
     </div>
 
     case'values':return <div>
-      <div style={S.tag('#6A9BB8')}>Phase 0 · Orientation</div>
+      <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
       <h1 style={S.title}>Values, Passions & Causes</h1>
       <p style={S.sub}>These two inputs separate a list of plausible options from a list of right options. Don't filter for professional relevance — that's our job.</p>
       <div style={S.card}>
@@ -589,7 +590,7 @@ export default function PivotEngine(){
     </div>
 
     case'reputation':return <div>
-      <div style={S.tag('#6A9BB8')}>Phase 0 · Orientation</div>
+      <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
       <h1 style={S.title}>Your Reputation</h1>
       <p style={S.sub}>The hardest input to gather — and the most valuable. We're looking for external data: what others actually see in you.</p>
       <div style={S.card}>
@@ -600,7 +601,7 @@ export default function PivotEngine(){
     </div>
 
     case'p1':return <div>
-      {!isDemo&&<div style={S.tag('#8A7AB8')}>Phase 1 · Know Your Value</div>}
+      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
       <h1 style={S.title}>Resume Analysis</h1>
       {!isDemo&&<p style={S.sub}>Your experience has created more value than most resumes show. This step finds it and puts it in language any industry understands.</p>}
       {!isDemo&&!outputs.p1&&!loading&&<Btn onClick={()=>generate('p1',()=>P.p1(pc))}><Sparkles size={14}/>Analyze My Resume</Btn>}
@@ -614,7 +615,7 @@ export default function PivotEngine(){
     </div>
 
     case'p2':return <div>
-      {!isDemo&&<div style={S.tag('#8A7AB8')}>Phase 1 · Know Your Value</div>}
+      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
       <h1 style={S.title}>Wiring & Compass</h1>
       {!isDemo&&<p style={S.sub}>Most people take assessments and file them away. This step connects how you're wired to the work you do best and the environment where you thrive.</p>}
       {!isDemo&&!outputs.p2&&!loading&&<Btn onClick={()=>generate('p2',()=>P.p2(pc,outputs.p1))}><Sparkles size={14}/>Analyze My Wiring</Btn>}
@@ -630,7 +631,7 @@ export default function PivotEngine(){
     case'p3':return <div>
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
 
-      {!isDemo&&<div style={S.tag('#8A7AB8')}>Phase 1 · Know Your Value</div>}
+      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
       <h1 style={S.title}>Brand Synthesis</h1>
       {!isDemo&&<p style={S.sub}>When someone asks "what do you do," most people default to a job title. This step gives you a better answer: a clear statement of what you do and what it produces.</p>}
       {!isDemo&&!outputs.p3&&!loading&&<Btn onClick={()=>generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}><Sparkles size={14}/>Synthesize My Brand</Btn>}
@@ -644,26 +645,62 @@ export default function PivotEngine(){
     </div>
 
     case'p4':return <div>
-      {!isDemo&&<div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>}
+      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 2 · Explore Options</div>}
       <h1 style={S.title}>The Wide View</h1>
-      {!isDemo&&<p style={S.sub}>After years in one industry, it's easy to see only the obvious next step. This step opens up three directions, each grounded in your specific evidence.</p>}
+      {!isDemo&&<p style={S.sub}>You have told us your story: your resume, how you are wired, what you value, and what lights you up. We have been listening. Now we take everything we know about you and map out the full landscape of what is possible. Most people see one or two obvious next steps. You likely have more options than you think.</p>}
       {!isDemo&&!outputs.p4&&!loading&&<Btn onClick={()=>generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3),{highTemp:true,maxTokens:5000,msg:'Mapping your opportunity landscape — this takes a moment…'})}><Sparkles size={14}/>Generate My Options</Btn>}
       {loading&&<Loading msg={loadMsg||'Mapping your full opportunity landscape across all three paths…'}/>}
       {outputs.p4&&<>
         <OutPanel text={outputs.p4} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} onRegenerate={v=>{out('p4','');generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Refining your opportunity landscape…'})}}/>}
-        {!isDemo&&<div style={{...S.card,marginTop:8}}>
-          <div style={{fontWeight:600,color:'#1A2540',fontSize:19,marginBottom:6}}>Select up to 3 options to explore further.</div>
-          <div style={{fontSize:17,color:C.gray,marginBottom:18,lineHeight:1.65}}>Type the role or path that caught your attention. Pick what made you lean in, not just what feels safe.</div>
-          {['A','B','C'].map((l,i)=><div key={l} style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
-            <div onClick={()=>setDeepOpts(d=>d.map((v,j)=>j===i?(v?'':'?'):''))} style={{width:22,height:22,borderRadius:6,border:`2px solid ${deepOpts[i]&&deepOpts[i]!=='?'?C.gold:C.border}`,background:deepOpts[i]&&deepOpts[i]!=='?'?`${C.gold}20`:'white',flexShrink:0,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              {deepOpts[i]&&deepOpts[i]!=='?'&&<Check size={13} color={C.gold} strokeWidth={3}/>}
-            </div>
-            <input style={{...S.inp,flex:1}} value={deepOpts[i]==='?'?'':deepOpts[i]} onChange={e=>setDeepOpts(d=>d.map((v,j)=>j===i?e.target.value:v))} placeholder={`Type or paste option ${l} from the list above…`}/>
-          </div>)}
-          {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={S.row}><Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn></div>}
-          {deepOpts.filter(v=>v&&v!=='?').length===0&&<div style={{fontSize:15,color:C.gray}}>Enter at least one option above to continue.</div>}
-        </div>}
+        {!isDemo&&(()=>{
+          const extractOptions=(text)=>{
+            if(!text)return[]
+            const opts=[]
+            const lines=text.split('\n')
+            let currentLane=''
+            for(const line of lines){
+              if(/\*\*IKIGAI\*\*|^## IKIGAI|^IKIGAI|WORK THAT MATTERS/i.test(line))currentLane='Work That Matters'
+              else if(/\*\*THE INDUSTRY INSIDER\*\*|^## THE INDUSTRY INSIDER|^THE INDUSTRY INSIDER/i.test(line))currentLane='Industry Insider'
+              else if(/\*\*FAMILIAR GROUND\*\*|^## FAMILIAR GROUND|^FAMILIAR GROUND/i.test(line))currentLane='Familiar Ground'
+              const titleMatch=line.match(/^\d+\.\s*\*\*(.+?)\*\*/) || line.match(/^###?\s+\d+\.\s*(.+)/) || line.match(/^\*\*(\d+\.\s*.+?)\*\*/)
+              if(titleMatch&&currentLane){
+                const title=titleMatch[1].replace(/\*\*/g,'').replace(/^\d+\.\s*/,'').trim()
+                if(title.length>3&&title.length<120)opts.push({title,lane:currentLane})
+              }
+            }
+            return opts
+          }
+          const available=extractOptions(outputs.p4)
+          const selected=deepOpts.filter(v=>v&&v!=='?')
+          const toggleOpt=(title)=>{
+            const idx=deepOpts.indexOf(title)
+            if(idx>=0){setDeepOpts(d=>d.map((v,j)=>j===idx?'':v))}
+            else{
+              const emptyIdx=deepOpts.findIndex(v=>!v||v==='?')
+              if(emptyIdx>=0)setDeepOpts(d=>d.map((v,j)=>j===emptyIdx?title:v))
+            }
+          }
+          return <div style={{...S.card,marginTop:8}}>
+            <div style={{fontWeight:600,color:'#1A2540',fontSize:19,marginBottom:6}}>Select up to 3 options to explore further.</div>
+            <div style={{fontSize:17,color:C.gray,marginBottom:18,lineHeight:1.65}}>Click the roles that made you lean in, not just the ones that feel safe.</div>
+            {available.length>0?<>
+              {['Work That Matters','Industry Insider','Familiar Ground'].map(lane=>{
+                const laneOpts=available.filter(o=>o.lane===lane)
+                if(!laneOpts.length)return null
+                return <div key={lane} style={{marginBottom:16}}>
+                  <div style={{fontSize:14,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.goldL,marginBottom:8}}>{lane}</div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                    {laneOpts.map(o=>{const sel=deepOpts.includes(o.title);return <button key={o.title} onClick={()=>toggleOpt(o.title)} style={{padding:'10px 18px',borderRadius:8,border:`2px solid ${sel?C.gold:C.border}`,background:sel?`${C.gold}15`:'white',color:sel?C.goldL:'#374258',fontSize:15,fontWeight:sel?600:400,cursor:selected.length>=3&&!sel?'not-allowed':'pointer',opacity:selected.length>=3&&!sel?0.5:1,fontFamily:'inherit',transition:'all 0.15s',textAlign:'left'}}>{sel&&<Check size={12} color={C.gold} strokeWidth={3} style={{marginRight:6,display:'inline'}}/>}{o.title}</button>})}
+                  </div>
+                </div>
+              })}
+            </>:<div style={{fontSize:15,color:C.gray,marginBottom:12}}>Or type your choices below:</div>}
+            {selected.length>0&&<div style={{marginTop:16,padding:'12px 16px',background:'#F7F8FA',borderRadius:8,fontSize:15,color:C.gray}}>Selected ({selected.length}/3): {selected.map((s,i)=><strong key={i} style={{color:'#1A2540',marginRight:8}}>{s}</strong>)}</div>}
+            {selected.length>0&&<div style={S.row}><Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn></div>}
+            {selected.length===0&&<div style={{fontSize:15,color:C.gray,marginTop:8}}>Click at least one option above to continue.</div>}
+          </div>
+        })()}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -672,10 +709,18 @@ export default function PivotEngine(){
       const filledOpts=deepOpts.filter(v=>v&&v!=='?')
 
       const parseOptions=(text)=>{
-        if(!text)return[]
+        if(!text)return{takeaway:'',options:[]}
+        const takeawayMarker='## QUICK TAKEAWAY'
+        let takeaway=''
+        const tkIdx=text.indexOf(takeawayMarker)
+        if(tkIdx!==-1){
+          const afterTk=text.slice(tkIdx+takeawayMarker.length)
+          const nextH2=afterTk.search(/\n## /)
+          takeaway=nextH2!==-1?afterTk.slice(0,nextH2).trim():afterTk.trim()
+        }
         const trimmed=text.replace(/^[\s\S]*?(?=## OPTION [ABC])/m,'')
         const parts=trimmed.split(/^## OPTION [ABC]/m).filter(Boolean)
-        return parts.map(part=>{
+        const options=parts.map(part=>{
           const sections={title:'',reality:'',fit:'',brief:''}
           const realityMatch=part.match(/### (?:REALITY CHECK|THE ROLE)([\s\S]*?)(?=### WHY YOU FIT|### (?:THE HONEST BRIEF|WORTH CONSIDERING)|$)/)
           const fitMatch=part.match(/### WHY YOU FIT([\s\S]*?)(?=### (?:THE HONEST BRIEF|WORTH CONSIDERING)|$)/)
@@ -685,52 +730,68 @@ export default function PivotEngine(){
           sections.brief=briefMatch?briefMatch[1].trim():''
           return sections
         })
+        return{takeaway,options}
       }
 
-      const parsed=parseOptions(outputs.p5)
+      const{takeaway:p5Takeaway,options:parsed}=parseOptions(outputs.p5)
       const sectionStyle={background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'24px 28px',marginBottom:14,boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}
-      const sectionLabel={fontSize:13,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold,marginBottom:12,display:'block'}
+      const sectionLabel={fontSize:17,fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',color:C.gold,marginBottom:14,display:'block'}
 
       return <div>
-        {!isDemo&&<div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>}
+        {!isDemo&&<div style={S.tag('#C8924A')}>Phase 2 · Explore Options</div>}
         <h1 style={S.title}>The Deep Dive</h1>
         {!isDemo&&<p style={S.sub}>It's easy to get excited about an option on paper. This step shows what the role actually looks like and how your background maps to it.</p>}
-        {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{...S.note,marginBottom:16}}>Exploring: {filledOpts.map((o,i)=><strong key={i} style={{color:'#1A2540',marginRight:12}}>{o}</strong>)}</div>}
+        {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{...S.note,marginBottom:16}}>Exploring: {filledOpts.map((o,i)=><strong key={i} style={{color:'#1A2540',marginRight:12,cursor:'default'}}>{o}</strong>)}</div>}
         {!isDemo&&!outputs.p5&&!loading&&filledOpts.length>0&&<Btn onClick={()=>generate('p5',()=>P.p5(pc,outputs,deepOpts),{maxTokens:6000,msg:'Building your deep dive…'})}><Sparkles size={14}/>Explore These Options</Btn>}
         {!isDemo&&filledOpts.length===0&&!outputs.p5&&<div style={{...S.err,marginTop:0}}><AlertCircle size={13} color={C.err} style={{flexShrink:0}}/><span>Go back to The Wide View and select at least one option to explore.</span></div>}
         {loading&&<Loading msg={loadMsg||'Building your deep dive…'}/>}
         {outputs.p5&&<>
-          <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
-            {filledOpts.map((opt,i)=><button key={i} onClick={()=>setActiveTab(i)} style={{padding:'12px 22px',borderRadius:8,border:`2px solid ${activeTab===i?C.gold:C.border}`,background:activeTab===i?`${C.gold}15`:'white',color:activeTab===i?C.goldL:'#4A5568',fontSize:17,fontWeight:activeTab===i?600:400,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s'}}>{opt}</button>)}
-          </div>
-          {parsed[activeTab]&&<>
-            <div style={sectionStyle}>
-              <span style={sectionLabel}>Reality Check</span>
-              <MD text={parsed[activeTab].reality}/>
+          {p5Takeaway&&<div style={S.out}>
+            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p5)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
+            <MD text={`## QUICK TAKEAWAY\n${p5Takeaway}`}/>
+            <button onClick={()=>setDeepExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:8,margin:'20px 0 8px',padding:'12px 20px',background:deepExpanded?`${C.gold}10`:'#F7F8FA',border:`1.5px solid ${deepExpanded?C.gold:C.border}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:15,fontWeight:600,color:deepExpanded?C.goldL:C.gray,transition:'all 0.2s',width:'100%'}}>
+              <ChevronRight size={16} style={{transform:deepExpanded?'rotate(90deg)':'none',transition:'transform 0.2s'}}/>
+              {deepExpanded?'Hide full analysis':'Click here for a deeper understanding'}
+            </button>
+          </div>}
+          {(deepExpanded||!p5Takeaway)&&<>
+            <div style={{display:'flex',gap:8,marginBottom:20,marginTop:p5Takeaway?16:0,flexWrap:'wrap'}}>
+              {filledOpts.map((opt,i)=><button key={i} onClick={()=>setActiveTab(i)} style={{padding:'12px 22px',borderRadius:8,border:`2px solid ${activeTab===i?C.gold:C.border}`,background:activeTab===i?`${C.gold}15`:'white',color:activeTab===i?C.goldL:'#4A5568',fontSize:17,fontWeight:activeTab===i?600:400,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s'}}>{opt}</button>)}
             </div>
-            <div style={sectionStyle}>
-              <span style={sectionLabel}>Why You Fit</span>
-              <MD text={parsed[activeTab].fit}/>
+            {parsed[activeTab]&&<>
+              <div style={sectionStyle}>
+                <span style={sectionLabel}>The Role</span>
+                <MD text={parsed[activeTab].reality}/>
+              </div>
+              <div style={sectionStyle}>
+                <span style={sectionLabel}>Why You Fit</span>
+                <MD text={parsed[activeTab].fit}/>
+              </div>
+              <div style={sectionStyle}>
+                <span style={sectionLabel}>Worth Considering</span>
+                <MD text={parsed[activeTab].brief}/>
+              </div>
+            </>}
+            {!parsed[activeTab]&&<div style={S.out}><MD text={outputs.p5}/></div>}
+          </>}
+          {!isDemo&&<RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} onRegenerate={v=>{out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000,msg:'Rebuilding your deep dive…'})}}/>}
+          {!isDemo&&<>
+            <div style={{margin:'24px 0 12px',padding:'16px 20px',background:'#FFF8F0',border:`2px solid ${C.gold}40`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+              <span style={{fontSize:16,color:C.goldL,fontWeight:500}}>Not what you expected? Go back and explore different options.</span>
+              <Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p4')}}><ArrowLeft size={13}/>Choose Different Options</Btn>
             </div>
-            <div style={sectionStyle}>
-              <span style={sectionLabel}>Worth Considering</span>
-              <MD text={parsed[activeTab].brief}/>
+            <div style={S.row}>
+              <Btn secondary onClick={()=>out('p5','')}><RotateCcw size={13}/>Regenerate</Btn>
+              <Btn onClick={()=>advance('p5','decision')}>Make My Decision <ChevronRight size={14}/></Btn>
             </div>
           </>}
-          {!parsed[activeTab]&&<div style={S.out}><MD text={outputs.p5}/></div>}
-          {!isDemo&&<RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} onRegenerate={v=>{out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000,msg:'Rebuilding your deep dive…'})}}/>}
-          {!isDemo&&<div style={S.row}>
-            <Btn secondary onClick={()=>out('p5','')}><RotateCcw size={13}/>Regenerate</Btn>
-            <Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p4')}}><ArrowLeft size={13}/>Try Different Options</Btn>
-            <Btn onClick={()=>advance('p5','decision')}>Make My Decision <ChevronRight size={14}/></Btn>
-          </div>}
         </>}
         {err&&<ErrBox msg={err}/>}
       </div>
     }
 
     case'decision':return <div>
-      {!isDemo&&<div style={S.tag('#6AB88A')}>Phase 2 · Explore Options</div>}
+      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 2 · Explore Options</div>}
       <h1 style={S.title}>Your Decision</h1>
       {!isDemo&&<p style={S.sub}>Having multiple strong options is a good problem to have. This is the moment you choose a direction and everything starts pointing the same way.</p>}
       {isDemo?<div style={S.card}>
@@ -739,8 +800,12 @@ export default function PivotEngine(){
       </div>:<>
         <div style={S.card}>
           <label style={S.label}>I've decided to pursue…</label>
-          <div style={{fontSize:15,color:C.gray,marginBottom:10,lineHeight:1.6}}>Type the role or path you're committing to. This becomes the foundation for Phases 3–5.</div>
-          <textarea style={{...S.ta,minHeight:75}} value={chosen} onChange={e=>setChosen(e.target.value)} placeholder="e.g. Fractional CMO in the B2B SaaS ecosystem, Vendor-side consultant in healthcare, Independent financial planner focused on sustainable investing…"/>
+          <div style={{fontSize:17,color:C.gray,marginBottom:14,lineHeight:1.6}}>Click the option you're committing to. This becomes the foundation for everything that follows.</div>
+          {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
+            {deepOpts.filter(v=>v&&v!=='?').map(opt=><button key={opt} onClick={()=>setChosen(opt)} style={{padding:'14px 20px',borderRadius:8,border:`2px solid ${chosen===opt?C.gold:C.border}`,background:chosen===opt?`${C.gold}15`:'white',color:chosen===opt?C.goldL:'#374258',fontSize:17,fontWeight:chosen===opt?600:400,cursor:'pointer',fontFamily:'inherit',textAlign:'left',transition:'all 0.15s',display:'flex',alignItems:'center',gap:10}}>{chosen===opt&&<Check size={14} color={C.gold} strokeWidth={3}/>}{opt}</button>)}
+          </div>}
+          <div style={{fontSize:14,color:C.gray,marginTop:8}}>Or describe a different path:</div>
+          <textarea style={{...S.ta,minHeight:60,marginTop:6}} value={deepOpts.filter(v=>v&&v!=='?').includes(chosen)?'':chosen} onChange={e=>setChosen(e.target.value)} placeholder="e.g. Fractional CMO in the B2B SaaS ecosystem…"/>
         </div>
         <div style={S.card}>
           <div style={{fontWeight:600,color:C.cream,fontSize:13,marginBottom:9}}>Not ready yet?</div>
@@ -768,7 +833,7 @@ export default function PivotEngine(){
     case'p7':return <div>
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
 
-      {!isDemo&&<div style={S.tag('#B86A6A')}>Phase 4 · Find Your Market</div>}
+      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 4 · Find Your Market</div>}
       <h1 style={S.title}>Go-to-Market Strategy</h1>
       {!isDemo&&<p style={S.sub}>The best opportunities are filled through relationships before a posting ever goes live. We search in real time for companies that fit your background and draft personalized outreach to the people you'd want to reach.</p>}
       {!isDemo&&<div style={S.note}><strong style={{color:C.gold}}>Live research enabled.</strong> We search for companies that are growing, investing, and most likely to be hiring — and flag ones showing signs of contraction.</div>}
@@ -778,7 +843,10 @@ export default function PivotEngine(){
         const downloadCSV=()=>{
           const lines=outputs.p7.split('\n').filter(l=>l.includes('|')&&!l.match(/^[\s|:-]+$/))
           const csv='Company,Why it fits,Growth signal,Contact title,Website\n'+lines.map(l=>{const p=l.split('|').map(s=>s.trim());return p.map(s=>`"${s.replace(/"/g,'""')}"`).join(',')}).join('\n')
-          const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='target_companies.csv';a.click()
+          const nameSlug=(profile.resume||'').split(/\n/)[0]?.replace(/[^a-zA-Z ]/g,'').trim().split(' ').slice(0,2).join('-')||'companies'
+          const roleSlug=(chosen||'target').replace(/[^a-zA-Z0-9 ]/g,'').trim().split(' ').slice(0,4).join('-')
+          const dateStr=new Date().toISOString().slice(0,10)
+          const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`${nameSlug}_${roleSlug}_${dateStr}.csv`;a.click()
         }
         const splitPoint=outputs.p7.search(/##?\s*PART 3|##?\s*Outreach Template/i)
         const part12=splitPoint>0?outputs.p7.slice(0,splitPoint):outputs.p7
@@ -799,7 +867,10 @@ export default function PivotEngine(){
               const url=URL.createObjectURL(blob)
               const a=document.createElement('a')
               a.href=url
-              a.download='target_companies.csv'
+              const nameSlug=(profile.resume||'').split(/\n/)[0]?.replace(/[^a-zA-Z ]/g,'').trim().split(' ').slice(0,2).join('-')||'companies'
+              const roleSlug=(chosen||'target').replace(/[^a-zA-Z0-9 ]/g,'').trim().split(' ').slice(0,4).join('-')
+              const dateStr=new Date().toISOString().slice(0,10)
+              a.download=`${nameSlug}_${roleSlug}_${dateStr}.csv`
               document.body.appendChild(a)
               a.click()
               document.body.removeChild(a)
@@ -819,7 +890,7 @@ export default function PivotEngine(){
     case'p8':return <div>
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
 
-      {!isDemo&&<div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>}
+      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 5 · Get Ready</div>}
       <h1 style={S.title}>LinkedIn Remix</h1>
       {!isDemo&&<p style={S.sub}>Your LinkedIn profile is how companies and recruiters find you. If it still describes your last role, the right people can't find you for the next one.</p>}
       {!isDemo&&!outputs.p8&&!loading&&<Btn onClick={()=>generate('p8',()=>P.p8(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Remix My LinkedIn</Btn>}
@@ -831,7 +902,7 @@ export default function PivotEngine(){
     case'p_res':return <div>
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
 
-      {!isDemo&&<div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>}
+      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 5 · Get Ready</div>}
       <h1 style={S.title}>Resume Refresh</h1>
       {!isDemo&&<p style={S.sub}>The people reading your resume now are looking for different signals than the ones who hired you last time. We use a hybrid format that puts your Greatest Hits above the fold so the strongest evidence lands in the first 7 seconds.</p>}
       <div style={S.note}>Targeting: <strong style={{color:C.cream}}>{chosen}</strong></div>
@@ -844,7 +915,7 @@ export default function PivotEngine(){
     case'p9':return <div>
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
 
-      {!isDemo&&<div style={S.tag('#6A8AB8')}>Phase 5 · Get Ready</div>}
+      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 5 · Get Ready</div>}
       <h1 style={S.title}>Your Playbook</h1>
       {!isDemo&&<p style={S.sub}>Walking into a conversation in a new space without knowing the vocabulary or the current landscape costs credibility fast. This is everything you need to walk in confident and prepared.</p>}
       {!isDemo&&!outputs.p9&&!loading&&<Btn onClick={async()=>{setLoading(true);setErr(null);setLoadMsg('Building your playbook...');try{const[r1,r2]=await Promise.all([callClaude(P.p9(pc,outputs,chosen),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen),{maxTokens:2000})]);out('p9',r1);out('p10',r2)}catch(e){setErr(e.message)}finally{setLoading(false)}}}><Sparkles size={14}/>Build My Playbook</Btn>}
@@ -957,7 +1028,7 @@ export default function PivotEngine(){
     </div>}
 
     case'income':return <div>
-      {!isDemo&&<div style={S.tag('#7AB87A')}>Bonus Module</div>}
+      {!isDemo&&<div style={S.tag('#C8924A')}>Bonus Module</div>}
       <h1 style={S.title}>Income Now</h1>
       {!isDemo&&<p style={S.sub}>A job search takes time. Having income flowing while you search changes everything: you make better decisions when you're choosing, not settling.</p>}
       <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>Targeting: <strong>{chosen||'your chosen direction'}</strong></div>
