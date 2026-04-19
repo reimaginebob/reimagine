@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import * as mammoth from "mammoth"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy, Download } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 
 const SYS = `You are a Career Strategist within Reimagine, a career strategy tool by Career Club, built on Making Your Own Weather by Bob Goodwin.
@@ -414,6 +414,7 @@ export default function PivotEngine(){
   const[deepExpanded,setDeepExpanded]=useState(false)
   const[hasProgress,setHasProgress]=useState(false)
   const[laneTab,setLaneTab]=useState(0)
+  const[p4Intro,setP4Intro]=useState(true)
   const[fileLoading,setFileLoading]=useState(false)
   const[skipAssessWarn,setSkipAssessWarn]=useState(false)
   const[surveyDone,setSurveyDone]=useState(isDemo)
@@ -767,7 +768,34 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
       {!isDemo&&<p style={S.sub}>You have told us your story: your resume, how you are wired, what you value, and what lights you up. We have been listening. Now we take everything we know about you and map out the full landscape of what is possible.</p>}
       {!isDemo&&!outputs.p4&&!loading&&<Btn onClick={()=>{setLaneTab(0);generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3),{highTemp:true,maxTokens:5000,msg:'Mapping your opportunity landscape — this takes a moment…'})}}><Sparkles size={14}/>Generate My Options</Btn>}
       {loading&&<Loading msg={loadMsg||'Mapping your full opportunity landscape across all three paths…'}/>}
-      {outputs.p4&&(()=>{
+      {outputs.p4&&p4Intro&&(()=>{
+        const pathCards=[
+          {icon:<Heart size={28} color="#C8924A"/>,name:'Work That Matters',desc:'Built on the Japanese concept of Ikigai — the intersection of what you love, what you are good at, what the world needs, and what you can be paid for. These roles stretch beyond your current title, grounded in who you actually are and what gives your work meaning.'},
+          {icon:<Network size={28} color="#C8924A"/>,name:'Industry Insider',desc:'You know your industry from the inside. These options map the full ecosystem around your experience — clients, vendors, consultants, adjacent players — where your insider knowledge is a real competitive advantage.'},
+          {icon:<Briefcase size={28} color="#C8924A"/>,name:'Familiar Ground',desc:'Same function, same or adjacent industry, bigger scope. Your track record speaks immediately here. The key is showing you are the forward-looking candidate, not just the experienced one.'}
+        ]
+        return <div style={{maxWidth:720,margin:'0 auto'}}>
+          <div style={{textAlign:'center',marginBottom:32}}>
+            <div style={{width:64,height:64,borderRadius:16,background:`${C.gold}15`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}><Sparkles size={28} color={C.gold}/></div>
+            <h2 style={{fontSize:28,fontWeight:700,color:'#1A2540',marginBottom:12}}>Three Paths Forward</h2>
+            <p style={{fontSize:18,color:'#4A5568',lineHeight:1.7,maxWidth:600,margin:'0 auto'}}>We took everything you shared — your experience, how you are wired, and what matters to you — and mapped out where it all points. Your options are organized into three paths.</p>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:16,marginBottom:32}}>
+            {pathCards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'24px 28px',display:'flex',gap:20,alignItems:'flex-start'}}>
+              <div style={{width:52,height:52,borderRadius:12,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
+              <div>
+                <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:6}}>{card.name}</div>
+                <div style={{fontSize:15,color:'#4A5568',lineHeight:1.65}}>{card.desc}</div>
+              </div>
+            </div>)}
+          </div>
+          <div style={{background:'#F0F4F8',border:`1.5px solid ${C.border}`,borderRadius:12,padding:'20px 24px',marginBottom:28}}>
+            <div style={{fontSize:16,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>On the next screen, you will see specific roles across these three paths. Take your time browsing — then select up to three that resonate with you. Your choices can come from any combination of paths, or all from one. There is no wrong answer here.</div>
+          </div>
+          <div style={{textAlign:'center'}}><Btn onClick={()=>{setP4Intro(false);window.scrollTo(0,0)}}>Show Me My Options <ChevronRight size={14}/></Btn></div>
+        </div>
+      })()}
+      {outputs.p4&&!p4Intro&&(()=>{
         const parseLanes=(text)=>{
           if(!text)return{takeaway:'',lanes:[]}
           const takeawayMatch=text.match(/## QUICK TAKEAWAY([\s\S]*?)(?=\n---|\n#[^#])/i)
@@ -838,10 +866,6 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
         }
         const activeLane=lanes[laneTab]||lanes[0]
         return <>
-          {p4Takeaway&&lanes.length>0&&<div style={S.out}>
-            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p4)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
-            <MD text={`## QUICK TAKEAWAY\n${p4Takeaway}`}/>
-          </div>}
           {lanes.length>0&&<>
             <div style={{margin:'20px 0 16px',padding:'16px 20px',background:'#EEF4FF',border:'2px solid #3B82F6',borderRadius:12,display:'flex',alignItems:'center',gap:12}}>
               <div style={{width:36,height:36,borderRadius:8,background:'#3B82F6',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Check size={18} color="white" strokeWidth={3}/></div>
@@ -916,7 +940,7 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
             <Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn>
           </div>}
           {selected.length===0&&available.length>0&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Select at least one role above to continue.</div>}
-          {!isDemo&&<div ref={p4RefineRef}><RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Want different kinds of roles? Add an interest, remove a direction, or ask for something specific. We'll generate a new set of options based on your input." placeholder="e.g. I am also interested in board seats… remove consulting roles… show me more options in healthtech… I have nonprofit experience I didn't mention…" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{out('p4','');setLaneTab(0);generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Updating your options…'})}}/></div>}
+          {!isDemo&&<div ref={p4RefineRef}><RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Want different kinds of roles? Add an interest, remove a direction, or ask for something specific. We'll generate a new set of options based on your input." placeholder="e.g. I am also interested in board seats… remove consulting roles… show me more options in healthtech… I have nonprofit experience I didn't mention…" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{out('p4','');setLaneTab(0);setP4Intro(false);generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Updating your options…'})}}/></div>}
         </>
       })()}
       {err&&<ErrBox msg={err}/>}
