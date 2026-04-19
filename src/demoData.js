@@ -550,78 +550,106 @@ Best, Sarah
 
 ---
 
-## PART 4: LINKEDIN POSITIONING
+## PART 4: LINKEDIN SIGNAL TWEAK
 
 **Current headline:**
 VP Talent Acquisition | Meridian Health System
 
-**Better headline:**
-Building talent strategy and people operations at growth-stage companies | Ex-Meridian | Healthcare operator
+**Better headline (50 chars that matter first):**
+I build people infrastructure that scales | Healthcare ops | Ex-Meridian (14K) | CPO search
 
-**Why it works:**
-It positions you as someone who builds (future-focused), includes the target role type (talent strategy, people operations), signals your context (growth-stage), establishes credibility (Ex-Meridian), and describes your expertise (healthcare operator).
-
-**About section highlight:**
-Lead with the fact that you build people infrastructure that scales. Mention healthcare operations depth. Signal that you're looking for a CPO role. Keep it under 200 words.`,
+**Why:** Your current headline is LinkedIn's default: your job title at your current company. Only the first 50-70 characters show in search results, comments, and connection requests. "I build people infrastructure that scales" tells someone what you do in the preview. "VP Talent Acquisition | Meridian Health System" tells them where you work, which only matters if they already know Meridian. Lead with the value, not the title.`,
 
 // ─── P8: LINKEDIN REMIX ─────────────────────────────────────────────────
 
 p8: `## QUICK TAKEAWAY
 
-**Your biggest positioning shift: move from "VP Talent Acquisition" to "CPO | talent strategy for growth-stage companies."** Lead with Option 2 (builds directly on where you've been, signals target), and make sure your About section emphasizes that you build systems for scaling without chaos. **The headline change is the single most important thing: it lands in the first 7 seconds.**
+**Right now your LinkedIn says "VP Talent Acquisition at Meridian." That is a job title, not a brand.** The person searching for a CPO at a digital health company will never find you. Option B below puts what you actually do in the first 50 characters, which is all anyone sees in search results and comments. The About section needs to open with who you are, not what your title was.
 
 ---
 
-# LINKEDIN REMIX
+## HEADLINE
 
-How to position yourself on LinkedIn for a Chief People Officer search.
+Three options. Each is under 220 characters. Remember: only the first 50-70 characters show in search results, comments, and connection requests.
 
----
+**Option A (Search visibility):**
+Chief People Officer | VP People Operations | Healthcare talent strategy for growth-stage digital health companies
 
-## THREE HEADLINE OPTIONS
+Why: recruiters searching "Chief People Officer" and "VP People Operations" find you immediately. "Healthcare talent strategy" and "growth-stage" narrow the signal to your exact target.
 
-**Option 1 (Most searchable):**
-Chief People Officer | VP People Operations | Healthcare talent strategy for growth-stage companies
+**Option B (Human resonance — recommended):**
+I build people infrastructure that scales | Healthcare ops leader | Ex-Meridian (14K employees) | CPO search
 
-Searches for "Chief People Officer" and "VP People Operations" will find you, "Healthcare talent strategy" signals domain knowledge, and "Growth-stage" signals your target.
+Why: opens with what you DO, not what you ARE. "I build people infrastructure that scales" fits in the 50-character preview and tells someone exactly what they get. Meridian provides credibility. "CPO search" signals intent.
 
-**Option 2 (Most human):**
-Building talent infrastructure at growth-stage digital health companies | Ex-Meridian, 14 years healthcare operations
+**Option C (Authority):**
+Cut $4.2M in hiring costs | Scaled recruiting 175% during COVID | Healthcare CPO for growth-stage companies
 
-Opens with what you do, names your specific target (digital health companies), and uses Meridian to signal healthcare credibility and scale.
-
-**Option 3 (Most proof-oriented):**
-Scaled recruiting 175% during COVID, cut hiring costs 4.2M, now building CPO role | Healthcare operations expert
-
-The specific numbers prove you can move and produce results, and it signals you're actively looking for a CPO role.
+Why: leads with proof. The numbers stop the scroll. Works especially well if you are posting content or commenting actively.
 
 ---
 
-## ABOUT SECTION (200 words)
+## ABOUT SECTION
 
-I build talent and people infrastructure that enables companies to scale without losing culture or financial discipline.
+**The Hook (first 3 lines — this is all anyone sees before "see more"):**
 
-For the past 14 years, I've been the operator behind talent decisions at Meridian Health System, a 14,000-person integrated health system. I focus on problems where people strategy connects directly to business results.
+I have always been the person who walks into a broken system and figures out how to make it work. That instinct is how I ended up spending 14 years building talent infrastructure at a 14,000-person health system, and it is why I am now looking for a Chief People Officer role at a growth-stage digital health company.
 
-Here's what I've delivered: I cut clinical hiring costs by 4.2 million per year by redesigning our sourcing and building a referral program. That referral program now generates 34 percent of our hires. I scaled the recruiting team 175 percent during COVID while migrating 300 managers to a new ATS without breaking a hiring cycle. I compressed offer decline from 22 percent down to 9 percent by rethinking how we communicate roles and onboard people.
+**The Story:**
 
-What these projects share is a philosophy: most talent problems are process problems, role-clarity problems, or manager-coaching problems wearing a different label. When you diagnose the real problem and design systems that work for real people, business outcomes follow.
+At Meridian Health System, I focused on problems where people strategy connects directly to business results. I cut clinical hiring costs by $4.2 million a year by redesigning how we source and close candidates. I built a referral program from scratch that now generates a third of all hires. When COVID hit and we needed to scale the recruiting team 175%, I did it while simultaneously migrating 300 managers to a new ATS, because both had to happen and nobody was going to wait.
 
-I'm now looking to bring that operational approach to a Chief People Officer role at a growth-stage digital health company. I understand both sides: the health system problems digital health companies are solving and the operational challenges of building people infrastructure through rapid growth.
+What these projects share is a philosophy: most talent problems are actually process problems, role-clarity problems, or manager-coaching problems wearing a different label. When you diagnose the real problem and design systems that work for real people, business outcomes follow.
 
-I'm passionate about healthcare innovation, real estate investing, travel, and mentoring emerging HR leaders.
+I understand both sides of digital health: the health system problems your product is solving, and the operational challenges of building people infrastructure through rapid growth.
+
+Outside of work, I am passionate about healthcare innovation, mentoring emerging HR leaders (especially women in healthcare), real estate investing, and travel.
+
+**Contact:** sarah.chen@email.com | Open to conversations about CPO roles, people strategy, and healthcare talent challenges.
 
 ---
 
-## EXPERIENCE SECTION (Most Recent Role)
+## TARGET KEYWORDS
+
+Based on CPO roles at growth-stage digital health companies, these 5 keywords should appear throughout your profile (~9 times total):
+
+- **Chief People Officer** — Headline (1x), About (1x), Experience skills (1x) = 3x
+- **People operations** — Headline (1x), About (1x), Experience skills (2x) = 4x
+- **Talent strategy** — Headline (1x), About (1x), Experience skills (1x), Skills section (1x) = 4x
+- **Healthcare operations** — Headline (1x), Experience skills (2x), Skills section (1x) = 4x
+- **Organizational design** — About (1x), Experience skills (2x), Skills section (1x) = 4x
+
+**Skills section (top 10 to emphasize):** People Operations, Talent Strategy, Healthcare Operations, Organizational Design, Change Management, Recruiting Operations, Workforce Planning, Executive Coaching, HR Analytics, Employee Experience. Add all to your Skills section and pin the top 5. Profiles with 5+ skills get 17x more views.
+
+---
+
+## EXPERIENCE REFRAME
 
 **Vice President, Talent Acquisition & Workforce Planning | Meridian Health System | 2014-Present**
+*Highlighted skills: People Operations, Talent Strategy, Healthcare Operations, Change Management*
 
-- Cut clinical hiring costs by 4.2M annually through process redesign and referral program development (now generates 34% of all hires), while improving time-to-fill and quality of hire
-- Scaled recruiting function 175% during COVID while executing enterprise ATS migration (Taleo to Workday) for 300+ managers without losing hiring velocity; designed training and change management frameworks that drove adoption and maintained hiring pace
-- Compressed offer decline rate from 22% to 9% by redesigning offer communication, role clarity, and manager engagement protocols; reduced hiring cycle friction and accelerated time-to-productivity for 300+ annual hires
-- Partnered with CHRO and CFO on workforce planning strategy supporting 14,000-person organization and $280M healthcare operations across multiple locations
-- Built recruiting operations function including hiring metrics, job marketing, recruiting team development, and ATS implementation`,
+- Cut clinical hiring costs by $4.2M annually by redesigning sourcing strategy and building a referral program that now generates 34% of all hires
+- Scaled recruiting function 175% during COVID while executing enterprise ATS migration (Taleo to Workday) for 300+ hiring managers without losing velocity
+- Compressed offer decline rate from 22% to 9% by redesigning offer communication, role clarity protocols, and manager engagement, accelerating time-to-productivity for 300+ annual hires
+- Partnered with CHRO and CFO on workforce planning supporting 14,000-person organization across $280M in healthcare operations
+
+**Director, Talent Acquisition | Meridian Health System | 2010-2014**
+*Highlighted skills: Recruiting Operations, Workforce Planning, HR Analytics*
+
+- Built recruiting operations function from the ground up: hiring metrics, job marketing strategy, team development, and vendor management
+- Designed and launched structured interview training for 150+ hiring managers, improving quality-of-hire scores and reducing mis-hires
+- Established first workforce planning model connecting headcount forecasting to financial planning cycles
+
+---
+
+## WHAT TO DO WITH THIS PROFILE
+
+Your profile is a living document, not a one-time update. Here is what to do once it is live:
+
+- **Connections:** Get to 500+ if you are not there. Connect with CPOs and VP People at digital health companies (Ro, Hims, Teladoc, Thirty Madison), healthcare recruiters, and investors who sit on boards at your target companies. When you send a request, include a note: one sentence about why you are connecting.
+- **Follow and engage:** Follow these people and organizations in your target space: **Josh Bersin** (HR industry analysis), **Mercer** (workforce trends), **Rock Health** (digital health funding data), **Out of Pocket** (healthcare industry newsletter), **HLTH** (health innovation events). When they post something relevant, comment with your own perspective from 14 years inside a health system. That is a perspective most people in digital health do not have.
+- **One post to write this week:** "What I learned about clinical hiring after 14 years inside a health system." Share 3-4 things you know that someone building a digital health company would find valuable. This signals credibility and attracts exactly the people you want to talk to.
+- **Keep updating:** As you have conversations with target companies, refine your headline and About section. The language people use to describe what they need is better than any keyword research.`,
 
 // ─── P_RES: RESUME REFRESH ──────────────────────────────────────────────
 
