@@ -259,7 +259,7 @@ Three paths forward, grounded in what you've built and what energizes you:
 
 **Built on the Ikigai framework:** the intersection of what you love, what you're good at, what the world needs, and what you can be paid for. For leaders seeking meaning or legacy, this path combines all four elements.
 
-**Chief People Officer, Digital Health Company**
+### OPTION: Chief People Officer, Digital Health Company
 *Title:* Chief People Officer or VP People Operations
 *What you'd do:* Build people and recruiting infrastructure for a growth-stage digital health company, owning talent strategy, compensation, culture, organizational design, and hiring execution. You'd partner with the CEO on scaling without losing culture and report to the board on people metrics.
 *Why it fits:* You've built this exact infrastructure at 14,000 scale, and digital health companies at Series B-C face identical problems at smaller scale and faster pace. Your healthcare credibility (you know what they're solving for), your cost thinking (they live and die by unit economics), and your systems approach (they need to scale without chaos) are all directly applicable. You'd be at the center of healthcare innovation, which is a passion, and you'd build something from the ground up, which matches your Learner and growth values.
@@ -271,7 +271,7 @@ Three paths forward, grounded in what you've built and what energizes you:
 
 **Your insider knowledge is a competitive advantage.** You understand how organizations think, what problems keep leaders up at night, how decisions actually get made. That insider credibility commands premium rates and selective engagement.
 
-**Workforce Strategy Consultant or Fractional CPO**
+### OPTION: Workforce Strategy Consultant or Fractional CPO
 *Title:* Independent Consultant, Fractional Chief People Officer
 *What you'd do:* Work with 3-4 health systems or healthtech companies per year on specific talent and people strategy problems, doing the diagnostic work you know how to do (what's broken, why, and how to fix it), designing solutions, implementing them, then moving to the next client.
 *Why it fits:* You've solved these problems once at Meridian and can solve them again, faster, at other health systems. You understand healthcare's specific constraints, you have a network to seed clients, and you can charge at value rather than hours because you know the scope.
@@ -283,7 +283,7 @@ Three paths forward, grounded in what you've built and what energizes you:
 
 **Builds directly on where you've been.** Your track record speaks most immediately. You're the forward-looking candidate who knows how to win in a regulated healthcare environment and can scale fast.
 
-**Senior Vice President, Talent Acquisition + Retention at Another Health System**
+### OPTION: Senior Vice President, Talent Acquisition + Retention at Another Health System
 *Title:* SVP Talent Acquisition, Chief Talent Officer, or VP People Operations
 *What you'd do:* Move to another health system or IDN in a bigger role where you own not just acquisition but retention, organizational design, and talent strategy, with more authority, bigger scope, and likely higher compensation.
 *Why it fits:* You know how to win in this environment, you understand regulatory constraints, you know the customer (hiring managers, clinicians, HR leaders), and you could be a CHRO within 3-5 years. The learning curve is minimal, and you could move to a city you prefer.
