@@ -448,20 +448,19 @@ export default function PivotEngine(){
         </div>
       </div>
     </div>:<div>
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="380" height="132" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block',marginBottom:8}}>
-        <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.18"/>
-        <circle cx="44" cy="60" r="18" fill="#e4572e"/>
-        <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#0e1a2b">Re<tspan fill="#e4572e">imagine</tspan></text>
-        <text x="92" y="132" fontSize="26" fontWeight="700" letterSpacing="-0.3" fill="#55617a">Your <tspan fontWeight="800" fill="#0e1a2b">Career</tspan>. Your <tspan fontWeight="900" fill="#e4572e">Future</tspan>.</text>
-      </svg>
-      <div style={{display:'flex',gap:32,alignItems:'flex-start',marginBottom:28}}>
-        <p style={{fontSize:20,fontWeight:500,color:'#1A2540',lineHeight:1.75,flex:1,margin:0}}>If your search feels stuck, <span style={{fontWeight:700,color:'#e4572e'}}>you are not the problem.</span> It's that you can't see all the places your experience could take you. <span style={{fontWeight:700,color:'#e4572e'}}>Reimagine</span> takes what you've done, how you're wired, and what you care about to help you land a rewarding role faster than you imagined. Reimagine your career now.</p>
-        <a href="/?demo=true" style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10,padding:'24px 32px',background:`linear-gradient(135deg, ${C.gold}, #D4A55A)`,borderRadius:12,textDecoration:'none',flexShrink:0,boxShadow:'0 4px 12px rgba(200,146,74,0.3)',minWidth:200,textAlign:'center'}}>
-          <span style={{fontSize:28,lineHeight:1}}>&#9654;</span>
-          <span style={{fontSize:18,fontWeight:700,color:'#fff',lineHeight:1.3}}>See a completed<br/>example first</span>
-          <span style={{fontSize:14,color:'#fff',opacity:0.85}}>Walk through Sarah's results</span>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="380" height="132" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
+          <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.18"/>
+          <circle cx="44" cy="60" r="18" fill="#e4572e"/>
+          <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#0e1a2b">Re<tspan fill="#e4572e">imagine</tspan></text>
+          <text x="92" y="132" fontSize="26" fontWeight="700" letterSpacing="-0.3" fill="#55617a">Your <tspan fontWeight="800" fill="#0e1a2b">Career</tspan>. Your <tspan fontWeight="900" fill="#e4572e">Future</tspan>.</text>
+        </svg>
+        <a href="/?demo=true" style={{display:'inline-flex',alignItems:'center',gap:10,padding:'14px 28px',background:'#e4572e',borderRadius:8,textDecoration:'none',flexShrink:0,boxShadow:'0 2px 8px rgba(228,87,46,0.3)',marginTop:4}}>
+          <span style={{fontSize:16,fontWeight:700,color:'#fff',whiteSpace:'nowrap'}}>See a Demo Here</span>
+          <span style={{fontSize:18,color:'#fff',lineHeight:1}}>&#9654;</span>
         </a>
       </div>
+      <p style={{fontSize:20,fontWeight:500,color:'#1A2540',lineHeight:1.75,margin:'0 0 28px'}}>If your search feels stuck, <span style={{fontWeight:700,color:'#e4572e'}}>you are not the problem.</span> It's that you can't see all the places your experience could take you. <span style={{fontWeight:700,color:'#e4572e'}}>Reimagine</span> takes what you've done, how you're wired, and what you care about to help you land a rewarding role faster than you imagined. Reimagine your career now.</p>
 
       <div style={{...S.card,marginBottom:20}}>
         <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>Before You Begin</div>
@@ -1071,13 +1070,13 @@ export default function PivotEngine(){
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click] { pointer-events: auto; cursor: pointer; }`}</style>}
     <div style={{minHeight:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column'}}>
       <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
-        <div>
+        <a href="/" style={{textDecoration:'none',cursor:'pointer'}}>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="148" height="34" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
             <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.25"/>
             <circle cx="44" cy="60" r="18" fill="#e4572e"/>
             <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#FFFFFF">Re<tspan fill="#e4572e">imagine</tspan></text>
           </svg>
-        </div>
+        </a>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           {isDemo?<>
             <div style={{fontSize:11,color:C.gray}}>Step {demoIdx+1} of {DEMO_TOUR.length}</div>
