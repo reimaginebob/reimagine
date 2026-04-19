@@ -226,20 +226,9 @@ You build people and recruiting systems that create measurable business results,
 
 ## YOUR VALUE PROPOSITION
 
-**Capability:** You see the whole system at once and redesign what isn't working. You don't fix the problem in front of you — you reconfigure the pieces so it can't come back.
-   - **Proof:** $4.2M annual cost reduction by redesigning clinical hiring from fragmented sourcing into an integrated talent acquisition function.
+You bring healthcare operations credibility (14 years inside a complex, regulated, multi-location health system), process and systems thinking (Arranger + Strategic), and proven ability to solve talent problems that have direct P&L impact. You understand cost, you understand quality, you understand the constraints of regulated environments, and you can move fast without creating chaos.
 
-**Capability:** When you say you'll handle something, it becomes a personal contract. People give you the hardest assignments because your word is your operating system.
-   - **Proof:** Scaled recruiting team 175% during COVID while migrating 300+ managers to Workday in eight weeks. Zero broken hiring cycles.
-
-**Capability:** You earn trust by going deep on people's actual problems, not by networking wide. People stake their reputation on your judgment.
-   - **Proof:** Built a referral program from nothing that now generates 34% of all hires.
-
-**Capability:** You diagnose fast. You see three or four paths before most people have finished defining the problem, and you pick the right one.
-   - **Proof:** Compressed offer decline rate from 22% to 9% by redesigning the offer experience and manager engagement — not by adding headcount.
-
-**Capability:** You start fast and finish clean. No overthinking, no cut corners. You build from zero and it holds.
-   - **Proof:** Built recruiting operations from 2 people to a 6-person function with process standards, metrics, and an employer brand that lifted application volume 40%.`,
+That combination is rare. You've lived inside health systems long enough to have operational credibility, and you've built talent infrastructure at scale while holding it accountable to business outcomes.`,
 
 // ─── P4: THE WIDE VIEW ──────────────────────────────────────────────────
 
@@ -402,7 +391,7 @@ This is your foundation. Every longer conversation, phone screen, and formal int
 
 p7: `## QUICK TAKEAWAY
 
-**The people you want to reach are CEOs and COOs at Series B-C digital health companies** (post-PMF, scaling revenue) — they're the ones who hire for the role you want. The most actionable thing this week: **pick 5-8 companies from the list below, find those leaders on LinkedIn, and send a personalized outreach email**. The full list has 40+ options, and 2-3 strong conversations this month put you in the funnel for interviews in the next 60 days.
+**You're looking for CEO/COO at Series B-C digital health companies** (post-PMF, scaling revenue). The most actionable thing this week: **identify 5-8 companies that fit the profile, find the CEO on LinkedIn, and send a personalized outreach email**. The target company list below has 40+ options, and 2-3 strong conversations this month put you in the funnel for interviews in the next 60 days.
 
 ---
 
