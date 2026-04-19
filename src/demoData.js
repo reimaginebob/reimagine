@@ -226,9 +226,20 @@ You build people and recruiting systems that create measurable business results,
 
 ## YOUR VALUE PROPOSITION
 
-You bring healthcare operations credibility (14 years inside a complex, regulated, multi-location health system), process and systems thinking (Arranger + Strategic), and proven ability to solve talent problems that have direct P&L impact. You understand cost, you understand quality, you understand the constraints of regulated environments, and you can move fast without creating chaos.
+**Capability:** You see the whole system at once and redesign what isn't working. You don't fix the problem in front of you — you reconfigure the pieces so it can't come back.
+   - **Proof:** $4.2M annual cost reduction by redesigning clinical hiring from fragmented sourcing into an integrated talent acquisition function.
 
-That combination is rare. You've lived inside health systems long enough to have operational credibility, and you've built talent infrastructure at scale while holding it accountable to business outcomes.`,
+**Capability:** When you say you'll handle something, it becomes a personal contract. People give you the hardest assignments because your word is your operating system.
+   - **Proof:** Scaled recruiting team 175% during COVID while migrating 300+ managers to Workday in eight weeks. Zero broken hiring cycles.
+
+**Capability:** You earn trust by going deep on people's actual problems, not by networking wide. People stake their reputation on your judgment.
+   - **Proof:** Built a referral program from nothing that now generates 34% of all hires.
+
+**Capability:** You diagnose fast. You see three or four paths before most people have finished defining the problem, and you pick the right one.
+   - **Proof:** Compressed offer decline rate from 22% to 9% by redesigning the offer experience and manager engagement — not by adding headcount.
+
+**Capability:** You start fast and finish clean. No overthinking, no cut corners. You build from zero and it holds.
+   - **Proof:** Built recruiting operations from 2 people to a 6-person function with process standards, metrics, and an employer brand that lifted application volume 40%.`,
 
 // ─── P4: THE WIDE VIEW ──────────────────────────────────────────────────
 
@@ -371,27 +382,33 @@ Ask yourself: do I want to operate (do the work) or design (build the system)? I
 
 p6: `## QUICK TAKEAWAY
 
-Your bridge story works because it shows the pattern you've built at scale and signals the type of role that energizes you next. **The core message: you turn talent problems into business results, you've delivered at scale in healthcare, and you're looking to build that infrastructure in a growth-stage digital health company.** This narrative works as a pivot from large-organization operator to startup builder.
+**The thing that makes you stick is the builder in you.** When you say "I have always been the person who builds things," the person across the table stops hearing a resume and starts hearing someone they need. That is your golden thread coming to life: the same instinct that drives your mentoring, your real estate portfolio, every system you have ever built from nothing. A growth-stage CEO does not want someone who has managed people operations. They want someone who will walk in and make it work.
 
 ---
 
-# YOUR BRIDGE STORY
+## 30-SECOND "TELL ME ABOUT YOURSELF"
 
-Your 30-second answer to "tell me about yourself."
-
----
-
-I'm a people-strategy leader who specializes in turning talent problems into business results. I spent 14 years building talent and recruiting infrastructure at Meridian Health System, a 14,000-person health system, where I cut clinical hiring costs by 4.2 million dollars, built a referral program that generates 34 percent of hires, and scaled the recruiting team 175 percent during COVID while executing a complex ATS migration. I'm now looking for a Chief People Officer role at a growth-stage digital health company where I can build people infrastructure from the ground up.
+I have always been the person who builds things. Not manages them, builds them. I spend my weekends mentoring emerging HR leaders, and the thing I keep telling them is the same thing that has driven my whole career: find the broken thing, figure out how it should work, and make it work. That instinct is how I ended up designing a referral program from scratch at Meridian Health System that now generates a third of all hires and saves 4.2 million dollars a year. When COVID hit, I scaled our recruiting team 175 percent while simultaneously migrating our entire applicant tracking system, because both had to happen and nobody was going to wait. I am looking for a Chief People Officer role at a growth-stage digital health company because that is where everything I care about converges: healthcare, building from the ground up, and proving that people infrastructure is not overhead, it is what makes the business scale.
 
 ---
 
-This is your foundation. Every longer conversation, phone screen, and formal interview builds on this core, so practice it until the words feel like yours and not a script. The goal is for someone to walk away knowing three things: what you do, what you've delivered, and what you're looking for next.`,
+## What Makes You Stick
+
+You lead with the builder, and that is the right call. It is not a branding exercise. It is genuinely who you are, and it shows up everywhere: the mentoring, the real estate, every major accomplishment on your resume. When a CEO hears that, they are not evaluating a qualification. They are picturing you in the room on day one, already figuring out what needs to work.
+
+## The Three Things They Remember
+
+- **Who you are** — a builder who walks into ambiguity and creates systems that work
+- **What you have delivered** — a referral program generating 34% of hires and saving $4.2M annually, built from nothing
+- **Where you are headed** — Chief People Officer at a growth-stage digital health company, where building from scratch is the job description
+
+When you tell this story, the listener does not hear a career change. They hear someone who has been building toward this their whole life.`,
 
 // ─── P7: GO-TO-MARKET ───────────────────────────────────────────────────
 
 p7: `## QUICK TAKEAWAY
 
-**You're looking for CEO/COO at Series B-C digital health companies** (post-PMF, scaling revenue). The most actionable thing this week: **identify 5-8 companies that fit the profile, find the CEO on LinkedIn, and send a personalized outreach email**. The target company list below has 40+ options, and 2-3 strong conversations this month put you in the funnel for interviews in the next 60 days.
+**The people you want to reach are CEOs and COOs at Series B-C digital health companies** (post-PMF, scaling revenue) — they're the ones who hire for the role you want. The most actionable thing this week: **pick 5-8 companies from the list below, find those leaders on LinkedIn, and send a personalized outreach email**. The full list has 40+ options, and 2-3 strong conversations this month put you in the funnel for interviews in the next 60 days.
 
 ---
 
@@ -509,22 +526,27 @@ Email: firstname@trustedhealth.com | www.trustedhealth.com
 
 ## PART 3: OUTREACH
 
+This follows the Making Your Own Weather three-paragraph direct outreach model: start with them, brief about me, why there might be a fit.
+
 **Email subject line:**
-"[Company Name] and scaling your people operations"
+"Your Ro piece on clinical hiring"
 
 **Email:**
 
-Hi [Name],
+Hi Rob,
 
-[Company Name] caught my attention because of [specific signal: recent funding round, new VP of Engineering hire, clinical expansion]. That usually means you're growing fast and the people side of the business is starting to feel the strain.
+I read the interview you did with Out of Pocket about why Ro decided to bring clinical hiring in-house instead of using staffing agencies. Your point about clinician experience starting at the hiring process stuck with me because I spent 14 years learning exactly how true that is from the health system side.
 
-I've spent the last 14 years at Meridian Health System (14,000 employees, Atlanta) building the kind of talent infrastructure that keeps pace with growth. A few examples: I cut $4.2M from clinical hiring costs by redesigning how we source and close candidates, built a referral program that now produces a third of our hires, and scaled our recruiting team 175% during COVID while migrating 300 managers to a new ATS without missing a beat.
+At Meridian Health System I redesigned how we source and close clinical candidates, which cut $4.2M from hiring costs. I built a referral program that now produces a third of all hires. When COVID hit and we needed to scale the recruiting team 175%, I did it while migrating 300 managers to a new ATS, because both had to happen at once.
 
-I'm exploring CPO roles at growth-stage digital health companies because I understand both sides of the equation: I know the health system problems your product is solving, and I know what breaks on the people side when a company scales quickly.
-
-Would 20 minutes make sense? I'd love to hear what's working and what's keeping you up at night on the talent side.
+I am exploring CPO roles at growth-stage digital health companies because I have lived the problems your clinicians face and I know what breaks on the people side when a company scales fast. Could we find 30 minutes? I would love to hear what you are learning now that clinical hiring is in-house.
 
 Best, Sarah
+
+**How to personalize for each company (3 things to change):**
+- **Paragraph 1:** Find something specific this person said, wrote, or announced. A podcast appearance, a blog post, a funding announcement, a conference talk. Generic observations ("your company is growing fast") do not work. Specific ones ("your point about X") do.
+- **Paragraph 2:** Choose the 2-3 accomplishments that connect most directly to what this particular company cares about. The facts stay the same. The emphasis shifts.
+- **Paragraph 3:** Name their specific challenge, not a generic industry problem. "Now that clinical hiring is in-house" is better than "on the talent side."
 
 ---
 
