@@ -226,9 +226,20 @@ You build people and recruiting systems that create measurable business results,
 
 ## YOUR VALUE PROPOSITION
 
-You bring healthcare operations credibility (14 years inside a complex, regulated, multi-location health system), process and systems thinking (Arranger + Strategic), and proven ability to solve talent problems that have direct P&L impact. You understand cost, you understand quality, you understand the constraints of regulated environments, and you can move fast without creating chaos.
+**Capability:** You see the whole system at once and instinctively redesign what's inefficient. Arranger + Strategic means you don't just fix what's in front of you — you reconfigure the pieces so the problem can't recur. This is pattern recognition wired into how you think, not a skill you learned.
+   - **Proof:** $4.2M annual cost reduction by redesigning clinical hiring from fragmented sourcing into an integrated talent acquisition function.
 
-That combination is rare. You've lived inside health systems long enough to have operational credibility, and you've built talent infrastructure at scale while holding it accountable to business outcomes.`,
+**Capability:** When you commit, it becomes a personal contract. Responsibility isn't your work ethic — it's your operating system. People hand you the hardest assignments because they know you won't drop them, even when the conditions turn against you.
+   - **Proof:** Scaled recruiting team 175% during COVID while simultaneously migrating 300+ managers to Workday in eight weeks — zero broken hiring cycles.
+
+**Capability:** Your influence comes from earned trust, not positional authority. You invest deeply in understanding people's actual problems rather than networking at surface level. That Relator wiring means people stake their reputation on your judgment.
+   - **Proof:** Built a referral program from nothing that now generates 34% of all hires — employees put their names on candidates because they trust yours.
+
+**Capability:** You diagnose fast. Achiever + Strategic means you see 3-4 possible paths almost immediately and mentally test which configuration produces the best outcome. You solve the real problem, not the obvious one.
+   - **Proof:** Compressed offer decline rate from 22% to 9% by redesigning the offer experience and manager engagement rather than adding headcount.
+
+**Capability:** You start fast and finish clean. Activator keeps you from overthinking while Responsibility keeps you from cutting corners — a rare combination that lets you build from zero without creating chaos.
+   - **Proof:** Built recruiting operations from 2 people to a 6-person function with process standards, metrics, sourcing strategy, and an employer brand that improved application volume 40%.`,
 
 // ─── P4: THE WIDE VIEW ──────────────────────────────────────────────────
 
@@ -391,7 +402,7 @@ This is your foundation. Every longer conversation, phone screen, and formal int
 
 p7: `## QUICK TAKEAWAY
 
-**You're looking for CEO/COO at Series B-C digital health companies** (post-PMF, scaling revenue). The most actionable thing this week: **identify 5-8 companies that fit the profile, find the CEO on LinkedIn, and send a personalized outreach email**. The target company list below has 40+ options, and 2-3 strong conversations this month put you in the funnel for interviews in the next 60 days.
+**The people you want to reach are CEOs and COOs at Series B-C digital health companies** (post-PMF, scaling revenue) — they're the ones who hire for the role you want. The most actionable thing this week: **pick 5-8 companies from the list below, find those leaders on LinkedIn, and send a personalized outreach email**. The full list has 40+ options, and 2-3 strong conversations this month put you in the funnel for interviews in the next 60 days.
 
 ---
 
