@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import * as mammoth from "mammoth"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 
 const SYS = `You are a Career Strategist within Reimagine, a career strategy tool by Career Club, built on Making Your Own Weather by Bob Goodwin.
@@ -352,6 +352,37 @@ function OutPanel({text,onCopy,copied,expandLabel}){
   </div>
 }
 
+const hasSpeech=typeof window!=='undefined'&&('SpeechRecognition' in window||'webkitSpeechRecognition' in window)
+function SpeechBtn({onResult,style}){
+  const[listening,setListening]=useState(false)
+  const recRef=useRef(null)
+  const toggle=()=>{
+    if(listening){recRef.current?.stop();return}
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition
+    if(!SR)return
+    const rec=new SR()
+    rec.continuous=true
+    rec.interimResults=true
+    rec.lang='en-US'
+    let finalText=''
+    rec.onresult=(e)=>{
+      let interim=''
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        if(e.results[i].isFinal)finalText+=e.results[i][0].transcript
+        else interim+=e.results[i][0].transcript
+      }
+      onResult(finalText+interim)
+    }
+    rec.onend=()=>setListening(false)
+    rec.onerror=()=>setListening(false)
+    recRef.current=rec
+    rec.start()
+    setListening(true)
+  }
+  return <button onClick={toggle} title={listening?'Stop listening':'Speak your feedback'} style={{display:'flex',alignItems:'center',justifyContent:'center',width:40,height:40,borderRadius:10,border:`2px solid ${listening?'#EF4444':C.border}`,background:listening?'#FEF2F2':'white',cursor:'pointer',transition:'all 0.2s',flexShrink:0,...(style||{})}}>
+    {listening?<MicOff size={18} color="#EF4444"/>:<Mic size={18} color={C.gray}/>}
+  </button>
+}
 function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel}){
   const[open,setOpen]=useState(false)
   return <div style={{marginTop:16,border:`2px solid ${C.border}`,borderRadius:12,overflow:'hidden',background:'#F7F8FA'}}>
@@ -365,8 +396,11 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
     </button>
     {open&&<div style={{background:'#FFFFFF',padding:'16px 20px',borderTop:`1px solid ${C.border}`}}>
       <div style={{fontSize:16,color:C.gray,marginBottom:12,lineHeight:1.65}}>{hint||'If anything feels off — wrong tone, missing context, something we misread — describe it here and we\'ll adjust.'}</div>
-      <textarea style={{...S.ta,minHeight:80}} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||'e.g. The seniority level feels too junior… you missed that I ran a P&L… the tone doesn\'t sound like me…'}/>
-      <div style={{fontSize:13,color:'#8A9BB8',marginTop:8,fontStyle:'italic'}}>Tip: You'll get better results describing what you want ("make it sound more like this…") than what you don't ("don't sound so corporate").</div>
+      <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+        <textarea style={{...S.ta,minHeight:80,flex:1}} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||'e.g. The seniority level feels too junior… you missed that I ran a P&L… the tone doesn\'t sound like me…'}/>
+        {hasSpeech&&<SpeechBtn onResult={t=>onChange(t)} style={{marginTop:2}}/>}
+      </div>
+      <div style={{fontSize:13,color:'#8A9BB8',marginTop:8,fontStyle:'italic'}}>{hasSpeech?'Tip: Tap the microphone to speak your feedback, or type it. ':''}You'll get better results describing what you want ("make it sound more like this…") than what you don't ("don't sound so corporate").</div>
       <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
         <Btn onClick={()=>{setOpen(false);onRegenerate(value)}}><RotateCcw size={13}/>{updateLabel||'Update with my changes'}</Btn>
         <Btn secondary onClick={()=>{onChange('');setOpen(false);onRegenerate('')}}><RotateCcw size={13}/>{freshLabel||'Start fresh'}</Btn>
@@ -701,8 +735,8 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
       <h1 style={S.title}>Values, Passions & Causes</h1>
       <p style={S.sub}>These two inputs separate a list of plausible options from a list of right options. Don't filter for professional relevance — that's our job.</p>
       <div style={S.card}>
-        <div style={S.field}><label style={S.label}>Core Values — 3 to 5 non-negotiables</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>The conditions under which you do your best work and feel most like yourself.</div><textarea style={{...S.ta,minHeight:70}} value={profile.values} onChange={e=>pr('values',e.target.value)} placeholder="e.g. Independence, Family, Justice, Stability, Wealth creation, Cooperation, Service, Faith, Intellectual challenge…"/></div>
-        <div style={S.field}><label style={S.label}>Passions, Interests & Causes — 3 to 5 things you care about</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>What do you read about for fun, volunteer your time for, or could talk about for 30 minutes with zero preparation? Include hobbies, industries that fascinate you, communities you belong to, and causes close to your heart.</div><textarea style={{...S.ta,minHeight:70}} value={profile.passions} onChange={e=>pr('passions',e.target.value)} placeholder="e.g. Youth mentoring, Formula 1, Fintech, Sustainability, Veterans' employment, Youth sports, Faith-based service, Addiction recovery, Women in leadership, Gaming, Geopolitics…"/></div>
+        <div style={S.field}><label style={S.label}>Core Values — 3 to 5 non-negotiables</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>The conditions under which you do your best work and feel most like yourself.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.values} onChange={e=>pr('values',e.target.value)} placeholder="e.g. Independence, Family, Justice, Stability, Wealth creation, Cooperation, Service, Faith, Intellectual challenge…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('values',t)}/>}</div></div>
+        <div style={S.field}><label style={S.label}>Passions, Interests & Causes — 3 to 5 things you care about</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>What do you read about for fun, volunteer your time for, or could talk about for 30 minutes with zero preparation? Include hobbies, industries that fascinate you, communities you belong to, and causes close to your heart.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.passions} onChange={e=>pr('passions',e.target.value)} placeholder="e.g. Youth mentoring, Formula 1, Fintech, Sustainability, Veterans' employment, Youth sports, Faith-based service, Addiction recovery, Women in leadership, Gaming, Geopolitics…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('passions',t)}/>}</div></div>
       </div>
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('assessment')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.values&&profile.passions?advance('values','reputation'):setErr('Please fill in both fields.')}>Continue <ChevronRight size={14}/></Btn></div>
@@ -713,7 +747,7 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
       <h1 style={S.title}>Your Reputation</h1>
       <p style={S.sub}>The hardest input to gather — and the most valuable. We're looking for external data: what others actually see in you.</p>
       <div style={S.card}>
-        {[['memory','The Memory',"Think of a specific moment at work when someone thanked you or praised you. What was the situation and what did they say?"],['emergency','The Emergency Call','If your former team had a critical problem right now, what type of situation would they call you to handle?'],['twoWords','The Two Words','If your best former manager described your professional superpower in exactly two words, what would they be?'],['other','Additional Feedback','Performance reviews, LinkedIn recommendations, 360 feedback — paste anything here.']].map(([f,lbl,hint])=><div key={f} style={S.field}><label style={S.label}>{lbl}</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>{hint}</div><textarea style={{...S.ta,minHeight:f==='other'?90:62}} value={profile.rep[f]} onChange={e=>rep(f,e.target.value)}/></div>)}
+        {[['memory','The Memory',"Think of a specific moment at work when someone thanked you or praised you. What was the situation and what did they say?"],['emergency','The Emergency Call','If your former team had a critical problem right now, what type of situation would they call you to handle?'],['twoWords','The Two Words','If your best former manager described your professional superpower in exactly two words, what would they be?'],['other','Additional Feedback','Performance reviews, LinkedIn recommendations, 360 feedback — paste anything here.']].map(([f,lbl,hint])=><div key={f} style={S.field}><label style={S.label}>{lbl}</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>{hint}</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:f==='other'?90:62,flex:1}} value={profile.rep[f]} onChange={e=>rep(f,e.target.value)}/>{hasSpeech&&<SpeechBtn onResult={t=>rep(f,t)}/>}</div></div>)}
         <div style={{fontSize:14,color:C.gray,fontStyle:'italic'}}>If you leave all blank, we'll generate a reputation hypothesis from your other data and ask you to validate it.</div>
       </div>
       <div style={S.row}><Btn secondary onClick={()=>nav('values')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('reputation','p1')}>Begin Phase 1 <ChevronRight size={14}/></Btn></div>
@@ -903,7 +937,7 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
               <div style={{fontSize:17,color:'#1E3A5F',lineHeight:1.6}}><strong style={{fontSize:18}}>Check the box next to up to 3 roles</strong> that interest you, from any combination of paths. Then scroll down and hit <span style={{display:'inline-block',padding:'3px 12px',background:C.gold,color:'white',borderRadius:6,fontSize:14,fontWeight:700,verticalAlign:'middle',margin:'0 3px',lineHeight:'22px'}}>Go Deeper <span style={{fontSize:12}}>›</span></span> at the bottom of the page.</div>
             </div>
             <div style={{display:'flex',gap:8,marginBottom:0,flexWrap:'wrap'}}>
-              {lanes.map((lane,i)=><button key={lane.key} onClick={()=>setLaneTab(i)} style={{padding:'14px 22px',borderRadius:10,border:`2px solid ${laneTab===i?C.gold:C.border}`,background:laneTab===i?`${C.gold}12`:'white',color:laneTab===i?C.goldL:'#4A5568',fontSize:16,fontWeight:laneTab===i?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s',flex:'1 1 0',textAlign:'center',minWidth:140}}>{lane.name}</button>)}
+              {lanes.map((lane,i)=><button data-lane-tab key={lane.key} onClick={()=>setLaneTab(i)} style={{padding:'14px 22px',borderRadius:10,border:`2px solid ${laneTab===i?C.gold:C.border}`,background:laneTab===i?`${C.gold}12`:'white',color:laneTab===i?C.goldL:'#4A5568',fontSize:16,fontWeight:laneTab===i?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s',flex:'1 1 0',textAlign:'center',minWidth:140}}>{lane.name}</button>)}
             </div>
             {activeLane&&<div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:'0 0 12px 12px',borderTop:'none',padding:'28px 30px',marginBottom:16}}>
               <div style={{fontSize:16,color:'#4A5568',lineHeight:1.7,marginBottom:20,fontStyle:'italic'}}>{activeLane.desc}</div>
@@ -947,7 +981,7 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
                     const isSelected=deepOpts.includes(title)
                     const canSelect=selected.length<3||isSelected
                     return <div key={bi} style={{marginBottom:16,border:`2px solid ${isSelected?C.gold:C.border}`,borderRadius:12,overflow:'hidden',transition:'all 0.2s'}}>
-                      <button onClick={()=>{if(canSelect)toggleOpt(title)}} style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'14px 20px',background:isSelected?`${C.gold}12`:'#FAFBFC',border:'none',borderBottom:`1px solid ${isSelected?`${C.gold}30`:C.border}`,cursor:canSelect?'pointer':'default',opacity:canSelect?1:0.5,fontFamily:'inherit',transition:'all 0.15s'}}>
+                      <button data-checkbox onClick={()=>{if(canSelect)toggleOpt(title)}} style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'14px 20px',background:isSelected?`${C.gold}12`:'#FAFBFC',border:'none',borderBottom:`1px solid ${isSelected?`${C.gold}30`:C.border}`,cursor:canSelect?'pointer':'default',opacity:canSelect?1:0.5,fontFamily:'inherit',transition:'all 0.15s'}}>
                         <div style={{width:24,height:24,borderRadius:6,border:`2px solid ${isSelected?C.gold:'#CBD5E0'}`,background:isSelected?C.gold:'white',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isSelected&&<Check size={14} color="white" strokeWidth={3}/>}</div>
                         <div style={{fontSize:17,fontWeight:700,color:isSelected?C.goldL:'#1A2540'}}>{title}</div>
                       </button>
@@ -1437,7 +1471,7 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
 
   return <>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
-    {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click] { pointer-events: auto; cursor: pointer; }`}</style>}
+    {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
     <div style={{height:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
       <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <a href="/" style={{textDecoration:'none',cursor:'pointer'}}>
