@@ -439,8 +439,11 @@ export default function PivotEngine(){
   const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:''})}}
   const exportProfile=()=>{const data={profile,outputs,done,deepOpts,chosen};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
   const downloadOnePager=()=>{
-    const name=(profile.resume||'').split(/\n/)[0]?.replace(/[^a-zA-Z ]/g,'').trim()||'Your Name'
+    const rawFirstLine=(profile.resume||'').split(/\n/).find(l=>l.trim())||''
+    const nameParts=rawFirstLine.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ')
+    const name=nameParts.length>2&&nameParts.length<50?nameParts:'Your Name'
     const date=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
+    const fileDate=new Date().toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'-')
     const esc=t=>(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     const md2html=t=>(t||'').split('\n').map(l=>l.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')).join('<br>')
     const extractSection=(text,headings)=>{
@@ -452,15 +455,19 @@ export default function PivotEngine(){
       }
       return ''
     }
-    const brandText=outputs.p3?outputs.p3.split('\n').filter(l=>l.trim()&&!l.startsWith('#')).slice(0,6).join('\n'):''
-    const bridgeText=outputs.p6?outputs.p6.split('\n').filter(l=>l.trim()&&!l.startsWith('#')).slice(0,8).join('\n'):''
-    const topAccomp=outputs.p1?outputs.p1.split('\n').filter(l=>l.trim().startsWith('-')||l.trim().startsWith('•')||l.trim().match(/^\d+\./)).slice(0,5).join('\n'):''
-    const headlineMatch=outputs.p8&&outputs.p8.match(/(?:headline|tagline)[:\s]*\n*(.+)/i)
+    const getSection=(text,headings)=>{if(!text)return '';for(const h of headings){const re=new RegExp('(?:^|\\n)#+\\s*'+h.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*\\n([\\s\\S]*?)(?=\\n#+\\s|$)','i');const m=text.match(re);if(m)return m[1].trim()}return ''}
+    const getQuickTakeaway=(text)=>{if(!text)return '';const m=text.match(/##\s*QUICK TAKEAWAY\s*\n([\s\S]*?)(?=\n---|\n##\s)/i);return m?m[1].trim():''}
+    const getBullets=(text,max=5)=>{if(!text)return '';return text.split('\n').filter(l=>l.trim().startsWith('-')||l.trim().startsWith('•')||l.trim().match(/^\d+\./)).slice(0,max).join('\n')}
+    const personalBrand=getSection(outputs.p3,['YOUR PERSONAL BRAND','PERSONAL BRAND'])||getQuickTakeaway(outputs.p3)
+    const goldenThread=getSection(outputs.p3,['THE GOLDEN THREAD','GOLDEN THREAD'])
+    const bridgeTMAY=getSection(outputs.p6,['30-SECOND','TELL ME ABOUT YOURSELF'])||getQuickTakeaway(outputs.p6)
+    const topAccomp=getBullets(getSection(outputs.p1,['TRANSLATED ACCOMPLISHMENTS','ACCOMPLISHMENTS']),5)||getBullets(outputs.p1,5)
+    const headlineMatch=outputs.p8&&outputs.p8.match(/(?:Option [AB].*?:\s*\n|headline.*?:\s*\n)([^\n]+)/im)
     const headline=headlineMatch?headlineMatch[1].trim().replace(/\*\*/g,''):''
-    const companyLines=outputs.p7?outputs.p7.split('\n').filter(l=>l.trim().startsWith('**')&&!l.includes('PART')&&!l.includes('##')).slice(0,5).map(l=>l.replace(/\*\*/g,'')).join('\n'):''
-    const talkingPoints=outputs.p10?outputs.p10.split('\n').filter(l=>l.trim().startsWith('-')||l.trim().startsWith('•')||l.trim().match(/^\d+\./)).slice(0,5).join('\n'):''
+    const companyLines=outputs.p7?outputs.p7.split('\n').filter(l=>/^\*\*[A-Z]/.test(l.trim())&&!l.includes('PART')&&!l.includes('##')&&!l.includes('Email')&&!l.includes('Why it fits')).slice(0,8).map(l=>l.replace(/\*\*/g,'')).join('\n'):''
+    const valueProps=getSection(outputs.p3,['YOUR VALUE PROPOSITION','VALUE PROPOSITION'])
     const section=(title,content)=>content?`<div class="section"><h2>${esc(title)}</h2><div class="content">${md2html(content)}</div></div>`:''
-    const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reimagine Summary — ${esc(name)}</title>
+    const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reimagine by Career Club Findings - ${esc(name)} - ${esc(fileDate)}</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
@@ -479,18 +486,21 @@ body{font-family:Outfit,sans-serif;font-size:11px;color:#1A2540;line-height:1.55
 .footer{margin-top:auto;padding-top:10px;border-top:1px solid #E2E8F0;font-size:9px;color:#94A3B8;display:flex;justify-content:space-between}
 @media print{body{padding:0}@page{margin:0.6in 0.7in}}
 </style></head><body>
-<div class="header"><div><div class="badge">Reimagine</div><h1>${esc(name)}</h1></div><div class="sub">Career Strategy Summary · ${esc(date)}</div></div>
-${chosen?`<div class="chosen">Direction: ${esc(chosen)}</div>`:''}
+<div class="header"><div><div class="badge">Reimagine by Career Club</div><h1>${esc(name)}</h1></div><div class="sub">Career Strategy Findings · ${esc(date)}</div></div>
+${chosen?`<div class="chosen">Pursuing: ${esc(chosen)}</div>`:''}
+${section('The Golden Thread',goldenThread)}
+${section('Personal Brand',personalBrand)}
 ${headline?`<div class="section"><h2>LinkedIn Headline</h2><div class="content" style="font-size:12px;font-weight:600">${esc(headline)}</div></div>`:''}
+${section('Tell Me About Yourself',bridgeTMAY)}
 <div class="grid">
-${section('Personal Brand',brandText)}
-${section('Bridge Story',bridgeText)}
+${section('Value Proposition',valueProps)}
 ${section('Top Accomplishments',topAccomp)}
-${section('Target Companies',companyLines)}
-${section('Interview Talking Points',talkingPoints)}
-${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
 </div>
-<div class="footer"><span>Generated by Reimagine · Career Club</span><span>${esc(date)}</span></div>
+<div class="grid">
+${section('Target Companies',companyLines)}
+${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','THE THREE THINGS']))}
+</div>
+<div class="footer"><span>Reimagine by Career Club · career.club</span><span>${esc(date)}</span></div>
 </body></html>`
     const w=window.open('','_blank')
     if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),500)}
@@ -1212,7 +1222,6 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
           <div style={{fontSize:15,color:C.gray,marginBottom:16}}>Take your Reimagine work with you.</div>
           <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
             <Btn onClick={downloadOnePager}><Download size={14}/>Download One-Pager (PDF)</Btn>
-            {!isDemo&&<Btn secondary onClick={exportProfile}><Download size={14}/>Export Profile</Btn>}
             {!isDemo&&<Btn secondary onClick={reset}><RotateCcw size={14}/>Start a New Session</Btn>}
           </div>
         </div>
