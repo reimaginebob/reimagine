@@ -721,9 +721,9 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
       {loading&&<Loading msg={loadMsg||'Analyzing your career and translating accomplishments…'}/>}
       {outputs.p1&&<>
         <OutPanel text={outputs.p1} onCopy={copy} copied={copied}/>
-        {!isDemo&&<RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} onRegenerate={v=>{out('p1','');generate('p1',()=>P.p1(pc)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
+        {!isDemo&&<RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} hint="Missing an accomplishment, or something feels off about how your experience was read? Tell us what to adjust." placeholder="e.g. You missed my biggest project… the seniority level feels too junior… I also managed a P&L…" onRegenerate={v=>{out('p1','');generate('p1',()=>P.p1(pc)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now that we see what you've built, let's understand how you're wired — and what environments bring out your best work.</div>}
-      {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p1','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p1','p2')}>Explore My Wiring <ChevronRight size={14}/></Btn></div>}
+      {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p1','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p1','p2')}>Explore My Wiring <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -736,9 +736,9 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
       {loading&&<Loading msg="Cross-referencing assessment, values, and accomplishments…"/>}
       {outputs.p2&&<>
         <OutPanel text={outputs.p2} onCopy={copy} copied={copied}/>
-        {!isDemo&&<RefineBox value={feedback.p2} onChange={v=>setFb('p2',v)} onRegenerate={v=>{out('p2','');generate('p2',()=>P.p2(pc,outputs.p1)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
+        {!isDemo&&<RefineBox value={feedback.p2} onChange={v=>setFb('p2',v)} hint="Does this capture how you actually work and what energizes you? If something is off, describe what we missed." placeholder="e.g. I actually thrive in fast-paced environments… my passion for mentoring is stronger than shown… the culture description doesn't match me…" onRegenerate={v=>{out('p2','');generate('p2',()=>P.p2(pc,outputs.p1)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Time to bring it all together — your accomplishments, your wiring, and your values — into one clear statement of who you are professionally.</div>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p2','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p2','p3')}>Build My Brand <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p2','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p2','p3')}>Build My Brand <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -753,9 +753,9 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
       {loading&&<Loading msg="Finding the pattern across all your data…"/>}
       {outputs.p3&&<>
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
-        {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} onRegenerate={v=>{out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
+        {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the brand or value proposition misses the mark, tell us what feels off." placeholder="e.g. The personal brand doesn't capture my leadership style… you missed my strongest capability… the golden thread isn't quite right…" onRegenerate={v=>{out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Let's see what's possible — the full landscape of directions that fit your strengths, values, and interests.</div>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -906,8 +906,9 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
             <div style={{margin:'20px 0 12px',fontSize:16,color:'#4A5568',lineHeight:1.65}}>Read through your options below, then <strong style={{color:'#1A2540'}}>select up to 3 roles</strong> from the checklist that follows. We'll go deep on the ones you choose.</div>
             <div style={{marginTop:0}}><OutPanel text={outputs.p4} onCopy={copy} copied={copied} expandLabel="Click here to see all your options"/></div>
           </>}
-          {!isDemo&&available.length>0&&<div style={{marginTop:12,textAlign:'center'}}>
-            <button onClick={()=>{if(p4RefineRef.current){p4RefineRef.current.scrollIntoView({behavior:'smooth',block:'center'})}}} style={{background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:15,color:'#3B82F6',fontWeight:600,padding:'8px 16px',borderRadius:8,transition:'background 0.15s'}} onMouseEnter={e=>e.target.style.background='#EEF4FF'} onMouseLeave={e=>e.target.style.background='none'}>Not seeing what you're looking for? Tell us what to change.</button>
+          {!isDemo&&available.length>0&&<div style={{marginTop:16,padding:'14px 20px',background:'#F7F8FA',border:`1.5px dashed ${C.border}`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',gap:10}}>
+            <span style={{fontSize:15,color:C.gray}}>Not seeing what you're looking for?</span>
+            <button onClick={()=>{if(p4RefineRef.current){p4RefineRef.current.scrollIntoView({behavior:'smooth',block:'center'}); const btn=p4RefineRef.current.querySelector('button');if(btn)btn.click()}}} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:15,fontWeight:600,color:'#1A2540',padding:'8px 16px',transition:'all 0.15s'}} onMouseEnter={e=>{e.target.style.borderColor=C.gold;e.target.style.color=C.goldL}} onMouseLeave={e=>{e.target.style.borderColor=C.border;e.target.style.color='#1A2540'}}>Tell us what to change</button>
           </div>}
           {selected.length>0&&<div style={{marginTop:16,padding:'14px 18px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
             <div style={{fontSize:16,color:'#1A2540'}}>Ready to explore ({selected.length}/3): {selected.map((s,i)=><strong key={i} style={{color:C.goldL,marginRight:8}}>{s}</strong>)}</div>
@@ -1013,14 +1014,14 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
               </div>}
             </>:<div style={S.out}><MD text={outputs.p5}/></div>}
           </>}
-          {!isDemo&&<RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} onRegenerate={v=>{out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000,msg:'Rebuilding your deep dive…'})}}/>}
+          {!isDemo&&<RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} hint="Want more detail on a specific option, or feel like something was misread about your fit? Tell us what to adjust." placeholder="e.g. Option A doesn't reflect my actual experience with that kind of role… I need more on the day-to-day reality… the obstacle you flagged isn't really a concern for me…" onRegenerate={v=>{out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000,msg:'Updating your deep dive…'})}}/>}
           {!isDemo&&<>
             <div style={{margin:'24px 0 12px',padding:'16px 20px',background:'#FFF8F0',border:`2px solid ${C.gold}40`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
               <span style={{fontSize:16,color:C.goldL,fontWeight:500}}>Not what you expected? Go back and explore different options.</span>
               <Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p4')}}><ArrowLeft size={13}/>Choose Different Options</Btn>
             </div>
             <div style={S.row}>
-              <Btn secondary onClick={()=>{out('p5','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Regenerate</Btn>
+              <Btn secondary onClick={()=>{out('p5','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn>
               <Btn onClick={()=>advance('p5','decision')}>Make My Decision <ChevronRight size={14}/></Btn>
             </div>
           </>}
@@ -1065,7 +1066,7 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
       <div style={S.note}>Pursuing: <strong style={{color:C.cream}}>{chosen}</strong></div>
       {!isDemo&&!outputs.p6&&!loading&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
       {loading&&<Loading msg="Crafting your bridge story in three lengths…"/>}
-      {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} onRegenerate={v=>{out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p6','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
+      {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? If the tone or content feels off, tell us how to adjust." placeholder="e.g. The opening doesn't sound like me… I want to lead with a different part of my background… the ending needs to be stronger…" onRegenerate={v=>{out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p6','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -1117,10 +1118,10 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
             }} style={{flexShrink:0}}>Download CSV</Btn>
           </div>
           {part34&&<div style={S.out}><MD text={part34}/></div>}
-          {!isDemo&&<RefineBox value={feedback.p7} onChange={v=>setFb('p7',v)} onRegenerate={v=>{out('p7','');generate('p7',()=>P.p7(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{webSearch:true,maxTokens:6000})}}/>}
+          {!isDemo&&<RefineBox value={feedback.p7} onChange={v=>setFb('p7',v)} hint="Want companies in a different region, industry, or size range? Or need the outreach message adjusted? Tell us what to change." placeholder="e.g. Focus on companies in the Southeast… add more startups and fewer enterprise companies… the outreach tone is too formal…" updateLabel="Update my strategy" freshLabel="Show me a fresh set" onRegenerate={v=>{out('p7','');generate('p7',()=>P.p7(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{webSearch:true,maxTokens:6000})}}/>}
           {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Companies identified. Now let's update how you show up online so the right people can find you.</div>}
           {!isDemo&&<div style={S.row}>
-            <Btn secondary onClick={()=>{out('p7','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Regenerate</Btn>
+            <Btn secondary onClick={()=>{out('p7','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn>
             <Btn onClick={()=>advance('p7','p8')}>Remix My LinkedIn <ChevronRight size={14}/></Btn>
           </div>}
         </>
@@ -1136,7 +1137,7 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
       {!isDemo&&<p style={S.sub}>Your LinkedIn profile is how companies and recruiters find you. If it still describes your last role, the right people can't find you for the next one.</p>}
       {!isDemo&&!outputs.p8&&!loading&&<Btn onClick={()=>generate('p8',()=>P.p8(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Remix My LinkedIn</Btn>}
       {loading&&<Loading msg="Rewriting your LinkedIn for your new direction…"/>}
-      {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p8} onChange={v=>setFb('p8',v)} onRegenerate={v=>{out('p8','');generate('p8',()=>P.p8(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>LinkedIn updated. Now let's reshape your resume so the strongest evidence lands in the first 7 seconds.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p8','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p8','p_res')}>Refresh My Resume <ChevronRight size={14}/></Btn></div>}</>}
+      {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p8} onChange={v=>setFb('p8',v)} hint="Want a different headline angle, or does the About section need a different tone? Tell us what to adjust." placeholder="e.g. The headline is too generic… I want the About section to lead with something different… add more keywords for my target role…" onRegenerate={v=>{out('p8','');generate('p8',()=>P.p8(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>LinkedIn updated. Now let's reshape your resume so the strongest evidence lands in the first 7 seconds.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p8','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p8','p_res')}>Refresh My Resume <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -1149,7 +1150,7 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
       <div style={S.note}>Targeting: <strong style={{color:C.cream}}>{chosen}</strong></div>
       {!isDemo&&!outputs.p_res&&!loading&&<Btn onClick={()=>generate('p_res',()=>P.p_res(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Refresh My Resume</Btn>}
       {loading&&<Loading msg="Rewriting your resume for your new direction…"/>}
-      {outputs.p_res&&<><OutPanel text={outputs.p_res} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p_res} onChange={v=>setFb('p_res',v)} onRegenerate={v=>{out('p_res','');generate('p_res',()=>P.p_res(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Almost there. Let's prepare you for the conversations ahead — the landscape, the language, and the questions you'll face.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p_res','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p_res','p9')}>Build My Playbook <ChevronRight size={14}/></Btn></div>}</>}
+      {outputs.p_res&&<><OutPanel text={outputs.p_res} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p_res} onChange={v=>setFb('p_res',v)} hint="Want different accomplishments in the Greatest Hits, or need the summary reframed? Tell us what to change." placeholder="e.g. Lead with my operations experience instead… the summary doesn't capture my pivot well… add the project I led at my second company…" onRegenerate={v=>{out('p_res','');generate('p_res',()=>P.p_res(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Almost there. Let's prepare you for the conversations ahead — the landscape, the language, and the questions you'll face.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p_res','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p_res','p9')}>Build My Playbook <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -1164,8 +1165,8 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
       {outputs.p9&&<>
         <OutPanel text={outputs.p9} onCopy={copy} copied={copied}/>
         {outputs.p10&&<><div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>Interview Prep</h2><p style={{fontSize:16,color:C.gray,marginTop:6}}>The questions that will come up and how to talk about each one with confidence.</p></div><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/></>}
-        {!isDemo&&<RefineBox value={feedback.p9} onChange={v=>setFb('p9',v)} onRegenerate={v=>{out('p9','');out('p10','');setLoading(true);setErr(null);setLoadMsg('Rebuilding your playbook...');Promise.all([callClaude(P.p9(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:2000})]).then(([r1,r2])=>{out('p9',r1);out('p10',r2)}).catch(e=>setErr(e.message)).finally(()=>setLoading(false))}}/>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p9','');out('p10','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>{markDone('p9');markDone('p10');advance('p9','complete')}}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<RefineBox value={feedback.p9} onChange={v=>setFb('p9',v)} hint="Need different interview questions, or want the crash course to cover a specific topic? Tell us what to adjust." placeholder="e.g. Add questions about my career pivot… I need to know more about a specific technology… the interview prep should focus on executive-level conversations…" onRegenerate={v=>{out('p9','');out('p10','');setLoading(true);setErr(null);setLoadMsg('Updating your playbook...');Promise.all([callClaude(P.p9(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:2000})]).then(([r1,r2])=>{out('p9',r1);out('p10',r2)}).catch(e=>setErr(e.message)).finally(()=>setLoading(false))}}/>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p9','');out('p10','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>{markDone('p9');markDone('p10');advance('p9','complete')}}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -1286,8 +1287,8 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
       {loading&&<Loading msg="Building your Income Now plan — this one is thorough…"/>}
       {outputs.income&&<>
         <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
-        {!isDemo&&<RefineBox value={feedback.income} onChange={v=>setFb('income',v)} onRegenerate={v=>{out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000})}}/>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('income','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
+        {!isDemo&&<RefineBox value={feedback.income} onChange={v=>setFb('income',v)} hint="Want to focus on a different kind of income stream, or need the rates adjusted for your market? Tell us what to change." placeholder="e.g. I want more consulting options and fewer platform-based ideas… adjust rates for my geography… I have existing clients I can leverage…" updateLabel="Update my plan" freshLabel="Show me a fresh plan" onRegenerate={v=>{out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000})}}/>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('income','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
