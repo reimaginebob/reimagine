@@ -785,7 +785,7 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
               const titleMatch=block.match(/^([^*\n]+)\*\*/)
               if(!titleMatch)continue
               const title=titleMatch[1].trim()
-              if(/^Built on|^Your insider|^You know|^Builds directly|^The intersection|^This path|^Ecosystem|^Adjacent|^Clients|^Vendors|^Consultants|^Upstream/i.test(title))continue
+              if(/^Built on|^Your insider|^You know|^Builds directly|^The intersection|^This path|^Ecosystem|^Adjacent|^Clients|^Vendors|^Consultants|^Upstream|^Vehicle|^Organization Type|^Title:|^Why it fits|^Worth considering|^What you|^The key|^EMPATHY|^Why you are|^What closes/i.test(title))continue
               const whyMatch=block.match(/\*Why it fits:\*\s*([^\n]+)/i)||block.match(/Why it fits:\s*([^\n]+)/i)||block.match(/\*?E(?:MPATHY )?ADVANTAGE:\*?\*?\s*([^\n]+)/i)
               let whyFit=whyMatch?whyMatch[1].replace(/^EMPATHY ADVANTAGE:\s*/i,'').trim():''
               if(!whyFit){const lines=block.split('\n').filter(l=>l.trim()&&!l.startsWith('*')&&!/^(Vehicle|Organization Type|Title):/i.test(l.trim()));if(lines.length>1)whyFit=lines.slice(1).join(' ').trim().substring(0,300)}
@@ -797,7 +797,8 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
           }
           return{takeaway,lanes}
         }
-        const{takeaway:p4Takeaway,lanes}=parseLanes(outputs.p4)
+        const{takeaway:p4Takeaway,lanes:rawLanes}=parseLanes(outputs.p4)
+        const lanes=rawLanes.filter(l=>l.roles.length>0)
         const extractOptions=(text)=>{
           if(!text)return[]
           const opts=[]
@@ -818,7 +819,7 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
               trimLine.match(/^\d+[\.\)]\s+([A-Z][^\n]{4,80})(?:\s*[-—:]|$)/)
             if(titleMatch){
               let title=titleMatch[1].replace(/\*\*/g,'').replace(/^\d+[\.\)]\s*/,'').replace(/\s*[-—:].*/,'').trim()
-              if(title.length>4&&title.length<100&&!/^(Vehicle|Organization Type|Title|For each|Start with|The intersection|Builds directly|You know|This path|Your track|Your insider|Adjacent|Ecosystem|Clients|Vendors|Consultants|Upstream|What has changed|Why you are|What closes)/i.test(title))
+              if(title.length>4&&title.length<100&&!/^(Vehicle|Organization Type|Title|For each|Start with|The intersection|Builds directly|You know|This path|Your track|Your insider|Adjacent|Ecosystem|Clients|Vendors|Consultants|Upstream|Downstream|Trade Associations|Educators|Regulators|What has changed|Why you are|What closes|EMPATHY|Why it fits|Worth considering|Token Budget)/i.test(title))
                 opts.push({title,lane:currentLane})
             }
           }
@@ -841,7 +842,8 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
             <MD text={`## QUICK TAKEAWAY\n${p4Takeaway}`}/>
           </div>}
           {lanes.length>0&&<>
-            <div style={{display:'flex',gap:8,marginTop:16,marginBottom:0,flexWrap:'wrap'}}>
+            <div style={{margin:'20px 0 12px',fontSize:16,color:'#4A5568',lineHeight:1.65}}>Browse each path below. <strong style={{color:'#1A2540'}}>Select up to 3 roles</strong> that interest you, from any combination of paths. Once you've chosen, we'll go deep on each one.</div>
+            <div style={{display:'flex',gap:8,marginBottom:0,flexWrap:'wrap'}}>
               {lanes.map((lane,i)=><button key={lane.key} onClick={()=>setLaneTab(i)} style={{padding:'14px 22px',borderRadius:10,border:`2px solid ${laneTab===i?C.gold:C.border}`,background:laneTab===i?`${C.gold}12`:'white',color:laneTab===i?C.goldL:'#4A5568',fontSize:16,fontWeight:laneTab===i?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s',flex:'1 1 0',textAlign:'center',minWidth:140}}>{lane.name}</button>)}
             </div>
             {activeLane&&<div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:'0 0 12px 12px',borderTop:'none',padding:'28px 30px',marginBottom:16}}>
@@ -859,11 +861,14 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
                     <button onClick={()=>toggleOpt(role.title)} style={{padding:'8px 16px',borderRadius:8,border:`2px solid ${isSelected?C.gold:C.border}`,background:isSelected?`${C.gold}15`:'white',color:isSelected?C.goldL:'#374258',fontSize:14,fontWeight:600,cursor:selected.length>=3&&!isSelected?'not-allowed':'pointer',opacity:selected.length>=3&&!isSelected?0.5:1,fontFamily:'inherit',transition:'all 0.15s',flexShrink:0,whiteSpace:'nowrap'}}>{isSelected?<><Check size={12} color={C.gold} strokeWidth={3} style={{marginRight:4,display:'inline',verticalAlign:'middle'}}/>Selected</>:'Select'}</button>
                   </div>
                 </div>
-              }):<div style={S.out}><MD text={outputs.p4}/></div>}
+              }):<div style={{fontSize:15,color:C.gray,fontStyle:'italic',padding:'8px 0'}}>Use the selection panel below to choose roles from this path.</div>}
             </div>}
           </>}
-          {lanes.length===0&&<div style={{marginTop:16}}><OutPanel text={outputs.p4} onCopy={copy} copied={copied} expandLabel="Click here to see all your options"/></div>}
-          {(lanes.length===0&&available.length>0)&&<div style={{marginTop:20,padding:'20px 24px',background:'white',border:`1.5px solid ${C.border}`,borderRadius:12}}>
+          {lanes.length===0&&<>
+            <div style={{margin:'20px 0 12px',fontSize:16,color:'#4A5568',lineHeight:1.65}}>Read through your options below, then <strong style={{color:'#1A2540'}}>select up to 3 roles</strong> from the checklist that follows. We'll go deep on the ones you choose.</div>
+            <div style={{marginTop:0}}><OutPanel text={outputs.p4} onCopy={copy} copied={copied} expandLabel="Click here to see all your options"/></div>
+          </>}
+          {available.length>0&&<div style={{marginTop:20,padding:'20px 24px',background:'white',border:`1.5px solid ${C.border}`,borderRadius:12}}>
             <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:4}}>Select up to 3 roles to explore further</div>
             <div style={{fontSize:14,color:C.gray,marginBottom:16}}>Click any role below, then hit "Go Deeper" to get a detailed breakdown.</div>
             {available.map((opt,i)=>{
@@ -879,7 +884,7 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
             <div style={{fontSize:16,color:'#1A2540'}}>Ready to explore ({selected.length}/3): {selected.map((s,i)=><strong key={i} style={{color:C.goldL,marginRight:8}}>{s}</strong>)}</div>
             <Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn>
           </div>}
-          {selected.length===0&&available.length>0&&!lanes.length&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Select at least one role above to continue.</div>}
+          {selected.length===0&&available.length>0&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Select at least one role above to continue.</div>}
         </>
       })()}
       {err&&<ErrBox msg={err}/>}
@@ -944,7 +949,10 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
         <h1 style={S.title}>The Deep Dive</h1>
         {!isDemo&&<p style={S.sub}>It's easy to get excited about an option on paper. This step shows what the role actually looks like and how your background maps to it.</p>}
         {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{...S.note,marginBottom:16}}>Exploring: {filledOpts.map((o,i)=><strong key={i} style={{color:'#1A2540',marginRight:12,cursor:'default'}}>{o}</strong>)}</div>}
-        {!isDemo&&!outputs.p5&&!loading&&filledOpts.length>0&&<Btn onClick={()=>generate('p5',()=>P.p5(pc,outputs,deepOpts),{maxTokens:6000,msg:'Building your deep dive…'})}><Sparkles size={14}/>Explore These Options</Btn>}
+        {!isDemo&&!outputs.p5&&!loading&&filledOpts.length>0&&<div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap'}}>
+          <Btn onClick={()=>generate('p5',()=>P.p5(pc,outputs,deepOpts),{maxTokens:6000,msg:'Building your deep dive…'})}><Sparkles size={14}/>Explore These Options</Btn>
+          <Btn secondary onClick={()=>nav('p4')}><ArrowLeft size={13}/>Change My Selections</Btn>
+        </div>}
         {!isDemo&&filledOpts.length===0&&!outputs.p5&&<div style={{...S.err,marginTop:0}}><AlertCircle size={13} color={C.err} style={{flexShrink:0}}/><span>Go back to The Wide View and select at least one option to explore.</span></div>}
         {loading&&<Loading msg={loadMsg||'Building your deep dive…'}/>}
         {outputs.p5&&<>
