@@ -656,7 +656,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{...S.card,marginBottom:20}}>
         <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>How It Works</div>
         <div style={{background:`${C.gold}06`,borderRadius:10,padding:'14px 18px',marginBottom:20,border:`1px solid ${C.gold}20`}}>
-          <div style={{fontSize:17,color:'#2D3748',lineHeight:1.7}}>This is a coaching partnership, not a vending machine. <strong style={{color:'#1A2540'}}>We'll work through your story together — step by step, with back-and-forth at every stage.</strong> You bring your experience and honest reactions. We'll bring structure, pattern recognition, and language that makes your value impossible to miss. The end product is something you own and believe in, because you shaped it.</div>
+          <div style={{fontSize:17,color:'#2D3748',lineHeight:1.7}}>Reimagine works best as a conversation. <strong style={{color:'#1A2540'}}>At every step, you'll review what we've built and tell us what feels right and what doesn't.</strong> You bring your experience and honest reactions. We'll bring structure, pattern recognition, and language that makes your value impossible to miss. The end product is something you own and believe in, because you shaped it.</div>
         </div>
         {[
           ['1','Know Your Value','Your experience has created more value than most resumes show. Together we uncover it and put it in language any industry understands.'],
