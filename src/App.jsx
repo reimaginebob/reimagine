@@ -429,7 +429,7 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
       <div style={{fontSize:13,color:'#8A9BB8',marginTop:8,fontStyle:'italic'}}>{hasSpeech?'Tip: Tap the microphone to speak your feedback, or type it. ':''}You'll get better results describing what you want ("make it sound more like this…") than what you don't ("don't sound so corporate").</div>
       <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
         <Btn onClick={()=>{setOpen(false);onRegenerate(value)}}><RotateCcw size={13}/>{updateLabel||'Update with my changes'}</Btn>
-        <Btn secondary onClick={()=>{onChange('');setOpen(false);onRegenerate('')}}><RotateCcw size={13}/>{freshLabel||'Redo This Step'}</Btn>
+        <Btn secondary onClick={()=>{if(confirm('This will clear the current output and regenerate from scratch. Continue?')){onChange('');setOpen(false);onRegenerate('')}}}><RotateCcw size={13}/>{freshLabel||'Redo This Step'}</Btn>
       </div>
     </div>}
   </div>
@@ -675,21 +675,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>)}
       </div>
 
-      <div style={{...S.card,marginBottom:20}}>
-        <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>The Framework</div>
-        <p style={{fontSize:18,color:'#2D3748',lineHeight:1.7,marginBottom:18}}>Everything in Reimagine is built on a framework called the 4 C's. It goes in order, and each step builds on the one before it.</p>
-        {[
-          ['Convictions','What is actually, demonstrably true about you: your values, your wiring, your track record, and what people consistently say about you.'],
-          ['Clarity','When your convictions are solid, the right opportunities become visible, and you can make better choices about where to focus.'],
-          ['Confidence','Evidence-based self-belief. When you can point to real evidence of who you are and what you\'ve done, you carry that into every conversation.'],
-          ['Contagious','When you believe, others believe too. That\'s the natural result of Convictions, Clarity, and Confidence.'],
-        ].map(([t,d])=><div key={t} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
-          <div style={{width:7,height:7,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:10}}/>
-          <div><span style={{fontWeight:700,fontSize:18,color:'#1A2540'}}>{t}. </span><span style={{fontSize:18,color:'#2D3748',lineHeight:1.7}}>{d}</span></div>
-        </div>)}
-        <p style={{fontSize:18,color:'#2D3748',lineHeight:1.7,marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`,fontWeight:500}}>Everything that follows is building that foundation with you.</p>
-      </div>
-
       <div style={{...S.card,marginBottom:24}}>
         <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>A Few Things Worth Knowing</div>
         {[
@@ -828,7 +813,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <OutPanel text={outputs.p1} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} hint="Missing an accomplishment, or something feels off about how your experience was read? Tell us what to adjust." placeholder="e.g. You missed my biggest project… the seniority level feels too junior… I also managed a P&L…" onRegenerate={v=>{out('p1','');generate('p1',()=>P.p1(pc)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Now that we see what you've built, let's understand how you're wired — and what environments bring out your best work.</div>}
-      {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p1','');scrollTop()}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p1','p2')}>Explore My Wiring <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={{...S.card,marginTop:16,marginBottom:14,background:'#FAFBFC',borderLeft:`3px solid ${C.gold}`}}>
+          <div style={{fontSize:16,fontWeight:700,color:C.goldL,marginBottom:10,letterSpacing:'0.5px',textTransform:'uppercase'}}>The Framework Behind This</div>
+          <p style={{fontSize:16,color:'#2D3748',lineHeight:1.7,marginBottom:14}}>Everything in Reimagine follows a progression called the 4 C's. You just completed the first one.</p>
+          {[['Convictions','What is demonstrably true about you: your values, your wiring, your track record, and what people say about you.','✓ You are here'],['Clarity','When your convictions are solid, the right opportunities become visible.','Coming next'],['Confidence','Evidence-based self-belief. When you can back it up, you carry it into every conversation.',''],['Contagious','When you believe, others believe too.','']].map(([t,d,badge])=><div key={t} style={{display:'flex',gap:12,marginBottom:10,alignItems:'flex-start'}}>
+            <div style={{width:7,height:7,borderRadius:'50%',background:badge==='✓ You are here'?C.ok:C.gold,flexShrink:0,marginTop:8}}/>
+            <div style={{flex:1}}><span style={{fontWeight:700,fontSize:16,color:'#1A2540'}}>{t}.</span> <span style={{fontSize:16,color:'#4A5568',lineHeight:1.6}}>{d}</span>{badge&&<span style={{fontSize:11,fontWeight:700,color:badge.startsWith('✓')?C.ok:C.gray,marginLeft:8}}>{badge}</span>}</div>
+          </div>)}
+        </div>}
+      {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Resume Analysis. Continue?')){out('p1','');scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p1','p2')}>Explore My Wiring <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -843,7 +836,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <OutPanel text={outputs.p2} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p2} onChange={v=>setFb('p2',v)} hint="Does this capture how you actually work and what energizes you? If something is off, describe what we missed." placeholder="e.g. I actually thrive in fast-paced environments… my passion for mentoring is stronger than shown… the culture description doesn't match me…" onRegenerate={v=>{out('p2','');generate('p2',()=>P.p2(pc,outputs.p1)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Time to bring it all together — your accomplishments, your wiring, and your values — into one clear statement of who you are professionally.</div>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p2','');scrollTop()}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p2','p3')}>Build My Brand <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Wiring & Compass analysis. Continue?')){out('p2','');scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p2','p3')}>Build My Brand <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -887,7 +880,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the brand or value proposition misses the mark, tell us what feels off." placeholder="e.g. The personal brand doesn't capture my leadership style… you missed my strongest capability… the golden thread isn't quite right…" onRegenerate={v=>{out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Now you know who you are. Let's see what's possible — the full landscape of directions that fit your strengths, values, and interests.</div>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');setP3Intro(false);scrollTop()}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Brand Synthesis. Continue?')){out('p3','');setP3Intro(false);scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
@@ -1178,7 +1171,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p4')}}><ArrowLeft size={13}/>Choose Different Options</Btn>
             </div>
             <div style={S.row}>
-              <Btn secondary onClick={()=>{out('p5','');scrollTop()}}><RotateCcw size={13}/>Redo This Step</Btn>
+              <Btn secondary onClick={()=>{if(confirm('This will clear your Deep Dive analysis. Continue?')){out('p5','');scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn>
               <Btn onClick={()=>advance('p5','decision')}>Make My Decision <ChevronRight size={14}/></Btn>
             </div>
           </>}
@@ -1209,6 +1202,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p5')}}>Explore different options →</Btn>
           <div style={{fontSize:15,color:C.gray,marginTop:9}}>Or close the tool and come back — your progress is saved automatically.</div>
         </div>
+        {chosen&&<div style={{margin:'20px 0 0',padding:'20px 24px',background:`${C.ok}08`,border:`1.5px solid ${C.ok}30`,borderRadius:12}}>
+          <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>From here, everything points at <strong style={{color:C.goldL}}>{chosen}</strong>. Your bridge story, your target companies, your LinkedIn, your resume, and your interview prep will all be built around this direction.</div>
+        </div>}
         {err&&<ErrBox msg={err}/>}
         <div style={S.row}><Btn onClick={()=>chosen?advance('decision','p6'):setErr('Please enter your decision to continue.')}>Build My Bridge Story <ChevronRight size={14}/></Btn></div>
       </>}
@@ -1250,7 +1246,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       })()}
       {!isDemo&&!outputs.p6&&!loading&&!p6Intro&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
       {loading&&<Loading msg="Crafting your bridge story in three lengths…"/>}
-      {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? If the tone or content feels off, tell us how to adjust." placeholder="e.g. The opening doesn't sound like me… I want to lead with a different part of my background… the ending needs to be stronger…" onRegenerate={v=>{out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p6','');setP6Intro(false);scrollTop()}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
+      {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? If the tone or content feels off, tell us how to adjust." placeholder="e.g. The opening doesn't sound like me… I want to lead with a different part of my background… the ending needs to be stronger…" onRegenerate={v=>{out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Bridge Story. Continue?')){out('p6','');setP6Intro(false);scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
     </div>
@@ -1333,7 +1329,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {!isDemo&&<RefineBox value={feedback.p7} onChange={v=>setFb('p7',v)} hint="Want companies in a different region, industry, or size range? Or need the outreach message adjusted? Tell us what to change." placeholder="e.g. Focus on companies in the Southeast… add more startups and fewer enterprise companies… the outreach tone is too formal…" updateLabel="Update my strategy" freshLabel="Show me a fresh set" onRegenerate={v=>{out('p7','');generate('p7',()=>P.p7(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{webSearch:true,maxTokens:6000})}}/>}
           {!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Companies identified. Now let's update how you show up online so the right people can find you.</div>}
           {!isDemo&&<div style={S.row}>
-            <Btn secondary onClick={()=>{out('p7','');setP7Intro(false);scrollTop()}}><RotateCcw size={13}/>Redo This Step</Btn>
+            <Btn secondary onClick={()=>{if(confirm('This will clear your Go-to-Market strategy. Continue?')){out('p7','');setP7Intro(false);scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn>
             <Btn onClick={()=>advance('p7','p8')}>Remix My LinkedIn <ChevronRight size={14}/></Btn>
           </div>}
         </>
@@ -1350,7 +1346,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&<p style={S.sub}>Your LinkedIn profile is how companies and recruiters find you. If it still describes your last role, the right people can't find you for the next one.</p>}
       {!isDemo&&!outputs.p8&&!loading&&<Btn onClick={()=>generate('p8',()=>P.p8(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Remix My LinkedIn</Btn>}
       {loading&&<Loading msg="Rewriting your LinkedIn for your new direction…"/>}
-      {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p8} onChange={v=>setFb('p8',v)} hint="Want a different headline angle, or does the About section need a different tone? Tell us what to adjust." placeholder="e.g. The headline is too generic… I want the About section to lead with something different… add more keywords for my target role…" onRegenerate={v=>{out('p8','');generate('p8',()=>P.p8(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000})}}/>}{!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>LinkedIn updated. Now let's reshape your resume so the strongest evidence lands in the first 7 seconds.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p8','');scrollTop()}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p8','p_res')}>Refresh My Resume <ChevronRight size={14}/></Btn></div>}</>}
+      {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p8} onChange={v=>setFb('p8',v)} hint="Want a different headline angle, or does the About section need a different tone? Tell us what to adjust." placeholder="e.g. The headline is too generic… I want the About section to lead with something different… add more keywords for my target role…" onRegenerate={v=>{out('p8','');generate('p8',()=>P.p8(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000})}}/>}{!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>LinkedIn updated. Now let's reshape your resume so the strongest evidence lands in the first 7 seconds.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your LinkedIn Remix. Continue?')){out('p8','');scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p8','p_res')}>Refresh My Resume <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
     </div>
@@ -1364,7 +1360,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={S.note}>Targeting: <strong style={{color:C.cream}}>{chosen}</strong></div>
       {!isDemo&&!outputs.p_res&&!loading&&<Btn onClick={()=>generate('p_res',()=>P.p_res(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Refresh My Resume</Btn>}
       {loading&&<Loading msg="Rewriting your resume for your new direction…"/>}
-      {outputs.p_res&&<><OutPanel text={outputs.p_res} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p_res} onChange={v=>setFb('p_res',v)} hint="Want different accomplishments in the Greatest Hits, or need the summary reframed? Tell us what to change." placeholder="e.g. Lead with my operations experience instead… the summary doesn't capture my pivot well… add the project I led at my second company…" onRegenerate={v=>{out('p_res','');generate('p_res',()=>P.p_res(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Almost there. Let's prepare you for the conversations ahead — the landscape, the language, and the questions you'll face.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p_res','');scrollTop()}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p_res','p9')}>Build My Playbook <ChevronRight size={14}/></Btn></div>}</>}
+      {outputs.p_res&&<><OutPanel text={outputs.p_res} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p_res} onChange={v=>setFb('p_res',v)} hint="Want different accomplishments in the Greatest Hits, or need the summary reframed? Tell us what to change." placeholder="e.g. Lead with my operations experience instead… the summary doesn't capture my pivot well… add the project I led at my second company…" onRegenerate={v=>{out('p_res','');generate('p_res',()=>P.p_res(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Almost there. Let's prepare you for the conversations ahead — the landscape, the language, and the questions you'll face.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Resume Refresh. Continue?')){out('p_res','');scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p_res','p9')}>Build My Playbook <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
     </div>
@@ -1474,7 +1470,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </>})()}
         {outputs.p10&&<><div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>Interview Prep</h2><p style={{fontSize:16,color:C.gray,marginTop:6}}>The questions that will come up and how to talk about each one with confidence.</p></div><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/></>}
         {!isDemo&&<RefineBox value={feedback.p9} onChange={v=>setFb('p9',v)} hint="Need different interview questions, or want the crash course to cover a specific topic? Tell us what to adjust." placeholder="e.g. Add questions about my career pivot… I need to know more about a specific technology… the interview prep should focus on executive-level conversations…" onRegenerate={v=>{out('p9','');out('p10','');out('p11','');setStoryUpdated({});setLoading(true);setErr(null);setLoadMsg('Updating your playbook...');Promise.all([callClaude(P.p9(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:2000}),callClaude(P.p11(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})]).then(([r1,r2,r3])=>{out('p9',r1);out('p10',r2);out('p11',r3)}).catch(e=>setErr(e.message)).finally(()=>setLoading(false))}}/>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p9','');out('p10','');out('p11','');setP9Intro(false);setStoryUpdated({});scrollTop()}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>{markDone('p9');markDone('p10');advance('p9','complete')}}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Playbook, STAR Stories, and Interview Prep. Continue?')){out('p9','');out('p10','');out('p11','');setP9Intro(false);setStoryUpdated({});scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>{markDone('p9');markDone('p10');advance('p9','complete')}}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
@@ -1489,14 +1485,39 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <circle cx="44" cy="60" r="18" fill="#e4572e"/>
           <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#0e1a2b">Re<tspan fill="#e4572e">imagine</tspan></text>
         </svg>
-        <h1 style={{...S.title,fontSize:26,textAlign:'center',marginBottom:8}}>You've done the work.</h1>
-        <p style={{fontSize:20,color:C.gray,lineHeight:1.7,maxWidth:500,margin:'0 auto'}}>Everything below is yours — your identity, your target, your story, your strategy. Come back anytime to review or refine.</p>
+        <div style={{fontSize:13,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:C.ok,marginBottom:12}}>Journey Complete</div>
+        <h1 style={{...S.title,fontSize:28,textAlign:'center',marginBottom:10}}>You've done the work. Now own it.</h1>
+        <p style={{fontSize:20,color:C.gray,lineHeight:1.7,maxWidth:540,margin:'0 auto'}}>Your identity is clear. Your story is ready. Your market is mapped. Everything below is yours to use, refine, and carry into every conversation that matters.</p>
         <div style={{marginTop:20,textAlign:'center'}}><Btn onClick={downloadOnePager}><Download size={14}/>Download My One-Pager (PDF)</Btn></div>
       </div>
 
-      {!surveyDone&&<div style={{...S.card,marginBottom:22,border:`1px solid ${C.gold}40`}}>
+      <div style={{background:`${C.ok}12`,border:`1px solid ${C.ok}40`,borderRadius:10,padding:'14px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:10}}>
+        <Check size={16} color={C.ok} strokeWidth={2.5}/>
+        <div style={{fontSize:15,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
+      </div>
+      {[['Your Personal Brand','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Your Playbook','p9',(outputs.p9||'')+(outputs.p11?'\n\n---\n\n'+outputs.p11:'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
+
+      <div style={{marginTop:16,background:'linear-gradient(135deg,#1A2540 0%,#2A3F60 100%)',borderRadius:12,padding:'24px 28px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
+        <div>
+          <div style={{fontSize:11,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:'#7AB87A',marginBottom:6}}>Bonus module</div>
+          <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#FFFFFF',marginBottom:6}}>Income Now</div>
+          <div style={{fontSize:18,color:'#CBD5E0',lineHeight:1.65,maxWidth:420}}>A job search takes time. Having income flowing while you search changes everything. Consulting, fractional leadership, and advisory opportunities matched to your seniority and expertise.</div>
+        </div>
+        <Btn onClick={()=>nav('income')} style={{background:'#7AB87A',flexShrink:0}}>Generate My Income Plan <ChevronRight size={14}/></Btn>
+      </div>
+      <div style={{marginTop:24,padding:'20px 24px',background:'#FAFBFC',border:`1.5px solid ${C.border}`,borderRadius:12}}>
+        <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:4}}>Your Deliverables</div>
+        <div style={{fontSize:15,color:C.gray,marginBottom:16}}>Take your Reimagine work with you.</div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <Btn onClick={downloadOnePager}><Download size={14}/>Download One-Pager (PDF)</Btn>
+          {!isDemo&&<Btn secondary onClick={reset}><RotateCcw size={14}/>Start a New Session</Btn>}
+        </div>
+      </div>
+      <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:15,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
+
+      {!surveyDone&&<div style={{...S.card,marginTop:24,border:`1px solid ${C.gold}40`}}>
         {!surveySubmitted?<>
-          <div style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:600,color:C.cream,marginBottom:4}}>Before you go — 60 seconds of feedback</div>
+          <div style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:600,color:C.cream,marginBottom:4}}>One more thing — 60 seconds of feedback</div>
           <div style={{fontSize:16,color:C.gray,marginBottom:20,lineHeight:1.6}}>You're helping us make this better for everyone who comes after you. All questions are optional.</div>
 
           <div style={S.field}>
@@ -1542,49 +1563,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               setSurveySubmitting(false)
               setSurveySubmitted(true)
             }}>Submit Feedback</Btn>
-            <Btn secondary onClick={()=>setSurveyDone(true)}>No thanks</Btn>
+            <Btn secondary onClick={()=>setSurveyDone(true)}>Skip</Btn>
           </div>
           {surveySubmitting&&<div style={{marginTop:20,padding:'20px',background:'#F7F8FA',borderRadius:10,textAlign:'center'}}>
             <Loader2 size={22} style={{color:C.gold,animation:'spin 0.9s linear infinite',margin:'0 auto 12px',display:'block'}}/>
             <div style={{fontSize:15,color:C.grayL,marginBottom:16}}>Sending your feedback…</div>
-            <div style={{borderLeft:`3px solid ${C.gold}`,paddingLeft:16,textAlign:'left'}}>
-              <div style={{fontSize:15,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:6}}>"{SHUFFLED_QUOTES[0].text}"</div>
-              <div style={{fontSize:13,color:C.gold,fontWeight:600}}>{SHUFFLED_QUOTES[0].author}</div>
-            </div>
           </div>}
-        </>:<div style={{textAlign:'center',padding:'20px 0'}}>
-          <div style={{fontSize:22,marginBottom:10}}>🙏</div>
-          <div style={{fontFamily:'Georgia,serif',fontSize:16,color:C.cream,marginBottom:6}}>Thank you — this means a lot.</div>
-          <div style={{fontSize:16,color:C.gray,marginBottom:16,lineHeight:1.6}}>Your feedback goes directly to the team building Reimagine. We read every response.</div>
-          <Btn onClick={()=>setSurveyDone(true)}>See my results <ChevronRight size={13}/></Btn>
+        </>:<div style={{textAlign:'center',padding:'16px 0'}}>
+          <div style={{fontFamily:'Georgia,serif',fontSize:16,color:C.cream,marginBottom:4}}>Thank you — your feedback goes directly to the team building Reimagine.</div>
         </div>}
       </div>}
-
-      {surveyDone&&<>
-        <div style={{background:`${C.ok}12`,border:`1px solid ${C.ok}40`,borderRadius:10,padding:'14px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:10}}>
-          <Check size={16} color={C.ok} strokeWidth={2.5}/>
-          <div style={{fontSize:15,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
-        </div>
-        {[['Your Personal Brand','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Your Playbook','p9',(outputs.p9||'')+(outputs.p11?'\n\n---\n\n'+outputs.p11:'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
-
-        <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:15,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
-        <div style={{marginTop:16,background:'linear-gradient(135deg,#1A2540 0%,#2A3F60 100%)',borderRadius:12,padding:'24px 28px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
-          <div>
-            <div style={{fontSize:11,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:'#7AB87A',marginBottom:6}}>Bonus module</div>
-            <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#FFFFFF',marginBottom:6}}>Income Now</div>
-            <div style={{fontSize:18,color:'#CBD5E0',lineHeight:1.65,maxWidth:420}}>A job search takes time. Having income flowing while you search changes everything. Consulting, fractional leadership, and advisory opportunities matched to your seniority and expertise.</div>
-          </div>
-          <Btn onClick={()=>nav('income')} style={{background:'#7AB87A',flexShrink:0}}>Generate My Income Plan <ChevronRight size={14}/></Btn>
-        </div>
-        <div style={{marginTop:24,padding:'20px 24px',background:'#FAFBFC',border:`1.5px solid ${C.border}`,borderRadius:12}}>
-          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:4}}>Your Deliverables</div>
-          <div style={{fontSize:15,color:C.gray,marginBottom:16}}>Take your Reimagine work with you.</div>
-          <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-            <Btn onClick={downloadOnePager}><Download size={14}/>Download One-Pager (PDF)</Btn>
-            {!isDemo&&<Btn secondary onClick={reset}><RotateCcw size={14}/>Start a New Session</Btn>}
-          </div>
-        </div>
-      </>}
     </div>}
 
     case'income':return <div>
@@ -1624,7 +1612,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {outputs.income&&<>
         <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.income} onChange={v=>setFb('income',v)} hint="Want to focus on a different kind of income stream, or need the rates adjusted for your market? Tell us what to change." placeholder="e.g. I want more consulting options and fewer platform-based ideas… adjust rates for my geography… I have existing clients I can leverage…" updateLabel="Update my plan" freshLabel="Show me a fresh plan" onRegenerate={v=>{out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000})}}/>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('income','');setIncomeIntro(false);scrollTop()}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Income Now plan. Continue?')){out('income','');setIncomeIntro(false);scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
