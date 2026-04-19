@@ -292,7 +292,7 @@ p5: `## QUICK TAKEAWAY
 
 # THE DEEP DIVE
 
-Each path requires you to understand what you're trading and whether the trade makes sense for you.
+Each path opens up something different. Here is what the work actually looks like and how your background maps to it.
 
 ---
 
