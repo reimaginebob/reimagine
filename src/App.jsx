@@ -352,23 +352,23 @@ function OutPanel({text,onCopy,copied,expandLabel}){
   </div>
 }
 
-function RefineBox({value,onChange,onRegenerate}){
+function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel}){
   const[open,setOpen]=useState(false)
   return <div style={{marginTop:16,border:`2px solid ${C.border}`,borderRadius:12,overflow:'hidden',background:'#F7F8FA'}}>
     <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <div style={{width:8,height:8,borderRadius:'50%',background:C.gold,flexShrink:0}}/>
         <span style={{fontSize:18,fontWeight:600,color:'#1A2540'}}>Want to make changes?</span>
-        <span style={{fontSize:16,color:C.gray}}>Did we miss something? Add it here.</span>
+        <span style={{fontSize:16,color:C.gray}}>Tell us what to adjust.</span>
       </div>
       <span style={{fontSize:12,color:C.gray,display:'inline-block',transform:open?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}}>▼</span>
     </button>
     {open&&<div style={{background:'#FFFFFF',padding:'16px 20px',borderTop:`1px solid ${C.border}`}}>
-      <div style={{fontSize:16,color:C.gray,marginBottom:12,lineHeight:1.65}}>If anything feels off — wrong tone, missing context, something we misread — describe it here and we'll adjust.</div>
-      <textarea style={{...S.ta,minHeight:80}} value={value} onChange={e=>onChange(e.target.value)} placeholder="e.g. The seniority level feels too junior… you missed that I ran a P&L… the environment description doesn't match how I actually work…"/>
+      <div style={{fontSize:16,color:C.gray,marginBottom:12,lineHeight:1.65}}>{hint||'If anything feels off — wrong tone, missing context, something we misread — describe it here and we\'ll adjust.'}</div>
+      <textarea style={{...S.ta,minHeight:80}} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||'e.g. The seniority level feels too junior… you missed that I ran a P&L… the tone doesn\'t sound like me…'}/>
       <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
-        <Btn onClick={()=>{setOpen(false);onRegenerate(value)}}><RotateCcw size={13}/>Regenerate with this context</Btn>
-        <Btn secondary onClick={()=>{onChange('');setOpen(false);onRegenerate('')}}><RotateCcw size={13}/>Regenerate from scratch</Btn>
+        <Btn onClick={()=>{setOpen(false);onRegenerate(value)}}><RotateCcw size={13}/>{updateLabel||'Update with my changes'}</Btn>
+        <Btn secondary onClick={()=>{onChange('');setOpen(false);onRegenerate('')}}><RotateCcw size={13}/>{freshLabel||'Start fresh'}</Btn>
       </div>
     </div>}
   </div>
@@ -421,6 +421,7 @@ export default function PivotEngine(){
   const[surveySubmitting,setSurveySubmitting]=useState(false)
   const setSv=(k,v)=>setSurvey(s=>({...s,[k]:v}))
   const importFileRef=useRef()
+  const p4RefineRef=useRef()
 
   useEffect(()=>{if(isDemo)return;const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(d.profile);if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
   useEffect(()=>{if(isDemo)return;const save=async()=>{try{localStorage.setItem('pe_v3',JSON.stringify({step,profile,outputs,done,deepOpts,chosen}))}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen])
@@ -898,12 +899,15 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
             <div style={{margin:'20px 0 12px',fontSize:16,color:'#4A5568',lineHeight:1.65}}>Read through your options below, then <strong style={{color:'#1A2540'}}>select up to 3 roles</strong> from the checklist that follows. We'll go deep on the ones you choose.</div>
             <div style={{marginTop:0}}><OutPanel text={outputs.p4} onCopy={copy} copied={copied} expandLabel="Click here to see all your options"/></div>
           </>}
-          {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} onRegenerate={v=>{out('p4','');setLaneTab(0);generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Refining your opportunity landscape…'})}}/>}
+          {!isDemo&&available.length>0&&<div style={{marginTop:12,textAlign:'center'}}>
+            <button onClick={()=>{if(p4RefineRef.current){p4RefineRef.current.scrollIntoView({behavior:'smooth',block:'center'})}}} style={{background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:15,color:'#3B82F6',fontWeight:600,padding:'8px 16px',borderRadius:8,transition:'background 0.15s'}} onMouseEnter={e=>e.target.style.background='#EEF4FF'} onMouseLeave={e=>e.target.style.background='none'}>Not seeing what you're looking for? Tell us what to change.</button>
+          </div>}
           {selected.length>0&&<div style={{marginTop:16,padding:'14px 18px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
             <div style={{fontSize:16,color:'#1A2540'}}>Ready to explore ({selected.length}/3): {selected.map((s,i)=><strong key={i} style={{color:C.goldL,marginRight:8}}>{s}</strong>)}</div>
             <Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn>
           </div>}
           {selected.length===0&&available.length>0&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Select at least one role above to continue.</div>}
+          {!isDemo&&<div ref={p4RefineRef}><RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Want different kinds of roles? Add an interest, remove a direction, or ask for something specific. We'll generate a new set of options based on your input." placeholder="e.g. I am also interested in board seats… remove consulting roles… show me more options in healthtech… I have nonprofit experience I didn't mention…" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{out('p4','');setLaneTab(0);generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Updating your options…'})}}/></div>}
         </>
       })()}
       {err&&<ErrBox msg={err}/>}
