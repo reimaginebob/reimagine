@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import * as mammoth from "mammoth"
 import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
+import { testProfile } from "./testData"
 
 const SYS = `You are a Career Strategist within Reimagine, a career strategy tool by Career Club, built on Making Your Own Weather by Bob Goodwin.
 
@@ -446,11 +447,14 @@ const DEMO_TOUR=[
 ]
 
 export default function PivotEngine(){
-  const isDemo=new URLSearchParams(window.location.search).get('demo')==='true'
+  const _params=new URLSearchParams(window.location.search)
+  const isDemo=_params.get('demo')==='true'
+  const isTest=_params.get('test')==='true'&&import.meta.env.VITE_ENABLE_TEST==='true'
   const IP={loc:{country:'',city:'',work:''},resume:'',resumeFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''}}
   const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:''}
-  const[step,setStep]=useState(isDemo?'welcome':'welcome')
-  const[profile,setProfile]=useState(isDemo?demoProfile:IP)
+  const initStep=isDemo?'welcome':'welcome'
+  const[step,setStep]=useState(initStep)
+  const[profile,setProfile]=useState(isDemo?demoProfile:isTest?testProfile:IP)
   const[outputs,setOutputs]=useState(isDemo?demoOutputs:IO)
   const[done,setDone]=useState(isDemo?[...demoDone]:[])
   const[deepOpts,setDeepOpts]=useState(isDemo?[...demoDeepOpts]:['','',''])
@@ -486,8 +490,8 @@ export default function PivotEngine(){
   const importFileRef=useRef()
   const p4RefineRef=useRef()
 
-  useEffect(()=>{if(isDemo)return;const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(d.profile);if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
-  useEffect(()=>{if(isDemo)return;const save=async()=>{try{localStorage.setItem('pe_v3',JSON.stringify({step,profile,outputs,done,deepOpts,chosen}))}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3')}catch{};return}const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(d.profile);if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
+  useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{try{localStorage.setItem('pe_v3',JSON.stringify({step,profile,outputs,done,deepOpts,chosen}))}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen])
 
   const pr=(f,v)=>setProfile(p=>({...p,[f]:v}))
   const loc=(f,v)=>setProfile(p=>({...p,loc:{...p.loc,[f]:v}}))
@@ -952,12 +956,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           return opts
         }
         const available=extractOptions(outputs.p4)
-        const selected=deepOpts.filter(v=>v&&v!=='?')
+        const availTitles=available.map(a=>a.title)
+        const selected=deepOpts.filter(v=>v&&v!=='?'&&availTitles.includes(v))
         const toggleOpt=(title)=>{
           const idx=deepOpts.indexOf(title)
           if(idx>=0){setDeepOpts(d=>d.map((v,j)=>j===idx?'':v))}
           else{
-            const emptyIdx=deepOpts.findIndex(v=>!v||v==='?')
+            const emptyIdx=deepOpts.findIndex(v=>!v||v==='?'||!availTitles.includes(v))
             if(emptyIdx>=0)setDeepOpts(d=>d.map((v,j)=>j===emptyIdx?title:v))
           }
         }
