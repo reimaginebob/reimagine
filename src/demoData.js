@@ -202,19 +202,19 @@ All of this points toward a role where you build something that matters, in an i
 
 p3: `## QUICK TAKEAWAY
 
-**Your golden thread: you turn complicated people-and-process problems into measured business outcomes.** You diagnose what's actually broken, design the smallest system that fixes it, implement fast, and iterate. That's been your approach for 14 years, from the $4.2M cost reduction to the referral program to the 175% team scale during COVID. **Your personal brand: you build people systems at the intersection of operations, strategy, and execution.** You move fast without chaos.
+- **The golden thread:** You turn complicated people-and-process problems into measured business outcomes — same approach for 14 years, from the $4.2M cost reduction to the 175% team scale during COVID
+- **The personal brand:** **You build people systems at the intersection of operations, strategy, and execution.** You move fast without chaos.
 
 ---
 
-# YOUR GOLDEN THREAD
+## THE GOLDEN THREAD
 
-## THE CONSISTENT PATTERN
+**You turn complicated people-and-process problems into measured business outcomes.**
 
-Looking at your accomplishments, your wiring, and your values, one theme surfaces:
-
-You turn complicated people-and-process problems into measured business outcomes. The referral program that now generates 34% of hires, the $4.2M in cost reduction, the offer decline rate you compressed from 22% to 9%, the ATS migration you ran while scaling the team 175% during COVID. Each of these required the same approach: diagnose what's broken (not what looks broken), design the smallest system that fixes it, implement fast, and iterate.
-
-That's your thread across 14 years.
+- **In your career:** The referral program that now generates 34% of hires, the $4.2M in cost reduction, the offer decline rate you compressed from 22% to 9%, the ATS migration during COVID — each one required the same approach: diagnose what is actually broken, design the smallest system that fixes it, implement fast, and iterate.
+- **In your wiring:** Your assessment shows high conscientiousness, fast decision-making, and a preference for creating solutions over following procedures. You are built to walk into ambiguity and build structure.
+- **In your reputation:** People give you the hardest assignments because your word is your operating system. They stake their reputation on your judgment — that is why the referral program worked.
+- **Why it matters for what is next:** Any role that needs someone to build or fix a people operation from the inside out is a role where this thread gives you an immediate edge.
 
 ---
 
