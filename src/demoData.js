@@ -226,20 +226,20 @@ You build people and recruiting systems that create measurable business results,
 
 ## YOUR VALUE PROPOSITION
 
-**Capability:** You see the whole system at once and instinctively redesign what's inefficient. Arranger + Strategic means you don't just fix what's in front of you — you reconfigure the pieces so the problem can't recur. This is pattern recognition wired into how you think, not a skill you learned.
+**Capability:** You see the whole system at once and redesign what isn't working. You don't fix the problem in front of you — you reconfigure the pieces so it can't come back.
    - **Proof:** $4.2M annual cost reduction by redesigning clinical hiring from fragmented sourcing into an integrated talent acquisition function.
 
-**Capability:** When you commit, it becomes a personal contract. Responsibility isn't your work ethic — it's your operating system. People hand you the hardest assignments because they know you won't drop them, even when the conditions turn against you.
-   - **Proof:** Scaled recruiting team 175% during COVID while simultaneously migrating 300+ managers to Workday in eight weeks — zero broken hiring cycles.
+**Capability:** When you say you'll handle something, it becomes a personal contract. People give you the hardest assignments because your word is your operating system.
+   - **Proof:** Scaled recruiting team 175% during COVID while migrating 300+ managers to Workday in eight weeks. Zero broken hiring cycles.
 
-**Capability:** Your influence comes from earned trust, not positional authority. You invest deeply in understanding people's actual problems rather than networking at surface level. That Relator wiring means people stake their reputation on your judgment.
-   - **Proof:** Built a referral program from nothing that now generates 34% of all hires — employees put their names on candidates because they trust yours.
+**Capability:** You earn trust by going deep on people's actual problems, not by networking wide. People stake their reputation on your judgment.
+   - **Proof:** Built a referral program from nothing that now generates 34% of all hires.
 
-**Capability:** You diagnose fast. Achiever + Strategic means you see 3-4 possible paths almost immediately and mentally test which configuration produces the best outcome. You solve the real problem, not the obvious one.
-   - **Proof:** Compressed offer decline rate from 22% to 9% by redesigning the offer experience and manager engagement rather than adding headcount.
+**Capability:** You diagnose fast. You see three or four paths before most people have finished defining the problem, and you pick the right one.
+   - **Proof:** Compressed offer decline rate from 22% to 9% by redesigning the offer experience and manager engagement — not by adding headcount.
 
-**Capability:** You start fast and finish clean. Activator keeps you from overthinking while Responsibility keeps you from cutting corners — a rare combination that lets you build from zero without creating chaos.
-   - **Proof:** Built recruiting operations from 2 people to a 6-person function with process standards, metrics, sourcing strategy, and an employer brand that improved application volume 40%.`,
+**Capability:** You start fast and finish clean. No overthinking, no cut corners. You build from zero and it holds.
+   - **Proof:** Built recruiting operations from 2 people to a 6-person function with process standards, metrics, and an employer brand that lifted application volume 40%.`,
 
 // ─── P4: THE WIDE VIEW ──────────────────────────────────────────────────
 
