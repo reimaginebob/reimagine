@@ -343,8 +343,8 @@ function OutPanel({text,onCopy,copied,expandLabel}){
     <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>onCopy(text)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
     {hasTakeaway&&full?<>
       <MD text={`## QUICK TAKEAWAY\n${takeaway}`}/>
-      <button data-expand="true" onClick={()=>setExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:8,margin:'20px 0 8px',padding:'12px 20px',background:expanded?`${C.gold}10`:'#F7F8FA',border:`1.5px solid ${expanded?C.gold:C.border}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:15,fontWeight:600,color:expanded?C.goldL:C.gray,transition:'all 0.2s',width:'100%'}}>
-        <ChevronRight size={16} style={{transform:expanded?'rotate(90deg)':'none',transition:'transform 0.2s'}}/>
+      <button data-expand="true" onClick={()=>setExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:10,margin:'20px 0 8px',padding:'14px 22px',background:expanded?`${C.gold}15`:'#EEF4FF',border:`2px solid ${expanded?C.gold:'#3B82F6'}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:17,fontWeight:700,color:expanded?C.goldL:'#2563EB',transition:'all 0.2s',width:'100%'}}>
+        <ChevronRight size={18} style={{transform:expanded?'rotate(90deg)':'none',transition:'transform 0.2s'}}/>
         {expanded?'Hide full analysis':(expandLabel||'Click here for a deeper understanding')}
       </button>
       {expanded&&<div style={{marginTop:12,paddingTop:16,borderTop:`1px solid ${C.border}`}}><MD text={full}/></div>}
@@ -814,10 +814,10 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
                 if(title.length>4&&title.length<120)opts.push({title,lane:currentLane})
               }
             }else{
-              // Fallback for old format: standalone bold lines that look like role titles
-              const boldMatch=trimLine.match(/^\*\*([A-Z][^*]{4,120})\*\*$/)
+              // Fallback for old format: bold lines or ### headings that look like role titles
+              const boldMatch=trimLine.match(/^\*\*([A-Z][^*]{4,120})\*\*$/)||trimLine.match(/^#{1,3}\s+([A-Z][^\n]{4,120})$/)
               if(boldMatch){
-                const title=boldMatch[1].trim()
+                const title=boldMatch[1].replace(/\*\*/g,'').trim()
                 if(!/^(Vehicle|Organization Type|Title|For each|Start with|The intersection|Builds directly|You know|This path|Your track|Your insider|Adjacent|Ecosystem|Clients|Vendors|Consultants|Upstream|Downstream|Trade Associations|Educators|Regulators|What has changed|Why you are|What closes|EMPATHY|Why it fits|Worth considering|Token Budget|Insider knowledge|Why you are already|What closes the gap|Direct industry|Consulting and advisory)/i.test(title))
                   opts.push({title,lane:currentLane})
               }
@@ -853,33 +853,40 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
               <div style={{fontSize:16,color:'#4A5568',lineHeight:1.7,marginBottom:20,fontStyle:'italic'}}>{activeLane.desc}</div>
               {(()=>{
                 const content=activeLane.content||''
+                const availTitles=available.map(a=>a.title)
                 // Try splitting on ### OPTION: first (new format), then fall back to bold title detection (old format)
                 const hasOptionTags=/^#{1,3}\s*OPTION:\s*/m.test(content)
+                // Split on: ### OPTION: (new), **Title** (old bold), or ### Title (old heading)
                 const splitPattern=hasOptionTags
                   ? /(?=^#{1,3}\s*OPTION:\s*)/m
-                  : /(?=^\*\*[A-Z][^*]{4,120}\*\*\s*$)/m
+                  : /(?=^(?:\*\*[A-Z][^*]{4,120}\*\*\s*$|#{1,3}\s+[A-Z][^\n]{4,120}$))/m
                 const optBlocks=content.split(splitPattern)
                 const titlePattern=hasOptionTags
                   ? /^#{1,3}\s*OPTION:\s*(.+)/m
-                  : /^\*\*([A-Z][^*]{4,120})\*\*\s*$/m
-                const preamble=optBlocks.length>0&&!titlePattern.test(optBlocks[0])?optBlocks.shift():null
-                // Filter: only treat blocks as options if their title is in the available list
-                const availTitles=available.map(a=>a.title)
-                const isRoleBlock=(block)=>{
+                  : /^(?:\*\*([A-Z][^*]{4,120})\*\*\s*$|#{1,3}\s+([A-Z][^\n]{4,120})$)/m
+                const extractTitle=(block)=>{
                   const m=block.match(titlePattern)
-                  if(!m)return false
-                  const t=m[1].replace(/\*\*/g,'').trim()
-                  return availTitles.includes(t)
+                  if(!m)return null
+                  return (m[1]||m[2]||'').replace(/\*\*/g,'').trim()
                 }
-                // If no role blocks found, render plain
-                if(optBlocks.filter(isRoleBlock).length===0)return <div style={{fontSize:15,color:'#374258',lineHeight:1.7}}><MD text={content}/></div>
+                const preamble=optBlocks.length>0&&!titlePattern.test(optBlocks[0])?optBlocks.shift():null
+                // A block is selectable if its title is in available OR if it's not in the exclusion list
+                const excludePattern=/^(Vehicle|Organization Type|Title|For each|Start with|The intersection|Builds directly|You know|This path|Your track|Your insider|Adjacent|Ecosystem|Clients|Vendors|Consultants|Upstream|Downstream|Trade Associations|Educators|Regulators|What has changed|Why you are|What closes|EMPATHY|Why it fits|Worth considering|Token Budget|Insider knowledge|Direct industry|Consulting and advisory|Why you are already|What closes the gap)/i
+                const isSelectable=(title)=>{
+                  if(!title||title.length<=4)return false
+                  if(availTitles.includes(title))return true
+                  return !excludePattern.test(title)
+                }
+                const selectableBlocks=optBlocks.filter(b=>{const t=extractTitle(b);return t&&isSelectable(t)})
+                // If no selectable blocks found, render plain
+                if(selectableBlocks.length===0)return <div style={{fontSize:15,color:'#374258',lineHeight:1.7}}><MD text={content}/></div>
                 return <>
                   {preamble&&<div style={{fontSize:15,color:'#374258',lineHeight:1.7,marginBottom:16}}><MD text={preamble}/></div>}
                   {optBlocks.map((block,bi)=>{
+                    const title=extractTitle(block)
+                    const selectable=title&&isSelectable(title)
+                    if(!selectable)return <div key={bi} style={{fontSize:15,color:'#374258',lineHeight:1.7,marginBottom:12}}><MD text={block}/></div>
                     const titleMatch=block.match(titlePattern)
-                    const title=titleMatch?titleMatch[1].replace(/\*\*/g,'').trim():null
-                    const isRole=title&&availTitles.includes(title)
-                    if(!isRole)return <div key={bi} style={{fontSize:15,color:'#374258',lineHeight:1.7,marginBottom:12}}><MD text={block}/></div>
                     const body=titleMatch?block.slice(block.indexOf('\n',block.indexOf(titleMatch[0]))+1).trim():block
                     const isSelected=deepOpts.includes(title)
                     const canSelect=selected.length<3||isSelected
@@ -982,8 +989,8 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
           {p5Takeaway&&<div style={S.out}>
             <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p5)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
             <MD text={`## QUICK TAKEAWAY\n${p5Takeaway}`}/>
-            <button data-expand="true" onClick={()=>setDeepExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:8,margin:'20px 0 8px',padding:'12px 20px',background:deepExpanded?`${C.gold}10`:'#F7F8FA',border:`1.5px solid ${deepExpanded?C.gold:C.border}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:15,fontWeight:600,color:deepExpanded?C.goldL:C.gray,transition:'all 0.2s',width:'100%'}}>
-              <ChevronRight size={16} style={{transform:deepExpanded?'rotate(90deg)':'none',transition:'transform 0.2s'}}/>
+            <button data-expand="true" onClick={()=>setDeepExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:10,margin:'20px 0 8px',padding:'14px 22px',background:deepExpanded?`${C.gold}15`:'#EEF4FF',border:`2px solid ${deepExpanded?C.gold:'#3B82F6'}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:17,fontWeight:700,color:deepExpanded?C.goldL:'#2563EB',transition:'all 0.2s',width:'100%'}}>
+              <ChevronRight size={18} style={{transform:deepExpanded?'rotate(90deg)':'none',transition:'transform 0.2s'}}/>
               {deepExpanded?'Hide full analysis':'Click here for a deeper understanding'}
             </button>
           </div>}
