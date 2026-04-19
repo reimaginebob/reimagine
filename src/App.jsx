@@ -343,7 +343,7 @@ function OutPanel({text,onCopy,copied,expandLabel}){
     <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>onCopy(text)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
     {hasTakeaway&&full?<>
       <MD text={`## QUICK TAKEAWAY\n${takeaway}`}/>
-      <button data-expand="true" onClick={()=>setExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:10,margin:'20px 0 8px',padding:'14px 22px',background:expanded?`${C.gold}15`:'#EEF4FF',border:`2px solid ${expanded?C.gold:'#3B82F6'}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:17,fontWeight:700,color:expanded?C.goldL:'#2563EB',transition:'all 0.2s',width:'100%'}}>
+      <button data-expand="true" onClick={()=>setExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:10,margin:'20px 0 8px',padding:'14px 22px',background:expanded?`${C.gold}15`:`${C.gold}10`,border:`2px solid ${C.gold}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:17,fontWeight:700,color:C.goldL,transition:'all 0.2s',width:'100%'}}>
         <ChevronRight size={18} style={{transform:expanded?'rotate(90deg)':'none',transition:'transform 0.2s'}}/>
         {expanded?'Hide full analysis':(expandLabel||'Click here for a deeper understanding')}
       </button>
@@ -990,7 +990,7 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
           {p5Takeaway&&<div style={S.out}>
             <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p5)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
             <MD text={`## QUICK TAKEAWAY\n${p5Takeaway}`}/>
-            <button data-expand="true" onClick={()=>setDeepExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:10,margin:'20px 0 8px',padding:'14px 22px',background:deepExpanded?`${C.gold}15`:'#EEF4FF',border:`2px solid ${deepExpanded?C.gold:'#3B82F6'}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:17,fontWeight:700,color:deepExpanded?C.goldL:'#2563EB',transition:'all 0.2s',width:'100%'}}>
+            <button data-expand="true" onClick={()=>setDeepExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:10,margin:'20px 0 8px',padding:'14px 22px',background:deepExpanded?`${C.gold}15`:`${C.gold}10`,border:`2px solid ${C.gold}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:17,fontWeight:700,color:C.goldL,transition:'all 0.2s',width:'100%'}}>
               <ChevronRight size={18} style={{transform:deepExpanded?'rotate(90deg)':'none',transition:'transform 0.2s'}}/>
               {deepExpanded?'Hide full analysis':'Click here for a deeper understanding'}
             </button>
