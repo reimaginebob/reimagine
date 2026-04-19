@@ -143,6 +143,25 @@ const P={
   p9:(pr,outs,sel)=>`${sel} — help this person walk into conversations with confidence and credibility.\nLearning signals: ${pr.assess?pr.assess.substring(0,300):'Balanced learner.'}\n\nIMPORTANT: Do not assume what the person does or does not know. They may already be familiar with some of this vocabulary or technology, especially if they have an MBA, relevant certifications, or adjacent experience. Present the information as a reference guide, not a remedial lesson. Frame it as "here is the language this space uses" rather than "here is what you need to learn." Be helpful, not judgmental.\n\nSTART your response with:\n## QUICK TAKEAWAY\n3 sentences: the most important terminology to have ready, the single most valuable tool to be familiar with, and the one credibility move that will make the biggest difference this week. Plain language, no headers inside this section.\n\nThen continue with the full playbook:\n\n1. THE LINGO — 10 essential terms/acronyms this space uses. For each: plain-language definition + example sentence. Present as a reference, not a lesson.\n2. THE TECH STACK — Top 3 tools practitioners rely on. What each does, why it matters, what knowing it signals.\n3. THE THOUGHT LEADERS — 3 people to follow on LinkedIn now. Who, what they post, what following teaches.\n4. THE FASTEST CREDIBILITY MOVE — One specific action in 7 days. Specific and achievable.`,
   p10:(pr,outs,sel)=>`You are now a hiring manager evaluating this person for: **${sel}**\nBACKGROUND: ${outs.p1.substring(0,500)}\nPERSONAL BRAND: ${outs.p3.substring(0,350)}\n\nSTART your response with:\n## QUICK TAKEAWAY\n3 sentences: the one question that will definitely come up and what makes this person's answer strong, plus the biggest area where preparation will make the difference. Plain language, no headers inside this section.\n\nThen continue with the full prep:\n\nIdentify the top 3-5 questions or concerns that will surface in interviews for this role. For each one:\n- State the question as the interviewer would ask it (in quotes)\n- Provide 3 key talking points as bullets, grounded in their specific accomplishments, wiring, and experience\n- Keep talking points evidence-based and specific, not generic advice\n\nFrame the section positively. These are opportunities to demonstrate fit, not obstacles to overcome. Title: INTERVIEW PREP.`,
   p_res:(pr,outs,sel)=>`Rewrite this resume using the HYBRID FORMAT to target: **${sel}**\nPROFILE: ${outs.p1}\n${outs.p3}\nORIGINAL RESUME:\n${pr.resume}\n\nThe hybrid format puts a Greatest Hits section above the fold, before the chronological work history. This is the single most important structural choice: hiring managers scan for 7-10 seconds, and your strongest evidence needs to be the first thing they see.\n\nSTART your response with:\n## QUICK TAKEAWAY\n3-4 sentences: the biggest structural change from the original resume, which accomplishments made the Greatest Hits and why, and the one thing that will hit a hiring manager in the first 7 seconds. Plain language, no headers inside this section.\n\nThen continue with the full rewrite:\n\n1. REPOSITIONED SUMMARY: 3-4 sentences at the top. First person, natural voice. Positions this career arc as a logical path toward ${sel}. No titles or company names. Frame the pivot as an asset.\n2. GREATEST HITS — KEY ACCOMPLISHMENTS: 3-5 of the most significant accomplishments from anywhere in their career, selected and framed specifically for ${sel}. Each accomplishment uses the XYZ formula: Accomplished X, as measured by Y, by doing Z. Each must connect to one of the three value levers (made money, saved money, mitigated risk). Bold the key metrics. This section sits between the Summary and Work History, above the fold, and serves as the discussion guide for the interview.\n3. EXPERIENCE REWRITE: Chronological work history follows. For each role in the last 10 years, rewrite the top 3-4 bullets. Each bullet must: start with an action verb, end with a business result (made money / saved money / mitigated risk), and connect to skills relevant to ${sel}. Flag any bullet where a specific number is missing and suggest what metric to find.\n4. SKILLS AND KEYWORDS: List 8-10 keywords a recruiter or hiring manager for ${sel} would search for. Note which are already in the resume and which to add.\n5. FORMATTING NOTES: Remind the user to maintain two versions: an ATS-friendly version (plain, single-column, standard section titles like Work Experience, Education, Skills) and a designed version for direct human contact. White space is essential. Save as PDF to preserve formatting.`,
+  p11:(pr,outs,sel)=>`Build the 3 strongest, most relevant STAR stories for: **${sel}**\n\nPROFILE: ${outs.p1}\nBRAND: ${outs.p3}\nBRIDGE STORY: ${outs.p6?outs.p6.substring(0,500):''}\nRESUME: ${pr.resume.substring(0,1500)}\n\nYou are using the Making Your Own Weather STAR framework. IMPORTANT: the T in STAR stands for THINKING, not Tasks. The employer is hiring your brain — your judgment, your decision-making process, how you diagnosed the situation and chose a path. This is the most important part of every story because it shows how you think, which is what transfers to the new role.\n\nEvery story must connect to at least one of three business imperatives: Made Money, Saved Money, or Mitigated Risk. If a story does not connect to one of these, it is not ready.\n\nRECENCY BIAS: Strongly prefer accomplishments from the last 10 years. Older experience should only be used if it is materially stronger or more relevant to ${sel} than anything recent. If you use an older story, briefly note why it was chosen over more recent options.\n\nSTART your response with:\n## QUICK TAKEAWAY\n3-4 sentences: which 3 stories you chose and why these are the strongest for ${sel}, which one is the lead story, and the single most important remixing principle for this person's specific situation. Plain language, no headers inside this section.\n\n## YOUR STAR STORIES\n\nBuild exactly 3 stories — the strongest, most relevant to ${sel} — drawn from their actual accomplishments, wiring, and brand synthesis. Quality over quantity. Each story should be deeply developed with specific detail. For each story:\n\n### STORY [NUMBER]: [Short descriptive title]\n**Business Imperative:** Made Money / Saved Money / Mitigated Risk\n**Best for answering:** List 2-3 common interview questions this story answers well\n\n**Situation:** Set the scene in 2-3 sentences. Company context, the challenge or opportunity, what was at stake. Include enough detail that the interviewer can picture the environment.\n\n**Thinking:** This is the heart of the story. 3-4 sentences on how you diagnosed the situation, what options you considered, what tradeoffs you weighed, and why you chose the path you chose. Where available, name the framework or model the person used to think through the problem — SWOT analysis, cost-benefit analysis, stakeholder mapping, the Eisenhower matrix, root cause analysis, etc. A named framework signals structured thinking and makes the story stick. If no framework is evident from the resume, that is fine — the Strengthen section can ask about it. This is where your judgment, values, and wiring show up. Connect to what the Brand Synthesis reveals about how this person thinks and operates. The interviewer should hear this section and think: that is how I want someone in this role to think.\n\n**Action:** 2-3 sentences. What you actually did. Be specific: who you talked to, what you built, what you changed. No vague "led the initiative" language. Name the verb.\n\n**Result:** 1-2 sentences. The quantifiable outcome — revenue, savings, percentage improvement, people impacted. If the number from their resume is available, use it. Bold the key metric.\n\nAfter all stories:\n\n## THE REMIX\n\nThis is the most powerful concept in interview preparation. You are a DJ who has 3 core tracks. Every interview is a different set. The same story, told with different emphasis, answers completely different questions and resonates with completely different audiences.\n\nTake the strongest story from above and show how to remix it for 4 different scenarios:\n\n**Remix for a CEO:** What to emphasize (strategic thinking, vision, business impact), which details to expand, which to compress. Write the key pivot sentence that shifts the story for this audience.\n\n**Remix for a CFO:** What to emphasize (financial rigor, ROI, risk management), how to reframe the same result in financial language.\n\n**Remix for a Peer/Hiring Manager:** What to emphasize (collaboration, execution, team dynamics), how to show you are someone they would want to work with.\n\n**Remix for a Different Question:** Take the same story and show how it answers a completely different interview question than the one it was built for. Write the transition sentence that makes it fit.\n\nClose with a one-paragraph coaching note: the principle behind remixing is that your core experiences are fixed but the lens you apply changes with every conversation. The goal is not to have a different story for every question — it is to know your 3 stories so well that you can shift emphasis in real time based on who is sitting across from you and what they care about most.\n\nCRITICAL — DERIVING STORIES FROM THE RESUME: Every story MUST be traceable to a specific accomplishment, role, or project from the resume. Do NOT invent scenarios. If the resume is thin on detail for a particular story, build the story from what IS there and then flag what is missing in the Strengthen section. Build exactly 3 stories. If the resume only supports 2 strong stories, build 2 — do not pad.
+
+PERSONALITY SEASONING: Where it fits naturally, weave in personality traits, values, or passions from the Brand Synthesis to explain WHY the person made the choices they did. This is the "how they are wired" layer — it makes the story memorable and shows the interviewer who this person IS, not just what they did. Do not force it. If a story is purely operational, let it be operational.
+
+ROLE RELEVANCE: Frame each story's Thinking and Action sections to emphasize the skills, judgment, and capabilities most relevant to ${sel}. The interviewer should hear each story and think: "That is exactly the kind of thinking we need in this role."
+
+**Strengthen This Story:**
+After each story, add a section titled exactly \`**Strengthen This Story:**\` with 2-3 specific, pointed questions about details that would make the story stronger. These should be concrete and answerable — not vague prompts. Examples:
+- "What was the budget you were working with?"
+- "How many people were on the team you led?"
+- "What was the timeline from start to completion?"
+- "What specific metric improved, and by how much?"
+- "Who pushed back on your approach, and how did you handle it?"
+- "What was the company's revenue or size when this happened?"
+- "Did you use a framework to think through this? Some thought starters from Making Your Own Weather: What / So What / Now What — People, Process, Technology — Right People, Doing the Right Things, the Right Way — Vision, Alignment, Execution — Start with the customer and work backward — Situation, Complication, Resolution. You do not need to announce the framework by name in the story — you just need to use it, and the interviewer will feel the difference."
+When the Thinking section lacks a visible framework, ALWAYS include the framework question above as one of the 2-3 Strengthen prompts. Offer 2-3 of the specific frameworks from the list that best fit THAT story's situation as thought starters.
+Pick questions that target the weakest part of THAT specific story — if the Result lacks a number, ask for it. If the Situation is vague, ask for context. If the Thinking section is thin, ask what alternatives they considered.
+
+VOICE: Write the stories in first person as if coaching the person on how to tell them. The Thinking section especially should sound like the person explaining their own reasoning, not an AI analyzing their decision-making process. Reference specific details from their actual profile — company names, numbers, situations. No generic stories.`,
   income:(pr,outs,sel)=>`You are building an Income Now plan for this professional. They are pursuing: **${sel}** as their longer-term goal and need income during the transition.\n\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\nPASSIONS: ${pr.passions}\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\n\nSTART your response with:\n## QUICK TAKEAWAY\n4-5 sentences: the fastest path to income for this person, the single best platform to start on and why, a realistic rate range, and the one thing to do in the next 48 hours. Plain language, no headers inside this section.\n\nThen continue with the full plan:\n\nFRAMING: Income Now lives in Familiar Ground — the senior, modernized version of what this person already does well. They do not need to reinvent themselves. They need to package what they know and make it easy for buyers to find and hire them quickly.\n\nPITCH PRINCIPLE: People buy painkillers, not vitamins. They act when something is hurting. Every service description and outreach message should name a real problem the buyer is living with right now. Lead with the pain. Follow with how this person fixes it. Close with what it costs. The buyer does not care about titles or tenure — they care whether their problem goes away.\n\n**PART 1 — WHERE TO SHOW UP**: Based on their specific background, identify 4-6 marketplaces and channels where this person can get in front of paying clients quickly. Think beyond the obvious — there are specialist platforms for nearly every senior function. Match these to their actual background.\n\nExamples by function: HR/talent/people leader: Catalant, Business Talent Group, Bolste, Learnerbly. Finance executive: Toptal Finance, Graphite, CFO Alliance, Paro. Tech/product executive: Toptal, Arc, Expert360, Gun.io. Marketing/brand/growth: GrowthMentor, Credo, Mayple, Expert360. Strategy/general management: Catalant, Business Talent Group, Umbrex. Sales/revenue leader: Bravado, Toptal, Sales Talent Agency. Board-ready executive: Boardlist, OnBoard, Bolste. Career/coaching/talent development: Coach.me, Clarity.fm, Maven, LinkedIn Services, direct outreach.\n\nFor each: platform name, why it fits this specific person, type of work available, realistic rate range, and the single first step to get listed or active.\n\n**PART 2 — YOUR CONSULTING PRESENCE**: Write ready-to-use copy this person can use across any of the platforms above or in direct outreach. Everything should be framed around buyer pain, not seller biography.\n\n- Positioning headline (under 100 characters — names the problem, not the person's background)\n- Bio (150 words, first person, opens with the pain the buyer has, closes with a specific outcome this person has delivered)\n- 4 specific service offerings. For each: a problem-first title (e.g. "When your best people are leaving and you don't know why" not "Retention Consulting"), the specific buyer, what the engagement includes, the outcome framed as money made/saved/risk removed, and price at senior market rates ($300-$500/hour advisory, $1,000-$3,000 for a defined deliverable, $4,000-$10,000 for a strategic engagement)\n- One outreach message: sentence 1 names the pain, sentences 2-3 connect one specific result from their background to that pain, sentence 4 asks for 15 minutes as a peer conversation. Plain language. No buzzwords.\n\n**PART 3 — FRACTIONAL PITCH**: One paragraph for cold LinkedIn or email. Same pain-first structure. Names the business problem, explains how they fix it, states cost and how to engage.\n\n**PART 4 — PASSION-ADJACENT OPPORTUNITIES**: 3 specific engagements at the intersection of their professional skills and stated passions that could generate income within 60 days. For each: the service, the buyer, why this person is credible to them, price, and one action to take this week.\n\n**PART 5 — THE ONE SHEET**: Problem-first throughout. Sections: The Problem I Solve (2 sentences), How I Help (3 service bullets with prices), Who I Work With, What Happens When We Work Together (2-3 outcomes as made money/saved money/mitigated risk), How to Start (rates, availability, contact).\n\n**PART 6 — FIRST 48 HOURS**: Exactly what to do in the next two days to have a profile live or an outreach message sent. Specific steps only.\n\nTone: direct and practical. Write everything as if it will be used today.`
 }
 
@@ -429,7 +448,7 @@ const DEMO_TOUR=[
 export default function PivotEngine(){
   const isDemo=new URLSearchParams(window.location.search).get('demo')==='true'
   const IP={loc:{country:'',city:'',work:''},resume:'',resumeFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''}}
-  const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',income:''}
+  const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:''}
   const[step,setStep]=useState(isDemo?'welcome':'welcome')
   const[profile,setProfile]=useState(isDemo?demoProfile:IP)
   const[outputs,setOutputs]=useState(isDemo?demoOutputs:IO)
@@ -438,7 +457,7 @@ export default function PivotEngine(){
   const[chosen,setChosen]=useState(isDemo?demoChosen:'')
   const[demoIdx,setDemoIdx]=useState(0)
   const[activeTab,setActiveTab]=useState(0)
-  const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',income:''})
+  const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:''})
   const setFb=(k,v)=>setFeedback(f=>({...f,[k]:v}))
   const[loading,setLoading]=useState(false)
   const[loadMsg,setLoadMsg]=useState('')
@@ -453,6 +472,10 @@ export default function PivotEngine(){
   const[p6Intro,setP6Intro]=useState(true)
   const[p7Intro,setP7Intro]=useState(true)
   const[incomeIntro,setIncomeIntro]=useState(true)
+  const[p9Intro,setP9Intro]=useState(true)
+  const[storyInputs,setStoryInputs]=useState({})
+  const[storyLoading,setStoryLoading]=useState(null)
+  const[storyUpdated,setStoryUpdated]=useState({})
   const[fileLoading,setFileLoading]=useState(false)
   const[skipAssessWarn,setSkipAssessWarn]=useState(false)
   const[surveyDone,setSurveyDone]=useState(isDemo)
@@ -501,46 +524,55 @@ export default function PivotEngine(){
     const getBullets=(text,max=5)=>{if(!text)return '';return text.split('\n').filter(l=>l.trim().startsWith('-')||l.trim().startsWith('•')||l.trim().match(/^\d+\./)).slice(0,max).join('\n')}
     const personalBrand=getSection(outputs.p3,['YOUR PERSONAL BRAND','PERSONAL BRAND'])||getQuickTakeaway(outputs.p3)
     const goldenThread=getSection(outputs.p3,['THE GOLDEN THREAD','GOLDEN THREAD'])
+    const valueProps=getSection(outputs.p3,['YOUR VALUE PROPOSITION','VALUE PROPOSITION'])
+    const howYouWork=getSection(outputs.p2,['HOW YOU GET THINGS DONE','HOW YOU WORK'])
+    const whatLightsYouUp=getSection(outputs.p2,['WHAT LIGHTS YOU UP','LIGHTS YOU UP'])
     const bridgeTMAY=getSection(outputs.p6,['30-SECOND','TELL ME ABOUT YOURSELF'])||getQuickTakeaway(outputs.p6)
-    const topAccomp=getBullets(getSection(outputs.p1,['TRANSLATED ACCOMPLISHMENTS','ACCOMPLISHMENTS']),5)||getBullets(outputs.p1,5)
+    const whyRemember=getSection(outputs.p6,['WHY THEY REMEMBER YOU','WHAT MAKES YOU STICK','THE THREE THINGS'])
     const headlineMatch=outputs.p8&&outputs.p8.match(/(?:Option [AB].*?:\s*\n|headline.*?:\s*\n)([^\n]+)/im)
     const headline=headlineMatch?headlineMatch[1].trim().replace(/\*\*/g,''):''
     const companyLines=outputs.p7?outputs.p7.split('\n').filter(l=>/^\*\*[A-Z]/.test(l.trim())&&!l.includes('PART')&&!l.includes('##')&&!l.includes('Email')&&!l.includes('Why it fits')).slice(0,8).map(l=>l.replace(/\*\*/g,'')).join('\n'):''
-    const valueProps=getSection(outputs.p3,['YOUR VALUE PROPOSITION','VALUE PROPOSITION'])
     const section=(title,content)=>content?`<div class="section"><h2>${esc(title)}</h2><div class="content">${md2html(content)}</div></div>`:''
-    const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reimagine by Career Club Findings - ${esc(name)} - ${esc(fileDate)}</title>
+    const sectionFull=(title,content)=>content?`<div class="section full"><h2>${esc(title)}</h2><div class="content">${md2html(content)}</div></div>`:''
+    const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reimagine by Career Club - ${esc(name)} - ${esc(fileDate)}</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 @page{size:letter;margin:0.6in 0.7in}
 body{font-family:Outfit,sans-serif;font-size:11px;color:#1A2540;line-height:1.55;padding:0.6in 0.7in}
-.header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #e4572e;padding-bottom:10px;margin-bottom:16px}
+.header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #C8924A;padding-bottom:10px;margin-bottom:16px}
 .header h1{font-size:22px;font-weight:700;color:#1A2540}
 .header .sub{font-size:11px;color:#64748B}
-.badge{display:inline-block;background:#e4572e;color:#fff;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:3px;margin-bottom:4px}
-.chosen{font-size:13px;font-weight:600;color:#e4572e;margin:8px 0 14px;padding:8px 14px;background:#FEF2EE;border-left:3px solid #e4572e;border-radius:0 6px 6px 0}
+.badge{display:inline-block;background:#C8924A;color:#fff;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:3px;margin-bottom:4px}
+.chosen{font-size:13px;font-weight:600;color:#C8924A;margin:8px 0 14px;padding:8px 14px;background:#FDF8F3;border-left:3px solid #C8924A;border-radius:0 6px 6px 0}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .section{margin-bottom:12px}
-.section h2{font-size:12px;font-weight:700;color:#e4572e;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid #F0F0F0}
+.section.full{margin-bottom:14px}
+.section h2{font-size:12px;font-weight:700;color:#C8924A;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid #F0F0F0}
+.section.full h2{font-size:13px}
 .content{font-size:10.5px;color:#2D3748;line-height:1.5}
 .content strong{color:#1A2540}
+.brand-statement{font-size:12px;color:#1A2540;line-height:1.6;font-weight:500;padding:8px 14px;background:#FDF8F3;border-left:3px solid #C8924A;border-radius:0 6px 6px 0;margin-bottom:14px}
+.divider{border:none;border-top:1px solid #E2E8F0;margin:14px 0}
 .footer{margin-top:auto;padding-top:10px;border-top:1px solid #E2E8F0;font-size:9px;color:#94A3B8;display:flex;justify-content:space-between}
 @media print{body{padding:0}@page{margin:0.6in 0.7in}}
 </style></head><body>
-<div class="header"><div><div class="badge">Reimagine by Career Club</div><h1>${esc(name)}</h1></div><div class="sub">Career Strategy Findings · ${esc(date)}</div></div>
+<div class="header"><div><div class="badge">Reimagine by Career Club</div><h1>${esc(name)}</h1></div><div class="sub">Career Strategy · ${esc(date)}</div></div>
 ${chosen?`<div class="chosen">Pursuing: ${esc(chosen)}</div>`:''}
-${section('The Golden Thread',goldenThread)}
-${section('Personal Brand',personalBrand)}
+${sectionFull('The Golden Thread',goldenThread)}
+${personalBrand?`<div class="brand-statement">${md2html(personalBrand)}</div>`:''}
+${sectionFull('Your Value Proposition',valueProps)}
+<div class="grid">
+${section('How You Get Things Done',howYouWork)}
+${section('What Lights You Up',whatLightsYouUp)}
+</div>
+<hr class="divider">
+${sectionFull('Tell Me About Yourself',bridgeTMAY)}
+<div class="grid">
+${section('Why They Remember You',whyRemember)}
 ${headline?`<div class="section"><h2>LinkedIn Headline</h2><div class="content" style="font-size:12px;font-weight:600">${esc(headline)}</div></div>`:''}
-${section('Tell Me About Yourself',bridgeTMAY)}
-<div class="grid">
-${section('Value Proposition',valueProps)}
-${section('Top Accomplishments',topAccomp)}
 </div>
-<div class="grid">
-${section('Target Companies',companyLines)}
-${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU','WHAT MAKES YOU STICK','THE THREE THINGS']))}
-</div>
+${companyLines?`${section('Target Companies',companyLines)}`:''}
 <div class="footer"><span>Reimagine by Career Club · career.club</span><span>${esc(date)}</span></div>
 </body></html>`
     const w=window.open('','_blank')
@@ -1304,13 +1336,106 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 5 · Get Ready</div>}
       <h1 style={S.title}>Your Playbook</h1>
       {!isDemo&&<p style={S.sub}>When you know the language, the players, and what is happening right now, you walk into every conversation like you belong there. This is your crash course.</p>}
-      {!isDemo&&!outputs.p9&&!loading&&<Btn onClick={async()=>{setLoading(true);setErr(null);setLoadMsg('Building your playbook...');try{const[r1,r2]=await Promise.all([callClaude(P.p9(pc,outputs,chosen),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen),{maxTokens:2000})]);out('p9',r1);out('p10',r2)}catch(e){setErr(e.message)}finally{setLoading(false)}}}><Sparkles size={14}/>Build My Playbook</Btn>}
+      {!isDemo&&!outputs.p9&&p9Intro&&(()=>{
+        return <div style={{maxWidth:820,margin:'0 auto'}}>
+          <p style={{fontSize:20,color:C.gray,lineHeight:1.7,marginBottom:32}}>Your Playbook gives you three things: the language of your target industry, interview preparation, and your STAR stories — the specific proof points that make interviewers lean forward instead of check out.</p>
+          <div style={{display:'grid',gridTemplateColumns:'1fr',gap:18,marginBottom:32}}>
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:'24px 28px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}><Lightbulb size={34} color={C.gold}/><span style={{fontSize:22,fontWeight:700,color:C.cream}}>T = Thinking, Not Tasks</span></div>
+              <p style={{fontSize:17,color:C.gray,lineHeight:1.65,margin:0}}>Most people tell STAR stories as Situation, Task, Action, Result. We replace Task with Thinking — because the employer is hiring your brain. How you diagnosed the situation, what options you considered, what framework you used to decide. That is what transfers to the new role.</p>
+            </div>
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:'24px 28px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}><Puzzle size={34} color={C.gold}/><span style={{fontSize:22,fontWeight:700,color:C.cream}}>The Remix</span></div>
+              <p style={{fontSize:17,color:C.gray,lineHeight:1.65,margin:0}}>You do not need a different story for every question. You need 3 great stories you know so well that you can shift emphasis in real time. A CEO hears the strategic vision. A CFO hears the numbers. A peer hears the collaboration. Same story, different music.</p>
+            </div>
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:'24px 28px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}><Target size={34} color={C.gold}/><span style={{fontSize:22,fontWeight:700,color:C.cream}}>Strengthen As You Go</span></div>
+              <p style={{fontSize:17,color:C.gray,lineHeight:1.65,margin:0}}>After each story, we will show you exactly what details would make it stronger — a missing number, a budget, a timeline, a framework you used to think through the problem. Add those details and regenerate the story with them baked in.</p>
+            </div>
+          </div>
+          <div style={{background:`${C.gold}10`,border:`1px solid ${C.gold}30`,borderRadius:10,padding:'18px 22px',marginBottom:28}}>
+            <p style={{fontSize:18,color:C.goldL,lineHeight:1.6,margin:0}}><strong>What happens next:</strong> We will build your industry crash course, your 3 strongest STAR stories with coaching on how to strengthen and remix them, and your interview preparation — all tailored to your chosen direction.</p>
+          </div>
+          <Btn onClick={async()=>{setP9Intro(false);window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg('Building your playbook...');try{const[r1,r2,r3]=await Promise.all([callClaude(P.p9(pc,outputs,chosen),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen),{maxTokens:2000}),callClaude(P.p11(pc,outputs,chosen),{maxTokens:4000})]);out('p9',r1);out('p10',r2);out('p11',r3)}catch(e){setErr(e.message)}finally{setLoading(false)}}}><Sparkles size={14}/>Build My Playbook</Btn>
+        </div>
+      })()}
+      {!isDemo&&!outputs.p9&&!p9Intro&&!loading&&<Btn onClick={async()=>{setLoading(true);setErr(null);setLoadMsg('Building your playbook...');try{const[r1,r2,r3]=await Promise.all([callClaude(P.p9(pc,outputs,chosen),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen),{maxTokens:2000}),callClaude(P.p11(pc,outputs,chosen),{maxTokens:4000})]);out('p9',r1);out('p10',r2);out('p11',r3)}catch(e){setErr(e.message)}finally{setLoading(false)}}}><Sparkles size={14}/>Build My Playbook</Btn>}
       {loading&&<Loading msg={loadMsg||'Building your playbook — industry landscape and interview preparation…'}/>}
       {outputs.p9&&<>
         <OutPanel text={outputs.p9} onCopy={copy} copied={copied}/>
+        {outputs.p11&&(()=>{
+          const raw=outputs.p11
+          const storyRegex=/### STORY\s*\[?\d+\]?[:\s]*/gi
+          const remixIdx=raw.search(/## THE REMIX/i)
+          const quickIdx=raw.search(/## QUICK TAKEAWAY/i)
+          const quickEnd=raw.search(/## YOUR STAR STORIES/i)
+          const quickTakeaway=(quickIdx>=0&&quickEnd>quickIdx)?raw.substring(quickIdx,quickEnd):''
+          const remixSection=remixIdx>=0?raw.substring(remixIdx):''
+          const storySections=[]
+          const matches=[...raw.matchAll(/### STORY\s*\[?\d+\]?[:\s]*/gi)]
+          matches.forEach((m,i)=>{
+            const start=m.index+m[0].length
+            const end=matches[i+1]?matches[i+1].index:(remixIdx>=0?remixIdx:raw.length)
+            const block=raw.substring(start,end).trim()
+            if(block.length>50)storySections.push({id:i,text:block,title:block.split('\n')[0].replace(/^\*+|\*+$/g,'').trim()})
+          })
+          return <><div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>Your STAR Stories</h2><p style={{fontSize:16,color:C.gray,marginTop:6}}>Your 3 strongest stories in the Situation–Thinking–Action–Result format, plus how to remix them for different audiences and questions.</p></div>
+          {quickTakeaway&&<OutPanel text={quickTakeaway} onCopy={copy} copied={copied}/>}
+          {storySections.map(story=>{
+            const strengthenIdx=story.text.search(/\*\*Strengthen This Story[:\s]*\*\*/i)
+            const mainContent=strengthenIdx>=0?story.text.substring(0,strengthenIdx).trim():story.text
+            const strengthenContent=strengthenIdx>=0?story.text.substring(strengthenIdx).trim():''
+            return <div key={story.id} style={{...S.out,marginTop:14,position:'relative'}}>
+              <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}><Btn small onClick={()=>copy('### STORY '+(story.id+1)+': '+story.text)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy</>}</Btn></div>
+              <MD text={'### '+mainContent}/>
+              {strengthenContent&&<div style={{background:`${C.gold}08`,border:`1px solid ${C.gold}25`,borderRadius:8,padding:'16px 20px',marginTop:16}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}><Lightbulb size={18} color={C.gold}/><span style={{fontSize:15,fontWeight:700,color:C.goldL}}>Strengthen This Story</span></div>
+                <MD text={strengthenContent.replace(/\*\*Strengthen This Story[:\s]*\*\*/i,'').trim()}/>
+                {!isDemo&&<div style={{marginTop:14}}>
+                  <div style={{display:'flex',gap:8,alignItems:'flex-end'}}>
+                    <div style={{flex:1,position:'relative'}}>
+                      <textarea style={{...S.ta,minHeight:60,paddingRight:hasSpeech?44:15}} placeholder="Add details here — numbers, names, context — then regenerate this story…" value={storyInputs[story.id]||''} onChange={e=>setStoryInputs(s=>({...s,[story.id]:e.target.value}))}/>
+                      {hasSpeech&&<SpeechBtn onResult={t=>setStoryInputs(s=>({...s,[story.id]:(s[story.id]||'')+t}))} style={{position:'absolute',right:8,bottom:8}}/>}
+                    </div>
+                    <button style={{...S.btn,padding:'10px 18px',fontSize:15,opacity:storyLoading===story.id?0.6:1,whiteSpace:'nowrap'}} disabled={storyLoading===story.id} onClick={async()=>{
+                      const extra=storyInputs[story.id]||''
+                      setStoryLoading(story.id)
+                      try{
+                        const storyPrompt=`Regenerate ONLY this single STAR story. Keep the same format (### STORY [${story.id+1}]: title, Business Imperative, Best for answering, Situation, Thinking, Action, Result, then **Strengthen This Story:** section).\n\nORIGINAL STORY:\n${story.text}\n\nUSER ADDITIONS:\n${extra||'(none)'}\n\nPROFILE: ${outputs.p1}\nBRAND: ${outputs.p3}\nTARGET ROLE: ${chosen}\n\nIncorporate the user's additions into the story naturally. Update the Strengthen section to reflect what is still missing AFTER the additions. Follow all STAR framework rules from the original prompt: T=Thinking, connect to business imperatives, season with personality from Brand Synthesis where natural, frame for ${chosen}.`
+                        const result=await callClaude(storyPrompt,{maxTokens:1500})
+                        const cleaned=result.replace(/^### STORY\s*\[?\d+\]?[:\s]*/i,'').trim()
+                        const curRaw=outputs.p11
+                        const curRemixIdx=curRaw.search(/## THE REMIX/i)
+                        let rebuilt=''
+                        const allMatches=[...curRaw.matchAll(/### STORY\s*\[?\d+\]?[:\s]*/gi)]
+                        let lastEnd=0
+                        allMatches.forEach((am,ai)=>{
+                          rebuilt+=curRaw.substring(lastEnd,am.index)+am[0]
+                          const blockEnd=allMatches[ai+1]?allMatches[ai+1].index:(curRemixIdx>=0?curRemixIdx:curRaw.length)
+                          if(ai===story.id){rebuilt+=cleaned+'\n\n'}
+                          else{rebuilt+=curRaw.substring(am.index+am[0].length,blockEnd)}
+                          lastEnd=blockEnd
+                        })
+                        if(curRemixIdx>=0)rebuilt+=curRaw.substring(curRemixIdx)
+                        else if(lastEnd<curRaw.length)rebuilt+=curRaw.substring(lastEnd)
+                        out('p11',rebuilt)
+                        setStoryInputs(s=>({...s,[story.id]:''}))
+                        if(extra.trim())setStoryUpdated(s=>({...s,[story.id]:true}))
+                      }catch(e){setErr(e.message)}finally{setStoryLoading(null)}
+                    }}>{storyLoading===story.id?<><Loader2 size={14} className="spin"/>Regenerating…</>:<><RotateCcw size={13}/>Regenerate Story</>}</button>
+                  </div>
+                </div>}
+              </div>}
+              {storyUpdated[story.id]&&<div style={{background:`${C.gold}10`,border:`1px solid ${C.gold}30`,borderRadius:8,padding:'12px 16px',marginTop:12,display:'flex',alignItems:'flex-start',gap:10}}>
+                <Lightbulb size={16} color={C.gold} style={{marginTop:2,flexShrink:0}}/>
+                <span style={{fontSize:14,color:C.goldL,lineHeight:1.5}}>You added new details to this story. If any of them meaningfully change your value proposition — a bigger number, a new capability, a stronger result — consider revisiting your <strong>Resume</strong> and <strong>LinkedIn</strong> sections to reflect them there too.</span>
+              </div>}
+            </div>})}
+          {remixSection&&<div style={{marginTop:14}}><OutPanel text={remixSection} onCopy={copy} copied={copied}/></div>}
+        </>})()}
         {outputs.p10&&<><div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>Interview Prep</h2><p style={{fontSize:16,color:C.gray,marginTop:6}}>The questions that will come up and how to talk about each one with confidence.</p></div><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/></>}
-        {!isDemo&&<RefineBox value={feedback.p9} onChange={v=>setFb('p9',v)} hint="Need different interview questions, or want the crash course to cover a specific topic? Tell us what to adjust." placeholder="e.g. Add questions about my career pivot… I need to know more about a specific technology… the interview prep should focus on executive-level conversations…" onRegenerate={v=>{out('p9','');out('p10','');setLoading(true);setErr(null);setLoadMsg('Updating your playbook...');Promise.all([callClaude(P.p9(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:2000})]).then(([r1,r2])=>{out('p9',r1);out('p10',r2)}).catch(e=>setErr(e.message)).finally(()=>setLoading(false))}}/>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p9','');out('p10','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>{markDone('p9');markDone('p10');advance('p9','complete')}}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<RefineBox value={feedback.p9} onChange={v=>setFb('p9',v)} hint="Need different interview questions, or want the crash course to cover a specific topic? Tell us what to adjust." placeholder="e.g. Add questions about my career pivot… I need to know more about a specific technology… the interview prep should focus on executive-level conversations…" onRegenerate={v=>{out('p9','');out('p10','');out('p11','');setStoryUpdated({});setLoading(true);setErr(null);setLoadMsg('Updating your playbook...');Promise.all([callClaude(P.p9(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:2000}),callClaude(P.p11(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})]).then(([r1,r2,r3])=>{out('p9',r1);out('p10',r2);out('p11',r3)}).catch(e=>setErr(e.message)).finally(()=>setLoading(false))}}/>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p9','');out('p10','');out('p11','');setP9Intro(false);setStoryUpdated({});window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>{markDone('p9');markDone('p10');advance('p9','complete')}}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -1400,7 +1525,7 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
           <Check size={16} color={C.ok} strokeWidth={2.5}/>
           <div style={{fontSize:15,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
         </div>
-        {[['Your Personal Brand','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Your Playbook','p9',(outputs.p9||'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
+        {[['Your Personal Brand','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Your Playbook','p9',(outputs.p9||'')+(outputs.p11?'\n\n---\n\n'+outputs.p11:'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
 
         <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:15,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
         <div style={{marginTop:16,background:'linear-gradient(135deg,#1A2540 0%,#2A3F60 100%)',borderRadius:12,padding:'24px 28px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
