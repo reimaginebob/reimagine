@@ -939,7 +939,7 @@ Taking Story 1 (the referral program) — your strongest story — and showing h
 
 **Remix for a Different Question:** "Tell me about a time you used data to make a decision." Transition: "The referral program is a good example — but the interesting part isn't the program itself, it's how I decided to build it." Shift emphasis entirely to the Thinking section: analyzing sourcing costs, segmenting by channel, identifying the gap, designing the pilot. The story becomes about analytical rigor rather than program building.
 
-The principle: your core experiences are fixed, but the lens changes with every conversation. You have three strong stories. The goal is not to memorize a script for each question — it is to know these stories so well that you can shift emphasis in real time based on who is sitting across from you and what they care about most. A CEO cares about vision. A CFO cares about numbers. A peer cares about collaboration. Same story, different music.`,
+The principle: your core experiences are fixed, but the lens changes with every conversation. Eventually you will want 10-12 stories in your repertoire, but start with these 3 and know them so well that you can shift emphasis in real time based on who is sitting across from you and what they care about most. A CEO cares about vision. A CFO cares about numbers. A peer cares about collaboration. Same song, different rhythm.`,
 
 // ─── INCOME: INCOME WHILE PURSUING ──────────────────────────────────────
 
