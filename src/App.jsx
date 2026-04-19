@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import * as mammoth from "mammoth"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 
 const SYS = `You are a Career Strategist within Reimagine, a career strategy tool by Career Club, built on Making Your Own Weather by Bob Goodwin.
@@ -414,7 +414,11 @@ export default function PivotEngine(){
   const[deepExpanded,setDeepExpanded]=useState(false)
   const[hasProgress,setHasProgress]=useState(false)
   const[laneTab,setLaneTab]=useState(0)
+  const[p3Intro,setP3Intro]=useState(true)
   const[p4Intro,setP4Intro]=useState(true)
+  const[p6Intro,setP6Intro]=useState(true)
+  const[p7Intro,setP7Intro]=useState(true)
+  const[incomeIntro,setIncomeIntro]=useState(true)
   const[fileLoading,setFileLoading]=useState(false)
   const[skipAssessWarn,setSkipAssessWarn]=useState(false)
   const[surveyDone,setSurveyDone]=useState(isDemo)
@@ -751,13 +755,40 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
       <h1 style={S.title}>Brand Synthesis</h1>
       {!isDemo&&<p style={S.sub}>When someone asks "what do you do," most people default to a job title. This step gives you a better answer: a clear statement of what you do, why you are good at it, and how they work together to produce meaningful outcomes.</p>}
-      {!isDemo&&!outputs.p3&&!loading&&<Btn onClick={()=>generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}><Sparkles size={14}/>Synthesize My Brand</Btn>}
+      {!isDemo&&!outputs.p3&&!loading&&p3Intro&&(()=>{
+        const cards=[
+          {icon:<Fingerprint size={34} color={C.gold}/>,name:'The Golden Thread',desc:'The single consistent theme that runs through your accomplishments, how you are wired, and what others say about you. This is the throughline most people cannot see in themselves.'},
+          {icon:<MessageCircle size={34} color={C.gold}/>,name:'Your Personal Brand',desc:'A clear, two-sentence statement of what you do and why your combination is distinctive. The answer to "what do you do" that actually makes people lean in.'},
+          {icon:<Puzzle size={34} color={C.gold}/>,name:'Your Value Proposition',desc:'The specific capabilities that set you apart, each backed by proof from your track record. Not a list of skills — a map of what you bring and the evidence that it works.'}
+        ]
+        return <div style={{maxWidth:820,margin:'0 auto'}}>
+          <div style={{textAlign:'center',marginBottom:40}}>
+            <div style={{width:72,height:72,borderRadius:18,background:`${C.gold}15`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}><Sparkles size={32} color={C.gold}/></div>
+            <h2 style={{fontSize:34,fontWeight:700,color:'#1A2540',marginBottom:16}}>Your Professional Identity</h2>
+            <p style={{fontSize:20,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>We just analyzed three layers of data — your resume, how you are wired, and your reputation. Now we distill all of it into a clear professional identity you can use everywhere: in interviews, on LinkedIn, and in conversations that matter.</p>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
+            {cards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
+              <div style={{width:62,height:62,borderRadius:14,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
+              <div>
+                <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
+                <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
+              </div>
+            </div>)}
+          </div>
+          <div style={{background:'#F0F4F8',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'24px 28px',marginBottom:32}}>
+            <div style={{fontSize:18,color:'#1A2540',lineHeight:1.75,fontWeight:500}}>On the next screen, you will see your brand synthesis — the golden thread, your personal brand statement, and a value proposition with proof points from your career. Read it carefully and let us know if anything feels off. This becomes the foundation for everything that follows.</div>
+          </div>
+          <div style={{textAlign:'center'}}><Btn onClick={()=>{setP3Intro(false);generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}}><Sparkles size={14}/>Synthesize My Brand</Btn></div>
+        </div>
+      })()}
+      {!isDemo&&!outputs.p3&&!loading&&!p3Intro&&<Btn onClick={()=>generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}><Sparkles size={14}/>Synthesize My Brand</Btn>}
       {loading&&<Loading msg="Finding the pattern across all your data…"/>}
       {outputs.p3&&<>
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the brand or value proposition misses the mark, tell us what feels off." placeholder="e.g. The personal brand doesn't capture my leadership style… you missed my strongest capability… the golden thread isn't quite right…" onRegenerate={v=>{out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Let's see what's possible — the full landscape of directions that fit your strengths, values, and interests.</div>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');setP3Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -770,27 +801,27 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
       {loading&&<Loading msg={loadMsg||'Mapping your full opportunity landscape across all three paths…'}/>}
       {outputs.p4&&p4Intro&&(()=>{
         const pathCards=[
-          {icon:<Heart size={28} color="#C8924A"/>,name:'Work That Matters',desc:'Built on the Japanese concept of Ikigai — the intersection of what you love, what you are good at, what the world needs, and what you can be paid for. These roles stretch beyond your current title, grounded in who you actually are and what gives your work meaning.'},
-          {icon:<Network size={28} color="#C8924A"/>,name:'Industry Insider',desc:'You know your industry from the inside. These options map the full ecosystem around your experience — clients, vendors, consultants, adjacent players — where your insider knowledge is a real competitive advantage.'},
-          {icon:<Briefcase size={28} color="#C8924A"/>,name:'Familiar Ground',desc:'Same function, same or adjacent industry, bigger scope. Your track record speaks immediately here. The key is showing you are the forward-looking candidate, not just the experienced one.'}
+          {icon:<Heart size={34} color="#C8924A"/>,name:'Work That Matters',desc:'Built on the Japanese concept of Ikigai — the intersection of what you love, what you are good at, what the world needs, and what you can be paid for. These roles stretch beyond your current title, grounded in who you actually are and what gives your work meaning.'},
+          {icon:<Network size={34} color="#C8924A"/>,name:'Industry Insider',desc:'You know your industry from the inside. These options map the full ecosystem around your experience — clients, vendors, consultants, adjacent players — where your insider knowledge is a real competitive advantage.'},
+          {icon:<Briefcase size={34} color="#C8924A"/>,name:'Familiar Ground',desc:'Same function, same or adjacent industry, bigger scope. Your track record speaks immediately here. The key is showing you are the forward-looking candidate, not just the experienced one.'}
         ]
-        return <div style={{maxWidth:720,margin:'0 auto'}}>
-          <div style={{textAlign:'center',marginBottom:32}}>
-            <div style={{width:64,height:64,borderRadius:16,background:`${C.gold}15`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}><Sparkles size={28} color={C.gold}/></div>
-            <h2 style={{fontSize:28,fontWeight:700,color:'#1A2540',marginBottom:12}}>Three Paths Forward</h2>
-            <p style={{fontSize:18,color:'#4A5568',lineHeight:1.7,maxWidth:600,margin:'0 auto'}}>We took everything you shared — your experience, how you are wired, and what matters to you — and mapped out where it all points. Your options are organized into three paths.</p>
+        return <div style={{maxWidth:820,margin:'0 auto'}}>
+          <div style={{textAlign:'center',marginBottom:40}}>
+            <div style={{width:72,height:72,borderRadius:18,background:`${C.gold}15`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}><Sparkles size={32} color={C.gold}/></div>
+            <h2 style={{fontSize:34,fontWeight:700,color:'#1A2540',marginBottom:16}}>Three Paths Forward</h2>
+            <p style={{fontSize:20,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>We took everything you shared — your experience, how you are wired, and what matters to you — and mapped out where it all points. Your options are organized into three paths.</p>
           </div>
-          <div style={{display:'flex',flexDirection:'column',gap:16,marginBottom:32}}>
-            {pathCards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'24px 28px',display:'flex',gap:20,alignItems:'flex-start'}}>
-              <div style={{width:52,height:52,borderRadius:12,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
+          <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
+            {pathCards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
+              <div style={{width:62,height:62,borderRadius:14,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
               <div>
-                <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:6}}>{card.name}</div>
-                <div style={{fontSize:15,color:'#4A5568',lineHeight:1.65}}>{card.desc}</div>
+                <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
+                <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
               </div>
             </div>)}
           </div>
-          <div style={{background:'#F0F4F8',border:`1.5px solid ${C.border}`,borderRadius:12,padding:'20px 24px',marginBottom:28}}>
-            <div style={{fontSize:16,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>On the next screen, you will see specific roles across these three paths. Take your time browsing — then select up to three that resonate with you. Your choices can come from any combination of paths, or all from one. There is no wrong answer here.</div>
+          <div style={{background:'#F0F4F8',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'24px 28px',marginBottom:32}}>
+            <div style={{fontSize:18,color:'#1A2540',lineHeight:1.75,fontWeight:500}}>On the next screen, you will see specific roles across these three paths. Take your time browsing — then select up to three that resonate with you. Your choices can come from any combination of paths, or all from one. There is no wrong answer here.</div>
           </div>
           <div style={{textAlign:'center'}}><Btn onClick={()=>{setP4Intro(false);window.scrollTo(0,0)}}>Show Me My Options <ChevronRight size={14}/></Btn></div>
         </div>
@@ -1089,9 +1120,36 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
       <h1 style={S.title}>Your Bridge Story</h1>
       {!isDemo&&<p style={S.sub}>"Tell me about yourself" is the first question in every interview, and most people struggle with it. Three versions that connect where you've been to where you're heading.</p>}
       <div style={S.note}>Pursuing: <strong style={{color:C.cream}}>{chosen}</strong></div>
-      {!isDemo&&!outputs.p6&&!loading&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
+      {!isDemo&&!outputs.p6&&!loading&&p6Intro&&(()=>{
+        const cards=[
+          {icon:<Fingerprint size={34} color={C.gold}/>,name:'Start With Who You Are',desc:'The best answers to "tell me about yourself" do not start with a job title. They start with something personal — a value, a passion, a pattern — that makes you the one person in that conversation they remember.'},
+          {icon:<Target size={34} color={C.gold}/>,name:'Connect It to What You Have Done',desc:'Your personality is the reason your accomplishments happened. We connect who you are to two or three proof points — made money, saved money, mitigated risk — so the listener hears a story, not a resume.'},
+          {icon:<Send size={34} color={C.gold}/>,name:'Land on Where You Are Headed',desc:'The close makes your next move feel like the natural next chapter, not a career change. When all three parts connect, the listener walks away thinking: of course that is what they should do next.'}
+        ]
+        return <div style={{maxWidth:820,margin:'0 auto'}}>
+          <div style={{textAlign:'center',marginBottom:40}}>
+            <div style={{width:72,height:72,borderRadius:18,background:`${C.gold}15`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}><Sparkles size={32} color={C.gold}/></div>
+            <h2 style={{fontSize:34,fontWeight:700,color:'#1A2540',marginBottom:16}}>Your Bridge Story</h2>
+            <p style={{fontSize:20,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>"Tell me about yourself" is the highest-leverage 30 seconds of any professional conversation. Here is how to maximize it using a three-part formula that makes your answer memorable, personal, and impossible to confuse with anyone else in the room.</p>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
+            {cards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
+              <div style={{width:62,height:62,borderRadius:14,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
+              <div>
+                <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
+                <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
+              </div>
+            </div>)}
+          </div>
+          <div style={{background:'#F0F4F8',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'24px 28px',marginBottom:32}}>
+            <div style={{fontSize:18,color:'#1A2540',lineHeight:1.75,fontWeight:500}}>On the next screen, we will write your complete "tell me about yourself" answer, plus coaching on what makes it stick and the three things people will remember after you leave the room. Read it out loud — it should sound like you, not like a script.</div>
+          </div>
+          <div style={{textAlign:'center'}}><Btn onClick={()=>{setP6Intro(false);generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}}><Sparkles size={14}/>Write My Bridge Story</Btn></div>
+        </div>
+      })()}
+      {!isDemo&&!outputs.p6&&!loading&&!p6Intro&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
       {loading&&<Loading msg="Crafting your bridge story in three lengths…"/>}
-      {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? If the tone or content feels off, tell us how to adjust." placeholder="e.g. The opening doesn't sound like me… I want to lead with a different part of my background… the ending needs to be stronger…" onRegenerate={v=>{out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p6','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
+      {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? If the tone or content feels off, tell us how to adjust." placeholder="e.g. The opening doesn't sound like me… I want to lead with a different part of my background… the ending needs to be stronger…" onRegenerate={v=>{out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p6','');setP6Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -1102,7 +1160,34 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
       <h1 style={S.title}>Go-to-Market Strategy</h1>
       {!isDemo&&<p style={S.sub}>The best opportunities are filled through relationships before a posting ever goes live. We search in real time for companies that fit your background and draft personalized outreach to the people you'd want to reach.</p>}
       {!isDemo&&<div style={S.note}><strong style={{color:C.gold}}>Live research enabled.</strong> We search for companies that are growing, investing, and most likely to be hiring — and flag ones showing signs of contraction.</div>}
-      {!isDemo&&!outputs.p7&&!loading&&<Btn onClick={()=>generate('p7',()=>P.p7(pc,outputs,chosen),{webSearch:true,maxTokens:6000,msg:'Researching target companies and building your strategy…'})}><Sparkles size={14}/>Build My Strategy</Btn>}
+      {!isDemo&&!outputs.p7&&!loading&&p7Intro&&(()=>{
+        const cards=[
+          {icon:<MapPin size={34} color={C.gold}/>,name:'Target Companies',desc:'We research 20-30 companies that fit your background and target role — prioritizing ones showing growth signals like recent funding, acquisitions, or expansion. Companies showing contraction get flagged or removed.'},
+          {icon:<Send size={34} color={C.gold}/>,name:'Direct Outreach',desc:'A personalized outreach email using a proven three-paragraph formula: start with them, briefly share your relevance, then ask for a conversation. No job boards, no cold applications. Peer-to-peer.'},
+          {icon:<Target size={34} color={C.gold}/>,name:'Hiring Executive & LinkedIn',desc:'For each company, we identify the most likely decision-maker for your role and recommend a LinkedIn headline that positions you for exactly this kind of opportunity.'}
+        ]
+        return <div style={{maxWidth:820,margin:'0 auto'}}>
+          <div style={{textAlign:'center',marginBottom:40}}>
+            <div style={{width:72,height:72,borderRadius:18,background:`${C.gold}15`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}><Sparkles size={32} color={C.gold}/></div>
+            <h2 style={{fontSize:34,fontWeight:700,color:'#1A2540',marginBottom:16}}>Your Go-to-Market Plan</h2>
+            <p style={{fontSize:20,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>The best opportunities are filled through relationships before a posting ever goes live. This step builds a strategy to reach the right people at the right companies — directly.</p>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
+            {cards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
+              <div style={{width:62,height:62,borderRadius:14,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
+              <div>
+                <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
+                <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
+              </div>
+            </div>)}
+          </div>
+          <div style={{background:'#F0F4F8',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'24px 28px',marginBottom:32}}>
+            <div style={{fontSize:18,color:'#1A2540',lineHeight:1.75,fontWeight:500}}>On the next screen, we will use live research to build your complete go-to-market strategy: a curated list of target companies, a sample outreach email you can personalize, and a LinkedIn headline recommendation. You will also be able to download your company list as a spreadsheet.</div>
+          </div>
+          <div style={{textAlign:'center'}}><Btn onClick={()=>{setP7Intro(false);generate('p7',()=>P.p7(pc,outputs,chosen),{webSearch:true,maxTokens:6000,msg:'Researching target companies and building your strategy…'})}}><Sparkles size={14}/>Build My Strategy</Btn></div>
+        </div>
+      })()}
+      {!isDemo&&!outputs.p7&&!loading&&!p7Intro&&<Btn onClick={()=>generate('p7',()=>P.p7(pc,outputs,chosen),{webSearch:true,maxTokens:6000,msg:'Researching target companies and building your strategy…'})}><Sparkles size={14}/>Build My Strategy</Btn>}
       {loading&&<Loading msg={loadMsg||'Researching companies and building your outreach strategy…'}/>}
       {outputs.p7&&(()=>{
         const downloadCSV=()=>{
@@ -1146,7 +1231,7 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
           {!isDemo&&<RefineBox value={feedback.p7} onChange={v=>setFb('p7',v)} hint="Want companies in a different region, industry, or size range? Or need the outreach message adjusted? Tell us what to change." placeholder="e.g. Focus on companies in the Southeast… add more startups and fewer enterprise companies… the outreach tone is too formal…" updateLabel="Update my strategy" freshLabel="Show me a fresh set" onRegenerate={v=>{out('p7','');generate('p7',()=>P.p7(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{webSearch:true,maxTokens:6000})}}/>}
           {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Companies identified. Now let's update how you show up online so the right people can find you.</div>}
           {!isDemo&&<div style={S.row}>
-            <Btn secondary onClick={()=>{out('p7','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn>
+            <Btn secondary onClick={()=>{out('p7','');setP7Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn>
             <Btn onClick={()=>advance('p7','p8')}>Remix My LinkedIn <ChevronRight size={14}/></Btn>
           </div>}
         </>
@@ -1308,12 +1393,39 @@ ${section('Why They Remember You',getSection(outputs.p6,['WHY THEY REMEMBER YOU'
       <h1 style={S.title}>Income Now</h1>
       {!isDemo&&<p style={S.sub}>A job search takes time. Having income flowing while you search changes everything: you make better decisions when you're choosing, not settling.</p>}
       <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>Targeting: <strong>{chosen||'your chosen direction'}</strong></div>
-      {!isDemo&&!outputs.income&&!loading&&<Btn onClick={()=>generate('income',()=>P.income(pc,outputs,chosen),{maxTokens:6000,msg:'Building your Income Now plan…'})} style={{background:'#7AB87A'}}><Sparkles size={14}/>Build My Income Plan</Btn>}
+      {!isDemo&&!outputs.income&&!loading&&incomeIntro&&(()=>{
+        const cards=[
+          {icon:<DollarSign size={34} color="#7AB87A"/>,name:'Consulting & Fractional Leadership',desc:'Your expertise has market value right now. We identify consulting and fractional roles where your seniority and track record command premium rates — without waiting for a full-time offer.'},
+          {icon:<Clock size={34} color="#7AB87A"/>,name:'Bridge the Gap',desc:'A job search takes time, and having income flowing changes the dynamic completely. You make better decisions when you are choosing, not settling. These options keep revenue coming in while you search.'},
+          {icon:<Lightbulb size={34} color="#7AB87A"/>,name:'Leverage What You Know',desc:'Advisory boards, speaking engagements, coaching, content — ways to monetize your expertise that build your visibility and credibility for your target role at the same time.'}
+        ]
+        return <div style={{maxWidth:820,margin:'0 auto'}}>
+          <div style={{textAlign:'center',marginBottom:40}}>
+            <div style={{width:72,height:72,borderRadius:18,background:'#7AB87A15',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}><DollarSign size={32} color="#7AB87A"/></div>
+            <h2 style={{fontSize:34,fontWeight:700,color:'#1A2540',marginBottom:16}}>Income While You Search</h2>
+            <p style={{fontSize:20,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>Your job search is an investment in your future, but it does not have to mean putting income on hold. This module identifies ways to generate revenue right now using the expertise you already have — matched to your seniority and target market.</p>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
+            {cards.map((card,i)=><div key={i} style={{background:'white',border:'1.5px solid #7AB87A30',borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
+              <div style={{width:62,height:62,borderRadius:14,background:'#7AB87A12',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
+              <div>
+                <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
+                <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
+              </div>
+            </div>)}
+          </div>
+          <div style={{background:'#F0F8F0',border:'1.5px solid #7AB87A30',borderRadius:14,padding:'24px 28px',marginBottom:32}}>
+            <div style={{fontSize:18,color:'#1A2540',lineHeight:1.75,fontWeight:500}}>On the next screen, we will build a personalized income plan with specific opportunities, realistic rate ranges, and actionable first steps you can take this week. Everything is matched to your experience level and the market you are targeting.</div>
+          </div>
+          <div style={{textAlign:'center'}}><Btn onClick={()=>{setIncomeIntro(false);generate('income',()=>P.income(pc,outputs,chosen),{maxTokens:6000,msg:'Building your Income Now plan…'})}} style={{background:'#7AB87A'}}><Sparkles size={14}/>Build My Income Plan</Btn></div>
+        </div>
+      })()}
+      {!isDemo&&!outputs.income&&!loading&&!incomeIntro&&<Btn onClick={()=>generate('income',()=>P.income(pc,outputs,chosen),{maxTokens:6000,msg:'Building your Income Now plan…'})} style={{background:'#7AB87A'}}><Sparkles size={14}/>Build My Income Plan</Btn>}
       {loading&&<Loading msg="Building your Income Now plan — this one is thorough…"/>}
       {outputs.income&&<>
         <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.income} onChange={v=>setFb('income',v)} hint="Want to focus on a different kind of income stream, or need the rates adjusted for your market? Tell us what to change." placeholder="e.g. I want more consulting options and fewer platform-based ideas… adjust rates for my geography… I have existing clients I can leverage…" updateLabel="Update my plan" freshLabel="Show me a fresh plan" onRegenerate={v=>{out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000})}}/>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('income','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('income','');setIncomeIntro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
