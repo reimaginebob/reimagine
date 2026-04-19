@@ -388,13 +388,13 @@ p6: `## QUICK TAKEAWAY
 
 ## 30-SECOND "TELL ME ABOUT YOURSELF"
 
-I have always been the person who builds things. Not manages them, builds them. I spend my weekends mentoring emerging HR leaders, and the thing I keep telling them is the same thing that has driven my whole career: find the broken thing, figure out how it should work, and make it work. That instinct is how I ended up designing a referral program from scratch at Meridian Health System that now generates a third of all hires and saves 4.2 million dollars a year. When COVID hit, I scaled our recruiting team 175 percent while simultaneously migrating our entire applicant tracking system, because both had to happen and nobody was going to wait. I am looking for a Chief People Officer role at a growth-stage digital health company because that is where everything I care about converges: healthcare, building from the ground up, and proving that people infrastructure is not overhead, it is what makes the business scale.
+I have always been the person who builds things from scratch. I spend my weekends mentoring emerging HR leaders, and the thing I keep telling them is the same thing that has driven my whole career: find the broken thing, figure out how it should work, and make it work. That instinct is how I ended up designing a referral program from scratch at Meridian Health System that now generates a third of all hires and saves 4.2 million dollars a year. When COVID hit, I scaled our recruiting team 175 percent while simultaneously migrating our entire applicant tracking system, because both had to happen and nobody was going to wait. I am looking for a Chief People Officer role at a growth-stage digital health company because that is where everything I care about converges: healthcare, building from the ground up, and proving that people infrastructure is not overhead, it is what makes the business scale.
 
 ---
 
-## What Makes You Stick
+## Why They Remember You
 
-You lead with the builder, and that is the right call. It is not a branding exercise. It is genuinely who you are, and it shows up everywhere: the mentoring, the real estate, every major accomplishment on your resume. When a CEO hears that, they are not evaluating a qualification. They are picturing you in the room on day one, already figuring out what needs to work.
+You lead with the builder because that is the truest thing about you. The mentoring on weekends, the real estate projects, the referral program you designed from nothing — it is the same instinct every time. A CEO hears that pattern and thinks: she already knows how to build the thing I need built.
 
 ## The Three Things They Remember
 
