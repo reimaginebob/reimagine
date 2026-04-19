@@ -460,6 +460,8 @@ export default function PivotEngine(){
   const[done,setDone]=useState(isDemo?[...demoDone]:[])
   const[deepOpts,setDeepOpts]=useState(isDemo?[...demoDeepOpts]:['','',''])
   const[chosen,setChosen]=useState(isDemo?demoChosen:'')
+  const prevChosenRef=useRef(chosen)
+  useEffect(()=>{if(isDemo)return;const prev=prevChosenRef.current;prevChosenRef.current=chosen;if(prev&&chosen&&prev!==chosen){setOutputs(o=>{const c={...o};['p6','p7','p8','p_res','p9','p10','p11'].forEach(k=>{c[k]=''});return c});setDone(d=>d.filter(s=>!['p6','p7','p8','p_res','p9','p10','p11','complete'].includes(s)))}},[chosen])
   const[demoIdx,setDemoIdx]=useState(0)
   const[activeTab,setActiveTab]=useState(0)
   const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:''})
@@ -583,7 +585,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const w=window.open('','_blank')
     if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),500)}
   };
-  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(data.profile);if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);const lastStep=data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome';setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
+  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(data.profile);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setStep('welcome');setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
   const prog=Math.round((ALL.indexOf(step)/(ALL.length-1))*100)
   const pc={loc:profile.loc,resume:profile.resume,linkedin:profile.linkedin||'',linkedinRecs:profile.linkedinRecs||'',assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep}
 
