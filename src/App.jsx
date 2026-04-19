@@ -400,6 +400,7 @@ export default function PivotEngine(){
   const[copied,setCopied]=useState(false)
   const[csvCopied,setCsvCopied]=useState(false)
   const[deepExpanded,setDeepExpanded]=useState(false)
+  const[laneTab,setLaneTab]=useState(0)
   const[fileLoading,setFileLoading]=useState(false)
   const[surveyDone,setSurveyDone]=useState(isDemo)
   const[survey,setSurvey]=useState({nps:null,valuable:'',confidence:null,accuracy:null,open:''})
@@ -675,7 +676,8 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
       {outputs.p1&&<>
         <OutPanel text={outputs.p1} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} onRegenerate={v=>{out('p1','');generate('p1',()=>P.p1(pc)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p1','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p1','p2')}>Continue <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now that we see what you've built, let's understand how you're wired — and what environments bring out your best work.</div>}
+      {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p1','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p1','p2')}>Explore My Wiring <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -689,7 +691,8 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
       {outputs.p2&&<>
         <OutPanel text={outputs.p2} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p2} onChange={v=>setFb('p2',v)} onRegenerate={v=>{out('p2','');generate('p2',()=>P.p2(pc,outputs.p1)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p2','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p2','p3')}>Continue <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Time to bring it all together — your accomplishments, your wiring, and your values — into one clear statement of who you are professionally.</div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p2','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p2','p3')}>Build My Brand <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -705,7 +708,8 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
       {outputs.p3&&<>
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} onRegenerate={v=>{out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p3','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p3','p4')}>Begin Phase 2 <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Let's see what's possible — the full landscape of directions that fit your strengths, values, and interests.</div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p3','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -713,70 +717,124 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
     case'p4':return <div>
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 2 · Explore Options</div>}
       <h1 style={S.title}>The Wide View</h1>
-      {!isDemo&&<p style={S.sub}>You have told us your story: your resume, how you are wired, what you value, and what lights you up. We have been listening. Now we take everything we know about you and map out the full landscape of what is possible. Let's see what we can reimagine together.</p>}
+      {!isDemo&&<p style={S.sub}>You have told us your story: your resume, how you are wired, what you value, and what lights you up. We have been listening. Now we take everything we know about you and map out the full landscape of what is possible.</p>}
       {!isDemo&&!outputs.p4&&!loading&&<Btn onClick={()=>generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3),{highTemp:true,maxTokens:5000,msg:'Mapping your opportunity landscape — this takes a moment…'})}><Sparkles size={14}/>Generate My Options</Btn>}
       {loading&&<Loading msg={loadMsg||'Mapping your full opportunity landscape across all three paths…'}/>}
-      {outputs.p4&&<>
-        <OutPanel text={outputs.p4} onCopy={copy} copied={copied} expandLabel="Click here to see all your options"/>
-        {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} onRegenerate={v=>{out('p4','');generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Refining your opportunity landscape…'})}}/>}
-        {!isDemo&&(()=>{
-          const extractOptions=(text)=>{
-            if(!text)return[]
-            const opts=[]
-            const lines=text.split('\n')
-            let currentLane=''
-            for(const line of lines){
-              const trimLine=line.trim()
-              if(/WORK THAT MATTERS|IKIGAI/i.test(trimLine)&&(trimLine.startsWith('**')||trimLine.startsWith('#')||/^WORK|^IKIGAI/i.test(trimLine)))currentLane='Work That Matters'
-              else if(/THE INDUSTRY INSIDER|INDUSTRY INSIDER/i.test(trimLine)&&(trimLine.startsWith('**')||trimLine.startsWith('#')||/^THE INDUSTRY|^INDUSTRY/i.test(trimLine)))currentLane='Industry Insider'
-              else if(/FAMILIAR GROUND/i.test(trimLine)&&(trimLine.startsWith('**')||trimLine.startsWith('#')||/^FAMILIAR/i.test(trimLine)))currentLane='Familiar Ground'
-              if(!currentLane)continue
-              const titleMatch=
-                trimLine.match(/^#{1,3}\s*\d+[\.\)]\s*(.+)/) ||
-                trimLine.match(/^\d+[\.\)]\s*\*\*(.+?)\*\*/) ||
-                trimLine.match(/^\*\*\d+[\.\)]\s*(.+?)\*\*/) ||
-                trimLine.match(/^#{1,3}\s*\*\*(.+?)\*\*/) ||
-                trimLine.match(/^\*\*([A-Z][^*]{4,80})\*\*/) ||
-                trimLine.match(/^\d+[\.\)]\s+([A-Z][^\n]{4,80})(?:\s*[-—:]|$)/)
-              if(titleMatch){
-                let title=titleMatch[1].replace(/\*\*/g,'').replace(/^\d+[\.\)]\s*/,'').replace(/\s*[-—:].*/,'').trim()
-                if(title.length>4&&title.length<100&&!/^(Vehicle|Title|For each|Start with|The intersection|Builds directly)/i.test(title))
-                  opts.push({title,lane:currentLane})
-              }
+      {outputs.p4&&(()=>{
+        const parseLanes=(text)=>{
+          if(!text)return{takeaway:'',lanes:[]}
+          const takeawayMatch=text.match(/## QUICK TAKEAWAY([\s\S]*?)(?=\n---|\n#[^#])/i)
+          const takeaway=takeawayMatch?takeawayMatch[1].trim():''
+          const laneConfigs=[
+            {key:'wtm',name:'Work That Matters',pattern:/##\s*PATH\s*\d+\s*:\s*WORK THAT MATTERS[^\n]*/i,desc:'The intersection of what you love, what you\'re good at, what the world needs, and what you can be paid for. This path is for leaders who want meaning and impact alongside compensation.'},
+            {key:'insider',name:'Industry Insider',pattern:/##\s*PATH\s*\d+\s*:\s*(?:THE\s+)?INDUSTRY INSIDER[^\n]*/i,desc:'Your insider knowledge is a competitive advantage. You understand how organizations think, what problems keep leaders up at night, and how decisions get made. This path leverages that credibility in new ways.'},
+            {key:'familiar',name:'Familiar Ground',pattern:/##\s*PATH\s*\d+\s*:\s*FAMILIAR GROUND[^\n]*/i,desc:'Your track record speaks immediately. This path builds directly on where you\'ve been — bigger scope, more authority, and the chance to apply everything you\'ve learned at a higher level.'}
+          ]
+          const lanes=[]
+          for(let i=0;i<laneConfigs.length;i++){
+            const cfg=laneConfigs[i]
+            const match=text.match(cfg.pattern)
+            if(!match)continue
+            const startIdx=match.index+match[0].length
+            let endIdx=text.length
+            for(let j=i+1;j<laneConfigs.length;j++){
+              const nextMatch=text.match(laneConfigs[j].pattern)
+              if(nextMatch){endIdx=nextMatch.index;break}
             }
-            return opts
+            const laneText=text.slice(startIdx,endIdx).trim()
+            const introMatch=laneText.match(/^\n*\*\*([^*]+)\*\*/)
+            const intro=introMatch?introMatch[1].trim():''
+            const roleBlocks=[]
+            const roleSplits=laneText.split(/\n\*\*(?=[A-Z])/).filter(Boolean)
+            for(const block of roleSplits){
+              const titleMatch=block.match(/^([^*\n]+)\*\*/)
+              if(!titleMatch)continue
+              const title=titleMatch[1].trim()
+              if(/^Built on|^Your insider|^Builds directly|^The intersection/i.test(title))continue
+              const whyMatch=block.match(/\*Why it fits:\*\s*([^\n]+)/i)||block.match(/Why it fits:\s*([^\n]+)/i)
+              const whyFit=whyMatch?whyMatch[1].trim():''
+              const worthMatch=block.match(/\*Worth considering:\*\s*([\s\S]*?)$/i)||block.match(/Worth considering:\s*([\s\S]*?)$/i)
+              const worth=worthMatch?worthMatch[1].trim().split('\n')[0]:''
+              roleBlocks.push({title,whyFit,worth,fullText:block})
+            }
+            lanes.push({...cfg,intro,roles:roleBlocks})
           }
-          const available=extractOptions(outputs.p4)
-          const selected=deepOpts.filter(v=>v&&v!=='?')
-          const toggleOpt=(title)=>{
-            const idx=deepOpts.indexOf(title)
-            if(idx>=0){setDeepOpts(d=>d.map((v,j)=>j===idx?'':v))}
-            else{
-              const emptyIdx=deepOpts.findIndex(v=>!v||v==='?')
-              if(emptyIdx>=0)setDeepOpts(d=>d.map((v,j)=>j===emptyIdx?title:v))
+          return{takeaway,lanes}
+        }
+        const{takeaway:p4Takeaway,lanes}=parseLanes(outputs.p4)
+        const extractOptions=(text)=>{
+          if(!text)return[]
+          const opts=[]
+          const lines=text.split('\n')
+          let currentLane=''
+          for(const line of lines){
+            const trimLine=line.trim()
+            if(/WORK THAT MATTERS|IKIGAI/i.test(trimLine)&&(trimLine.startsWith('**')||trimLine.startsWith('#')||/^WORK|^IKIGAI/i.test(trimLine)))currentLane='Work That Matters'
+            else if(/THE INDUSTRY INSIDER|INDUSTRY INSIDER/i.test(trimLine)&&(trimLine.startsWith('**')||trimLine.startsWith('#')||/^THE INDUSTRY|^INDUSTRY/i.test(trimLine)))currentLane='Industry Insider'
+            else if(/FAMILIAR GROUND/i.test(trimLine)&&(trimLine.startsWith('**')||trimLine.startsWith('#')||/^FAMILIAR/i.test(trimLine)))currentLane='Familiar Ground'
+            if(!currentLane)continue
+            const titleMatch=
+              trimLine.match(/^#{1,3}\s*\d+[\.\)]\s*(.+)/) ||
+              trimLine.match(/^\d+[\.\)]\s*\*\*(.+?)\*\*/) ||
+              trimLine.match(/^\*\*\d+[\.\)]\s*(.+?)\*\*/) ||
+              trimLine.match(/^#{1,3}\s*\*\*(.+?)\*\*/) ||
+              trimLine.match(/^\*\*([A-Z][^*]{4,80})\*\*/) ||
+              trimLine.match(/^\d+[\.\)]\s+([A-Z][^\n]{4,80})(?:\s*[-—:]|$)/)
+            if(titleMatch){
+              let title=titleMatch[1].replace(/\*\*/g,'').replace(/^\d+[\.\)]\s*/,'').replace(/\s*[-—:].*/,'').trim()
+              if(title.length>4&&title.length<100&&!/^(Vehicle|Title|For each|Start with|The intersection|Builds directly)/i.test(title))
+                opts.push({title,lane:currentLane})
             }
           }
-          return <div style={{...S.card,marginTop:8}}>
-            <div style={{fontWeight:600,color:'#1A2540',fontSize:19,marginBottom:6}}>Select up to 3 options to explore further.</div>
-            <div style={{fontSize:17,color:C.gray,marginBottom:18,lineHeight:1.65}}>Click the roles that made you lean in, not just the ones that feel safe.</div>
-            {available.length>0?<>
-              {['Work That Matters','Industry Insider','Familiar Ground'].map(lane=>{
-                const laneOpts=available.filter(o=>o.lane===lane)
-                if(!laneOpts.length)return null
-                return <div key={lane} style={{marginBottom:16}}>
-                  <div style={{fontSize:14,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.goldL,marginBottom:8}}>{lane}</div>
-                  <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                    {laneOpts.map(o=>{const sel=deepOpts.includes(o.title);return <button key={o.title} onClick={()=>toggleOpt(o.title)} style={{padding:'10px 18px',borderRadius:8,border:`2px solid ${sel?C.gold:C.border}`,background:sel?`${C.gold}15`:'white',color:sel?C.goldL:'#374258',fontSize:15,fontWeight:sel?600:400,cursor:selected.length>=3&&!sel?'not-allowed':'pointer',opacity:selected.length>=3&&!sel?0.5:1,fontFamily:'inherit',transition:'all 0.15s',textAlign:'left'}}>{sel&&<Check size={12} color={C.gold} strokeWidth={3} style={{marginRight:6,display:'inline'}}/>}{o.title}</button>})}
+          return opts
+        }
+        const available=extractOptions(outputs.p4)
+        const selected=deepOpts.filter(v=>v&&v!=='?')
+        const toggleOpt=(title)=>{
+          const idx=deepOpts.indexOf(title)
+          if(idx>=0){setDeepOpts(d=>d.map((v,j)=>j===idx?'':v))}
+          else{
+            const emptyIdx=deepOpts.findIndex(v=>!v||v==='?')
+            if(emptyIdx>=0)setDeepOpts(d=>d.map((v,j)=>j===emptyIdx?title:v))
+          }
+        }
+        const activeLane=lanes[laneTab]||lanes[0]
+        return <>
+          {p4Takeaway&&<div style={S.out}>
+            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p4)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
+            <MD text={`## QUICK TAKEAWAY\n${p4Takeaway}`}/>
+          </div>}
+          {lanes.length>0&&<>
+            <div style={{display:'flex',gap:8,marginTop:16,marginBottom:0,flexWrap:'wrap'}}>
+              {lanes.map((lane,i)=><button key={lane.key} onClick={()=>setLaneTab(i)} style={{padding:'14px 22px',borderRadius:10,border:`2px solid ${laneTab===i?C.gold:C.border}`,background:laneTab===i?`${C.gold}12`:'white',color:laneTab===i?C.goldL:'#4A5568',fontSize:16,fontWeight:laneTab===i?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s',flex:'1 1 0',textAlign:'center',minWidth:140}}>{lane.name}</button>)}
+            </div>
+            {activeLane&&<div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:'0 0 12px 12px',borderTop:'none',padding:'28px 30px',marginBottom:16}}>
+              <div style={{fontSize:16,color:'#4A5568',lineHeight:1.7,marginBottom:20,fontStyle:'italic'}}>{activeLane.desc}</div>
+              {activeLane.roles.length>0?activeLane.roles.map((role,ri)=>{
+                const sel=deepOpts.includes(role.title)||available.some(a=>a.title===role.title&&deepOpts.includes(a.title))
+                const isSelected=deepOpts.includes(role.title)
+                return <div key={ri} style={{background:isSelected?`${C.gold}08`:'#FAFBFC',border:`1.5px solid ${isSelected?C.gold:C.border}`,borderRadius:10,padding:'20px 24px',marginBottom:12,transition:'all 0.15s'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,marginBottom:role.whyFit?8:0}}>
+                    <div>
+                      <div style={{fontFamily:'Georgia,serif',fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>{role.title}</div>
+                      {role.whyFit&&<div style={{fontSize:15,color:'#4A5568',lineHeight:1.6}}><strong style={{color:'#1A2540'}}>Why it fits:</strong> {role.whyFit}</div>}
+                      {role.worth&&<div style={{fontSize:14,color:C.gray,lineHeight:1.6,marginTop:6}}><strong style={{color:'#64748B'}}>Worth considering:</strong> {role.worth}</div>}
+                    </div>
+                    <button onClick={()=>toggleOpt(role.title)} style={{padding:'8px 16px',borderRadius:8,border:`2px solid ${isSelected?C.gold:C.border}`,background:isSelected?`${C.gold}15`:'white',color:isSelected?C.goldL:'#374258',fontSize:14,fontWeight:600,cursor:selected.length>=3&&!isSelected?'not-allowed':'pointer',opacity:selected.length>=3&&!isSelected?0.5:1,fontFamily:'inherit',transition:'all 0.15s',flexShrink:0,whiteSpace:'nowrap'}}>{isSelected?<><Check size={12} color={C.gold} strokeWidth={3} style={{marginRight:4,display:'inline',verticalAlign:'middle'}}/>Selected</>:'Select'}</button>
                   </div>
                 </div>
-              })}
-            </>:<div style={{fontSize:15,color:C.gray,marginBottom:12}}>Or type your choices below:</div>}
-            {selected.length>0&&<div style={{marginTop:16,padding:'12px 16px',background:'#F7F8FA',borderRadius:8,fontSize:15,color:C.gray}}>Selected ({selected.length}/3): {selected.map((s,i)=><strong key={i} style={{color:'#1A2540',marginRight:8}}>{s}</strong>)}</div>}
-            {selected.length>0&&<div style={S.row}><Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn></div>}
-            {selected.length===0&&<div style={{fontSize:15,color:C.gray,marginTop:8}}>Click at least one option above to continue.</div>}
-          </div>
-        })()}
-      </>}
+              }):<div style={S.out}><MD text={outputs.p4}/></div>}
+            </div>}
+          </>}
+          {lanes.length===0&&<div style={{marginTop:16}}><OutPanel text={outputs.p4} onCopy={copy} copied={copied} expandLabel="Click here to see all your options"/></div>}
+          {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} onRegenerate={v=>{out('p4','');generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Refining your opportunity landscape…'})}}/>}
+          {selected.length>0&&<div style={{marginTop:16,padding:'14px 18px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+            <div style={{fontSize:16,color:'#1A2540'}}>Ready to explore ({selected.length}/3): {selected.map((s,i)=><strong key={i} style={{color:C.goldL,marginRight:8}}>{s}</strong>)}</div>
+            <Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn>
+          </div>}
+          {selected.length===0&&available.length>0&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Select at least one role above to continue.</div>}
+        </>
+      })()}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -901,7 +959,7 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
       <div style={S.note}>Pursuing: <strong style={{color:C.cream}}>{chosen}</strong></div>
       {!isDemo&&!outputs.p6&&!loading&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
       {loading&&<Loading msg="Crafting your bridge story in three lengths…"/>}
-      {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} onRegenerate={v=>{out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p6','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p6','p7')}>Build My Go-to-Market <ChevronRight size={14}/></Btn></div>}</>}
+      {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} onRegenerate={v=>{out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p6','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -954,9 +1012,10 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
           </div>
           {part34&&<div style={S.out}><MD text={part34}/></div>}
           {!isDemo&&<RefineBox value={feedback.p7} onChange={v=>setFb('p7',v)} onRegenerate={v=>{out('p7','');generate('p7',()=>P.p7(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{webSearch:true,maxTokens:6000})}}/>}
+          {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Companies identified. Now let's update how you show up online so the right people can find you.</div>}
           {!isDemo&&<div style={S.row}>
             <Btn secondary onClick={()=>out('p7','')}><RotateCcw size={13}/>Regenerate</Btn>
-            <Btn onClick={()=>advance('p7','p8')}>Begin Preparation <ChevronRight size={14}/></Btn>
+            <Btn onClick={()=>advance('p7','p8')}>Remix My LinkedIn <ChevronRight size={14}/></Btn>
           </div>}
         </>
       })()}
@@ -971,7 +1030,7 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
       {!isDemo&&<p style={S.sub}>Your LinkedIn profile is how companies and recruiters find you. If it still describes your last role, the right people can't find you for the next one.</p>}
       {!isDemo&&!outputs.p8&&!loading&&<Btn onClick={()=>generate('p8',()=>P.p8(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Remix My LinkedIn</Btn>}
       {loading&&<Loading msg="Rewriting your LinkedIn for your new direction…"/>}
-      {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p8} onChange={v=>setFb('p8',v)} onRegenerate={v=>{out('p8','');generate('p8',()=>P.p8(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000})}}/>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p8','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p8','p_res')}>Continue <ChevronRight size={14}/></Btn></div>}</>}
+      {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p8} onChange={v=>setFb('p8',v)} onRegenerate={v=>{out('p8','');generate('p8',()=>P.p8(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>LinkedIn updated. Now let's reshape your resume so the strongest evidence lands in the first 7 seconds.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p8','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p8','p_res')}>Refresh My Resume <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -984,7 +1043,7 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
       <div style={S.note}>Targeting: <strong style={{color:C.cream}}>{chosen}</strong></div>
       {!isDemo&&!outputs.p_res&&!loading&&<Btn onClick={()=>generate('p_res',()=>P.p_res(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Refresh My Resume</Btn>}
       {loading&&<Loading msg="Rewriting your resume for your new direction…"/>}
-      {outputs.p_res&&<><OutPanel text={outputs.p_res} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p_res} onChange={v=>setFb('p_res',v)} onRegenerate={v=>{out('p_res','');generate('p_res',()=>P.p_res(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p_res','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p_res','p9')}>Continue <ChevronRight size={14}/></Btn></div>}</>}
+      {outputs.p_res&&<><OutPanel text={outputs.p_res} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p_res} onChange={v=>setFb('p_res',v)} onRegenerate={v=>{out('p_res','');generate('p_res',()=>P.p_res(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Almost there. Let's prepare you for the conversations ahead — the landscape, the language, and the questions you'll face.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>out('p_res','')}><RotateCcw size={13}/>Regenerate</Btn><Btn onClick={()=>advance('p_res','p9')}>Build My Playbook <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
