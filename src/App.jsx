@@ -387,7 +387,7 @@ const DEMO_TOUR=[
   {step:'p7',title:'Step 8: Go-to-Market',desc:'Most people start their search on job boards, waiting for the right posting to appear. The best opportunities are filled through relationships before a posting ever goes live.'},
   {step:'p8',title:'Step 9: LinkedIn Remix',desc:'Your LinkedIn profile is how companies and recruiters find you. If it still describes your last role, the right people can\'t find you for the next one.'},
   {step:'p_res',title:'Step 10: Resume Refresh',desc:'The people reading your resume now are looking for different signals than the ones who hired you last time.'},
-  {step:'p9',title:'Step 11: Your Playbook',desc:'Walking into a conversation in a new space without knowing the vocabulary or the current landscape costs credibility fast.'},
+  {step:'p9',title:'Step 11: Your Playbook',desc:'When you know the language, the players, and what is happening right now, you walk into every conversation like you belong there.'},
   {step:'income',title:'Bonus: Income Now',desc:'A job search takes time. Having income flowing while you search changes everything: you make better decisions when you\'re choosing, not settling.'},
 ]
 
@@ -1100,7 +1100,7 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
 
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 5 · Get Ready</div>}
       <h1 style={S.title}>Your Playbook</h1>
-      {!isDemo&&<p style={S.sub}>Walking into a conversation in a new space without knowing the vocabulary or the current landscape costs credibility fast. This is everything you need to walk in confident and prepared.</p>}
+      {!isDemo&&<p style={S.sub}>When you know the language, the players, and what is happening right now, you walk into every conversation like you belong there. This is your crash course.</p>}
       {!isDemo&&!outputs.p9&&!loading&&<Btn onClick={async()=>{setLoading(true);setErr(null);setLoadMsg('Building your playbook...');try{const[r1,r2]=await Promise.all([callClaude(P.p9(pc,outputs,chosen),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen),{maxTokens:2000})]);out('p9',r1);out('p10',r2)}catch(e){setErr(e.message)}finally{setLoading(false)}}}><Sparkles size={14}/>Build My Playbook</Btn>}
       {loading&&<Loading msg={loadMsg||'Building your playbook — industry landscape and interview preparation…'}/>}
       {outputs.p9&&<>
@@ -1207,7 +1207,15 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
           </div>
           <Btn onClick={()=>nav('income')} style={{background:'#7AB87A',flexShrink:0}}>Generate My Income Plan <ChevronRight size={14}/></Btn>
         </div>
-        <div style={{marginTop:10,display:'flex',gap:8,justifyContent:'flex-end',flexWrap:'wrap'}}><Btn small onClick={downloadOnePager}><Download size={11}/>Download One-Pager (PDF)</Btn>{!isDemo&&<Btn small onClick={exportProfile}><Download size={11}/>Export Profile</Btn>}{!isDemo&&<Btn small onClick={reset}><RotateCcw size={11}/>Start a New Session</Btn>}</div>
+        <div style={{marginTop:24,padding:'20px 24px',background:'#FAFBFC',border:`1.5px solid ${C.border}`,borderRadius:12}}>
+          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:4}}>Your Deliverables</div>
+          <div style={{fontSize:15,color:C.gray,marginBottom:16}}>Take your Reimagine work with you.</div>
+          <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+            <Btn onClick={downloadOnePager}><Download size={14}/>Download One-Pager (PDF)</Btn>
+            {!isDemo&&<Btn secondary onClick={exportProfile}><Download size={14}/>Export Profile</Btn>}
+            {!isDemo&&<Btn secondary onClick={reset}><RotateCcw size={14}/>Start a New Session</Btn>}
+          </div>
+        </div>
       </>}
     </div>}
 
