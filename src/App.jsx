@@ -791,7 +791,7 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
               trimLine.match(/^\d+[\.\)]\s+([A-Z][^\n]{4,80})(?:\s*[-—:]|$)/)
             if(titleMatch){
               let title=titleMatch[1].replace(/\*\*/g,'').replace(/^\d+[\.\)]\s*/,'').replace(/\s*[-—:].*/,'').trim()
-              if(title.length>4&&title.length<100&&!/^(Vehicle|Title|For each|Start with|The intersection|Builds directly)/i.test(title))
+              if(title.length>4&&title.length<100&&!/^(Vehicle|Organization Type|Title|For each|Start with|The intersection|Builds directly|You know|This path|Your track|Your insider|Adjacent|Ecosystem|Clients|Vendors|Consultants|Upstream|What has changed|Why you are|What closes)/i.test(title))
                 opts.push({title,lane:currentLane})
             }
           }
@@ -836,12 +836,23 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
             </div>}
           </>}
           {lanes.length===0&&<div style={{marginTop:16}}><OutPanel text={outputs.p4} onCopy={copy} copied={copied} expandLabel="Click here to see all your options"/></div>}
+          {(lanes.length===0&&available.length>0)&&<div style={{marginTop:20,padding:'20px 24px',background:'white',border:`1.5px solid ${C.border}`,borderRadius:12}}>
+            <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:4}}>Select up to 3 roles to explore further</div>
+            <div style={{fontSize:14,color:C.gray,marginBottom:16}}>Click any role below, then hit "Go Deeper" to get a detailed breakdown.</div>
+            {available.map((opt,i)=>{
+              const isSelected=deepOpts.includes(opt.title)
+              return <button key={i} onClick={()=>toggleOpt(opt.title)} style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'12px 16px',marginBottom:6,borderRadius:8,border:`2px solid ${isSelected?C.gold:C.border}`,background:isSelected?`${C.gold}10`:'#FAFBFC',cursor:selected.length>=3&&!isSelected?'not-allowed':'pointer',opacity:selected.length>=3&&!isSelected?0.5:1,fontFamily:'inherit',transition:'all 0.15s'}}>
+                <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${isSelected?C.gold:'#CBD5E0'}`,background:isSelected?C.gold:'white',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isSelected&&<Check size={14} color="white" strokeWidth={3}/>}</div>
+                <div><div style={{fontSize:15,fontWeight:600,color:'#1A2540'}}>{opt.title}</div>{opt.lane&&<div style={{fontSize:13,color:C.gray}}>{opt.lane}</div>}</div>
+              </button>
+            })}
+          </div>}
           {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} onRegenerate={v=>{out('p4','');generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Refining your opportunity landscape…'})}}/>}
           {selected.length>0&&<div style={{marginTop:16,padding:'14px 18px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
             <div style={{fontSize:16,color:'#1A2540'}}>Ready to explore ({selected.length}/3): {selected.map((s,i)=><strong key={i} style={{color:C.goldL,marginRight:8}}>{s}</strong>)}</div>
             <Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn>
           </div>}
-          {selected.length===0&&available.length>0&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Select at least one role above to continue.</div>}
+          {selected.length===0&&available.length>0&&!lanes.length&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Select at least one role above to continue.</div>}
         </>
       })()}
       {err&&<ErrBox msg={err}/>}
