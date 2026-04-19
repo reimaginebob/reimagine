@@ -814,7 +814,7 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
               }
             }else{
               // Fallback for old format: standalone bold lines that look like role titles
-              const boldMatch=trimLine.match(/^\*\*([A-Z][^*]{4,80})\*\*$/)
+              const boldMatch=trimLine.match(/^\*\*([A-Z][^*]{4,120})\*\*$/)
               if(boldMatch){
                 const title=boldMatch[1].trim()
                 if(!/^(Vehicle|Organization Type|Title|For each|Start with|The intersection|Builds directly|You know|This path|Your track|Your insider|Adjacent|Ecosystem|Clients|Vendors|Consultants|Upstream|Downstream|Trade Associations|Educators|Regulators|What has changed|Why you are|What closes|EMPATHY|Why it fits|Worth considering|Token Budget|Insider knowledge|Why you are already|What closes the gap|Direct industry|Consulting and advisory)/i.test(title))
@@ -841,9 +841,9 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
             <MD text={`## QUICK TAKEAWAY\n${p4Takeaway}`}/>
           </div>}
           {lanes.length>0&&<>
-            <div style={{margin:'20px 0 16px',padding:'16px 20px',background:`${C.gold}10`,border:`2px solid ${C.gold}40`,borderRadius:12,display:'flex',alignItems:'center',gap:12}}>
-              <div style={{width:36,height:36,borderRadius:8,background:C.gold,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Check size={18} color="white" strokeWidth={3}/></div>
-              <div style={{fontSize:17,color:'#1A2540',lineHeight:1.5}}><strong style={{fontSize:18}}>Check the box next to up to 3 roles</strong> that interest you, from any combination of paths. Then hit "Go Deeper" to explore them in detail.</div>
+            <div style={{margin:'20px 0 16px',padding:'16px 20px',background:'#EEF4FF',border:'2px solid #3B82F6',borderRadius:12,display:'flex',alignItems:'center',gap:12}}>
+              <div style={{width:36,height:36,borderRadius:8,background:'#3B82F6',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Check size={18} color="white" strokeWidth={3}/></div>
+              <div style={{fontSize:17,color:'#1E3A5F',lineHeight:1.5}}><strong style={{fontSize:18}}>Check the box next to up to 3 roles</strong> that interest you, from any combination of paths. Then hit "Go Deeper" to explore them in detail.</div>
             </div>
             <div style={{display:'flex',gap:8,marginBottom:0,flexWrap:'wrap'}}>
               {lanes.map((lane,i)=><button key={lane.key} onClick={()=>setLaneTab(i)} style={{padding:'14px 22px',borderRadius:10,border:`2px solid ${laneTab===i?C.gold:C.border}`,background:laneTab===i?`${C.gold}12`:'white',color:laneTab===i?C.goldL:'#4A5568',fontSize:16,fontWeight:laneTab===i?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s',flex:'1 1 0',textAlign:'center',minWidth:140}}>{lane.name}</button>)}
@@ -856,11 +856,11 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
                 const hasOptionTags=/^#{1,3}\s*OPTION:\s*/m.test(content)
                 const splitPattern=hasOptionTags
                   ? /(?=^#{1,3}\s*OPTION:\s*)/m
-                  : /(?=^\*\*[A-Z][^*]{4,80}\*\*\s*$)/m
+                  : /(?=^\*\*[A-Z][^*]{4,120}\*\*\s*$)/m
                 const optBlocks=content.split(splitPattern)
                 const titlePattern=hasOptionTags
                   ? /^#{1,3}\s*OPTION:\s*(.+)/m
-                  : /^\*\*([A-Z][^*]{4,80})\*\*\s*$/m
+                  : /^\*\*([A-Z][^*]{4,120})\*\*\s*$/m
                 const preamble=optBlocks.length>0&&!titlePattern.test(optBlocks[0])?optBlocks.shift():null
                 // Filter: only treat blocks as options if their title is in the available list
                 const availTitles=available.map(a=>a.title)
@@ -883,7 +883,7 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
                     const isSelected=deepOpts.includes(title)
                     const canSelect=selected.length<3||isSelected
                     return <div key={bi} style={{marginBottom:16,border:`2px solid ${isSelected?C.gold:C.border}`,borderRadius:12,overflow:'hidden',transition:'all 0.2s'}}>
-                      <button onClick={()=>canSelect&&toggleOpt(title)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'14px 20px',background:isSelected?`${C.gold}12`:'#FAFBFC',border:'none',borderBottom:`1px solid ${isSelected?`${C.gold}30`:C.border}`,cursor:canSelect?'pointer':'not-allowed',opacity:canSelect?1:0.5,fontFamily:'inherit',transition:'all 0.15s'}}>
+                      <button onClick={()=>{if(canSelect)toggleOpt(title)}} style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'14px 20px',background:isSelected?`${C.gold}12`:'#FAFBFC',border:'none',borderBottom:`1px solid ${isSelected?`${C.gold}30`:C.border}`,cursor:canSelect?'pointer':'default',opacity:canSelect?1:0.5,fontFamily:'inherit',transition:'all 0.15s'}}>
                         <div style={{width:24,height:24,borderRadius:6,border:`2px solid ${isSelected?C.gold:'#CBD5E0'}`,background:isSelected?C.gold:'white',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isSelected&&<Check size={14} color="white" strokeWidth={3}/>}</div>
                         <div style={{fontSize:17,fontWeight:700,color:isSelected?C.goldL:'#1A2540'}}>{title}</div>
                       </button>
@@ -1289,7 +1289,7 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
   return <>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click] { pointer-events: auto; cursor: pointer; }`}</style>}
-    <div style={{minHeight:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column'}}>
+    <div style={{height:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
       <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <a href="/" style={{textDecoration:'none',cursor:'pointer'}}>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="148" height="34" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
@@ -1309,7 +1309,7 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
         </div>
       </div>
       <div style={{display:'flex',flex:1,minHeight:0}}>
-        <div style={{width:260,background:'#1A2540',borderRight:'1px solid #0F1A30',padding:'16px 0',overflowY:'auto',flexShrink:0,position:'relative'}}>
+        <div style={{width:260,background:'#1A2540',borderRight:'1px solid #0F1A30',padding:'16px 0',overflowY:'auto',flexShrink:0}}>
           {isDemo&&<div style={{pointerEvents:'none'}}>
             <Sidebar step={step} done={done} onNav={()=>{}} isDemo={true}/>
           </div>}
