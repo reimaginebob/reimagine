@@ -332,7 +332,7 @@ function OutPanel({text,onCopy,copied,expandLabel}){
     <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>onCopy(text)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
     {hasTakeaway&&full?<>
       <MD text={`## QUICK TAKEAWAY\n${takeaway}`}/>
-      <button onClick={()=>setExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:8,margin:'20px 0 8px',padding:'12px 20px',background:expanded?`${C.gold}10`:'#F7F8FA',border:`1.5px solid ${expanded?C.gold:C.border}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:15,fontWeight:600,color:expanded?C.goldL:C.gray,transition:'all 0.2s',width:'100%'}}>
+      <button data-expand="true" onClick={()=>setExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:8,margin:'20px 0 8px',padding:'12px 20px',background:expanded?`${C.gold}10`:'#F7F8FA',border:`1.5px solid ${expanded?C.gold:C.border}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:15,fontWeight:600,color:expanded?C.goldL:C.gray,transition:'all 0.2s',width:'100%'}}>
         <ChevronRight size={16} style={{transform:expanded?'rotate(90deg)':'none',transition:'transform 0.2s'}}/>
         {expanded?'Hide full analysis':(expandLabel||'Click here for a deeper understanding')}
       </button>
@@ -768,7 +768,7 @@ export default function PivotEngine(){
           {p5Takeaway&&<div style={S.out}>
             <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p5)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
             <MD text={`## QUICK TAKEAWAY\n${p5Takeaway}`}/>
-            <button onClick={()=>setDeepExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:8,margin:'20px 0 8px',padding:'12px 20px',background:deepExpanded?`${C.gold}10`:'#F7F8FA',border:`1.5px solid ${deepExpanded?C.gold:C.border}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:15,fontWeight:600,color:deepExpanded?C.goldL:C.gray,transition:'all 0.2s',width:'100%'}}>
+            <button data-expand="true" onClick={()=>setDeepExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:8,margin:'20px 0 8px',padding:'12px 20px',background:deepExpanded?`${C.gold}10`:'#F7F8FA',border:`1.5px solid ${deepExpanded?C.gold:C.border}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:15,fontWeight:600,color:deepExpanded?C.goldL:C.gray,transition:'all 0.2s',width:'100%'}}>
               <ChevronRight size={16} style={{transform:deepExpanded?'rotate(90deg)':'none',transition:'transform 0.2s'}}/>
               {deepExpanded?'Hide full analysis':'Click here for a deeper understanding'}
             </button>
@@ -1068,6 +1068,7 @@ export default function PivotEngine(){
 
   return <>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
+    {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click] { pointer-events: auto; cursor: pointer; }`}</style>}
     <div style={{minHeight:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column'}}>
       <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <div>
@@ -1102,7 +1103,7 @@ export default function PivotEngine(){
             </div>
             <p style={{fontSize:18,color:'#2D3748',lineHeight:1.75,margin:0}}>{demoGuide.desc}</p>
           </div>}
-          {isDemo&&step!=='welcome'?<div style={{pointerEvents:'none'}}>{rStep()}</div>:rStep()}
+          {isDemo&&step!=='welcome'?<div className="demo-content">{rStep()}</div>:rStep()}
           {isDemo&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:32,paddingTop:24,borderTop:`1px solid ${C.border}`}}>
             <div>{demoIdx>0&&<button onClick={demoPrev} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>← Previous</button>}</div>
             <div style={{display:'flex',alignItems:'center',gap:16}}>
