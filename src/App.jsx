@@ -734,9 +734,9 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
           const takeawayMatch=text.match(/## QUICK TAKEAWAY([\s\S]*?)(?=\n---|\n#[^#])/i)
           const takeaway=takeawayMatch?takeawayMatch[1].trim():''
           const laneConfigs=[
-            {key:'wtm',name:'Work That Matters',pattern:/##\s*PATH\s*\d+\s*:\s*WORK THAT MATTERS[^\n]*/i,desc:'The intersection of what you love, what you\'re good at, what the world needs, and what you can be paid for. This path is for leaders who want meaning and impact alongside compensation.'},
-            {key:'insider',name:'Industry Insider',pattern:/##\s*PATH\s*\d+\s*:\s*(?:THE\s+)?INDUSTRY INSIDER[^\n]*/i,desc:'Your insider knowledge is a competitive advantage. You understand how organizations think, what problems keep leaders up at night, and how decisions get made. This path leverages that credibility in new ways.'},
-            {key:'familiar',name:'Familiar Ground',pattern:/##\s*PATH\s*\d+\s*:\s*FAMILIAR GROUND[^\n]*/i,desc:'Your track record speaks immediately. This path builds directly on where you\'ve been — bigger scope, more authority, and the chance to apply everything you\'ve learned at a higher level.'}
+            {key:'wtm',name:'Work That Matters',pattern:/(?:#{1,3}\s*(?:PATH\s*\d+\s*:\s*)?|\*\*)WORK THAT MATTERS[^\n]*/i,desc:'The intersection of what you love, what you\'re good at, what the world needs, and what you can be paid for. This path is for leaders who want meaning and impact alongside compensation.'},
+            {key:'insider',name:'Industry Insider',pattern:/(?:#{1,3}\s*(?:PATH\s*\d+\s*:\s*)?|\*\*)(?:THE\s+)?INDUSTRY INSIDER[^\n]*/i,desc:'Your insider knowledge is a competitive advantage. You understand how organizations think, what problems keep leaders up at night, and how decisions get made. This path leverages that credibility in new ways.'},
+            {key:'familiar',name:'Familiar Ground',pattern:/(?:#{1,3}\s*(?:PATH\s*\d+\s*:\s*)?|\*\*)FAMILIAR GROUND[^\n]*/i,desc:'Your track record speaks immediately. This path builds directly on where you\'ve been — bigger scope, more authority, and the chance to apply everything you\'ve learned at a higher level.'}
           ]
           const lanes=[]
           for(let i=0;i<laneConfigs.length;i++){
@@ -808,7 +808,7 @@ ${section('Your Direction',chosen?`Chosen path: **${chosen}**`:'')}
         }
         const activeLane=lanes[laneTab]||lanes[0]
         return <>
-          {p4Takeaway&&<div style={S.out}>
+          {p4Takeaway&&lanes.length>0&&<div style={S.out}>
             <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p4)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
             <MD text={`## QUICK TAKEAWAY\n${p4Takeaway}`}/>
           </div>}
