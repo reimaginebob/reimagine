@@ -1,8 +1,3 @@
-
-
-
-Notepad
-
 // testData.js — Pre-loaded test profile for ?test=true mode
 // Profile: Bob Goodwin, Career Club
 // Auto-generated from reimagine-profile export. Update by re-exporting.
