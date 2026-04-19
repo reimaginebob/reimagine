@@ -864,6 +864,83 @@ The issues that will come up in interviews for a CPO role at a growth-stage comp
 - The things that would concern you are the same things that should concern them: a leadership team that treats people operations as an afterthought, or an environment where trust isn't part of the culture.
 - You're looking for a place where you can build, and your track record shows that when you find that, you stay and invest.`,
 
+// ─── P11: STAR STORIES ──────────────────────────────────────────────────
+
+p11: `## QUICK TAKEAWAY
+
+These are your 3 strongest stories from the last decade at Meridian. Your lead story is the referral program — it touches all three imperatives (saved money, made money through quality of hire, mitigated risk by reducing agency dependency) and it shows you building something from nothing, which is exactly what a digital health CPO needs to do. The single most important remixing principle for you: every story is really about building infrastructure that scales, so lean into the builder angle regardless of who is across the table.
+
+---
+
+## YOUR STAR STORIES
+
+### STORY [1]: Building the Referral Engine from Zero
+**Business Imperative:** Saved Money / Made Money
+**Best for answering:** "Tell me about something you built from scratch," "What's your biggest accomplishment?," "How do you reduce costs without cutting quality?"
+
+**Situation:** Meridian Health was spending heavily on agency recruiters and job board postings to fill clinical roles across a 14,000-person system. There was no internal referral channel at all — every hire came through external sourcing, which was expensive and slow. Leadership wanted hiring costs down but couldn't afford to sacrifice quality in a regulated healthcare environment.
+
+**Thinking:** I looked at this through a People, Process, Technology lens. The people side was clear: our 14,000 employees already knew great clinicians, but we had no mechanism to tap into that. On process, I studied what made referral programs fail at other health systems — usually complexity and lack of follow-through. I decided to design the simplest possible program first, get adoption, then add sophistication. On technology, I needed tracking that was lightweight enough that managers would actually use it.
+
+**Action:** I built a referral program from scratch with a tiered incentive structure, trained hiring managers on how to promote it in team huddles, and created a simple tracking dashboard so employees could see their referral status in real time. I piloted in two departments, adjusted the incentive tiers based on what drove the most participation, then rolled it system-wide.
+
+**Result:** The program now generates **34% of all hires** and contributed to **$4.2M in annual cost savings** by reducing agency dependency and external sourcing spend. Time-to-fill for referred candidates runs 15 days faster than non-referred hires.
+
+**Strengthen This Story:**
+- What was the exact dollar amount you were spending on agency recruiters before the program launched?
+- How did you decide on the incentive tier amounts — what data or framework did you use to set those numbers?
+- Did you use a framework to evaluate the pilot results before scaling? Think about: What / So What / Now What — or Vision, Alignment, Execution.
+
+### STORY [2]: Scaling 175% During COVID
+**Business Imperative:** Mitigated Risk
+**Best for answering:** "Tell me about a time you led through crisis," "How do you handle competing priorities?," "Describe a time you had to move fast"
+
+**Situation:** COVID hit in early 2020 and Meridian's clinical hiring demand surged overnight. At the same time, we were mid-migration from Taleo to Workday — a major enterprise system transition involving 300+ hiring managers. I had to scale the recruiting team 175% while keeping the technology migration on track, all in an environment where everyone was exhausted and scared.
+
+**Thinking:** My first instinct was to triage using an Ability, Resources, Commitment framework. I assessed what my team could realistically handle (ability), what additional resources I could pull in fast (contract recruiters, reassigned staff), and where I needed commitment from leadership to hold the line on the Workday migration timeline rather than pausing it. Pausing would have cost us six months and created more chaos. I made the call to run both in parallel, but I restructured the migration rollout so the heaviest recruiting departments went last.
+
+**Action:** I brought in four contract recruiters within two weeks, reassigned two internal team members to focus exclusively on clinical surge hiring, and restructured the Workday migration into three waves instead of one — starting with departments that had stable hiring volume. I held daily 15-minute stand-ups with the team to surface blockers fast.
+
+**Result:** We filled every critical clinical role within the surge window, completed the ATS migration on time with **zero disruption to active hiring**, and the recruiting team reported higher engagement scores post-crisis than pre-crisis because they felt supported and structured rather than abandoned.
+
+**Strengthen This Story:**
+- How many total roles did you fill during the surge period, and over what timeline?
+- What was the budget impact of bringing in four contract recruiters — and how did you justify that spend to leadership?
+- Who specifically pushed back on running the migration and hiring surge in parallel, and how did you handle that conversation?
+
+### STORY [3]: Redesigning the Offer Experience
+**Business Imperative:** Made Money
+**Best for answering:** "How do you use data to drive decisions?," "Tell me about a process you improved," "How do you influence stakeholders you don't manage?"
+
+**Situation:** Meridian's offer decline rate was sitting at 22%, which meant roughly one in five candidates we extended offers to was saying no. In clinical recruiting, every declined offer costs weeks of re-sourcing and can delay patient care coverage. The problem had been known for years but nobody had diagnosed why it was happening.
+
+**Thinking:** I approached this as a Situation, Complication, Resolution problem. The situation was clear: 22% decline rate. The complication was that nobody agreed on the cause — some blamed compensation, some blamed speed, some blamed the candidate market. I pulled offer data for the prior 18 months and segmented by role type, time-to-offer, hiring manager, and decline reason. The data showed that 60% of declines were happening when offers took more than 5 days to get out the door. It wasn't the offer itself — it was the experience around it.
+
+**Action:** I redesigned the offer workflow to compress the approval chain from an average of 7 days to 2 days, trained hiring managers on how to keep candidates warm during the process, and created an "offer experience" checklist that included a personal call from the hiring manager before the formal letter went out.
+
+**Result:** Offer decline rate dropped from **22% to 9%** within eight months. The estimated value of retained hires (avoided re-sourcing and vacancy costs) was approximately **$800K annually**.
+
+**Strengthen This Story:**
+- What was the exact data set you analyzed — how many offers over what period?
+- How did you get the approval chain stakeholders (HR leadership, compensation, legal) to agree to compress from 7 days to 2?
+- Did you use a specific framework to structure the offer experience redesign? Think about: Start with the customer and work backward — in this case, the candidate is the customer.
+
+---
+
+## THE REMIX
+
+Taking Story 1 (the referral program) — your strongest story — and showing how the same core experience shifts for different audiences:
+
+**Remix for a CEO:** Lead with the strategic vision: "I looked at how we were sourcing talent and realized we had 14,000 employees who knew great clinicians but no way to tap into that network. I built a referral program that now generates a third of all our hires." Expand the Thinking section to emphasize systems-level insight and long-term value creation. Compress the tactical details. The CEO hears: this person sees the whole board and builds things that compound.
+
+**Remix for a CFO:** Lead with the number: "We were spending heavily on agency recruiters and I knew there was a cheaper, faster channel sitting right inside our own workforce." Reframe the result in pure financial terms: $4.2M annual savings, reduced cost-per-hire by X%, eliminated dependency on external agencies. The CFO hears: this person thinks about spend, efficiency, and return.
+
+**Remix for a Peer/Hiring Manager:** Lead with the collaboration: "I needed hiring managers to actually promote the program in their team huddles, so I designed it to be dead simple and showed them their referral stats in real time." Expand the Action section to highlight how you got buy-in, trained managers, and iterated based on their feedback. The peer hears: this person is easy to work with and makes my life easier.
+
+**Remix for a Different Question:** "Tell me about a time you used data to make a decision." Transition: "The referral program is a good example — but the interesting part isn't the program itself, it's how I decided to build it." Shift emphasis entirely to the Thinking section: analyzing sourcing costs, segmenting by channel, identifying the gap, designing the pilot. The story becomes about analytical rigor rather than program building.
+
+The principle: your core experiences are fixed, but the lens changes with every conversation. You have three strong stories. The goal is not to memorize a script for each question — it is to know these stories so well that you can shift emphasis in real time based on who is sitting across from you and what they care about most. A CEO cares about vision. A CFO cares about numbers. A peer cares about collaboration. Same story, different music.`,
+
 // ─── INCOME: INCOME WHILE PURSUING ──────────────────────────────────────
 
 income: `## QUICK TAKEAWAY
