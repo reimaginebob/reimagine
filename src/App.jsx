@@ -656,16 +656,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{...S.card,marginBottom:20}}>
         <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>How It Works</div>
         <div style={{background:`${C.gold}06`,borderRadius:10,padding:'14px 18px',marginBottom:20,border:`1px solid ${C.gold}20`}}>
-          <div style={{fontSize:17,color:'#2D3748',lineHeight:1.7}}>The first step gathers your information: resume, assessment, values, and reputation. <strong style={{color:'#1A2540'}}>That's the only part where you need to do work.</strong> Everything after that is generated for you. You'll review each section and tell us if it feels right before we move on.</div>
+          <div style={{fontSize:17,color:'#2D3748',lineHeight:1.7}}>This is a coaching partnership, not a vending machine. <strong style={{color:'#1A2540'}}>We'll work through your story together — step by step, with back-and-forth at every stage.</strong> You bring your experience and honest reactions. We'll bring structure, pattern recognition, and language that makes your value impossible to miss. The end product is something you own and believe in, because you shaped it.</div>
         </div>
         {[
-          ['1','Know Your Value','Your experience has created more value than most resumes show. We find it and put it in language any industry understands.','#8A7AB8'],
-          ['2','Explore Options','We map three paths forward and go deep on the ones that resonate.','#6AB88A'],
-          ['3','Tell Your Story','A great answer to "tell me about yourself" sets the tone for every conversation. We write your bridge story.','#C8924A'],
-          ['4','Find Your Market','We search for companies that fit and draft your outreach to the right people.','#B86A6A'],
-          ['5','Get Ready','LinkedIn, resume, industry playbook, and interview prep. You walk in ready.','#6A8AB8'],
-        ].map(([num,phase,desc,color])=><div key={num} style={{display:'flex',gap:16,marginBottom:20,alignItems:'flex-start'}}>
-          <div style={{width:34,height:34,borderRadius:'50%',background:`${color}25`,border:`2px solid ${color}60`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:17,fontWeight:700,color}}>
+          ['1','Know Your Value','Your experience has created more value than most resumes show. Together we uncover it and put it in language any industry understands.'],
+          ['2','Explore Options','We map paths forward and you tell us which ones resonate. Then we go deep on those.'],
+          ['3','Tell Your Story','A great answer to "tell me about yourself" sets the tone for every conversation. We draft it, you refine it until it feels like you.'],
+          ['4','Find Your Market','We identify companies that fit and craft your outreach together — you know these industries, we know what gets a response.'],
+          ['5','Get Ready','LinkedIn, resume, industry playbook, and interview prep. We build the toolkit, you pressure-test it.'],
+        ].map(([num,phase,desc])=><div key={num} style={{display:'flex',gap:16,marginBottom:20,alignItems:'flex-start'}}>
+          <div style={{width:34,height:34,borderRadius:'50%',background:`${C.gold}15`,border:`2px solid ${C.gold}50`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:17,fontWeight:700,color:'#1A2540'}}>
             {num}
           </div>
           <div style={{flex:1}}>
