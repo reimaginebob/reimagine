@@ -1133,6 +1133,7 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
         </svg>
         <h1 style={{...S.title,fontSize:26,textAlign:'center',marginBottom:8}}>You've done the work.</h1>
         <p style={{fontSize:20,color:C.gray,lineHeight:1.7,maxWidth:500,margin:'0 auto'}}>Everything below is yours — your identity, your target, your story, your strategy. Come back anytime to review or refine.</p>
+        <div style={{marginTop:20,textAlign:'center'}}><Btn onClick={downloadOnePager}><Download size={14}/>Download My One-Pager (PDF)</Btn></div>
       </div>
 
       {!surveyDone&&<div style={{...S.card,marginBottom:22,border:`1px solid ${C.gold}40`}}>
