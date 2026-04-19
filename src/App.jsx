@@ -841,7 +841,10 @@ ${section('What Makes You Stick',getSection(outputs.p6,['WHAT MAKES YOU STICK','
             <MD text={`## QUICK TAKEAWAY\n${p4Takeaway}`}/>
           </div>}
           {lanes.length>0&&<>
-            <div style={{margin:'20px 0 12px',fontSize:16,color:'#4A5568',lineHeight:1.65}}>Browse each path below. <strong style={{color:'#1A2540'}}>Select up to 3 roles</strong> that interest you, from any combination of paths. Once you've chosen, we'll go deep on each one.</div>
+            <div style={{margin:'20px 0 16px',padding:'16px 20px',background:`${C.gold}10`,border:`2px solid ${C.gold}40`,borderRadius:12,display:'flex',alignItems:'center',gap:12}}>
+              <div style={{width:36,height:36,borderRadius:8,background:C.gold,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Check size={18} color="white" strokeWidth={3}/></div>
+              <div style={{fontSize:17,color:'#1A2540',lineHeight:1.5}}><strong style={{fontSize:18}}>Check the box next to up to 3 roles</strong> that interest you, from any combination of paths. Then hit "Go Deeper" to explore them in detail.</div>
+            </div>
             <div style={{display:'flex',gap:8,marginBottom:0,flexWrap:'wrap'}}>
               {lanes.map((lane,i)=><button key={lane.key} onClick={()=>setLaneTab(i)} style={{padding:'14px 22px',borderRadius:10,border:`2px solid ${laneTab===i?C.gold:C.border}`,background:laneTab===i?`${C.gold}12`:'white',color:laneTab===i?C.goldL:'#4A5568',fontSize:16,fontWeight:laneTab===i?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s',flex:'1 1 0',textAlign:'center',minWidth:140}}>{lane.name}</button>)}
             </div>
