@@ -471,7 +471,7 @@ const DEMO_TOUR=[
 ]
 
 // Beta gate webhook — replace with your Google Apps Script web app URL
-const BETA_WEBHOOK='https://script.google.com/macros/s/AKfycbz_wPKjaBRW6wlqmm7X-baYyU1FuuTjKBgZIjc8zp77d4cUDD589dyK5ePqDyLCjunEEw/exec'
+const BETA_WEBHOOK='https://script.google.com/macros/s/AKfycbxDde1n1OEbCSuJPQz6Eq6zs0rKGQJJJYK7m6o6_xjR7LYV4ZWQbMYvEqcKHUzieBLzJg/exec'
 
 function BetaGate({onComplete}){
   const[first,setFirst]=useState('')
