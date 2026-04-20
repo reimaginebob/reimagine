@@ -97,9 +97,8 @@ async function callClaude(prompt, opts={}) {
   const{webSearch=false,highTemp=false,maxTokens=4000}=opts
   const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined
   const body={model:"claude-sonnet-4-5",max_tokens:maxTokens,temperature:highTemp?1.0:0.7,system:SYS,messages:[{role:"user",content:prompt}],...(tools&&{tools})}
-  const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
-  if(!res.ok){const e=await res.json();throw new Error(e.error?.message||"API error")}
-  const data=await res.json()
+  const attempt=async()=>{const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||`Request failed (${res.status})`)}return res.json()}
+  let data;try{data=await attempt()}catch(e1){await new Promise(r=>setTimeout(r,3000));data=await attempt()}
   return data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n")
 }
 
@@ -349,7 +348,13 @@ function Loading({msg='Generating your analysis\u2026',step=''}){
     <div style={{fontSize:13,color:C.gray,marginTop:20}}>This may take 1–2 minutes</div>
   </div>
 }
-function ErrBox({msg}){return <div style={S.err}><AlertCircle size={13} color={C.err} style={{flexShrink:0,marginTop:1}}/><span>{msg}</span></div>}
+const ERR_QUIPS=['Well, that didn\u2019t go as planned. Even AI has off moments.','Our AI just tripped over its own shoelaces. Give it another shot.','Somewhere, a server sneezed. Let\u2019s try that again.','The AI stepped out for coffee. It\u2019s back now \u2014 try again.','Plot twist: temporary technical difficulties. The sequel is better.','Even the best thinkers need a moment. One more try?']
+function ErrBox({msg,onRetry}){const quip=ERR_QUIPS[Math.floor(Math.random()*ERR_QUIPS.length)];const isApi=msg&&(msg.includes('API')||msg.includes('Request failed')||msg.includes('overloaded')||msg.includes('fetch'));return <div style={{...S.err,flexDirection:'column',alignItems:'center',textAlign:'center',padding:'24px 20px',gap:12}}>
+  <AlertCircle size={22} color={C.err}/>
+  <div style={{fontSize:17,fontWeight:600,color:'#1A2540'}}>{isApi?quip:'Oops \u2014 something went wrong.'}</div>
+  <div style={{fontSize:14,color:C.gray}}>{isApi?'This usually resolves itself in a few seconds.':msg}</div>
+  {onRetry&&<button onClick={onRetry} style={{marginTop:4,padding:'10px 24px',background:C.gold,color:'#FFF',border:'none',borderRadius:8,fontSize:15,fontWeight:600,cursor:'pointer'}}>Try Again</button>}
+</div>}
 function FileUpload({label,hint,onFile,fileName,accept=".pdf,.doc,.docx,.txt"}){
   const ref=useRef();const[drag,setDrag]=useState(false)
   return <div style={S.field}>
@@ -580,7 +585,8 @@ export default function PivotEngine(){
   const nav=(to)=>{if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null);scrollTop()}
   const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);scrollTop()}}
   const demoPrev=()=>{if(demoIdx>0){const prev=demoIdx-1;setDemoIdx(prev);setStep(DEMO_TOUR[prev].step);scrollTop()}}
-  const generate=async(key,fn,opts={})=>{scrollTop();setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(fn(),opts);out(key,r)}catch(e){setErr(e.message)}finally{setLoading(false)}}
+  const retryRef=useRef(null)
+  const generate=async(key,fn,opts={})=>{retryRef.current=()=>generate(key,fn,opts);scrollTop();setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(fn(),opts);out(key,r);retryRef.current=null}catch(e){setErr(e.message)}finally{setLoading(false)}}
   const copy=(text)=>{navigator.clipboard.writeText(text);setCopied(true);setTimeout(()=>setCopied(false),2000)}
   const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:''})}}
   const exportProfile=()=>{const data={profile,outputs,done,deepOpts,chosen};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
@@ -821,7 +827,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </select>
         </div>
       </div>
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('welcome')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.loc.country&&profile.loc.work?advance('location','resume'):setErr('Please complete your country and work preference.')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
 
@@ -853,7 +859,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {profile.linkedinRecs&&<div style={{fontSize:14,color:C.ok,marginTop:4}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.linkedinRecs.length.toLocaleString()} characters loaded</div>}
         </div>
       </div>
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('location')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.resume?advance('resume','assessment'):setErr('Please provide your resume.')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
 
@@ -883,7 +889,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn secondary onClick={()=>{setSkipAssessWarn(false);advance('assessment','values')}}>Continue Without Assessment</Btn>
         </div>
       </div>}
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('resume')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{if(profile.assess){setSkipAssessWarn(false);advance('assessment','values')}else{setSkipAssessWarn(true)}}}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
 
@@ -895,7 +901,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={S.field}><label style={S.label}>Core Values — 3 to 5 non-negotiables</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>The conditions under which you do your best work and feel most like yourself.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.values} onChange={e=>pr('values',e.target.value)} placeholder="e.g. Independence, Family, Justice, Stability, Wealth creation, Cooperation, Service, Faith, Intellectual challenge…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('values',t)}/>}</div></div>
         <div style={S.field}><label style={S.label}>Passions, Interests & Causes — 3 to 5 things you care about</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>What do you read about for fun, volunteer your time for, or could talk about for 30 minutes with zero preparation? Include hobbies, industries that fascinate you, communities you belong to, and causes close to your heart.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.passions} onChange={e=>pr('passions',e.target.value)} placeholder="e.g. Youth mentoring, Formula 1, Fintech, Sustainability, Veterans' employment, Youth sports, Faith-based service, Addiction recovery, Women in leadership, Gaming, Geopolitics…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('passions',t)}/>}</div></div>
       </div>
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('assessment')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.values&&profile.passions?advance('values','reputation'):setErr('Please fill in both fields.')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
 
@@ -930,7 +936,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>}
       {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Resume Analysis. Continue?')){out('p1','');scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p1','p2')}>Explore My Wiring <ChevronRight size={14}/></Btn></div>}
       </>}
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
     </div>
 
     case'p2':return <div>
@@ -945,7 +951,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Time to bring it all together — your accomplishments, your wiring, and your values — into one clear statement of who you are professionally.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Wiring & Compass analysis. Continue?')){out('p2','');scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p2','p3')}>Build My Brand <ChevronRight size={14}/></Btn></div>}
       </>}
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
     </div>
 
     case'p3':return <div>
@@ -989,7 +995,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Now you know who you are. Let's see what's possible — the full landscape of directions that fit your strengths, values, and interests.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Brand Synthesis. Continue?')){out('p3','');setP3Intro(false);scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
       </>}
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
     </div>
 
@@ -1175,7 +1181,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {!isDemo&&<div ref={p4RefineRef}><RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Want different kinds of roles? Add an interest, remove a direction, or ask for something specific. We'll generate a new set of options based on your input." placeholder="e.g. I am also interested in board seats… remove consulting roles… show me more options in healthtech… I have nonprofit experience I didn't mention…" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{out('p4','');setLaneTab(0);setP4Intro(false);generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Updating your options…'})}}/></div>}
         </>
       })()}
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
     </div>
 
     case'p5':{
@@ -1283,7 +1289,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </div>
           </>}
         </>}
-        {err&&<ErrBox msg={err}/>}
+        {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
       </div>
     }
 
@@ -1312,7 +1318,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {chosen&&<div style={{margin:'20px 0 0',padding:'20px 24px',background:`${C.ok}08`,border:`1.5px solid ${C.ok}30`,borderRadius:12}}>
           <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>From here, everything points at <strong style={{color:C.goldL}}>{chosen}</strong>. Your bridge story, your target companies, your LinkedIn, your resume, and your interview prep will all be built around this direction.</div>
         </div>}
-        {err&&<ErrBox msg={err}/>}
+        {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
         <div style={S.row}><Btn onClick={()=>chosen?advance('decision','p6'):setErr('Please enter your decision to continue.')}>Build My Bridge Story <ChevronRight size={14}/></Btn></div>
       </>}
     </div>
@@ -1354,7 +1360,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&!outputs.p6&&!loading&&!p6Intro&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
       {loading&&<Loading msg="Crafting your bridge story in three lengths…" step="p6"/>}
       {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? If the tone or content feels off, tell us how to adjust." placeholder="e.g. The opening doesn't sound like me… I want to lead with a different part of my background… the ending needs to be stronger…" onRegenerate={v=>{out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Bridge Story. Continue?')){out('p6','');setP6Intro(false);scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
     </div>
 
@@ -1441,7 +1447,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>}
         </>
       })()}
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
     </div>
 
@@ -1454,7 +1460,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&!outputs.p8&&!loading&&<Btn onClick={()=>generate('p8',()=>P.p8(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Remix My LinkedIn</Btn>}
       {loading&&<Loading msg="Rewriting your LinkedIn for your new direction…" step="p8"/>}
       {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p8} onChange={v=>setFb('p8',v)} hint="Want a different headline angle, or does the About section need a different tone? Tell us what to adjust." placeholder="e.g. The headline is too generic… I want the About section to lead with something different… add more keywords for my target role…" onRegenerate={v=>{out('p8','');generate('p8',()=>P.p8(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000})}}/>}{!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>LinkedIn updated. Now let's reshape your resume so the strongest evidence lands in the first 7 seconds.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your LinkedIn Remix. Continue?')){out('p8','');scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p8','p_res')}>Refresh My Resume <ChevronRight size={14}/></Btn></div>}</>}
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
     </div>
 
@@ -1468,7 +1474,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&!outputs.p_res&&!loading&&<Btn onClick={()=>generate('p_res',()=>P.p_res(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Refresh My Resume</Btn>}
       {loading&&<Loading msg="Rewriting your resume for your new direction…" step="p_res"/>}
       {outputs.p_res&&<><OutPanel text={outputs.p_res} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p_res} onChange={v=>setFb('p_res',v)} hint="Want different accomplishments in the Greatest Hits, or need the summary reframed? Tell us what to change." placeholder="e.g. Lead with my operations experience instead… the summary doesn't capture my pivot well… add the project I led at my second company…" onRegenerate={v=>{out('p_res','');generate('p_res',()=>P.p_res(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Almost there. Let's prepare you for the conversations ahead — the landscape, the language, and the questions you'll face.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Resume Refresh. Continue?')){out('p_res','');scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p_res','p9')}>Build My Playbook <ChevronRight size={14}/></Btn></div>}</>}
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
     </div>
 
@@ -1579,7 +1585,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!isDemo&&<RefineBox value={feedback.p9} onChange={v=>setFb('p9',v)} hint="Need different interview questions, or want the crash course to cover a specific topic? Tell us what to adjust." placeholder="e.g. Add questions about my career pivot… I need to know more about a specific technology… the interview prep should focus on executive-level conversations…" onRegenerate={v=>{out('p9','');out('p10','');out('p11','');setStoryUpdated({});setLoading(true);setErr(null);setLoadMsg('Updating your playbook...');Promise.all([callClaude(P.p9(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:2000}),callClaude(P.p11(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})]).then(([r1,r2,r3])=>{out('p9',r1);out('p10',r2);out('p11',r3)}).catch(e=>setErr(e.message)).finally(()=>setLoading(false))}}/>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Playbook, STAR Stories, and Interview Prep. Continue?')){out('p9','');out('p10','');out('p11','');setP9Intro(false);setStoryUpdated({});scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>{markDone('p9');markDone('p10');advance('p9','complete')}}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}
       </>}
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
     </div>
 
@@ -1721,7 +1727,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!isDemo&&<RefineBox value={feedback.income} onChange={v=>setFb('income',v)} hint="Want to focus on a different kind of income stream, or need the rates adjusted for your market? Tell us what to change." placeholder="e.g. I want more consulting options and fewer platform-based ideas… adjust rates for my geography… I have existing clients I can leverage…" updateLabel="Update my plan" freshLabel="Show me a fresh plan" onRegenerate={v=>{out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000})}}/>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Income Now plan. Continue?')){out('income','');setIncomeIntro(false);scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
       </>}
-      {err&&<ErrBox msg={err}/>}
+      {err&&<ErrBox msg={err} onRetry={retryRef.current}/>}
     </div>
 
     default:return null
