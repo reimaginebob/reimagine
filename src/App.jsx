@@ -464,10 +464,66 @@ const DEMO_TOUR=[
   {step:'income',title:'Bonus: Income Now',desc:'A job search takes time. Having income flowing while you search changes everything: you make better decisions when you\'re choosing, not settling.'},
 ]
 
+// Beta gate webhook — replace with your Google Apps Script web app URL
+const BETA_WEBHOOK='PASTE_YOUR_APPS_SCRIPT_URL_HERE'
+
+function BetaGate({onComplete}){
+  const[first,setFirst]=useState('')
+  const[last,setLast]=useState('')
+  const[email,setEmail]=useState('')
+  const[submitting,setSubmitting]=useState(false)
+  const[error,setError]=useState(null)
+  const submit=async(e)=>{
+    e.preventDefault()
+    if(!first.trim()||!last.trim()||!email.trim())return setError('All fields are required.')
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return setError('Please enter a valid email address.')
+    setSubmitting(true);setError(null)
+    try{
+      if(BETA_WEBHOOK&&!BETA_WEBHOOK.includes('PASTE_YOUR')){
+        await fetch(BETA_WEBHOOK,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({firstName:first.trim(),lastName:last.trim(),email:email.trim(),timestamp:new Date().toISOString()})})
+      }
+    }catch(err){/* silent — don't block user if webhook fails */}
+    const reg={firstName:first.trim(),lastName:last.trim(),email:email.trim(),ts:Date.now()}
+    localStorage.setItem('reimagine_beta',JSON.stringify(reg))
+    setSubmitting(false)
+    onComplete(reg)
+  }
+  return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg, #1A2540 0%, #2D3F5A 100%)'}}>
+    <div style={{background:'white',borderRadius:16,padding:'48px 40px',maxWidth:440,width:'100%',margin:'0 20px',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+      <div style={{textAlign:'center',marginBottom:32}}>
+        <div style={{fontSize:28,fontWeight:800,color:'#1A2540',marginBottom:8}}>Welcome to Reimagine</div>
+        <div style={{fontSize:15,color:'#6B7280',lineHeight:1.6}}>You are joining an exclusive beta. Enter your details to get started.</div>
+      </div>
+      <form onSubmit={submit}>
+        <div style={{marginBottom:16}}>
+          <label style={{display:'block',fontSize:13,fontWeight:600,color:'#374151',marginBottom:6}}>First Name</label>
+          <input value={first} onChange={e=>setFirst(e.target.value)} placeholder="First name" style={{width:'100%',padding:'12px 14px',border:'1.5px solid #D1D5DB',borderRadius:10,fontSize:15,outline:'none',boxSizing:'border-box',transition:'border 0.2s'}} onFocus={e=>e.target.style.borderColor='#C8924A'} onBlur={e=>e.target.style.borderColor='#D1D5DB'}/>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={{display:'block',fontSize:13,fontWeight:600,color:'#374151',marginBottom:6}}>Last Name</label>
+          <input value={last} onChange={e=>setLast(e.target.value)} placeholder="Last name" style={{width:'100%',padding:'12px 14px',border:'1.5px solid #D1D5DB',borderRadius:10,fontSize:15,outline:'none',boxSizing:'border-box',transition:'border 0.2s'}} onFocus={e=>e.target.style.borderColor='#C8924A'} onBlur={e=>e.target.style.borderColor='#D1D5DB'}/>
+        </div>
+        <div style={{marginBottom:24}}>
+          <label style={{display:'block',fontSize:13,fontWeight:600,color:'#374151',marginBottom:6}}>Email Address</label>
+          <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="you@email.com" style={{width:'100%',padding:'12px 14px',border:'1.5px solid #D1D5DB',borderRadius:10,fontSize:15,outline:'none',boxSizing:'border-box',transition:'border 0.2s'}} onFocus={e=>e.target.style.borderColor='#C8924A'} onBlur={e=>e.target.style.borderColor='#D1D5DB'}/>
+        </div>
+        {error&&<div style={{color:'#DC2626',fontSize:13,marginBottom:12,textAlign:'center'}}>{error}</div>}
+        <button type="submit" disabled={submitting} style={{width:'100%',padding:'14px',background:'#C8924A',color:'white',border:'none',borderRadius:10,fontSize:16,fontWeight:700,cursor:submitting?'wait':'pointer',opacity:submitting?0.7:1,transition:'all 0.2s'}}>
+          {submitting?'Getting you in...':'Continue to Reimagine'}
+        </button>
+      </form>
+      <div style={{textAlign:'center',marginTop:20,fontSize:12,color:'#9CA3AF'}}>Your information is only used to manage the beta program.</div>
+    </div>
+  </div>
+}
+
 export default function PivotEngine(){
   const _params=new URLSearchParams(window.location.search)
   const isDemo=_params.get('demo')==='true'
   const isTest=_params.get('test')==='true'&&import.meta.env.VITE_ENABLE_TEST==='true'
+  const[betaCleared,setBetaCleared]=useState(()=>isDemo||!!localStorage.getItem('reimagine_beta'))
+  const[betaUser,setBetaUser]=useState(()=>{try{return JSON.parse(localStorage.getItem('reimagine_beta'))}catch{return null}})
+  if(!betaCleared)return <BetaGate onComplete={(reg)=>{setBetaUser(reg);setBetaCleared(true)}}/>
   const IP={loc:{country:'',city:'',work:''},resume:'',resumeFile:'',linkedin:'',linkedinFile:'',linkedinRecs:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''}}
   const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:''}
   const initStep=isDemo?'welcome':'welcome'
