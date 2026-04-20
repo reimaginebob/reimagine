@@ -434,7 +434,7 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
     </div>}
   </div>
 }
-function Sidebar({step,done,onNav,isDemo}){return <div style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>{PHASES.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:16,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||(sid==='income'&&done.includes('complete')),isComplete=sid==='complete'&&isDone;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 28px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?`${C.gold}30`:'transparent',borderLeft:`3px solid ${isComplete?C.ok:active?C.gold:'transparent'}`,fontSize:18,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?C.gold:isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1,fontWeight:active?700:400}}>{META[sid]}</span>{active&&<span style={{fontSize:10,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'2px 8px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}</div>}
+function Sidebar({step,done,onNav,isDemo}){const curPhase=PHASES.findIndex(ph=>ph.steps.includes(step));return <div style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>{PHASES.map((ph,pi)=>{const isCurrent=pi===curPhase,phDone=ph.steps.every(s=>done.includes(s)),isFuture=!isCurrent&&!phDone&&pi>curPhase,showSteps=isDemo||isCurrent||phDone||ph.steps.some(s=>done.includes(s));return <div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:16,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:isFuture?'#5A6A80':'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${isFuture?'#2D3F5A':ph.color}`,transition:'all 0.2s'}}><div style={{width:8,height:8,borderRadius:'50%',background:isFuture?'#4A5568':phDone?C.ok:ph.color}}/>{ph.label}{phDone&&<Check size={12} color={C.ok} strokeWidth={3} style={{marginLeft:'auto'}}/>}</div>{showSteps&&ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||(sid==='income'&&done.includes('complete')),isComplete=sid==='complete'&&isDone;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 28px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?`${C.gold}30`:'transparent',borderLeft:`3px solid ${isComplete?C.ok:active?C.gold:'transparent'}`,fontSize:18,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?C.gold:isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1,fontWeight:active?700:400}}>{META[sid]}</span>{active&&<span style={{fontSize:10,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'2px 8px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>})}</div>}
 
 const DEMO_TOUR=[
   {step:'welcome',title:'Meet Sarah Chen',desc:''},
@@ -593,7 +593,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),500)}
   };
   const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(data.profile);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setStep('welcome');setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
-  const prog=Math.round((ALL.indexOf(step)/(ALL.length-1))*100)
+  const curPhaseIdx=PHASES.findIndex(ph=>ph.steps.includes(step))
+  const mainPhases=PHASES.filter(ph=>ph.id<=5)
+  const completedPhases=mainPhases.filter(ph=>ph.steps.every(s=>done.includes(s))).length
+  const phaseLabel=curPhaseIdx>=0&&curPhaseIdx<=5?`Phase ${curPhaseIdx+1} of ${mainPhases.length}`:curPhaseIdx===6?'Bonus':'';
+  const phaseProg=Math.round((completedPhases/mainPhases.length)*100)
   const pc={loc:profile.loc,resume:profile.resume,linkedin:profile.linkedin||'',linkedinRecs:profile.linkedinRecs||'',assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep}
 
   const rStep=()=>{switch(step){
@@ -1639,8 +1643,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{fontSize:11,color:C.gray}}>Step {demoIdx+1} of {DEMO_TOUR.length}</div>
             <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${((demoIdx+1)/DEMO_TOUR.length)*100}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
           </>:<>
-            <div style={{fontSize:11,color:C.gray}}>{prog}% complete</div>
-            <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
+            <div style={{fontSize:11,color:C.gray,whiteSpace:'nowrap'}}>{phaseLabel}</div>
+            <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${phaseProg}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
           </>}
         </div>
       </div>
