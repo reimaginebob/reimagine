@@ -480,7 +480,7 @@ function BetaGate({onComplete}){
     setSubmitting(true);setError(null)
     try{
       if(BETA_WEBHOOK&&!BETA_WEBHOOK.includes('PASTE_YOUR')){
-        await fetch(BETA_WEBHOOK,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({firstName:first.trim(),lastName:last.trim(),email:email.trim(),timestamp:new Date().toISOString()})})
+        const formData=new URLSearchParams();formData.append('firstName',first.trim());formData.append('lastName',last.trim());formData.append('email',email.trim());formData.append('timestamp',new Date().toISOString());await fetch(BETA_WEBHOOK,{method:'POST',mode:'no-cors',body:formData})
       }
     }catch(err){/* silent — don't block user if webhook fails */}
     const reg={firstName:first.trim(),lastName:last.trim(),email:email.trim(),ts:Date.now()}
