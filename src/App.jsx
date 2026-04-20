@@ -764,6 +764,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn onClick={()=>advance('welcome','location')}>Let's get started <ChevronRight size={14}/></Btn>
           <input ref={importFileRef} type="file" accept=".json" style={{display:'none'}} onChange={e=>e.target.files[0]&&importProfile(e.target.files[0])}/>
           <Btn onClick={()=>importFileRef.current?.click()} style={{background:'#2A3F60'}}><Upload size={14}/>Load a Saved Profile</Btn>
+          {(done.length>0||profile.resume)&&<Btn onClick={exportProfile} style={{background:'#2A3F60'}}><Download size={14}/>Export My Profile</Btn>}
         </>}
       </div>
     </div>
