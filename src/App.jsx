@@ -523,7 +523,6 @@ export default function PivotEngine(){
   const isTest=_params.get('test')==='true'&&import.meta.env.VITE_ENABLE_TEST==='true'
   const[betaCleared,setBetaCleared]=useState(()=>isDemo||!!localStorage.getItem('reimagine_beta'))
   const[betaUser,setBetaUser]=useState(()=>{try{return JSON.parse(localStorage.getItem('reimagine_beta'))}catch{return null}})
-  if(!betaCleared)return <BetaGate onComplete={(reg)=>{setBetaUser(reg);setBetaCleared(true)}}/>
   const IP={loc:{country:'',city:'',work:''},resume:'',resumeFile:'',linkedin:'',linkedinFile:'',linkedinRecs:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''}}
   const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:''}
   const initStep=isDemo?'welcome':'welcome'
@@ -1694,6 +1693,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   }}
 
   const demoGuide=isDemo&&DEMO_TOUR[demoIdx]?DEMO_TOUR[demoIdx]:null
+
+  if(!betaCleared)return <BetaGate onComplete={(reg)=>{setBetaUser(reg);setBetaCleared(true)}}/>
 
   return <>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
