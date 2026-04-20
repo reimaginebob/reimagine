@@ -797,8 +797,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>)}
 
         <div style={{background:'linear-gradient(135deg,#1A2540 0%,#2A3F60 100%)',borderRadius:12,padding:'24px 28px',marginTop:8}}>
-          <div style={{fontSize:18,fontWeight:700,color:'#FFFFFF',marginBottom:6}}>That's it. From here, everything is built for you.</div>
-          <div style={{fontSize:16,color:'#CBD5E0',lineHeight:1.7}}>No writing, no strategy work, no guessing what to say. Reimagine takes what Sarah provided and builds a complete career strategy — the same one you are about to walk through.</div>
+          <div style={{fontSize:18,fontWeight:700,color:'#FFFFFF',marginBottom:6}}>That's it. From here, it's a conversation.</div>
+          <div style={{fontSize:16,color:'#CBD5E0',lineHeight:1.7}}>Reimagine works best when you're in the driver's seat. At every step, you'll review what we've built and tell us what feels right and what doesn't. You bring your experience and honest reactions — we bring structure, pattern recognition, and language that makes your value impossible to miss. The result is something you own and believe in, because you shaped it.</div>
         </div>
       </div>
     </div>
