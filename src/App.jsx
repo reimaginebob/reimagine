@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import * as mammoth from "mammoth"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 
@@ -405,8 +405,9 @@ function SpeechBtn({onResult,style}){
     rec.start()
     setListening(true)
   }
-  return <button onClick={toggle} title={listening?'Stop listening':'Speak your feedback'} style={{display:'flex',alignItems:'center',justifyContent:'center',width:40,height:40,borderRadius:10,border:`2px solid ${listening?'#EF4444':C.border}`,background:listening?'#FEF2F2':'white',cursor:'pointer',transition:'all 0.2s',flexShrink:0,...(style||{})}}>
-    {listening?<MicOff size={18} color="#EF4444"/>:<Mic size={18} color={C.gray}/>}
+  return <button onClick={toggle} title={listening?'Listening… tap to stop':'Tap to speak your feedback'} style={{display:'flex',alignItems:'center',justifyContent:'center',width:40,height:40,borderRadius:10,border:`2px solid ${listening?'#EF4444':C.border}`,background:listening?'#FEF2F2':'white',cursor:'pointer',transition:'all 0.2s',flexShrink:0,animation:listening?'pulse-mic 1.5s ease-in-out infinite':'none',...(style||{})}}>
+    <style>{`@keyframes pulse-mic{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}`}</style>
+    <Mic size={18} color={listening?'#EF4444':C.gray}/>
   </button>
 }
 function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel}){
@@ -684,6 +685,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {[
           ['This is iterative, not linear.','Every output has a "Does this feel right?" option. If something is off, tell us and we\'ll adjust before moving on.'],
           ['There are no wrong answers in the intake.','The questions about your passions and values are not trick questions. Answer them honestly, not strategically.'],
+          ['You can talk instead of type.','Whenever you see a microphone icon, tap it and speak your thoughts. It\'s often easier to say what feels right or wrong than to type it out.'],
           ['You only need one new job.','Reimagine is designed to open more doors than you might have imagined, so you can find the right one with confidence.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
           <div style={{width:7,height:7,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}/>
