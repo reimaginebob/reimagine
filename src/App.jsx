@@ -332,7 +332,7 @@ function Loading({msg='Generating your analysis\u2026',step=''}){
   const[fade,setFade]=useState(true)
   const pool=SHUFFLED_POOLS[step]||SHUFFLED_POOLS._attitude
   useEffect(()=>{
-    const t=setInterval(()=>{setFade(false);setTimeout(()=>{setQi(i=>(i+1)%pool.length);setFade(true)},600)},20000)
+    const t=setInterval(()=>{setFade(false);setTimeout(()=>{setQi(i=>(i+1)%pool.length);setFade(true)},600)},12000)
     return()=>clearInterval(t)
   },[pool.length])
   const q=pool[qi%pool.length]
@@ -346,7 +346,7 @@ function Loading({msg='Generating your analysis\u2026',step=''}){
       <div style={{fontSize:17,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:8}}>{q}</div>
       <div style={{fontSize:14,color:C.gold,fontWeight:600}}>{MYOW_ATTR}</div>
     </div>
-    <div style={{fontSize:13,color:C.gray,marginTop:20}}>This may take 1\u20132 minutes</div>
+    <div style={{fontSize:13,color:C.gray,marginTop:20}}>This may take 1–2 minutes</div>
   </div>
 }
 function ErrBox({msg}){return <div style={S.err}><AlertCircle size={13} color={C.err} style={{flexShrink:0,marginTop:1}}/><span>{msg}</span></div>}
@@ -1072,7 +1072,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {lanes.map((lane,i)=><button data-lane-tab key={lane.key} onClick={()=>setLaneTab(i)} style={{padding:'14px 22px',borderRadius:10,border:`2px solid ${laneTab===i?C.gold:C.border}`,background:laneTab===i?`${C.gold}12`:'white',color:laneTab===i?C.goldL:'#4A5568',fontSize:16,fontWeight:laneTab===i?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s',flex:'1 1 0',textAlign:'center',minWidth:140}}>{lane.name}</button>)}
             </div>
             {activeLane&&<div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:'0 0 12px 12px',borderTop:'none',padding:'28px 30px',marginBottom:16}}>
-              <div style={{fontSize:16,color:'#4A5568',lineHeight:1.7,marginBottom:20,fontStyle:'italic'}}>{activeLane.desc}</div>
+              {/* Lane desc removed — redundant with bolded intro paragraph in AI output */}
               {(()=>{
                 const content=activeLane.content||''
                 const availTitles=available.map(a=>a.title)
