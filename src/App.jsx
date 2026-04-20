@@ -348,7 +348,7 @@ function Loading({msg='Generating your analysis\u2026',step=''}){
     <div style={{fontSize:13,color:C.gray,marginTop:20}}>This may take 1–2 minutes</div>
   </div>
 }
-const ERR_QUIPS=['Well, that didn\u2019t go as planned. Even AI has off moments.','Our AI just tripped over its own shoelaces. Give it another shot.','Somewhere, a server sneezed. Let\u2019s try that again.','The AI stepped out for coffee. It\u2019s back now \u2014 try again.','Plot twist: temporary technical difficulties. The sequel is better.','Even the best thinkers need a moment. One more try?']
+const ERR_QUIPS=['A cloud just passed over our server. The sun will be back shortly.','Only a pop-up shower \u2014 sunshine resuming momentarily.','Brief fog on the runway. Clearing now, stand by for takeoff.','Even the best forecasters get a surprise gust. Let\u2019s try again.','Temporary headwinds. Your tailwind is on the way.','The barometric pressure just dipped. Give it one more try \u2014 clear skies ahead.']
 function ErrBox({msg,onRetry}){const quip=ERR_QUIPS[Math.floor(Math.random()*ERR_QUIPS.length)];const isApi=msg&&(msg.includes('API')||msg.includes('Request failed')||msg.includes('overloaded')||msg.includes('fetch'));return <div style={{...S.err,flexDirection:'column',alignItems:'center',textAlign:'center',padding:'24px 20px',gap:12}}>
   <AlertCircle size={22} color={C.err}/>
   <div style={{fontSize:17,fontWeight:600,color:'#1A2540'}}>{isApi?quip:'Oops \u2014 something went wrong.'}</div>
