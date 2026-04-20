@@ -205,137 +205,148 @@ const S={
 
 function Btn({onClick,disabled,secondary,small,children,style={}}){const base=small?S.sm:secondary?S.sec:S.btn;return <button style={{...base,opacity:disabled?0.5:1,...style}} onClick={onClick} disabled={disabled}>{children}</button>}
 const backBtnStyle={background:`${C.gold}15`,color:C.goldL,border:`1.5px solid ${C.gold}40`,borderRadius:10,padding:'12px 24px',fontSize:16,fontWeight:600}
-const QUOTES=[
-  // Viktor Frankl — purpose, resilience
-  {text:"Everything can be taken from a person but one thing: the last of the human freedoms — to choose one's attitude in any given set of circumstances.",author:"Viktor Frankl"},
-  {text:"He who has a why to live can bear almost any how.",author:"Viktor Frankl"},
-  {text:"Between stimulus and response there is a space. In that space is our power to choose our response.",author:"Viktor Frankl"},
-  {text:"Life is never made unbearable by circumstances, but only by lack of meaning and purpose.",author:"Viktor Frankl"},
-  {text:"When we are no longer able to change a situation, we are challenged to change ourselves.",author:"Viktor Frankl"},
-  {text:"Each person is questioned by life; and they can only answer to life by answering for their own life.",author:"Viktor Frankl"},
-  {text:"The meaning of life is to give life meaning.",author:"Viktor Frankl"},
-  // Stephen Covey — purpose, service
-  {text:"Begin with the end in mind.",author:"Stephen Covey"},
-  {text:"The key is not to prioritize what's on your schedule, but to schedule your priorities.",author:"Stephen Covey"},
-  {text:"Seek first to understand, then to be understood.",author:"Stephen Covey"},
-  {text:"Proactive people carry their own weather with them.",author:"Stephen Covey"},
-  {text:"Most of us spend too much time on what is urgent and not enough time on what is important.",author:"Stephen Covey"},
-  {text:"I am not a product of my circumstances. I am a product of my decisions.",author:"Stephen Covey"},
-  {text:"Trust is the glue of life. It's the most essential ingredient in effective communication.",author:"Stephen Covey"},
-  // John Wooden — resilience, purpose, courage
-  {text:"Success is peace of mind which is a direct result of self-satisfaction in knowing you made the effort to become the best you are capable of becoming.",author:"John Wooden"},
-  {text:"Don't let what you cannot do interfere with what you can do.",author:"John Wooden"},
-  {text:"It's not what you know, it's what you use that makes a difference.",author:"John Wooden"},
-  {text:"Things turn out best for the people who make the best of the way things turn out.",author:"John Wooden"},
-  {text:"Never mistake activity for achievement.",author:"John Wooden"},
-  {text:"Ability may get you to the top, but it takes character to keep you there.",author:"John Wooden"},
-  {text:"Be more concerned with your character than your reputation, because your character is what you really are.",author:"John Wooden"},
-  // John Maxwell — leadership, purpose, courage
-  {text:"Leaders must be close enough to relate to others, but far enough ahead to motivate them.",author:"John Maxwell"},
-  {text:"The pessimist complains about the wind. The optimist expects it to change. The leader adjusts the sails.",author:"John Maxwell"},
-  {text:"Talent is a gift, but character is a choice.",author:"John Maxwell"},
-  {text:"A leader is one who knows the way, goes the way, and shows the way.",author:"John Maxwell"},
-  {text:"The greatest day in your life and mine is when we take total responsibility for our attitudes.",author:"John Maxwell"},
-  {text:"You will never change your life until you change something you do daily.",author:"John Maxwell"},
-  {text:"Small disciplines repeated with consistency every day lead to great achievements gained slowly over time.",author:"John Maxwell"},
-  // Angela Duckworth — grit, resilience, purpose
-  {text:"Enthusiasm is common. Endurance is rare.",author:"Angela Duckworth"},
-  {text:"Grit is living life like it's a marathon, not a sprint.",author:"Angela Duckworth"},
-  {text:"Our potential is one thing. What we do with it is quite another.",author:"Angela Duckworth"},
-  {text:"The real obstacle to self-control isn't knowing what to do but doing what you know.",author:"Angela Duckworth"},
-  {text:"At its core, the idea of grit is simple. Interests, practice, purpose, and hope.",author:"Angela Duckworth"},
-  {text:"Nobody wants to show you the hours and hours of becoming. They'd rather show you the highlight reel.",author:"Angela Duckworth"},
-  {text:"Greatness is doing the right things over and over until they become natural.",author:"Angela Duckworth"},
-  // Simon Sinek — purpose, service, courage
-  {text:"Start with why.",author:"Simon Sinek"},
-  {text:"Working hard for something we don't care about is called stress. Working hard for something we love is called passion.",author:"Simon Sinek"},
-  {text:"The goal is not to be perfect by the end. The goal is to be better today.",author:"Simon Sinek"},
-  {text:"Leadership is not about being in charge. It is about taking care of those in your charge.",author:"Simon Sinek"},
-  {text:"Dream big. Start small. But most of all, start.",author:"Simon Sinek"},
-  {text:"The courage to admit what we don't know is the beginning of wisdom.",author:"Simon Sinek"},
-  {text:"People don't buy what you do; they buy why you do it.",author:"Simon Sinek"},
-  // Maya Angelou — resilience, courage, purpose
-  {text:"You may not control all the events that happen to you, but you can decide not to be reduced by them.",author:"Maya Angelou"},
-  {text:"Nothing will work unless you do.",author:"Maya Angelou"},
-  {text:"We may encounter many defeats but we must not be defeated.",author:"Maya Angelou"},
-  {text:"I've learned that people will forget what you said, people will forget what you did, but people will never forget how you made them feel.",author:"Maya Angelou"},
-  {text:"My mission in life is not merely to survive, but to thrive.",author:"Maya Angelou"},
-  {text:"Success is liking yourself, liking what you do, and liking how you do it.",author:"Maya Angelou"},
-  {text:"If you don't like something, change it. If you can't change it, change your attitude.",author:"Maya Angelou"},
-  // Nelson Mandela — resilience, courage, purpose
-  {text:"It always seems impossible until it's done.",author:"Nelson Mandela"},
-  {text:"The greatest glory in living lies not in never falling, but in rising every time we fall.",author:"Nelson Mandela"},
-  {text:"Education is the most powerful weapon which you can use to change the world.",author:"Nelson Mandela"},
-  {text:"I never lose. I either win or I learn.",author:"Nelson Mandela"},
-  {text:"Courage is not the absence of fear, but the triumph over it.",author:"Nelson Mandela"},
-  {text:"Real leaders must be ready to sacrifice all for the freedom of their people.",author:"Nelson Mandela"},
-  // Warren Buffett — patience, purpose, self-knowledge
-  {text:"Someone is sitting in the shade today because someone planted a tree a long time ago.",author:"Warren Buffett"},
-  {text:"The most important investment you can make is in yourself.",author:"Warren Buffett"},
-  {text:"It takes 20 years to build a reputation and five minutes to ruin it.",author:"Warren Buffett"},
-  {text:"The best thing I ever did was choose the right heroes.",author:"Warren Buffett"},
-  {text:"I always knew I was going to be rich. I don't think I ever doubted it for a minute.",author:"Warren Buffett"},
-  // Theodore Roosevelt — courage, resilience, service
-  {text:"Do what you can, with what you have, where you are.",author:"Theodore Roosevelt"},
-  {text:"It is not the critic who counts; not the man who points out how the strong man stumbles. The credit belongs to the man who is actually in the arena.",author:"Theodore Roosevelt"},
-  {text:"Believe you can and you're halfway there.",author:"Theodore Roosevelt"},
-  {text:"Keep your eyes on the stars, and your feet on the ground.",author:"Theodore Roosevelt"},
-  {text:"Far and away the best prize that life offers is the chance to work hard at work worth doing.",author:"Theodore Roosevelt"},
-  // Abraham Lincoln — resilience, purpose, courage
-  {text:"Give me six hours to chop down a tree and I will spend the first four sharpening the axe.",author:"Abraham Lincoln"},
-  {text:"I am not bound to win, but I am bound to be true.",author:"Abraham Lincoln"},
-  {text:"The best way to predict your future is to create it.",author:"Abraham Lincoln"},
-  {text:"Whatever you are, be a good one.",author:"Abraham Lincoln"},
-  {text:"I walk slowly, but I never walk backward.",author:"Abraham Lincoln"},
-  // Winston Churchill — resilience, courage
-  {text:"Success is not final, failure is not fatal: it is the courage to continue that counts.",author:"Winston Churchill"},
-  {text:"If you're going through hell, keep going.",author:"Winston Churchill"},
-  {text:"The pessimist sees difficulty in every opportunity. The optimist sees opportunity in every difficulty.",author:"Winston Churchill"},
-  {text:"We make a living by what we get, but we make a life by what we give.",author:"Winston Churchill"},
-  {text:"Continuous effort — not strength or intelligence — is the key to unlocking our potential.",author:"Winston Churchill"},
-  // Peter Drucker — purpose, service, effectiveness
-  {text:"The best way to predict the future is to create it.",author:"Peter Drucker"},
-  {text:"Efficiency is doing things right. Effectiveness is doing the right things.",author:"Peter Drucker"},
-  {text:"What gets measured gets managed.",author:"Peter Drucker"},
-  {text:"The purpose of a business is to create a customer.",author:"Peter Drucker"},
-  {text:"Knowledge has to be improved, challenged, and increased constantly, or it vanishes.",author:"Peter Drucker"},
-  {text:"The most important thing in communication is to hear what isn't being said.",author:"Peter Drucker"},
-  // Jim Collins — purpose, resilience, discipline
-  {text:"Good is the enemy of great.",author:"Jim Collins"},
-  {text:"The signature of mediocrity is not an unwillingness to change. It is chronic inconsistency.",author:"Jim Collins"},
-  {text:"Great vision without great people is irrelevant.",author:"Jim Collins"},
-  {text:"Greatness is not a function of circumstance. Greatness, it turns out, is largely a matter of conscious choice.",author:"Jim Collins"},
-  // Marcus Aurelius — resilience, purpose, stoicism
-  {text:"You have power over your mind — not outside events. Realize this, and you will find strength.",author:"Marcus Aurelius"},
-  {text:"The impediment to action advances action. What stands in the way becomes the way.",author:"Marcus Aurelius"},
-  {text:"Waste no more time arguing what a good person should be. Be one.",author:"Marcus Aurelius"},
-  {text:"Accept the things to which fate binds you, and love the people with whom fate brings you together.",author:"Marcus Aurelius"},
-  {text:"Very little is needed to make a happy life; it is all within yourself, in your way of thinking.",author:"Marcus Aurelius"},
-  // Daniel Pink — motivation, purpose, curiosity
-  {text:"The most successful people are not those who eliminate fear but those who act despite it.",author:"Daniel Pink"},
-  {text:"Goals that people set for themselves and that are devoted to attaining mastery are usually healthy.",author:"Daniel Pink"},
-  {text:"Human beings have an innate inner drive to be autonomous, self-determined, and connected to one another.",author:"Daniel Pink"},
-  // Adam Grant — curiosity, resilience, service
-  {text:"The hallmark of originality is rejecting the default and exploring whether a better option exists.",author:"Adam Grant"},
-  {text:"In a world that changes faster than ever, we cannot just accumulate knowledge — we need to question it.",author:"Adam Grant"},
-  {text:"The greatest communicators don't talk at people. They think with them.",author:"Adam Grant"},
-  {text:"Rethinking is a skill. The ability to update beliefs and strategies is a competitive advantage.",author:"Adam Grant"},
+// MYOW passages mapped to loading states by phase
+const ATTITUDE_QUOTES=[
+  "You are not broken. What you are feeling \u2014 the confusion, the fear, the exhaustion \u2014 that is what everybody feels. It does not mean something is wrong with you. It means you are human, and this is hard.",
+  "Job search is not something to survive until it is over. It is an experience that is actively forming you \u2014 building capacity, developing empathy, clarifying what you actually want, revealing what you are made of.",
+  "The keel does not stop the weather \u2014 it keeps the boat stable through it. The lows can be terrifyingly low. The highs can be deceptively high. Your keel keeps you on course through both.",
+  "You do not need a hundred yeses. You do not need ten. One company, one hiring manager, one offer \u2014 and that is the whole game.",
+  "Courage is not the absence of fear. Courage is acknowledging the fear and going forward anyway.",
+  "The people around you are watching \u2014 because everybody goes through hard things, nobody gets a pass, and how you carry yourself through yours is one of the most valuable things you will ever model for them.",
+  "Letting it go does not mean pretending it did not happen or that it was not painful. It means deciding that what is in front of you matters more than what is behind you.",
+  "Hope is not optional. You cannot lose your grip on hope and keep going at the level this search requires of you.",
+  "The resilience I have watched people find \u2014 including a version I found in myself that I did not know was there until I needed it \u2014 is available to you too.",
+  "The stakes are high. The timeline feels impossible. The weather, metaphorically speaking, is terrible. Good. You are exactly who this book was written for.",
+  "When fear tells you this is not going to end well \u2014 recognize it for what it is. Every person who has ever been in a job search has found a job. You will too.",
+  "Give yourself grace on the hard days. Refuse to stay anchored to them.",
+  "Real resilience looks different. When you put a muscle under resistance, it rebuilds a little bigger and a little stronger than it was before. That is resilience. Not returning to where you were. Becoming stronger than you were.",
+  "When we are no longer able to change a situation, we are challenged to change ourselves. \u2014 Viktor Frankl",
+  "These are more than job search tactics. They are a set of skills that will serve you for the rest of your professional life.",
+  "Today is the slowest day of the rest of your life.",
 ]
-
-const SHUFFLED_QUOTES=(()=>{const a=[...QUOTES];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a})()
-function Loading({msg='Generating your analysis…'}){
+const STEP_QUOTES={
+  // Phase 1: Know Your Value — self-knowledge, convictions, clarity
+  p1:[
+    "The self-knowledge you build here is the foundation everything else rests on.",
+    "When you try to be all things to all potential employers, you end up in the junk drawer of their mind. A junk drawer is full of perfectly useful objects. None of it has a designated place, so none of it gets found when someone goes looking for something specific.",
+    "What is actually, genuinely, demonstrably true about you \u2014 the things that would still be true if you stripped away your title, your company, your income, and your job description. This is the DNA of your personal brand. It has to be discovered from the inside.",
+    "Clarity is the wisdom of knowing what to say yes to and knowing what to say no to.",
+    "Your track record is your receipts. Your documented history of doing the work and getting results.",
+    "The language of business is numbers. Financial statements are numbers. Board presentations are numbers. When companies make decisions, they reach for data.",
+    "What you find on the other side of that struggle, if you go through it with intention, is not just a job. It is a sharper sense of who you are, what you want, and what you are worth.",
+    "Your personal brand cannot be designed from the outside. It has to be discovered from the inside.",
+    "The goal is to walk into any room, hear Tell Me About Yourself, and feel clarity where there used to be anxiety. You know who you are. You know your story. Now you are just telling the truth.",
+    "Convictions lead to Clarity. Clarity leads to Confidence. Confidence is Contagious.",
+    "You cannot manufacture confidence without the convictions underneath it.",
+    "Having a strong background and being able to communicate it effectively are two different skills, and the gap between them is where most searches quietly stall.",
+  ],
+  // Phase 1 continued: p2 — assessment cross-reference
+  p2:[
+    "When you know your natural wiring specifically enough to name it, something shifts in how you talk about your work. You can explain not just what you accomplished but why you were the person who accomplished it.",
+    "Your reputation is the external reflection of your convictions. It is some of the most powerful evidence you have, because it did not come from you.",
+    "You need to be able to answer two questions clearly, specifically, and without hesitation. What are you looking for? And why you?",
+  ],
+  // Phase 1 continued: p3 — pattern synthesis
+  p3:[
+    "When you believe, you make me believe. That is the whole thing.",
+    "You are not the problem. Getting the message right, directing it at the right companies, generating enough activity \u2014 these are the variables.",
+  ],
+  // Phase 2: Explore Options — opportunity landscape
+  p4:[
+    "There is not one perfect job out there for you. There are many good jobs for you \u2014 roles where your values, your strengths, your track record, and your genuine curiosity would combine into something that works.",
+    "The worst outcome in a job search is taking the wrong job.",
+    "What feels like risk \u2014 bringing a real piece of yourself into the conversation \u2014 is what creates the differentiation that actually gets the offer.",
+    "You cannot build a pipeline by waiting for Requests for Proposals. A job posting is an RFP. Your resume is your RFP response. You submit it and then you hope and pray.",
+    "Change creates need. Need creates opportunity. When you find those signals and connect them to your value proposition, you are no longer a cold outreach. You are a well-timed conversation.",
+    "Choices equal leverage. Build the pipeline and keep it full.",
+    "Proactive action produces results, and results encourage more proactive action. The cycle builds on itself in a way that reactive searching simply cannot replicate.",
+    "A job posting is an RFP. Your resume is your RFP response. You have no visibility into the process, no access to the people making the decision, no way to stand out from the pile.",
+    "They do not ultimately care what you did at your last company for its own sake. They care about whether what you did there is relevant to what they are trying to accomplish here. Your job is to build that bridge.",
+    "Julie sent it to the general info inbox on the Contact Us page. They did not have a role for what Julie did. They created one for her.",
+  ],
+  // Phase 2 continued: p5 — deep dive
+  p5:[
+    "Specificity is what makes an answer feel real rather than rehearsed.",
+    "Sometimes we have to slow down to hurry up.",
+    "The Thought Process element of your STAR story shows strategic thinking in action. Rather than claiming you are a creative problem solver, you demonstrate it. Show, don't tell.",
+    "When a resume is built well, it functions as the discussion guide for the conversation you want to have. Your bullets are not just a record of what you did. They are engineered to generate the specific questions you want to answer.",
+    "The sole purpose of a resume is to get you past the first screen. That is its job. Not to get you the offer. Not to tell your whole story. Its one job is to get you the interview.",
+  ],
+  // Phase 3: Tell Your Story — bridge story, TMAY
+  p6:[
+    "They are hiring your brain. Not your resume. Not your list of previous employers. Your brain. They want to understand how you approach problems, what you notice that other people overlook, and why the choices you make are the choices you make.",
+    "Practice does not make perfect. Practice makes habits. If you rehearse the wrong version of your story, you become very good at telling it wrong. What you need is perfect practice.",
+    "Preparation becomes poise. Poise becomes composure. And composure is that quality of grounded confidence that people feel before they can articulate why.",
+    "The goal is not a performance. Not a memorized script. A depth of preparation that lets you be present in the room and respond naturally.",
+  ],
+  // Phase 4: Find Your Market — networking, outreach, companies
+  p7:[
+    "Your job search is a team sport. The people around you \u2014 if you let them in \u2014 will help carry you.",
+    "You are entering not with your hand out but with your hand up, volunteering to help. That shift in posture changes everything.",
+    "A networking conversation is an exchange, not a charity transaction. Walk in like it.",
+    "The worst that can happen is nothing. You are already not working at that company. You cannot be rejected from a job that was never posted.",
+    "You are not asking the company to spend money on you. You are asking them to invest in a return.",
+    "Do not do this alone. The camaraderie, shared ideas, networking access, and accountability that come from being in community will fuel your search in ways that going it solo simply cannot.",
+    "The outreach IS the interview. When you reach out with a researched, personalized, thoughtful note, you are demonstrating in real time that you are a proactive, self-starting, initiative-taking person.",
+  ],
+  // Phase 5: Get Ready — LinkedIn refresh
+  p8:[
+    "Your personal brand cannot be designed from the outside. It has to be discovered from the inside.",
+    "Your reputation is the external reflection of your convictions. It is some of the most powerful evidence you have, because it did not come from you.",
+  ],
+  // Phase 5: Get Ready — resume refresh
+  p_res:[
+    "The sole purpose of a resume is to get you past the first screen. That is its job. Not to get you the offer. Not to tell your whole story. Its one job is to get you the interview.",
+    "When a resume is built well, it functions as the discussion guide for the conversation you want to have. Your bullets are engineered to generate the specific questions you want to answer.",
+  ],
+  // Phase 5: Get Ready — playbook + interview prep + negotiation (HEAVIEST — 3 parallel API calls)
+  p9:[
+    "Preparation becomes poise. Poise becomes composure. And composure is that quality of grounded confidence that people feel before they can articulate why.",
+    "The goal is not a performance. Not a memorized script. A depth of preparation that lets you be present in the room and respond naturally.",
+    "A great salesperson does not discount their product at the finish line. They know what it is worth, they have the data to support it, and they ask for it with confidence and warmth.",
+    "The single best phrase in a negotiation is: would that be fair?",
+    "State your number. And then be quiet.",
+    "The ten thousand dollars you did not ask for this year becomes the basis for next year's raise, and the raise after that. Over a career, the compound effect of that one conversation is staggering.",
+    "They are hiring your brain. Not your resume. Not your list of previous employers. Your brain. They want to understand how you approach problems and why the choices you make are the choices you make.",
+    "Specificity is what makes an answer feel real rather than rehearsed.",
+    "The Thought Process element of your STAR story shows strategic thinking in action. Rather than claiming you are a creative problem solver, you demonstrate it.",
+    "Practice does not make perfect. Practice makes habits. What you need is perfect practice.",
+    "When you know your natural wiring specifically enough to name it, something shifts in how you talk about your work.",
+    "Choices equal leverage. Build the pipeline and keep it full.",
+  ],
+  // Bonus: Income Now
+  income:[
+    "Proactive action produces results, and results encourage more proactive action. The cycle builds on itself in a way that reactive searching simply cannot replicate.",
+    "Change creates need. Need creates opportunity.",
+    "You cannot build a pipeline by waiting for Requests for Proposals.",
+    "What you find on the other side of that struggle, if you go through it with intention, is not just a job. It is a sharper sense of who you are, what you want, and what you are worth.",
+  ],
+}
+const MYOW_ATTR='\u2014 Making Your Own Weather'
+// Shuffle helper
+const shuffleArr=(arr)=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+// Pre-shuffle each pool + attitude pool
+const SHUFFLED_POOLS=(()=>{const pools={};Object.keys(STEP_QUOTES).forEach(k=>{pools[k]=shuffleArr(STEP_QUOTES[k])});pools._attitude=shuffleArr(ATTITUDE_QUOTES);return pools})()
+function Loading({msg='Generating your analysis\u2026',step=''}){
   const[qi,setQi]=useState(0)
-  useEffect(()=>{const t=setInterval(()=>setQi(i=>(i+1)%SHUFFLED_QUOTES.length),8000);return()=>clearInterval(t)},[])
-  const q=SHUFFLED_QUOTES[qi]
+  const[fade,setFade]=useState(true)
+  const pool=SHUFFLED_POOLS[step]||SHUFFLED_POOLS._attitude
+  useEffect(()=>{
+    const t=setInterval(()=>{setFade(false);setTimeout(()=>{setQi(i=>(i+1)%pool.length);setFade(true)},600)},20000)
+    return()=>clearInterval(t)
+  },[pool.length])
+  const q=pool[qi%pool.length]
+  // If step pool exhausted, mix in attitude quotes
+  const isAttitude=!SHUFFLED_POOLS[step]
   return <div style={{textAlign:'center',padding:'48px 24px',maxWidth:560,margin:'0 auto'}}>
     <Loader2 size={28} style={{color:C.gold,animation:'spin 0.9s linear infinite',margin:'0 auto 20px',display:'block'}}/>
     <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
     <div style={{fontSize:18,color:C.grayL,marginBottom:28}}>{msg}</div>
-    <div style={{borderLeft:`3px solid ${C.gold}`,paddingLeft:20,textAlign:'left',marginBottom:8}}>
-      <div style={{fontSize:17,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:8}}>"{q.text}"</div>
-      <div style={{fontSize:14,color:C.gold,fontWeight:600}}>{q.author}</div>
+    <div style={{borderLeft:`3px solid ${C.gold}`,paddingLeft:20,textAlign:'left',marginBottom:8,opacity:fade?1:0,transition:'opacity 0.6s ease'}}>
+      <div style={{fontSize:17,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:8}}>{q}</div>
+      <div style={{fontSize:14,color:C.gold,fontWeight:600}}>{MYOW_ATTR}</div>
     </div>
-    <div style={{fontSize:13,color:C.gray,marginTop:20}}>This may take 1–2 minutes</div>
+    <div style={{fontSize:13,color:C.gray,marginTop:20}}>This may take 1\u20132 minutes</div>
   </div>
 }
 function ErrBox({msg}){return <div style={S.err}><AlertCircle size={13} color={C.err} style={{flexShrink:0,marginTop:1}}/><span>{msg}</span></div>}
@@ -814,7 +825,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <h1 style={S.title}>Resume Analysis</h1>
       {!isDemo&&<p style={S.sub}>Your experience has created more value than most resumes show. This step finds it and puts it in language any industry understands.</p>}
       {!isDemo&&!outputs.p1&&!loading&&<Btn onClick={()=>generate('p1',()=>P.p1(pc))}><Sparkles size={14}/>Analyze My Resume</Btn>}
-      {loading&&<Loading msg={loadMsg||'Analyzing your career and translating accomplishments…'}/>}
+      {loading&&<Loading msg={loadMsg||'Analyzing your career and translating accomplishments…'} step="p1"/>}
       {outputs.p1&&<>
         <OutPanel text={outputs.p1} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} hint="Missing an accomplishment, or something feels off about how your experience was read? Tell us what to adjust." placeholder="e.g. You missed my biggest project… the seniority level feels too junior… I also managed a P&L…" onRegenerate={v=>{out('p1','');generate('p1',()=>P.p1(pc)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
@@ -837,7 +848,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <h1 style={S.title}>Wiring & Compass</h1>
       {!isDemo&&<p style={S.sub}>Most people take assessments and file them away. This step connects how you're wired to the work you do best and the environment where you thrive.</p>}
       {!isDemo&&!outputs.p2&&!loading&&<Btn onClick={()=>generate('p2',()=>P.p2(pc,outputs.p1))}><Sparkles size={14}/>Analyze My Wiring</Btn>}
-      {loading&&<Loading msg="Cross-referencing assessment, values, and accomplishments…"/>}
+      {loading&&<Loading msg="Cross-referencing assessment, values, and accomplishments…" step="p2"/>}
       {outputs.p2&&<>
         <OutPanel text={outputs.p2} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p2} onChange={v=>setFb('p2',v)} hint="Does this capture how you actually work and what energizes you? If something is off, describe what we missed." placeholder="e.g. I actually thrive in fast-paced environments… my passion for mentoring is stronger than shown… the culture description doesn't match me…" onRegenerate={v=>{out('p2','');generate('p2',()=>P.p2(pc,outputs.p1)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
@@ -881,7 +892,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       })()}
       {!isDemo&&!outputs.p3&&!loading&&!p3Intro&&<Btn onClick={()=>generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}><Sparkles size={14}/>Synthesize My Brand</Btn>}
-      {loading&&<Loading msg="Finding the pattern across all your data…"/>}
+      {loading&&<Loading msg="Finding the pattern across all your data…" step="p3"/>}
       {outputs.p3&&<>
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the brand or value proposition misses the mark, tell us what feels off." placeholder="e.g. The personal brand doesn't capture my leadership style… you missed my strongest capability… the golden thread isn't quite right…" onRegenerate={v=>{out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nUSER CONTEXT: ${v}`:''))}}/>}
@@ -897,7 +908,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <h1 style={S.title}>The Wide View</h1>
       {!isDemo&&<p style={S.sub}>You have told us your story: your resume, how you are wired, what you value, and what lights you up. We have been listening. Now we take everything we know about you and map out the full landscape of what is possible.</p>}
       {!isDemo&&!outputs.p4&&!loading&&<Btn onClick={()=>{setLaneTab(0);generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3),{highTemp:true,maxTokens:5000,msg:'Mapping your opportunity landscape — this takes a moment…'})}}><Sparkles size={14}/>Generate My Options</Btn>}
-      {loading&&<Loading msg={loadMsg||'Mapping your full opportunity landscape across all three paths…'}/>}
+      {loading&&<Loading msg={loadMsg||'Mapping your full opportunity landscape across all three paths…'} step="p4"/>}
       {outputs.p4&&p4Intro&&(()=>{
         const pathCards=[
           {icon:<Heart size={34} color="#C8924A"/>,name:'Work That Matters',desc:'Built on the Japanese concept of Ikigai — the intersection of what you love, what you are good at, what the world needs, and what you can be paid for. These roles stretch beyond your current title, grounded in who you actually are and what gives your work meaning.'},
@@ -1141,7 +1152,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn secondary onClick={()=>nav('p4')}><ArrowLeft size={13}/>Change My Selections</Btn>
         </div>}
         {!isDemo&&filledOpts.length===0&&!outputs.p5&&<div style={{...S.err,marginTop:0}}><AlertCircle size={13} color={C.err} style={{flexShrink:0}}/><span>Go back to The Wide View and select at least one option to explore.</span></div>}
-        {loading&&<Loading msg={loadMsg||'Building your deep dive…'}/>}
+        {loading&&<Loading msg={loadMsg||'Building your deep dive…'} step="p5"/>}
         {outputs.p5&&<>
           {p5Takeaway&&<div style={S.out}>
             <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p5)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
@@ -1251,7 +1262,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       })()}
       {!isDemo&&!outputs.p6&&!loading&&!p6Intro&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
-      {loading&&<Loading msg="Crafting your bridge story in three lengths…"/>}
+      {loading&&<Loading msg="Crafting your bridge story in three lengths…" step="p6"/>}
       {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? If the tone or content feels off, tell us how to adjust." placeholder="e.g. The opening doesn't sound like me… I want to lead with a different part of my background… the ending needs to be stronger…" onRegenerate={v=>{out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Bridge Story. Continue?')){out('p6','');setP6Intro(false);scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
@@ -1292,7 +1303,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       })()}
       {!isDemo&&!outputs.p7&&!loading&&!p7Intro&&<Btn onClick={()=>generate('p7',()=>P.p7(pc,outputs,chosen),{webSearch:true,maxTokens:6000,msg:'Researching target companies and building your strategy…'})}><Sparkles size={14}/>Build My Strategy</Btn>}
-      {loading&&<Loading msg={loadMsg||'Researching companies and building your outreach strategy…'}/>}
+      {loading&&<Loading msg={loadMsg||'Researching companies and building your outreach strategy…'} step="p7"/>}
       {outputs.p7&&(()=>{
         const downloadCSV=()=>{
           const lines=outputs.p7.split('\n').filter(l=>l.includes('|')&&!l.match(/^[\s|:-]+$/))
@@ -1351,7 +1362,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <h1 style={S.title}>LinkedIn Remix</h1>
       {!isDemo&&<p style={S.sub}>Your LinkedIn profile is how companies and recruiters find you. If it still describes your last role, the right people can't find you for the next one.</p>}
       {!isDemo&&!outputs.p8&&!loading&&<Btn onClick={()=>generate('p8',()=>P.p8(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Remix My LinkedIn</Btn>}
-      {loading&&<Loading msg="Rewriting your LinkedIn for your new direction…"/>}
+      {loading&&<Loading msg="Rewriting your LinkedIn for your new direction…" step="p8"/>}
       {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p8} onChange={v=>setFb('p8',v)} hint="Want a different headline angle, or does the About section need a different tone? Tell us what to adjust." placeholder="e.g. The headline is too generic… I want the About section to lead with something different… add more keywords for my target role…" onRegenerate={v=>{out('p8','');generate('p8',()=>P.p8(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000})}}/>}{!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>LinkedIn updated. Now let's reshape your resume so the strongest evidence lands in the first 7 seconds.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your LinkedIn Remix. Continue?')){out('p8','');scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p8','p_res')}>Refresh My Resume <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
@@ -1365,7 +1376,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&<p style={S.sub}>The people reading your resume now are looking for different signals than the ones who hired you last time. We use a hybrid format that puts your Greatest Hits above the fold so the strongest evidence lands in the first 7 seconds.</p>}
       <div style={S.note}>Targeting: <strong style={{color:C.cream}}>{chosen}</strong></div>
       {!isDemo&&!outputs.p_res&&!loading&&<Btn onClick={()=>generate('p_res',()=>P.p_res(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Refresh My Resume</Btn>}
-      {loading&&<Loading msg="Rewriting your resume for your new direction…"/>}
+      {loading&&<Loading msg="Rewriting your resume for your new direction…" step="p_res"/>}
       {outputs.p_res&&<><OutPanel text={outputs.p_res} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p_res} onChange={v=>setFb('p_res',v)} hint="Want different accomplishments in the Greatest Hits, or need the summary reframed? Tell us what to change." placeholder="e.g. Lead with my operations experience instead… the summary doesn't capture my pivot well… add the project I led at my second company…" onRegenerate={v=>{out('p_res','');generate('p_res',()=>P.p_res(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'24px 0 14px',padding:'20px 24px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}25`,borderRadius:12,fontSize:18,color:'#1A2540',lineHeight:1.7,fontWeight:500}}>Almost there. Let's prepare you for the conversations ahead — the landscape, the language, and the questions you'll face.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{if(confirm('This will clear your Resume Refresh. Continue?')){out('p_res','');scrollTop()}}}><RotateCcw size={13}/>Redo This Step</Btn><Btn onClick={()=>advance('p_res','p9')}>Build My Playbook <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
       {done.includes('complete')&&<div style={{marginTop:32,paddingTop:20,borderTop:`1px solid ${C.border}`}}><Btn onClick={()=>{nav('complete');scrollTop()}} style={backBtnStyle}><ArrowLeft size={14}/>Back to My Results</Btn></div>}
@@ -1401,7 +1412,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       })()}
       {!isDemo&&!outputs.p9&&!p9Intro&&!loading&&<Btn onClick={async()=>{setLoading(true);setErr(null);setLoadMsg('Building your playbook...');try{const[r1,r2,r3]=await Promise.all([callClaude(P.p9(pc,outputs,chosen),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen),{maxTokens:2000}),callClaude(P.p11(pc,outputs,chosen),{maxTokens:4000})]);out('p9',r1);out('p10',r2);out('p11',r3)}catch(e){setErr(e.message)}finally{setLoading(false)}}}><Sparkles size={14}/>Build My Playbook</Btn>}
-      {loading&&<Loading msg={loadMsg||'Building your playbook — industry landscape and interview preparation…'}/>}
+      {loading&&<Loading msg={loadMsg||'Building your playbook — industry landscape and interview preparation…'} step="p9"/>}
       {outputs.p9&&<>
         <OutPanel text={outputs.p9} onCopy={copy} copied={copied}/>
         {outputs.p11&&(()=>{
@@ -1614,7 +1625,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       })()}
       {!isDemo&&!outputs.income&&!loading&&!incomeIntro&&<Btn onClick={()=>generate('income',()=>P.income(pc,outputs,chosen),{maxTokens:6000,msg:'Building your Income Now plan…'})} style={{background:'#7AB87A'}}><Sparkles size={14}/>Build My Income Plan</Btn>}
-      {loading&&<Loading msg="Building your Income Now plan — this one is thorough…"/>}
+      {loading&&<Loading msg="Building your Income Now plan — this one is thorough…" step="income"/>}
       {outputs.income&&<>
         <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.income} onChange={v=>setFb('income',v)} hint="Want to focus on a different kind of income stream, or need the rates adjusted for your market? Tell us what to change." placeholder="e.g. I want more consulting options and fewer platform-based ideas… adjust rates for my geography… I have existing clients I can leverage…" updateLabel="Update my plan" freshLabel="Show me a fresh plan" onRegenerate={v=>{out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:6000})}}/>}
