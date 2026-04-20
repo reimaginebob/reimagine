@@ -322,7 +322,7 @@ const STEP_QUOTES={
     "What you find on the other side of that struggle, if you go through it with intention, is not just a job. It is a sharper sense of who you are, what you want, and what you are worth.",
   ],
 }
-const MYOW_ATTR='\u2014 Making Your Own Weather'
+const MYOW_ATTR='\u2014 Making Your Own Weather (available on Amazon)'
 // Shuffle helper
 const shuffleArr=(arr)=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 // Pre-shuffle each pool + attitude pool
