@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import * as mammoth from "mammoth"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, FileText, BarChart3 } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 
@@ -450,6 +450,7 @@ function Sidebar({step,done,onNav,isDemo}){const curPhase=PHASES.findIndex(ph=>p
 
 const DEMO_TOUR=[
   {step:'welcome',title:'Meet Sarah Chen',desc:''},
+  {step:'intake',title:'The Intake',desc:'Before any AI analysis begins, Sarah answered a few simple questions. The whole process took about 20 minutes.'},
   {step:'p1',title:'Step 1: Know Your Value',desc:'Your experience has created more value than most resumes show. This step finds it and puts it in language any industry understands.'},
   {step:'p2',title:'Step 2: Wiring & Compass',desc:'Most people take assessments and file them away. This step connects how you\'re wired to the work you do best and the environment where you thrive.'},
   {step:'p3',title:'Step 3: Brand Synthesis',desc:'When someone asks "what do you do," most people default to a job title. This step gives you a better answer: what you do, why you are good at it, and how they produce meaningful outcomes.'},
@@ -766,6 +767,39 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn onClick={()=>importFileRef.current?.click()} style={{background:'#2A3F60'}}><Upload size={14}/>Load a Saved Profile</Btn>
           {(done.length>0||profile.resume)&&<Btn onClick={exportProfile} style={{background:'#2A3F60'}}><Download size={14}/>Export My Profile</Btn>}
         </>}
+      </div>
+    </div>
+
+    case'intake':return <div>
+      <div style={{...S.card,marginBottom:24,background:'#FAFBFC',borderLeft:`3px solid ${C.gold}`,padding:'32px 36px'}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:26,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>All Sarah needed to bring:</h2>
+        <p style={{fontSize:17,color:'#4A5568',lineHeight:1.7,margin:'0 0 28px'}}>The entire intake took about 20 minutes. Here is what she provided — and what Reimagine built from it.</p>
+
+        {[
+          {icon:<MapPin size={22} color={C.gold}/>,title:'Location & Preferences',time:'1 minute',items:['Atlanta, GA','Hybrid — within commuting distance']},
+          {icon:<FileText size={22} color={C.gold}/>,title:'Resume',time:'2 minutes',items:['Uploaded her existing resume as a PDF','Did not need to reformat or polish it']},
+          {icon:<Network size={22} color={C.gold}/>,title:'LinkedIn Profile',time:'30 seconds',items:['Exported her LinkedIn profile as a PDF (More → Save to PDF)','Pasted three LinkedIn recommendations']},
+          {icon:<BarChart3 size={22} color={C.gold}/>,title:'Assessment',time:'Already had it',items:['Uploaded her CliftonStrengths results','Any assessment works: DiSC, MBTI, Hogan, PI, or the free Affintus assessment']},
+          {icon:<Heart size={22} color={C.gold}/>,title:'Values, Passions & Causes',time:'5 minutes',items:['Named her core values: Family, Empathy, Service, Faith, Innovation','Shared what she cares about: Youth mentoring, Healthcare equity, Faith-based service, Women in leadership']},
+          {icon:<MessageCircle size={22} color={C.gold}/>,title:'Reputation',time:'10 minutes',items:['Recalled a time someone praised her work','Described the type of problem people call her to solve','Named her professional superpower in two words']},
+        ].map(({icon,title,time,items})=><div key={title} style={{display:'flex',gap:18,marginBottom:24,alignItems:'flex-start'}}>
+          <div style={{width:44,height:44,borderRadius:10,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:2}}>{icon}</div>
+          <div style={{flex:1}}>
+            <div style={{display:'flex',alignItems:'baseline',gap:12,marginBottom:6}}>
+              <div style={{fontSize:19,fontWeight:700,color:'#1A2540'}}>{title}</div>
+              <div style={{fontSize:13,color:C.gray,fontWeight:500}}>{time}</div>
+            </div>
+            {items.map((item,i)=><div key={i} style={{display:'flex',gap:10,alignItems:'flex-start',marginBottom:4}}>
+              <div style={{width:5,height:5,borderRadius:'50%',background:'#CBD5E0',flexShrink:0,marginTop:8}}/>
+              <div style={{fontSize:16,color:'#4A5568',lineHeight:1.6}}>{item}</div>
+            </div>)}
+          </div>
+        </div>)}
+
+        <div style={{background:'linear-gradient(135deg,#1A2540 0%,#2A3F60 100%)',borderRadius:12,padding:'24px 28px',marginTop:8}}>
+          <div style={{fontSize:18,fontWeight:700,color:'#FFFFFF',marginBottom:6}}>That's it. From here, everything is built for you.</div>
+          <div style={{fontSize:16,color:'#CBD5E0',lineHeight:1.7}}>No writing, no strategy work, no guessing what to say. Reimagine takes what Sarah provided and builds a complete career strategy — the same one you are about to walk through.</div>
+        </div>
       </div>
     </div>
 
