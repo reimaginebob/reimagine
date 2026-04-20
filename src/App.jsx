@@ -592,7 +592,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const w=window.open('','_blank')
     if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),500)}
   };
-  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(data.profile);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setStep('welcome');setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
+  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(data.profile);if(data.outputs){setOutputs(o=>({...IO,...data.outputs}))}else{setOutputs(IO)}if(data.done&&data.done.length){setDone(data.done);const lastDone=data.done[data.done.length-1];const nextIdx=ALL.indexOf(lastDone)+1;setStep(nextIdx<ALL.length?ALL[nextIdx]:lastDone)}else{setDone([]);setStep('welcome')}if(data.deepOpts)setDeepOpts(data.deepOpts);else setDeepOpts(['','','']);if(data.chosen)setChosen(data.chosen);else setChosen('');setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
   const curPhaseIdx=PHASES.findIndex(ph=>ph.steps.includes(step))
   const mainPhases=PHASES.filter(ph=>ph.id<=5)
   const completedPhases=mainPhases.filter(ph=>ph.steps.every(s=>done.includes(s))).length
