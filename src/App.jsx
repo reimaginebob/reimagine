@@ -564,7 +564,7 @@ export default function PivotEngine(){
   const[fileLoading,setFileLoading]=useState(false)
   const[skipAssessWarn,setSkipAssessWarn]=useState(false)
   const[surveyDone,setSurveyDone]=useState(isDemo)
-  const[survey,setSurvey]=useState({nps:null,valuable:'',confidence:null,accuracy:null,open:''})
+  const[survey,setSurvey]=useState({name:'',nps:null,valuable:'',confidence:null,accuracy:null,open:''})
   const[surveySubmitted,setSurveySubmitted]=useState(false)
   const[surveySubmitting,setSurveySubmitting]=useState(false)
   const setSv=(k,v)=>setSurvey(s=>({...s,[k]:v}))
@@ -1632,6 +1632,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!surveySubmitted?<>
           <div style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:600,color:C.cream,marginBottom:4}}>One more thing — 60 seconds of feedback</div>
           <div style={{fontSize:16,color:C.gray,marginBottom:20,lineHeight:1.6}}>You're helping us make this better for everyone who comes after you. All questions are optional.</div>
+
+          <div style={S.field}>
+            <label style={S.label}>Your name <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label>
+            <input style={S.input} value={survey.name} onChange={e=>setSv('name',e.target.value)} placeholder="First and last name"/>
+          </div>
 
           <div style={S.field}>
             <label style={S.label}>How likely are you to recommend Reimagine to someone in career transition?</label>
