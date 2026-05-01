@@ -1247,9 +1247,33 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <div style={{fontSize:16,color:C.goldL}}>Save as a spreadsheet to track outreach, add notes, and share with your network.</div>
             </div>
             <Btn onClick={()=>{
-              const lines=outputs.p7.split('\n').filter(l=>l.includes('|')&&l.trim().length>10&&!l.match(/^[\s|:-]+$/))
-              const csv=lines.length>2
-                ?'Company,Why it fits,Growth signal,Contact name & LinkedIn,Email convention,Website\n'+lines.map(l=>{const p=l.split('|').map(s=>s.trim());return p.map(s=>`"${s.replace(/"/g,'""')}"`).join(',')}).join('\n')
+              const parseCompanies=(text)=>{
+                const companies=[]
+                let current=null
+                const finalize=()=>{if(current&&(current.fit||current.growth||current.contact||current.email))companies.push(current);current=null}
+                for(const line of text.split('\n')){
+                  const trimmed=line.trim()
+                  const nameMatch=trimmed.match(/^\*\*([^*]+?)\*\*\.?$/)
+                  if(nameMatch){
+                    const name=nameMatch[1].trim().replace(/\.$/,'')
+                    if(/^PART\s|^Company Name$|^Why it fits|^Growth signal|^Contact|^Email|^The Hook|^The Story|^The Close|^Paragraph\s|^What/i.test(name)){finalize();continue}
+                    finalize()
+                    current={name,fit:'',growth:'',contact:'',email:''}
+                    continue
+                  }
+                  if(!current)continue
+                  if(/^Why it fits:/i.test(trimmed))current.fit=trimmed.replace(/^Why it fits:\s*/i,'').trim()
+                  else if(/^Growth signal:/i.test(trimmed))current.growth=trimmed.replace(/^Growth signal:\s*/i,'').trim()
+                  else if(/^Contact:/i.test(trimmed))current.contact=trimmed.replace(/^Contact:\s*/i,'').trim()
+                  else if(/^Email:/i.test(trimmed))current.email=trimmed.replace(/^Email:\s*/i,'').trim()
+                }
+                finalize()
+                return companies
+              }
+              const companies=parseCompanies(outputs.p7)
+              const esc=s=>`"${(s||'').replace(/"/g,'""')}"`
+              const csv=companies.length>0
+                ?'Company,Why it fits,Growth signal,Contact,Email\n'+companies.map(c=>[c.name,c.fit,c.growth,c.contact,c.email].map(esc).join(',')).join('\n')
                 :outputs.p7
               const blob=new Blob([csv],{type:'text/csv'})
               const url=URL.createObjectURL(blob)
