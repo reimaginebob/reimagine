@@ -706,7 +706,7 @@ export default function PivotEngine(){
         appVersion:APP_VERSION,
         browser:navigator.userAgent||'',
       }
-      fetch(CORRECTIONS_LOG_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{})
+      fetch(CORRECTIONS_LOG_URL,{method:'POST',body:JSON.stringify(payload)}).catch(()=>{})
     }catch{}
   }
   const recordCorrection=(step,text)=>{
