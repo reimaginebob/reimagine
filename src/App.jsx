@@ -447,7 +447,7 @@ const STEP_DISPLAY_NAMES = {
 
 // Apps Script web app deployment URL for corrections logging.
 // Update after deploying scripts/reimagine-corrections-log.gs and copying the deployment URL.
-const CORRECTIONS_LOG_URL = 'PASTE_DEPLOYMENT_URL_HERE'
+const CORRECTIONS_LOG_URL = 'https://script.google.com/macros/s/AKfycbzbw7MFbN0GkdlA0z03haorssJ5aKjUYI2Uw3pe98xGEsPt5LksCGZsSLRr_OgAVECo/exec'
 const APP_VERSION = '2026-05-10'
 
 const correctionsBlock = (corrections) => {
