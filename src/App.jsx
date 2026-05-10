@@ -193,8 +193,8 @@ const PHASES=[
   {id:5,label:'Get Ready',color:'#C8924A',steps:['p8','p_res','p9','complete']},
   {id:6,label:'Income Now',color:'#C8924A',steps:['income']},
 ]
-const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',p5:'The Deep Dive',decision:'Your Decision',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now'}
-const ALL=['welcome','location','resume','assessment','values','reputation','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','complete','income']
+const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',p5:'The Deep Dive',decision:'Your Decision',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now'}
+const ALL=['welcome','location','resume','assessment','values','reputation','orientation-done','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','complete','income']
 
 const S={
   title:{fontFamily:'Georgia,serif',fontSize:38,fontWeight:700,color:"#1A2540",margin:'0 0 14px',lineHeight:1.2},
@@ -468,6 +468,73 @@ const STEP_DISPLAY_NAMES = {
 const CORRECTIONS_LOG_URL = 'https://script.google.com/macros/s/AKfycbzbw7MFbN0GkdlA0z03haorssJ5aKjUYI2Uw3pe98xGEsPt5LksCGZsSLRr_OgAVECo/exec'
 const APP_VERSION = '2026-05-10'
 
+const COUNTRY_OPTIONS = [
+  'United States', 'Canada', 'United Kingdom', 'Ireland', 'Australia',
+  'New Zealand', 'Germany', 'France', 'Netherlands', 'Belgium',
+  'Spain', 'Italy', 'Sweden', 'Norway', 'Denmark', 'Finland',
+  'Switzerland', 'Austria', 'Portugal', 'Greece', 'Poland',
+  'Singapore', 'Hong Kong', 'Japan', 'South Korea', 'Israel',
+  'United Arab Emirates', 'India', 'Brazil', 'Mexico', 'Argentina',
+  'Chile', 'South Africa',
+]
+
+const LOADING_PREVIEWS = {
+  p1: [
+    'Where you sit in the market',
+    '5–7 strongest accomplishments translated for portability',
+    'What makes your background distinctive',
+  ],
+  p2: [
+    'How you get things done: wiring meets results',
+    'The environment where you do your best work',
+    'What lights you up and why it matters professionally',
+  ],
+  p3: [
+    'The golden thread across your accomplishments and reputation',
+    'A 2-sentence personal brand',
+    '4–6 capabilities with proof',
+  ],
+  p4: [
+    'Three paths through your opportunity landscape',
+    'Familiar Ground, Industry Insider, and Work That Matters',
+    'Specific role options with rationale grounded in your profile',
+  ],
+  p5: [
+    'A deeper read on your selected options',
+    'Why each fits, what to think through, and the fastest path forward',
+  ],
+  p6: [
+    'Your Bridge Story: what you say when someone asks "tell me about yourself"',
+    '30-second TMAY blending personal throughline with professional results',
+  ],
+  p7: [
+    '20–30 target companies with growth signals',
+    'Hiring executive identification and outreach approach',
+    'A direct outreach template grounded in the Making Your Own Weather model',
+  ],
+  p8: [
+    'Three headline options for LinkedIn',
+    'A repositioned About section anchored in your bridge story',
+    'Target keywords and where to place them',
+  ],
+  p_res: [
+    'A repositioned summary',
+    'Greatest Hits accomplishments above the fold',
+    'Experience bullets rewritten for your target role',
+  ],
+  p9: [
+    'The lingo, tech stack, and thought leaders for this role',
+    'STAR stories built from your accomplishments',
+    'Interview prep covering the questions that will surface',
+    'Negotiation talking points',
+  ],
+  income: [
+    'Where to show up: marketplaces and channels for your background',
+    'Your consulting positioning, bio, and 4 service offerings',
+    'A fractional pitch and a 48-hour starting plan',
+  ],
+}
+
 const correctionsBlock = (corrections) => {
   if (!corrections || corrections.length === 0) return ''
   const recent = corrections.slice(-20)
@@ -516,6 +583,7 @@ function Loading({ msg = 'Generating your analysis…', step = '' }) {
   const [fade, setFade] = useState(true)
   const pool = SHUFFLED_POOLS[step] || SHUFFLED_POOLS._attitude
   const isStepPool = !!SHUFFLED_POOLS[step]
+  const previews = LOADING_PREVIEWS[step]
   useEffect(() => {
     const t = setInterval(() => {
       setFade(false)
@@ -527,7 +595,11 @@ function Loading({ msg = 'Generating your analysis…', step = '' }) {
   return <div style={{textAlign:'center',padding:'48px 24px',maxWidth:560,margin:'0 auto'}}>
     <Loader2 size={28} style={{color:C.gold,animation:'spin 0.9s linear infinite',margin:'0 auto 20px',display:'block'}}/>
     <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
-    <div style={{fontSize:18,color:C.grayL,marginBottom:28}}>{msg}</div>
+    <div style={{fontSize:18,color:C.grayL,marginBottom:24}}>{msg}</div>
+    {previews && <div style={{borderLeft:`3px solid ${C.gold}30`,paddingLeft:18,textAlign:'left',marginBottom:24,fontSize:14,color:C.gray,lineHeight:1.7}}>
+      <div style={{fontWeight:600,marginBottom:6,color:C.grayL,fontSize:13,letterSpacing:'0.5px',textTransform:'uppercase'}}>While you wait: what's coming</div>
+      {previews.map((p,i) => <div key={i}>• {p}</div>)}
+    </div>}
     <div style={{borderLeft:`3px solid ${C.gold}`,paddingLeft:20,textAlign:'left',marginBottom:8,opacity:fade?1:0,transition:'opacity 0.6s'}}>
       <div style={{fontSize:17,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:8}}>"{isStepPool ? q : q.text}"</div>
       <div style={{fontSize:14,color:C.gold,fontWeight:600}}>{isStepPool ? MYOW_ATTR : q.author}</div>
@@ -862,7 +934,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),500)}
   };
   const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);const lastStep=data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome';setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
-  const prog=Math.round((ALL.indexOf(step)/(ALL.length-1))*100)
+  const prog=step==='income'?100:Math.round((ALL.indexOf(step)/ALL.indexOf('complete'))*100)
   const pc={loc:{...profile.loc,work:Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||'')},resume:profile.resume,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep}
 
   const rStep=()=>{switch(step){
@@ -984,7 +1056,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <h1 style={S.title}>Location & Work Preferences</h1>
       <p style={S.sub}>This shapes every opportunity we generate and every company we identify.</p>
       <div style={S.card}>
-        <div style={S.field}><label style={S.label}>Country / Region</label><input style={S.inp} value={profile.loc.country} onChange={e=>loc('country',e.target.value)} placeholder="e.g. United States, United Kingdom, Germany"/></div>
+        <div style={S.field}><label style={S.label}>Country / Region</label><input list="country-list" style={S.inp} value={profile.loc.country} onChange={e=>loc('country',e.target.value)} placeholder="Start typing or select from the list" autoComplete="off"/><datalist id="country-list">{COUNTRY_OPTIONS.map(c=><option key={c} value={c}/>)}</datalist></div>
         <div style={S.field}><label style={S.label}>City or Metro <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label><input style={S.inp} value={profile.loc.city} onChange={e=>loc('city',e.target.value)} placeholder="e.g. Chicago, Greater London, Munich metro"/></div>
         <div style={S.field}><label style={S.label}>Work Arrangement <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(select all that apply)</span></label>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -1067,7 +1139,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {[['memory','The Memory',"Think of a specific moment at work when someone thanked you or praised you. What was the situation and what did they say?"],['emergency','The Emergency Call','If your former team had a critical problem right now, what type of situation would they call you to handle?'],['twoWords','The Two Words','If your best former manager described your professional superpower in exactly two words, what would they be?'],['other','Additional Feedback','Performance reviews, LinkedIn recommendations, 360 feedback. Paste anything here.']].map(([f,lbl,hint])=><div key={f} style={S.field}><label style={S.label}>{lbl}</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>{hint}</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:f==='other'?90:62,flex:1}} value={profile.rep[f]} onChange={e=>rep(f,e.target.value)}/>{hasSpeech&&<SpeechBtn onResult={t=>rep(f,t)}/>}</div></div>)}
         <div style={{fontSize:14,color:C.gray,fontStyle:'italic'}}>If you leave all blank, we'll generate a reputation hypothesis from your other data and ask you to validate it.</div>
       </div>
-      <div style={S.row}><Btn secondary onClick={()=>nav('values')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('reputation','p1')}>Begin Phase 1 <ChevronRight size={14}/></Btn></div>
+      <div style={S.row}><Btn secondary onClick={()=>nav('values')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('reputation','orientation-done')}>Begin Phase 1 <ChevronRight size={14}/></Btn></div>
+    </div>
+
+    case'orientation-done':return <div>
+      <div style={{background:`linear-gradient(135deg,${C.panel} 0%,${C.card} 100%)`,border:`1px solid ${C.gold}35`,borderRadius:16,padding:'36px',textAlign:'center',marginBottom:22}}>
+        <div style={{fontSize:13,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:C.goldL,marginBottom:8}}>Phase 0 Complete</div>
+        <h1 style={{...S.title,fontSize:30,textAlign:'center',marginBottom:14}}>Orientation complete.</h1>
+        <p style={{fontSize:18,color:C.gray,lineHeight:1.7,maxWidth:540,margin:'0 auto'}}>You've shared the foundation: where you are, what you've done, how you're wired, what matters to you, and what others say about you. That's the input. Everything that follows is the output: your story, your strategy, your next chapter. Take a breath. Then keep going.</p>
+      </div>
+      <div style={S.row}><Btn secondary onClick={()=>nav('reputation')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{advance('orientation-done','p1');generate('p1',()=>P.p1(pc))}}>Begin Know Your Value <ChevronRight size={14}/></Btn></div>
     </div>
 
     case'p1':return <div>
@@ -1873,7 +1954,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </>}
     </div>}
 
-    case'income':return <div>
+    case'income':{if(outputs.income&&!done.includes('income'))markDone('income');return <div>
       {!isDemo&&<div style={S.tag('#C8924A')}>Bonus Module</div>}
       <h1 style={S.title}>Income Now</h1>
       {!isDemo&&<p style={S.sub}>A job search takes time. Having income flowing while you search changes everything: you make better decisions when you're choosing, not settling.</p>}
@@ -1913,7 +1994,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('income','');setIncomeIntro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
-    </div>
+    </div>}
 
     default:return null
   }}
