@@ -445,6 +445,11 @@ const STEP_DISPLAY_NAMES = {
   income: 'Income Now',
 }
 
+// Apps Script web app deployment URL for corrections logging.
+// Update after deploying scripts/reimagine-corrections-log.gs and copying the deployment URL.
+const CORRECTIONS_LOG_URL = 'PASTE_DEPLOYMENT_URL_HERE'
+const APP_VERSION = '2026-05-10'
+
 const correctionsBlock = (corrections) => {
   if (!corrections || corrections.length === 0) return ''
   const recent = corrections.slice(-20)
@@ -687,10 +692,28 @@ export default function PivotEngine(){
   const nav=(to)=>{if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null);window.scrollTo(0,0)}
   const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);window.scrollTo(0,0)}}
   const demoPrev=()=>{if(demoIdx>0){const prev=demoIdx-1;setDemoIdx(prev);setStep(DEMO_TOUR[prev].step);window.scrollTo(0,0)}}
+  const logCorrection=(correction)=>{
+    if(!CORRECTIONS_LOG_URL||CORRECTIONS_LOG_URL.startsWith('PASTE_'))return
+    try{
+      const payload={
+        userEmail:(signupForm.email||'').trim(),
+        userName:((signupForm.firstName||'')+' '+(signupForm.lastName||'')).trim(),
+        correctionId:correction.id,
+        step:correction.step,
+        stepDisplayName:STEP_DISPLAY_NAMES[correction.step]||correction.step,
+        sectionOutputLength:(outputs[correction.step]||'').length,
+        correctionText:correction.text,
+        appVersion:APP_VERSION,
+        browser:navigator.userAgent||'',
+      }
+      fetch(CORRECTIONS_LOG_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{})
+    }catch{}
+  }
   const recordCorrection=(step,text)=>{
     if(!text||!text.trim())return
     const correction={id:`corr_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,step,text:text.trim(),created_at:new Date().toISOString()}
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
+    logCorrection(correction)
   }
   const generate=async(key,fn,opts={})=>{window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(key,r)}catch(e){setErr(e.message)}finally{setLoading(false)}}
   const generateP4=async(extraContext='',msg='Mapping your opportunity landscape, this takes a moment…')=>{
