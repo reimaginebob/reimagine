@@ -90,7 +90,7 @@ const C = {
 }
 
 async function callClaude(prompt, opts={}) {
-  const{webSearch=false,highTemp=false,maxTokens=4000}=opts
+  const{webSearch=false,highTemp=false,maxTokens=5000}=opts
   const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined
   const body={model:"claude-sonnet-4-5",max_tokens:maxTokens,temperature:highTemp?1.0:0.7,system:[{type:"text",text:SYS,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content:prompt}],...(tools&&{tools})}
   const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
@@ -423,6 +423,29 @@ const stripMarkdown = (text) => {
     .replace(/^>\s?/gm, '')
 }
 
+const validateP4Lanes = (text) => {
+  if (!text) return { needsRetry: true, counts: {} }
+  const headerRe = /(?:^|\n)(?:#{1,3}\s*(?:PATH\s*\d+\s*:?\s*)?|\*\*)?(WORK THAT MATTERS|(?:THE\s+)?INDUSTRY INSIDER|FAMILIAR GROUND)/gi
+  const headers = []
+  let m
+  while ((m = headerRe.exec(text)) !== null) {
+    headers.push({ start: m.index, end: m.index + m[0].length, name: m[1].toUpperCase().replace(/^THE\s+/, '') })
+  }
+  if (headers.length < 3) return { needsRetry: true, counts: {} }
+  headers.sort((a, b) => a.start - b.start)
+  const counts = {}
+  for (let i = 0; i < headers.length; i++) {
+    const h = headers[i]
+    const sliceEnd = i < headers.length - 1 ? headers[i + 1].start : text.length
+    const segment = text.slice(h.end, sliceEnd)
+    const optionCount = (segment.match(/^#{1,3}\s*OPTION:\s*[A-Z]/gm) || []).length
+    const boldCount = optionCount > 0 ? 0 : (segment.match(/^\*\*[A-Z][^*]{4,120}\*\*\s*$/gm) || []).length
+    counts[h.name] = optionCount + boldCount
+  }
+  const needsRetry = Object.values(counts).some(c => c < 3)
+  return { needsRetry, counts }
+}
+
 const SHUFFLED_POOLS = (() => {
   const pools = {}
   Object.keys(STEP_QUOTES).forEach(k => { pools[k] = shuffleArr(STEP_QUOTES[k]) })
@@ -630,6 +653,20 @@ export default function PivotEngine(){
   const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);window.scrollTo(0,0)}}
   const demoPrev=()=>{if(demoIdx>0){const prev=demoIdx-1;setDemoIdx(prev);setStep(DEMO_TOUR[prev].step);window.scrollTo(0,0)}}
   const generate=async(key,fn,opts={})=>{window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(fn(),opts);out(key,r)}catch(e){setErr(e.message)}finally{setLoading(false)}}
+  const generateP4=async(extraContext='',msg='Mapping your opportunity landscape, this takes a moment…')=>{
+    window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(msg)
+    const opts={highTemp:true,maxTokens:5000}
+    const buildPrompt=()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(extraContext?`\n\nUSER CONTEXT: ${extraContext}`:'')
+    try{
+      let raw=await callClaude(buildPrompt(),opts)
+      const v=validateP4Lanes(raw)
+      if(v.needsRetry){
+        console.warn('p4: empty-card retry triggered',{rawLen:raw.length,counts:v.counts})
+        raw=await callClaude(buildPrompt(),opts)
+      }
+      out('p4',raw)
+    }catch(e){setErr(e.message)}finally{setLoading(false)}
+  }
   const copy=(text)=>{navigator.clipboard.writeText(stripMarkdown(text));setCopied(true);setTimeout(()=>setCopied(false),2000)}
   const submitSignup=async()=>{
     const fn=signupForm.firstName.trim()
@@ -1030,7 +1067,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 2 · Explore Options</div>}
       <h1 style={S.title}>The Wide View</h1>
       {!isDemo&&<p style={S.sub}>You have told us your story: your resume, how you are wired, what you value, and what lights you up. We have been listening. Now we take everything we know about you and map out the full landscape of what is possible.</p>}
-      {!isDemo&&!outputs.p4&&!loading&&<Btn onClick={()=>{setLaneTab(0);generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3),{highTemp:true,maxTokens:5000,msg:'Mapping your opportunity landscape, this takes a moment…'})}}><Sparkles size={14}/>Generate My Options</Btn>}
+      {!isDemo&&!outputs.p4&&!loading&&<Btn onClick={()=>{setLaneTab(0);generateP4()}}><Sparkles size={14}/>Generate My Options</Btn>}
       {loading&&<Loading msg={loadMsg||'Mapping your full opportunity landscape across all three paths…'} step="p4"/>}
       {outputs.p4&&p4Intro&&(()=>{
         const pathCards=[
@@ -1163,7 +1200,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   return !excludePattern.test(title)
                 }
                 const selectableBlocks=optBlocks.filter(b=>{const t=extractTitle(b);return t&&isSelectable(t)})
-                if(selectableBlocks.length===0)return <div style={{fontSize:15,color:'#374258',lineHeight:1.7}}><MD text={content}/></div>
+                if(selectableBlocks.length<3)return <div style={{margin:'12px 0',padding:'18px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10}}>
+                  <div style={{fontSize:15,color:'#1A2540',lineHeight:1.6,marginBottom:12}}>We weren't able to generate a complete set of options for this lane. Click the regenerate button below to try again.</div>
+                  <Btn small onClick={()=>generateP4()}><RotateCcw size={11}/>Regenerate this lane</Btn>
+                </div>
                 return <>
                   {preamble&&<div style={{fontSize:15,color:'#374258',lineHeight:1.7,marginBottom:16}}><MD text={preamble}/></div>}
                   <div style={{fontSize:14,color:C.goldL,fontStyle:'italic',lineHeight:1.6,marginBottom:14,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6}}>Click any role for a deeper read on fit, transferable strengths, and how to talk about your background for it.</div>
@@ -1200,7 +1240,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn>
           </div>}
           {selected.length===0&&available.length>0&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Select at least one role above to continue.</div>}
-          {!isDemo&&<div ref={p4RefineRef}><RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Want different kinds of roles? Add an interest, remove a direction, or ask for something specific. We'll generate a new set of options based on your input." placeholder="e.g. I am also interested in board seats… remove consulting roles… show me more options in healthtech… I have nonprofit experience I didn't mention…" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{out('p4','');setLaneTab(0);setP4Intro(false);generate('p4',()=>P.p4(pc,outputs.p1,outputs.p2,outputs.p3)+(v?`\n\nUSER CONTEXT: ${v}`:''),{highTemp:true,maxTokens:5000,msg:'Updating your options…'})}}/></div>}
+          {!isDemo&&<div ref={p4RefineRef}><RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Want different kinds of roles? Add an interest, remove a direction, or ask for something specific. We'll generate a new set of options based on your input." placeholder="e.g. I am also interested in board seats… remove consulting roles… show me more options in healthtech… I have nonprofit experience I didn't mention…" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{out('p4','');setLaneTab(0);setP4Intro(false);generateP4(v,'Updating your options…')}}/></div>}
         </>
       })()}
       {err&&<ErrBox msg={err}/>}
@@ -1351,10 +1391,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{background:'#F0F4F8',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'24px 28px',marginBottom:32}}>
             <div style={{fontSize:18,color:'#1A2540',lineHeight:1.75,fontWeight:500}}>On the next screen, we will write your complete "tell me about yourself" answer, plus coaching on what makes it stick and the three things people will remember after you leave the room. Read it out loud, it should sound like you, not like a script.</div>
           </div>
-          <div style={{textAlign:'center'}}><Btn onClick={()=>{setP6Intro(false);generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}}><Sparkles size={14}/>Write My Bridge Story</Btn></div>
+          <div style={{textAlign:'center'}}><Btn onClick={()=>{setP6Intro(false);generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:5000})}}><Sparkles size={14}/>Write My Bridge Story</Btn></div>
         </div>
       })()}
-      {!isDemo&&!outputs.p6&&!loading&&!p6Intro&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
+      {!isDemo&&!outputs.p6&&!loading&&!p6Intro&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:5000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
       {loading&&<Loading msg="Crafting your bridge story in three lengths…" step="p6"/>}
       {outputs.p6&&<><OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? If the tone or content feels off, tell us how to adjust." placeholder="e.g. The opening doesn't sound like me… I want to lead with a different part of my background… the ending needs to be stronger…" onRegenerate={v=>{out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p6','');setP6Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
@@ -1391,10 +1431,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{background:'#F0F4F8',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'24px 28px',marginBottom:32}}>
             <div style={{fontSize:18,color:'#1A2540',lineHeight:1.75,fontWeight:500}}>On the next screen, we will use live research to build your complete go-to-market strategy: a curated list of target companies, a sample outreach email you can personalize, and a LinkedIn headline recommendation. You will also be able to download your company list as a spreadsheet.</div>
           </div>
-          <div style={{textAlign:'center'}}><Btn onClick={()=>{setP7Intro(false);generate('p7',()=>P.p7(pc,outputs,chosen),{webSearch:true,maxTokens:6000,msg:'Researching target companies and building your strategy…'})}}><Sparkles size={14}/>Build My Strategy</Btn></div>
+          <div style={{textAlign:'center'}}><Btn onClick={()=>{setP7Intro(false);generate('p7',()=>P.p7(pc,outputs,chosen),{webSearch:true,maxTokens:7000,msg:'Researching target companies and building your strategy…'})}}><Sparkles size={14}/>Build My Strategy</Btn></div>
         </div>
       })()}
-      {!isDemo&&!outputs.p7&&!loading&&!p7Intro&&<Btn onClick={()=>generate('p7',()=>P.p7(pc,outputs,chosen),{webSearch:true,maxTokens:6000,msg:'Researching target companies and building your strategy…'})}><Sparkles size={14}/>Build My Strategy</Btn>}
+      {!isDemo&&!outputs.p7&&!loading&&!p7Intro&&<Btn onClick={()=>generate('p7',()=>P.p7(pc,outputs,chosen),{webSearch:true,maxTokens:7000,msg:'Researching target companies and building your strategy…'})}><Sparkles size={14}/>Build My Strategy</Btn>}
       {loading&&<Loading msg={loadMsg||'Researching companies and building your outreach strategy…'} step="p7"/>}
       {outputs.p7&&(()=>{
         const cleanText=outputs.p7.replace(/```json\s*[\s\S]*?```/gi,'').replace(/\n{3,}/g,'\n\n').trim()
@@ -1517,7 +1557,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 5 · Get Ready</div>}
       <h1 style={S.title}>LinkedIn Remix</h1>
       {!isDemo&&<p style={S.sub}>Your LinkedIn profile is how companies and recruiters find you. If it still describes your last role, the right people can't find you for the next one.</p>}
-      {!isDemo&&!outputs.p8&&!loading&&<Btn onClick={()=>generate('p8',()=>P.p8(pc,outputs,chosen),{maxTokens:3000})}><Sparkles size={14}/>Remix My LinkedIn</Btn>}
+      {!isDemo&&!outputs.p8&&!loading&&<Btn onClick={()=>generate('p8',()=>P.p8(pc,outputs,chosen),{maxTokens:3500})}><Sparkles size={14}/>Remix My LinkedIn</Btn>}
       {loading&&<Loading msg="Rewriting your LinkedIn for your new direction…" step="p8"/>}
       {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p8} onChange={v=>setFb('p8',v)} hint="Want a different headline angle, or does the About section need a different tone? Tell us what to adjust." placeholder="e.g. The headline is too generic… I want the About section to lead with something different… add more keywords for my target role…" onRegenerate={v=>{out('p8','');generate('p8',()=>P.p8(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:3000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>LinkedIn updated. Now let's reshape your resume so the strongest evidence lands in the first 7 seconds.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p8','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p8','p_res')}>Refresh My Resume <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
@@ -1530,7 +1570,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <h1 style={S.title}>Resume Refresh</h1>
       {!isDemo&&<p style={S.sub}>The people reading your resume now are looking for different signals than the ones who hired you last time. We use a hybrid format that puts your Greatest Hits above the fold so the strongest evidence lands in the first 7 seconds.</p>}
       <div style={S.note}>Targeting: <strong style={{color:C.cream}}>{chosen}</strong></div>
-      {!isDemo&&!outputs.p_res&&!loading&&<Btn onClick={()=>generate('p_res',()=>P.p_res(pc,outputs,chosen),{maxTokens:4000})}><Sparkles size={14}/>Refresh My Resume</Btn>}
+      {!isDemo&&!outputs.p_res&&!loading&&<Btn onClick={()=>generate('p_res',()=>P.p_res(pc,outputs,chosen),{maxTokens:5000})}><Sparkles size={14}/>Refresh My Resume</Btn>}
       {loading&&<Loading msg="Rewriting your resume for your new direction…" step="p_res"/>}
       {outputs.p_res&&<><OutPanel text={outputs.p_res} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p_res} onChange={v=>setFb('p_res',v)} hint="Want different accomplishments in the Greatest Hits, or need the summary reframed? Tell us what to change." placeholder="e.g. Lead with my operations experience instead… the summary doesn't capture my pivot well… add the project I led at my second company…" onRegenerate={v=>{out('p_res','');generate('p_res',()=>P.p_res(pc,outputs,chosen)+(v?`\n\nUSER CONTEXT: ${v}`:''),{maxTokens:4000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Almost there. Let's prepare you for the conversations ahead: the landscape, the language, and the questions you'll face.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p_res','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p_res','p9')}>Build My Playbook <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
@@ -1562,10 +1602,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{background:`${C.gold}10`,border:`1px solid ${C.gold}30`,borderRadius:10,padding:'18px 22px',marginBottom:28}}>
             <p style={{fontSize:18,color:C.goldL,lineHeight:1.6,margin:0}}><strong>What happens next:</strong> We will build your industry crash course, your 3 strongest STAR stories with coaching on how to strengthen and remix them, and your interview preparation, all tailored to your chosen direction.</p>
           </div>
-          <Btn onClick={async()=>{setP9Intro(false);window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg('Building your playbook...');try{const[r1,r2,r3]=await Promise.all([callClaude(P.p9(pc,outputs,chosen),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen),{maxTokens:2000}),callClaude(P.p11(pc,outputs,chosen),{maxTokens:4000})]);out('p9',r1);out('p10',r2);out('p11',r3)}catch(e){setErr(e.message)}finally{setLoading(false)}}}><Sparkles size={14}/>Build My Playbook</Btn>
+          <Btn onClick={async()=>{setP9Intro(false);window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg('Building your playbook...');try{const[r1,r2,r3]=await Promise.all([callClaude(P.p9(pc,outputs,chosen),{maxTokens:4000}),callClaude(P.p10(pc,outputs,chosen),{maxTokens:3500}),callClaude(P.p11(pc,outputs,chosen),{maxTokens:4000})]);out('p9',r1);out('p10',r2);out('p11',r3)}catch(e){setErr(e.message)}finally{setLoading(false)}}}><Sparkles size={14}/>Build My Playbook</Btn>
         </div>
       })()}
-      {!isDemo&&!outputs.p9&&!p9Intro&&!loading&&<Btn onClick={async()=>{setLoading(true);setErr(null);setLoadMsg('Building your playbook...');try{const[r1,r2,r3]=await Promise.all([callClaude(P.p9(pc,outputs,chosen),{maxTokens:3000}),callClaude(P.p10(pc,outputs,chosen),{maxTokens:2000}),callClaude(P.p11(pc,outputs,chosen),{maxTokens:4000})]);out('p9',r1);out('p10',r2);out('p11',r3)}catch(e){setErr(e.message)}finally{setLoading(false)}}}><Sparkles size={14}/>Build My Playbook</Btn>}
+      {!isDemo&&!outputs.p9&&!p9Intro&&!loading&&<Btn onClick={async()=>{setLoading(true);setErr(null);setLoadMsg('Building your playbook...');try{const[r1,r2,r3]=await Promise.all([callClaude(P.p9(pc,outputs,chosen),{maxTokens:4000}),callClaude(P.p10(pc,outputs,chosen),{maxTokens:3500}),callClaude(P.p11(pc,outputs,chosen),{maxTokens:4000})]);out('p9',r1);out('p10',r2);out('p11',r3)}catch(e){setErr(e.message)}finally{setLoading(false)}}}><Sparkles size={14}/>Build My Playbook</Btn>}
       {loading&&<Loading msg={loadMsg||'Building your playbook: industry landscape and interview preparation…'} step="p9"/>}
       {outputs.p9&&<>
         <OutPanel text={outputs.p9} onCopy={copy} copied={copied}/>
@@ -1607,7 +1647,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       setStoryLoading(story.id)
                       try{
                         const storyPrompt=`Regenerate ONLY this single STAR story. Keep the same format (### STORY [${story.id+1}]: title, Business Imperative, Best for answering, Situation, Thinking, Action, Result, then **Strengthen This Story:** section).\n\nORIGINAL STORY:\n${story.text}\n\nUSER ADDITIONS:\n${extra||'(none)'}\n\nPROFILE: ${outputs.p1}\nBRAND: ${outputs.p3}\nTARGET ROLE: ${chosen}\n\nIncorporate the user's additions into the story naturally. Update the Strengthen section to reflect what is still missing AFTER the additions. Follow all STAR framework rules from the original prompt: T=Thinking, connect to business imperatives, season with personality from Brand Synthesis where natural, frame for ${chosen}.`
-                        const result=await callClaude(storyPrompt,{maxTokens:1500})
+                        const result=await callClaude(storyPrompt,{maxTokens:2500})
                         const cleaned=result.replace(/^### STORY\s*\[?\d+\]?[:\s]*/i,'').trim()
                         const curRaw=outputs.p11
                         const curRemixIdx=curRaw.search(/## THE REMIX/i)
