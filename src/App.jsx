@@ -1280,7 +1280,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn>
           </div>}
           {selected.length===0&&available.length>0&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Select at least one role above to continue.</div>}
-          {!isDemo&&<div ref={p4RefineRef}><RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Did we read your fit wrong? If a role you would actually consider is missing, or one we suggested doesn't match your experience, tell us." placeholder="e.g. 'I would not go back to consulting, drop those options.' Or: 'You missed fractional CFO roles.' Or: 'The Industry Insider lane needs more advisory roles, not operating.'" onRegenerate={v=>{recordCorrection('p4',v);out('p4','');setLaneTab(0);setP4Intro(false);generateP4(v,'Updating your options…')}}/></div>}
+          {!isDemo&&<div ref={p4RefineRef}><RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Did we read your fit wrong? If a role you would actually consider is missing, or one we suggested doesn't match your experience, tell us." placeholder="e.g. 'I would not go back to consulting, drop those options.' Or: 'You missed fractional CFO roles.' Or: 'The Industry Insider lane needs more advisory roles, not operating.'" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{recordCorrection('p4',v);out('p4','');setLaneTab(0);setP4Intro(false);generateP4(v,'Updating your options…')}}/></div>}
         </>
       })()}
       {err&&<ErrBox msg={err}/>}
@@ -1580,7 +1580,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             }} style={{flexShrink:0}}>Download CSV</Btn>
           </div>
           {part34&&<div style={S.out}><MD text={part34}/></div>}
-          {!isDemo&&<RefineBox value={feedback.p7} onChange={v=>setFb('p7',v)} hint="Did we read your target market wrong, or misclassify any of these companies? Tell us." placeholder="e.g. 'I do not want to target enterprise; I am going SMB.' Or: 'You said Acme is hiring; they did layoffs last month.' Or: 'My contact at Beta is wrong; that person left.'" onRegenerate={v=>{recordCorrection('p7',v);out('p7','');generate('p7',()=>P.p7(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{webSearch:true,maxTokens:7000})}}/>}
+          {!isDemo&&<RefineBox value={feedback.p7} onChange={v=>setFb('p7',v)} hint="Did we read your target market wrong, or misclassify any of these companies? Tell us." placeholder="e.g. 'I do not want to target enterprise; I am going SMB.' Or: 'You said Acme is hiring; they did layoffs last month.' Or: 'My contact at Beta is wrong; that person left.'" updateLabel="Update my strategy" freshLabel="Show me a fresh set" onRegenerate={v=>{recordCorrection('p7',v);out('p7','');generate('p7',()=>P.p7(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{webSearch:true,maxTokens:7000})}}/>}
           {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Companies identified. Now let's update how you show up online so the right people can find you.</div>}
           {!isDemo&&<div style={S.row}>
             <Btn secondary onClick={()=>{out('p7','');setP7Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn>
@@ -1868,7 +1868,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {loading&&<Loading msg="Building your Income Now plan, this one is thorough…" step="income"/>}
       {outputs.income&&<>
         <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
-        {!isDemo&&<RefineBox value={feedback.income} onChange={v=>setFb('income',v)} hint="Did we misread your readiness for any of these income paths, or miss one that fits? Tell us." placeholder="e.g. 'I have a strong network for fractional work; lead with that.' Or: 'You suggested coaching; I have no interest.' Or: 'The platform recommendations do not match my pricing.'" onRegenerate={v=>{recordCorrection('income',v);out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:6000})}}/>}
+        {!isDemo&&<RefineBox value={feedback.income} onChange={v=>setFb('income',v)} hint="Did we misread your readiness for any of these income paths, or miss one that fits? Tell us." placeholder="e.g. 'I have a strong network for fractional work; lead with that.' Or: 'You suggested coaching; I have no interest.' Or: 'The platform recommendations do not match my pricing.'" updateLabel="Update my plan" freshLabel="Show me a fresh plan" onRegenerate={v=>{recordCorrection('income',v);out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:6000})}}/>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('income','');setIncomeIntro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
