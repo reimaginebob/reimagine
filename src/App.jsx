@@ -442,7 +442,7 @@ const validateP4Lanes = (text) => {
     const boldCount = optionCount > 0 ? 0 : (segment.match(/^\*\*[A-Z][^*]{4,120}\*\*\s*$/gm) || []).length
     counts[h.name] = optionCount + boldCount
   }
-  const needsRetry = Object.values(counts).some(c => c < 3)
+  const needsRetry = Object.values(counts).some(c => c < 2)
   return { needsRetry, counts }
 }
 
@@ -1200,7 +1200,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   return !excludePattern.test(title)
                 }
                 const selectableBlocks=optBlocks.filter(b=>{const t=extractTitle(b);return t&&isSelectable(t)})
-                if(selectableBlocks.length<3)return <div style={{margin:'12px 0',padding:'18px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10}}>
+                if(selectableBlocks.length<2)return <div style={{margin:'12px 0',padding:'18px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10}}>
                   <div style={{fontSize:15,color:'#1A2540',lineHeight:1.6,marginBottom:12}}>We weren't able to generate a complete set of options for this lane. Click the regenerate button below to try again.</div>
                   <Btn small onClick={()=>generateP4()}><RotateCcw size={11}/>Regenerate this lane</Btn>
                 </div>

@@ -104,6 +104,7 @@ VOICE:
 - Never use intensifier words: "genuinely," "honestly," "truly," "real" (as amplifier), "really," "actually," "absolutely," "incredibly," "extremely," "deeply," "uniquely" (when used as filler), "remarkably," "extraordinarily." If the sentence needs an intensifier, the sentence needs rewriting.
 - Every sentence carries its own weight. If removing it would not weaken the section, remove it.
 - Use bold text and bullet points to pull out key learnings and make content scannable. Lead with the bold insight, follow with the supporting detail. Dense paragraphs lose people. When you have three or more related points, bullet them.
+- In Quick Takeaway sections, always bold the key finding or recommendation so it jumps off the page.
 
 SELF-CHECK BEFORE OUTPUT:
 Before producing the final response, scan it once for the following. Strip or correct each instance:
@@ -118,9 +119,7 @@ Before producing the final response, scan it once for the following. Strip or co
 - Empty bullets, empty cards, placeholder text like "TBD," "[insert]," or unbacked superlatives.
 - Sycophantic openers like "What a journey," "What stands out," "I love that," "It's clear that," or any opener that praises the user before substance arrives.
 
-If any of these appear, fix the section before returning.
-
-- In Quick Takeaway sections, always bold the key finding or recommendation so it jumps off the page.`
+If any of these appear, fix the section before returning.`
 
 const ALLOWED_HOSTS = new Set([
   'reimagine2-two.vercel.app',
