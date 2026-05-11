@@ -5,6 +5,7 @@
 
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { getSessionUser } from './_lib/session.js'
+import { sql } from './_lib/db.js'
 
 const ALLOWED_HOSTS = new Set([
   'reimagine2-two.vercel.app',
@@ -98,6 +99,16 @@ export default async function handler(req, res) {
     const navMatch = text.match(/\n?NAVIGATE:\s*(\w+)\s*$/i)
     const navigateTo = navMatch ? navMatch[1] : null
     const cleanText = navMatch ? text.slice(0, navMatch.index).trim() : text.trim()
+
+    // Best-effort log to chat_messages. Failure does not break the response.
+    try {
+      await sql`
+        INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to)
+        VALUES (${user.id}, ${message}, ${cleanText}, ${currentStep || null}, ${navigateTo || null})
+      `
+    } catch (logErr) {
+      console.error('chat_messages insert failed:', logErr)
+    }
 
     return res.status(200).json({ reply: cleanText, navigateTo })
   } catch (err) {
