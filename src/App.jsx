@@ -1656,7 +1656,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&!outputs.p7&&!loading&&!p7Intro&&<Btn onClick={()=>generate('p7',()=>P.p7(pc,outputs,chosen),{webSearch:true,maxTokens:7000,msg:'Researching target companies and building your strategy…'})}><Sparkles size={14}/>Build My Strategy</Btn>}
       {loading&&<Loading msg={loadMsg||'Researching companies and building your outreach strategy…'} step="p7"/>}
       {outputs.p7&&(()=>{
-        const cleanText=outputs.p7.replace(/```json\s*[\s\S]*?```/gi,'').replace(/\n{3,}/g,'\n\n').trim()
+        const cleanText=outputs.p7.replace(/```json\s*[\s\S]*?(?:```|$)/gi,'').replace(/\n{3,}/g,'\n\n').trim()
         const splitPoint=cleanText.search(/##?\s*PART 3|##?\s*Outreach Template/i)
         const part12=splitPoint>0?cleanText.slice(0,splitPoint):cleanText
         const part34=splitPoint>0?cleanText.slice(splitPoint):''
