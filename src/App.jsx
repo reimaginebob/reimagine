@@ -773,6 +773,7 @@ export default function PivotEngine(){
   const[signupForm,setSignupForm]=useState({firstName:'',lastName:'',email:''})
   const[signupSubmitting,setSignupSubmitting]=useState(false)
   const[signupError,setSignupError]=useState('')
+  const[signupStep,setSignupStep]=useState('email')
   const[signedInUser,setSignedInUser]=useState(null)
   const[magicLinkSentTo,setMagicLinkSentTo]=useState(null)
   const[migrationOpen,setMigrationOpen]=useState(false)
@@ -836,21 +837,49 @@ export default function PivotEngine(){
     }catch(e){setErr(e.message)}finally{setLoading(false)}
   }
   const copy=(text)=>{navigator.clipboard.writeText(stripMarkdown(text));setCopied(true);setTimeout(()=>setCopied(false),2000)}
-  const submitSignup=async()=>{
-    const fn=signupForm.firstName.trim()
-    const ln=signupForm.lastName.trim()
+  const submitEmailStep=async()=>{
     const em=signupForm.email.trim()
-    if(!fn||!ln||!em){setSignupError('Please fill in all three fields.');return}
+    if(!em){setSignupError('Please enter your email.');return}
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){setSignupError('Please enter a valid email.');return}
     setSignupError('')
     setSignupSubmitting(true)
-    // Shadow: keep the existing Apps Script beta-signup pipeline firing during the transition.
+    try{
+      const cr=await fetch('/api/auth/check-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})})
+      if(!cr.ok){setSignupError('Something went wrong. Try again.');setSignupSubmitting(false);return}
+      const cdata=await cr.json().catch(()=>({}))
+      if(cdata.exists){
+        const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})})
+        if(!r.ok){
+          const data=await r.json().catch(()=>({}))
+          if(r.status===429)setSignupError('Too many requests. Try again in an hour.')
+          else setSignupError(data.error||'Something went wrong. Try again.')
+          setSignupSubmitting(false)
+          return
+        }
+        setMagicLinkSentTo(em)
+      }else{
+        setSignupStep('details')
+      }
+    }catch{
+      setSignupError('Could not reach the server. Check your connection and try again.')
+    }
+    setSignupSubmitting(false)
+  }
+  const submitDetailsStep=async()=>{
+    const fn=signupForm.firstName.trim()
+    const ln=signupForm.lastName.trim()
+    const em=signupForm.email.trim()
+    if(!fn||!ln){setSignupError('Please fill in your first and last name.');return}
+    setSignupError('')
+    setSignupSubmitting(true)
+    // Keep the existing Apps Script beta-signup pipeline firing on new-user submissions.
     try{fetch('https://script.google.com/macros/s/AKfycbz_wPKjaBRW6wlqmm7X-baYyU1FuuTjKBgZIjc8zp77d4cUDD589dyK5ePqDyLCjunEEw/exec',{method:'POST',body:JSON.stringify({firstName:fn,lastName:ln,email:em,timestamp:new Date().toISOString()})}).catch(()=>{})}catch{}
     try{
       const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln})})
       if(!r.ok){
         const data=await r.json().catch(()=>({}))
-        setSignupError(data.error||'Could not send the sign-in link. Try again in a moment.')
+        if(r.status===429)setSignupError('Too many requests. Try again in an hour.')
+        else setSignupError(data.error||'Something went wrong. Try again.')
         setSignupSubmitting(false)
         return
       }
@@ -2085,30 +2114,44 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{maxWidth:520,width:'100%'}}>
           {magicLinkSentTo?<div style={S.card}>
             <h1 style={{...S.title,fontSize:28,marginBottom:14}}>Check your email.</h1>
-            <p style={{...S.sub,marginBottom:18}}>We sent a sign-in link to <strong style={{color:C.cream}}>{magicLinkSentTo}</strong>. Click it to open Reimagine. The link expires in 15 minutes.</p>
+            <p style={{...S.sub,marginBottom:18}}>We sent a sign-in link to <strong style={{color:C.cream}}>{magicLinkSentTo}</strong>. The link expires in 15 minutes.</p>
             <p style={{fontSize:14,color:C.gray,marginBottom:18,lineHeight:1.6}}>If you don't see it within a minute, check your spam folder, or request another link.</p>
-            <Btn secondary onClick={()=>setMagicLinkSentTo(null)}>Use a different email</Btn>
-          </div>:<>
-            <h1 style={{...S.title,fontSize:34,marginBottom:10}}>Welcome to Reimagine.</h1>
-            <p style={{...S.sub,marginBottom:24}}>Three quick details, then we'll email you a sign-in link.</p>
+            <Btn secondary onClick={()=>{setMagicLinkSentTo(null);setSignupStep('email');setSignupError('')}}>Use a different email</Btn>
+          </div>:signupStep==='details'?<>
+            <h1 style={{...S.title,fontSize:34,marginBottom:10}}>Looks like this is your first time.</h1>
+            <p style={{...S.sub,marginBottom:24}}>Tell us who you are and we'll send your sign-in link.</p>
             <div style={S.card}>
+              <div style={S.field}>
+                <label style={S.label}>Email</label>
+                <input type="email" style={{...S.inp,opacity:0.7}} value={signupForm.email} readOnly/>
+              </div>
               <div style={S.field}>
                 <label style={S.label}>First name</label>
                 <input style={S.inp} value={signupForm.firstName} onChange={e=>setSignupForm(f=>({...f,firstName:e.target.value}))} placeholder="First name" autoFocus/>
               </div>
               <div style={S.field}>
                 <label style={S.label}>Last name</label>
-                <input style={S.inp} value={signupForm.lastName} onChange={e=>setSignupForm(f=>({...f,lastName:e.target.value}))} placeholder="Last name"/>
+                <input style={S.inp} value={signupForm.lastName} onChange={e=>setSignupForm(f=>({...f,lastName:e.target.value}))} placeholder="Last name" onKeyDown={e=>{if(e.key==='Enter')submitDetailsStep()}}/>
               </div>
+              {signupError&&<ErrBox msg={signupError}/>}
+              <div style={{marginTop:16,display:'flex',gap:10,flexWrap:'wrap'}}>
+                <Btn onClick={submitDetailsStep} disabled={signupSubmitting}>{signupSubmitting?<><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Sending</>:<>Send my sign-in link <ChevronRight size={14}/></>}</Btn>
+                <Btn secondary onClick={()=>{setSignupStep('email');setSignupError('')}}>Back</Btn>
+              </div>
+            </div>
+          </>:<>
+            <h1 style={{...S.title,fontSize:34,marginBottom:10}}>Welcome to Reimagine.</h1>
+            <p style={{...S.sub,marginBottom:24}}>Sign in with your email. We'll send you a link.</p>
+            <div style={S.card}>
               <div style={S.field}>
                 <label style={S.label}>Email</label>
-                <input type="email" style={S.inp} value={signupForm.email} onChange={e=>setSignupForm(f=>({...f,email:e.target.value}))} placeholder="you@example.com" onKeyDown={e=>{if(e.key==='Enter')submitSignup()}}/>
+                <input type="email" style={S.inp} value={signupForm.email} onChange={e=>setSignupForm(f=>({...f,email:e.target.value}))} placeholder="you@example.com" autoFocus onKeyDown={e=>{if(e.key==='Enter')submitEmailStep()}}/>
               </div>
               {signupError&&<ErrBox msg={signupError}/>}
               <div style={{marginTop:16}}>
-                <Btn onClick={submitSignup} disabled={signupSubmitting}>{signupSubmitting?<><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Sending</>:<>Send my sign-in link <ChevronRight size={14}/></>}</Btn>
+                <Btn onClick={submitEmailStep} disabled={signupSubmitting}>{signupSubmitting?<><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Checking</>:<>Continue <ChevronRight size={14}/></>}</Btn>
               </div>
-              <div style={{fontSize:13,color:C.gray,marginTop:14,lineHeight:1.6}}>We use this to save your progress across devices. No spam, no sharing.</div>
+              <div style={{fontSize:13,color:C.gray,marginTop:14,lineHeight:1.6}}>We use this to save your work across devices. No spam, no sharing.</div>
             </div>
           </>}
         </div>

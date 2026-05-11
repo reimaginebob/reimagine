@@ -14,6 +14,13 @@ export default async function handler(req, res) {
   }
   const normalizedEmail = email.trim().toLowerCase()
 
+  const existing = await sql`SELECT 1 FROM users WHERE email = ${normalizedEmail} LIMIT 1`
+  if (existing.length === 0) {
+    if (!firstName || typeof firstName !== 'string' || !firstName.trim()) {
+      return res.status(400).json({ error: 'First name required for new account' })
+    }
+  }
+
   // Rate limit: max 5 magic link requests per email per hour
   const recent = await sql`
     SELECT COUNT(*) AS count FROM magic_link_tokens

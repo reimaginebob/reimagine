@@ -52,7 +52,7 @@ export async function createSession(userId, userAgent, ipAddress) {
   return { token, expiresAt }
 }
 
-export async function getSessionUser(req) {
+export async function getSessionUser(req, res = null) {
   const token = getSessionToken(req)
   if (!token) return null
   const rows = await sql`
@@ -63,7 +63,20 @@ export async function getSessionUser(req) {
     LIMIT 1
   `
   if (rows.length === 0) return null
-  await sql`UPDATE sessions SET last_used_at = NOW() WHERE token = ${token}`
+
+  const newExpiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000)
+  await sql`
+    UPDATE sessions
+    SET last_used_at = NOW(),
+        expires_at = ${newExpiresAt.toISOString()}
+    WHERE token = ${token}
+  `
+
+  if (res) {
+    const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production'
+    res.setHeader('Set-Cookie', buildCookie(token, SESSION_DAYS * 24 * 60 * 60, isProd))
+  }
+
   return rows[0]
 }
 
@@ -73,7 +86,7 @@ export async function deleteSession(token) {
 
 export function requireAuth(handler) {
   return async (req, res) => {
-    const user = await getSessionUser(req)
+    const user = await getSessionUser(req, res)
     if (!user) {
       res.status(401).json({ error: 'Not authenticated' })
       return
