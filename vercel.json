@@ -6,6 +6,7 @@
     { "source": "/demo", "destination": "/?demo=true", "statusCode": 302 }
   ],
   "rewrites": [
+    { "source": "/auth/verify", "destination": "/api/auth/verify" },
     { "source": "/api/(.*)", "destination": "/api/$1" }
   ]
 }

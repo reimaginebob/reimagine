@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.vercel/
+.claude/
+.DS_Store
+
+# Local env files (never commit secrets)
+.env.local
+.env.*.local

@@ -765,13 +765,20 @@ export default function PivotEngine(){
   const[signupForm,setSignupForm]=useState({firstName:'',lastName:'',email:''})
   const[signupSubmitting,setSignupSubmitting]=useState(false)
   const[signupError,setSignupError]=useState('')
+  const[signedInUser,setSignedInUser]=useState(null)
+  const[magicLinkSentTo,setMagicLinkSentTo]=useState(null)
+  const[migrationOpen,setMigrationOpen]=useState(false)
+  const[authToast,setAuthToast]=useState(null)
   const setSv=(k,v)=>setSurvey(s=>({...s,[k]:v}))
   const importFileRef=useRef()
   const p4RefineRef=useRef()
 
   useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3')}catch{};return}const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{try{localStorage.setItem('pe_v3',JSON.stringify({step,profile,outputs,done,deepOpts,chosen}))}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen])
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const d=serverProfile.profile;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen)}else{try{const blob=localStorage.getItem('pe_v3');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
+  useEffect(()=>{if(isDemo||isTest)return;try{const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v3');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
+  useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
+  useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,signedInUser])
 
   const pr=(f,v)=>setProfile(p=>({...p,[f]:v}))
   const loc=(f,v)=>setProfile(p=>({...p,loc:{...p.loc,[f]:v}}))
@@ -829,12 +836,26 @@ export default function PivotEngine(){
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){setSignupError('Please enter a valid email.');return}
     setSignupError('')
     setSignupSubmitting(true)
+    // Shadow: keep the existing Apps Script beta-signup pipeline firing during the transition.
+    try{fetch('https://script.google.com/macros/s/AKfycbz_wPKjaBRW6wlqmm7X-baYyU1FuuTjKBgZIjc8zp77d4cUDD589dyK5ePqDyLCjunEEw/exec',{method:'POST',body:JSON.stringify({firstName:fn,lastName:ln,email:em,timestamp:new Date().toISOString()})}).catch(()=>{})}catch{}
     try{
-      await fetch('https://script.google.com/macros/s/AKfycbz_wPKjaBRW6wlqmm7X-baYyU1FuuTjKBgZIjc8zp77d4cUDD589dyK5ePqDyLCjunEEw/exec',{method:'POST',body:JSON.stringify({firstName:fn,lastName:ln,email:em,timestamp:new Date().toISOString()})})
-    }catch{}
-    try{localStorage.setItem('pe_signedup','true')}catch{}
+      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln})})
+      if(!r.ok){
+        const data=await r.json().catch(()=>({}))
+        setSignupError(data.error||'Could not send the sign-in link. Try again in a moment.')
+        setSignupSubmitting(false)
+        return
+      }
+      setMagicLinkSentTo(em)
+    }catch{
+      setSignupError('Could not reach the server. Check your connection and try again.')
+    }
     setSignupSubmitting(false)
-    setSignedUp(true)
+  }
+  const signOut=async()=>{
+    try{await fetch('/api/auth/logout',{method:'POST',credentials:'include'})}catch{}
+    setSignedInUser(null)
+    setStep('welcome')
   }
   const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:''})}}
   const exportProfile=()=>{const data={profile,outputs,done,deepOpts,chosen};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
@@ -2011,29 +2032,40 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#FFFFFF">Re<tspan fill="#e4572e">imagine</tspan></text>
         </svg>
       </div>
+      {authToast&&<div style={{background:authToast==='ok'?'#7AB87A':'#C8924A',color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:14,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
+        <span>{authToast==='ok'?`Signed in${signedInUser?.email?` as ${signedInUser.email}`:''}.`:authToast==='invalid'?'That sign-in link is not valid. Request a new one.':authToast==='used'?'That sign-in link has already been used. Request a new one.':authToast==='expired'?'That sign-in link expired. Request a new one.':''}</span>
+        <button onClick={()=>setAuthToast(null)} style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'2px 8px',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>Dismiss</button>
+      </div>}
       <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 24px'}}>
         <div style={{maxWidth:520,width:'100%'}}>
-          <h1 style={{...S.title,fontSize:34,marginBottom:10}}>Welcome to Reimagine.</h1>
-          <p style={{...S.sub,marginBottom:24}}>Three quick details, then we get to work.</p>
-          <div style={S.card}>
-            <div style={S.field}>
-              <label style={S.label}>First name</label>
-              <input style={S.inp} value={signupForm.firstName} onChange={e=>setSignupForm(f=>({...f,firstName:e.target.value}))} placeholder="First name" autoFocus/>
+          {magicLinkSentTo?<div style={S.card}>
+            <h1 style={{...S.title,fontSize:28,marginBottom:14}}>Check your email.</h1>
+            <p style={{...S.sub,marginBottom:18}}>We sent a sign-in link to <strong style={{color:C.cream}}>{magicLinkSentTo}</strong>. Click it to open Reimagine. The link expires in 15 minutes.</p>
+            <p style={{fontSize:14,color:C.gray,marginBottom:18,lineHeight:1.6}}>If you don't see it within a minute, check your spam folder, or request another link.</p>
+            <Btn secondary onClick={()=>setMagicLinkSentTo(null)}>Use a different email</Btn>
+          </div>:<>
+            <h1 style={{...S.title,fontSize:34,marginBottom:10}}>Welcome to Reimagine.</h1>
+            <p style={{...S.sub,marginBottom:24}}>Three quick details, then we'll email you a sign-in link.</p>
+            <div style={S.card}>
+              <div style={S.field}>
+                <label style={S.label}>First name</label>
+                <input style={S.inp} value={signupForm.firstName} onChange={e=>setSignupForm(f=>({...f,firstName:e.target.value}))} placeholder="First name" autoFocus/>
+              </div>
+              <div style={S.field}>
+                <label style={S.label}>Last name</label>
+                <input style={S.inp} value={signupForm.lastName} onChange={e=>setSignupForm(f=>({...f,lastName:e.target.value}))} placeholder="Last name"/>
+              </div>
+              <div style={S.field}>
+                <label style={S.label}>Email</label>
+                <input type="email" style={S.inp} value={signupForm.email} onChange={e=>setSignupForm(f=>({...f,email:e.target.value}))} placeholder="you@example.com" onKeyDown={e=>{if(e.key==='Enter')submitSignup()}}/>
+              </div>
+              {signupError&&<ErrBox msg={signupError}/>}
+              <div style={{marginTop:16}}>
+                <Btn onClick={submitSignup} disabled={signupSubmitting}>{signupSubmitting?<><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Sending</>:<>Send my sign-in link <ChevronRight size={14}/></>}</Btn>
+              </div>
+              <div style={{fontSize:13,color:C.gray,marginTop:14,lineHeight:1.6}}>We use this to save your progress across devices. No spam, no sharing.</div>
             </div>
-            <div style={S.field}>
-              <label style={S.label}>Last name</label>
-              <input style={S.inp} value={signupForm.lastName} onChange={e=>setSignupForm(f=>({...f,lastName:e.target.value}))} placeholder="Last name"/>
-            </div>
-            <div style={S.field}>
-              <label style={S.label}>Email</label>
-              <input type="email" style={S.inp} value={signupForm.email} onChange={e=>setSignupForm(f=>({...f,email:e.target.value}))} placeholder="you@example.com" onKeyDown={e=>{if(e.key==='Enter')submitSignup()}}/>
-            </div>
-            {signupError&&<ErrBox msg={signupError}/>}
-            <div style={{marginTop:16}}>
-              <Btn onClick={submitSignup} disabled={signupSubmitting}>{signupSubmitting?<><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>One moment</>:<>Let's get started <ChevronRight size={14}/></>}</Btn>
-            </div>
-            <div style={{fontSize:13,color:C.gray,marginTop:14,lineHeight:1.6}}>We use this so we know who is in the beta and can send you updates. No spam, no sharing.</div>
-          </div>
+          </>}
         </div>
       </div>
     </div>
@@ -2043,6 +2075,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
     <div style={{height:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      {migrationOpen&&!signedInUser&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+        <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:520,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+          <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Save your work across devices.</h2>
+          <p style={{fontSize:16,color:'#4A5568',lineHeight:1.65,marginBottom:20}}>Sign up with your email to save your progress. Next time you open Reimagine on any device, your work will be there.</p>
+          <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+            <Btn onClick={()=>{setMigrationOpen(false);setSignedUp(false)}}>Set up sign-in <ChevronRight size={14}/></Btn>
+            <Btn secondary onClick={()=>{try{localStorage.setItem('pe_migration_dismissed','true')}catch{};setMigrationOpen(false)}}>No thanks</Btn>
+          </div>
+        </div>
+      </div>}
       <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <a href="/" style={{textDecoration:'none',cursor:'pointer'}}>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="148" height="34" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
@@ -2059,8 +2101,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{fontSize:11,color:C.gray}}>{prog}% complete</div>
             <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
           </>}
+          {!isDemo&&signedInUser&&<button onClick={signOut} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'5px 10px',fontSize:12,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign out</button>}
+          {!isDemo&&!signedInUser&&<button onClick={()=>{setSignedUp(false);setMagicLinkSentTo(null)}} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'5px 10px',fontSize:12,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign in</button>}
         </div>
       </div>
+      {authToast&&<div style={{background:authToast==='ok'?'#7AB87A':'#C8924A',color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:14,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12,flexShrink:0}}>
+        <span>{authToast==='ok'?`Signed in${signedInUser?.email?` as ${signedInUser.email}`:''}.`:authToast==='invalid'?'That sign-in link is not valid. Request a new one.':authToast==='used'?'That sign-in link has already been used. Request a new one.':authToast==='expired'?'That sign-in link expired. Request a new one.':''}</span>
+        <button onClick={()=>setAuthToast(null)} style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'2px 8px',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>Dismiss</button>
+      </div>}
       <div style={{display:'flex',flex:1,minHeight:0}}>
         <div style={{width:260,background:'#1A2540',borderRight:'1px solid #0F1A30',padding:'16px 0',overflowY:'auto',flexShrink:0}}>
           {isDemo&&<div style={{pointerEvents:'none'}}>
