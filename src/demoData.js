@@ -77,7 +77,29 @@ Supporting Strengths (6-10): Learner, Individualization, Communication, Activato
     emergency: "Strategic, calm under pressure, gets things done, trusted, direct but warm, operates with integrity, builds systems that actually work, connects the dots between people problems and business outcomes.",
     twoWords: "Trusted Architect",
     other: "I've been told I'm the person people call when something is broken and needs to work by Monday. I take that seriously. I also know I can be impatient with people who don't share my sense of urgency — that's something I'm working on."
-  }
+  },
+  jd: `VP of People & Culture | Series B Healthtech | New York or Remote
+
+Company:
+We are a Series B healthtech company building patient-facing software that helps people navigate complex chronic conditions. We have grown from 40 to 180 people in the last 18 months and are on track to double again by end of next year. Our People function is currently led by a Director who reports into the CEO. We are looking for a VP-level leader to build the function for scale.
+
+What you'll do:
+- Own the full People & Culture function: talent acquisition, performance, compensation, learning, DEI, employee experience.
+- Build the team. The current Director becomes one of your direct reports. You hire 2 to 3 more managers across the function in your first year.
+- Partner with the leadership team on org design. We are growing fast and our structure is straining; you set the operating model.
+- Lead compensation strategy. Equity refresh, leveling, market benchmarking, total rewards philosophy.
+- Lead the next phase of culture work. We have strong values but they need to scale. You design the systems that keep culture intentional as we grow.
+- Report directly to the CEO and serve on the executive team.
+
+What we are looking for:
+- 12+ years of progressive People & Culture experience, including at least 4 years at a VP or Head-of-People level.
+- Experience scaling a People function from ~150 to ~500 people, ideally in a high-growth tech context.
+- Track record building and leading multi-disciplinary teams (talent, comp, learning, DEI).
+- Deep experience with executive-team partnership and board-level reporting.
+- Healthcare or healthtech experience strongly preferred but not required if you have scaled People in a comparably regulated environment.
+- Comfort with operating in ambiguity. We are not a place for someone who needs the operating model handed to them.
+
+Comp: competitive base + equity refresh. We are happy to discuss specifics with finalists.`
 };
 
 export const demoDeepOpts = [
