@@ -27,11 +27,14 @@ Career Club
 <p style="font-size: 13px; color: #9CA3AF; margin-top: 32px;">Career Club</p>
 </body></html>`
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: EMAIL_FROM,
     to: email,
     subject,
     text: textBody,
     html: htmlBody,
   })
+  if (result?.error) {
+    throw new Error(`Resend send error: ${JSON.stringify(result.error)}`)
+  }
 }
