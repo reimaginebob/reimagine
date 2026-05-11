@@ -4,6 +4,30 @@ const STORAGE_KEY = 'pe_chat_history'
 const INTRO_MSG = { role: 'assistant', content: 'Hi. I can help you with how Reimagine works. What would you like to know?' }
 const IDLE_MS = 120000
 
+const STEP_LABELS = {
+  welcome: 'Welcome',
+  location: 'Location & Work',
+  resume: 'Your Resume',
+  assessment: 'Assessments',
+  values: 'Values, Passions & Causes',
+  reputation: 'Reputation',
+  p1: 'Resume Analysis',
+  p2: 'Wiring & Compass',
+  p3: 'Brand Synthesis',
+  p4: 'The Wide View',
+  p5: 'The Deep Dive',
+  decision: 'Your Decision',
+  p6: 'Your Bridge Story',
+  p7: 'Go-to-Market',
+  p8: 'LinkedIn Remix',
+  p_res: 'Resume Refresh',
+  p9: 'Your Playbook',
+  complete: 'Complete',
+  income: 'Income Now',
+  op: 'Upload a Live Opportunity',
+}
+const VALID_STEPS = new Set(Object.keys(STEP_LABELS))
+
 export default function Chat({ currentStep, onNavigate, C }) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState(() => {
@@ -120,7 +144,7 @@ export default function Chat({ currentStep, onNavigate, C }) {
             }}>
               {m.content}
             </div>
-            {m.navigateTo && (
+            {m.navigateTo && VALID_STEPS.has(m.navigateTo) && (
               <div style={{ marginTop: 6 }}>
                 <button
                   onClick={() => { onNavigate(m.navigateTo); setOpen(false) }}
@@ -130,7 +154,7 @@ export default function Chat({ currentStep, onNavigate, C }) {
                     padding: '6px 12px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
                   }}
                 >
-                  Take me there →
+                  Take me to {STEP_LABELS[m.navigateTo]} →
                 </button>
               </div>
             )}

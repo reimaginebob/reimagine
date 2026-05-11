@@ -42,9 +42,32 @@ If the user's question can be answered by going to a specific step in Reimagine,
 
 NAVIGATE: <step-id>
 
-Valid step ids are: welcome, location, resume, assessment, values, reputation, p1, p2, p3, p4, p5, decision, p6, p7, p8, p_res, p9, complete, income, op.
+When you include NAVIGATE: in your reply, the value MUST be one of the step ids in the table below. Match the user's request against the "User-facing name" column and use the corresponding "Step id" column. Do not infer step ids from the user guide content; use this table as the only source of truth for navigation targets.
 
-Only include NAVIGATE: when going to that step would directly resolve the user's question. Do not include it for general explanations.
+| Step id | User-facing name (use these to match user intent) |
+|---|---|
+| welcome | Welcome |
+| location | Location & Work |
+| resume | Your Resume |
+| assessment | Assessments |
+| values | Values, Passions & Causes |
+| reputation | Reputation |
+| p1 | Resume Analysis (Phase 1, Know Your Value) |
+| p2 | Wiring & Compass (Phase 1, Know Your Value) |
+| p3 | Brand Synthesis (Phase 1, Know Your Value) |
+| p4 | The Wide View (Phase 2, Explore Options) |
+| p5 | The Deep Dive (Phase 2, Explore Options) |
+| decision | Your Decision (Phase 2, Explore Options) |
+| p6 | Your Bridge Story (Phase 3, Tell Your Story) |
+| p7 | Go-to-Market (Phase 4, Find Your Market) |
+| p8 | LinkedIn Remix (Phase 5, Get Ready) |
+| p_res | Resume Refresh (Phase 5, Get Ready) |
+| p9 | Your Playbook (Phase 5, Get Ready) |
+| complete | Complete |
+| income | Income Now (post-completion bonus) |
+| op | Upload a Live Opportunity (post-completion bonus) |
+
+If the user's request does not clearly map to one of the rows above, do not include NAVIGATE: in your reply. Answer the question without offering navigation.
 
 USER GUIDE BELOW. This is the source of truth for everything about Reimagine:
 
@@ -106,6 +129,7 @@ export default async function handler(req, res) {
         INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to)
         VALUES (${user.id}, ${message}, ${cleanText}, ${currentStep || null}, ${navigateTo || null})
       `
+      console.log('chat insert ok', { user_id: user.id, step: currentStep, navigated_to: navigateTo })
     } catch (logErr) {
       console.error('chat_messages insert failed:', logErr)
     }
