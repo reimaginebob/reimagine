@@ -601,7 +601,7 @@ function Loading({ msg = 'Generating your analysis…', step = '' }) {
     const t = setInterval(() => {
       setFade(false)
       setTimeout(() => { setQi(i => (i + 1) % pool.length); setFade(true) }, 600)
-    }, 12000)
+    }, 17000)
     return () => clearInterval(t)
   }, [pool.length])
   const q = pool[qi % pool.length]
