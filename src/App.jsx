@@ -693,12 +693,11 @@ function SpeechBtn({onResult,style}){
 }
 function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel}){
   const[open,setOpen]=useState(false)
-  return <div style={{marginTop:16,border:`2px solid ${C.border}`,borderRadius:12,overflow:'hidden',background:'#F7F8FA'}}>
+  return <div style={{marginTop:28,marginBottom:28,border:`2px solid ${C.border}`,borderRadius:12,overflow:'hidden',background:'#F7F8FA'}}>
     <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <div style={{width:8,height:8,borderRadius:'50%',background:C.gold,flexShrink:0}}/>
-        <span style={{fontSize:18,fontWeight:600,color:'#1A2540'}}>Want to make changes?</span>
-        <span style={{fontSize:16,color:C.gray}}>Tell us what to adjust.</span>
+        <span style={{fontSize:18,fontWeight:600,color:C.gold}}>What did we get wrong?</span>
       </div>
       <span style={{fontSize:12,color:C.gray,display:'inline-block',transform:open?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}}>▼</span>
     </button>
@@ -785,7 +784,6 @@ export default function PivotEngine(){
   const[authToast,setAuthToast]=useState(null)
   const setSv=(k,v)=>setSurvey(s=>({...s,[k]:v}))
   const importFileRef=useRef()
-  const p4RefineRef=useRef()
 
   useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3')}catch{};return}const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
@@ -1456,16 +1454,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{margin:'20px 0 12px',fontSize:16,color:'#4A5568',lineHeight:1.65}}>Read through your options below, then <strong style={{color:'#1A2540'}}>select up to 3 roles</strong> from the checklist that follows. We'll go deep on the ones you choose.</div>
             <div style={{marginTop:0}}><OutPanel text={outputs.p4} onCopy={copy} copied={copied} expandLabel="Click here to see all your options"/></div>
           </>}
-          {!isDemo&&available.length>0&&<div style={{marginTop:16,padding:'14px 20px',background:'#F7F8FA',border:`1.5px dashed ${C.border}`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',gap:10}}>
-            <span style={{fontSize:15,color:C.gray}}>Not seeing what you're looking for?</span>
-            <button onClick={()=>{if(p4RefineRef.current){p4RefineRef.current.scrollIntoView({behavior:'smooth',block:'center'}); const btn=p4RefineRef.current.querySelector('button');if(btn)btn.click()}}} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:15,fontWeight:600,color:'#1A2540',padding:'8px 16px',transition:'all 0.15s'}} onMouseEnter={e=>{e.target.style.borderColor=C.gold;e.target.style.color=C.goldL}} onMouseLeave={e=>{e.target.style.borderColor=C.border;e.target.style.color='#1A2540'}}>Tell us what to change</button>
-          </div>}
           {selected.length>0&&<div style={{marginTop:16,padding:'14px 18px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
             <div style={{fontSize:16,color:'#1A2540'}}>Ready to explore ({selected.length}/3): {selected.map((s,i)=><strong key={i} style={{color:C.goldL,marginRight:8}}>{s}</strong>)}</div>
             <Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn>
           </div>}
           {selected.length===0&&available.length>0&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Select at least one role above to continue.</div>}
-          {!isDemo&&<div ref={p4RefineRef}><RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Did we read your fit wrong? If a role you would actually consider is missing, or one we suggested doesn't match your experience, tell us." placeholder="e.g. 'I would not go back to consulting, drop those options.' Or: 'You missed fractional CFO roles.' Or: 'The Industry Insider lane needs more advisory roles, not operating.'" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{recordCorrection('p4',v);out('p4','');setLaneTab(0);setP4Intro(false);generateP4(v,'Updating your options…')}}/></div>}
+          {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Did we read your fit wrong? If a role you would actually consider is missing, or one we suggested doesn't match your experience, tell us. You can also ask for a different mix here: more startups, fewer consulting roles, more in a specific industry." placeholder="e.g. 'I would not go back to consulting, drop those options.' Or: 'You missed fractional CFO roles.' Or: 'The Industry Insider lane needs more advisory roles, not operating.'" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{recordCorrection('p4',v);out('p4','');setLaneTab(0);setP4Intro(false);generateP4(v,'Updating your options…')}}/>}
         </>
       })()}
       {err&&<ErrBox msg={err}/>}
