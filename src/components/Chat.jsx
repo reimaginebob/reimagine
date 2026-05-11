@@ -44,10 +44,16 @@ export default function Chat({ currentStep, onNavigate, C }) {
   const [loading, setLoading] = useState(false)
   const [pulse, setPulse] = useState(false)
   const idleTimer = useRef(null)
+  const messagesContainerRef = useRef(null)
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-50))) } catch {}
   }, [messages])
+
+  useEffect(() => {
+    const el = messagesContainerRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages, loading])
 
   useEffect(() => {
     if (idleTimer.current) clearTimeout(idleTimer.current)
@@ -131,7 +137,7 @@ export default function Chat({ currentStep, onNavigate, C }) {
         <div style={{ fontWeight: 600, color: C.gold }}>Reimagine helper</div>
         <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#4A5568', fontFamily: 'inherit' }} aria-label="Close">×</button>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px' }}>
+      <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 18px' }}>
         {messages.map((m, i) => (
           <div key={i} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
             <div style={{
