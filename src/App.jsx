@@ -192,8 +192,8 @@ const PHASES=[
   {id:3,label:'Tell Your Story',color:'#C8924A',steps:['p6']},
   {id:4,label:'Find Your Market',color:'#C8924A',steps:['p7']},
   {id:5,label:'Get Ready',color:'#C8924A',steps:['p8','p_res','p9','complete']},
-  {id:6,label:'Income Now',color:'#C8924A',steps:['income']},
-  {id:7,label:'Upload a Live Opportunity',color:'#C8924A',steps:['op']},
+  {id:6,label:'Upload a Live Opportunity',color:'#C8924A',steps:['op']},
+  {id:7,label:'Income Now',color:'#C8924A',steps:['income']},
 ]
 const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',p5:'The Deep Dive',decision:'Your Decision',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
 const ALL=['welcome','location','resume','assessment','values','reputation','orientation-done','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','complete','income','op']
