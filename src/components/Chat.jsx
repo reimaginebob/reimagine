@@ -1,12 +1,37 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+
+const STORAGE_KEY = 'pe_chat_history'
+const INTRO_MSG = { role: 'assistant', content: 'Hi. I can help you with how Reimagine works. What would you like to know?' }
+const IDLE_MS = 120000
 
 export default function Chat({ currentStep, onNavigate, C }) {
   const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hi. I can help you with how Reimagine works. What would you like to know?' },
-  ])
+  const [messages, setMessages] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+    } catch {}
+    return [INTRO_MSG]
+  })
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [pulse, setPulse] = useState(false)
+  const idleTimer = useRef(null)
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-50))) } catch {}
+  }, [messages])
+
+  useEffect(() => {
+    if (idleTimer.current) clearTimeout(idleTimer.current)
+    setPulse(false)
+    if (open) return
+    idleTimer.current = setTimeout(() => setPulse(true), IDLE_MS)
+    return () => { if (idleTimer.current) clearTimeout(idleTimer.current) }
+  }, [currentStep, open])
 
   const send = async () => {
     if (!input.trim() || loading) return
@@ -45,19 +70,23 @@ export default function Chat({ currentStep, onNavigate, C }) {
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
-          background: C.gold, color: '#fff', border: 'none',
-          borderRadius: '50%', width: 56, height: 56,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          fontSize: 22, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
-        }}
-        aria-label="Open helper chat"
-      >
-        ?
-      </button>
+      <>
+        {pulse && <style>{"@keyframes pe-chat-pulse{0%{box-shadow:0 4px 12px rgba(0,0,0,0.15),0 0 0 0 rgba(200,146,74,0.55)}70%{box-shadow:0 4px 12px rgba(0,0,0,0.15),0 0 0 14px rgba(200,146,74,0)}100%{box-shadow:0 4px 12px rgba(0,0,0,0.15),0 0 0 0 rgba(200,146,74,0)}}"}</style>}
+        <button
+          onClick={() => { setOpen(true); setPulse(false) }}
+          style={{
+            position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
+            background: C.gold, color: '#fff', border: 'none',
+            borderRadius: '50%', width: 56, height: 56,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            fontSize: 22, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
+            animation: pulse ? 'pe-chat-pulse 1.6s infinite' : 'none',
+          }}
+          aria-label={pulse ? 'Need help? Open helper chat' : 'Open helper chat'}
+        >
+          ?
+        </button>
+      </>
     )
   }
 
