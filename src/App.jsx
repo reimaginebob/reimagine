@@ -605,19 +605,19 @@ function Loading({ msg = 'Generating your analysis…', step = '' }) {
     return () => clearInterval(t)
   }, [pool.length])
   const q = pool[qi % pool.length]
-  return <div style={{textAlign:'center',padding:'48px 24px',maxWidth:560,margin:'0 auto'}}>
+  return <div style={{textAlign:'center',padding:'48px 24px',maxWidth:640,margin:'0 auto'}}>
     <Loader2 size={28} style={{color:C.gold,animation:'spin 0.9s linear infinite',margin:'0 auto 20px',display:'block'}}/>
     <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
-    <div style={{fontSize:18,color:C.grayL,marginBottom:24}}>{msg}</div>
-    {previews && <div style={{borderLeft:`3px solid ${C.gold}30`,paddingLeft:18,textAlign:'left',marginBottom:24,fontSize:14,color:C.gray,lineHeight:1.7}}>
-      <div style={{fontWeight:600,marginBottom:6,color:C.grayL,fontSize:13,letterSpacing:'0.5px',textTransform:'uppercase'}}>While you wait: what's coming</div>
+    <div style={{fontSize:22,color:C.grayL,marginBottom:24}}>{msg}</div>
+    {previews && <div style={{borderLeft:`3px solid ${C.gold}30`,paddingLeft:18,textAlign:'left',marginBottom:24,fontSize:17,color:C.gray,lineHeight:1.7}}>
+      <div style={{fontWeight:600,marginBottom:6,color:C.grayL,fontSize:15,letterSpacing:'0.5px',textTransform:'uppercase'}}>While you wait: what's coming</div>
       {previews.map((p,i) => <div key={i}>• {p}</div>)}
     </div>}
     <div style={{borderLeft:`3px solid ${C.gold}`,paddingLeft:20,textAlign:'left',marginBottom:8,opacity:fade?1:0,transition:'opacity 0.6s'}}>
-      <div style={{fontSize:17,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:8}}>"{isStepPool ? q : q.text}"</div>
-      <div style={{fontSize:14,color:C.gold,fontWeight:600}}>{isStepPool ? MYOW_ATTR : q.author}</div>
+      <div style={{fontSize:20,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:8}}>"{isStepPool ? q : q.text}"</div>
+      <div style={{fontSize:16,color:C.gold,fontWeight:600}}>{isStepPool ? MYOW_ATTR : q.author}</div>
     </div>
-    <div style={{fontSize:13,color:C.gray,marginTop:20}}>This may take 1–2 minutes</div>
+    <div style={{fontSize:14,color:C.gray,marginTop:20}}>This may take 1–2 minutes</div>
   </div>
 }
 function ErrBox({msg}){return <div style={S.err}><AlertCircle size={13} color={C.err} style={{flexShrink:0,marginTop:1}}/><span>{msg}</span></div>}
