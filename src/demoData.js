@@ -677,7 +677,7 @@ Your profile is a living document, not a one-time update. Here is what to do onc
 
 p_res: `## QUICK TAKEAWAY
 
-**Your biggest structural change: move the accomplishments to the front** (what you've delivered in business terms) and embed the healthcare operations context throughout. Your "Greatest Hits" are the **referral program ($4.2M saved), the 175% scale, and the offer decline compression**. These hit hardest in the first 7 seconds because they show scale, impact, and speed.
+**Your biggest structural change: move the accomplishments to the front** (what you've delivered in business terms) and embed the healthcare operations context throughout. Your "Key Accomplishments" are the **referral program ($4.2M saved), the 175% scale, and the offer decline compression**. These hit hardest in the first 7 seconds because they show scale, impact, and speed.
 
 ---
 
