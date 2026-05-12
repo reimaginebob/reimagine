@@ -1,4 +1,4 @@
-// demoData.js — Static demo content for Reimagine ?demo=true mode
+// demoData.js. Static demo content for Reimagine ?demo=true mode
 // Persona: Sarah Chen, VP Talent Acquisition, Meridian Health System
 // Update this file when new modules are added to the app.
 
@@ -6,7 +6,7 @@ export const demoProfile = {
   loc: {
     country: "United States",
     city: "Atlanta, GA",
-    work: "Hybrid — within commuting distance of home base"
+    work: "Hybrid. Within commuting distance of home base"
   },
   resume: `SARAH CHEN
 VP Talent Acquisition | Meridian Health System | Atlanta, GA
@@ -45,38 +45,38 @@ CERTIFICATIONS
 SHRM-SCP | PHR | Workday HCM Certified`,
   resumeFile: "SarahChen_Resume.pdf",
   assess: `CliftonStrengths Top 5:
-1. Achiever — Relentless drive to complete and deliver. You set internal benchmarks others can't see and measure yourself against them daily.
-2. Arranger — You manage complexity by continuously optimizing how people, resources, and processes fit together. You see the configuration others miss.
-3. Strategic — You see patterns and pathways before others do. When a problem appears, you've already mapped 3 possible routes forward.
-4. Relator — Deep, trust-based relationships are your currency. You invest in knowing people, and they invest back.
-5. Responsibility — When you commit, it's done. People trust you because your word is your deliverable.
+1. Achiever. Relentless drive to complete and deliver. You set internal benchmarks others can't see and measure yourself against them daily.
+2. Arranger. You manage complexity by continuously optimizing how people, resources, and processes fit together. You see the configuration others miss.
+3. Strategic. You see patterns and pathways before others do. When a problem appears, you've already mapped 3 possible routes forward.
+4. Relator. Deep, trust-based relationships are your currency. You invest in knowing people, and they invest back.
+5. Responsibility. When you commit, it's done. People trust you because your word is your deliverable.
 
 Supporting Strengths (6-10): Learner, Individualization, Communication, Activator, Futuristic`,
   assessFile: "SarahChen_CliftonStrengths.pdf",
   assessType: "clifton",
   values: `What matters most to me in work:
 
-1. Impact — I need to see that my work changes something real. Not reports that sit on shelves. Actual outcomes: people hired faster, costs reduced, teams that work better.
+1. Impact. I need to see that my work changes something real. Not reports that sit on shelves. Actual outcomes: people hired faster, costs reduced, teams that work better.
 
-2. Trust — I build my career on being the person people come to when it matters. I need to work in an environment where trust is earned through delivery, not politics.
+2. Trust. I build my career on being the person people come to when it matters. I need to work in an environment where trust is earned through delivery, not politics.
 
-3. Growth — I'm always learning. The moment I stop growing is the moment I start looking for something new. I want to be challenged, not comfortable.
+3. Growth. I'm always learning. The moment I stop growing is the moment I start looking for something new. I want to be challenged, not comfortable.
 
-4. Autonomy — I do my best work when I have the room to design, build, and execute without being micromanaged. Give me the problem and the guardrails, and I'll figure out the rest.
+4. Autonomy. I do my best work when I have the room to design, build, and execute without being micromanaged. Give me the problem and the guardrails, and I'll figure out the rest.
 
-5. People — At the end of the day, I care about people. Not in a soft way. I care about setting people up to do their best work, and I care about working with people who share that same standard.`,
+5. People. At the end of the day, I care about people. Not in a soft way. I care about setting people up to do their best work, and I care about working with people who share that same standard.`,
   passions: `What energizes me outside of work:
 
-- Healthcare innovation — I follow digital health closely. I believe technology can solve real access and cost problems in healthcare, and I want to be part of that.
-- Organizational psychology — I read about how teams work, how culture forms, and why some organizations thrive while others stagnate. This isn't just professional interest; it genuinely fascinates me.
-- Real estate investing — I've been building a small portfolio of rental properties. I enjoy the strategy, the numbers, and the long-term wealth building.
-- Travel — I recharge through travel, especially internationally. New perspectives keep me sharp.
-- Mentoring — I spend time mentoring emerging HR leaders, especially women in healthcare. This gives me energy and purpose beyond my day job.`,
+- Healthcare innovation. I follow digital health closely. I believe technology can solve real access and cost problems in healthcare, and I want to be part of that.
+- Organizational psychology. I read about how teams work, how culture forms, and why some organizations thrive while others stagnate. This isn't just professional interest; it genuinely fascinates me.
+- Real estate investing. I've been building a small portfolio of rental properties. I enjoy the strategy, the numbers, and the long-term wealth building.
+- Travel. I recharge through travel, especially internationally. New perspectives keep me sharp.
+- Mentoring. I spend time mentoring emerging HR leaders, especially women in healthcare. This gives me energy and purpose beyond my day job.`,
   rep: {
-    memory: "When I think about the moments in my career I'm most proud of, they all involve building something from nothing and watching it work. The referral program is the best example — I designed it, launched it with minimal budget, and it now generates a third of our hires. The CHRO told me, 'I don't know how you did that, but you just saved this organization.' That moment matters to me because it was real impact, not theater.",
+    memory: "When I think about the moments in my career I'm most proud of, they all involve building something from nothing and watching it work. The referral program is the best example. I designed it, launched it with minimal budget, and it now generates a third of our hires. The CHRO told me, 'I don't know how you did that, but you just saved this organization.' That moment matters to me because it was real impact, not theater.",
     emergency: "Strategic, calm under pressure, gets things done, trusted, direct but warm, operates with integrity, builds systems that actually work, connects the dots between people problems and business outcomes.",
     twoWords: "Trusted Architect",
-    other: "I've been told I'm the person people call when something is broken and needs to work by Monday. I take that seriously. I also know I can be impatient with people who don't share my sense of urgency — that's something I'm working on."
+    other: "I've been told I'm the person people call when something is broken and needs to work by Monday. I take that seriously. I also know I can be impatient with people who don't share my sense of urgency. That's something I'm working on."
   },
   jd: `VP of People & Culture | Series B Healthtech | New York or Remote
 
@@ -224,7 +224,7 @@ All of this points toward a role where you build something that matters, in an i
 
 p3: `## QUICK TAKEAWAY
 
-- **The golden thread:** You turn complicated people-and-process problems into measured business outcomes — same approach for 14 years, from the $4.2M cost reduction to the 175% team scale during COVID
+- **The golden thread:** You turn complicated people-and-process problems into measured business outcomes. Same approach for 14 years, from the $4.2M cost reduction to the 175% team scale during COVID
 - **The personal brand:** **You build people systems at the intersection of operations, strategy, and execution.** You move fast without chaos.
 
 ---
@@ -233,9 +233,9 @@ p3: `## QUICK TAKEAWAY
 
 **You turn complicated people-and-process problems into measured business outcomes.**
 
-- **In your career:** The referral program that now generates 34% of hires, the $4.2M in cost reduction, the offer decline rate you compressed from 22% to 9%, the ATS migration during COVID — each one required the same approach: diagnose what is actually broken, design the smallest system that fixes it, implement fast, and iterate.
+- **In your career:** The referral program that now generates 34% of hires, the $4.2M in cost reduction, the offer decline rate you compressed from 22% to 9%, the ATS migration during COVID. Each one required the same approach: diagnose what is actually broken, design the smallest system that fixes it, implement fast, and iterate.
 - **In your wiring:** Your assessment shows high conscientiousness, fast decision-making, and a preference for creating solutions over following procedures. You are built to walk into ambiguity and build structure.
-- **In your reputation:** People give you the hardest assignments because your word is your operating system. They stake their reputation on your judgment — that is why the referral program worked.
+- **In your reputation:** People give you the hardest assignments because your word is your operating system. They stake their reputation on your judgment. That is why the referral program worked.
 - **Why it matters for what is next:** Any role that needs someone to build or fix a people operation from the inside out is a role where this thread gives you an immediate edge.
 
 ---
@@ -248,7 +248,7 @@ You build people and recruiting systems that create measurable business results,
 
 ## YOUR VALUE PROPOSITION
 
-**Capability:** You see the whole system at once and redesign what isn't working. You don't fix the problem in front of you — you reconfigure the pieces so it can't come back.
+**Capability:** You see the whole system at once and redesign what isn't working. You don't fix the problem in front of you. You reconfigure the pieces so it can't come back.
    - **Proof:** $4.2M annual cost reduction by redesigning clinical hiring from fragmented sourcing into an integrated talent acquisition function.
 
 **Capability:** When you say you'll handle something, it becomes a personal contract. People give you the hardest assignments because your word is your operating system.
@@ -257,8 +257,8 @@ You build people and recruiting systems that create measurable business results,
 **Capability:** You earn trust by going deep on people's actual problems, not by networking wide. People stake their reputation on your judgment.
    - **Proof:** Built a referral program from nothing that now generates 34% of all hires.
 
-**Capability:** You diagnose fast. You see three or four paths before most people have finished defining the problem, and you pick the right one.
-   - **Proof:** Compressed offer decline rate from 22% to 9% by redesigning the offer experience and manager engagement — not by adding headcount.
+**Capability:** You diagnose fast. You see three or four paths before the problem is fully defined, and you pick the right one.
+   - **Proof:** Compressed offer decline rate from 22% to 9% by redesigning the offer experience and manager engagement. Not by adding headcount.
 
 **Capability:** You start fast and finish clean. No overthinking, no cut corners. You build from zero and it holds.
    - **Proof:** Built recruiting operations from 2 people to a 6-person function with process standards, metrics, and an employer brand that lifted application volume 40%.`,
@@ -416,13 +416,13 @@ I have always been the person who builds things from scratch. I spend my weekend
 
 ## Why They Remember You
 
-You lead with the builder because that is the truest thing about you. The mentoring on weekends, the real estate projects, the referral program you designed from nothing — it is the same instinct every time. A CEO hears that pattern and thinks: she already knows how to build the thing I need built.
+You lead with the builder because that is the truest thing about you. The mentoring on weekends, the real estate projects, the referral program you designed from nothing. It is the same instinct every time. A CEO hears that pattern and thinks: she already knows how to build the thing I need built.
 
 ## The Three Things They Remember
 
-- **Who you are** — a builder who walks into ambiguity and creates systems that work
-- **What you have delivered** — a referral program generating 34% of hires and saving $4.2M annually, built from nothing
-- **Where you are headed** — Chief People Officer at a growth-stage digital health company, where building from scratch is the job description
+- **Who you are**. A builder who walks into ambiguity and creates systems that work
+- **What you have delivered**. A referral program generating 34% of hires and saving $4.2M annually, built from nothing
+- **Where you are headed**. Chief People Officer at a growth-stage digital health company, where building from scratch is the job description
 
 When you tell this story, the listener does not hear a career change. They hear someone who has been building toward this their whole life.`,
 
@@ -430,7 +430,7 @@ When you tell this story, the listener does not hear a career change. They hear 
 
 p7: `## QUICK TAKEAWAY
 
-**The people you want to reach are CEOs and COOs at Series B-C digital health companies** (post-PMF, scaling revenue) — they're the ones who hire for the role you want. The most actionable thing this week: **pick 5-8 companies from the list below, find those leaders on LinkedIn, and send a personalized outreach email**. The full list has 40+ options, and 2-3 strong conversations this month put you in the funnel for interviews in the next 60 days.
+**The people you want to reach are CEOs and COOs at Series B-C digital health companies** (post-PMF, scaling revenue). They're the ones who hire for the role you want. The most actionable thing this week: **pick 5-8 companies from the list below, find those leaders on LinkedIn, and send a personalized outreach email**. The full list has 40+ options, and 2-3 strong conversations this month put you in the funnel for interviews in the next 60 days.
 
 ---
 
@@ -599,7 +599,7 @@ Chief People Officer | VP People Operations | Healthcare talent strategy for gro
 
 Why: recruiters searching "Chief People Officer" and "VP People Operations" find you immediately. "Healthcare talent strategy" and "growth-stage" narrow the signal to your exact target.
 
-**Option B (Human resonance — recommended):**
+**Option B (Human resonance. Recommended):**
 I build people infrastructure that scales | Healthcare ops leader | Ex-Meridian (14K employees) | CPO search
 
 Why: opens with what you DO, not what you ARE. "I build people infrastructure that scales" fits in the 50-character preview and tells someone exactly what they get. Meridian provides credibility. "CPO search" signals intent.
@@ -613,7 +613,7 @@ Why: leads with proof. The numbers stop the scroll. Works especially well if you
 
 ## ABOUT SECTION
 
-**The Hook (first 3 lines — this is all anyone sees before "see more"):**
+**The Hook (first 3 lines. This is all anyone sees before "see more"):**
 
 I have always been the person who walks into a broken system and figures out how to make it work. That instinct is how I ended up spending 14 years building talent infrastructure at a 14,000-person health system, and it is why I am now looking for a Chief People Officer role at a growth-stage digital health company.
 
@@ -635,11 +635,11 @@ Outside of work, I am passionate about healthcare innovation, mentoring emerging
 
 Based on CPO roles at growth-stage digital health companies, these 5 keywords should appear throughout your profile (~9 times total):
 
-- **Chief People Officer** — Headline (1x), About (1x), Experience skills (1x) = 3x
-- **People operations** — Headline (1x), About (1x), Experience skills (2x) = 4x
-- **Talent strategy** — Headline (1x), About (1x), Experience skills (1x), Skills section (1x) = 4x
-- **Healthcare operations** — Headline (1x), Experience skills (2x), Skills section (1x) = 4x
-- **Organizational design** — About (1x), Experience skills (2x), Skills section (1x) = 4x
+- **Chief People Officer**. Headline (1x), About (1x), Experience skills (1x) = 3x
+- **People operations**. Headline (1x), About (1x), Experience skills (2x) = 4x
+- **Talent strategy**. Headline (1x), About (1x), Experience skills (1x), Skills section (1x) = 4x
+- **Healthcare operations**. Headline (1x), Experience skills (2x), Skills section (1x) = 4x
+- **Organizational design**. About (1x), Experience skills (2x), Skills section (1x) = 4x
 
 **Skills section (top 10 to emphasize):** People Operations, Talent Strategy, Healthcare Operations, Organizational Design, Change Management, Recruiting Operations, Workforce Planning, Executive Coaching, HR Analytics, Employee Experience. Add all to your Skills section and pin the top 5. Profiles with 5+ skills get 17x more views.
 
@@ -669,7 +669,7 @@ Based on CPO roles at growth-stage digital health companies, these 5 keywords sh
 Your profile is a living document, not a one-time update. Here is what to do once it is live:
 
 - **Connections:** Get to 500+ if you are not there. Connect with CPOs and VP People at digital health companies (Ro, Hims, Teladoc, Thirty Madison), healthcare recruiters, and investors who sit on boards at your target companies. When you send a request, include a note: one sentence about why you are connecting.
-- **Follow and engage:** Follow these people and organizations in your target space: **Josh Bersin** (HR industry analysis), **Mercer** (workforce trends), **Rock Health** (digital health funding data), **Out of Pocket** (healthcare industry newsletter), **HLTH** (health innovation events). When they post something relevant, comment with your own perspective from 14 years inside a health system. That is a perspective most people in digital health do not have.
+- **Follow and engage:** Follow these people and organizations in your target space: **Josh Bersin** (HR industry analysis), **Mercer** (workforce trends), **Rock Health** (digital health funding data), **Out of Pocket** (healthcare industry newsletter), **HLTH** (health innovation events). When they post something relevant, comment with your own perspective from 14 years inside a health system. That is a perspective rarely found in digital health.
 - **One post to write this week:** "What I learned about clinical hiring after 14 years inside a health system." Share 3-4 things you know that someone building a digital health company would find valuable. This signals credibility and attracts exactly the people you want to talk to.
 - **Keep updating:** As you have conversations with target companies, refine your headline and About section. The language people use to describe what they need is better than any keyword research.`,
 
@@ -808,11 +808,11 @@ Sourcing platform for passive candidates. Essential for recruiting at any scale.
 
 ## THOUGHT LEADERS TO FOLLOW
 
-**April Dunford** — Positioning and strategy. Her frameworks apply to employer brand: how does your company differ as an employer?
+**April Dunford**. Positioning and strategy. Her frameworks apply to employer brand: how does your company differ as an employer?
 
-**Laszlo Bock** — Former CHRO at Google. "Work Rules" is the playbook for scaling culture without losing it.
+**Laszlo Bock**. Former CHRO at Google. "Work Rules" is the playbook for scaling culture without losing it.
 
-**Satya Nadella and Sundar Pichai** — CEO-level thinking on culture and organizational design. Watch how they talk about talent.
+**Satya Nadella and Sundar Pichai**. CEO-level thinking on culture and organizational design. Watch how they talk about talent.
 
 ---
 
@@ -890,7 +890,7 @@ The issues that will come up in interviews for a CPO role at a growth-stage comp
 
 p11: `## QUICK TAKEAWAY
 
-These are your 3 strongest stories from the last decade at Meridian. Your lead story is the referral program — it touches all three imperatives (saved money, made money through quality of hire, mitigated risk by reducing agency dependency) and it shows you building something from nothing, which is exactly what a digital health CPO needs to do. The single most important remixing principle for you: every story is really about building infrastructure that scales, so lean into the builder angle regardless of who is across the table.
+These are your 3 strongest stories from the last decade at Meridian. Your lead story is the referral program. It touches all three imperatives (saved money, made money through quality of hire, mitigated risk by reducing agency dependency) and it shows you building something from nothing, which is exactly what a digital health CPO needs to do. The single most important remixing principle for you: every story is really about building infrastructure that scales, so lean into the builder angle regardless of who is across the table.
 
 ---
 
@@ -900,9 +900,9 @@ These are your 3 strongest stories from the last decade at Meridian. Your lead s
 **Business Imperative:** Saved Money / Made Money
 **Best for answering:** "Tell me about something you built from scratch," "What's your biggest accomplishment?," "How do you reduce costs without cutting quality?"
 
-**Situation:** Meridian Health was spending heavily on agency recruiters and job board postings to fill clinical roles across a 14,000-person system. There was no internal referral channel at all — every hire came through external sourcing, which was expensive and slow. Leadership wanted hiring costs down but couldn't afford to sacrifice quality in a regulated healthcare environment.
+**Situation:** Meridian Health was spending heavily on agency recruiters and job board postings to fill clinical roles across a 14,000-person system. There was no internal referral channel at all. Every hire came through external sourcing, which was expensive and slow. Leadership wanted hiring costs down but couldn't afford to sacrifice quality in a regulated healthcare environment.
 
-**Thinking:** I looked at this through a People, Process, Technology lens. The people side was clear: our 14,000 employees already knew great clinicians, but we had no mechanism to tap into that. On process, I studied what made referral programs fail at other health systems — usually complexity and lack of follow-through. I decided to design the simplest possible program first, get adoption, then add sophistication. On technology, I needed tracking that was lightweight enough that managers would actually use it.
+**Thinking:** I looked at this through a People, Process, Technology lens. The people side was clear: our 14,000 employees already knew great clinicians, but we had no mechanism to tap into that. On process, I studied what made referral programs fail at other health systems. Usually complexity and lack of follow-through. I decided to design the simplest possible program first, get adoption, then add sophistication. On technology, I needed tracking that was lightweight enough that managers would actually use it.
 
 **Action:** I built a referral program from scratch with a tiered incentive structure, trained hiring managers on how to promote it in team huddles, and created a simple tracking dashboard so employees could see their referral status in real time. I piloted in two departments, adjusted the incentive tiers based on what drove the most participation, then rolled it system-wide.
 
@@ -910,24 +910,24 @@ These are your 3 strongest stories from the last decade at Meridian. Your lead s
 
 **Strengthen This Story:**
 - What was the exact dollar amount you were spending on agency recruiters before the program launched?
-- How did you decide on the incentive tier amounts — what data or framework did you use to set those numbers?
-- Did you use a framework to evaluate the pilot results before scaling? Think about: What / So What / Now What — or Vision, Alignment, Execution.
+- How did you decide on the incentive tier amounts. What data or framework did you use to set those numbers?
+- Did you use a framework to evaluate the pilot results before scaling? Think about: What / So What / Now What. Or Vision, Alignment, Execution.
 
 ### STORY [2]: Scaling 175% During COVID
 **Business Imperative:** Mitigated Risk
 **Best for answering:** "Tell me about a time you led through crisis," "How do you handle competing priorities?," "Describe a time you had to move fast"
 
-**Situation:** COVID hit in early 2020 and Meridian's clinical hiring demand surged overnight. At the same time, we were mid-migration from Taleo to Workday — a major enterprise system transition involving 300+ hiring managers. I had to scale the recruiting team 175% while keeping the technology migration on track, all in an environment where everyone was exhausted and scared.
+**Situation:** COVID hit in early 2020 and Meridian's clinical hiring demand surged overnight. At the same time, we were mid-migration from Taleo to Workday. A major enterprise system transition involving 300+ hiring managers. I had to scale the recruiting team 175% while keeping the technology migration on track, all in an environment where everyone was exhausted and scared.
 
 **Thinking:** My first instinct was to triage using an Ability, Resources, Commitment framework. I assessed what my team could realistically handle (ability), what additional resources I could pull in fast (contract recruiters, reassigned staff), and where I needed commitment from leadership to hold the line on the Workday migration timeline rather than pausing it. Pausing would have cost us six months and created more chaos. I made the call to run both in parallel, but I restructured the migration rollout so the heaviest recruiting departments went last.
 
-**Action:** I brought in four contract recruiters within two weeks, reassigned two internal team members to focus exclusively on clinical surge hiring, and restructured the Workday migration into three waves instead of one — starting with departments that had stable hiring volume. I held daily 15-minute stand-ups with the team to surface blockers fast.
+**Action:** I brought in four contract recruiters within two weeks, reassigned two internal team members to focus exclusively on clinical surge hiring, and restructured the Workday migration into three waves instead of one. Starting with departments that had stable hiring volume. I held daily 15-minute stand-ups with the team to surface blockers fast.
 
 **Result:** We filled every critical clinical role within the surge window, completed the ATS migration on time with **zero disruption to active hiring**, and the recruiting team reported higher engagement scores post-crisis than pre-crisis because they felt supported and structured rather than abandoned.
 
 **Strengthen This Story:**
 - How many total roles did you fill during the surge period, and over what timeline?
-- What was the budget impact of bringing in four contract recruiters — and how did you justify that spend to leadership?
+- What was the budget impact of bringing in four contract recruiters. And how did you justify that spend to leadership?
 - Who specifically pushed back on running the migration and hiring surge in parallel, and how did you handle that conversation?
 
 ### STORY [3]: Redesigning the Offer Experience
@@ -936,22 +936,22 @@ These are your 3 strongest stories from the last decade at Meridian. Your lead s
 
 **Situation:** Meridian's offer decline rate was sitting at 22%, which meant roughly one in five candidates we extended offers to was saying no. In clinical recruiting, every declined offer costs weeks of re-sourcing and can delay patient care coverage. The problem had been known for years but nobody had diagnosed why it was happening.
 
-**Thinking:** I approached this as a Situation, Complication, Resolution problem. The situation was clear: 22% decline rate. The complication was that nobody agreed on the cause — some blamed compensation, some blamed speed, some blamed the candidate market. I pulled offer data for the prior 18 months and segmented by role type, time-to-offer, hiring manager, and decline reason. The data showed that 60% of declines were happening when offers took more than 5 days to get out the door. It wasn't the offer itself — it was the experience around it.
+**Thinking:** I approached this as a Situation, Complication, Resolution problem. The situation was clear: 22% decline rate. The complication was that nobody agreed on the cause. Some blamed compensation, some blamed speed, some blamed the candidate market. I pulled offer data for the prior 18 months and segmented by role type, time-to-offer, hiring manager, and decline reason. The data showed that 60% of declines were happening when offers took more than 5 days to get out the door. It wasn't the offer itself. It was the experience around it.
 
 **Action:** I redesigned the offer workflow to compress the approval chain from an average of 7 days to 2 days, trained hiring managers on how to keep candidates warm during the process, and created an "offer experience" checklist that included a personal call from the hiring manager before the formal letter went out.
 
 **Result:** Offer decline rate dropped from **22% to 9%** within eight months. The estimated value of retained hires (avoided re-sourcing and vacancy costs) was approximately **$800K annually**.
 
 **Strengthen This Story:**
-- What was the exact data set you analyzed — how many offers over what period?
+- What was the exact data set you analyzed. How many offers over what period?
 - How did you get the approval chain stakeholders (HR leadership, compensation, legal) to agree to compress from 7 days to 2?
-- Did you use a specific framework to structure the offer experience redesign? Think about: Start with the customer and work backward — in this case, the candidate is the customer.
+- Did you use a specific framework to structure the offer experience redesign? Think about: Start with the customer and work backward. In this case, the candidate is the customer.
 
 ---
 
 ## THE REMIX
 
-Taking Story 1 (the referral program) — your strongest story — and showing how the same core experience shifts for different audiences:
+Taking Story 1 (the referral program). Your strongest story. And showing how the same core experience shifts for different audiences:
 
 **Remix for a CEO:** Lead with the strategic vision: "I looked at how we were sourcing talent and realized we had 14,000 employees who knew great clinicians but no way to tap into that network. I built a referral program that now generates a third of all our hires." Expand the Thinking section to emphasize systems-level insight and long-term value creation. Compress the tactical details. The CEO hears: this person sees the whole board and builds things that compound.
 
@@ -959,7 +959,7 @@ Taking Story 1 (the referral program) — your strongest story — and showing h
 
 **Remix for a Peer/Hiring Manager:** Lead with the collaboration: "I needed hiring managers to actually promote the program in their team huddles, so I designed it to be dead simple and showed them their referral stats in real time." Expand the Action section to highlight how you got buy-in, trained managers, and iterated based on their feedback. The peer hears: this person is easy to work with and makes my life easier.
 
-**Remix for a Different Question:** "Tell me about a time you used data to make a decision." Transition: "The referral program is a good example — but the interesting part isn't the program itself, it's how I decided to build it." Shift emphasis entirely to the Thinking section: analyzing sourcing costs, segmenting by channel, identifying the gap, designing the pilot. The story becomes about analytical rigor rather than program building.
+**Remix for a Different Question:** "Tell me about a time you used data to make a decision." Transition: "The referral program is a good example. But the interesting part isn't the program itself, it's how I decided to build it." Shift emphasis entirely to the Thinking section: analyzing sourcing costs, segmenting by channel, identifying the gap, designing the pilot. The story becomes about analytical rigor rather than program building.
 
 The principle: your core experiences are fixed, but the lens changes with every conversation. Eventually you will want 10-12 stories in your repertoire, but start with these 3 and know them so well that you can shift emphasis in real time based on who is sitting across from you and what they care about most. A CEO cares about vision. A CFO cares about numbers. A peer cares about collaboration. Same song, different rhythm.`,
 
@@ -1030,11 +1030,11 @@ Scope: 4 hours/month | Price: $3,500-5,000/quarter
 
 ## PART 4: PASSION-ADJACENT OPPORTUNITIES
 
-**1. Healthcare Innovation Advisory** — Advise 3-4 early-stage companies. $500-1,000/month per company.
+**1. Healthcare Innovation Advisory**. Advise 3-4 early-stage companies. $500-1,000/month per company.
 
-**2. Adjunct Faculty / Guest Lecturer** — Emory, Georgia Tech, or UGA. $5,000-15,000/semester.
+**2. Adjunct Faculty / Guest Lecturer**. Emory, Georgia Tech, or UGA. $5,000-15,000/semester.
 
-**3. Real Estate Investing Advisory** — Fractional advisory to real estate syndications or healthcare real estate funds. $2,000-5,000 per deal review.
+**3. Real Estate Investing Advisory**. Fractional advisory to real estate syndications or healthcare real estate funds. $2,000-5,000 per deal review.
 
 ---
 

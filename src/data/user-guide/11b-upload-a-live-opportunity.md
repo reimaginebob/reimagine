@@ -1,4 +1,4 @@
-# 11b. Bonus — Upload a Live Opportunity
+# 11b. Bonus. Upload a Live Opportunity
 
 This is a bonus module that activates after you finish the main journey. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here.
 

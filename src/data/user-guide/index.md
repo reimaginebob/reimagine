@@ -1,4 +1,4 @@
-# Reimagine — User Guide
+# Reimagine. User Guide
 
 A plain-English guide to using Reimagine to build your career strategy.
 
@@ -22,15 +22,15 @@ If something is not working the way you expect, check **Chapter 14: FAQ and Trou
 
 **The journey**
 
-4. [Phase 0 — Orientation: Telling Reimagine About You](04-orientation-phase.md)
-5. [Phase 1 — Know Your Value](05-know-your-value.md)
-6. [Phase 2 — Explore Options](06-explore-options.md)
-7. [Phase 3 — Tell Your Story](07-tell-your-story.md)
-8. [Phase 4 — Find Your Market](08-find-your-market.md)
-9. [Phase 5 — Get Ready](09-get-ready.md)
+4. [Phase 0. Orientation: Telling Reimagine About You](04-orientation-phase.md)
+5. [Phase 1. Know Your Value](05-know-your-value.md)
+6. [Phase 2. Explore Options](06-explore-options.md)
+7. [Phase 3. Tell Your Story](07-tell-your-story.md)
+8. [Phase 4. Find Your Market](08-find-your-market.md)
+9. [Phase 5. Get Ready](09-get-ready.md)
 10. [Your Results: The Complete Screen](10-your-results.md)
-11. [Bonus — Income Now](11-income-now.md)
-11b. [Bonus — Upload a Live Opportunity](11b-upload-a-live-opportunity.md)
+11. [Bonus. Income Now](11-income-now.md)
+11b. [Bonus. Upload a Live Opportunity](11b-upload-a-live-opportunity.md)
 
 **Working with the tool**
 
@@ -49,4 +49,4 @@ Reimagine is not a one-shot generator. After every output, you have the option t
 
 ---
 
-*Reimagine is built by Career Club. Founder and product owner: Bob Goodwin, [bob@career.club](mailto:bob@career.club). Reimagine is in active beta — if something feels off, that feedback shapes what gets built next.*
+*Reimagine is built by Career Club. Founder and product owner: Bob Goodwin, [bob@career.club](mailto:bob@career.club). Reimagine is in active beta. If something feels off, that feedback shapes what gets built next.*

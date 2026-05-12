@@ -1,4 +1,4 @@
-# 4. Phase 0 — Orientation: Telling Reimagine About You
+# 4. Phase 0. Orientation: Telling Reimagine About You
 
 This is the only phase where you do the work. Everything that follows is generated for you. This chapter walks through each screen so you know what to expect and what good input looks like at each one.
 
@@ -59,7 +59,7 @@ You can do both. The text field is the source of truth for what Reimagine reads,
 
 Once Reimagine has read the file, you will see a green checkmark and a character count. Click **Continue**.
 
-**A reminder from Chapter 3:** the more your resume includes specific outcomes — money made, money saved, risk mitigated, with numbers attached — the better the output. If you have time, add a few numbers before you upload. If you do not, that is fine. Reimagine will flag where it would help and you can come back later.
+**A reminder from Chapter 3:** the more your resume includes specific outcomes. Money made, money saved, risk mitigated, with numbers attached. The better the output. If you have time, add a few numbers before you upload. If you do not, that is fine. Reimagine will flag where it would help and you can come back later.
 
 ## Screen 4: Assessments
 
@@ -75,17 +75,17 @@ This is the input that does the most work. Read Chapter 3 if you have not alread
 
 **No assessment yet?** Click the orange **Take the Free Affintus Assessment** button. It opens in a new tab, takes about 15 minutes, and produces results you can paste back here.
 
-**If you try to skip this step,** Reimagine will pause and ask you once whether you are sure. The warning is real. You can skip — the tool will still generate output — but the output will be missing a layer.
+**If you try to skip this step,** Reimagine will pause and ask you once whether you are sure. The warning is real. You can skip. The tool will still generate output. But the output will be missing a layer.
 
 Click **Continue** when you are done.
 
 ## Screen 5: Values, Passions & Causes
 
-Two short fields. Both have a microphone button — you can speak your answers instead of typing them.
+Two short fields. Both have a microphone button. You can speak your answers instead of typing them.
 
-**Core Values — 3 to 5 non-negotiables.** The conditions under which you do your best work and feel most like yourself. Examples: independence, family, justice, stability, faith, intellectual challenge, service, wealth creation, cooperation. Be specific.
+**Core Values. 3 to 5 non-negotiables.** The conditions under which you do your best work and feel most like yourself. Examples: independence, family, justice, stability, faith, intellectual challenge, service, wealth creation, cooperation. Be specific.
 
-**Passions, Interests & Causes — 3 to 5 things you care about.** What you read about for fun, volunteer your time for, or could talk about for 30 minutes with no preparation. Hobbies, industries that fascinate you, communities you belong to, causes close to your heart.
+**Passions, Interests & Causes. 3 to 5 things you care about.** What you read about for fun, volunteer your time for, or could talk about for 30 minutes with no preparation. Hobbies, industries that fascinate you, communities you belong to, causes close to your heart.
 
 **One thing worth knowing:** it can be tempting to filter your answers for what feels professionally relevant. Try not to. The Wide View phase later in the journey looks for unexpected combinations between your professional life and the rest of you, so the side project, the cause, the hobby, the industry you read about for fun are all worth including.
 
@@ -123,4 +123,4 @@ If at any point you realize an input was wrong or incomplete, click any complete
 
 ---
 
-*Next: [Phase 1 — Know Your Value →](05-know-your-value.md)*
+*Next: [Phase 1. Know Your Value →](05-know-your-value.md)*

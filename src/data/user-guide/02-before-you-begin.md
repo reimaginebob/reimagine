@@ -20,15 +20,15 @@ You will get the most out of Reimagine if you have these three things ready befo
 
 Any format is fine: PDF, Word, or plain text. It does not have to be polished. Reimagine will work with whatever you give it. If you have not updated it in years, do not let that stop you. Part of what the tool does is find the value you may have undersold.
 
-### 2. An assessment — highly recommended
+### 2. An assessment. Highly recommended
 
-This is the input that does the most to turn a generic career analysis into one that actually sounds like you. Reimagine is greatly limited in its ability to generate real human insights about your unique value if it does not have one. Your resume tells the tool what you have done. An assessment tells it *how* you do it — how you make decisions, what energizes you, the environments where you do your best work. That second layer is where personalized insight comes from.
+This is the input that does the most to turn a generic career analysis into one that actually sounds like you. Reimagine is greatly limited in its ability to generate real human insights about your unique value if it does not have one. Your resume tells the tool what you have done. An assessment tells it *how* you do it. How you make decisions, what energizes you, the environments where you do your best work. That second layer is where personalized insight comes from.
 
 If you do not already have one, take **Affintus**. It is free, it takes about 15 minutes, and it gives Reimagine the data layer that makes everything downstream feel personal. The link to it is on the welcome screen and again on the Assessment input screen.
 
 Reimagine accepts any of the major professional assessments:
 
-- **Affintus** (free — Reimagine recommends this if you do not already have one)
+- **Affintus** (free. Reimagine recommends this if you do not already have one)
 - **CliftonStrengths** (formerly StrengthsFinder)
 - **Myers-Briggs (MBTI)**
 - **DiSC**
@@ -51,9 +51,9 @@ That covers entering your information and getting your first set of results. The
 
 Most of the text fields in Reimagine have a small microphone button next to them. It looks like this:
 
-![Microphone button — a small white square with rounded corners and a gray microphone icon inside](assets/microphone-button.svg)
+![Microphone button. A small white square with rounded corners and a gray microphone icon inside](assets/microphone-button.svg)
 
-Tap it and talk — Reimagine listens and writes what you say into the field. Tap it again to stop. While it is listening, the button turns red. Use it for your values, your passions, your reputation answers, and any feedback you give later when you refine a result. You can always just speak to Reimagine.
+Tap it and talk. Reimagine listens and writes what you say into the field. Tap it again to stop. While it is listening, the button turns red. Use it for your values, your passions, your reputation answers, and any feedback you give later when you refine a result. You can always just speak to Reimagine.
 
 ## Sign-in by email
 
@@ -90,7 +90,7 @@ If you want your account deleted, email [bob@career.club](mailto:bob@career.club
 
 **There are no wrong answers in the intake.** When the tool asks about your values, your passions, or your reputation, it is not testing you. Answer honestly, not strategically. Strategic answers produce strategic-sounding output that does not feel like you.
 
-**You only need one new job — but you can explore as many options as you want.** The journey eventually asks you to commit to one direction so the rest of the tool can build a focused plan around it. That does not mean you have to throw the other options away. Once you have walked through with one role in mind, you can come back and explore another in the same depth. Reimagine is designed to open your eyes to what is possible, not to corner you into one answer. The point is to choose the right next chapter with confidence, knowing you saw the field clearly.
+**You only need one new job. But you can explore as many options as you want.** The journey eventually asks you to commit to one direction so the rest of the tool can build a focused plan around it. That does not mean you have to throw the other options away. Once you have walked through with one role in mind, you can come back and explore another in the same depth. Reimagine is designed to open your eyes to what is possible, not to corner you into one answer. The point is to choose the right next chapter with confidence, knowing you saw the field clearly.
 
 ---
 

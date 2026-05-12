@@ -4,7 +4,7 @@ This is the most important chapter in the guide. If you read only one chapter be
 
 ## The principle
 
-Reimagine builds your career strategy on top of what you tell it about yourself. Five inputs go in, and everything that comes out — your personal brand, your options, your story, your target list, your outreach, your playbook — is built on those five. The first phase of the journey, **Orientation**, is where you provide them.
+Reimagine builds your career strategy on top of what you tell it about yourself. Five inputs go in, and everything that comes out. Your personal brand, your options, your story, your target list, your outreach, your playbook. Is built on those five. The first phase of the journey, **Orientation**, is where you provide them.
 
 If your inputs are thin, the output will be thin in the same places. If your inputs are rich and honest, the output is sharp and personal. There is no shortcut around this. The rest of the tool is downstream of what you do in the first 20 minutes.
 
@@ -14,11 +14,11 @@ Put your best foot forward in the intake, and Reimagine will do the same for you
 
 In the order Reimagine asks for them:
 
-1. **Location and work preference** — where you live and how you want to work
-2. **Resume** — your professional track record
-3. **Assessment** — how you are wired
-4. **Values, passions, and causes** — what you actually care about
-5. **Reputation** — what others say about you
+1. **Location and work preference**. Where you live and how you want to work
+2. **Resume**. Your professional track record
+3. **Assessment**. How you are wired
+4. **Values, passions, and causes**. What you actually care about
+5. **Reputation**. What others say about you
 
 Each one feeds something specific later in the journey. Understanding that connection is the fastest way to know what good input looks like.
 
@@ -36,7 +36,7 @@ This shapes every option Reimagine generates and every company it recommends. If
 
 The resume is the source of every accomplishment Reimagine will translate into your value proposition. It is how the tool knows what you have actually done.
 
-**Good input:** your most recent resume, even if you have not polished it. Bullet points with numbers are gold — revenue you drove, money you saved, teams you built, problems you solved with measurable outcomes. If your resume is light on numbers, that is fine; Reimagine will flag where you should add quantification when it analyzes you.
+**Good input:** your most recent resume, even if you have not polished it. Bullet points with numbers are gold. Revenue you drove, money you saved, teams you built, problems you solved with measurable outcomes. If your resume is light on numbers, that is fine; Reimagine will flag where you should add quantification when it analyzes you.
 
 **Watch out for:** a resume that lists job titles and responsibilities but not outcomes. Reimagine can work with that, but the resulting Value Proposition will be more abstract than you want. If you have time, spend a few minutes adding the numbers you remember before you upload.
 
@@ -44,15 +44,15 @@ The resume is the source of every accomplishment Reimagine will translate into y
 
 ### Assessment
 
-This is the input that makes the biggest difference. Your resume tells Reimagine what you have done. Your assessment tells Reimagine *how* you do it — how you make decisions, what energizes you, the environments where you do your best work.
+This is the input that makes the biggest difference. Your resume tells Reimagine what you have done. Your assessment tells Reimagine *how* you do it. How you make decisions, what energizes you, the environments where you do your best work.
 
 Without an assessment, Reimagine is greatly limited in its ability to generate real human insight about your unique value. Your output will lean on your track record alone, and that produces recommendations that feel more like a job-market summary than a personal strategy.
 
 **Take Affintus if you do not already have one.** It is free, it takes 15 minutes, and it gives Reimagine the data layer that turns generic into personal. The link is on the welcome screen and on the Assessment input screen.
 
-**Good input:** any professional assessment from the last three years. We recommend assessments be no older than that — people change, and old data may not reflect how you operate today. Affintus, CliftonStrengths, MBTI, DiSC, Hogan, PI, Enneagram, or anything else works. Upload the report, paste the results, or both.
+**Good input:** any professional assessment from the last three years. We recommend assessments be no older than that. People change, and old data may not reflect how you operate today. Affintus, CliftonStrengths, MBTI, DiSC, Hogan, PI, Enneagram, or anything else works. Upload the report, paste the results, or both.
 
-**You can use more than one.** If you have two or three assessments and want Reimagine to consider all of them, paste their results sequentially into the text field with a simple divider line between each — for example:
+**You can use more than one.** If you have two or three assessments and want Reimagine to consider all of them, paste their results sequentially into the text field with a simple divider line between each. For example:
 
 ```
 === CliftonStrengths ===
@@ -77,7 +77,7 @@ These two fields are short, and they are the difference between a list of *plaus
 
 **Good input:** specific and honest. "Sustainability" is fine. "Sustainability, especially how cities adapt their infrastructure" is better. "Mentoring" is fine. "Mentoring first-generation college students through nonprofits in my city" is much better.
 
-**A common slip:** filtering your answers for what feels professionally relevant. Try not to. The Wide View phase later in the journey looks for unexpected combinations between your professional life and the rest of you, and your real passions are exactly what it needs. The youth sports coaching, the side project, the cause you donate to, the industry you read about for fun — those are all worth including. Some of the most surprising connections in the whole journey come from inputs people almost left out.
+**A common slip:** filtering your answers for what feels professionally relevant. Try not to. The Wide View phase later in the journey looks for unexpected combinations between your professional life and the rest of you, and your real passions are exactly what it needs. The youth sports coaching, the side project, the cause you donate to, the industry you read about for fun. Those are all worth including. Some of the most surprising connections in the whole journey come from inputs people almost left out.
 
 ### Reputation
 
@@ -104,13 +104,13 @@ If you do not have anything in writing, sit with the four questions for a few mi
 
 ## You can speak instead of type
 
-Every text field that asks you to describe yourself — values, passions, reputation, and the refine boxes you will see later — has a small microphone button next to it that looks like this:
+Every text field that asks you to describe yourself. Values, passions, reputation, and the refine boxes you will see later. Has a small microphone button next to it that looks like this:
 
-![Microphone button — a small white square with rounded corners and a gray microphone icon inside](assets/microphone-button.svg)
+![Microphone button. A small white square with rounded corners and a gray microphone icon inside](assets/microphone-button.svg)
 
 Tap it and talk. Reimagine listens and writes what you say into the field. Tap it again to stop, and the button turns red while it is listening so you know it is on. You can always just speak to Reimagine.
 
-This matters most for the inputs that benefit from specific stories — the Reputation step in particular. Talking through a specific moment is usually easier than typing it, and the result tends to be richer.
+This matters most for the inputs that benefit from specific stories. The Reputation step in particular. Talking through a specific moment is usually easier than typing it, and the result tends to be richer.
 
 ## Your data stays on your device
 
@@ -138,4 +138,4 @@ If you can check four out of five, you are in good shape. Start.
 
 ---
 
-*Next: [Phase 0 — Orientation →](04-orientation-phase.md)*
+*Next: [Phase 0. Orientation →](04-orientation-phase.md)*

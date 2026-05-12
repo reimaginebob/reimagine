@@ -1,0 +1,62 @@
+import fs from 'node:fs'
+import path from 'node:path'
+
+const FILES_TO_CHECK = [
+  'src/App.jsx',
+  'src/demoData.js',
+  ...fs.readdirSync('src/data/user-guide').map(f => path.join('src/data/user-guide', f)),
+]
+
+const HARD_BAN = [
+  { pattern: /—/, name: 'em dash (—)', advice: 'Use commas, periods, colons, or parentheses instead.' },
+  { pattern: /\bnot just\s+\w+[,.]?\s+you\s+\w+/i, name: 'logic-flip "not just X, you Y"', advice: 'Rewrite from the positive side.' },
+  { pattern: /\byou do not just\s+\w+[,.]?\s+you\s+\w+/i, name: 'logic-flip "you do not just X, you Y"', advice: 'Rewrite from the positive side.' },
+]
+
+const SOFT_WARN = [
+  { pattern: /\bMost people\b/i, name: '"Most people" comparison framing', advice: 'Rewrite as second person or positive-side claim. Allowed only when followed by factual reassurance (e.g., "Most people do not finish in one sitting").' },
+  { pattern: /\bMost professionals\b/i, name: '"Most professionals" comparison framing', advice: 'Rewrite from second person.' },
+  { pattern: /\bMost leaders\b/i, name: '"Most leaders" comparison framing', advice: 'Rewrite from second person.' },
+]
+
+let hardFailures = 0
+let softWarnings = 0
+
+for (const file of FILES_TO_CHECK) {
+  if (!fs.existsSync(file)) continue
+  const content = fs.readFileSync(file, 'utf-8')
+  const lines = content.split('\n')
+
+  // Honor // voice-allow / // voice-allow-end markers to skip AI-facing prompt
+  // strings (SYS templates, prompt-builder content) that contain banned
+  // patterns as teaching examples for the model.
+  let allow = false
+  lines.forEach((line, idx) => {
+    if (/\/\/\s*voice-allow\b(?!-end)/.test(line)) { allow = true; return }
+    if (/\/\/\s*voice-allow-end\b/.test(line)) { allow = false; return }
+    if (allow) return
+
+    for (const rule of HARD_BAN) {
+      if (rule.pattern.test(line)) {
+        console.error(`[FAIL] ${file}:${idx + 1} — ${rule.name}`)
+        console.error(`       ${line.trim().substring(0, 120)}`)
+        console.error(`       ${rule.advice}`)
+        hardFailures++
+      }
+    }
+    for (const rule of SOFT_WARN) {
+      if (rule.pattern.test(line)) {
+        console.warn(`[WARN] ${file}:${idx + 1} — ${rule.name}`)
+        console.warn(`       ${line.trim().substring(0, 120)}`)
+        softWarnings++
+      }
+    }
+  })
+}
+
+console.log(`\nVoice check complete: ${hardFailures} hard failures, ${softWarnings} soft warnings.`)
+
+if (hardFailures > 0) {
+  console.error('\nBuild blocked: fix the hard failures above before committing.')
+  process.exit(1)
+}

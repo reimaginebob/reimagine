@@ -15,7 +15,7 @@ Both are normal. Both preserve the rest of your work.
 
 Every generated step has a **Tell us what we got wrong** box below the output. Click to open. You will see:
 
-- A text field where you describe what to adjust. The microphone button is here too — you can speak instead of type.
+- A text field where you describe what to adjust. The microphone button is here too. You can speak instead of type.
 - An **Update with my correction** button that regenerates the current step with your input folded in.
 - A **Start fresh** button that clears your feedback and regenerates without it.
 

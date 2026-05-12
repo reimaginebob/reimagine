@@ -12,7 +12,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Career Club.** The company that builds Reimagine. Founded by Bob Goodwin.
 
-**Convictions, Clarity, Confidence, Contagious (the 4 C's).** The internal arc of the Reimagine experience. Convictions are what is true about you. Clarity follows from convictions and lets you see options clearly. Confidence comes from evidence. Contagious is the natural result — when you believe, others do too. The framework is part of the methodology, not exposed in the tool's outputs.
+**Convictions, Clarity, Confidence, Contagious (the 4 C's).** The internal arc of the Reimagine experience. Convictions are what is true about you. Clarity follows from convictions and lets you see options clearly. Confidence comes from evidence. Contagious is the natural result. When you believe, others do too. The framework is part of the methodology, not exposed in the tool's outputs.
 
 **Deep Dive.** The second step in Phase 2. Reimagine analyzes the role options you selected from the Wide View in detail: what the role looks like day to day, why you fit, and what to consider before pursuing it.
 
@@ -20,7 +20,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Familiar Ground.** One of the three paths in the Wide View. Same function, same or adjacent industry. Where your existing track record speaks most directly.
 
-**Go-to-Market Strategy.** Phase 4 of the journey. A target company list, a hiring executive profile, a personalized outreach template, and a LinkedIn signal tweak — all built around the direction you committed to.
+**Go-to-Market Strategy.** Phase 4 of the journey. A target company list, a hiring executive profile, a personalized outreach template, and a LinkedIn signal tweak. All built around the direction you committed to.
 
 **Golden Thread.** The single consistent theme that runs through your accomplishments, your wiring, and your reputation. Surfaced in Brand Synthesis.
 
@@ -30,7 +30,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Income Now.** The bonus module. A consulting and fractional income plan for generating revenue while you search for your next role.
 
-**Industry Insider.** One of the three paths in the Wide View. The full ecosystem around your industry — clients, vendors, consultants, regulators, adjacent industries — where your insider knowledge is a competitive advantage.
+**Industry Insider.** One of the three paths in the Wide View. The full ecosystem around your industry. Clients, vendors, consultants, regulators, adjacent industries. Where your insider knowledge is a competitive advantage.
 
 **KEEL principles.** The foundation of the *Making Your Own Weather* methodology. Mentioned in marketing materials but not exposed inside the tool's outputs.
 
@@ -60,7 +60,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Sarah Chen.** The fictional executive used in Reimagine's demo mode. A VP of Talent Acquisition in healthcare with 15 years of experience.
 
-**STAR (Situation, Thinking, Action, Result).** The interview story framework Reimagine uses in the Playbook. The T stands for *Thinking*, not Tasks — because the most important part of any interview story is how you thought through the problem.
+**STAR (Situation, Thinking, Action, Result).** The interview story framework Reimagine uses in the Playbook. The T stands for *Thinking*, not Tasks. Because the most important part of any interview story is how you thought through the problem.
 
 **System prompt.** The instructions Reimagine sends to Claude with each generation. You do not interact with it directly. It contains the voice rules and methodology that make Reimagine sound like itself.
 
@@ -70,7 +70,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Wide View.** The first step in Phase 2. The full landscape of role options across the three paths, generated from your Phase 1 outputs and your location and work preferences.
 
-**Wiring & Compass.** The second step in Phase 1. How you are wired, where you thrive, and what lights you up — drawn from your assessment, values, and accomplishments.
+**Wiring & Compass.** The second step in Phase 1. How you are wired, where you thrive, and what lights you up. Drawn from your assessment, values, and accomplishments.
 
 **Work That Matters.** One of the three paths in the Wide View. The Ikigai path, for people ready for more meaning in their work or at a stage where legacy matters more than maximizing comp.
 

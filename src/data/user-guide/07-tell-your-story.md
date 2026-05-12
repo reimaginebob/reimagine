@@ -1,10 +1,10 @@
-# 7. Phase 3 — Tell Your Story
+# 7. Phase 3. Tell Your Story
 
 This phase has one step, and it carries more weight than its size suggests: your **Bridge Story**.
 
 "Tell me about yourself" is the first question in almost every meaningful professional conversation. A first phone call with a recruiter. The opening 30 seconds of an interview. A networking introduction at a conference. A cold meeting with someone who agreed to give you 20 minutes. The answer you give in those 30 seconds sets the tone for everything that follows.
 
-Most people give a version of the same answer they have given for years — a chronological recap of their career, starting with their current title and walking backwards. That answer is forgettable. It is also, increasingly, exactly what large language models produce when you ask them to summarize a resume. It does not differentiate you, because it could describe a thousand other senior professionals.
+The most common answer is a chronological recap of the career, starting with the current title and walking backwards. That answer is forgettable. It is also, increasingly, exactly what large language models produce when you ask them to summarize a resume. It does not differentiate you, because it could describe a thousand other senior professionals.
 
 The Bridge Story uses a different formula. It connects who you are *as a person* to what you have *done* to where you are *headed*. When all three parts connect, the listener walks away thinking "of course that is what they should do next." That is the conversation you want.
 
@@ -16,7 +16,7 @@ Reimagine writes your complete 30-second answer to "tell me about yourself," tai
 
 The output is built on a three-part formula that comes from *Making Your Own Weather*:
 
-1. **Start personal.** Before career, function, or resume. Something true about you as a person — a value, a passion, a pattern. Not a job title. The opening line is what makes you the one person in the conversation they remember.
+1. **Start personal.** Before career, function, or resume. Something true about you as a person. A value, a passion, a pattern. Not a job title. The opening line is what makes you the one person in the conversation they remember.
 2. **How that played out professionally.** Two or three specific accomplishments connected to who you are, framed as money made, money saved, or risk mitigated, with numbers. Not a chronological walk through your jobs.
 3. **Where you are headed.** Why your chosen direction is the natural next chapter, not a career change.
 
@@ -43,7 +43,7 @@ What you are actually trying to internalize is the three-part formula:
 2. **How that has played out in your career.** Two or three accomplishments that exist *because* of who you are, framed as money made, money saved, or risk mitigated.
 3. **Therefore, what you are looking for.** Why your next chapter is the natural extension of those first two parts.
 
-Once those three building blocks are alive in your head, you can land them in your own words, in any order that fits the moment, in 30 seconds or 90 seconds or whatever the conversation actually opens up. That is how a real Bridge Story works in the wild — not as a recital, but as three ideas you are comfortable enough with to assemble on the fly.
+Once those three building blocks are alive in your head, you can land them in your own words, in any order that fits the moment, in 30 seconds or 90 seconds or whatever the conversation actually opens up. That is how a real Bridge Story works in the wild. Not as a recital, but as three ideas you are comfortable enough with to assemble on the fly.
 
 The output Reimagine generates is a worked example of those three parts hanging together for *you*. Read it the way you would read a good speech you admire: not to memorize the words, but to notice how the parts fit and to make the underlying logic yours.
 
@@ -63,7 +63,7 @@ A weak opening sounds like:
 
 The first one starts with the human and pivots into the career. The second one starts with the credential. If your story opens with "I am a [title] with [number] years of experience," that is the most important thing to refine.
 
-**Check the middle.** The accomplishments should not list jobs in order. They should connect back to the personal opening — *because* you are the person who figures out what is broken, you walked into companies where the sales engine was broken and built it. The "because" is the connective tissue. If the middle reads as separate from the opening, refine.
+**Check the middle.** The accomplishments should not list jobs in order. They should connect back to the personal opening. *because* you are the person who figures out what is broken, you walked into companies where the sales engine was broken and built it. The "because" is the connective tissue. If the middle reads as separate from the opening, refine.
 
 **Check the close.** The last 5 or 10 seconds should make the next move feel inevitable, not aspirational. "I am looking for a CRO role at a mission-driven career services platform because I have already built this from scratch once, and I want to do it at a scale where it reaches thousands of people instead of hundreds" lands. "I am exploring opportunities where I can leverage my experience" does not.
 
@@ -71,7 +71,7 @@ The first one starts with the human and pivots into the career. The second one s
 
 ## How to refine
 
-This is a story you will use in real conversations, so refine it freely. The microphone button is in the refine box too — talking through what feels off is often easier than typing it, and it tends to produce better feedback for Reimagine to act on.
+This is a story you will use in real conversations, so refine it freely. The microphone button is in the refine box too. Talking through what feels off is often easier than typing it, and it tends to produce better feedback for Reimagine to act on.
 
 Refinement patterns:
 
@@ -86,7 +86,7 @@ Refinement patterns:
 - "The accomplishments are described in the language of my old industry. Translate them into language a healthcare CEO would understand."
 
 **The close is weak:**
-- "The ending feels too big — 'I want to change the industry.' Make it more measured."
+- "The ending feels too big. 'I want to change the industry.' Make it more measured."
 - "Connect the close more tightly to the opening. Right now they read as two different stories."
 
 **Words you would not say:**
@@ -107,8 +107,8 @@ Spending an extra five minutes refining the Bridge Story until it really sounds 
 
 ## When you are happy with it
 
-Click **Find My Market** to advance to Phase 4. If something still feels off later — say, you read your LinkedIn copy in Phase 5 and the opening line does not sound right — you can come back here, refine the Bridge Story, and let the LinkedIn step regenerate. Chapter 12 covers how.
+Click **Find My Market** to advance to Phase 4. If something still feels off later. Say, you read your LinkedIn copy in Phase 5 and the opening line does not sound right. You can come back here, refine the Bridge Story, and let the LinkedIn step regenerate. Chapter 12 covers how.
 
 ---
 
-*Next: [Phase 4 — Find Your Market →](08-find-your-market.md)*
+*Next: [Phase 4. Find Your Market →](08-find-your-market.md)*

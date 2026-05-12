@@ -5,6 +5,7 @@ import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./
 import { testProfile } from "./testData"
 import Chat from "./components/Chat"
 
+// voice-allow
 const SYS = `You are a Career Strategist within Reimagine, a career strategy tool by Career Club, built on Making Your Own Weather by Bob Goodwin.
 
 WHAT THIS IS:
@@ -89,6 +90,7 @@ VOICE:
 - Never name internal frameworks in the output. Just do what they describe.
 - Lead with what IS. Refuse logic-flip cadence in every output. Banned constructions include "it's not X, it's Y," "you do not just X, you Y," "you build X, not Y," "this is not a Z, it is a W," "they are not evaluating A, they are picturing B," and any close that pivots through a negation to land its point. Rewrite from the positive side. Examples of the rewrite: instead of "You do not just hit quota, you build coalitions that last," write "You build coalitions that last. Quota follows." Instead of "You build coalitions, not transactions," write "You build coalitions. That is the unit of your work." Instead of "You do not sell to people, you enroll them," write "You enroll the people you sell with. Enrollment is the move."
 - No preachy comparisons. Stay focused on THIS person and what is true about THEM.
+- No comparison framing. Never write "Most people do X, you do Y" or "Most professionals do X, but you do Y" or similar. This is a flattery pattern dressed as observation. Rewrite either from the second person addressed directly to the reader ("You probably see one or two obvious next steps"), or from the positive side without a comparison ("This step maps a wider landscape of options"), or from factual evidence with a source. Banned examples: "Most people take assessments and file them away." "Most people see one or two obvious next steps." "When someone asks what do you do, most people default to a job title." Good rewrites: "This step puts your assessment to work." "This step maps a wider landscape of options." "When someone asks what do you do, you want a better answer than your job title."
 - Titles and specifics are useful. The output is for real conversations.
 - Be positive and relevant, always.
 - Write in a natural, human voice. Avoid AI words: "exactly," "straightforward," "unlock," "leverage," "utilize," "robust," "seamless," "game-changer," "architecting," "ecosystem," "synergy," "talent intelligence," "platform" (metaphorical), "space" (meaning industry), "deliberate transition," "deliberate pivot," "intentional pivot," "thoughtful pivot," "navigate" (metaphorical), "journey" (metaphorical), "transformative," "impactful," "passionate about," "results-driven," "results-oriented," "proven track record," "dynamic," "strategic" (when used as filler), "innovative," "best-in-class," "world-class," "next-level," "moving the needle," "north star," "true north," "lean in," "lean into," "double down," "circle back," "table stakes," "low-hanging fruit," "bandwidth," "drink from the firehose."
@@ -100,6 +102,7 @@ VOICE:
 - Every sentence carries its own weight. If removing it would not weaken the section, remove it.
 - Use bold text and bullet points to pull out key learnings and make content scannable. Lead with the bold insight, follow with the supporting detail. Dense paragraphs lose people. When you have three or more related points, bullet them.
 - In Quick Takeaway sections, always bold the key finding or recommendation so it jumps off the page.`
+// voice-allow-end
 
 const C = {
   bg:'#F7F8FA',panel:'#FFFFFF',card:'#FFFFFF',input:'#F3F4F6',
@@ -151,6 +154,7 @@ function MD({text}){
   })}</div>
 }
 
+// voice-allow
 const P={
   p1:(pr)=>`Analyze this resume for career strategy. Location: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''}. Work preference: ${pr.loc.work}.\n\nRESUME:\n${pr.resume}\n\nSTART your response with:\n## QUICK TAKEAWAY\n3-4 sentences: where this person sits in the market, their biggest asset, and the one thing that makes their background distinctive. Plain language, no headers inside this section.\n\nThen continue with the full analysis:\n\n## WHERE YOU SIT\nHighest responsibility held, complexity/pace of environments, industries, seniority baseline. Write as a single flowing paragraph.\n\n## TRANSLATED ACCOMPLISHMENTS\nExtract 5–7 strongest. For each accomplishment, write 2-3 concise sentences maximum:\n- **Bold the headline**: one sentence that restates the accomplishment as made money / saved money / mitigated risk with the specific numbers.\n- **The insight**: one sentence on what makes this accomplishment portable (the HOW, not the WHAT). What skill or approach would translate to a different company or industry?\n- If a key number is missing, add one short parenthetical suggesting what to quantify.\n\nDo NOT retell the person's career history. They know what they did. Your job is to surface the insight they cannot see: why this accomplishment matters to someone who was not there, and what it proves about how they think and operate. Keep it tight. If a paragraph is more than 3 sentences, it is too long.`,
   p2:(pr,o1)=>`Building on resume analysis, sharing three additional data layers. CRITICAL: Write in second person ("you," "your") throughout. Never use third person or the person's name.\n\nPRIOR ANALYSIS: ${o1}\n\nASSESSMENT (${pr.assessType||'provided'}): ${pr.assess||'None'}\nVALUES: ${pr.values}\nPASSIONS: ${pr.passions}\n\nSTART your response with:\n## QUICK TAKEAWAY\n3-4 sentences: how this person is wired, the environment where they do their best work, and the connection between their passions and professional strengths. Plain language, no headers inside this section.\n\nThen continue with the full analysis:\n\n## HOW YOU GET THINGS DONE\nCross-reference what the assessment reveals about how this person works with their Translated Accomplishments. Show the connection between wiring and results. Write one focused paragraph, not a catalog. Name 2-3 connections, not every possible one.\n\n## WHERE YOU THRIVE\nCulture, pace, structure, and environment where this person does their best work. One paragraph. Be specific and concrete: name the type of environment, not abstract qualities.\n\n## WHAT LIGHTS YOU UP\nConfirm passions and causes registered, note immediate patterns between passions and professional strengths. Keep it to one paragraph. Do not retell what they already told you. Surface the insight about why their passions connect to their professional strengths.`,
@@ -185,6 +189,7 @@ VOICE: Write the stories in first person as if coaching the person on how to tel
   op:(pr,outs,sel,jd)=>`Build a playbook for this specific opportunity, weaving in the user's foundation work. The user has completed their full Reimagine journey and chose this path: **${sel||'their target direction'}**.\n\nJOB DESCRIPTION (uploaded or pasted by the user):\n${jd}\n\nUSER'S FOUNDATION WORK:\nRESUME ANALYSIS: ${outs.p1||''}\nWIRING & COMPASS: ${outs.p2||''}\nBRAND SYNTHESIS: ${outs.p3||''}\nBRIDGE STORY: ${outs.p6?outs.p6.substring(0,2000):''}\nGO-TO-MARKET (excerpt): ${outs.p7?outs.p7.substring(0,1500):''}\n\nSTART your response with:\n## QUICK TAKEAWAY\n4 to 5 sentences: how well this opportunity aligns with the user's chosen path, the strongest reason to pursue it, the single biggest watch-out, and the one action to take this week if they decide to move on it. Plain language, no headers inside this section.\n\nThen produce the full playbook in this exact order, with the exact section headers shown:\n\n## 1. ALIGNMENT TO YOUR PATH\nLead with the on-thesis or off-thesis read. If this role does not match the path the user chose, say so plainly and explain why. Do not block or warn them away. Coach, do not gatekeep. They decide whether to pursue.\n\n## 2. WHY THIS COULD BE A FIT\n2 to 3 paragraphs grounded in specific evidence from their Wiring, Brand Synthesis, and prior wins. Name the capabilities and the proof points. Concrete, not abstract.\n\n## 3. WHAT TO WATCH OUT FOR\nWhere the role stretches the user past their proven track record. Where the JD might be overselling. Be direct. The user is going to read this and use it to prepare; they need the watch-outs more than the cheerleading.\n\n## 4. THE MOST IMPORTANT SIGNALS IN THIS JD\nIdentify 4 to 6 things in the posting that carry real weight. Everything else is secondary. State each in one sentence and explain why it matters.\n\n## 5. WHAT THE HIRING MANAGER IS SOLVING FOR\nRead the JD as evidence of an underlying problem. Infer from industry, company size, title altitude, and what the posting emphasizes and omits. The user reading this should know what conversation the hiring manager actually wants to have.\n\n## 6. TAILORED FRAMING OF YOUR BRAND SYNTHESIS\nForeground the proof points and angles from the user's Brand Synthesis that carry the most weight for THIS role. Do not rewrite the synthesis. Pick what to emphasize. 3 to 5 specific framing moves with one-line rationale each.\n\n## 7. REMIXED STAR STORIES\nBuild exactly 3 STAR stories remixed for this specific opportunity. T stands for Thinking, not Tasks. The remixing concept: the user already has core stories from their experience; this section selects three and re-emphasizes them for the questions this role's interview cycle is most likely to ask. Use this exact structure for each:\n\n### STORY [NUMBER]: [Short descriptive title]\n**Best for answering:** [2 to 3 specific interview questions this story handles well]\n\n**Situation:** 2 to 3 sentences setting the scene.\n\n**Thinking:** 3 to 4 sentences on how the user diagnosed the situation, what options they weighed, and why they chose the path they chose. Reference a named framework if applicable. This is the most important section because it shows how the user thinks, which is what transfers.\n\n**Action:** 2 to 3 sentences. What they actually did. Specific verbs, no "led the initiative" filler.\n\n**Result:** 1 to 2 sentences. The quantifiable outcome. Bold the key metric.\n\n**Strengthen This Story:** 2 to 3 specific questions that would make this story stronger if answered.\n\n## 8. GETTING PAST THE SCREENING INTERVIEW\nThe first conversation in most hiring processes is a 30-minute screening with a recruiter, HR partner, or initial point of contact. The bar is "do not get screened out" rather than "demonstrate depth." The recruiter is filtering for clear fit, clean fundamentals, and reasons to advance the candidate to the hiring manager.\n\nIdentify the 4 to 5 things this person should land cleanly in that conversation:\n\n- The 1 to 2 accomplishments that translate immediately when stated simply with numbers. Pick ones a recruiter without domain expertise can grasp in one sentence.\n- A clear, one-line answer to "why this role" grounded in the user's actual capability and interest, not in flattery toward the company.\n- A clear, one-line answer to "why now" that connects to their current chapter without over-explaining.\n- One signal of culture fit specific to this company without over-pitching.\n- One question they should ask the recruiter that signals seriousness and gives the recruiter ammunition to advocate for them with the hiring manager.\n\nNote: in many processes the screening interview is also a low-key culture screen. Generic energy gets discounted. Specific curiosity about the company's work and an authentic version of the user's working style land better.\n\n## 9. LIKELY OBJECTIONS AND REBUTTALS\nWhat resistance the user's profile creates against this specific role, and how to handle it grounded in their actual experience. 3 to 5 objections, each with a rebuttal that does not over-promise or under-acknowledge.\n\n## 10. DRAFT 90-DAY PLAN\nA defensible starting position the user can refine through the interview process. Three phases (first 30, 31-60, 61-90 days), each with 3 to 4 specific actions tied to the responsibilities in the JD. Not the final answer. Framed as a starting position, not a deliverable.\n\n## 11. HIGH-VALUE QUESTIONS TO ASK\n5 to 7 questions specific to this JD's stated and implied scope. Questions that signal seniority and engagement, not generic interview questions. Each question should connect to something in the JD or in what was inferred about the company.\n\n## 12. BRIDGE STORY VARIANT\nThe user's 30-second TMAY answer, tuned to this opportunity. Keep the same three-part structure from p6 (human truth, professional proof, next chapter), but emphasize the elements most relevant to this JD. No labels in the spoken version. Write it as it should be spoken.\n\n## 13. COVER LETTER DRAFT\nA written counterpart to the bridge story. Same voice rules as the cold outreach in p7 (direct, peer-to-peer, no HR-formula). 3 paragraphs. Senior outreach posture: this is positioning work, not form-filling.\n\nCRITICAL VOICE AND METHODOLOGY RULES:\n- All standard Reimagine voice rules apply: second person, no em dashes, no AI words, no intensifiers, no logic-flips, no staccato drama, no "nightmare," no exposed framework names for KEEL, the 4 C's, the three paths, or balcony/basement.\n- STAR is the exception to "no framework names." Name it openly with T = Thinking framing. The remixing concept (DJ has core tracks, every interview is a different set) is also named openly because it is the methodology.\n- Mirror enforcement: surface misfit actively. Especially in sections 1, 3, and 9. Cheerleading defeats the purpose.\n- Coach, do not gatekeep. When the role is off-thesis, say so plainly and explain why, then let the user decide.\n- Tailored framing means foregrounding existing material. It does not mean regenerating the Brand Synthesis or Wiring. Those stay stable across all opportunities the user evaluates.\n- Refuse confident claims about anything not in the JD or supportable from general knowledge of the industry, company size, and altitude. Sparse JDs produce sparser output, not invented detail.`,
   income:(pr,outs,sel)=>`You are building an Income Now plan for this professional. They are pursuing: **${sel}** as their longer-term goal and need income during the transition.\n\nPROFILE: ${outs.p1}\n${outs.p2}\n${outs.p3}\nPASSIONS: ${pr.passions}\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\n\nSTART your response with:\n## QUICK TAKEAWAY\n4-5 sentences: the fastest path to income for this person, the single best platform to start on and why, a realistic rate range, and the one thing to do in the next 48 hours. Plain language, no headers inside this section.\n\nThen continue with the full plan:\n\nFRAMING: Income Now lives in Familiar Ground, the senior, modernized version of what this person already does well. They do not need to reinvent themselves. They need to package what they know and make it easy for buyers to find and hire them quickly.\n\nPITCH PRINCIPLE: People buy painkillers, not vitamins. They act when something is hurting. Every service description and outreach message should name a real problem the buyer is living with right now. Lead with the pain. Follow with how this person fixes it. Close with what it costs. The buyer does not care about titles or tenure. They care whether their problem goes away.\n\n**PART 1, WHERE TO SHOW UP:** Based on their specific background, identify 4-6 marketplaces and channels where this person can get in front of paying clients quickly. Think beyond the obvious. There are specialist platforms for nearly every senior function. Match these to their actual background.\n\nExamples by function: HR/talent/people leader: Catalant, Business Talent Group, Bolste, Learnerbly. Finance executive: Toptal Finance, Graphite, CFO Alliance, Paro. Tech/product executive: Toptal, Arc, Expert360, Gun.io. Marketing/brand/growth: GrowthMentor, Credo, Mayple, Expert360. Strategy/general management: Catalant, Business Talent Group, Umbrex. Sales/revenue leader: Bravado, Toptal, Sales Talent Agency. Board-ready executive: Boardlist, OnBoard, Bolste. Career/coaching/talent development: Coach.me, Clarity.fm, Maven, LinkedIn Services, direct outreach.\n\nFor each: platform name, why it fits this specific person, type of work available, realistic rate range, and the single first step to get listed or active.\n\n**PART 2, YOUR CONSULTING PRESENCE:** Write ready-to-use copy this person can use across any of the platforms above or in direct outreach. Everything should be framed around buyer pain, not seller biography.\n\n- Positioning headline (under 100 characters, names the problem, not the person's background)\n- Bio (150 words, first person, opens with the pain the buyer has, closes with a specific outcome this person has delivered)\n- 4 specific service offerings. For each: a problem-first title (e.g. "When your best people are leaving and you don't know why" not "Retention Consulting"), the specific buyer, what the engagement includes, the outcome framed as money made/saved/risk removed, and price at senior market rates ($300-$500/hour advisory, $1,000-$3,000 for a defined deliverable, $4,000-$10,000 for a strategic engagement)\n- One outreach message: sentence 1 names the pain, sentences 2-3 connect one specific result from their background to that pain, sentence 4 asks for 15 minutes as a peer conversation. Plain language. No buzzwords.\n\n**PART 3, FRACTIONAL PITCH:** One paragraph for cold LinkedIn or email. Same pain-first structure. Names the business problem, explains how they fix it, states cost and how to engage.\n\n**PART 4, PASSION-ADJACENT OPPORTUNITIES:** 3 specific engagements at the intersection of their professional skills and stated passions that could generate income within 60 days. For each: the service, the buyer, why this person is credible to them, price, and one action to take this week.\n\n**PART 5, THE ONE SHEET:** Problem-first throughout. Sections: The Problem I Solve (2 sentences), How I Help (3 service bullets with prices), Who I Work With, What Happens When We Work Together (2-3 outcomes as made money/saved money/mitigated risk), How to Start (rates, availability, contact).\n\n**PART 6, FIRST 48 HOURS:** Exactly what to do in the next two days to have a profile live or an outreach message sent. Specific steps only.\n\nTone: direct and practical. Write everything as if it will be used today.`
 }
+// voice-allow-end
 
 const PHASES=[
   {id:0,label:'Orientation',color:'#8A9BB8',steps:['welcome','location','resume','assessment','values','reputation']},
@@ -321,11 +326,11 @@ const ATTITUDE_QUOTES=[
 ]
 
 const STEP_QUOTES = {
-  // Phase 1: Know Your Value — self-knowledge, convictions, clarity
+  // Phase 1: Know Your Value , self-knowledge, convictions, clarity
   p1: [
     "The self-knowledge you build here is the foundation everything else rests on.",
     "When you try to be all things to all potential employers, you end up in the junk drawer of their mind. A junk drawer is full of perfectly useful objects. None of it has a designated place, so none of it gets found when someone goes looking for something specific.",
-    "What is actually, genuinely, demonstrably true about you — the things that would still be true if you stripped away your title, your company, your income, and your job description. This is the DNA of your personal brand. It has to be discovered from the inside.",
+    "What is actually, genuinely, demonstrably true about you: the things that would still be true if you stripped away your title, your company, your income, and your job description. This is the DNA of your personal brand. It has to be discovered from the inside.",
     "Clarity is the wisdom of knowing what to say yes to and knowing what to say no to.",
     "Your track record is your receipts. Your documented history of doing the work and getting results.",
     "The language of business is numbers. Financial statements are numbers. Board presentations are numbers. When companies make decisions, they reach for data.",
@@ -336,22 +341,22 @@ const STEP_QUOTES = {
     "You cannot manufacture confidence without the convictions underneath it.",
     "Having a strong background and being able to communicate it effectively are two different skills, and the gap between them is where most searches quietly stall.",
   ],
-  // Phase 1 continued: p2 — assessment cross-reference
+  // Phase 1 continued: p2 , assessment cross-reference
   p2: [
-    "When you know your natural wiring specifically enough to name it, something shifts in how you talk about your work. You can explain not just what you accomplished but why you were the person who accomplished it.",
+    "When you know your natural wiring specifically enough to name it, something shifts in how you talk about your work. You can explain what you accomplished and why you were the person who accomplished it.",
     "Your reputation is the external reflection of your convictions. It is some of the most powerful evidence you have, because it did not come from you.",
     "You need to be able to answer two questions clearly, specifically, and without hesitation. What are you looking for? And why you?",
   ],
-  // Phase 1 continued: p3 — pattern synthesis
+  // Phase 1 continued: p3 , pattern synthesis
   p3: [
     "When you believe, you make me believe. That is the whole thing.",
-    "You are not the problem. Getting the message right, directing it at the right companies, generating enough activity — these are the variables.",
+    "You are not the problem. Getting the message right, directing it at the right companies, generating enough activity: these are the variables.",
   ],
-  // Phase 2: Explore Options — opportunity landscape
+  // Phase 2: Explore Options , opportunity landscape
   p4: [
-    "There is not one perfect job out there for you. There are many good jobs for you — roles where your values, your strengths, your track record, and your genuine curiosity would combine into something that works.",
+    "There is not one perfect job out there for you. There are many good jobs for you: roles where your values, your strengths, your track record, and your genuine curiosity would combine into something that works.",
     "The worst outcome in a job search is taking the wrong job.",
-    "What feels like risk — bringing a real piece of yourself into the conversation — is what creates the differentiation that actually gets the offer.",
+    "What feels like risk (bringing a real piece of yourself into the conversation) is what creates the differentiation that actually gets the offer.",
     "You cannot build a pipeline by waiting for Requests for Proposals. A job posting is an RFP. Your resume is your RFP response. You submit it and then you hope and pray.",
     "Change creates need. Need creates opportunity. When you find those signals and connect them to your value proposition, you are no longer a cold outreach. You are a well-timed conversation.",
     "Choices equal leverage. Build the pipeline and keep it full.",
@@ -360,7 +365,7 @@ const STEP_QUOTES = {
     "They do not ultimately care what you did at your last company for its own sake. They care about whether what you did there is relevant to what they are trying to accomplish here. Your job is to build that bridge.",
     "Julie sent it to the general info inbox on the Contact Us page. They did not have a role for what Julie did. They created one for her.",
   ],
-  // Phase 2 continued: p5 — deep dive
+  // Phase 2 continued: p5 , deep dive
   p5: [
     "Specificity is what makes an answer feel real rather than rehearsed.",
     "Sometimes we have to slow down to hurry up.",
@@ -368,16 +373,16 @@ const STEP_QUOTES = {
     "When a resume is built well, it functions as the discussion guide for the conversation you want to have. Your bullets are not just a record of what you did. They are engineered to generate the specific questions you want to answer.",
     "The sole purpose of a resume is to get you past the first screen. That is its job. Not to get you the offer. Not to tell your whole story. Its one job is to get you the interview.",
   ],
-  // Phase 3: Tell Your Story — bridge story, TMAY
+  // Phase 3: Tell Your Story , bridge story, TMAY
   p6: [
     "They are hiring your brain. Not your resume. Not your list of previous employers. Your brain. They want to understand how you approach problems, what you notice that other people overlook, and why the choices you make are the choices you make.",
     "Practice does not make perfect. Practice makes habits. If you rehearse the wrong version of your story, you become very good at telling it wrong. What you need is perfect practice.",
     "Preparation becomes poise. Poise becomes composure. And composure is that quality of grounded confidence that people feel before they can articulate why.",
     "The goal is not a performance. Not a memorized script. A depth of preparation that lets you be present in the room and respond naturally.",
   ],
-  // Phase 4: Find Your Market — networking, outreach, companies
+  // Phase 4: Find Your Market , networking, outreach, companies
   p7: [
-    "Your job search is a team sport. The people around you — if you let them in — will help carry you.",
+    "Your job search is a team sport. The people around you, if you let them in, will help carry you.",
     "You are entering not with your hand out but with your hand up, volunteering to help. That shift in posture changes everything.",
     "A networking conversation is an exchange, not a charity transaction. Walk in like it.",
     "The worst that can happen is nothing. You are already not working at that company. You cannot be rejected from a job that was never posted.",
@@ -385,17 +390,17 @@ const STEP_QUOTES = {
     "Do not do this alone. The camaraderie, shared ideas, networking access, and accountability that come from being in community will fuel your search in ways that going it solo simply cannot.",
     "The outreach IS the interview. When you reach out with a researched, personalized, thoughtful note, you are demonstrating in real time that you are a proactive, self-starting, initiative-taking person.",
   ],
-  // Phase 5: Get Ready — LinkedIn refresh
+  // Phase 5: Get Ready , LinkedIn refresh
   p8: [
     "Your personal brand cannot be designed from the outside. It has to be discovered from the inside.",
     "Your reputation is the external reflection of your convictions. It is some of the most powerful evidence you have, because it did not come from you.",
   ],
-  // Phase 5: Get Ready — resume refresh
+  // Phase 5: Get Ready , resume refresh
   p_res: [
     "The sole purpose of a resume is to get you past the first screen. That is its job. Not to get you the offer. Not to tell your whole story. Its one job is to get you the interview.",
     "When a resume is built well, it functions as the discussion guide for the conversation you want to have. Your bullets are engineered to generate the specific questions you want to answer.",
   ],
-  // Phase 5: Get Ready — playbook + interview prep + negotiation (HEAVIEST — 3 parallel API calls)
+  // Phase 5: Get Ready , playbook + interview prep + negotiation (HEAVIEST , 3 parallel API calls)
   p9: [
     "Preparation becomes poise. Poise becomes composure. And composure is that quality of grounded confidence that people feel before they can articulate why.",
     "The goal is not a performance. Not a memorized script. A depth of preparation that lets you be present in the room and respond naturally.",
@@ -419,7 +424,7 @@ const STEP_QUOTES = {
   ],
 }
 
-const MYOW_ATTR = '— Making Your Own Weather (available on Amazon)'
+const MYOW_ATTR = 'From Making Your Own Weather (available on Amazon)'
 
 const shuffleArr = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]] } return a }
 
@@ -485,7 +490,7 @@ const LOADING_PREVIEWS = {
   p1: [
     'A clear-eyed read on where you sit in the market right now',
     'Five to seven of your strongest accomplishments, rewritten so they travel beyond the company where you did them',
-    'What you bring that most people in your peer group do not, in language you can use in a conversation tomorrow',
+    'What you bring that is distinctive in your peer group, in language you can use in a conversation tomorrow',
   ],
   p2: [
     'How you make decisions, where your energy comes from, and where it drains',
@@ -721,13 +726,13 @@ function Sidebar({step,done,onNav,isDemo}){return <div style={{width:260,backgro
 const DEMO_TOUR=[
   {step:'welcome',title:'Meet Sarah Chen',desc:''},
   {step:'p1',title:'Step 1: Know Your Value',desc:'Your experience has created more value than most resumes show. This step finds it and puts it in language any industry understands.'},
-  {step:'p2',title:'Step 2: Wiring & Compass',desc:'Most people take assessments and file them away. This step connects how you\'re wired to the work you do best and the environment where you thrive.'},
-  {step:'p3',title:'Step 3: Brand Synthesis',desc:'When someone asks "what do you do," most people default to a job title. This step gives you a better answer: what you do, why you are good at it, and how they produce meaningful outcomes.'},
-  {step:'p4',title:'Step 4: The Wide View',desc:'Most people see one or two obvious next steps. This step maps out a wider landscape of options for you to consider.'},
+  {step:'p2',title:'Step 2: Wiring & Compass',desc:'This step connects how you are wired to the work you do best and the environment where you thrive.'},
+  {step:'p3',title:'Step 3: Brand Synthesis',desc:'When someone asks "what do you do," you want a better answer than your job title. This step builds it: what you do, why you are good at it, and what your work produces.'},
+  {step:'p4',title:'Step 4: The Wide View',desc:'This step maps a wider landscape of options to consider, organized into three deliberate paths with specific roles in each.'},
   {step:'p5',title:'Step 5: The Deep Dive',desc:'It\'s easy to get excited about an option on paper. This step shows what the role actually looks like and how your background maps to it.'},
   {step:'decision',title:'Step 6: Sarah\'s Decision',desc:'Having multiple strong options is a good problem to have. This is the moment you choose a direction and everything starts pointing the same way.'},
   {step:'p6',title:'Step 7: Bridge Story',desc:'"Tell me about yourself" is the first question in every interview, and a great 30-second answer sets the tone for the entire conversation.'},
-  {step:'p7',title:'Step 8: Go-to-Market',desc:'Most people start their search on job boards, waiting for the right posting to appear. The best opportunities are filled through relationships before a posting ever goes live.'},
+  {step:'p7',title:'Step 8: Go-to-Market',desc:'The best opportunities are filled through relationships before a posting ever goes live. This step builds your list of target companies and the people inside them.'},
   {step:'p8',title:'Step 9: LinkedIn Remix',desc:'Your LinkedIn profile is how companies and recruiters find you. If it still describes your last role, the right people can\'t find you for the next one.'},
   {step:'p_res',title:'Step 10: Resume Refresh',desc:'The people reading your resume now are looking for different signals than the ones who hired you last time.'},
   {step:'p9',title:'Step 11: Your Playbook',desc:'When you know the language, the players, and what is happening right now, you walk into every conversation like you belong there.'},
@@ -914,7 +919,7 @@ export default function PivotEngine(){
     const firstName=name?name.split(' ')[0].toLowerCase():(signupForm.firstName?signupForm.firstName.trim().toLowerCase():'reimagine')
     const stepNames={p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'Wide View',p5:'Deep Dive',p6:'Bridge Story / Tell Me About Yourself',p7:'Go-To-Market',p8:'LinkedIn Refresh',p_res:'Resume Refresh',p9:'Playbook & Interview Prep & Negotiation',income:'Income Now',op:'Live Opportunity Playbook'}
     const sections=Object.entries(stepNames).filter(([k])=>outputs[k]&&outputs[k].trim()).map(([k,n])=>`## ${n}\n\n${outputs[k]}`).join('\n\n---\n\n')
-    const md=`# Reimagine — ${name||'Your Career Strategy'}\n\n*Generated ${today}*\n\n---\n\n${sections}\n`
+    const md=`# Reimagine: ${name||'Your Career Strategy'}\n\n*Generated ${today}*\n\n---\n\n${sections}\n`
     const blob=new Blob([md],{type:'text/markdown'})
     const url=URL.createObjectURL(blob)
     const a=document.createElement('a')
@@ -1128,7 +1133,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={S.field}><label style={S.label}>City or Metro <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label><input style={S.inp} value={profile.loc.city} onChange={e=>loc('city',e.target.value)} placeholder="e.g. Chicago, Greater London, Munich metro"/></div>
         <div style={S.field}><label style={S.label}>Work Arrangement <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(select all that apply)</span></label>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            {['Fully remote — location is no constraint','Hybrid — within commuting distance of home base','On-site — open to commuting daily','Open to relocation — willing to move for the right opportunity','Open to relocation with conditions'].map(opt=>{
+            {['Fully remote (location is no constraint)','Hybrid (within commuting distance of home base)','On-site (open to commuting daily)','Open to relocation (willing to move for the right opportunity)','Open to relocation with conditions'].map(opt=>{
               const cur=Array.isArray(profile.loc.work)?profile.loc.work:[]
               const checked=cur.includes(opt)
               return <label key={opt} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:checked?`${C.gold}14`:C.input,border:`1.5px solid ${checked?C.gold:C.border}`,borderRadius:8,cursor:'pointer',transition:'all 0.15s'}}>
@@ -1170,10 +1175,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
           {[['Already have CliftonStrengths?','Upload or paste below'],['DiSC, MBTI, Hogan, PI?','Any format works'],['Something else?','We can read it']].map(([n,l])=><div key={n} style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:'8px 12px'}}><div style={{fontWeight:600,color:C.cream,fontSize:12,marginBottom:1}}>{n}</div><div style={{fontSize:11,color:C.gray}}>{l}</div></div>)}
         </div>
-        <FileUpload label="Upload Assessment (any format)" hint="Hogan, PI, MBTI, Enneagram — anything works" fileName={profile.assessFile} onFile={async f=>{pr('assessFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('assess',t)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
+        <FileUpload label="Upload Assessment (any format)" hint="Hogan, PI, MBTI, Enneagram. Anything works." fileName={profile.assessFile} onFile={async f=>{pr('assessFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('assess',t)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
         {fileLoading&&<Loading msg="Reading file…"/>}
         <div style={S.field}><label style={S.label}>Assessment Type</label><select style={S.sel} value={profile.assessType} onChange={e=>pr('assessType',e.target.value)}><option value="">Select…</option><option>Affintus</option><option>CliftonStrengths</option><option>DiSC</option><option>Myers-Briggs (MBTI)</option><option>Hogan</option><option>Predictive Index</option><option>Enneagram</option><option>Other</option></select></div>
-        <div style={S.field}><label style={S.label}>Or paste results here</label><textarea ref={assessRef} style={{...S.ta,minHeight:130}} value={profile.assess} onChange={e=>pr('assess',e.target.value)} placeholder="Paste assessment results — any format works. More detail = more personalized output."/></div>
+        <div style={S.field}><label style={S.label}>Or paste results here</label><textarea ref={assessRef} style={{...S.ta,minHeight:130}} value={profile.assess} onChange={e=>pr('assess',e.target.value)} placeholder="Paste assessment results. Any format works; more detail produces more personalized output."/></div>
         <div style={{fontSize:13,color:'#8A9BB8',fontStyle:'italic',lineHeight:1.65,marginTop:-4,marginBottom:10}}>Have more than one assessment? Paste each one into the field above, separated by a divider line like === CliftonStrengths === or === Hogan ===. Reimagine reads everything between the dividers and synthesizes across all of them.</div>
         <div><Btn secondary small onClick={()=>{const cur=profile.assess||'';const div='\n\n=== Next assessment (rename this label) ===\n\n';const next=cur+div;pr('assess',next);setTimeout(()=>{if(assessRef.current){assessRef.current.focus();assessRef.current.setSelectionRange(next.length,next.length)}},50)}}>+ Add another assessment</Btn></div>
       </div>
@@ -1239,7 +1244,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'p2':return <div>
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
       <h1 style={S.title}>Wiring & Compass</h1>
-      {!isDemo&&<p style={S.sub}>Most people take assessments and file them away. This step connects how you're wired to the work you do best and the environment where you thrive.</p>}
+      {!isDemo&&<p style={S.sub}>This step connects how you are wired to the work you do best and the environment where you thrive.</p>}
       {!isDemo&&!outputs.p2&&!loading&&<Btn onClick={()=>generate('p2',()=>P.p2(pc,outputs.p1))}><Sparkles size={14}/>Analyze My Wiring</Btn>}
       {loading&&<Loading msg="Cross-referencing assessment, values, and accomplishments…" step="p2"/>}
       {outputs.p2&&<>
@@ -1256,10 +1261,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
       <h1 style={S.title}>Brand Synthesis</h1>
-      {!isDemo&&<p style={S.sub}>When someone asks "what do you do," most people default to a job title. This step gives you a better answer: a clear statement of what you do, why you are good at it, and how they work together to produce meaningful outcomes.</p>}
+      {!isDemo&&<p style={S.sub}>When someone asks "what do you do," you want a better answer than your job title. This step builds it: a clear statement of what you do, why you are good at it, and how they work together to produce meaningful outcomes.</p>}
       {!isDemo&&!outputs.p3&&!loading&&p3Intro&&(()=>{
         const cards=[
-          {icon:<Fingerprint size={34} color={C.gold}/>,name:'The Golden Thread',desc:'The single consistent theme that runs through your accomplishments, how you are wired, and what others say about you. This is the throughline most people cannot see in themselves.'},
+          {icon:<Fingerprint size={34} color={C.gold}/>,name:'The Golden Thread',desc:'The single consistent theme that runs through your accomplishments, how you are wired, and what others say about you. This is the throughline you cannot easily see in yourself because you are too close to it.'},
           {icon:<MessageCircle size={34} color={C.gold}/>,name:'Your Personal Brand',desc:'A clear, two-sentence statement of what you do and why your combination is distinctive. The answer to "what do you do" that actually makes people lean in.'},
           {icon:<Puzzle size={34} color={C.gold}/>,name:'Your Value Proposition',desc:'The specific capabilities that set you apart, each backed by proof from your track record. Not a list of skills, a map of what you bring and the evidence that it works.'}
         ]
@@ -1305,7 +1310,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         const pathCards=[
           {icon:<Heart size={34} color="#C8924A"/>,name:'Work That Matters',desc:'Built on the Japanese concept of Ikigai, the intersection of what you love, what you are good at, what the world needs, and what you can be paid for. These roles stretch beyond your current title, grounded in who you actually are and what gives your work meaning.'},
           {icon:<Network size={34} color="#C8924A"/>,name:'Industry Insider',desc:'You know your industry from the inside. These options map the full ecosystem around your experience: clients, vendors, consultants, adjacent players, where your insider knowledge is a real competitive advantage.'},
-          {icon:<Briefcase size={34} color="#C8924A"/>,name:'Familiar Ground',desc:'Same function, same or adjacent industry, bigger scope. Your track record speaks immediately here. The key is showing you are the forward-looking candidate, not just the experienced one.'}
+          {icon:<Briefcase size={34} color="#C8924A"/>,name:'Familiar Ground',desc:'Same function, same or adjacent industry, bigger scope. Your track record speaks immediately here. The key is showing you are the forward-looking candidate, with the experience to back it up.'}
         ]
         return <div style={{maxWidth:820,margin:'0 auto'}}>
           <div style={{textAlign:'center',marginBottom:40}}>
@@ -1593,7 +1598,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 3 · Tell Your Story</div>}
       <h1 style={S.title}>Your Bridge Story</h1>
-      {!isDemo&&<p style={S.sub}>"Tell me about yourself" is the first question in every interview, and most people struggle with it. Three versions that connect where you've been to where you're heading.</p>}
+      {!isDemo&&<p style={S.sub}>"Tell me about yourself" is the first question in every interview. Three versions of your answer that connect where you have been to where you are heading.</p>}
       <div style={S.note}>Pursuing: <strong style={{color:C.cream}}>{chosen}</strong></div>
       {!isDemo&&!outputs.p6&&!loading&&p6Intro&&(()=>{
         const cards=[
@@ -1816,7 +1821,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{display:'grid',gridTemplateColumns:'1fr',gap:18,marginBottom:32}}>
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:'24px 28px'}}>
               <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}><Lightbulb size={34} color={C.gold}/><span style={{fontSize:22,fontWeight:700,color:C.cream}}>T = Thinking, Not Tasks</span></div>
-              <p style={{fontSize:17,color:C.gray,lineHeight:1.65,margin:0}}>Most people tell STAR stories as Situation, Task, Action, Result. We replace Task with Thinking, because the employer is hiring your brain. How you diagnosed the situation, what options you considered, what framework you used to decide. That is what transfers to the new role.</p>
+              <p style={{fontSize:17,color:C.gray,lineHeight:1.65,margin:0}}>STAR stories are usually told as Situation, Task, Action, Result. Reimagine replaces Task with Thinking, because the employer is hiring your brain. How you diagnosed the situation, what options you considered, what framework you used to decide. That is what transfers to the new role.</p>
             </div>
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:'24px 28px'}}>
               <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}><Puzzle size={34} color={C.gold}/><span style={{fontSize:22,fontWeight:700,color:C.cream}}>The Remix</span></div>

@@ -1,16 +1,16 @@
-# 5. Phase 1 — Know Your Value
+# 5. Phase 1. Know Your Value
 
-This is the foundation phase. Everything you generate later in the journey — your bridge story, your target companies, your outreach, your LinkedIn, your resume refresh, your playbook — is built on what comes out of Phase 1. If the foundation is sharp, everything downstream is sharp. If the foundation is generic, the whole journey carries that around.
+This is the foundation phase. Everything you generate later in the journey. Your bridge story, your target companies, your outreach, your LinkedIn, your resume refresh, your playbook. Is built on what comes out of Phase 1. If the foundation is sharp, everything downstream is sharp. If the foundation is generic, the whole journey carries that around.
 
 Plan to spend more time here than on any other phase. Read the outputs carefully. Refine where they do not yet sound like you. The 15 extra minutes you spend in Phase 1 saves an hour of refining in Phases 3 through 5.
 
 The phase has three steps, in order:
 
-1. **Resume Analysis** — what your track record actually proves about you
-2. **Wiring & Compass** — how you are wired and where you do your best work
-3. **Brand Synthesis** — your golden thread, your personal brand, and your value proposition
+1. **Resume Analysis**. What your track record actually proves about you
+2. **Wiring & Compass**. How you are wired and where you do your best work
+3. **Brand Synthesis**. Your golden thread, your personal brand, and your value proposition
 
-Each step builds on the one before it. You can navigate back to any step using the sidebar, but you cannot skip ahead — the next step uses the previous step's output as input.
+Each step builds on the one before it. You can navigate back to any step using the sidebar, but you cannot skip ahead. The next step uses the previous step's output as input.
 
 ## Step 1.1: Resume Analysis
 
@@ -18,7 +18,7 @@ Each step builds on the one before it. You can navigate back to any step using t
 
 Reimagine reads your resume and translates your accomplishments out of the language of your past industry into the language any industry understands: **money made, money saved, or risk mitigated**, with numbers attached. Those are the three business imperatives every senior hiring conversation eventually comes back to. If your accomplishments are not yet framed that way, this step does it for you.
 
-It also surfaces what your track record proves about *how* you work — the patterns and skills that travel with you to a different role, a different industry, or a different kind of company. Most people undersell the portable parts of their experience because they describe their past work in the vocabulary of their last employer. This step pulls the portable insight out of the industry-specific language.
+It also surfaces what your track record proves about *how* you work. The patterns and skills that travel with you to a different role, a different industry, or a different kind of company. The portable parts of your experience are easy to undersell because you describe your past work in the vocabulary of your last employer. This step pulls the portable insight out of the industry-specific language.
 
 ### On the screen
 
@@ -29,8 +29,8 @@ You will see an **Analyze My Resume** button. Click it. The analysis takes about
 ### What you will get back
 
 - **Quick Takeaway.** Three or four sentences at the top: where you sit in the market, your biggest asset, and what makes your background distinctive. This is the section to read first.
-- **Where You Sit.** Your seniority baseline and the kinds of environments you operate in best — the complexity, pace, and scale you are credible for.
-- **Translated Accomplishments.** Your strongest five to seven accomplishments. Each one has a **bolded headline** restating the accomplishment as money made, saved, or risk reduced, with the specific numbers. Below the headline, one sentence on what makes the accomplishment *portable* — what skill or approach would translate to a different company or industry. Where a key number is missing from your resume, Reimagine will flag what to quantify.
+- **Where You Sit.** Your seniority baseline and the kinds of environments you operate in best. The complexity, pace, and scale you are credible for.
+- **Translated Accomplishments.** Your strongest five to seven accomplishments. Each one has a **bolded headline** restating the accomplishment as money made, saved, or risk reduced, with the specific numbers. Below the headline, one sentence on what makes the accomplishment *portable*. What skill or approach would translate to a different company or industry. Where a key number is missing from your resume, Reimagine will flag what to quantify.
 
 The full analysis is collapsed by default behind a **Click here for a deeper understanding** button below the Quick Takeaway. Open it to see the full breakdown.
 
@@ -38,21 +38,21 @@ The full analysis is collapsed by default behind a **Click here for a deeper und
 
 Use these checks as you read:
 
-- **The Quick Takeaway should make you nod.** Not "wow, that's poetic" — just "yes, that's accurate." If you are reading it skeptically, that is a signal to refine.
+- **The Quick Takeaway should make you nod.** Not "wow, that's poetic". Just "yes, that's accurate." If you are reading it skeptically, that is a signal to refine.
 - **The Translated Accomplishments should reframe at least one thing.** A good output makes you say "I never thought of that as a money-saved accomplishment, but it is." If every entry just restates what was on your resume in slightly different words, refine for sharper translation.
 - **The portability sentences should travel.** Each accomplishment's "what makes this portable" should describe a skill a hiring manager in a *different* industry would still want. If the portability sentence is industry-specific, it is doing the wrong job.
 - **The seniority should match.** If the analysis describes a more junior or more senior version of you than what your resume reflects, refine.
 
 ### How to refine
 
-Below the output, expand the **Want to make changes?** box. Tell Reimagine what to adjust, then click **Update with my changes**. The microphone button is here too — speak instead of typing if it is easier.
+Below the output, expand the **Want to make changes?** box. Tell Reimagine what to adjust, then click **Update with my changes**. The microphone button is here too. Speak instead of typing if it is easier.
 
 Refinement patterns that work well:
 
 - **Add missing accomplishments.** "You missed leading the SAP migration in 2022. Budget was $4.2M, delivered three months early." Concrete details produce concrete output.
 - **Correct seniority.** "The seniority level feels too junior. I had P&L responsibility for the last six years and a team of 200 reporting up." Be specific about what was missed.
 - **Reframe the angle.** "You read me as a finance leader but my last three roles were operations leadership with finance underneath. Reframe with operations as the lead skill."
-- **Add context that is not on the resume.** "I led the integration after the Acme acquisition — that's not on the resume because we kept it quiet at the time."
+- **Add context that is not on the resume.** "I led the integration after the Acme acquisition. That's not on the resume because we kept it quiet at the time."
 
 Use **Start fresh** if you want to clear your feedback and regenerate from scratch.
 
@@ -77,13 +77,13 @@ Click **Analyze My Wiring**. About a minute to generate.
 ### What you will get back
 
 - **Quick Takeaway.** Three or four sentences: how you are wired, the environment where you do your best work, and the connection between your passions and your professional strengths.
-- **How You Get Things Done.** The two or three most useful connections between your wiring and your track record. This section is selective on purpose — Reimagine names the connections that actually matter, not every possible one.
+- **How You Get Things Done.** The two or three most useful connections between your wiring and your track record. This section is selective on purpose. Reimagine names the connections that actually matter, not every possible one.
 - **Where You Thrive.** The culture, pace, structure, and environment where you do your best work. Specific and concrete, not a list of abstract qualities.
-- **What Lights You Up.** Confirmation of the passions and causes you registered, plus the patterns between those passions and your professional strengths. This is often the section that surprises people most — Reimagine sees connections between things you do for fun and things you do well at work that you may not have made yourself.
+- **What Lights You Up.** Confirmation of the passions and causes you registered, plus the patterns between those passions and your professional strengths. This is often the section that surprises people most. Reimagine sees connections between things you do for fun and things you do well at work that you may not have made yourself.
 
 ### What good looks like
 
-- **"Where You Thrive" should describe a real place.** It should name the type of environment, not abstract qualities. "A founder-led company in a regulated industry where you have direct access to decision-makers" is doing its job. "A collaborative, fast-paced environment" is not — that describes everywhere.
+- **"Where You Thrive" should describe a real place.** It should name the type of environment, not abstract qualities. "A founder-led company in a regulated industry where you have direct access to decision-makers" is doing its job. "A collaborative, fast-paced environment" is not. That describes everywhere.
 - **"What Lights You Up" should make a connection you did not make yourself.** If it just restates the passions you typed in, that is a refine. The point of this section is to show you the through-line between your hobbies, your causes, and your professional strengths.
 - **"How You Get Things Done" should not be a feature list.** It should be a few specific patterns, each tied to evidence. If it reads like a personality assessment summary, refine for more specificity.
 
@@ -93,10 +93,10 @@ Same pattern as Resume Analysis. Open the refine box, type or speak what to adju
 
 Refinement patterns:
 
-- "I actually thrive in fast-paced environments — the description of where I work best feels too slow."
+- "I actually thrive in fast-paced environments. The description of where I work best feels too slow."
 - "My passion for mentoring is stronger than what's shown. It has been the through-line of my last three roles."
 - "The culture description doesn't match me. I work best in less hierarchical environments than this implies."
-- "Connect the volunteer work to my professional strengths — I think there's a pattern there you missed."
+- "Connect the volunteer work to my professional strengths. I think there's a pattern there you missed."
 
 ### When you are happy with it
 
@@ -108,13 +108,13 @@ This is the most important step in the journey. Read this section carefully befo
 
 ### What this step does
 
-Brand Synthesis takes the two analyses you just generated, plus your reputation inputs, and produces a single clear professional identity. It distills three layers of data — what you have done, how you are wired, and what others see in you — into the answer to "what do you do, and why are you good at it."
+Brand Synthesis takes the two analyses you just generated, plus your reputation inputs, and produces a single clear professional identity. It distills three layers of data. What you have done, how you are wired, and what others see in you. Into the answer to "what do you do, and why are you good at it."
 
 Three things come out of this step, and you will use all three for the rest of the journey:
 
-1. **The Golden Thread.** The single consistent theme that runs through your accomplishments, your wiring, and your reputation. Most people cannot see this in themselves because they are too close to it. Reimagine names it for you.
+1. **The Golden Thread.** The single consistent theme that runs through your accomplishments, your wiring, and your reputation. You cannot easily see this in yourself because you are too close to it. Reimagine names it for you.
 2. **Your Personal Brand.** A two-sentence statement of what you do and why your combination is distinctive. This is the answer to "what do you do" that makes someone lean in instead of glaze over. It becomes the spine of your Bridge Story in Phase 3 and the opening of your LinkedIn About section in Phase 5.
-3. **Your Value Proposition.** Four to six capabilities, each named in plain human language, each backed by specific proof points from your career. Not a list of skills — a map of what you bring and the evidence that it works. This is what fuels your interview answers, your outreach, and your resume refresh.
+3. **Your Value Proposition.** Four to six capabilities, each named in plain human language, each backed by specific proof points from your career. Not a list of skills. A map of what you bring and the evidence that it works. This is what fuels your interview answers, your outreach, and your resume refresh.
 
 ### On the screen
 
@@ -124,9 +124,9 @@ Before generating, you will see an introduction screen that walks through the th
 
 The Quick Takeaway summarizes the Golden Thread and gives you the Personal Brand. Below that, the full breakdown:
 
-- **The Golden Thread** — written as a flowing paragraph, naming the pattern.
-- **Your Personal Brand** — two sentences, with the second sentence formatted in bold so it is easy to find later.
-- **Your Value Proposition** — each capability is its own block, with a **Capability** line stating the human quality and a nested **Proof** line listing the business outcomes that demonstrate it. Capability and Proof are kept separate on purpose: one names the trait, the other names the result.
+- **The Golden Thread**. Written as a flowing paragraph, naming the pattern.
+- **Your Personal Brand**. Two sentences, with the second sentence formatted in bold so it is easy to find later.
+- **Your Value Proposition**. Each capability is its own block, with a **Capability** line stating the human quality and a nested **Proof** line listing the business outcomes that demonstrate it. Capability and Proof are kept separate on purpose: one names the trait, the other names the result.
 
 ### What good looks like
 
@@ -136,7 +136,7 @@ This is the step worth spending the most time evaluating. Use these tests:
 
 **A strong Personal Brand sounds like:**
 
-> You are the operations leader who walks into broken systems and rebuilds them while the business keeps running. Your work is measured in continuity — the migrations no one noticed, the integrations that did not slow down a single deal, the teams that performed better after the restructure than before.
+> You are the operations leader who walks into broken systems and rebuilds them while the business keeps running. Your work is measured in continuity. The migrations no one noticed, the integrations that did not slow down a single deal, the teams that performed better after the restructure than before.
 
 **A weak Personal Brand sounds like:**
 
@@ -158,12 +158,12 @@ This is the step most worth refining if anything is off. Brand Synthesis flows i
 Common refinements:
 
 - "The Personal Brand doesn't capture my leadership style. I'm more direct than this implies. Try again with a sharper edge."
-- "You missed my strongest capability. I am the person teams call when a relationship is on the verge of breaking — that thread runs through my whole career and isn't here."
+- "You missed my strongest capability. I am the person teams call when a relationship is on the verge of breaking. That thread runs through my whole career and isn't here."
 - "The Golden Thread isn't quite right. The pattern is less about innovation and more about stability under pressure. Try that angle."
 - "The Value Proposition has six entries that all blur together. Cut to the four sharpest, with clearer separation between them."
-- "Make the Personal Brand work without the qualifier in sentence two — it softens the claim too much."
+- "Make the Personal Brand work without the qualifier in sentence two. It softens the claim too much."
 
-Be specific about what is off. "I don't like it" is harder to act on than "the Personal Brand reads as too generic — every other senior operations leader could say the same thing. Make it more specific to my pattern of post-acquisition work."
+Be specific about what is off. "I don't like it" is harder to act on than "the Personal Brand reads as too generic. Every other senior operations leader could say the same thing. Make it more specific to my pattern of post-acquisition work."
 
 ### When you are happy with it
 
@@ -175,4 +175,4 @@ You arrived in Phase 1 with a resume, an assessment, your values, your passions,
 
 ---
 
-*Next: [Phase 2 — Explore Options →](06-explore-options.md)*
+*Next: [Phase 2. Explore Options →](06-explore-options.md)*

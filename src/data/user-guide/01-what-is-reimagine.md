@@ -18,7 +18,7 @@ By the time you finish the journey, you will have:
 
 - A clear statement of your **personal brand** and the value you bring, with proof points from your own track record.
 - A **map of options** across three paths, narrowed down to the direction you choose to pursue.
-- A **bridge story** — your answer to "tell me about yourself" — that connects who you are to where you are headed.
+- A **bridge story**. Your answer to "tell me about yourself". That connects who you are to where you are headed.
 - A **target company list** with hiring decision-makers and personalized outreach you can send today.
 - A **LinkedIn refresh**, a **resume refresh**, and a **playbook** of industry vocabulary, key people to follow, interview prep, and STAR stories.
 - An optional **Income Now** plan if you need revenue while you search.

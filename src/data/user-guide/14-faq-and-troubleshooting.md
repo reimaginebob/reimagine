@@ -29,7 +29,7 @@ Yes. We recommend assessments be no more than three years old. People change, an
 No. Most text fields have a microphone button. Tap it and talk. Reimagine listens and writes what you say into the field.
 
 **My resume is old. Should I update it before I start?**
-If you have time, yes — especially adding numbers to your biggest accomplishments. If you do not, upload what you have. Reimagine will work with it and flag where to add quantification.
+If you have time, yes. Especially adding numbers to your biggest accomplishments. If you do not, upload what you have. Reimagine will work with it and flag where to add quantification.
 
 **What file formats does Reimagine accept?**
 For your resume and your assessment: PDF, Word (.docx), and plain text (.txt). For loading a saved profile: JSON (the file Reimagine itself produced when you exported).
@@ -60,7 +60,7 @@ Most steps take one to two minutes. The Go-to-Market step (Phase 4) and the Inco
 Refresh the page and regenerate the step. If it happens again on the same step, use the refine box to ask for a shorter response and try again.
 
 **I got an error message. What should I do?**
-Refresh the page. Your work is saved. Most errors are transient — usually a network blip or a momentary issue with the language model. If the error persists for the same step, try refining with simpler input ("regenerate without the third option," for example) and try again.
+Refresh the page. Your work is saved. Most errors are transient. Usually a network blip or a momentary issue with the language model. If the error persists for the same step, try refining with simpler input ("regenerate without the third option," for example) and try again.
 
 **The output is in the wrong tone or doesn't sound like me.**
 Use the feedback box. Describe how you want it to sound. Example: "I'm more reserved than this version. Tighter sentences, less storytelling." Then click **Update with my correction**.

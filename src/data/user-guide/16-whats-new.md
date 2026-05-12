@@ -4,7 +4,7 @@ This chapter is a living changelog. When Reimagine ships a batch of changes that
 
 If a release is small or affects only the prompts behind the scenes, it may not show up here at all. The point of this chapter is to flag the changes that would surprise a returning user.
 
-## Current build — May 2026
+## Current build. May 2026
 
 Substantial updates shipped between April 28 and May 11. Returning users will see a more polished tool, a sharper AI voice, new ways to correct mistakes, cross-device sign-in, and a brand new post-Complete module for working a specific opportunity.
 
@@ -57,7 +57,7 @@ Substantial updates shipped between April 28 and May 11. Returning users will se
 - **"Click each role for a deeper read" hint** above the first card in Wide View, so you know the cards are clickable.
 - **"Download all outputs as one markdown file"** button on the Complete page.
 
-### New module — Upload a Live Opportunity
+### New module. Upload a Live Opportunity
 
 After you finish the main journey, a new entry appears in the sidebar: **Upload a Live Opportunity**. When a specific role catches your eye (through your network, on LinkedIn, in a posting you found yourself), bring the job description here. Paste the text or upload a PDF.
 

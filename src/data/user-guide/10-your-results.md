@@ -6,7 +6,7 @@ This chapter walks through what is on that screen and how to use it.
 
 ## What you see when you arrive
 
-A short banner at the top with the line **"You've done the work."** Underneath it, a single sentence: everything below is yours — your identity, your target, your story, your strategy. Come back anytime to review or refine.
+A short banner at the top with the line **"You've done the work."** Underneath it, a single sentence: everything below is yours. Your identity, your target, your story, your strategy. Come back anytime to review or refine.
 
 A **Download My One-Pager (PDF)** button is in the banner. That is the most portable summary of your work. We will come back to it below.
 
@@ -22,7 +22,7 @@ The first thing under the banner is a short feedback form. Five quick questions:
 4. How well did Reimagine capture who you are and what you bring?
 5. Anything we should know? What would make this better? (open-ended)
 
-You can submit it, skip it, or fill it out partially. All questions are optional. Whatever you share goes directly to the team building Reimagine — there is no marketing pipeline behind it. Beta feedback is what shapes the next build, and the open-ended question is the most valuable place to surface anything that bugged you, surprised you, or made you wish for something the tool does not yet do.
+You can submit it, skip it, or fill it out partially. All questions are optional. Whatever you share goes directly to the team building Reimagine. There is no marketing pipeline behind it. Beta feedback is what shapes the next build, and the open-ended question is the most valuable place to surface anything that bugged you, surprised you, or made you wish for something the tool does not yet do.
 
 If you skip the survey, click **No thanks** to dismiss it and continue to your results.
 
@@ -30,23 +30,23 @@ If you skip the survey, click **No thanks** to dismiss it and continue to your r
 
 Below the survey, every output you generated is shown as its own card. Each card has:
 
-- A title — Your Personal Brand, Your Bridge Story, Go-to-Market Strategy, LinkedIn Remix, Resume Refresh, Your Playbook, Income Now (if you generated it).
+- A title. Your Personal Brand, Your Bridge Story, Go-to-Market Strategy, LinkedIn Remix, Resume Refresh, Your Playbook, Income Now (if you generated it).
 - A **Copy** button that copies the full text of that section to your clipboard.
 - A **View** button that takes you to that section's page where you can read it in full and refine it again if you want to.
 
-This is where the journey becomes a working library. Bookmark it. Open it before a coaching call, before an interview, before drafting an email. Each card is one click away from the full output — no need to re-navigate the journey to find what you need.
+This is where the journey becomes a working library. Bookmark it. Open it before a coaching call, before an interview, before drafting an email. Each card is one click away from the full output. No need to re-navigate the journey to find what you need.
 
 ## How to use what is here
 
 Each output has its own purpose. A short field guide:
 
-- **Your Personal Brand** — read this before any conversation where someone is going to ask "what do you do." The two-sentence personal brand and the value proposition behind it are the spine of every other answer.
-- **Your Bridge Story** — read this aloud before a phone screen or an interview. Not to memorize, but to put the three parts (who you are as a human, how that has played out in your career, where you are headed) back into your head.
-- **Go-to-Market Strategy** — your operating manual for the search itself. The hiring executive profile tells you who to reach. The target company list tells you where. The outreach template is your starting draft, personalized per company. (Don't forget: the **Download CSV** button on the Phase 4 screen pulls the company list out as a working spreadsheet — open it in Excel, Google Sheets, or Numbers and run your search from it. Add columns as you go: when you reached out, who you reached out to, what you heard back, what the next step is.)
-- **LinkedIn Remix** — copy the headline you chose into LinkedIn. Copy the About section. Apply the experience reframes. The output stays here for reference; the work happens in your LinkedIn profile.
-- **Resume Refresh** — open your resume document and apply the changes. The summary, the career highlights, the role expansion and compression guidance.
-- **Your Playbook** — review the crash course before networking events in your target space. Review the interview prep before any interview. Review the STAR stories before any conversation that might surface them, and remix them in real time based on who is across the table.
-- **Income Now** — your fastest path to revenue while you search, if you generated it.
+- **Your Personal Brand**. Read this before any conversation where someone is going to ask "what do you do." The two-sentence personal brand and the value proposition behind it are the spine of every other answer.
+- **Your Bridge Story**. Read this aloud before a phone screen or an interview. Not to memorize, but to put the three parts (who you are as a human, how that has played out in your career, where you are headed) back into your head.
+- **Go-to-Market Strategy**. Your operating manual for the search itself. The hiring executive profile tells you who to reach. The target company list tells you where. The outreach template is your starting draft, personalized per company. (Don't forget: the **Download CSV** button on the Phase 4 screen pulls the company list out as a working spreadsheet. Open it in Excel, Google Sheets, or Numbers and run your search from it. Add columns as you go: when you reached out, who you reached out to, what you heard back, what the next step is.)
+- **LinkedIn Remix**. Copy the headline you chose into LinkedIn. Copy the About section. Apply the experience reframes. The output stays here for reference; the work happens in your LinkedIn profile.
+- **Resume Refresh**. Open your resume document and apply the changes. The summary, the career highlights, the role expansion and compression guidance.
+- **Your Playbook**. Review the crash course before networking events in your target space. Review the interview prep before any interview. Review the STAR stories before any conversation that might surface them, and remix them in real time based on who is across the table.
+- **Income Now**. Your fastest path to revenue while you search, if you generated it.
 
 ## Your progress is saved across devices
 
@@ -72,7 +72,7 @@ Near the bottom of the screen, a section labeled **Your Deliverables**. Three bu
 
 - **Download One-Pager (PDF)**. The clean printable summary of your work. Includes your personal brand, your value proposition, your bridge story, and your target direction. It is designed to be readable in 60 seconds. Use it to share your story with a recruiter, a coach, or a contact in your network you would like to refer you. The same button is also in the banner at the top of the screen.
 - **Download All Outputs as Markdown**. The complete record of every generated section, in one markdown file you can open in any text editor or convert to PDF. Useful when you want a working document of everything Reimagine produced for you to reference offline.
-- **Start a New Session**. Resets everything and takes you back to the welcome screen. Use this if you want to run a fresh full journey from scratch — for example, with a different professional identity. Be careful: it clears your saved progress. If you want to keep the current session, download the markdown first.
+- **Start a New Session**. Resets everything and takes you back to the welcome screen. Use this if you want to run a fresh full journey from scratch. For example, with a different professional identity. Be careful: it clears your saved progress. If you want to keep the current session, download the markdown first.
 
 ## Turn your one-pager into a podcast about you
 
@@ -80,7 +80,7 @@ Here is one of the more interesting things users do with the PDF, and it is more
 
 It is a little bit fun. It is also surprisingly useful. There is something about hearing someone else talk about you that is validating in ways reading the same words on a page cannot match. When the hosts react to a specific accomplishment, or call out something that makes your combination distinctive, you get an unexpected outside perspective on the brand you just built. That perspective tends to land in a way that paper does not.
 
-A few minutes to set up. A few minutes of audio to listen back. Most people who try it once are surprised by how grounding it feels — the moment Reimagine's output stops being words on a page and starts feeling like a story you can carry into a room.
+A few minutes to set up. A few minutes of audio to listen back. Most people who try it once are surprised by how grounding it feels. The moment Reimagine's output stops being words on a page and starts feeling like a story you can carry into a room.
 
 ## How to come back to your results
 
@@ -90,8 +90,8 @@ Some users come back to the Complete screen daily during an active search. Other
 
 ## When to come back to refine
 
-Even after you reach the Complete screen, the journey is not closed. If you have a conversation that surfaces something new — a project you forgot to mention, a passion you should have flagged, a refined direction — you can navigate back to the relevant step in the sidebar, refine your input, and regenerate from there. Chapter 12 covers the mechanics. The Complete screen is the destination, not the end.
+Even after you reach the Complete screen, the journey is not closed. If you have a conversation that surfaces something new. A project you forgot to mention, a passion you should have flagged, a refined direction. You can navigate back to the relevant step in the sidebar, refine your input, and regenerate from there. Chapter 12 covers the mechanics. The Complete screen is the destination, not the end.
 
 ---
 
-*Next: [Bonus — Income Now →](11-income-now.md)*
+*Next: [Bonus. Income Now →](11-income-now.md)*
