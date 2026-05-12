@@ -71,8 +71,8 @@ Tell it in the feedback box. Example: "My time at MoneyGram was internal strateg
 **The Bridge Story or LinkedIn copy uses words I would never say.**
 Refine. Examples: "Don't use the word 'unlock.' Don't use 'leverage.' Don't use phrases like 'not just X but Y.' I would not say any of those." Reimagine will adjust.
 
-**I want to explore a different direction after I committed.**
-Click **Your Decision** in the sidebar. Pick a different option or type a new one. Then click forward through Phases 3, 4, and 5 regenerating each step. Chapter 12 covers this in detail.
+**I want to explore a different direction after I picked one.**
+Click **Your Focus** in the sidebar. Pick a different option or type a new one. Then click forward through Phases 3, 4, and 5 regenerating each step. Chapter 12 covers this in detail.
 
 **I want a different mix of options in the Wide View.**
 Use the refine box on the Wide View. Examples: "Add more startups." "Remove consulting roles." "Show me more in healthtech." Click **Update my options**.

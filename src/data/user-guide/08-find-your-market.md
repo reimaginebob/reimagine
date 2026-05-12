@@ -39,7 +39,9 @@ It produces four things:
 
 ## On the screen
 
-Before generating, an introduction screen explains the three pieces. Click **Build My Strategy** to generate. This step uses live web research and is the most thorough generation in the journey. Expect two to three minutes.
+The Phase 4 entry screen opens with an in-app framing card titled "A brand new lane to pursue." It captures, in shorter form, the same point this chapter makes at length: LinkedIn and job boards put you in a queue with everyone else; recruiters and referrals require someone else to act first; direct outreach is the path of agency. Read it if you want a punchier version of the case for this approach.
+
+Click **Build My Strategy** to generate. This step uses live web research and is the most thorough generation in the journey: expect two to three minutes.
 
 [screenshot: the loading screen with the message "Building your go-to-market strategy with live research..."]
 

@@ -1,12 +1,22 @@
 # 11. Bonus. Income Now
 
-This is a bonus module. It is not part of the main journey, and you do not have to use it. But if you need revenue while you search, this module turns your existing expertise into income paths you can start this week.
+When money gets tight, the temptation is to take whatever pays the bills. Reimagine has a different idea.
+
+Income Now turns the same expertise that makes you valuable for a permanent role into income you can start generating right now: consulting, gig work, fractional engagements. Real money, from your real skills, while you keep searching for the right full-time fit.
+
+## More than bridge income
+
+Income Now is most often used as a bridge to keep income flowing during a search. It also does several other things just as well:
+
+- **A foot in the door.** A fractional engagement often turns into a permanent role at the same company once they see what you bring.
+- **A path you did not see coming.** Some people start fractional work because they need income and discover it is what they actually want to be doing.
+- **A credential-builder.** Six months of consulting in a new sector can be the experience that qualifies you for the full-time role you originally wanted.
+
+Use it for any of those reasons, or all of them.
 
 ## When to use it
 
-If a job search is going to take longer than your runway, having income flowing changes the dynamic completely. You make better decisions when you are choosing rather than settling. The Income Now module is built for that situation.
-
-It is also useful if you are not in financial pressure but want to keep one foot in active work. Through consulting, advisory roles, or fractional engagements. While you search for the right next chapter.
+If a job search is going to take longer than your runway, having income flowing changes the dynamic completely. You make better decisions when you are choosing rather than settling. Even if you are not in financial pressure, keeping one foot in active work (through consulting, advisory, fractional engagements) often shapes what your next permanent chapter ends up being.
 
 ## What this module does
 
@@ -28,7 +38,7 @@ You can access Income Now in two places:
 
 ## On the screen
 
-Before generating, an introduction screen explains the three pillars of the plan: consulting and fractional leadership, bridging the income gap during your search, and turning what you already know into revenue. Click **Build My Income Plan** to generate. This is the most thorough generation in the tool. Expect three to four minutes.
+The Income Now entry screen opens with the same framing this chapter does: "When money gets tight, the temptation is to take whatever pays the bills" plus the four value paths. Read it, then click **Build My Income Plan** to generate. This is the most thorough generation in the tool: expect three to four minutes.
 
 ## What good looks like
 

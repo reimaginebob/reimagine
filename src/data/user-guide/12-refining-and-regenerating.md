@@ -108,7 +108,7 @@ You committed to one direction in Phase 2 and walked through Phases 3, 4, and 5 
 
 The light way: change the chosen direction and regenerate from Phase 3.
 
-1. Click **Your Decision** in the sidebar.
+1. Click **Your Focus** in the sidebar.
 2. Pick a different option, or type a new one in the text field.
 3. Click forward to **Your Bridge Story** and regenerate.
 4. Continue forward through Phases 4 and 5 regenerating each step.

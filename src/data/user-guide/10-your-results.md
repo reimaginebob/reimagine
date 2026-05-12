@@ -6,11 +6,17 @@ This chapter walks through what is on that screen and how to use it.
 
 ## What you see when you arrive
 
-A short banner at the top with the line **"You've done the work."** Underneath it, a single sentence: everything below is yours. Your identity, your target, your story, your strategy. Come back anytime to review or refine.
+A short acknowledgment card at the top: **"You finished the foundation."** Underneath it, the simple recognition that your brand, your bridge story, your target companies, your resume, your LinkedIn, and your playbook are all rooted in who you actually are. That is a substantial amount of career-strategy work.
 
-A **Download My One-Pager (PDF)** button is in the banner. That is the most portable summary of your work. We will come back to it below.
+Below the acknowledgment, three call-out cards in order:
 
-[screenshot: the Complete screen banner with the "You've done the work" header and one-pager download button]
+1. **Pursuing a specific opportunity?** Points to Upload a Live Opportunity in the sidebar for any role you want a tailored playbook for. (Detailed below.)
+2. **Career Club's weekly group coaching call.** Free, every Monday at 12:00 ET. Live Q&A on whatever is going on in your job search. Register link inside the card.
+3. **Go deeper on the methodology.** Reimagine is built on the framework in *Making Your Own Weather* by Bob Goodwin. Link to the book on Amazon.
+
+A small italic line below the three cards mentions Income Now: it turns your existing expertise into consulting or fractional income while you continue the search.
+
+[screenshot: the Complete screen with the acknowledgment header and the three CTA cards]
 
 ## The 60-second feedback survey
 
@@ -54,17 +60,29 @@ A banner reminds you that your work is saved against your account. As long as yo
 
 When you finish the main flow and land on Complete, the progress bar in the header reads 100%.
 
-## The next move: Upload a Live Opportunity
+## Pursuing a specific opportunity
 
-Reimagine adds a gold callout to the Complete screen: **Found a specific role?** When a job posting catches your eye, through your network, on LinkedIn, or in a posting you came across yourself, head to **Upload a Live Opportunity** in the sidebar. Paste the description or upload the PDF. Reimagine combines the posting with everything you have already built and produces a tailored playbook for that specific opportunity. Chapter 11b walks through the module in detail.
+The first CTA card on the Complete screen invites you to bring a job description into Reimagine. When a posting catches your eye (through your network, on LinkedIn, in a posting you came across yourself), head to **Upload a Live Opportunity** in the sidebar. Paste the description or upload the PDF. Reimagine combines the posting with everything you have already built and produces a tailored playbook for that specific opportunity. Chapter 11b walks through the module in detail.
 
 This is the most natural reason to come back to Reimagine during an active search. Every specific role you consider can get its own playbook.
 
-## The Income Now callout
+## Join the weekly coaching call
 
-If you have not yet generated Income Now, you will see a green callout offering it. **Generate My Income Plan** opens that bonus module. It sits alongside Upload a Live Opportunity rather than ahead of it; you can generate Income Now at any point, or skip it entirely. Chapter 11 explains what it produces and when it is worth doing.
+The second CTA card on the Complete screen points to Career Club's weekly group coaching call. Free, every Monday at 12:00 ET, live Q&A on whatever is going on in your job search. The card includes a registration link.
 
-If you have already generated Income Now, the callout is replaced by a card for the plan in the regular results list.
+The call is open to anyone who has used Reimagine. Bring a question, listen to other people work through theirs, or just sit in and learn how other senior professionals are navigating the same search.
+
+## Go deeper with Making Your Own Weather
+
+The third CTA card points to *Making Your Own Weather*, the book by Bob Goodwin that the Reimagine methodology is built on. If anything in the journey resonated and you want the framework spelled out in long form (the philosophy, the structure, the worked examples), the book is the source. Link to Amazon inside the card.
+
+## The Income Now mention
+
+A small italic line below the three CTA cards mentions Income Now: it turns your existing expertise into consulting or fractional income while you continue the search. For some people the bridge becomes the path.
+
+If you have not yet generated Income Now, click into it from the sidebar (or the dedicated "Income Now" entry). Chapter 11 covers what it produces.
+
+If you have already generated Income Now, the result appears as a card in your regular results list.
 
 ## Your Deliverables
 

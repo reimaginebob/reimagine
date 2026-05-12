@@ -37,7 +37,9 @@ Until you finish Complete, the sidebar entry is dimmed and not clickable. The mo
 
 ## On the screen
 
-The intro screen explains what the module is for. Below the intro:
+The intro screen explains what the module is for. A small **What to bring** callout reminds you that Reimagine works best with the actual posting text (not a summary), and that adding your own context about the role makes the playbook sharper. If you know who told you about the role, what they said about the team, why you are interested, or anything about your relationship to the hiring manager, add it to the text field alongside the JD.
+
+Below the intro:
 
 - An option to upload a PDF of the job description
 - A divider
@@ -46,6 +48,16 @@ The intro screen explains what the module is for. Below the intro:
 You can use either. If you upload a PDF, Reimagine extracts the text and shows it in the textarea so you can edit before generating. If you paste, the text goes straight into the textarea.
 
 When you have the JD in place, click **Build My Playbook**. Generation takes two to three minutes because the playbook draws on multiple prior outputs and produces a detailed multi-section response.
+
+## How the output is organized
+
+The thirteen sections in the playbook are grouped into three buckets so you can find what you need fast:
+
+- **Understanding the role:** alignment, stretch, hiring-manager view, likely objections.
+- **Preparing for the conversation:** STAR remix, screening-interview prep, questions to ask, ways to show value.
+- **The deliverables:** bridge story variant, cover letter draft, 90-day plan.
+
+A framing card above the output names these three groups so you can scan to the one you need first.
 
 ## What good looks like
 

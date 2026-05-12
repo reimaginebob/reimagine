@@ -72,7 +72,9 @@ If you skipped the assessment, this section is shorter and more abstract. Reimag
 
 ### On the screen
 
-Click **Analyze My Wiring**. About a minute to generate.
+The first time you reach this step, Reimagine shows a short interstitial framing what comes next: "Phase 1, where the pieces integrate." Take a moment with it. This is often the section where users first see their work history and their wiring as one connected story.
+
+Then click **Analyze My Wiring**. About a minute to generate.
 
 ### What you will get back
 
@@ -118,7 +120,9 @@ Three things come out of this step, and you will use all three for the rest of t
 
 ### On the screen
 
-Before generating, you will see an introduction screen that walks through the three outputs. Read it. Then click **Synthesize My Brand**. About a minute to generate.
+The first time you reach this step, Reimagine shows a short interstitial: "Phase 1, where you find the language." This is where many users first hear themselves described in language they can carry into a conversation. Take a moment with the interstitial before clicking through.
+
+Then click **Synthesize My Brand**. About a minute to generate.
 
 ### What you will get back
 

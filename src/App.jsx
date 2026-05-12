@@ -2106,17 +2106,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,color:'#1A2540',margin:'0 0 12px',fontWeight:700}}>You finished the foundation.</h2>
         <p style={{fontSize:16,color:C.grayL,lineHeight:1.7,margin:0}}>Your brand, your bridge story, your target companies, your resume, your LinkedIn, your playbook. That is a substantial amount of career-strategy work, and it is all rooted in who you actually are.</p>
       </div>}
-      <div style={{background:`linear-gradient(135deg,${C.panel} 0%,${C.card} 100%)`,border:`1px solid ${C.gold}35`,borderRadius:16,padding:'36px',textAlign:'center',marginBottom:22}}>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="260" height="60" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block',margin:'0 auto 16px'}}>
-          <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.18"/>
-          <circle cx="44" cy="60" r="18" fill="#e4572e"/>
-          <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#0e1a2b">Re<tspan fill="#e4572e">imagine</tspan></text>
-        </svg>
-        <h1 style={{...S.title,fontSize:26,textAlign:'center',marginBottom:8}}>You've done the work.</h1>
-        <p style={{fontSize:20,color:C.gray,lineHeight:1.7,maxWidth:500,margin:'0 auto'}}>Everything below is yours: your identity, your target, your story, your strategy. Come back anytime to review or refine.</p>
-        <div style={{marginTop:20,textAlign:'center',display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}><Btn onClick={downloadOnePager}><Download size={14}/>Download My One-Pager (PDF)</Btn><Btn secondary onClick={downloadAllMarkdown}><Download size={14}/>Download All Outputs (Markdown)</Btn></div>
-      </div>
-
       {!isDemo&&<>
         <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,margin:'0 0 16px'}}>
           <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Pursuing a specific opportunity?</h3>
@@ -2223,6 +2212,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:15,color:C.gray,marginBottom:16}}>Take your Reimagine work with you.</div>
           <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
             <Btn onClick={downloadOnePager}><Download size={14}/>Download One-Pager (PDF)</Btn>
+            <Btn secondary onClick={downloadAllMarkdown}><Download size={14}/>Download All Outputs (Markdown)</Btn>
             {!isDemo&&<Btn secondary onClick={reset}><RotateCcw size={14}/>Start a New Session</Btn>}
           </div>
         </div>
@@ -2244,7 +2234,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       return <div>
       {!isDemo&&<div style={S.tag('#C8924A')}>Bonus Module</div>}
       <h1 style={S.title}>Income Now</h1>
-      {!isDemo&&<p style={S.sub}>A job search takes time. Having income flowing while you search changes everything: you make better decisions when you're choosing, not settling.</p>}
       <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>Targeting: <strong>{chosen||'your chosen direction'}</strong></div>
       {incomeCallout}
       {!isDemo&&!outputs.income&&!loading&&incomeIntro&&(()=>{

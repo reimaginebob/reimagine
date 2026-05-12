@@ -74,7 +74,7 @@ The version you came in with was optimized for the role you used to want. The ve
 
 **On the screen.** Click **Build My Playbook** to generate. This is a three-part generation, so it can take three to four minutes.
 
-**What you will get back.** All three sections in one long output. The STAR Stories section also includes a **Remix** subsection that shows how to take your strongest story and shift it for different audiences. A CEO, a CFO, a peer, or a different question entirely.
+**What you will get back.** All three sections in one long output. The STAR Stories section also includes a **Remix** subsection that shows how to take your strongest story and shift it for different audiences (a CEO, a CFO, a peer, or a different question entirely). A small framing card directly above the STAR Stories captures the principle: three core tracks, every interview a different set. Practice the structure, not the words.
 
 **A unique feature in the STAR Stories section: per-story strengthening.** Each story has a textbox below it where you can add details (a number, a budget, a timeline, the framework you used to think through the problem) and a **Regenerate Story** button. This regenerates only that one story with your additions folded in, without touching the other two. Use it to bake in details Reimagine could not see in your resume.
 

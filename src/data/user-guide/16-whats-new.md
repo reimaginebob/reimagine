@@ -70,6 +70,30 @@ This module is the most natural reason to come back to Reimagine during a search
 - **Corrections you submit are logged centrally** so the team can learn which prompts misread which user inputs and tighten them over time.
 - **Documentation alignment.** This guide now stays current with the live tool. When new behavior ships, the relevant chapter gets updated alongside the code change.
 
+### Inline help across the journey
+
+A comprehensive pass adding short coaching blocks at the moments where users benefit from a small nudge or a more thoughtful framing.
+
+- **Phase 0 (Orientation):** a "Take your time" callout on the Welcome screen and a "Good stopping point" note on the phase transition card. Coaching callouts on the Resume, Assessment, Values, and Reputation input steps to help you put in the kind of material that produces strong output. The Reputation step gets a Good/Better worked example for "The Memory" and a collapsible list of where to find source material (old reviews, LinkedIn recommendations, 360 feedback). A small InfoTooltip on the Country field explains why location matters.
+- **Phase 1 (Know Your Value):** brief milestone cards on first arrival at Wiring & Compass ("Phase 1, where the pieces integrate") and Brand Synthesis ("Phase 1, where you find the language"). These are interstitials that build anticipation for what is often the most revealing part of the journey, then resolve to the output. Shown once per user; later visits skip straight to the output. A one-time "What did we get wrong?" callout above the first generated output (Resume Analysis) explains that the correction box accepts factual corrections and cascades them across every later section.
+- **Phase 2 (Explore Options):** a "How this works" intro card on the Wide View entry explains the three paths in concept before the role cards load. A persistent "Selected: N of 3" banner appears on the role-cards screen so you always know where you are. A chevron on each role card signals clickability. Familiar Ground role cards are now grouped under two clearly named sub-paths: **Same Role, Same Industry** and **Similar Role, Different Industry**. The Deep Dive gets a "Three reads to compare" framing. **Your Decision is renamed Your Focus**, with a three-question framework to help you choose when all three options feel viable, and an explicit reassurance that you are not locking it in; you can come back and choose again.
+- **Phase 3 (Tell Your Story):** a "Learn the structure, then make it yours" callout above the generated Bridge Story so you internalize the three pieces rather than memorizing the script.
+- **Phase 4 (Find Your Market):** a new framing card on the entry screen, "A brand new lane to pursue," makes the case for direct outreach as the path of agency before you generate. Above the outreach template inside the output, a "Why reach out before there is a posting?" callout reinforces the same point at the moment of action.
+- **Phase 5 (Get Ready):** a "How to use this playbook" callout above Your Playbook output naming the three parts (Crash Course, Interview Prep, STAR Stories) and how each is used. A dedicated framing card above the STAR Stories section captures the principle of remixing: three core tracks, every interview a different set, practice the structure, not the words. Small italic disclaimers under LinkedIn Remix and Resume Refresh outputs clarify that Reimagine does not modify your actual profile or resume file; you apply the changes yourself.
+- **Complete:** a major rebuild. The page now opens with "You finished the foundation" and three CTAs: Upload a Live Opportunity (for a specific role), Career Club's weekly group coaching call (free, every Monday at 12:00 ET, with a registration link), and *Making Your Own Weather* by Bob Goodwin (the methodology book this is all built on). A small note below points to Income Now.
+- **Upload a Live Opportunity:** a "What to bring" coaching block on the input side encourages you to paste the full posting plus your own context about the role. A "How to use this playbook" callout above the output groups the thirteen sections into three buckets (Understanding the role, Preparing for the conversation, The deliverables) so you can scan to what you need.
+- **Income Now:** the framing has been substantially expanded. Beyond bridge income, the module is also a foot in the door for permanent roles at the same company, a path some people did not see coming, and a credential-builder for the full-time role you originally wanted. The entry screen opens with the empathy-first message "When money gets tight, the temptation is to take whatever pays the bills. Reimagine has a different idea."
+
+### In-app helper chat
+
+A small chat button in the bottom-right corner of every screen opens a conversational helper trained on this user guide. Ask anything about how to use Reimagine and get an answer in your voice context. If the answer involves going somewhere specific in the journey, the chat offers a "Take me to [step] →" button that navigates you there.
+
+The chat pulses with a "Need help?" hint after 90 seconds of inactivity on a step, in case you are stuck and have not thought to ask. Conversation history persists across page reloads and navigation between steps. A "Clear" button in the chat header resets the thread.
+
+### Voice consistency
+
+A behind-the-scenes pass tightened the language across the tool. The user-facing copy and the AI-generated output now hold to a consistent voice: no em dashes, no comparison framing that contrasts most-people against you, no logic-flip cadence (sentences that pivot through a negation to land their point), no AI filler. A build-time guard prevents regression on these patterns going forward.
+
 ## Known limits in this build
 
 - **Multi-JD library is not yet built.** The Upload a Live Opportunity module holds one playbook at a time. Pasting a new JD overwrites the previous playbook. A library that holds many is on the roadmap.

@@ -6,7 +6,7 @@ The phase has three steps:
 
 1. **The Wide View**. A broad map of options across three paths
 2. **The Deep Dive**. Go deep on up to three options that interest you
-3. **Your Decision**. Commit to one direction so the rest of the journey can build around it
+3. **Your Focus**. Pick one direction to focus on so the rest of the journey can build around it
 
 A note on what "decision" means here. Choosing one direction at the end of Phase 2 lets Reimagine build a complete strategy. Story, target list, outreach, LinkedIn, resume, playbook. Focused on that one role. It does not mean that is your only option, or that you cannot change your mind, or that the others are off the table. Phase 11 covers how to come back later and run another option through the rest of the journey in the same depth. The point of the decision is focus, not finality.
 
@@ -112,6 +112,8 @@ When you have your selections, scroll down and click **Go Deeper**.
 
 The Wide View was a wide-angle look at where you could go. The Deep Dive zooms in. Reimagine takes the options you selected and produces a detailed analysis of each, structured the same way for every option so you can compare them side by side.
 
+The next step (Your Focus) asks you to pick one direction. You are not locking it in. The point of focusing is to let Reimagine sharpen everything downstream around one direction; if a different direction starts to feel right later, you can come back and choose again, and the downstream work updates around your new choice.
+
 The point of this step is to turn an option from "interesting on paper" into "concrete enough to evaluate." It is easy to get excited about an option in the Wide View and then realize you do not yet know what the day-to-day looks like or how your background would map. This step closes that gap.
 
 ### Where the analysis comes from
@@ -153,19 +155,21 @@ Examples:
 - "The obstacle you flagged for Option C isn't really a concern for me. I have a path through that already."
 - "All three options have the same Why You Fit reasoning. Differentiate them based on what each role actually needs."
 
-Refine until each option feels concrete enough to make a real decision about. Then advance to the Decision step.
+Refine until each option feels concrete enough to make a real choice about. Then advance to Your Focus.
 
-## Step 2.3: Your Decision
+## Step 2.3: Your Focus
 
 ### What this step does
 
-This is the moment you commit to one direction. Reimagine builds the rest of the journey. Your bridge story, your target companies, your outreach template, your LinkedIn refresh, your resume refresh, and your playbook. Around one chosen direction. Without that focus, the downstream phases would not be able to produce strategy that is specific enough to act on.
+This is the moment you pick one direction to focus on. Reimagine builds the rest of the journey (your bridge story, your target companies, your outreach template, your LinkedIn refresh, your resume refresh, and your playbook) around one chosen direction. Without that focus, the downstream phases would not be able to produce strategy specific enough to act on.
 
-You are not signing a contract with the universe. You are picking the option you want Reimagine to develop into a complete plan first.
+You are not signing a contract with the universe. You are picking the option you want Reimagine to develop into a complete plan first. If a different direction starts to feel right after you see the downstream work, come back here and choose again. Everything updates around your new choice.
 
 ### On the screen
 
-Reimagine displays the options from your Deep Dive. Click the one you are committing to. The selected option shows a checkmark and a gold border.
+Reimagine displays the options from your Deep Dive. Click the one you want to focus on. The selected option shows a checkmark and a gold border.
+
+Reimagine also shows three questions to help you choose when all three options feel viable: which one would you most want to tell people you are pursuing, which one's day-to-day work would you be most ready to do tomorrow morning, and which one has the most credible bridge from where you are now to where it sits. The right answer is usually the one that lights up on the most of those three.
 
 If you want to pursue something different than what was generated. A hybrid of two options, or a refined version of one. You can type your own description in the text field below. For example: "Fractional CMO in B2B SaaS, focused on growth-stage companies." Reimagine will use exactly what you type as the chosen direction for the rest of the journey.
 
@@ -182,13 +186,13 @@ This is not a race. Reimagine is designed for a thoughtful journey toward a chap
 
 You only need one new job. But you can explore as many options as you want.
 
-After you have walked through Phases 3 through 5 with your first pick and seen what a full strategy looks like for that direction, you can come back to this Decision step, choose a different option, and let Reimagine generate everything downstream for that one too. Your Phase 1 work (Brand Synthesis, Wiring & Compass) stays. Your Wide View and Deep Dive stay. Only the parts that depend on your chosen direction get rewritten.
+After you have walked through Phases 3 through 5 with your first pick and seen what a full strategy looks like for that direction, you can come back to Your Focus, choose a different option, and let Reimagine generate everything downstream for that one too. Your Phase 1 work (Brand Synthesis, Wiring & Compass) stays. Your Wide View and Deep Dive stay. Only the parts that depend on your chosen direction get rewritten.
 
 Some users do this twice. Once with their Familiar Ground option, once with their Work That Matters option. To compare what each looks like in full before deciding which one to actually pursue. That is a perfectly good way to use Reimagine. Chapter 12 explains the mechanics.
 
 The tool is designed to open your eyes to what is possible, not to corner you into one answer. The point is to choose your next chapter with confidence, knowing you have seen the field.
 
-### When you have committed
+### When you have picked your focus
 
 Click **Build My Bridge Story** to advance to Phase 3.
 
