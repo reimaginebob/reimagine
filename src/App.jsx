@@ -804,6 +804,8 @@ export default function PivotEngine(){
   const dismissP2Milestone=()=>{try{localStorage.setItem('reimagine_seen_p2_milestone','1')}catch{};setHasSeenP2Milestone(true)}
   const[hasSeenP3Milestone,setHasSeenP3Milestone]=useState(()=>{try{return localStorage.getItem('reimagine_seen_p3_milestone')==='1'}catch{return false}})
   const dismissP3Milestone=()=>{try{localStorage.setItem('reimagine_seen_p3_milestone','1')}catch{};setHasSeenP3Milestone(true)}
+  const[repFiles,setRepFiles]=useState([])
+  const[assessFiles,setAssessFiles]=useState([])
   const setSv=(k,v)=>setSurvey(s=>({...s,[k]:v}))
   const importFileRef=useRef()
   const assessRef=useRef()
@@ -1191,6 +1193,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <p style={S.sub}>Your resume shows what you've done. An assessment shows how you're wired: how you make decisions, what energizes you, and the environments where you do your best work. Without it, we can only work with your track record. With it, we can connect your results to the qualities that produced them, and that's what makes the career options we generate personal.</p>
       <CoachingCallout>
         <strong style={{color:'#1A2540'}}>Highly recommended.</strong> An assessment (Affintus, CliftonStrengths, Hogan, DiSC, MBTI, Enneagram, PI) gives Reimagine the strongest read on how you work, where you thrive, and where to watch out. If you skip this, the Wiring &amp; Compass section gets shorter and more generic, and the Brand Synthesis loses some of its sharpest evidence. Affintus is free and takes about 15 minutes if you do not have one already.
+        <p style={{margin:'8px 0 0',fontStyle:'italic',fontSize:14}}>Have more than one? Upload them all; Reimagine reads each as a distinct source.</p>
       </CoachingCallout>
       <div style={S.card}>
         <div style={{background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:10,padding:'16px 20px',marginBottom:16}}>
@@ -1201,7 +1204,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
           {[['Already have CliftonStrengths?','Upload or paste below'],['DiSC, MBTI, Hogan, PI?','Any format works'],['Something else?','We can read it']].map(([n,l])=><div key={n} style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:'8px 12px'}}><div style={{fontWeight:600,color:C.cream,fontSize:12,marginBottom:1}}>{n}</div><div style={{fontSize:11,color:C.gray}}>{l}</div></div>)}
         </div>
-        <FileUpload label="Upload Assessment (any format)" hint="Hogan, PI, MBTI, Enneagram. Anything works." fileName={profile.assessFile} onFile={async f=>{pr('assessFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('assess',t)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
+        <div style={{marginBottom:16}}>
+          <p style={{fontSize:13,color:C.gray,fontStyle:'italic',margin:'0 0 10px'}}>Affintus, CliftonStrengths, Hogan, DiSC, MBTI, Enneagram, PI. You can upload multiple assessments if you have more than one; each gets added to the text below with a divider line so Reimagine can read them as distinct sources.</p>
+          <FileUpload label="Upload assessment files" hint="PDF, Word, or plain text. Each file gets parsed and added to the text field below." fileName={null} onFile={async f=>{setFileLoading(true);try{const t=await extractText(f);const divider=`\n\n=== ${f.name} ===\n\n`;const existing=profile.assess||'';const updated=(existing.trim()?existing.trim()+divider:divider.trimStart())+t.trim();pr('assess',updated);setAssessFiles(prev=>[...prev,f.name])}catch(e){setErr(`Could not read ${f.name}: ${e.message}`)}finally{setFileLoading(false)}}}/>
+          {assessFiles.length>0&&<div style={{marginTop:12,padding:'10px 14px',background:'#F7F8FA',border:`1px solid ${C.border}`,borderRadius:8,fontSize:14,color:C.grayL}}>
+            <div style={{fontWeight:600,marginBottom:6,color:'#1A2540'}}>Added:</div>
+            <ul style={{margin:0,padding:0,listStyle:'none'}}>
+              {assessFiles.map((name,i)=><li key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 0'}}>
+                <span>{name}</span>
+                <button type="button" onClick={()=>setAssessFiles(prev=>prev.filter((_,j)=>j!==i))} style={{background:'transparent',border:'none',color:C.gray,cursor:'pointer',fontSize:13,padding:'2px 6px',fontFamily:'inherit'}} aria-label={`Remove ${name} from list`}>remove from list</button>
+              </li>)}
+            </ul>
+            <p style={{fontSize:12,color:C.gray,margin:'8px 0 0',fontStyle:'italic'}}>Removing from this list does not delete the file's text from the field below. Edit the text directly if you want to remove its content.</p>
+          </div>}
+        </div>
         {fileLoading&&<Loading msg="Reading file…"/>}
         <div style={S.field}><label style={S.label}>Assessment Type</label><select style={S.sel} value={profile.assessType} onChange={e=>pr('assessType',e.target.value)}><option value="">Select…</option><option>Affintus</option><option>CliftonStrengths</option><option>DiSC</option><option>Myers-Briggs (MBTI)</option><option>Hogan</option><option>Predictive Index</option><option>Enneagram</option><option>Other</option></select></div>
         <div style={S.field}><label style={S.label}>Or paste results here</label><textarea ref={assessRef} style={{...S.ta,minHeight:130}} value={profile.assess} onChange={e=>pr('assess',e.target.value)} placeholder="Paste assessment results. Any format works; more detail produces more personalized output."/></div>
@@ -1258,12 +1274,26 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <li>Specific praise emails or messages you saved</li>
             <li>What your manager said in your last "what makes you valuable" conversation</li>
             <li>What close colleagues or direct reports tell you when you ask</li>
+            <li>Performance reviews, 360 feedback, and LinkedIn recommendations you can upload directly using the control above the Additional Feedback field</li>
           </ul>
           <p style={{margin:'10px 0 0'}}>The phrases other people use to describe you are often more accurate than the ones you use about yourself. The Memory and the Emergency Call do the most work for the analysis that follows, so prioritize those.</p>
         </div>
       </details>
       <div style={S.card}>
-        {[['memory','The Memory',"Think of a specific moment at work when someone thanked you or praised you. What was the situation and what did they say?"],['emergency','The Emergency Call','If your former team had a critical problem right now, what type of situation would they call you to handle?'],['twoWords','The Two Words','If your best former manager described your professional superpower in exactly two words, what would they be?'],['other','Additional Feedback','Performance reviews, LinkedIn recommendations, 360 feedback. Paste anything here.']].map(([f,lbl,hint])=><div key={f} style={S.field}><label style={S.label}>{lbl}</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>{hint}</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea ref={f==='other'?repOtherRef:null} style={{...S.ta,minHeight:f==='other'?90:62,flex:1}} value={profile.rep[f]} onChange={e=>rep(f,e.target.value)}/>{hasSpeech&&<SpeechBtn onResult={t=>rep(f,t)}/>}</div>{f==='other'&&<><div style={{fontSize:13,color:'#8A9BB8',fontStyle:'italic',lineHeight:1.65,marginTop:8}}>Paste anything that gives Reimagine more signal: performance reviews, LinkedIn recommendations, 360 feedback, notes from former managers. A divider line between each source (for example, === LinkedIn recommendations === then the text, then === 2024 performance review === then the text) helps Reimagine attribute what came from where.</div><div style={{marginTop:10}}><Btn secondary small onClick={()=>{const cur=profile.rep.other||'';const div='\n\n=== Source ===\n\n';const next=cur+div;rep('other',next);setTimeout(()=>{if(repOtherRef.current){repOtherRef.current.focus();repOtherRef.current.setSelectionRange(next.length,next.length)}},50)}}>+ Add another source</Btn></div></>}</div>)}
+        {[['memory','The Memory',"Think of a specific moment at work when someone thanked you or praised you. What was the situation and what did they say?"],['emergency','The Emergency Call','If your former team had a critical problem right now, what type of situation would they call you to handle?'],['twoWords','The Two Words','If your best former manager described your professional superpower in exactly two words, what would they be?'],['other','Additional Feedback','Performance reviews, LinkedIn recommendations, 360 feedback. Paste anything here.']].map(([f,lbl,hint])=><div key={f} style={S.field}><label style={S.label}>{lbl}</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>{hint}</div>{f==='other'&&<div style={{marginBottom:14}}>
+          <p style={{fontSize:13,color:C.gray,fontStyle:'italic',margin:'0 0 10px'}}>Old performance reviews, 360 feedback, LinkedIn recommendations as PDFs. You can upload multiple files; each gets added to the text below with a divider line so Reimagine can attribute what came from where.</p>
+          <FileUpload label="Upload feedback files" hint="PDF, Word, or plain text. Each file gets parsed and added to the Additional Feedback field below." fileName={null} onFile={async file=>{setFileLoading(true);try{const t=await extractText(file);const divider=`\n\n=== ${file.name} ===\n\n`;const existing=profile.rep?.other||'';const updated=(existing.trim()?existing.trim()+divider:divider.trimStart())+t.trim();rep('other',updated);setRepFiles(prev=>[...prev,file.name])}catch(e){setErr(`Could not read ${file.name}: ${e.message}`)}finally{setFileLoading(false)}}}/>
+          {repFiles.length>0&&<div style={{marginTop:12,padding:'10px 14px',background:'#F7F8FA',border:`1px solid ${C.border}`,borderRadius:8,fontSize:14,color:C.grayL}}>
+            <div style={{fontWeight:600,marginBottom:6,color:'#1A2540'}}>Added:</div>
+            <ul style={{margin:0,padding:0,listStyle:'none'}}>
+              {repFiles.map((name,i)=><li key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 0'}}>
+                <span>{name}</span>
+                <button type="button" onClick={()=>setRepFiles(prev=>prev.filter((_,j)=>j!==i))} style={{background:'transparent',border:'none',color:C.gray,cursor:'pointer',fontSize:13,padding:'2px 6px',fontFamily:'inherit'}} aria-label={`Remove ${name} from list`}>remove from list</button>
+              </li>)}
+            </ul>
+            <p style={{fontSize:12,color:C.gray,margin:'8px 0 0',fontStyle:'italic'}}>Removing from this list does not delete the file's text from the field below. Edit the text directly if you want to remove its content.</p>
+          </div>}
+        </div>}<div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea ref={f==='other'?repOtherRef:null} style={{...S.ta,minHeight:f==='other'?90:62,flex:1}} value={profile.rep[f]} onChange={e=>rep(f,e.target.value)}/>{hasSpeech&&<SpeechBtn onResult={t=>rep(f,t)}/>}</div>{f==='other'&&<><div style={{fontSize:13,color:'#8A9BB8',fontStyle:'italic',lineHeight:1.65,marginTop:8}}>Paste anything that gives Reimagine more signal: performance reviews, LinkedIn recommendations, 360 feedback, notes from former managers. A divider line between each source (for example, === LinkedIn recommendations === then the text, then === 2024 performance review === then the text) helps Reimagine attribute what came from where.</div><div style={{marginTop:10}}><Btn secondary small onClick={()=>{const cur=profile.rep.other||'';const div='\n\n=== Source ===\n\n';const next=cur+div;rep('other',next);setTimeout(()=>{if(repOtherRef.current){repOtherRef.current.focus();repOtherRef.current.setSelectionRange(next.length,next.length)}},50)}}>+ Add another source</Btn></div></>}</div>)}
         <div style={{fontSize:14,color:C.gray,fontStyle:'italic'}}>If you leave all blank, we'll generate a reputation hypothesis from your other data and ask you to validate it.</div>
       </div>
       <div style={S.row}><Btn secondary onClick={()=>nav('values')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('reputation','orientation-done')}>Begin Phase 1 <ChevronRight size={14}/></Btn></div>
