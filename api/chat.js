@@ -155,11 +155,12 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error('Chat stream read error:', err)
-  } finally {
-    res.end()
   }
 
-  // Best-effort log to chat_messages after the response is fully streamed.
+  // Log BEFORE closing the response so the function instance stays alive long
+  // enough for the insert to finish. Post-res.end() awaits are unreliable on
+  // Vercel serverless: the instance can be torn down the moment the response
+  // closes, dropping the in-flight insert.
   const navMatch = fullText.match(/\n?NAVIGATE:\s*(\w+)\s*$/i)
   const navigateTo = navMatch ? navMatch[1] : null
   const cleanText = navMatch ? fullText.slice(0, navMatch.index).trim() : fullText.trim()
@@ -172,4 +173,6 @@ export default async function handler(req, res) {
   } catch (logErr) {
     console.error('chat_messages insert failed:', logErr)
   }
+
+  res.end()
 }
