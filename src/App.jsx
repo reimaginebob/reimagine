@@ -210,7 +210,7 @@ const S={
   card:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'32px 38px',marginBottom:20,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
   label:{display:'block',fontSize:13,fontWeight:700,color:C.grayL,margin:'0 0 8px',letterSpacing:'1px',textTransform:'uppercase'},
   inp:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 15px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'},
-  ta:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 15px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',resize:'vertical',boxSizing:'border-box',lineHeight:1.6,minHeight:90},
+  ta:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 15px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',resize:'vertical',boxSizing:'border-box',lineHeight:1.6,minHeight:140},
   sel:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 15px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',cursor:'pointer'},
   btn:{background:C.gold,color:C.bg,border:'none',borderRadius:8,padding:'12px 24px',fontSize:17,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
   sec:{background:'transparent',color:C.grayL,border:`1px solid ${C.border}`,borderRadius:8,padding:'11px 20px',fontSize:16,fontWeight:500,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
@@ -1183,7 +1183,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={S.card}>
         <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
         {fileLoading&&<Loading msg="Reading your file…"/>}
-        <div style={S.field}><label style={S.label}>Or paste resume text</label><textarea style={{...S.ta,minHeight:160}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} placeholder="Paste your resume text here…"/></div>
+        <div style={S.field}><label style={S.label}>Or paste resume text</label><textarea style={{...S.ta,minHeight:220}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} placeholder="Paste your resume text here…"/></div>
         {profile.resume&&<div style={{fontSize:14,color:C.ok}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
       </div>
       {err&&<ErrBox msg={err}/>}
@@ -1212,7 +1212,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={S.helperText}>PDF, Word, or plain text. The PDF export from LinkedIn works directly.</p>
         <FileUpload label="Upload LinkedIn profile" hint="The 'Save to PDF' export from your LinkedIn profile page." fileName={profile.linkedinFile} onFile={async f=>{setFileLoading(true);try{const t=await extractText(f);pr('linkedin',t);pr('linkedinFile',f.name);setErr(null)}catch(e){setErr(`Could not read ${f.name}: ${e.message}`)}finally{setFileLoading(false)}}}/>
         {fileLoading&&<Loading msg="Reading your file…"/>}
-        <div style={S.field}><label style={S.label}>Or paste your LinkedIn content here</label><textarea style={{...S.ta,minHeight:130}} value={profile.linkedin||''} onChange={e=>pr('linkedin',e.target.value)} placeholder="Paste your About section, recommendations, or any LinkedIn content you want Reimagine to read. The PDF export above is the easiest path."/></div>
+        <div style={S.field}><label style={S.label}>Or paste your LinkedIn content here</label><textarea style={{...S.ta,minHeight:200}} value={profile.linkedin||''} onChange={e=>pr('linkedin',e.target.value)} placeholder="Paste your About section, recommendations, or any LinkedIn content you want Reimagine to read. The PDF export above is the easiest path."/></div>
         {profile.linkedin&&<div style={{fontSize:14,color:C.ok}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.linkedin.length.toLocaleString()} characters loaded</div>}
       </div>
       {err&&<ErrBox msg={err}/>}
@@ -1258,7 +1258,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
         {fileLoading&&<Loading msg="Reading file…"/>}
         <div style={S.field}><label style={S.label}>Assessment Type</label><select style={S.sel} value={profile.assessType} onChange={e=>pr('assessType',e.target.value)}><option value="">Select…</option><option>Affintus</option><option>CliftonStrengths</option><option>DiSC</option><option>Myers-Briggs (MBTI)</option><option>Hogan</option><option>Predictive Index</option><option>Enneagram</option><option>Other</option></select></div>
-        <div style={S.field}><label style={S.label}>Or paste results here</label><textarea ref={assessRef} style={{...S.ta,minHeight:130}} value={profile.assess} onChange={e=>pr('assess',e.target.value)} placeholder="Paste assessment results. Any format works; more detail produces more personalized output."/></div>
+        <div style={S.field}><label style={S.label}>Or paste results here</label><textarea ref={assessRef} style={{...S.ta,minHeight:200}} value={profile.assess} onChange={e=>pr('assess',e.target.value)} placeholder="Paste assessment results. Any format works; more detail produces more personalized output."/></div>
         <div style={{...S.helperText,marginTop:-4,marginBottom:10}}>Have more than one assessment? Paste each one into the field above, separated by a divider line like === CliftonStrengths === or === Hogan ===. Reimagine reads everything between the dividers and synthesizes across all of them.</div>
         <div><Btn secondary small onClick={()=>{const cur=profile.assess||'';const div='\n\n=== Next assessment (rename this label) ===\n\n';const next=cur+div;pr('assess',next);setTimeout(()=>{if(assessRef.current){assessRef.current.focus();assessRef.current.setSelectionRange(next.length,next.length)}},50)}}>+ Add another assessment</Btn></div>
       </div>
