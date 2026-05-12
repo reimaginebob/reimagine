@@ -202,6 +202,9 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
           </div>
         ))}
       </div>
+      <div style={{ padding: '8px 18px', borderTop: '1px solid #E2E5EA', background: '#FAFBFC', fontSize: 12, color: '#8A9BB8', textAlign: 'center' }}>
+        Need more depth? <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{ color: C.gold, fontWeight: 600, textDecoration: 'none' }}>Download the full User Guide (PDF)</a>
+      </div>
       <div style={{ padding: 12, borderTop: '1px solid #E2E5EA', display: 'flex', gap: 8 }}>
         <input
           type="text"

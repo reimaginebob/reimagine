@@ -1143,6 +1143,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn onClick={()=>importFileRef.current?.click()} style={{background:'#2A3F60'}}><Upload size={14}/>Load a Saved Profile</Btn>
         </>}
       </div>
+      <p style={{fontSize:14,color:C.gray,margin:'20px 0 0',textAlign:'center'}}>Prefer to read the full guide first? <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:600,textDecoration:'none'}}>Download the User Guide (PDF)</a></p>
     </div>
 
     case'location':return <div>
@@ -2278,6 +2279,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
             <Btn onClick={downloadOnePager}><Download size={14}/>Download One-Pager (PDF)</Btn>
             <Btn secondary onClick={downloadAllMarkdown}><Download size={14}/>Download All Outputs (Markdown)</Btn>
+            <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{...S.sec,display:'inline-flex',alignItems:'center',gap:8,textDecoration:'none'}}><Download size={14}/>Download User Guide (PDF)</a>
             {!isDemo&&<Btn secondary onClick={reset}><RotateCcw size={14}/>Start a New Session</Btn>}
           </div>
         </div>
@@ -2503,6 +2505,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <p style={{fontSize:18,color:'#2D3748',lineHeight:1.75,margin:0}}>{demoGuide.desc}</p>
           </div>}
           {isDemo&&step!=='welcome'?<div className="demo-content">{rStep()}</div>:rStep()}
+          <footer style={{marginTop:40,paddingTop:16,borderTop:`1px solid ${C.border}`,fontSize:13,color:C.gray,textAlign:'center'}}>
+            <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{color:C.gray,textDecoration:'none'}}>User Guide (PDF)</a>
+          </footer>
           {isDemo&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:32,paddingTop:24,borderTop:`1px solid ${C.border}`}}>
             <div>{demoIdx>0&&<button onClick={demoPrev} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>← Previous</button>}</div>
             <div style={{display:'flex',alignItems:'center',gap:16}}>
