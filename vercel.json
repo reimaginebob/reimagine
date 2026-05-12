@@ -8,5 +8,15 @@
   "rewrites": [
     { "source": "/auth/verify", "destination": "/api/auth/verify" },
     { "source": "/api/(.*)", "destination": "/api/$1" }
+  ],
+  "headers": [
+    {
+      "source": "/reimagine-user-guide.pdf",
+      "headers": [
+        { "key": "Content-Type", "value": "application/pdf" },
+        { "key": "Content-Disposition", "value": "inline; filename=\"reimagine-user-guide.pdf\"" },
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    }
   ]
 }
