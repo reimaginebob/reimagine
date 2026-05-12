@@ -94,8 +94,9 @@ export default async function handler(req, res) {
     { role: 'user', content: message + contextNote },
   ]
 
+  let upstream
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -107,36 +108,68 @@ export default async function handler(req, res) {
         max_tokens: 1000,
         system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
         messages,
+        stream: true,
       }),
     })
-
-    if (!response.ok) {
-      const errBody = await response.text()
-      console.error('Chat upstream error', response.status, errBody)
-      return res.status(500).json({ error: 'Chat failed' })
-    }
-
-    const data = await response.json()
-    const text = data?.content?.[0]?.text || ''
-
-    const navMatch = text.match(/\n?NAVIGATE:\s*(\w+)\s*$/i)
-    const navigateTo = navMatch ? navMatch[1] : null
-    const cleanText = navMatch ? text.slice(0, navMatch.index).trim() : text.trim()
-
-    // Best-effort log to chat_messages. Failure does not break the response.
-    try {
-      await sql`
-        INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to)
-        VALUES (${user.id}, ${message}, ${cleanText}, ${currentStep || null}, ${navigateTo || null})
-      `
-      console.log('chat insert ok', { user_id: user.id, step: currentStep, navigated_to: navigateTo })
-    } catch (logErr) {
-      console.error('chat_messages insert failed:', logErr)
-    }
-
-    return res.status(200).json({ reply: cleanText, navigateTo })
   } catch (err) {
-    console.error('Chat error:', err)
+    console.error('Chat upstream connect error:', err)
     return res.status(500).json({ error: 'Chat failed' })
+  }
+
+  if (!upstream.ok || !upstream.body) {
+    const errBody = await upstream.text().catch(() => '')
+    console.error('Chat upstream non-200', upstream.status, errBody)
+    return res.status(500).json({ error: 'Chat failed' })
+  }
+
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('X-Accel-Buffering', 'no')
+  res.status(200)
+
+  const reader = upstream.body.getReader()
+  const decoder = new TextDecoder()
+  let fullText = ''
+  let buffer = ''
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let idx
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const evt = buffer.slice(0, idx)
+        buffer = buffer.slice(idx + 2)
+        const dataLine = evt.split('\n').find(l => l.startsWith('data: '))
+        if (!dataLine) continue
+        try {
+          const obj = JSON.parse(dataLine.slice(6))
+          if (obj.type === 'content_block_delta' && obj.delta?.type === 'text_delta') {
+            const chunk = obj.delta.text
+            fullText += chunk
+            res.write(chunk)
+          }
+        } catch {}
+      }
+    }
+  } catch (err) {
+    console.error('Chat stream read error:', err)
+  } finally {
+    res.end()
+  }
+
+  // Best-effort log to chat_messages after the response is fully streamed.
+  const navMatch = fullText.match(/\n?NAVIGATE:\s*(\w+)\s*$/i)
+  const navigateTo = navMatch ? navMatch[1] : null
+  const cleanText = navMatch ? fullText.slice(0, navMatch.index).trim() : fullText.trim()
+  try {
+    await sql`
+      INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to)
+      VALUES (${user.id}, ${message}, ${cleanText}, ${currentStep || null}, ${navigateTo || null})
+    `
+    console.log('chat insert ok', { user_id: user.id, step: currentStep, navigated_to: navigateTo })
+  } catch (logErr) {
+    console.error('chat_messages insert failed:', logErr)
   }
 }

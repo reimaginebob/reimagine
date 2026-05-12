@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 
-const STORAGE_KEY = 'pe_chat_history'
 const INTRO_MSG = { role: 'assistant', content: 'Hi. I can help you with how Reimagine works. What would you like to know?' }
-const IDLE_MS = 120000
 
 const STEP_LABELS = {
   welcome: 'Welcome',
@@ -28,46 +26,22 @@ const STEP_LABELS = {
 }
 const VALID_STEPS = new Set(Object.keys(STEP_LABELS))
 
-export default function Chat({ currentStep, onNavigate, C }) {
+export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissPulse, messages, setMessages }) {
   const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed
-      }
-    } catch {}
-    return [INTRO_MSG]
-  })
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [pulse, setPulse] = useState(false)
-  const idleTimer = useRef(null)
   const messagesContainerRef = useRef(null)
-
-  useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-50))) } catch {}
-  }, [messages])
 
   useEffect(() => {
     const el = messagesContainerRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [messages, loading])
 
-  useEffect(() => {
-    if (idleTimer.current) clearTimeout(idleTimer.current)
-    setPulse(false)
-    if (open) return
-    idleTimer.current = setTimeout(() => setPulse(true), IDLE_MS)
-    return () => { if (idleTimer.current) clearTimeout(idleTimer.current) }
-  }, [currentStep, open])
-
   const send = async () => {
     if (!input.trim() || loading) return
     const userMsg = { role: 'user', content: input.trim() }
-    const nextMessages = [...messages, userMsg]
-    setMessages(nextMessages)
+    const historyAtSend = messages
+    setMessages(m => [...m, userMsg, { role: 'assistant', content: '', navigateTo: null }])
     setInput('')
     setLoading(true)
     try {
@@ -77,22 +51,52 @@ export default function Chat({ currentStep, onNavigate, C }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMsg.content,
-          history: messages,
+          history: historyAtSend,
           currentStep,
         }),
       })
-      if (!res.ok) {
-        setMessages(m => [...m, { role: 'assistant', content: res.status === 401 ? 'Sign in first and the helper will come back online.' : 'Sorry, something went wrong. Try again in a moment.' }])
+      if (!res.ok || !res.body) {
+        const fallback = res.status === 401
+          ? 'Sign in first and the helper will come back online.'
+          : 'Sorry, something went wrong. Try again in a moment.'
+        setMessages(m => {
+          const copy = [...m]
+          copy[copy.length - 1] = { role: 'assistant', content: fallback }
+          return copy
+        })
       } else {
-        const data = await res.json()
-        setMessages(m => [...m, {
-          role: 'assistant',
-          content: data.reply || 'Sorry, something went wrong.',
-          navigateTo: data.navigateTo || null,
-        }])
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let fullText = ''
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          fullText += decoder.decode(value, { stream: true })
+          // Hide any trailing NAVIGATE line from the visible bubble as it streams.
+          const navIdx = fullText.lastIndexOf('\nNAVIGATE')
+          const visible = navIdx >= 0 ? fullText.slice(0, navIdx).trimEnd() : fullText
+          setMessages(m => {
+            const copy = [...m]
+            copy[copy.length - 1] = { ...copy[copy.length - 1], content: visible }
+            return copy
+          })
+        }
+        const navMatch = fullText.match(/\n?NAVIGATE:\s*(\w+)\s*$/i)
+        const navigateTo = navMatch ? navMatch[1] : null
+        if (navigateTo) {
+          setMessages(m => {
+            const copy = [...m]
+            copy[copy.length - 1] = { ...copy[copy.length - 1], navigateTo }
+            return copy
+          })
+        }
       }
     } catch {
-      setMessages(m => [...m, { role: 'assistant', content: 'Sorry, I could not reach the helper just now. Try again in a moment.' }])
+      setMessages(m => {
+        const copy = [...m]
+        copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach the helper just now. Try again in a moment.' }
+        return copy
+      })
     } finally {
       setLoading(false)
     }
@@ -101,21 +105,41 @@ export default function Chat({ currentStep, onNavigate, C }) {
   if (!open) {
     return (
       <>
-        {pulse && <style>{"@keyframes pe-chat-pulse{0%{box-shadow:0 4px 12px rgba(0,0,0,0.15),0 0 0 0 rgba(200,146,74,0.55)}70%{box-shadow:0 4px 12px rgba(0,0,0,0.15),0 0 0 14px rgba(200,146,74,0)}100%{box-shadow:0 4px 12px rgba(0,0,0,0.15),0 0 0 0 rgba(200,146,74,0)}}"}</style>}
-        <button
-          onClick={() => { setOpen(true); setPulse(false) }}
-          style={{
-            position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
-            background: C.gold, color: '#fff', border: 'none',
-            borderRadius: '50%', width: 56, height: 56,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            fontSize: 22, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
-            animation: pulse ? 'pe-chat-pulse 1.6s infinite' : 'none',
-          }}
-          aria-label={pulse ? 'Need help? Open helper chat' : 'Open helper chat'}
-        >
-          ?
-        </button>
+        {showPulse && <style>{"@keyframes pe-chat-pulse-scale{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}@keyframes pe-chat-pulse-fade{0%,100%{opacity:0.7}50%{opacity:1}}"}</style>}
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          {showPulse && (
+            <div style={{
+              background: '#fff',
+              border: `1px solid ${C.gold}`,
+              color: C.gold,
+              padding: '6px 12px',
+              borderRadius: 16,
+              fontSize: 13,
+              fontWeight: 600,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+              animation: 'pe-chat-pulse-fade 2s ease-in-out infinite',
+              fontFamily: 'inherit',
+            }}>
+              Need help?
+            </div>
+          )}
+          <button
+            onClick={() => { setOpen(true); if (onDismissPulse) onDismissPulse() }}
+            style={{
+              background: C.gold, color: '#fff', border: 'none',
+              borderRadius: '50%', width: 56, height: 56,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              fontSize: 22, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
+              animation: showPulse ? 'pe-chat-pulse-scale 2s ease-in-out infinite' : 'none',
+            }}
+            aria-label={showPulse ? 'Need help? Open helper chat' : 'Open helper chat'}
+          >
+            ?
+          </button>
+        </div>
       </>
     )
   }
@@ -135,7 +159,16 @@ export default function Chat({ currentStep, onNavigate, C }) {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div style={{ fontWeight: 600, color: C.gold }}>Reimagine helper</div>
-        <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#4A5568', fontFamily: 'inherit' }} aria-label="Close">×</button>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <button
+            onClick={() => setMessages([INTRO_MSG])}
+            style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+            aria-label="Clear conversation"
+          >
+            Clear
+          </button>
+          <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#4A5568', fontFamily: 'inherit' }} aria-label="Close">×</button>
+        </div>
       </div>
       <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 18px' }}>
         {messages.map((m, i) => (
@@ -148,7 +181,9 @@ export default function Chat({ currentStep, onNavigate, C }) {
               fontSize: 14, lineHeight: 1.5, textAlign: 'left',
               whiteSpace: 'pre-wrap',
             }}>
-              {m.content}
+              {m.role === 'assistant' && !m.content && loading && i === messages.length - 1
+                ? <span style={{ color: '#8A9BB8', fontStyle: 'italic' }}>Thinking…</span>
+                : m.content}
             </div>
             {m.navigateTo && VALID_STEPS.has(m.navigateTo) && (
               <div style={{ marginTop: 6 }}>
@@ -166,7 +201,6 @@ export default function Chat({ currentStep, onNavigate, C }) {
             )}
           </div>
         ))}
-        {loading && <div style={{ color: '#8A9BB8', fontSize: 13, fontStyle: 'italic' }}>Thinking…</div>}
       </div>
       <div style={{ padding: 12, borderTop: '1px solid #E2E5EA', display: 'flex', gap: 8 }}>
         <input
