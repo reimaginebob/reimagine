@@ -201,7 +201,7 @@ const PHASES=[
   {id:6,label:'Upload a Live Opportunity',color:'#C8924A',steps:['op']},
   {id:7,label:'Income Now',color:'#C8924A',steps:['income']},
 ]
-const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',p5:'The Deep Dive',decision:'Your Decision',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
+const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',p5:'The Deep Dive',decision:'Your Focus',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
 const ALL=['welcome','location','resume','assessment','values','reputation','orientation-done','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','complete','income','op']
 
 const S={
@@ -800,6 +800,10 @@ export default function PivotEngine(){
   const[showPulse,setShowPulse]=useState(false)
   const[hasSeenCorrectionsIntro,setHasSeenCorrectionsIntro]=useState(()=>{try{return localStorage.getItem('reimagine_seen_corrections_intro')==='1'}catch{return false}})
   const dismissCorrectionsIntro=()=>{try{localStorage.setItem('reimagine_seen_corrections_intro','1')}catch{};setHasSeenCorrectionsIntro(true)}
+  const[hasSeenP2Milestone,setHasSeenP2Milestone]=useState(()=>{try{return localStorage.getItem('reimagine_seen_p2_milestone')==='1'}catch{return false}})
+  const dismissP2Milestone=()=>{try{localStorage.setItem('reimagine_seen_p2_milestone','1')}catch{};setHasSeenP2Milestone(true)}
+  const[hasSeenP3Milestone,setHasSeenP3Milestone]=useState(()=>{try{return localStorage.getItem('reimagine_seen_p3_milestone')==='1'}catch{return false}})
+  const dismissP3Milestone=()=>{try{localStorage.setItem('reimagine_seen_p3_milestone','1')}catch{};setHasSeenP3Milestone(true)}
   const setSv=(k,v)=>setSurvey(s=>({...s,[k]:v}))
   const importFileRef=useRef()
   const assessRef=useRef()
@@ -1144,7 +1148,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <h1 style={S.title}>Location & Work Preferences</h1>
       <p style={S.sub}>This shapes every opportunity we generate and every company we identify.</p>
       <div style={S.card}>
-        <div style={S.field}><label style={S.label}>Country / Region</label><input list="country-list" style={S.inp} value={profile.loc.country} onChange={e=>loc('country',e.target.value)} placeholder="Start typing or select from the list" autoComplete="off"/><datalist id="country-list">{COUNTRY_OPTIONS.map(c=><option key={c} value={c}/>)}</datalist></div>
+        <div style={S.field}><label style={S.label}>Country / Region<InfoTooltip label="Why we ask">Reimagine uses your location to filter realistic company targets, work arrangements, and market context. Pick the country you are based in or want to work in.</InfoTooltip></label><input list="country-list" style={S.inp} value={profile.loc.country} onChange={e=>loc('country',e.target.value)} placeholder="Start typing or select from the list" autoComplete="off"/><datalist id="country-list">{COUNTRY_OPTIONS.map(c=><option key={c} value={c}/>)}</datalist></div>
         <div style={S.field}><label style={S.label}>City or Metro <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label><input style={S.inp} value={profile.loc.city} onChange={e=>loc('city',e.target.value)} placeholder="e.g. Chicago, Greater London, Munich metro"/></div>
         <div style={S.field}><label style={S.label}>Work Arrangement <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(select all that apply)</span></label>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -1157,6 +1161,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </label>
             })}
           </div>
+          <p style={{fontSize:13,color:C.gray,fontStyle:'italic',margin:'6px 0 0'}}>Pick any combination. If you are open to multiple arrangements, select multiple.</p>
         </div>
       </div>
       {err&&<ErrBox msg={err}/>}
@@ -1301,7 +1306,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&<p style={S.sub}>This step connects how you are wired to the work you do best and the environment where you thrive.</p>}
       {!isDemo&&!outputs.p2&&!loading&&<Btn onClick={()=>generate('p2',()=>P.p2(pc,outputs.p1))}><Sparkles size={14}/>Analyze My Wiring</Btn>}
       {loading&&<Loading msg="Cross-referencing assessment, values, and accomplishments…" step="p2"/>}
-      {outputs.p2&&<>
+      {outputs.p2&&!isDemo&&!hasSeenP2Milestone?<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'32px 36px',borderRadius:12,margin:'0 auto 24px',maxWidth:720}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:26,color:'#1A2540',margin:'0 0 16px',fontWeight:700}}>Phase 1, where the pieces integrate</h2>
+        <p style={{fontSize:16,color:C.grayL,lineHeight:1.7,margin:'0 0 12px'}}>Your assessment showed how you make decisions. Your values named what matters. Your reputation captured what others see. Wiring &amp; Compass connects those threads to your actual work experience.</p>
+        <p style={{fontSize:16,color:C.grayL,lineHeight:1.7,margin:'0 0 12px'}}>For many people, this is the section that puts the whole career into focus for the first time.</p>
+        <p style={{fontSize:16,color:C.grayL,lineHeight:1.7,margin:'0 0 24px',fontStyle:'italic'}}>Take it slowly when it lands.</p>
+        <Btn onClick={dismissP2Milestone}>Show me what Reimagine found <ChevronRight size={14}/></Btn>
+      </div>:outputs.p2&&<>
+        {!isDemo&&<CoachingCallout>Read this slowly. The lines that ring true are the integration working. The lines that miss should be corrected in the "What did we get wrong?" box below; those corrections cascade to every later section.</CoachingCallout>}
         <OutPanel text={outputs.p2} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p2} onChange={v=>setFb('p2',v)} hint="Does this capture how you actually work? If we mischaracterized your wiring, your strengths, or what energizes you, tell us." placeholder="e.g. 'I thrive in fast-paced environments, not deliberate ones.' Or: 'Mentoring is my biggest source of energy, you ranked it third.' Or: 'I am not an introvert at work, just selective.'" onRegenerate={v=>{recordCorrection('p2',v);out('p2','');generate('p2',()=>P.p2(pc,outputs.p1)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Time to bring it all together: your accomplishments, your wiring, and your values, into one clear statement of who you are professionally.</div>}
@@ -1345,7 +1357,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       })()}
       {!isDemo&&!outputs.p3&&!loading&&!p3Intro&&<Btn onClick={()=>generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}><Sparkles size={14}/>Synthesize My Brand</Btn>}
       {loading&&<Loading msg="Finding the pattern across all your data…" step="p3"/>}
-      {outputs.p3&&<>
+      {outputs.p3&&!isDemo&&!hasSeenP3Milestone?<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'32px 36px',borderRadius:12,margin:'0 auto 24px',maxWidth:720}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:26,color:'#1A2540',margin:'0 0 16px',fontWeight:700}}>Phase 1, where you find the language</h2>
+        <p style={{fontSize:16,color:C.grayL,lineHeight:1.7,margin:'0 0 12px'}}>Wiring &amp; Compass named how you work. Brand Synthesis takes that read and gives you the words: a Golden Thread that runs through your career, a two-sentence personal brand, and four to six core capabilities with proof.</p>
+        <p style={{fontSize:16,color:C.grayL,lineHeight:1.7,margin:'0 0 24px'}}>This is where many people first hear themselves described in language they can carry into a conversation.</p>
+        <Btn onClick={dismissP3Milestone}>Show me my brand <ChevronRight size={14}/></Btn>
+      </div>:outputs.p3&&<>
+        {!isDemo&&<CoachingCallout>
+          <strong style={{color:'#1A2540'}}>Three pieces below.</strong>
+          <p style={{margin:'8px 0 0'}}>The Golden Thread is the pattern. The Personal Brand is the statement you can use anywhere. The Capabilities are the proof behind both. Read each in turn and notice where the language fits. Sharpen anything that misses in the "What did we get wrong?" box below.</p>
+        </CoachingCallout>}
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the brand or value proposition misses the mark, tell us what's off." placeholder="e.g. 'My golden thread is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The brand line does not match how my colleagues describe me.'" onRegenerate={v=>{recordCorrection('p3',v);out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Let's see what's possible: the full landscape of directions that fit your strengths, values, and interests.</div>}
@@ -1628,6 +1649,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!isDemo&&filledOpts.length===0&&!outputs.p5&&<div style={{...S.err,marginTop:0}}><AlertCircle size={13} color={C.err} style={{flexShrink:0}}/><span>Go back to The Wide View and select at least one option to explore.</span></div>}
         {loading&&<Loading msg={loadMsg||'Building your deep dive…'} step="p5"/>}
         {outputs.p5&&<>
+          {!isDemo&&<CoachingCallout>
+            <strong style={{color:'#1A2540'}}>Three reads to compare.</strong>
+            <p style={{margin:'8px 0 8px'}}>Below are deeper looks at each of your three selected roles. Read them slowly. The next step is picking one to focus on, which lets Reimagine sharpen everything downstream (your bridge story, target companies, resume refresh) around that direction.</p>
+            <p style={{margin:'0 0 8px'}}>You are not locking it in. You can always go back and choose again later, and the work will update around your new choice.</p>
+            <p style={{margin:0}}>If a role is not what you thought it was, the "What did we get wrong?" box below sharpens it.</p>
+          </CoachingCallout>}
           {p5Takeaway&&<div style={S.out}>
             <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p5)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
             <MD text={`## QUICK TAKEAWAY\n${p5Takeaway}`}/>
@@ -1673,8 +1700,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
     case'decision':return <div>
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 2 · Explore Options</div>}
-      <h1 style={S.title}>Your Decision</h1>
+      <h1 style={S.title}>Your Focus</h1>
       {!isDemo&&<p style={S.sub}>Having multiple strong options is a good problem to have. This is the moment you choose a direction and everything starts pointing the same way.</p>}
+      {!isDemo&&<CoachingCallout>
+        <strong style={{color:'#1A2540'}}>Picking one to focus on.</strong>
+        <p style={{margin:'8px 0 8px'}}>This choice tells Reimagine which direction to sharpen everything downstream around: your bridge story, your target companies, your resume refresh, your interview prep. Take a moment to sit with the three before you pick.</p>
+        <p style={{margin:'0 0 12px'}}>You are not locking it in. If a different direction starts to feel right after you see the downstream work, come back here and pick again. Everything updates around your new choice.</p>
+        <p style={{margin:'0 0 8px',fontWeight:600,color:'#1A2540'}}>How to choose when all three feel viable:</p>
+        <ul style={{margin:'0 0 0 20px',padding:0}}>
+          <li style={{margin:'0 0 4px'}}>Which one would you most want to tell people you are pursuing?</li>
+          <li style={{margin:'0 0 4px'}}>Which one's day-to-day work would you be most ready to do tomorrow morning?</li>
+          <li style={{margin:0}}>Which one has the most credible bridge from where you are now to where it sits?</li>
+        </ul>
+      </CoachingCallout>}
       {isDemo?<div style={S.card}>
         <label style={S.label}>Pursuing</label>
         <div style={{fontSize:19,color:C.cream,fontWeight:600,lineHeight:1.6}}>{chosen}</div>
@@ -1759,6 +1797,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{width:72,height:72,borderRadius:18,background:`${C.gold}15`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}><Sparkles size={32} color={C.gold}/></div>
             <h2 style={{fontSize:34,fontWeight:700,color:'#1A2540',marginBottom:16}}>Your Go-to-Market Plan</h2>
             <p style={{fontSize:20,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>The best opportunities are filled through relationships before a posting ever goes live. This step builds a strategy to reach the right people at the right companies, directly.</p>
+          </div>
+          <div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'24px 28px',borderRadius:10,margin:'0 0 24px',fontSize:15,color:C.grayL,lineHeight:1.65}}>
+            <h3 style={{fontSize:20,color:'#1A2540',margin:'0 0 12px',fontFamily:'Georgia,serif'}}>A brand new lane to pursue.</h3>
+            <p style={{margin:'0 0 12px'}}>LinkedIn and job boards put you in a queue with hundreds of other candidates. Recruiters and referrals require someone else to act first. Every passive approach makes your search dependent on someone else's timing.</p>
+            <p style={{margin:'0 0 16px'}}>Direct outreach is different. You pick the companies. You pick the person. You write to them. You go. There is no one between you and the conversation but your own creativity and effort.</p>
+            <p style={{margin:'0 0 8px',fontWeight:600,color:'#1A2540'}}>Why it works</p>
+            <p style={{margin:'0 0 16px'}}>The right outreach is welcomed. The person you are writing to is trying to solve a problem you may be exactly suited for. When the timing and the message are right, you are doing them a favor.</p>
+            <p style={{margin:'0 0 8px',fontWeight:600,color:'#1A2540'}}>What you get below</p>
+            <ul style={{margin:'0 0 12px 20px',padding:0}}>
+              <li style={{margin:'0 0 4px'}}>20-30 specific companies that fit your direction</li>
+              <li style={{margin:'0 0 4px'}}>The hiring executive at each</li>
+              <li style={{margin:'0 0 4px'}}>An outreach template grounded in the <em>Making Your Own Weather</em> framework</li>
+              <li style={{margin:0}}>A LinkedIn signal tweak</li>
+            </ul>
+            <p style={{margin:0,fontSize:14,color:C.gray,fontStyle:'italic'}}>Live research can take 3 to 4 minutes.</p>
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
             {cards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
@@ -1959,6 +2012,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&!outputs.p9&&!p9Intro&&!loading&&<Btn onClick={async()=>{setLoading(true);setErr(null);setLoadMsg('Building your playbook...');try{const[r1,r2,r3]=await Promise.all([callClaude(correctionsBlock(profile.corrections)+P.p9(pc,outputs,chosen),{maxTokens:4000}),callClaude(correctionsBlock(profile.corrections)+P.p10(pc,outputs,chosen),{maxTokens:3500}),callClaude(correctionsBlock(profile.corrections)+P.p11(pc,outputs,chosen),{maxTokens:4000})]);out('p9',r1);out('p10',r2);out('p11',r3)}catch(e){setErr(e.message)}finally{setLoading(false)}}}><Sparkles size={14}/>Build My Playbook</Btn>}
       {loading&&<Loading msg={loadMsg||'Building your playbook: industry landscape and interview preparation…'} step="p9"/>}
       {outputs.p9&&<>
+        {!isDemo&&<CoachingCallout>
+          <strong style={{color:'#1A2540'}}>How to use this playbook</strong>
+          <p style={{margin:'8px 0 8px'}}>Three parts below.</p>
+          <p style={{margin:'0 0 8px'}}>The Crash Course gives you the vocabulary, tools, and thought leaders that signal credibility in this space. Use it to prep for conversations and to find people to follow on LinkedIn.</p>
+          <p style={{margin:'0 0 8px'}}>The Interview Prep names the questions that will surface and gives you evidence-based talking points for each. Use it to rehearse for any interview on your calendar.</p>
+          <p style={{margin:0}}>Your STAR Stories are the three strongest from your background, structured for the questions interviewers actually ask. The Remix section shows how to retell each story differently for different audiences. Read your STAR Stories out loud three times before you walk into a room.</p>
+        </CoachingCallout>}
         <OutPanel text={outputs.p9} onCopy={copy} copied={copied}/>
         {outputs.p11&&(()=>{
           const raw=outputs.p11
@@ -1975,7 +2035,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const block=raw.substring(start,end).trim()
             if(block.length>50)storySections.push({id:i,text:block,title:block.split('\n')[0].replace(/^\*+|\*+$/g,'').trim()})
           })
-          return <><div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>Your STAR Stories</h2><p style={{fontSize:16,color:C.gray,marginTop:6}}>Your 3 strongest stories in the Situation–Thinking–Action–Result format, plus how to remix them for different audiences and questions.</p></div>
+          return <>{!isDemo&&<div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'24px 0 16px',fontSize:15,color:C.grayL,lineHeight:1.65}}>
+            <strong style={{color:'#1A2540'}}>Three stories, infinitely remixable.</strong>
+            <p style={{margin:'8px 0 0'}}>The principle behind STAR Stories: you have three core tracks; every interview is a different set. The Remix section shows how to take one story and shift it for a CEO versus a CFO versus a peer versus a different question entirely. Practice the structure of each story, not the words. The words shift with the audience.</p>
+          </div>}<div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>Your STAR Stories</h2><p style={{fontSize:16,color:C.gray,marginTop:6}}>Your 3 strongest stories in the Situation–Thinking–Action–Result format, plus how to remix them for different audiences and questions.</p></div>
           {quickTakeaway&&<OutPanel text={quickTakeaway} onCopy={copy} copied={copied}/>}
           {storySections.map(story=>{
             const strengthenIdx=story.text.search(/\*\*Strengthen This Story[:\s]*\*\*/i)
@@ -2039,6 +2102,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'p10':return <div>{nav('p9')}</div>
 
     case'complete':{if(!done.includes('complete'))markDone('complete');return <div>
+      {!isDemo&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'28px 32px',borderRadius:12,margin:'0 0 24px',maxWidth:760}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,color:'#1A2540',margin:'0 0 12px',fontWeight:700}}>You finished the foundation.</h2>
+        <p style={{fontSize:16,color:C.grayL,lineHeight:1.7,margin:0}}>Your brand, your bridge story, your target companies, your resume, your LinkedIn, your playbook. That is a substantial amount of career-strategy work, and it is all rooted in who you actually are.</p>
+      </div>}
       <div style={{background:`linear-gradient(135deg,${C.panel} 0%,${C.card} 100%)`,border:`1px solid ${C.gold}35`,borderRadius:16,padding:'36px',textAlign:'center',marginBottom:22}}>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="260" height="60" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block',margin:'0 auto 16px'}}>
           <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.18"/>
@@ -2050,13 +2117,24 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{marginTop:20,textAlign:'center',display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}><Btn onClick={downloadOnePager}><Download size={14}/>Download My One-Pager (PDF)</Btn><Btn secondary onClick={downloadAllMarkdown}><Download size={14}/>Download All Outputs (Markdown)</Btn></div>
       </div>
 
-      {!isDemo&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'20px 24px',borderRadius:10,marginBottom:22,fontSize:16,color:'#1A2540',lineHeight:1.65}}>
-        <div style={{fontWeight:700,fontSize:17,marginBottom:8}}>Found a specific role?</div>
-        When a job posting catches your eye, head to <strong>Upload a Live Opportunity</strong> in the sidebar. Reimagine will combine the posting with everything you have built and produce a playbook tailored to that role.
-        <div style={{marginTop:14}}>
+      {!isDemo&&<>
+        <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,margin:'0 0 16px'}}>
+          <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Pursuing a specific opportunity?</h3>
+          <p style={{fontSize:15,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Bring the job description to <strong>Upload a Live Opportunity</strong> in the sidebar. Reimagine combines the posting with everything you have just built and produces a tailored playbook for that specific role.</p>
           <Btn small onClick={()=>nav('op')}>Upload a Live Opportunity <ChevronRight size={11}/></Btn>
         </div>
-      </div>}
+        <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,margin:'0 0 16px'}}>
+          <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Join Career Club's weekly group coaching call.</h3>
+          <p style={{fontSize:15,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Free, every Monday at 12:00 ET. Live Q&amp;A on whatever is going on in your job search.</p>
+          <a href="https://us06web.zoom.us/meeting/register/tZUqduqqqD0qG9HsxIRuL-XG4Pcx9pf7skat" target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:600,textDecoration:'none',fontSize:15}}>Register here →</a>
+        </div>
+        <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,margin:'0 0 16px'}}>
+          <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Go deeper on the methodology.</h3>
+          <p style={{fontSize:15,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Reimagine is built on the framework in <em>Making Your Own Weather</em> by Bob Goodwin. Available on Amazon.</p>
+          <a href="https://a.co/d/09RR2JUR" target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:600,textDecoration:'none',fontSize:15}}>Get the book →</a>
+        </div>
+        <p style={{fontSize:14,color:C.gray,lineHeight:1.6,margin:'0 0 22px',fontStyle:'italic'}}>Also in the sidebar: <strong>Income Now</strong> turns your existing expertise into consulting or fractional income while you continue the search. For some people the bridge becomes the path.</p>
+      </>}
 
       {!surveyDone&&<div style={{...S.card,marginBottom:22,border:`1px solid ${C.gold}40`}}>
         {!surveySubmitted?<>
@@ -2151,11 +2229,24 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </>}
     </div>}
 
-    case'income':{if(outputs.income&&!done.includes('income'))markDone('income');return <div>
+    case'income':{if(outputs.income&&!done.includes('income'))markDone('income');
+      const incomeCallout=!isDemo?<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'24px 28px',borderRadius:10,margin:'0 0 20px',fontSize:15,color:C.grayL,lineHeight:1.65}}>
+        <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 12px'}}>When money gets tight, the temptation is to take whatever pays the bills.</h3>
+        <p style={{margin:'0 0 12px'}}>Reimagine has a different idea. The same expertise that makes you valuable for a permanent role can generate income right now as consulting or fractional work. Real money, from your real skills, while you keep searching for the right full-time fit.</p>
+        <p style={{margin:'0 0 8px',fontWeight:600,color:'#1A2540'}}>Income Now can be more than bridge income. It can also be:</p>
+        <ul style={{margin:'0 0 12px 20px',padding:0}}>
+          <li style={{margin:'0 0 6px'}}><strong>A foot in the door.</strong> A fractional engagement often turns into a permanent role at the same company once they see what you bring.</li>
+          <li style={{margin:'0 0 6px'}}><strong>A path you did not see coming.</strong> Some people start fractional work because they need income and discover it is what they actually want to be doing.</li>
+          <li style={{margin:0}}><strong>A credential-builder.</strong> Six months of consulting in a new sector can be the experience that qualifies you for the full-time role you originally wanted.</li>
+        </ul>
+        <p style={{margin:0}}>Six parts below: where to show up, your consulting positioning, a fractional pitch, passion-adjacent opportunities, a one-sheet, and a first 48-hour action plan. Read all six the first time through, then pick the two or three to start moving on this week.</p>
+      </div>:null
+      return <div>
       {!isDemo&&<div style={S.tag('#C8924A')}>Bonus Module</div>}
       <h1 style={S.title}>Income Now</h1>
       {!isDemo&&<p style={S.sub}>A job search takes time. Having income flowing while you search changes everything: you make better decisions when you're choosing, not settling.</p>}
       <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>Targeting: <strong>{chosen||'your chosen direction'}</strong></div>
+      {incomeCallout}
       {!isDemo&&!outputs.income&&!loading&&incomeIntro&&(()=>{
         const cards=[
           {icon:<DollarSign size={34} color="#7AB87A"/>,name:'Consulting & Fractional Leadership',desc:'Your expertise has market value right now. We identify consulting and fractional roles where your seniority and track record command premium rates, without waiting for a full-time offer.'},
@@ -2199,6 +2290,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {loading?<Loading msg={loadMsg||'Building your Opportunity Playbook…'} step="op"/>:<>
         {!isDemo&&!outputs.op&&<p style={S.sub}>When you find a role worth pursuing, bring it here. Paste the job description or upload the PDF. Reimagine combines it with everything you've already built and produces a complete playbook for that specific opportunity.</p>}
         {!isDemo&&!outputs.op&&<p style={S.sub}>You'll know whether the role fits the path you chose and where it stretches you. You'll have STAR stories remixed for this specific opportunity, ways to get past the screening interview, questions you can ask them, and ways to show your value immediately. You'll know what the hiring manager is solving for and how to write a cover letter that sounds like you.</p>}
+        {!isDemo&&!outputs.op&&<CoachingCallout>
+          <strong style={{color:'#1A2540'}}>What to bring.</strong>
+          <p style={{margin:'8px 0 0'}}>Paste the full job description or upload the PDF. Reimagine works best with the actual posting text. If you have your own context about the role (who told you about it, what they said about the team, why you are interested), add it to the text field below the JD. The richer the context, the sharper the playbook.</p>
+        </CoachingCallout>}
         {!isDemo&&<div style={S.card}>
           <div style={{fontSize:14,color:C.gray,fontStyle:'italic',marginBottom:14,textAlign:'center'}}>The richer the input, the sharper the output.</div>
           <FileUpload label="Upload a PDF of the job description" hint="PDF only. For other formats, paste the text below." fileName={profile.jdFile} onFile={async f=>{pr('jdFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('jd',t);setErr(null)}catch(e){setErr('Could not read this PDF. Try pasting the text instead.')}finally{setFileLoading(false)}}}/>
@@ -2213,6 +2308,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!isDemo&&<Btn onClick={()=>generate('op',()=>P.op(pc,outputs,chosen,profile.jd),{maxTokens:7500,msg:'Building your Opportunity Playbook…'})} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>{outputs.op?'Build a new playbook':'Build My Playbook'}</Btn>}
         {err&&<ErrBox msg={err}/>}
         {outputs.op&&<>
+          {!isDemo&&<CoachingCallout>
+            <strong style={{color:'#1A2540'}}>How to use this playbook</strong>
+            <p style={{margin:'8px 0 8px'}}>Below is a tailored playbook for this specific role. Thirteen sections in three groups:</p>
+            <ul style={{margin:'0 0 12px 20px',padding:0}}>
+              <li style={{margin:'0 0 4px'}}><strong>Understanding the role:</strong> alignment, stretch, hiring-manager view, likely objections.</li>
+              <li style={{margin:'0 0 4px'}}><strong>Preparing for the conversation:</strong> STAR remix, screening-interview prep, questions to ask, ways to show value.</li>
+              <li style={{margin:0}}><strong>The deliverables:</strong> bridge story variant, cover letter draft, 90-day plan.</li>
+            </ul>
+            <p style={{margin:0}}>If something is off about how Reimagine read the JD or your background, the "What did we get wrong?" box below sharpens it. Corrections you submit here also carry forward to your next playbook.</p>
+          </CoachingCallout>}
           <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:24,marginBottom:8}}>
             <Btn small onClick={()=>{const today=new Date().toISOString().slice(0,10);const rawFirstLine=(profile.resume||'').split(/\n/).find(l=>l.trim())||'';const nameParts=rawFirstLine.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ');const firstName=nameParts.length>2&&nameParts.length<50?nameParts.split(' ')[0].toLowerCase():(signupForm.firstName?signupForm.firstName.trim().toLowerCase():'reimagine');const md=`# Live Opportunity Playbook\n\n*Generated ${today}*\n\n---\n\n${outputs.op}`;const blob=new Blob([md],{type:'text/markdown'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`reimagine_playbook_${firstName}_${today}.md`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)}}><Download size={11}/>Download as Markdown</Btn>
           </div>
