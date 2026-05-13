@@ -642,7 +642,7 @@ function Loading({ msg = 'Generating your analysis…', step = '' }) {
     <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
     <div style={{fontSize:22,color:C.grayL,marginBottom:24}}>{msg}</div>
     {previews && <div style={{borderLeft:`3px solid ${C.gold}30`,paddingLeft:18,textAlign:'left',marginBottom:24,fontSize:17,color:C.gray,lineHeight:1.7}}>
-      <div style={{fontWeight:600,marginBottom:6,color:C.grayL,fontSize:15,letterSpacing:'0.5px',textTransform:'uppercase'}}>While you wait: what's coming</div>
+      <div style={{fontWeight:600,marginBottom:6,color:C.grayL,fontSize:16,letterSpacing:'0.5px',textTransform:'uppercase'}}>While you wait: what's coming</div>
       {previews.map((p,i) => {
         const colonIdx = p.indexOf(':')
         if(colonIdx>0 && colonIdx<40){
@@ -657,18 +657,18 @@ function Loading({ msg = 'Generating your analysis…', step = '' }) {
       <div style={{fontSize:20,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:8}}>"{isStepPool ? q : q.text}"</div>
       <div style={{fontSize:16,color:C.gold,fontWeight:600}}>{isStepPool ? MYOW_ATTR : q.author}</div>
     </div>
-    <div style={{fontSize:14,color:C.gray,marginTop:20}}>This may take 1–2 minutes</div>
+    <div style={{fontSize:15,color:C.gray,marginTop:20}}>This may take 1–2 minutes</div>
   </div>
 }
 function ErrBox({msg}){return <div style={S.err}><AlertCircle size={13} color={C.err} style={{flexShrink:0,marginTop:1}}/><span>{msg}</span></div>}
 function InfoTooltip({label,children}){
   const[open,setOpen]=useState(false)
   return <span style={{position:'relative',display:'inline-flex',alignItems:'center',marginLeft:6}}>
-    <button type="button" aria-label={label||'More info'} onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)} onFocus={()=>setOpen(true)} onBlur={()=>setOpen(false)} onClick={()=>setOpen(o=>!o)} style={{width:18,height:18,borderRadius:9,border:`1px solid ${C.border}`,background:'transparent',color:C.gray,fontSize:12,fontWeight:600,fontFamily:'inherit',cursor:'help',padding:0,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>i</button>
-    {open&&<span style={{position:'absolute',left:24,top:-6,background:'#1A2540',color:'#FFFFFF',padding:'10px 14px',borderRadius:8,fontSize:14,lineHeight:1.55,maxWidth:320,minWidth:200,zIndex:10,fontWeight:400,fontStyle:'normal',textAlign:'left',boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>{children}</span>}
+    <button type="button" aria-label={label||'More info'} onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)} onFocus={()=>setOpen(true)} onBlur={()=>setOpen(false)} onClick={()=>setOpen(o=>!o)} style={{width:20,height:20,borderRadius:10,border:`1px solid ${C.border}`,background:'transparent',color:C.gray,fontSize:14,fontWeight:600,fontFamily:'inherit',cursor:'help',padding:0,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>i</button>
+    {open&&<span style={{position:'absolute',left:26,top:-6,background:'#1A2540',color:'#FFFFFF',padding:'10px 14px',borderRadius:8,fontSize:16,lineHeight:1.55,maxWidth:320,minWidth:200,zIndex:10,fontWeight:400,fontStyle:'normal',textAlign:'left',boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>{children}</span>}
   </span>
 }
-function CoachingCallout({children}){return <div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:15,color:C.grayL,lineHeight:1.65}}>{children}</div>}
+function CoachingCallout({children}){return <div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:C.grayL,lineHeight:1.65}}>{children}</div>}
 function FileUpload({label,hint,onFile,fileName,accept=".pdf,.doc,.docx,.txt"}){
   const ref=useRef();const[drag,setDrag]=useState(false)
   return <div style={S.field}>
@@ -677,7 +677,7 @@ function FileUpload({label,hint,onFile,fileName,accept=".pdf,.doc,.docx,.txt"}){
       onClick={()=>ref.current.click()} onDragOver={e=>{e.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)}
       onDrop={e=>{e.preventDefault();setDrag(false);if(e.dataTransfer.files[0])onFile(e.dataTransfer.files[0])}}>
       <input ref={ref} type="file" accept={accept} style={{display:'none'}} onChange={e=>e.target.files[0]&&onFile(e.target.files[0])}/>
-      {fileName?<><div style={{color:C.ok,marginBottom:3,fontSize:14}}><Check size={12} style={{display:'inline',marginRight:5}}/>{fileName}</div><div style={{fontSize:13,color:C.gray}}>Click to replace</div></>:<><Upload size={17} color={C.gray} style={{margin:'0 auto 7px',display:'block'}}/><div style={{fontSize:15,color:C.grayL}}>{hint||'Drop file or click to browse'}</div></>}
+      {fileName?<><div style={{color:C.ok,marginBottom:3,fontSize:16}}><Check size={12} style={{display:'inline',marginRight:5}}/>{fileName}</div><div style={{fontSize:15,color:C.gray}}>Click to replace</div></>:<><Upload size={17} color={C.gray} style={{margin:'0 auto 7px',display:'block'}}/><div style={{fontSize:16,color:C.grayL}}>{hint||'Drop file or click to browse'}</div></>}
     </div>
   </div>
 }
@@ -745,7 +745,7 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
     <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <div style={{width:8,height:8,borderRadius:'50%',background:C.gold,flexShrink:0}}/>
-        <span style={{fontSize:16,fontWeight:700,color:C.gold}}>What did we get wrong?</span>
+        <span style={{fontSize:17,fontWeight:700,color:C.gold}}>What did we get wrong?</span>
       </div>
       {open?<ChevronUp size={18} color={C.gold} strokeWidth={2.5}/>:<ChevronDown size={18} color={C.gold} strokeWidth={2.5}/>}
     </button>
@@ -765,10 +765,10 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
 }
 function Sidebar({step,done,onNav,isDemo,prog}){return <div style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
   {typeof prog==='number'&&<div style={{padding:'16px 18px 20px',borderBottom:'1px solid #0F1A30',marginBottom:8}}>
-    <div style={{fontSize:14,color:'#FFFFFF',fontWeight:600,marginBottom:8}}>You're {prog}% complete</div>
+    <div style={{fontSize:18,color:'#FFFFFF',fontWeight:600,marginBottom:8}}>You're {prog}% complete</div>
     <div style={{width:'100%',height:5,background:'#0F1A30',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:3,transition:'width 0.4s'}}/></div>
   </div>}
-  {PHASES.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:16,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||(sid==='income'&&done.includes('complete'))||(sid==='op'&&done.includes('complete')),isComplete=sid==='complete'&&isDone;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{META[sid]}</span>{active&&<span style={{fontSize:10,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'2px 8px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
+  {PHASES.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||(sid==='income'&&done.includes('complete'))||(sid==='op'&&done.includes('complete')),isComplete=sid==='complete'&&isDone;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{META[sid]}</span>{active&&<span style={{fontSize:14,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
 </div>}
 
 const DEMO_TOUR=[
@@ -2558,9 +2558,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#FFFFFF">Re<tspan fill="#e4572e">imagine</tspan></text>
         </svg>
       </div>
-      {authToast&&<div style={{background:authToast==='ok'?'#7AB87A':'#C8924A',color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:14,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
+      {authToast&&<div style={{background:authToast==='ok'?'#7AB87A':'#C8924A',color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:16,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
         <span>{authToast==='ok'?`Signed in${signedInUser?.email?` as ${signedInUser.email}`:''}.`:authToast==='invalid'?'That sign-in link is not valid. Request a new one.':authToast==='used'?'That sign-in link has already been used. Request a new one.':authToast==='expired'?'That sign-in link expired. Request a new one.':''}</span>
-        <button onClick={()=>setAuthToast(null)} style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'2px 8px',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>Dismiss</button>
+        <button onClick={()=>setAuthToast(null)} style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>Dismiss</button>
       </div>}
       <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 24px'}}>
         <div style={{maxWidth:520,width:'100%'}}>
@@ -2639,19 +2639,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </a>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           {isDemo?<>
-            <div style={{fontSize:11,color:C.gray}}>Step {demoIdx+1} of {DEMO_TOUR.length}</div>
+            <div style={{fontSize:14,color:C.gray}}>Step {demoIdx+1} of {DEMO_TOUR.length}</div>
             <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${((demoIdx+1)/DEMO_TOUR.length)*100}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
           </>:<>
             <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
           </>}
-          {!isDemo&&signedInUser&&<button onClick={deleteAccount} title="Delete your profile and start over from scratch" style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'5px 10px',fontSize:12,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Start Fresh</button>}
-          {!isDemo&&signedInUser&&<button onClick={signOut} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'5px 10px',fontSize:12,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign out</button>}
-          {!isDemo&&!signedInUser&&<button onClick={()=>{setSignedUp(false);setMagicLinkSentTo(null)}} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'5px 10px',fontSize:12,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign in</button>}
+          {!isDemo&&signedInUser&&<button onClick={deleteAccount} title="Delete your profile and start over from scratch" style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Start Fresh</button>}
+          {!isDemo&&signedInUser&&<button onClick={signOut} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign out</button>}
+          {!isDemo&&!signedInUser&&<button onClick={()=>{setSignedUp(false);setMagicLinkSentTo(null)}} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign in</button>}
         </div>
       </div>
-      {authToast&&<div style={{background:authToast==='ok'?'#7AB87A':'#C8924A',color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:14,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12,flexShrink:0}}>
+      {authToast&&<div style={{background:authToast==='ok'?'#7AB87A':'#C8924A',color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:16,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12,flexShrink:0}}>
         <span>{authToast==='ok'?`Signed in${signedInUser?.email?` as ${signedInUser.email}`:''}.`:authToast==='invalid'?'That sign-in link is not valid. Request a new one.':authToast==='used'?'That sign-in link has already been used. Request a new one.':authToast==='expired'?'That sign-in link expired. Request a new one.':''}</span>
-        <button onClick={()=>setAuthToast(null)} style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'2px 8px',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>Dismiss</button>
+        <button onClick={()=>setAuthToast(null)} style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>Dismiss</button>
       </div>}
       <div style={{display:'flex',flex:1,minHeight:0}}>
         <div style={{width:260,background:'#1A2540',borderRight:'1px solid #0F1A30',padding:'16px 0',overflowY:'auto',flexShrink:0}}>
@@ -2664,19 +2664,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
               <h2 style={{fontFamily:'Georgia,serif',fontSize:26,fontWeight:700,color:'#1A2540',margin:0}}>{demoGuide.title}</h2>
-              <div style={{fontSize:13,color:C.gray,flexShrink:0,marginLeft:16}}>{demoIdx+1} of {DEMO_TOUR.length}</div>
+              <div style={{fontSize:15,color:C.gray,flexShrink:0,marginLeft:16}}>{demoIdx+1} of {DEMO_TOUR.length}</div>
             </div>
             <p style={{fontSize:18,color:'#2D3748',lineHeight:1.75,margin:0}}>{demoGuide.desc}</p>
           </div>}
           {isDemo&&step!=='welcome'?<div className="demo-content">{rStep()}</div>:rStep()}
           <footer style={{marginTop:40,padding:'20px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',textAlign:'center'}}>
-            <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',background:'#FFFFFF',border:`1px solid ${C.gold}`,borderRadius:8,color:C.gold,fontWeight:600,fontSize:15,textDecoration:'none'}}>Read the full User Guide (PDF)</a>
-            <p style={{margin:'8px 0 0',fontSize:13,color:'#718096',lineHeight:1.5}}>Everything Reimagine does, explained in plain English.</p>
+            <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',background:'#FFFFFF',border:`1px solid ${C.gold}`,borderRadius:8,color:C.gold,fontWeight:600,fontSize:17,textDecoration:'none'}}>Read the full User Guide (PDF)</a>
+            <p style={{margin:'8px 0 0',fontSize:15,color:'#718096',lineHeight:1.5}}>Everything Reimagine does, explained in plain English.</p>
           </footer>
           {isDemo&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:32,paddingTop:24,borderTop:`1px solid ${C.border}`}}>
-            <div>{demoIdx>0&&<button onClick={demoPrev} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>← Previous</button>}</div>
+            <div>{demoIdx>0&&<button onClick={demoPrev} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,fontSize:17,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>← Previous</button>}</div>
             <div style={{display:'flex',alignItems:'center',gap:16}}>
-              {demoIdx<DEMO_TOUR.length-1?<button onClick={demoNext} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Next →</button>:<a href="/" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>Start My Reimagine Session →</a>}
+              {demoIdx<DEMO_TOUR.length-1?<button onClick={demoNext} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:17,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Next →</button>:<a href="/" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:C.gold,color:'#fff',border:'none',borderRadius:8,fontSize:17,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>Start My Reimagine Session →</a>}
             </div>
           </div>}
         </div>

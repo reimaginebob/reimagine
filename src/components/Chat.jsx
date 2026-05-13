@@ -117,7 +117,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
               color: C.gold,
               padding: '6px 12px',
               borderRadius: 16,
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 600,
               boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
               animation: 'pe-chat-pulse-fade 2s ease-in-out infinite',
@@ -158,16 +158,16 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
         padding: '14px 18px', borderBottom: '1px solid #E2E5EA',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <div style={{ fontWeight: 600, color: C.gold }}>Reimagine helper</div>
+        <div style={{ fontFamily: 'Georgia,serif', fontSize: 19, fontWeight: 600, color: C.gold }}>Reimagine helper</div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button
             onClick={() => setMessages([INTRO_MSG])}
-            style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
             aria-label="Clear conversation"
           >
             Clear
           </button>
-          <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#4A5568', fontFamily: 'inherit' }} aria-label="Close">×</button>
+          <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#4A5568', fontFamily: 'inherit' }} aria-label="Close">×</button>
         </div>
       </div>
       <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 18px' }}>
@@ -178,7 +178,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
               padding: '10px 14px', borderRadius: 12,
               background: m.role === 'user' ? C.gold : '#F4F6F9',
               color: m.role === 'user' ? '#fff' : '#1A2540',
-              fontSize: 14, lineHeight: 1.5, textAlign: 'left',
+              fontSize: 18, lineHeight: 1.5, textAlign: 'left',
               whiteSpace: 'pre-wrap',
             }}>
               {m.role === 'assistant' && !m.content && loading && i === messages.length - 1
@@ -192,7 +192,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
                   style={{
                     background: '#fff', color: C.gold,
                     border: `1px solid ${C.gold}`, borderRadius: 8,
-                    padding: '6px 12px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                    padding: '8px 14px', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                   }}
                 >
                   Take me to {STEP_LABELS[m.navigateTo]} →
@@ -202,7 +202,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
           </div>
         ))}
       </div>
-      <div style={{ padding: '8px 18px', borderTop: '1px solid #E2E5EA', background: '#FAFBFC', fontSize: 13, color: '#718096', textAlign: 'center', lineHeight: 1.5 }}>
+      <div style={{ padding: '8px 18px', borderTop: '1px solid #E2E5EA', background: '#FAFBFC', fontSize: 15, color: '#718096', textAlign: 'center', lineHeight: 1.5 }}>
         Need more depth? <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{ color: C.gold, fontWeight: 600, textDecoration: 'none' }}>Download the full User Guide (PDF)</a>
       </div>
       <div style={{ padding: 12, borderTop: '1px solid #E2E5EA', display: 'flex', gap: 8 }}>
@@ -215,7 +215,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
           disabled={loading}
           style={{
             flex: 1, padding: '8px 12px', border: '1px solid #E2E5EA',
-            borderRadius: 8, fontSize: 14, fontFamily: 'inherit', color: '#1A2540',
+            borderRadius: 8, fontSize: 18, fontFamily: 'inherit', color: '#1A2540',
           }}
         />
         <button
@@ -224,7 +224,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
           style={{
             background: C.gold, color: '#fff', border: 'none',
             borderRadius: 8, padding: '8px 14px', cursor: loading || !input.trim() ? 'default' : 'pointer',
-            fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
+            fontFamily: 'inherit', fontSize: 17, fontWeight: 600,
             opacity: loading || !input.trim() ? 0.6 : 1,
           }}
         >
