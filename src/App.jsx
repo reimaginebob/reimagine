@@ -194,15 +194,15 @@ VOICE: Write the stories in first person as if coaching the person on how to tel
 const PHASES=[
   {id:0,label:'Orientation',color:'#8A9BB8',steps:['welcome','location','resume','linkedin','assessment','values','reputation']},
   {id:1,label:'Know Your Value',color:'#C8924A',steps:['p1','p2','p3']},
-  {id:2,label:'Explore Options',color:'#C8924A',steps:['p4','p5','decision']},
+  {id:2,label:'Explore Options',color:'#C8924A',steps:['p4','narrowing','p5','decision']},
   {id:3,label:'Tell Your Story',color:'#C8924A',steps:['p6']},
   {id:4,label:'Find Your Market',color:'#C8924A',steps:['p7']},
   {id:5,label:'Get Ready',color:'#C8924A',steps:['p8','p_res','p9','complete']},
   {id:6,label:'Upload a Live Opportunity',color:'#C8924A',steps:['op']},
   {id:7,label:'Income Now',color:'#C8924A',steps:['income']},
 ]
-const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',p5:'The Deep Dive',decision:'Your Focus',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
-const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','orientation-done','p1','p2','p3','p4','p5','decision','p6','p7','p8','p_res','p9','complete','income','op']
+const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',narrowing:'Narrow Your Picks',p5:'The Deep Dive',decision:'Your Focus',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
+const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','orientation-done','p1','p2','p3','p4','narrowing','p5','decision','p6','p7','p8','p_res','p9','complete','income','op']
 
 const S={
   title:{fontFamily:'Georgia,serif',fontSize:38,fontWeight:700,color:"#1A2540",margin:'0 0 14px',lineHeight:1.2},
@@ -592,6 +592,30 @@ const validateP4Lanes = (text) => {
   return { needsRetry, counts }
 }
 
+const extractRationaleForTitle = (p4Text, title) => {
+  if (!p4Text || !title) return ''
+  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const optionRegex = new RegExp(`### OPTION:\\s*${escaped}([\\s\\S]*?)(?=### OPTION:|## |$)`, 'i')
+  const match = p4Text.match(optionRegex)
+  if (!match) return ''
+  const block = match[1]
+  const lines = block.split('\n').map(l => l.trim()).filter(Boolean)
+  for (const line of lines) {
+    if (/^\*\*(Organization Type|Vehicle|Why|How|Same Role|Similar Role)/i.test(line)) {
+      const colonIdx = line.indexOf(':')
+      if (colonIdx > 0) {
+        const content = line.substring(colonIdx + 1).replace(/\*\*/g, '').trim()
+        if (content.length > 20 && content.length < 280) return content
+      }
+      continue
+    }
+    if (line.length > 30 && line.length < 280 && !line.startsWith('**') && !line.startsWith('#')) {
+      return line
+    }
+  }
+  return ''
+}
+
 const SHUFFLED_POOLS = (() => {
   const pools = {}
   Object.keys(STEP_QUOTES).forEach(k => { pools[k] = shuffleArr(STEP_QUOTES[k]) })
@@ -775,6 +799,7 @@ export default function PivotEngine(){
   const[outputs,setOutputs]=useState(isDemo?demoOutputs:IO)
   const[done,setDone]=useState(isDemo?[...demoDone]:[])
   const[deepOpts,setDeepOpts]=useState(isDemo?[...demoDeepOpts]:['','',''])
+  const[markedOpts,setMarkedOpts]=useState(isDemo?[...demoDeepOpts].filter(v=>v&&v!=='?'):[])
   const[chosen,setChosen]=useState(isDemo?demoChosen:'')
   const[demoIdx,setDemoIdx]=useState(0)
   const[activeTab,setActiveTab]=useState(0)
@@ -829,9 +854,9 @@ export default function PivotEngine(){
   const repOtherRef=useRef()
   const decisionInitialChosenRef=useRef(null)
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3')}catch{};return}const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3')}catch{};return}const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.markedOpts)setMarkedOpts(d.markedOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const d=serverProfile.profile;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen)}else{try{const blob=localStorage.getItem('pe_v3');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const d=serverProfile.profile;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.markedOpts)setMarkedOpts(d.markedOpts);if(d.chosen)setChosen(d.chosen)}else{try{const blob=localStorage.getItem('pe_v3');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
   useEffect(()=>{if(isDemo||isTest)return;try{const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v3');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
   useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
   useEffect(()=>{setShowPulse(false);const t=setTimeout(()=>setShowPulse(true),90000);return()=>clearTimeout(t)},[step])
@@ -839,7 +864,7 @@ export default function PivotEngine(){
   useEffect(()=>{if(!invalidationBanner)return;const t=setTimeout(()=>setInvalidationBanner(null),10000);return()=>clearTimeout(t)},[invalidationBanner])
   useEffect(()=>{if(step==='decision')decisionInitialChosenRef.current=chosen},[step])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
-  useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,signedInUser])
+  useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,markedOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,markedOpts,chosen,signedInUser])
 
   const pr=(f,v)=>setProfile(p=>({...p,[f]:v}))
   const loc=(f,v)=>setProfile(p=>({...p,loc:{...p.loc,[f]:v}}))
@@ -847,21 +872,23 @@ export default function PivotEngine(){
   const out=(k,v)=>setOutputs(o=>({...o,[k]:v}))
   const markDone=(sid)=>setDone(d=>d.includes(sid)?d:[...d,sid])
   // Forward dependency map for state invalidation. Listed in pipeline order.
-  const DEPENDENCY_ORDER=['p1','p2','p3','p4','deepOpts','p5','chosen','p6','p7','p8','p_res','p9','p10','p11','income']
+  const DEPENDENCY_ORDER=['p1','p2','p3','p4','markedOpts','deepOpts','p5','chosen','p6','p7','p8','p_res','p9','p10','p11','income']
   const downstreamOf=(source)=>{const idx=DEPENDENCY_ORDER.indexOf(source);if(idx<0)return[];return DEPENDENCY_ORDER.slice(idx+1)}
   const invalidateDownstream=(source)=>{
     const downstream=downstreamOf(source)
     if(downstream.length===0)return
-    setOutputs(o=>{const updated={...o};for(const k of downstream){if(k!=='deepOpts'&&k!=='chosen')updated[k]=''}return updated})
+    setOutputs(o=>{const updated={...o};for(const k of downstream){if(k!=='deepOpts'&&k!=='markedOpts'&&k!=='chosen')updated[k]=''}return updated})
+    if(downstream.includes('markedOpts'))setMarkedOpts([])
     if(downstream.includes('deepOpts'))setDeepOpts(['','',''])
     if(downstream.includes('chosen'))setChosen('')
     setDone(d=>d.filter(s=>!downstream.includes(s)))
   }
   const INVALIDATION_MESSAGES={
-    p1:'Cleared your Wiring & Compass, Brand Synthesis, and all downstream work so they match the new Resume Analysis.',
-    p2:'Cleared your Brand Synthesis and all downstream work so they match the new Wiring & Compass.',
-    p3:'Cleared your Wide View, Deep Dive, and all downstream work so they match the new Brand Synthesis.',
-    p4:'Cleared your Wide View selections, Deep Dive, and downstream playbook so they match the new options.',
+    p1:'Cleared your Wiring & Compass, Brand Synthesis, Wide View, marked picks, and all downstream work so they match the new Resume Analysis.',
+    p2:'Cleared your Brand Synthesis, Wide View, marked picks, and all downstream work so they match the new Wiring & Compass.',
+    p3:'Cleared your Wide View, marked picks, Deep Dive, and all downstream work so they match the new Brand Synthesis.',
+    p4:'Cleared your marked picks, Deep Dive, and downstream playbook so they match the new options.',
+    markedOpts:'Cleared your Deep Dive and downstream playbook so they match the new marked picks.',
     deepOpts:'Cleared your Deep Dive and downstream playbook so they match the new selections.',
     p5:'Cleared your chosen focus and downstream playbook so they match the new Deep Dive.',
     chosen:'Cleared your downstream playbook so it matches the new chosen focus.',
@@ -978,8 +1005,8 @@ export default function PivotEngine(){
     setSignedInUser(null)
     setStep('welcome')
   }
-  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
-  const exportProfile=()=>{const data={profile,outputs,done,deepOpts,chosen};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
+  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setMarkedOpts([]);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
+  const exportProfile=()=>{const data={profile,outputs,done,deepOpts,markedOpts,chosen};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
   const downloadAllMarkdown=()=>{
     const today=new Date().toISOString().slice(0,10)
     const rawFirstLine=(profile.resume||'').split(/\n/).find(l=>l.trim())||''
@@ -1075,7 +1102,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const w=window.open('','_blank')
     if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),500)}
   };
-  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);const lastStep=data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome';setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
+  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.markedOpts)setMarkedOpts(data.markedOpts);if(data.chosen)setChosen(data.chosen);const lastStep=data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome';setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
   const prog=(step==='income'||step==='op')?100:Math.round((ALL.indexOf(step)/ALL.indexOf('complete'))*100)
   const pc={loc:{...profile.loc,work:Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||'')},resume:profile.resume,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep}
 
@@ -1597,25 +1624,25 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           return opts
         }
         const available=extractOptions(outputs.p4)
-        const selected=deepOpts.filter(v=>v&&v!=='?')
         const toggleOpt=(title)=>{
-          const idx=deepOpts.indexOf(title)
-          if(idx>=0){setDeepOpts(d=>d.map((v,j)=>j===idx?'':v))}
-          else{
-            const emptyIdx=deepOpts.findIndex(v=>!v||v==='?')
-            if(emptyIdx>=0)setDeepOpts(d=>d.map((v,j)=>j===emptyIdx?title:v))
-          }
+          setMarkedOpts(prev=>{
+            if(prev.includes(title)){
+              setDeepOpts(d=>d.map(v=>v===title?'':v))
+              return prev.filter(t=>t!==title)
+            }
+            return [...prev,title]
+          })
         }
         const activeLane=lanes[laneTab]||lanes[0]
         return <>
           {lanes.length>0&&<>
-            {selected.length>0&&<div style={{position:'sticky',top:0,zIndex:5,background:'#FFFFFF',borderBottom:`2px solid ${C.gold}`,padding:'12px 20px',fontSize:15,color:'#1A2540',fontWeight:600,display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-              <span>Selected: {selected.length} of 3</span>
-              {selected.length===3&&<span style={{fontSize:14,fontWeight:400,color:C.gray}}>Ready when you are. Scroll down for Go Deeper.</span>}
+            {markedOpts.length>0&&<div style={{position:'sticky',top:0,zIndex:5,background:'#FFFFFF',borderBottom:`2px solid ${C.gold}`,padding:'12px 20px',fontSize:15,color:'#1A2540',fontWeight:600,display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <span>Marked: {markedOpts.length}</span>
+              {markedOpts.length>3&&<span style={{fontSize:14,fontWeight:400,color:C.gray}}>You'll narrow to 3 on the next screen.</span>}
             </div>}
             <div style={{margin:'20px 0 16px',padding:'16px 20px',background:'#EEF4FF',border:'2px solid #3B82F6',borderRadius:12,display:'flex',alignItems:'center',gap:12}}>
               <div style={{width:36,height:36,borderRadius:8,background:'#3B82F6',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Check size={18} color="white" strokeWidth={3}/></div>
-              <div style={{fontSize:17,color:'#1E3A5F',lineHeight:1.6}}><strong style={{fontSize:18}}>Check the box next to up to 3 roles</strong> that interest you, from any combination of paths. Then scroll down and hit <span style={{display:'inline-block',padding:'3px 12px',background:C.gold,color:'white',borderRadius:6,fontSize:14,fontWeight:700,verticalAlign:'middle',margin:'0 3px',lineHeight:'22px'}}>Go Deeper <span style={{fontSize:12}}>›</span></span> at the bottom of the page.</div>
+              <div style={{fontSize:17,color:'#1E3A5F',lineHeight:1.6}}><strong style={{fontSize:18}}>Check the box next to any roles that interest you</strong> from any combination of paths. You'll narrow to three on the next screen if you mark more than that. Then scroll down and hit <span style={{display:'inline-block',padding:'3px 12px',background:C.gold,color:'white',borderRadius:6,fontSize:14,fontWeight:700,verticalAlign:'middle',margin:'0 3px',lineHeight:'22px'}}>Go Deeper <span style={{fontSize:12}}>›</span></span> at the bottom of the page.</div>
             </div>
             <div style={{display:'flex',gap:8,marginBottom:0,flexWrap:'wrap'}}>
               {lanes.map((lane,i)=><button data-lane-tab key={lane.key} onClick={()=>setLaneTab(i)} style={{padding:'14px 22px',borderRadius:10,border:`2px solid ${laneTab===i?C.gold:C.border}`,background:laneTab===i?`${C.gold}12`:'white',color:laneTab===i?C.goldL:'#4A5568',fontSize:16,fontWeight:laneTab===i?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s',flex:'1 1 0',textAlign:'center',minWidth:140}}>{lane.name}</button>)}
@@ -1662,10 +1689,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   const titleMatch=block.match(titlePattern)
                   const rawBody=titleMatch?block.slice(block.indexOf('\n',block.indexOf(titleMatch[0]))+1).trim():block
                   const body=stripSubPathLine(rawBody)
-                  const isSelected=deepOpts.includes(title)
-                  const canSelect=selected.length<3||isSelected
+                  const isSelected=markedOpts.includes(title)
                   return <div key={bi} style={{marginBottom:16,border:`2px solid ${isSelected?C.gold:C.border}`,borderRadius:12,overflow:'hidden',transition:'all 0.2s'}}>
-                    <button data-checkbox onClick={()=>{if(canSelect)toggleOpt(title)}} style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'14px 20px',background:isSelected?`${C.gold}12`:'#FAFBFC',border:'none',borderBottom:`1px solid ${isSelected?`${C.gold}30`:C.border}`,cursor:canSelect?'pointer':'default',opacity:canSelect?1:0.5,fontFamily:'inherit',transition:'all 0.15s'}}>
+                    <button data-checkbox onClick={()=>toggleOpt(title)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'14px 20px',background:isSelected?`${C.gold}12`:'#FAFBFC',border:'none',borderBottom:`1px solid ${isSelected?`${C.gold}30`:C.border}`,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s'}}>
                       <div style={{width:24,height:24,borderRadius:6,border:`2px solid ${isSelected?C.gold:'#CBD5E0'}`,background:isSelected?C.gold:'white',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isSelected&&<Check size={14} color="white" strokeWidth={3}/>}</div>
                       <div style={{fontSize:17,fontWeight:700,color:isSelected?C.goldL:'#1A2540',flex:1}}>{title}</div>
                       <div style={{fontSize:18,color:C.gold,flexShrink:0,lineHeight:1}}>›</div>
@@ -1712,21 +1738,61 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </>}
           {lanes.length===0&&<div style={{margin:'20px 0 12px',fontSize:16,color:'#4A5568',lineHeight:1.65}}>Read through your options below, then <strong style={{color:'#1A2540'}}>select up to 3 roles</strong> from the checklist that follows. We'll go deep on the ones you choose.</div>}
           {outputs.p4&&<div style={{marginTop:24}}><OutPanel text={outputs.p4} onCopy={copy} copied={copied} expandLabel="Click here to see all your options"/></div>}
-          {selected.length>0&&<div style={{marginTop:16,padding:'16px 20px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:12,display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:16}}>
+          {markedOpts.length>0&&<div style={{marginTop:16,padding:'16px 20px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:12,display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:16}}>
             <div style={{flex:'1 1 320px',minWidth:0}}>
-              <div style={{fontSize:15,color:'#4A5568',marginBottom:12,fontWeight:600}}>Ready to explore ({selected.length}/3):</div>
+              <div style={{fontSize:15,color:'#4A5568',marginBottom:12,fontWeight:600}}>{markedOpts.length<=3?`Marked (${markedOpts.length}):`:`Marked (${markedOpts.length}, you'll narrow to 3 on the next screen):`}</div>
               <ol style={{margin:0,paddingLeft:24,fontSize:15,color:'#1A2540',lineHeight:1.6}}>
-                {selected.map((s,i)=><li key={i} style={{marginBottom:6}}><strong>{s}</strong></li>)}
+                {markedOpts.map((s,i)=><li key={i} style={{marginBottom:6}}><strong>{s}</strong></li>)}
               </ol>
             </div>
-            <Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn>
+            <Btn onClick={()=>{if(markedOpts.length===0){setErr('Mark at least one role to continue.');return}if(markedOpts.length<=3){const padded=[...markedOpts,'','',''].slice(0,3);setDeepOpts(padded);advance('p4','p5')}else{advance('p4','narrowing')}}}>Go Deeper <ChevronRight size={14}/></Btn>
           </div>}
-          {selected.length===0&&available.length>0&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Select at least one role above to continue.</div>}
+          {markedOpts.length===0&&available.length>0&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Mark at least one role above to continue.</div>}
           {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Did we read your fit wrong? If a role you would actually consider is missing, or one we suggested doesn't match your experience, tell us. You can also ask for a different mix here: more startups, fewer consulting roles, more in a specific industry." placeholder="e.g. 'I would not go back to consulting, drop those options.' Or: 'You missed fractional CFO roles.' Or: 'The Industry Insider lane needs more advisory roles, not operating.'" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{cascadeInvalidate('p4');recordCorrection('p4',v);out('p4','');setLaneTab(0);setP4Intro(false);generateP4(v,'Updating your options…')}}/>}
         </>
       })()}
       {err&&<ErrBox msg={err}/>}
     </div>
+
+    case'narrowing':{
+      const narrowSelected=deepOpts.filter(v=>v&&v!=='?')
+      const toggleNarrow=(title)=>{
+        if(deepOpts.includes(title)){
+          setDeepOpts(d=>d.map(v=>v===title?'':v))
+        }else if(narrowSelected.length<3){
+          const emptyIdx=deepOpts.findIndex(v=>!v||v==='?')
+          if(emptyIdx>=0)setDeepOpts(d=>d.map((v,j)=>j===emptyIdx?title:v))
+        }
+      }
+      return <div>
+        {!isDemo&&<div style={S.tag('#C8924A')}>Phase 2 · Explore Options</div>}
+        <h1 style={S.title}>Narrow Your Picks</h1>
+        <p style={S.sub}>You marked {markedOpts.length} roles to explore. The Deep Dive goes deep on three. Pick the three you want.</p>
+        <div style={{margin:'20px 0',padding:'16px 20px',background:`${C.gold}10`,border:`1.5px solid ${C.gold}`,borderRadius:12}}>
+          <div style={{fontSize:15,fontWeight:600,color:'#1A2540',marginBottom:8}}>Selected: {narrowSelected.length} of 3</div>
+          <div style={{fontSize:14,color:'#4A5568',lineHeight:1.55}}>Click a marked role to add it to your three, or click again to swap it out. The Deep Dive will analyze each one in detail.</div>
+        </div>
+        {markedOpts.map((title,i)=>{
+          const isSelected=deepOpts.includes(title)
+          const canSelect=narrowSelected.length<3||isSelected
+          const rationale=extractRationaleForTitle(outputs.p4,title)
+          return <div key={i} onClick={()=>{if(canSelect)toggleNarrow(title)}} style={{margin:'12px 0',padding:'16px 20px',background:isSelected?`${C.gold}15`:'#FFFFFF',border:`2px solid ${isSelected?C.gold:C.border}`,borderRadius:12,cursor:canSelect?'pointer':'default',opacity:canSelect?1:0.55,transition:'all 0.15s'}}>
+            <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+              <div style={{width:24,height:24,borderRadius:6,border:`2px solid ${isSelected?C.gold:'#CBD5E0'}`,background:isSelected?C.gold:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:2}}>{isSelected&&<Check size={14} color="#FFFFFF" strokeWidth={3}/>}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:17,fontWeight:600,color:'#1A2540',marginBottom:rationale?4:0}}>{title}</div>
+                {rationale&&<div style={{fontSize:14,color:'#4A5568',lineHeight:1.55}}>{rationale}</div>}
+              </div>
+            </div>
+          </div>
+        })}
+        <div style={S.row}>
+          <Btn secondary onClick={()=>nav('p4')}><ArrowLeft size={13}/>Back to all options</Btn>
+          <Btn onClick={()=>{if(narrowSelected.length===0){setErr('Pick at least one role to continue.');return}advance('narrowing','p5')}}>Go Deeper <ChevronRight size={14}/></Btn>
+        </div>
+        {err&&<ErrBox msg={err}/>}
+      </div>
+    }
 
     case'p5':{
       const filledOpts=deepOpts.filter(v=>v&&v!=='?')

@@ -100,15 +100,24 @@ This is one of the most-refined steps in the journey. Use it freely. Refinement 
 - **Update my options**. Regenerates with your feedback folded into the current direction. Use this when the options are mostly right and you want to adjust the mix.
 - **Show me a fresh set**. Clears your feedback and the current options entirely, and tries again from scratch. Use this when the current direction is wrong enough that refining will not catch up. For example, the strongest path is wrong, or the geography filter was misapplied.
 
-### Selecting one, two, or three for the Deep Dive
+### Mark widely now, narrow next
 
-Once you have read through the options, check the boxes next to the ones you want to explore in detail. You can pick one, two, or three. They can come from any combination of the three paths.
+The Wide View is for capture, not for the final decision. Check the box next to any role that interests you, in any combination across the three paths. There is no cap during browsing. If four or five or six roles catch your attention, mark all of them. The dedicated decision moment happens on the next screen.
 
-If you already know which option you want to pursue, you can pick just that one. If two feel worth comparing, pick two. The "up to three" cap exists because going deep on more than three at once tends to dilute the analysis, not because three is the right number.
+The counter at the top of the options shows **Marked: N**. When you click **Go Deeper**, one of two things happens:
 
-If you want to swap a selection, uncheck the one you no longer want and check a different one.
+- **If you marked one, two, or three roles,** Reimagine routes straight to the Deep Dive. Those roles are your three (or one or two).
+- **If you marked four or more roles,** Reimagine routes you to a dedicated **Narrow Your Picks** screen between the Wide View and the Deep Dive. You see every role you marked, with a one-line rationale, all in one place. You pick your final three there.
 
-When you have your selections, scroll down and click **Go Deeper**.
+This separation is deliberate. While you read each lane, your job is to flag what interests you. Capture is easy and low-stakes. Selection is hard and comparative; it deserves its own screen.
+
+If you want to swap a marked role on the Wide View, click the checkbox again to un-mark it. The marked pool updates immediately, and any narrowing you have done downstream updates too.
+
+### The Narrow Your Picks screen
+
+This screen appears only when you marked more than three roles. You see every marked role, sorted by lane, with the rationale Reimagine extracted from the Wide View output. Click any role to add it to your final three; click again to swap it out. The counter shows **Selected: N of 3**. When you have one, two, or three selected, click **Go Deeper** to advance to the Deep Dive.
+
+If you change your mind about your marked pool, click **Back to all options** to return to the Wide View. Your marked pool stays intact, so you can adjust marks and come back. Reimagine also preserves your narrowed selections across navigation, so if you advance to the Deep Dive and later come back to the narrowing screen, your prior three are still highlighted and you can swap one out without redoing the whole flow.
 
 ## Step 2.2: The Deep Dive
 
