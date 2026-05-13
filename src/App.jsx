@@ -1156,11 +1156,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {hasProgress&&<div style={{background:'linear-gradient(135deg,#1A2540 0%,#2A3F60 100%)',borderRadius:12,padding:'24px 28px',marginBottom:24,display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
         <div>
           <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#FFFFFF',marginBottom:6}}>Welcome back</div>
-          <div style={{fontSize:16,color:'#CBD5E0',lineHeight:1.6}}>You have work in progress. Pick up right where you left off.</div>
+          <div style={{fontSize:18,color:'#CBD5E0',lineHeight:1.6}}>You have work in progress. Pick up right where you left off.</div>
         </div>
         <div style={{display:'flex',flexDirection:'column',gap:8,alignItems:'flex-end',flexShrink:0}}>
           <Btn onClick={()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step&&d.step!=='welcome'){setStep(d.step)}else if(d.done&&d.done.length>0){setStep(d.done[d.done.length-1])}}}catch{}}} style={{background:C.gold}}>Continue Where I Left Off <ChevronRight size={14}/></Btn>
-          {signedInUser&&<button onClick={deleteAccount} style={{background:'transparent',color:'#CBD5E0',border:'none',padding:'4px 0',fontSize:13,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Or start fresh (delete everything and begin again)</button>}
+          {signedInUser&&<button onClick={deleteAccount} style={{background:'transparent',color:'#CBD5E0',border:'none',padding:'4px 0',fontSize:15,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Or start fresh (delete everything and begin again)</button>}
         </div>
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
@@ -1171,7 +1171,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <text x="92" y="132" fontSize="26" fontWeight="700" letterSpacing="-0.3" fill="#55617a">Your <tspan fontWeight="800" fill="#0e1a2b">Career</tspan>. Your <tspan fontWeight="900" fill="#e4572e">Future</tspan>.</text>
         </svg>
         <a href="/?demo=true" style={{display:'inline-flex',alignItems:'center',gap:10,padding:'14px 28px',background:'#e4572e',borderRadius:8,textDecoration:'none',flexShrink:0,boxShadow:'0 2px 8px rgba(228,87,46,0.3)',marginTop:4}}>
-          <span style={{fontSize:16,fontWeight:700,color:'#fff',whiteSpace:'nowrap'}}>See a Demo Here</span>
+          <span style={{fontSize:17,fontWeight:700,color:'#fff',whiteSpace:'nowrap'}}>See a Demo Here</span>
           <span style={{fontSize:18,color:'#fff',lineHeight:1}}>&#9654;</span>
         </a>
       </div>
@@ -1193,14 +1193,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div><span style={{fontWeight:700,fontSize:18,color:'#1A2540'}}>{t}. </span><span style={{fontSize:18,color:'#2D3748',lineHeight:1.7}}>{d}</span></div>
         </div>)}
         <div style={{marginTop:8,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
-          <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 20px',background:'#C8924A10',border:`1px solid #C8924A40`,borderRadius:8,color:C.goldL,fontSize:16,fontWeight:600,textDecoration:'none'}}>Don't have an assessment already? Take the free Affintus assessment →</a>
+          <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 20px',background:'#C8924A10',border:`1px solid #C8924A40`,borderRadius:8,color:C.goldL,fontSize:17,fontWeight:600,textDecoration:'none'}}>Don't have an assessment already? Take the free Affintus assessment →</a>
         </div>
       </div>
 
       <div style={{...S.card,marginBottom:20}}>
         <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>How It Works</div>
         <div style={{background:`${C.gold}06`,borderRadius:10,padding:'14px 18px',marginBottom:20,border:`1px solid ${C.gold}20`}}>
-          <div style={{fontSize:17,color:'#2D3748',lineHeight:1.7}}>The first step gathers your information: resume, assessment, values, and reputation. <strong style={{color:'#1A2540'}}>That's the only part where you need to do work.</strong> Everything after that is generated for you. You'll review each section and tell us if it feels right before we move on.</div>
+          <div style={{fontSize:18,color:'#2D3748',lineHeight:1.7}}>The first step gathers your information: resume, assessment, values, and reputation. <strong style={{color:'#1A2540'}}>That's the only part where you need to do work.</strong> Everything after that is generated for you. You'll review each section and tell us if it feels right before we move on.</div>
         </div>
         {[
           ['1','Know Your Value','Your experience has created more value than most resumes show. We find it and put it in language any industry understands.'],
@@ -1214,7 +1214,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
           <div style={{flex:1}}>
             <span style={{fontWeight:700,fontSize:19,color:'#1A2540'}}>{phase}</span>
-            <div style={{fontSize:17,color:'#2D3748',lineHeight:1.7,marginTop:4}}>{desc}</div>
+            <div style={{fontSize:18,color:'#2D3748',lineHeight:1.7,marginTop:4}}>{desc}</div>
           </div>
         </div>)}
       </div>
@@ -1253,7 +1253,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn onClick={()=>importFileRef.current?.click()} style={{background:'#2A3F60'}}><Upload size={14}/>Load a Saved Profile</Btn>
         </>}
       </div>
-      <p style={{fontSize:14,color:C.gray,margin:'20px 0 0',textAlign:'center'}}>Prefer to read the full guide first? <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:600,textDecoration:'none'}}>Download the User Guide (PDF)</a></p>
+      <p style={{fontSize:15,color:C.gray,margin:'20px 0 0',textAlign:'center'}}>Prefer to read the full guide first? <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:600,textDecoration:'none'}}>Download the User Guide (PDF)</a></p>
     </div>
 
     case'location':return <div>
@@ -1270,7 +1270,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               const checked=cur.includes(opt)
               return <label key={opt} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:checked?`${C.gold}14`:C.input,border:`1.5px solid ${checked?C.gold:C.border}`,borderRadius:8,cursor:'pointer',transition:'all 0.15s'}}>
                 <input type="checkbox" checked={checked} onChange={()=>{const next=checked?cur.filter(v=>v!==opt):[...cur,opt];loc('work',next)}} style={{margin:0,cursor:'pointer'}}/>
-                <span style={{fontSize:15,color:'#1A2540'}}>{opt}</span>
+                <span style={{fontSize:17,color:'#1A2540'}}>{opt}</span>
               </label>
             })}
           </div>
@@ -1292,7 +1292,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
         {fileLoading&&<Loading msg="Reading your file…"/>}
         <div style={S.field}><label style={S.label}>Or paste resume text</label><textarea style={{...S.ta,minHeight:220}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} placeholder="Paste your resume text here…"/></div>
-        {profile.resume&&<div style={{fontSize:14,color:C.ok}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
+        {profile.resume&&<div style={{fontSize:15,color:C.ok}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
       </div>
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('location')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.resume?advance('resume','linkedin'):setErr('Please provide your resume.')}>Continue <ChevronRight size={14}/></Btn></div>
@@ -1307,7 +1307,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{margin:'8px 0 8px'}}>Your LinkedIn profile holds material your resume does not: your About section (your own public self-positioning), recommendations from colleagues (third-party voice about you), skills with endorsement counts (social proof of competencies others have validated), and your activity (what you engage with publicly, which signals values and passions).</p>
         <p style={{margin:'0 0 0'}}>It also lets Reimagine produce a true <em>refresh</em> of your LinkedIn in Phase 5 (rather than recommendations written from scratch), so the suggestions point at your actual current profile and what to change about it.</p>
       </CoachingCallout>
-      <details style={{background:'#F7F8FA',border:`1px solid ${C.border}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:14,color:C.grayL,lineHeight:1.65}}>
+      <details style={{background:'#F7F8FA',border:`1px solid ${C.border}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:C.grayL,lineHeight:1.65}}>
         <summary style={{cursor:'pointer',fontWeight:600,color:'#1A2540'}}>How to export your LinkedIn as a PDF</summary>
         <ol style={{margin:'10px 0 0 20px',padding:0}}>
           <li style={{margin:'0 0 4px'}}>Open your LinkedIn profile (the URL that starts with linkedin.com/in/your-name).</li>
@@ -1327,7 +1327,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={S.row}>
         <Btn secondary onClick={()=>nav('resume')}><ArrowLeft size={13}/>Back</Btn>
         <div style={{display:'flex',gap:12,alignItems:'center'}}>
-          {!profile.linkedin&&<button type="button" onClick={()=>advance('linkedin','assessment')} style={{background:'transparent',border:'none',color:C.gray,cursor:'pointer',fontSize:14,textDecoration:'underline',fontFamily:'inherit'}}>Skip this step</button>}
+          {!profile.linkedin&&<button type="button" onClick={()=>advance('linkedin','assessment')} style={{background:'transparent',border:'none',color:C.gray,cursor:'pointer',fontSize:15,textDecoration:'underline',fontFamily:'inherit'}}>Skip this step</button>}
           <Btn onClick={()=>advance('linkedin','assessment')}>Continue <ChevronRight size={14}/></Btn>
         </div>
       </div>
@@ -1339,29 +1339,29 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <p style={S.sub}>Your resume shows what you've done. An assessment shows the durable part of you: where your natural strengths lie, what energizes you, and the environments where you do your best work. These qualities don't depend on title, compensation, or where you worked. They travel with you into every role that comes next. Without an assessment, we can only work with your track record. With it, we can connect your results to the qualities that produced them, and surface what you'll carry forward.</p>
       <CoachingCallout>
         <strong style={{color:'#1A2540'}}>Highly recommended.</strong> An assessment (Affintus, CliftonStrengths, Hogan, DiSC, MBTI, Enneagram, PI) gives Reimagine the strongest read on how you work, where you thrive, and where to watch out. If you skip this, the Wiring &amp; Compass section gets shorter and more generic, and the Brand Synthesis loses some of its sharpest evidence. Affintus is free and takes about 15 minutes if you do not have one already.
-        <p style={{margin:'8px 0 0',fontStyle:'italic',fontSize:14}}>Have more than one? Upload them all; Reimagine reads each as a distinct source.</p>
+        <p style={{margin:'8px 0 0',fontStyle:'italic',fontSize:15}}>Have more than one? Upload them all; Reimagine reads each as a distinct source.</p>
       </CoachingCallout>
       <div style={S.card}>
         <div style={{background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:10,padding:'16px 20px',marginBottom:16}}>
-          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:6}}>Our recommendation: take the free Affintus assessment</div>
-          <div style={{fontSize:16,color:'#2D3748',lineHeight:1.65,marginBottom:12}}>15 minutes, no cost, and it gives us the richest data to work with. If you already have CliftonStrengths, DiSC, MBTI, Hogan, or any other assessment from the last few years, that works too.</div>
-          <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 22px',background:C.gold,borderRadius:8,color:'white',fontSize:16,fontWeight:700,textDecoration:'none'}}>Take the Free Affintus Assessment →</a>
+          <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:6}}>Our recommendation: take the free Affintus assessment</div>
+          <div style={{fontSize:18,color:'#2D3748',lineHeight:1.65,marginBottom:12}}>15 minutes, no cost, and it gives us the richest data to work with. If you already have CliftonStrengths, DiSC, MBTI, Hogan, or any other assessment from the last few years, that works too.</div>
+          <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 22px',background:C.gold,borderRadius:8,color:'white',fontSize:17,fontWeight:700,textDecoration:'none'}}>Take the Free Affintus Assessment →</a>
         </div>
         <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
-          {[['Already have CliftonStrengths?','Upload or paste below'],['DiSC, MBTI, Hogan, PI?','Any format works'],['Something else?','We can read it']].map(([n,l])=><div key={n} style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:'8px 12px'}}><div style={{fontWeight:600,color:C.cream,fontSize:12,marginBottom:1}}>{n}</div><div style={{fontSize:11,color:C.gray}}>{l}</div></div>)}
+          {[['Already have CliftonStrengths?','Upload or paste below'],['DiSC, MBTI, Hogan, PI?','Any format works'],['Something else?','We can read it']].map(([n,l])=><div key={n} style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 14px'}}><div style={{fontWeight:600,color:C.cream,fontSize:14,marginBottom:2}}>{n}</div><div style={{fontSize:15,color:C.gray}}>{l}</div></div>)}
         </div>
         <div style={{marginBottom:16}}>
           <p style={S.helperText}>Affintus, CliftonStrengths, Hogan, DiSC, MBTI, Enneagram, PI. You can upload multiple assessments if you have more than one; each gets added to the text below with a divider line so Reimagine can read them as distinct sources.</p>
           <FileUpload label="Upload assessment files" hint="PDF, Word, or plain text. Each file gets parsed and added to the text field below." fileName={null} onFile={async f=>{setFileLoading(true);try{const t=await extractText(f);const divider=`\n\n=== ${f.name} ===\n\n`;const existing=profile.assess||'';const updated=(existing.trim()?existing.trim()+divider:divider.trimStart())+t.trim();pr('assess',updated);setAssessFiles(prev=>[...prev,f.name])}catch(e){setErr(`Could not read ${f.name}: ${e.message}`)}finally{setFileLoading(false)}}}/>
-          {assessFiles.length>0&&<div style={{marginTop:12,padding:'10px 14px',background:'#F7F8FA',border:`1px solid ${C.border}`,borderRadius:8,fontSize:14,color:C.grayL}}>
+          {assessFiles.length>0&&<div style={{marginTop:12,padding:'10px 14px',background:'#F7F8FA',border:`1px solid ${C.border}`,borderRadius:8,fontSize:16,color:C.grayL}}>
             <div style={{fontWeight:600,marginBottom:6,color:'#1A2540'}}>Added:</div>
             <ul style={{margin:0,padding:0,listStyle:'none'}}>
               {assessFiles.map((name,i)=><li key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 0'}}>
                 <span>{name}</span>
-                <button type="button" onClick={()=>setAssessFiles(prev=>prev.filter((_,j)=>j!==i))} style={{background:'transparent',border:'none',color:C.gray,cursor:'pointer',fontSize:13,padding:'2px 6px',fontFamily:'inherit'}} aria-label={`Remove ${name} from list`}>remove from list</button>
+                <button type="button" onClick={()=>setAssessFiles(prev=>prev.filter((_,j)=>j!==i))} style={{background:'transparent',border:'none',color:C.gray,cursor:'pointer',fontSize:15,padding:'2px 6px',fontFamily:'inherit'}} aria-label={`Remove ${name} from list`}>remove from list</button>
               </li>)}
             </ul>
-            <p style={{fontSize:12,color:C.gray,margin:'8px 0 0',fontStyle:'italic'}}>Removing from this list does not delete the file's text from the field below. Edit the text directly if you want to remove its content.</p>
+            <p style={{fontSize:15,color:C.gray,margin:'8px 0 0',fontStyle:'italic'}}>Removing from this list does not delete the file's text from the field below. Edit the text directly if you want to remove its content.</p>
           </div>}
         </div>
         {fileLoading&&<Loading msg="Reading file…"/>}
@@ -1372,9 +1372,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       {skipAssessWarn&&!profile.assess&&<div style={{background:'#FFF8F0',border:`2px solid ${C.gold}`,borderRadius:12,padding:'24px 28px',marginTop:16}}>
         <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:10}}>Are you sure?</div>
-        <div style={{fontSize:16,color:'#2D3748',lineHeight:1.7,marginBottom:16}}>Without assessment data, your results will be based only on your resume and what you tell us about your values and reputation. We can still generate useful output, but we won't be able to connect your results to how you're wired, which is what makes the recommendations personal. The free Affintus assessment takes about 15 minutes and makes a real difference in what we can do for you.</div>
+        <div style={{fontSize:18,color:'#2D3748',lineHeight:1.7,marginBottom:16}}>Without assessment data, your results will be based only on your resume and what you tell us about your values and reputation. We can still generate useful output, but we won't be able to connect your results to how you're wired, which is what makes the recommendations personal. The free Affintus assessment takes about 15 minutes and makes a real difference in what we can do for you.</div>
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 22px',background:C.gold,borderRadius:8,color:'white',fontSize:16,fontWeight:700,textDecoration:'none'}}>Take Affintus Now (Free, 15 min) →</a>
+          <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 22px',background:C.gold,borderRadius:8,color:'white',fontSize:17,fontWeight:700,textDecoration:'none'}}>Take Affintus Now (Free, 15 min) →</a>
           <Btn secondary onClick={()=>{setSkipAssessWarn(false);advance('assessment','values')}}>Continue Without Assessment</Btn>
         </div>
       </div>}
@@ -1390,8 +1390,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <strong style={{color:'#1A2540'}}>Do not filter for what sounds professional.</strong> Include things you actually care about, even if they feel off-topic. Reimagine connects values to career direction in ways that are not obvious upfront. The personal items, the side projects, the causes you give time to are often where the most useful patterns surface. Values are your non-negotiables. Passions are anything you would choose to do on a Saturday for free.
       </CoachingCallout>
       <div style={S.card}>
-        <div style={S.field}><label style={S.label}>Core Values: 3 to 5 non-negotiables</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>The conditions under which you do your best work and feel most like yourself.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.values} onChange={e=>pr('values',e.target.value)} placeholder="e.g. Independence, Family, Justice, Stability, Wealth creation, Cooperation, Service, Faith, Intellectual challenge…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('values',t)}/>}</div></div>
-        <div style={S.field}><label style={S.label}>Passions, Interests & Causes: 3 to 5 things you care about</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>What do you read about for fun, volunteer your time for, or could talk about for 30 minutes with zero preparation? Include hobbies, industries that fascinate you, communities you belong to, and causes close to your heart.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.passions} onChange={e=>pr('passions',e.target.value)} placeholder="e.g. Youth mentoring, Formula 1, Fintech, Sustainability, Veterans' employment, Youth sports, Faith-based service, Addiction recovery, Women in leadership, Gaming, Geopolitics…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('passions',t)}/>}</div></div>
+        <div style={S.field}><label style={S.label}>Core Values: 3 to 5 non-negotiables</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>The conditions under which you do your best work and feel most like yourself.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.values} onChange={e=>pr('values',e.target.value)} placeholder="e.g. Independence, Family, Justice, Stability, Wealth creation, Cooperation, Service, Faith, Intellectual challenge…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('values',t)}/>}</div></div>
+        <div style={S.field}><label style={S.label}>Passions, Interests & Causes: 3 to 5 things you care about</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>What do you read about for fun, volunteer your time for, or could talk about for 30 minutes with zero preparation? Include hobbies, industries that fascinate you, communities you belong to, and causes close to your heart.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.passions} onChange={e=>pr('passions',e.target.value)} placeholder="e.g. Youth mentoring, Formula 1, Fintech, Sustainability, Veterans' employment, Youth sports, Faith-based service, Addiction recovery, Women in leadership, Gaming, Geopolitics…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('passions',t)}/>}</div></div>
       </div>
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('assessment')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.values&&profile.passions?advance('values','reputation'):setErr('Please fill in both fields.')}>Continue <ChevronRight size={14}/></Btn></div>
@@ -1410,7 +1410,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{margin:'0 0 8px',fontStyle:'italic'}}>"After the acquisition closed, the CFO emailed me at 11pm and said: 'I do not know how you held that team together through this. You were the only one who kept everyone focused on what mattered. The whole quarter was you.'"</p>
         <p style={{margin:'0 0 0'}}>Both describe a moment of praise. The "good" version gives Reimagine something to work with. The "better" version gives it a real quote, a specific situation, and the qualities the speaker actually named. Aim for the better version where you can.</p>
       </CoachingCallout>
-      <details style={{background:'#FFFFFF',border:`1px solid ${C.border}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:15,color:C.grayL,lineHeight:1.65}}>
+      <details style={{background:'#FFFFFF',border:`1px solid ${C.border}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:C.grayL,lineHeight:1.65}}>
         <summary style={{cursor:'pointer',fontWeight:600,color:'#1A2540'}}>Where to find this</summary>
         <div style={{marginTop:10}}>
           Sources to mine before you fill these in:
@@ -1426,18 +1426,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </details>
       <div style={S.card}>
-        {[['memory','The Memory',"Think of a specific moment at work when someone thanked you or praised you. What was the situation and what did they say?"],['emergency','The Emergency Call','If your former team had a critical problem right now, what type of situation would they call you to handle?'],['twoWords','The Two Words','If your best former manager described your professional superpower in exactly two words, what would they be?'],['other','Additional Feedback','Performance reviews, LinkedIn recommendations, 360 feedback. Paste anything here.']].map(([f,lbl,hint])=><div key={f} style={S.field}><label style={S.label}>{lbl}</label><div style={{fontSize:15,color:C.gray,marginBottom:7,lineHeight:1.6}}>{hint}</div>{f==='other'&&<div style={{marginBottom:14}}>
+        {[['memory','The Memory',"Think of a specific moment at work when someone thanked you or praised you. What was the situation and what did they say?"],['emergency','The Emergency Call','If your former team had a critical problem right now, what type of situation would they call you to handle?'],['twoWords','The Two Words','If your best former manager described your professional superpower in exactly two words, what would they be?'],['other','Additional Feedback','Performance reviews, LinkedIn recommendations, 360 feedback. Paste anything here.']].map(([f,lbl,hint])=><div key={f} style={S.field}><label style={S.label}>{lbl}</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>{hint}</div>{f==='other'&&<div style={{marginBottom:14}}>
           <p style={S.helperText}>Old performance reviews, 360 feedback, LinkedIn recommendations as PDFs. You can upload multiple files; each gets added to the text below with a divider line so Reimagine can attribute what came from where.</p>
           <FileUpload label="Upload feedback files" hint="PDF, Word, or plain text. Each file gets parsed and added to the Additional Feedback field below." fileName={null} onFile={async file=>{setFileLoading(true);try{const t=await extractText(file);const divider=`\n\n=== ${file.name} ===\n\n`;const existing=profile.rep?.other||'';const updated=(existing.trim()?existing.trim()+divider:divider.trimStart())+t.trim();rep('other',updated);setRepFiles(prev=>[...prev,file.name])}catch(e){setErr(`Could not read ${file.name}: ${e.message}`)}finally{setFileLoading(false)}}}/>
-          {repFiles.length>0&&<div style={{marginTop:12,padding:'10px 14px',background:'#F7F8FA',border:`1px solid ${C.border}`,borderRadius:8,fontSize:14,color:C.grayL}}>
+          {repFiles.length>0&&<div style={{marginTop:12,padding:'10px 14px',background:'#F7F8FA',border:`1px solid ${C.border}`,borderRadius:8,fontSize:16,color:C.grayL}}>
             <div style={{fontWeight:600,marginBottom:6,color:'#1A2540'}}>Added:</div>
             <ul style={{margin:0,padding:0,listStyle:'none'}}>
               {repFiles.map((name,i)=><li key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 0'}}>
                 <span>{name}</span>
-                <button type="button" onClick={()=>setRepFiles(prev=>prev.filter((_,j)=>j!==i))} style={{background:'transparent',border:'none',color:C.gray,cursor:'pointer',fontSize:13,padding:'2px 6px',fontFamily:'inherit'}} aria-label={`Remove ${name} from list`}>remove from list</button>
+                <button type="button" onClick={()=>setRepFiles(prev=>prev.filter((_,j)=>j!==i))} style={{background:'transparent',border:'none',color:C.gray,cursor:'pointer',fontSize:15,padding:'2px 6px',fontFamily:'inherit'}} aria-label={`Remove ${name} from list`}>remove from list</button>
               </li>)}
             </ul>
-            <p style={{fontSize:12,color:C.gray,margin:'8px 0 0',fontStyle:'italic'}}>Removing from this list does not delete the file's text from the field below. Edit the text directly if you want to remove its content.</p>
+            <p style={{fontSize:15,color:C.gray,margin:'8px 0 0',fontStyle:'italic'}}>Removing from this list does not delete the file's text from the field below. Edit the text directly if you want to remove its content.</p>
           </div>}
         </div>}<div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea ref={f==='other'?repOtherRef:null} style={{...S.ta,minHeight:f==='other'?90:62,flex:1}} value={profile.rep[f]} onChange={e=>rep(f,e.target.value)}/>{hasSpeech&&<SpeechBtn onResult={t=>rep(f,t)}/>}</div>{f==='other'&&<><div style={{...S.helperText,marginTop:8}}>Paste anything that gives Reimagine more signal: performance reviews, LinkedIn recommendations, 360 feedback, notes from former managers. A divider line between each source (for example, === LinkedIn recommendations === then the text, then === 2024 performance review === then the text) helps Reimagine attribute what came from where.</div><div style={{marginTop:10}}><Btn secondary small onClick={()=>{const cur=profile.rep.other||'';const div='\n\n=== Source ===\n\n';const next=cur+div;rep('other',next);setTimeout(()=>{if(repOtherRef.current){repOtherRef.current.focus();repOtherRef.current.setSelectionRange(next.length,next.length)}},50)}}>+ Add another source</Btn></div></>}</div>)}
         <div style={S.helperText}>If you leave all blank, we'll generate a reputation hypothesis from your other data and ask you to validate it.</div>
@@ -1447,10 +1447,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
     case'orientation-done':return <div>
       <div style={{background:`linear-gradient(135deg,${C.panel} 0%,${C.card} 100%)`,border:`1px solid ${C.gold}35`,borderRadius:16,padding:'36px',textAlign:'center',marginBottom:22}}>
-        <div style={{fontSize:13,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:C.goldL,marginBottom:8}}>Phase 0 Complete</div>
+        <div style={{fontSize:14,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:C.goldL,marginBottom:8}}>Phase 0 Complete</div>
         <h1 style={{...S.title,fontSize:30,textAlign:'center',marginBottom:14}}>Orientation complete.</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.7,maxWidth:540,margin:'0 auto'}}>You've shared the foundation: where you are, what you've done, how you're wired, what matters to you, and what others say about you. That's the input. Everything that follows is the output: your story, your strategy, your next chapter. Take a breath. Then keep going.</p>
-        <p style={{margin:'12px auto 0',fontSize:14,color:C.gray,fontStyle:'italic',maxWidth:540}}>Good stopping point. Phase 1 is where the analysis begins; come back to it with fresh eyes if you have been at this a while.</p>
+        <p style={{margin:'12px auto 0',fontSize:18,color:C.gray,fontStyle:'italic',maxWidth:540}}>Good stopping point. Phase 1 is where the analysis begins; come back to it with fresh eyes if you have been at this a while.</p>
       </div>
       <div style={S.row}><Btn secondary onClick={()=>nav('reputation')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{advance('orientation-done','p1');generate('p1',()=>P.p1(pc))}}>Begin Know Your Value <ChevronRight size={14}/></Btn></div>
     </div>
@@ -1462,15 +1462,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&!outputs.p1&&!loading&&<Btn onClick={()=>generate('p1',()=>P.p1(pc))}><Sparkles size={14}/>Analyze My Resume</Btn>}
       {loading&&<Loading msg={loadMsg||'Analyzing your career and translating accomplishments…'} step="p1"/>}
       {outputs.p1&&<>
-        {!isDemo&&!hasSeenCorrectionsIntro&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:15,color:'#1A2540',lineHeight:1.65,position:'relative'}}>
+        {!isDemo&&!hasSeenCorrectionsIntro&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:'#1A2540',lineHeight:1.65,position:'relative'}}>
           <button type="button" onClick={dismissCorrectionsIntro} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
           <strong>One thing to know about Reimagine.</strong>
           <p style={{margin:'8px 0 0'}}>The "What did we get wrong?" box below accepts both factual corrections and style tweaks. If Reimagine misread your experience (called your internal strategy work "consulting," misnamed your industry, missed a key accomplishment), tell it in the box. Your correction stays in your profile and applies to every later section automatically. Small corrections compound across the journey.</p>
-          <p style={{margin:'8px 0 0',fontSize:14,color:C.gray}}>You can also ask in the chat in the corner if you want a worked example.</p>
+          <p style={{margin:'8px 0 0',fontSize:16,color:C.gray}}>You can also ask in the chat in the corner if you want a worked example.</p>
         </div>}
         <OutPanel text={outputs.p1} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} hint="Did we read your experience right? If we misclassified a role, missed an accomplishment, or got the seniority wrong, tell us here." placeholder="e.g. 'My time at MoneyGram was internal strategy work, not consulting.' Or: 'I led a team of 12, not 4.' Or: 'You missed my P&L ownership at Acme.'" onRegenerate={v=>{cascadeInvalidate('p1');recordCorrection('p1',v);out('p1','');generate('p1',()=>P.p1(pc)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
-        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now that we see what you've built, let's understand how you're wired and what environments bring out your best work.</div>}
+        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now that we see what you've built, let's understand how you're wired and what environments bring out your best work.</div>}
       {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p1','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p1','p2')}>Explore My Wiring <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
@@ -1484,15 +1484,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {loading&&<Loading msg="Cross-referencing assessment, values, and accomplishments…" step="p2"/>}
       {outputs.p2&&!isDemo&&!hasSeenP2Milestone?<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'32px 36px',borderRadius:12,margin:'0 auto 24px',maxWidth:720}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:26,color:'#1A2540',margin:'0 0 16px',fontWeight:700}}>Phase 1, where the pieces integrate</h2>
-        <p style={{fontSize:17,color:C.grayL,lineHeight:1.7,margin:'0 0 14px'}}>Your assessment showed your natural gifting. Your values named what matters. Your reputation captured what others see. Wiring &amp; Compass connects those threads to your actual work experience.</p>
-        <p style={{fontSize:17,color:C.grayL,lineHeight:1.7,margin:'0 0 14px'}}>What you're about to read is the most portable part of you. Roles change, titles change, the company name on your resume changes. Your gifting goes with you to whatever's next. In interviews, this is the color behind the black and white of the work itself. It's the why behind the what.</p>
-        <p style={{fontSize:17,color:C.grayL,lineHeight:1.7,margin:'0 0 24px'}}>For many people, this is the section that puts the whole career into focus for the first time. Read it slowly.</p>
+        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 14px'}}>Your assessment showed your natural gifting. Your values named what matters. Your reputation captured what others see. Wiring &amp; Compass connects those threads to your actual work experience.</p>
+        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 14px'}}>What you're about to read is the most portable part of you. Roles change, titles change, the company name on your resume changes. Your gifting goes with you to whatever's next. In interviews, this is the color behind the black and white of the work itself. It's the why behind the what.</p>
+        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 24px'}}>For many people, this is the section that puts the whole career into focus for the first time. Read it slowly.</p>
         <Btn onClick={dismissP2Milestone}>Show me what Reimagine found <ChevronRight size={14}/></Btn>
       </div>:outputs.p2&&<>
         {!isDemo&&<CoachingCallout>Read this slowly. The lines that ring true are the integration working. The lines that miss should be corrected in the "What did we get wrong?" box below; those corrections cascade to every later section.</CoachingCallout>}
         <OutPanel text={outputs.p2} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p2} onChange={v=>setFb('p2',v)} hint="Does this capture how you actually work? If we mischaracterized your wiring, your strengths, or what energizes you, tell us." placeholder="e.g. 'I thrive in fast-paced environments, not deliberate ones.' Or: 'Mentoring is my biggest source of energy, you ranked it third.' Or: 'I am not an introvert at work, just selective.'" onRegenerate={v=>{cascadeInvalidate('p2');recordCorrection('p2',v);out('p2','');generate('p2',()=>P.p2(pc,outputs.p1)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
-        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Time to bring it all together: your accomplishments, your wiring, and your values, into one clear statement of who you are professionally.</div>}
+        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Time to bring it all together: your accomplishments, your wiring, and your values, into one clear statement of who you are professionally.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p2','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p2','p3')}>Build My Brand <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
@@ -1521,7 +1521,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <div style={{width:62,height:62,borderRadius:14,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
               <div>
                 <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
-                <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
+                <div style={{fontSize:18,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
               </div>
             </div>)}
           </div>
@@ -1535,9 +1535,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {loading&&<Loading msg="Finding the pattern across all your data…" step="p3"/>}
       {outputs.p3&&!isDemo&&!hasSeenP3Milestone?<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'32px 36px',borderRadius:12,margin:'0 auto 24px',maxWidth:720}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:26,color:'#1A2540',margin:'0 0 16px',fontWeight:700}}>Phase 1, where you find the language</h2>
-        <p style={{fontSize:17,color:C.grayL,lineHeight:1.7,margin:'0 0 14px'}}>Your brand is the durable version of you. The qualities and value you carry into every conversation, every role, every chapter. It doesn't change when your title does.</p>
-        <p style={{fontSize:17,color:C.grayL,lineHeight:1.7,margin:'0 0 14px'}}>Wiring &amp; Compass named how you work. Brand Synthesis takes that read and gives you the words: a Golden Thread that runs through your career, a two-sentence personal brand, and four to six core capabilities with proof.</p>
-        <p style={{fontSize:17,color:C.grayL,lineHeight:1.7,margin:'0 0 24px'}}>This is where many people first hear themselves described in language they can carry into a conversation.</p>
+        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 14px'}}>Your brand is the durable version of you. The qualities and value you carry into every conversation, every role, every chapter. It doesn't change when your title does.</p>
+        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 14px'}}>Wiring &amp; Compass named how you work. Brand Synthesis takes that read and gives you the words: a Golden Thread that runs through your career, a two-sentence personal brand, and four to six core capabilities with proof.</p>
+        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 24px'}}>This is where many people first hear themselves described in language they can carry into a conversation.</p>
         <Btn onClick={dismissP3Milestone}>Show me my brand <ChevronRight size={14}/></Btn>
       </div>:outputs.p3&&<>
         {!isDemo&&<CoachingCallout>
@@ -1546,7 +1546,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </CoachingCallout>}
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the brand or value proposition misses the mark, tell us what's off." placeholder="e.g. 'My golden thread is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The brand line does not match how my colleagues describe me.'" onRegenerate={v=>{cascadeInvalidate('p3');recordCorrection('p3',v);out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
-        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Let's see what's possible: the full landscape of directions that fit your strengths, values, and interests.</div>}
+        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Let's see what's possible: the full landscape of directions that fit your strengths, values, and interests.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');setP3Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
@@ -1570,7 +1570,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <h2 style={{fontSize:34,fontWeight:700,color:'#1A2540',marginBottom:16}}>Three Paths Forward</h2>
             <p style={{fontSize:20,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>We took everything you shared: your experience, how you are wired, and what matters to you, and mapped out where it all points. Your options are organized into three paths.</p>
           </div>
-          <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'22px 26px',borderRadius:8,margin:'0 0 24px',fontSize:17,color:'#1A2540',lineHeight:1.7}}>
+          <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'22px 26px',borderRadius:8,margin:'0 0 24px',fontSize:18,color:'#1A2540',lineHeight:1.7}}>
             <strong style={{fontSize:19}}>How this works</strong>
             <p style={{margin:'10px 0 8px'}}>Reimagine has organized your career options into three paths below. Each path holds specific role suggestions.</p>
             <ol style={{margin:'0 0 8px 20px',padding:0}}>
@@ -1578,14 +1578,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <li>Click any role card to see why it was suggested and what the role looks like.</li>
               <li>Pick up to three roles across any combination of the paths.</li>
             </ol>
-            <p style={{margin:'0 0 0',fontSize:15,color:C.gray}}>You can change your mind later; roles you do not pick are not lost. If anything here is unclear, ask in the chat in the corner.</p>
+            <p style={{margin:'0 0 0',fontSize:16,color:C.gray}}>You can change your mind later; roles you do not pick are not lost. If anything here is unclear, ask in the chat in the corner.</p>
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
             {pathCards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
               <div style={{width:62,height:62,borderRadius:14,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
               <div>
                 <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
-                <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
+                <div style={{fontSize:18,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
               </div>
             </div>)}
           </div>
@@ -1666,19 +1666,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         const activeLane=lanes[laneTab]||lanes[0]
         return <>
           {lanes.length>0&&<>
-            {markedOpts.length>0&&<div style={{position:'sticky',top:0,zIndex:5,background:'#FFFFFF',borderBottom:`2px solid ${C.gold}`,padding:'12px 20px',fontSize:15,color:'#1A2540',fontWeight:600,display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            {markedOpts.length>0&&<div style={{position:'sticky',top:0,zIndex:5,background:'#FFFFFF',borderBottom:`2px solid ${C.gold}`,padding:'12px 20px',fontSize:16,color:'#1A2540',fontWeight:600,display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
               <span>Marked: {markedOpts.length}</span>
-              {markedOpts.length>3&&<span style={{fontSize:14,fontWeight:400,color:C.gray}}>You'll narrow to 3 on the next screen.</span>}
+              {markedOpts.length>3&&<span style={{fontSize:15,fontWeight:400,color:C.gray}}>You'll narrow to 3 on the next screen.</span>}
             </div>}
             <div style={{margin:'20px 0 16px',padding:'16px 20px',background:'#EEF4FF',border:'2px solid #3B82F6',borderRadius:12,display:'flex',alignItems:'center',gap:12}}>
               <div style={{width:36,height:36,borderRadius:8,background:'#3B82F6',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Check size={18} color="white" strokeWidth={3}/></div>
-              <div style={{fontSize:17,color:'#1E3A5F',lineHeight:1.6}}><strong style={{fontSize:18}}>Check the box next to any roles that interest you</strong> from any combination of paths. You'll narrow to three on the next screen if you mark more than that. Then scroll down and hit <span style={{display:'inline-block',padding:'3px 12px',background:C.gold,color:'white',borderRadius:6,fontSize:14,fontWeight:700,verticalAlign:'middle',margin:'0 3px',lineHeight:'22px'}}>Go Deeper <span style={{fontSize:12}}>›</span></span> at the bottom of the page.</div>
+              <div style={{fontSize:18,color:'#1E3A5F',lineHeight:1.6}}><strong style={{fontSize:19}}>Check the box next to any roles that interest you</strong> from any combination of paths. You'll narrow to three on the next screen if you mark more than that. Then scroll down and hit <span style={{display:'inline-block',padding:'3px 12px',background:C.gold,color:'white',borderRadius:6,fontSize:15,fontWeight:700,verticalAlign:'middle',margin:'0 3px',lineHeight:'22px'}}>Go Deeper <span style={{fontSize:14}}>›</span></span> at the bottom of the page.</div>
             </div>
             <div style={{display:'flex',gap:8,marginBottom:0,flexWrap:'wrap'}}>
-              {lanes.map((lane,i)=><button data-lane-tab key={lane.key} onClick={()=>setLaneTab(i)} style={{padding:'14px 22px',borderRadius:10,border:`2px solid ${laneTab===i?C.gold:C.border}`,background:laneTab===i?`${C.gold}12`:'white',color:laneTab===i?C.goldL:'#4A5568',fontSize:16,fontWeight:laneTab===i?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s',flex:'1 1 0',textAlign:'center',minWidth:140}}>{lane.name}</button>)}
+              {lanes.map((lane,i)=><button data-lane-tab key={lane.key} onClick={()=>setLaneTab(i)} style={{padding:'14px 22px',borderRadius:10,border:`2px solid ${laneTab===i?C.gold:C.border}`,background:laneTab===i?`${C.gold}12`:'white',color:laneTab===i?C.goldL:'#4A5568',fontSize:17,fontWeight:laneTab===i?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s',flex:'1 1 0',textAlign:'center',minWidth:140}}>{lane.name}</button>)}
             </div>
             {activeLane&&<div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:'0 0 12px 12px',borderTop:'none',padding:'28px 30px',marginBottom:16}}>
-              <div style={{fontSize:16,color:'#4A5568',lineHeight:1.7,marginBottom:20,fontStyle:'italic'}}>{activeLane.desc}</div>
+              <div style={{fontSize:18,color:'#4A5568',lineHeight:1.7,marginBottom:20,fontStyle:'italic'}}>{activeLane.desc}</div>
               {(()=>{
                 const content=activeLane.content||''
                 const availTitles=available.map(a=>a.title)
@@ -1704,7 +1704,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 }
                 const selectableBlocks=optBlocks.filter(b=>{const t=extractTitle(b);return t&&isSelectable(t)})
                 if(selectableBlocks.length<2)return <div style={{margin:'12px 0',padding:'18px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10}}>
-                  <div style={{fontSize:15,color:'#1A2540',lineHeight:1.6,marginBottom:12}}>We weren't able to generate a complete set of options for this lane. Click the regenerate button below to try again.</div>
+                  <div style={{fontSize:17,color:'#1A2540',lineHeight:1.6,marginBottom:12}}>We weren't able to generate a complete set of options for this lane. Click the regenerate button below to try again.</div>
                   <Btn small onClick={()=>{cascadeInvalidate('p4');generateP4()}}><RotateCcw size={11}/>Regenerate this lane</Btn>
                 </div>
                 const extractSubPath=(block)=>{
@@ -1715,7 +1715,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const renderCard=(block,bi)=>{
                   const title=extractTitle(block)
                   const selectable=title&&isSelectable(title)
-                  if(!selectable)return <div key={bi} style={{fontSize:15,color:'#374258',lineHeight:1.7,marginBottom:12}}><MD text={block}/></div>
+                  if(!selectable)return <div key={bi} style={{fontSize:18,color:'#374258',lineHeight:1.7,marginBottom:12}}><MD text={block}/></div>
                   const titleMatch=block.match(titlePattern)
                   const rawBody=titleMatch?block.slice(block.indexOf('\n',block.indexOf(titleMatch[0]))+1).trim():block
                   const body=stripSubPathLine(rawBody)
@@ -1723,10 +1723,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   return <div key={bi} style={{marginBottom:16,border:`2px solid ${isSelected?C.gold:C.border}`,borderRadius:12,overflow:'hidden',transition:'all 0.2s'}}>
                     <button data-checkbox onClick={()=>toggleOpt(title)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'14px 20px',background:isSelected?`${C.gold}12`:'#FAFBFC',border:'none',borderBottom:`1px solid ${isSelected?`${C.gold}30`:C.border}`,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s'}}>
                       <div style={{width:24,height:24,borderRadius:6,border:`2px solid ${isSelected?C.gold:'#CBD5E0'}`,background:isSelected?C.gold:'white',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isSelected&&<Check size={14} color="white" strokeWidth={3}/>}</div>
-                      <div style={{fontSize:17,fontWeight:700,color:isSelected?C.goldL:'#1A2540',flex:1}}>{title}</div>
+                      <div style={{fontSize:19,fontWeight:700,color:isSelected?C.goldL:'#1A2540',flex:1}}>{title}</div>
                       <div style={{fontSize:18,color:C.gold,flexShrink:0,lineHeight:1}}>›</div>
                     </button>
-                    <div style={{padding:'16px 20px',fontSize:15,color:'#374258',lineHeight:1.7}}><MD text={body}/></div>
+                    <div style={{padding:'16px 20px',fontSize:18,color:'#374258',lineHeight:1.7}}><MD text={body}/></div>
                   </div>
                 }
                 const isFamiliar=activeLane.key==='familiar'
@@ -1746,12 +1746,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     {unlabeled.map(({b,bi})=>renderCard(b,bi))}
                     {sameRole.length>0&&<div style={{marginBottom:24}}>
                       <h3 style={{fontSize:18,fontWeight:600,color:'#1A2540',margin:'0 0 4px'}}>Same Role, Same Industry</h3>
-                      <p style={{fontSize:14,color:C.gray,margin:'0 0 12px',fontStyle:'italic'}}>The roles where your existing track record speaks most directly.</p>
+                      <p style={{fontSize:18,color:C.gray,margin:'0 0 12px',fontStyle:'italic'}}>The roles where your existing track record speaks most directly.</p>
                       {sameRole.map(({b,bi})=>renderCard(b,bi))}
                     </div>}
                     {similarRole.length>0&&<div>
                       <h3 style={{fontSize:18,fontWeight:600,color:'#1A2540',margin:'0 0 4px'}}>Similar Role, Different Industry</h3>
-                      <p style={{fontSize:14,color:C.gray,margin:'0 0 12px',fontStyle:'italic'}}>Where your skills travel to a new context.</p>
+                      <p style={{fontSize:18,color:C.gray,margin:'0 0 12px',fontStyle:'italic'}}>Where your skills travel to a new context.</p>
                       {similarRole.map(({b,bi})=>renderCard(b,bi))}
                     </div>}
                   </>
@@ -1759,25 +1759,25 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   renderedBlocks=optBlocks.map((b,bi)=>renderCard(b,bi))
                 }
                 return <>
-                  {preamble&&<div style={{fontSize:15,color:'#374258',lineHeight:1.7,marginBottom:16}}><MD text={preamble}/></div>}
-                  <div style={{fontSize:14,color:'#4A5568',lineHeight:1.55,marginBottom:14,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6}}>Click any role card to see why Reimagine suggested it, what the work looks like, and how your background maps to it.</div>
+                  {preamble&&<div style={{fontSize:18,color:'#374258',lineHeight:1.7,marginBottom:16}}><MD text={preamble}/></div>}
+                  <div style={{fontSize:16,color:'#4A5568',lineHeight:1.55,marginBottom:14,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6}}>Click any role card to see why Reimagine suggested it, what the work looks like, and how your background maps to it.</div>
                   {renderedBlocks}
                 </>
               })()}
             </div>}
           </>}
-          {lanes.length===0&&<div style={{margin:'20px 0 12px',fontSize:16,color:'#4A5568',lineHeight:1.65}}>Read through your options below, then <strong style={{color:'#1A2540'}}>select up to 3 roles</strong> from the checklist that follows. We'll go deep on the ones you choose.</div>}
+          {lanes.length===0&&<div style={{margin:'20px 0 12px',fontSize:18,color:'#4A5568',lineHeight:1.65}}>Read through your options below, then <strong style={{color:'#1A2540'}}>select up to 3 roles</strong> from the checklist that follows. We'll go deep on the ones you choose.</div>}
           {outputs.p4&&<div style={{marginTop:24}}><OutPanel text={outputs.p4} onCopy={copy} copied={copied} expandLabel="Click here to see all your options"/></div>}
           {markedOpts.length>0&&<div style={{marginTop:16,padding:'16px 20px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:12,display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:16}}>
             <div style={{flex:'1 1 320px',minWidth:0}}>
-              <div style={{fontSize:15,color:'#4A5568',marginBottom:12,fontWeight:600}}>{markedOpts.length<=3?`Marked (${markedOpts.length}):`:`Marked (${markedOpts.length}, you'll narrow to 3 on the next screen):`}</div>
-              <ol style={{margin:0,paddingLeft:24,fontSize:15,color:'#1A2540',lineHeight:1.6}}>
+              <div style={{fontSize:16,color:'#4A5568',marginBottom:12,fontWeight:600}}>{markedOpts.length<=3?`Marked (${markedOpts.length}):`:`Marked (${markedOpts.length}, you'll narrow to 3 on the next screen):`}</div>
+              <ol style={{margin:0,paddingLeft:24,fontSize:18,color:'#1A2540',lineHeight:1.6}}>
                 {markedOpts.map((s,i)=><li key={i} style={{marginBottom:6}}><strong>{s}</strong></li>)}
               </ol>
             </div>
             <Btn onClick={()=>{if(markedOpts.length===0){setErr('Mark at least one role to continue.');return}if(markedOpts.length<=3){const padded=[...markedOpts,'','',''].slice(0,3);setDeepOpts(padded);advance('p4','p5')}else{advance('p4','narrowing')}}}>Go Deeper <ChevronRight size={14}/></Btn>
           </div>}
-          {markedOpts.length===0&&available.length>0&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Mark at least one role above to continue.</div>}
+          {markedOpts.length===0&&available.length>0&&<div style={{fontSize:16,color:C.gray,marginTop:12,textAlign:'center'}}>Mark at least one role above to continue.</div>}
           {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Did we read your fit wrong? If a role you would actually consider is missing, or one we suggested doesn't match your experience, tell us. You can also ask for a different mix here: more startups, fewer consulting roles, more in a specific industry." placeholder="e.g. 'I would not go back to consulting, drop those options.' Or: 'You missed fractional CFO roles.' Or: 'The Industry Insider lane needs more advisory roles, not operating.'" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{cascadeInvalidate('p4');recordCorrection('p4',v);out('p4','');setLaneTab(0);setP4Intro(false);generateP4(v,'Updating your options…')}}/>}
         </>
       })()}
@@ -1799,8 +1799,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={S.title}>Narrow Your Picks</h1>
         <p style={S.sub}>You marked {markedOpts.length} roles to explore. The Deep Dive goes deep on three. Pick the three you want.</p>
         <div style={{margin:'20px 0',padding:'16px 20px',background:`${C.gold}10`,border:`1.5px solid ${C.gold}`,borderRadius:12}}>
-          <div style={{fontSize:15,fontWeight:600,color:'#1A2540',marginBottom:8}}>Selected: {narrowSelected.length} of 3</div>
-          <div style={{fontSize:14,color:'#4A5568',lineHeight:1.55}}>Click a marked role to add it to your three, or click again to swap it out. The Deep Dive will analyze each one in detail.</div>
+          <div style={{fontSize:16,fontWeight:600,color:'#1A2540',marginBottom:8}}>Selected: {narrowSelected.length} of 3</div>
+          <div style={{fontSize:16,color:'#4A5568',lineHeight:1.55}}>Click a marked role to add it to your three, or click again to swap it out. The Deep Dive will analyze each one in detail.</div>
         </div>
         {markedOpts.map((title,i)=>{
           const isSelected=deepOpts.includes(title)
@@ -1810,8 +1810,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
               <div style={{width:24,height:24,borderRadius:6,border:`2px solid ${isSelected?C.gold:'#CBD5E0'}`,background:isSelected?C.gold:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:2}}>{isSelected&&<Check size={14} color="#FFFFFF" strokeWidth={3}/>}</div>
               <div style={{flex:1}}>
-                <div style={{fontSize:17,fontWeight:600,color:'#1A2540',marginBottom:rationale?4:0}}>{title}</div>
-                {rationale&&<div style={{fontSize:14,color:'#4A5568',lineHeight:1.55}}>{rationale}</div>}
+                <div style={{fontSize:19,fontWeight:600,color:'#1A2540',marginBottom:rationale?4:0}}>{title}</div>
+                {rationale&&<div style={{fontSize:18,color:'#4A5568',lineHeight:1.55}}>{rationale}</div>}
               </div>
             </div>
           </div>
@@ -1861,8 +1861,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={S.title}>The Deep Dive</h1>
         {!isDemo&&<p style={S.sub}>It's easy to get excited about an option on paper. This step shows what the role actually looks like and how your background maps to it.</p>}
         {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{margin:'20px 0 16px',padding:'16px 20px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:12}}>
-          <div style={{fontSize:15,color:'#4A5568',marginBottom:12,fontWeight:600}}>Going deep on these:</div>
-          <ol style={{margin:0,paddingLeft:24,fontSize:15,color:'#1A2540',lineHeight:1.6}}>
+          <div style={{fontSize:16,color:'#4A5568',marginBottom:12,fontWeight:600}}>Going deep on these:</div>
+          <ol style={{margin:0,paddingLeft:24,fontSize:18,color:'#1A2540',lineHeight:1.6}}>
             {filledOpts.map((o,i)=><li key={i} style={{marginBottom:6}}><strong>{o}</strong></li>)}
           </ol>
         </div>}
@@ -1909,7 +1909,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {!isDemo&&<RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} hint="Did we misread fit on any of these options? If something we said about an option doesn't match your background or your interest, tell us." placeholder="e.g. 'You said this role needs more sales experience than I have, but I led a $50M sales org.' Or: 'I am not interested in Option B at all, replace it.' Or: 'The obstacle you flagged is not really a concern for me.'" onRegenerate={v=>{cascadeInvalidate('p5');recordCorrection('p5',v);out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:6000,msg:'Updating your deep dive…'})}}/>}
           {!isDemo&&<>
             <div style={{margin:'24px 0 12px',padding:'16px 20px',background:'#FFF8F0',border:`2px solid ${C.gold}40`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
-              <span style={{fontSize:16,color:C.goldL,fontWeight:500}}>Not what you expected? Go back and explore different options.</span>
+              <span style={{fontSize:17,color:C.goldL,fontWeight:500}}>Not what you expected? Go back and explore different options.</span>
               <Btn secondary onClick={()=>{cascadeInvalidate('deepOpts');nav('p4')}}><ArrowLeft size={13}/>Choose Different Options</Btn>
             </div>
             <div style={S.row}>
@@ -1943,17 +1943,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>:<>
         <div style={S.card}>
           <label style={S.label}>Choose your focus</label>
-          <div style={{fontSize:17,color:C.gray,marginBottom:14,lineHeight:1.6}}>{deepOpts.filter(v=>v&&v!=='?').length===1?'Confirm this is the direction you want to pursue, or describe a different path below.':'Click the option you want as your focus, or describe a different path below.'} This becomes the foundation for everything that follows.</div>
+          <div style={{fontSize:18,color:C.gray,marginBottom:14,lineHeight:1.6}}>{deepOpts.filter(v=>v&&v!=='?').length===1?'Confirm this is the direction you want to pursue, or describe a different path below.':'Click the option you want as your focus, or describe a different path below.'} This becomes the foundation for everything that follows.</div>
           {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
             {deepOpts.filter(v=>v&&v!=='?').map(opt=><button key={opt} onClick={()=>{if(chosen&&chosen!==opt)cascadeInvalidate('chosen');setChosen(opt)}} style={{padding:'14px 20px',borderRadius:8,border:`2px solid ${chosen===opt?C.gold:C.border}`,background:chosen===opt?`${C.gold}15`:'white',color:chosen===opt?C.goldL:'#374258',fontSize:17,fontWeight:chosen===opt?600:400,cursor:'pointer',fontFamily:'inherit',textAlign:'left',transition:'all 0.15s',display:'flex',alignItems:'center',gap:10}}>{chosen===opt&&<Check size={14} color={C.gold} strokeWidth={3}/>}{opt}</button>)}
           </div>}
-          <div style={{fontSize:14,color:C.gray,marginTop:8}}>Or describe a different path:</div>
+          <div style={{fontSize:16,color:C.gray,marginTop:8}}>Or describe a different path:</div>
           <textarea style={{...S.ta,minHeight:60,marginTop:6}} value={deepOpts.filter(v=>v&&v!=='?').includes(chosen)?'':chosen} onChange={e=>setChosen(e.target.value)} placeholder="e.g. a hybrid of two of the options above, or a refinement that wasn't surfaced…"/>
         </div>
         <div style={S.card}>
-          <div style={{fontWeight:600,color:C.cream,fontSize:13,marginBottom:9}}>Not ready yet?</div>
+          <div style={{fontWeight:600,color:C.cream,fontSize:16,marginBottom:9}}>Not ready yet?</div>
           <Btn secondary onClick={()=>{cascadeInvalidate('deepOpts');nav('p5')}}>Explore different options →</Btn>
-          <div style={{fontSize:15,color:C.gray,marginTop:9}}>Or close the tool and come back, your progress is saved automatically.</div>
+          <div style={{fontSize:16,color:C.gray,marginTop:9}}>Or close the tool and come back, your progress is saved automatically.</div>
         </div>
         {err&&<ErrBox msg={err}/>}
         <div style={S.row}><Btn onClick={()=>{if(!chosen){setErr('Please enter your decision to continue.');return}const initial=decisionInitialChosenRef.current;if(initial&&initial!==chosen&&outputs.p6)cascadeInvalidate('chosen');advance('decision','p6')}}>Build My Bridge Story <ChevronRight size={14}/></Btn></div>
@@ -1978,14 +1978,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{width:72,height:72,borderRadius:18,background:`${C.gold}15`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}><Sparkles size={32} color={C.gold}/></div>
             <h2 style={{fontSize:34,fontWeight:700,color:'#1A2540',marginBottom:16}}>Your Bridge Story</h2>
             <p style={{fontSize:20,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto 18px'}}>The opening 30 seconds of an interview shapes everything that follows. Here is a three-part formula that makes your answer memorable, personal, and impossible to confuse with anyone else in the room.</p>
-            <p style={{fontSize:17,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>"Tell me about yourself" is the first question in most interviews. Most answers are a recital of the resume: what you did and where. The best answers are the why behind the what, the durable qualities that explain why those results happened. This is your color behind the black and white of the work itself.</p>
+            <p style={{fontSize:18,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>"Tell me about yourself" is the first question in most interviews. Most answers are a recital of the resume: what you did and where. The best answers are the why behind the what, the durable qualities that explain why those results happened. This is your color behind the black and white of the work itself.</p>
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
             {cards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
               <div style={{width:62,height:62,borderRadius:14,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
               <div>
                 <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
-                <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
+                <div style={{fontSize:18,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
               </div>
             </div>)}
           </div>
@@ -1997,7 +1997,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       })()}
       {!isDemo&&!outputs.p6&&!loading&&!p6Intro&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:5000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
       {loading&&<Loading msg="Crafting your bridge story in three lengths…" step="p6"/>}
-      {outputs.p6&&<>{!isDemo&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:15,color:'#1A2540',lineHeight:1.65}}>
+      {outputs.p6&&<>{!isDemo&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:'#1A2540',lineHeight:1.65}}>
         <strong>Learn the structure, then make it yours.</strong>
         <p style={{margin:'8px 0 0'}}>Your Bridge Story is built on three pieces: a human truth about who you are, the professional proof that follows from it, and the next chapter that fits. Once you can name those three, you can carry the structure into any real conversation, in your own words. The exact phrasing below is a starting point, not a script.</p>
       </div>}<OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like you? If the story misreads your motivation, your transition, or the through-line, tell us." placeholder="e.g. 'My pivot was not to find more meaning; I was forced out.' Or: 'You called my last role a step back; it was lateral.' Or: 'The opening line does not sound like me.'" onRegenerate={v=>{cascadeInvalidate('p6');recordCorrection('p6',v);out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:5000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p6','');setP6Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
@@ -2036,14 +2036,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <li style={{margin:'0 0 4px'}}>An outreach template grounded in the <em>Making Your Own Weather</em> framework</li>
               <li style={{margin:0}}>A LinkedIn signal tweak</li>
             </ul>
-            <p style={{margin:0,fontSize:14,color:C.gray,fontStyle:'italic'}}>Live research can take 3 to 4 minutes.</p>
+            <p style={{margin:0,fontSize:15,color:C.gray,fontStyle:'italic'}}>Live research can take 3 to 4 minutes.</p>
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
             {cards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
               <div style={{width:62,height:62,borderRadius:14,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
               <div>
                 <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
-                <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
+                <div style={{fontSize:18,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
               </div>
             </div>)}
           </div>
@@ -2061,10 +2061,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         const part12=splitPoint>0?cleanText.slice(0,splitPoint):cleanText
         const part34=splitPoint>0?cleanText.slice(splitPoint):''
         return <>
-          <div style={S.out}><div style={{fontSize:14,color:C.goldL,fontStyle:'italic',lineHeight:1.6,marginBottom:14,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6}}>Note: contact names are surfaced from public sources and may be out of date. Verify on LinkedIn before reaching out.</div><div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(cleanText)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div><MD text={part12}/></div>
+          <div style={S.out}><div style={{fontSize:16,color:C.goldL,fontStyle:'italic',lineHeight:1.6,marginBottom:14,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6}}>Note: contact names are surfaced from public sources and may be out of date. Verify on LinkedIn before reaching out.</div><div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(cleanText)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div><MD text={part12}/></div>
           <div style={{margin:'16px 0',padding:'16px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
             <div>
-              <div style={{fontWeight:700,fontSize:17,color:'#1A2540',marginBottom:4}}>Download your company list</div>
+              <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:4}}>Download your company list</div>
               <div style={{fontSize:16,color:C.goldL}}>Save as a spreadsheet to track outreach, add notes, and share with your network.</div>
             </div>
             <Btn onClick={()=>{
@@ -2159,7 +2159,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             }} style={{flexShrink:0}}>Download CSV</Btn>
           </div>
           {part34&&<>
-            <div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'16px 0',fontSize:15,color:C.grayL,lineHeight:1.65}}>
+            <div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'16px 0',fontSize:17,color:C.grayL,lineHeight:1.65}}>
               <strong style={{color:'#1A2540'}}>Why reach out before there is a posting?</strong>
               <p style={{margin:'8px 0 8px'}}>A job posting is an RFP. Your resume is your RFP response. You submit it and you hope. You have no visibility into the process, no access to the people deciding, no way to stand out from the pile.</p>
               <p style={{margin:'0 0 8px'}}>Most roles at the level you are looking for are not posted yet. A seat is wobbly, a leader is forming a new function, a company is about to scale and does not know what it needs. Reaching out before there is a posting puts you in the conversation while the role is still being shaped.</p>
@@ -2168,7 +2168,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={S.out}><MD text={part34}/></div>
           </>}
           {!isDemo&&<RefineBox value={feedback.p7} onChange={v=>setFb('p7',v)} hint="Did we read your target market wrong, or misclassify any of these companies? Tell us." placeholder="e.g. 'I do not want to target enterprise; I am going SMB.' Or: 'You said Acme is hiring; they did layoffs last month.' Or: 'My contact at Beta is wrong; that person left.'" updateLabel="Update my strategy" freshLabel="Show me a fresh set" onRegenerate={v=>{cascadeInvalidate('p7');recordCorrection('p7',v);out('p7','');generate('p7',()=>P.p7(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{webSearch:true,maxTokens:7000})}}/>}
-          {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Companies identified. Now let's update how you show up online so the right people can find you.</div>}
+          {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Companies identified. Now let's update how you show up online so the right people can find you.</div>}
           {!isDemo&&<div style={S.row}>
             <Btn secondary onClick={()=>{out('p7','');setP7Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn>
             <Btn onClick={()=>advance('p7','p8')}>Remix My LinkedIn <ChevronRight size={14}/></Btn>
@@ -2217,15 +2217,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{display:'grid',gridTemplateColumns:'1fr',gap:18,marginBottom:32}}>
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:'24px 28px'}}>
               <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}><Lightbulb size={34} color={C.gold}/><span style={{fontSize:22,fontWeight:700,color:C.cream}}>T = Thinking, Not Tasks</span></div>
-              <p style={{fontSize:17,color:C.gray,lineHeight:1.65,margin:0}}>STAR stories are usually told as Situation, Task, Action, Result. Reimagine replaces Task with Thinking, because the employer is hiring your brain. How you diagnosed the situation, what options you considered, what framework you used to decide. That is what transfers to the new role.</p>
+              <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>STAR stories are usually told as Situation, Task, Action, Result. Reimagine replaces Task with Thinking, because the employer is hiring your brain. How you diagnosed the situation, what options you considered, what framework you used to decide. That is what transfers to the new role.</p>
             </div>
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:'24px 28px'}}>
               <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}><Puzzle size={34} color={C.gold}/><span style={{fontSize:22,fontWeight:700,color:C.cream}}>The Remix</span></div>
-              <p style={{fontSize:17,color:C.gray,lineHeight:1.65,margin:0}}>You do not need a different story for every question. You need 3 great stories you know so well that you can shift emphasis in real time. A CEO hears the strategic vision. A CFO hears the numbers. A peer hears the collaboration. Same story, different music.</p>
+              <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>You do not need a different story for every question. You need 3 great stories you know so well that you can shift emphasis in real time. A CEO hears the strategic vision. A CFO hears the numbers. A peer hears the collaboration. Same story, different music.</p>
             </div>
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:'24px 28px'}}>
               <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}><Target size={34} color={C.gold}/><span style={{fontSize:22,fontWeight:700,color:C.cream}}>Strengthen As You Go</span></div>
-              <p style={{fontSize:17,color:C.gray,lineHeight:1.65,margin:0}}>After each story, we will show you exactly what details would make it stronger: a missing number, a budget, a timeline, a framework you used to think through the problem. Add those details and regenerate the story with them baked in.</p>
+              <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>After each story, we will show you exactly what details would make it stronger: a missing number, a budget, a timeline, a framework you used to think through the problem. Add those details and regenerate the story with them baked in.</p>
             </div>
           </div>
           <div style={{background:`${C.gold}10`,border:`1px solid ${C.gold}30`,borderRadius:10,padding:'18px 22px',marginBottom:28}}>
@@ -2260,10 +2260,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const block=raw.substring(start,end).trim()
             if(block.length>50)storySections.push({id:i,text:block,title:block.split('\n')[0].replace(/^\*+|\*+$/g,'').trim()})
           })
-          return <>{!isDemo&&<div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'24px 0 16px',fontSize:15,color:C.grayL,lineHeight:1.65}}>
+          return <>{!isDemo&&<div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'24px 0 16px',fontSize:17,color:C.grayL,lineHeight:1.65}}>
             <strong style={{color:'#1A2540'}}>Three stories, infinitely remixable.</strong>
             <p style={{margin:'8px 0 0'}}>The principle behind STAR Stories: you have three core tracks; every interview is a different set. The Remix section shows how to take one story and shift it for a CEO versus a CFO versus a peer versus a different question entirely. Practice the structure of each story, not the words. The words shift with the audience.</p>
-          </div>}<div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>Your STAR Stories</h2><p style={{fontSize:16,color:C.gray,marginTop:6}}>Your 3 strongest stories in the Situation–Thinking–Action–Result format, plus how to remix them for different audiences and questions.</p></div>
+          </div>}<div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>Your STAR Stories</h2><p style={{fontSize:17,color:C.gray,marginTop:6}}>Your 3 strongest stories in the Situation–Thinking–Action–Result format, plus how to remix them for different audiences and questions.</p></div>
           {quickTakeaway&&<OutPanel text={quickTakeaway} onCopy={copy} copied={copied}/>}
           {storySections.map(story=>{
             const strengthenIdx=story.text.search(/\*\*Strengthen This Story[:\s]*\*\*/i)
@@ -2273,7 +2273,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}><Btn small onClick={()=>copy('### STORY '+(story.id+1)+': '+story.text)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy</>}</Btn></div>
               <MD text={'### '+mainContent}/>
               {strengthenContent&&<div style={{background:`${C.gold}08`,border:`1px solid ${C.gold}25`,borderRadius:8,padding:'16px 20px',marginTop:16}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}><Lightbulb size={18} color={C.gold}/><span style={{fontSize:15,fontWeight:700,color:C.goldL}}>Strengthen This Story</span></div>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}><Lightbulb size={18} color={C.gold}/><span style={{fontSize:16,fontWeight:700,color:C.goldL}}>Strengthen This Story</span></div>
                 <MD text={strengthenContent.replace(/\*\*Strengthen This Story[:\s]*\*\*/i,'').trim()}/>
                 {!isDemo&&<div style={{marginTop:14}}>
                   <div style={{display:'flex',gap:8,alignItems:'flex-end'}}>
@@ -2281,7 +2281,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <textarea style={{...S.ta,minHeight:60,paddingRight:hasSpeech?44:15}} placeholder="Add details here: numbers, names, context, then regenerate this story…" value={storyInputs[story.id]||''} onChange={e=>setStoryInputs(s=>({...s,[story.id]:e.target.value}))}/>
                       {hasSpeech&&<SpeechBtn onResult={t=>setStoryInputs(s=>({...s,[story.id]:(s[story.id]||'')+t}))} style={{position:'absolute',right:8,bottom:8}}/>}
                     </div>
-                    <button style={{...S.btn,padding:'10px 18px',fontSize:15,opacity:storyLoading===story.id?0.6:1,whiteSpace:'nowrap'}} disabled={storyLoading===story.id} onClick={async()=>{
+                    <button style={{...S.btn,padding:'10px 18px',fontSize:17,opacity:storyLoading===story.id?0.6:1,whiteSpace:'nowrap'}} disabled={storyLoading===story.id} onClick={async()=>{
                       const extra=storyInputs[story.id]||''
                       setStoryLoading(story.id)
                       try{
@@ -2312,12 +2312,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </div>}
               {storyUpdated[story.id]&&<div style={{background:`${C.gold}10`,border:`1px solid ${C.gold}30`,borderRadius:8,padding:'12px 16px',marginTop:12,display:'flex',alignItems:'flex-start',gap:10}}>
                 <Lightbulb size={16} color={C.gold} style={{marginTop:2,flexShrink:0}}/>
-                <span style={{fontSize:14,color:C.goldL,lineHeight:1.5}}>You added new details to this story. If any of them meaningfully change your value proposition (a bigger number, a new capability, a stronger result), consider revisiting your <strong>Resume</strong> and <strong>LinkedIn</strong> sections to reflect them there too.</span>
+                <span style={{fontSize:16,color:C.goldL,lineHeight:1.5}}>You added new details to this story. If any of them meaningfully change your value proposition (a bigger number, a new capability, a stronger result), consider revisiting your <strong>Resume</strong> and <strong>LinkedIn</strong> sections to reflect them there too.</span>
               </div>}
             </div>})}
           {remixSection&&<div style={{marginTop:14}}><OutPanel text={remixSection} onCopy={copy} copied={copied}/></div>}
         </>})()}
-        {outputs.p10&&<><div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>Interview Prep</h2><p style={{fontSize:16,color:C.gray,marginTop:6}}>The questions that will come up and how to talk about each one with confidence.</p></div><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/></>}
+        {outputs.p10&&<><div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>Interview Prep</h2><p style={{fontSize:17,color:C.gray,marginTop:6}}>The questions that will come up and how to talk about each one with confidence.</p></div><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/></>}
         {!isDemo&&<RefineBox value={feedback.p9} onChange={v=>setFb('p9',v)} hint="Did we miscall what's actually hard about this role, or what really matters in the interviews? Tell us." placeholder="e.g. 'The technical questions miss what they really care about.' Or: 'You said comp is the hard ask; it is title.' Or: 'I have direct experience with that framework, you said I did not.'" onRegenerate={v=>{cascadeInvalidate('p9');recordCorrection('p9',v);out('p9','');out('p10','');out('p11','');setStoryUpdated({});setLoading(true);setErr(null);setLoadMsg('Updating your playbook...');Promise.all([callClaude(correctionsBlock(profile.corrections)+P.p9(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:4000}),callClaude(correctionsBlock(profile.corrections)+P.p10(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:3500}),callClaude(correctionsBlock(profile.corrections)+P.p11(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:4000})]).then(([r1,r2,r3])=>{out('p9',r1);out('p10',r2);out('p11',r3)}).catch(e=>setErr(e.message)).finally(()=>setLoading(false))}}/>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p9','');out('p10','');out('p11','');setP9Intro(false);setStoryUpdated({});window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>{markDone('p9');markDone('p10');advance('p9','complete')}}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}
       </>}
@@ -2329,59 +2329,59 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'complete':{if(!done.includes('complete'))markDone('complete');return <div>
       {!isDemo&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'30px 34px',borderRadius:12,margin:'0 0 24px',maxWidth:760}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:26,color:'#1A2540',margin:'0 0 14px',fontWeight:700}}>You finished the foundation.</h2>
-        <p style={{fontSize:17,color:C.grayL,lineHeight:1.7,margin:'0 0 12px'}}>Your brand, your bridge story, your target companies, your resume, your LinkedIn, your playbook. That is a substantial amount of career-strategy work, and it is all rooted in who you actually are.</p>
-        <p style={{fontSize:17,color:C.grayL,lineHeight:1.7,margin:0}}>What you've built here belongs to you. None of it depends on the company you came from or the role you're leaving. The brand, the bridge story, the playbook all go with you into whatever comes next.</p>
+        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 12px'}}>Your brand, your bridge story, your target companies, your resume, your LinkedIn, your playbook. That is a substantial amount of career-strategy work, and it is all rooted in who you actually are.</p>
+        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:0}}>What you've built here belongs to you. None of it depends on the company you came from or the role you're leaving. The brand, the bridge story, the playbook all go with you into whatever comes next.</p>
       </div>}
       {!isDemo&&<>
         <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,margin:'0 0 16px'}}>
           <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Pursuing a specific opportunity?</h3>
-          <p style={{fontSize:15,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Bring the job description to <strong>Upload a Live Opportunity</strong> in the sidebar. Reimagine combines the posting with everything you have just built and produces a tailored playbook for that specific role.</p>
+          <p style={{fontSize:18,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Bring the job description to <strong>Upload a Live Opportunity</strong> in the sidebar. Reimagine combines the posting with everything you have just built and produces a tailored playbook for that specific role.</p>
           <Btn small onClick={()=>nav('op')}>Upload a Live Opportunity <ChevronRight size={11}/></Btn>
         </div>
         <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,margin:'0 0 16px'}}>
           <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Join Career Club's weekly group coaching call.</h3>
-          <p style={{fontSize:15,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Free, every Monday at 12:00 ET. Live Q&amp;A on whatever is going on in your job search.</p>
-          <a href="https://us06web.zoom.us/meeting/register/tZUqduqqqD0qG9HsxIRuL-XG4Pcx9pf7skat" target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:600,textDecoration:'none',fontSize:15}}>Register here →</a>
+          <p style={{fontSize:18,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Free, every Monday at 12:00 ET. Live Q&amp;A on whatever is going on in your job search.</p>
+          <a href="https://us06web.zoom.us/meeting/register/tZUqduqqqD0qG9HsxIRuL-XG4Pcx9pf7skat" target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:600,textDecoration:'none',fontSize:17}}>Register here →</a>
         </div>
         <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,margin:'0 0 16px'}}>
           <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Go deeper on the methodology.</h3>
-          <p style={{fontSize:15,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Reimagine is built on the framework in <em>Making Your Own Weather</em> by Bob Goodwin. Available on Amazon.</p>
-          <a href="https://a.co/d/09RR2JUR" target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:600,textDecoration:'none',fontSize:15}}>Get the book →</a>
+          <p style={{fontSize:18,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Reimagine is built on the framework in <em>Making Your Own Weather</em> by Bob Goodwin. Available on Amazon.</p>
+          <a href="https://a.co/d/09RR2JUR" target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:600,textDecoration:'none',fontSize:17}}>Get the book →</a>
         </div>
-        <p style={{fontSize:14,color:C.gray,lineHeight:1.6,margin:'0 0 22px',fontStyle:'italic'}}>Also in the sidebar: <strong>Income Now</strong> turns your existing expertise into consulting or fractional income while you continue the search. For some people the bridge becomes the path.</p>
+        <p style={{fontSize:18,color:C.gray,lineHeight:1.6,margin:'0 0 22px',fontStyle:'italic'}}>Also in the sidebar: <strong>Income Now</strong> turns your existing expertise into consulting or fractional income while you continue the search. For some people the bridge becomes the path.</p>
       </>}
 
       {!surveyDone&&<div style={{...S.card,marginBottom:22,border:`1px solid ${C.gold}40`}}>
         {!surveySubmitted?<>
-          <div style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:600,color:C.cream,marginBottom:4}}>Before you go: 60 seconds of feedback</div>
-          <div style={{fontSize:16,color:C.gray,marginBottom:20,lineHeight:1.6}}>You're helping us make this better for everyone who comes after you. All questions are optional.</div>
+          <div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:C.cream,marginBottom:4}}>Before you go: 60 seconds of feedback</div>
+          <div style={{fontSize:18,color:C.gray,marginBottom:20,lineHeight:1.6}}>You're helping us make this better for everyone who comes after you. All questions are optional.</div>
 
           <div style={S.field}>
             <label style={S.label}>How likely are you to recommend Reimagine to someone in career transition?</label>
-            <div style={{fontSize:11,color:C.gray,marginBottom:8,display:'flex',justifyContent:'space-between'}}><span>Not at all likely</span><span>Extremely likely</span></div>
+            <div style={{fontSize:14,color:C.gray,marginBottom:8,display:'flex',justifyContent:'space-between'}}><span>Not at all likely</span><span>Extremely likely</span></div>
             <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
-              {[0,1,2,3,4,5,6,7,8,9,10].map(n=><button key={n} onClick={()=>setSv('nps',n)} style={{width:36,height:36,borderRadius:6,border:`1.5px solid ${survey.nps===n?C.gold:C.border}`,background:survey.nps===n?C.gold:'transparent',color:survey.nps===n?C.bg:C.grayL,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{n}</button>)}
+              {[0,1,2,3,4,5,6,7,8,9,10].map(n=><button key={n} onClick={()=>setSv('nps',n)} style={{width:38,height:38,borderRadius:6,border:`1.5px solid ${survey.nps===n?C.gold:C.border}`,background:survey.nps===n?C.gold:'transparent',color:survey.nps===n?C.bg:C.grayL,fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{n}</button>)}
             </div>
           </div>
 
           <div style={S.field}>
             <label style={S.label}>Which part of the process was most valuable to you?</label>
             <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:4}}>
-              {['Know Your Value','Explore Options','Tell Your Story','Find Your Market','Get Ready','It all came together'].map(o=><button key={o} onClick={()=>setSv('valuable',o)} style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${survey.valuable===o?C.gold:C.border}`,background:survey.valuable===o?`${C.gold}20`:'transparent',color:survey.valuable===o?C.goldL:C.grayL,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}
+              {['Know Your Value','Explore Options','Tell Your Story','Find Your Market','Get Ready','It all came together'].map(o=><button key={o} onClick={()=>setSv('valuable',o)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${survey.valuable===o?C.gold:C.border}`,background:survey.valuable===o?`${C.gold}20`:'transparent',color:survey.valuable===o?C.goldL:C.grayL,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}
             </div>
           </div>
 
           <div style={S.field}>
             <label style={S.label}>How has your confidence about your next move changed?</label>
             <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:4}}>
-              {[['Much less confident'],['Less confident'],['About the same'],['More confident'],['Much more confident']].map(([label])=><button key={label} onClick={()=>setSv('confidence',label)} style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${survey.confidence===label?C.gold:C.border}`,background:survey.confidence===label?`${C.gold}20`:'transparent',color:survey.confidence===label?C.goldL:C.grayL,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>)}
+              {[['Much less confident'],['Less confident'],['About the same'],['More confident'],['Much more confident']].map(([label])=><button key={label} onClick={()=>setSv('confidence',label)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${survey.confidence===label?C.gold:C.border}`,background:survey.confidence===label?`${C.gold}20`:'transparent',color:survey.confidence===label?C.goldL:C.grayL,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>)}
             </div>
           </div>
 
           <div style={S.field}>
             <label style={S.label}>How well did Reimagine capture who you are and what you bring?</label>
             <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:4}}>
-              {[['Missed the mark'],['Partially'],['Mostly right'],['Very well'],['Nailed it']].map(([label])=><button key={label} onClick={()=>setSv('accuracy',label)} style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${survey.accuracy===label?C.gold:C.border}`,background:survey.accuracy===label?`${C.gold}20`:'transparent',color:survey.accuracy===label?C.goldL:C.grayL,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>)}
+              {[['Missed the mark'],['Partially'],['Mostly right'],['Very well'],['Nailed it']].map(([label])=><button key={label} onClick={()=>setSv('accuracy',label)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${survey.accuracy===label?C.gold:C.border}`,background:survey.accuracy===label?`${C.gold}20`:'transparent',color:survey.accuracy===label?C.goldL:C.grayL,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>)}
             </div>
           </div>
 
@@ -2403,16 +2403,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
           {surveySubmitting&&<div style={{marginTop:20,padding:'20px',background:'#F7F8FA',borderRadius:10,textAlign:'center'}}>
             <Loader2 size={22} style={{color:C.gold,animation:'spin 0.9s linear infinite',margin:'0 auto 12px',display:'block'}}/>
-            <div style={{fontSize:15,color:C.grayL,marginBottom:16}}>Sending your feedback…</div>
+            <div style={{fontSize:16,color:C.grayL,marginBottom:16}}>Sending your feedback…</div>
             <div style={{borderLeft:`3px solid ${C.gold}`,paddingLeft:16,textAlign:'left'}}>
-              <div style={{fontSize:15,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:6}}>"{SHUFFLED_POOLS._attitude[0].text}"</div>
-              <div style={{fontSize:13,color:C.gold,fontWeight:600}}>{SHUFFLED_POOLS._attitude[0].author}</div>
+              <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:6}}>"{SHUFFLED_POOLS._attitude[0].text}"</div>
+              <div style={{fontSize:15,color:C.gold,fontWeight:600}}>{SHUFFLED_POOLS._attitude[0].author}</div>
             </div>
           </div>}
         </>:<div style={{textAlign:'center',padding:'20px 0'}}>
           <div style={{fontSize:22,marginBottom:10}}>🙏</div>
-          <div style={{fontFamily:'Georgia,serif',fontSize:16,color:C.cream,marginBottom:6}}>Thank you, this means a lot.</div>
-          <div style={{fontSize:16,color:C.gray,marginBottom:16,lineHeight:1.6}}>Your feedback goes directly to the team building Reimagine. We read every response.</div>
+          <div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:C.cream,marginBottom:6}}>Thank you, this means a lot.</div>
+          <div style={{fontSize:18,color:C.gray,marginBottom:16,lineHeight:1.6}}>Your feedback goes directly to the team building Reimagine. We read every response.</div>
           <Btn onClick={()=>setSurveyDone(true)}>See my results <ChevronRight size={13}/></Btn>
         </div>}
       </div>}
@@ -2420,22 +2420,22 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {surveyDone&&<>
         <div style={{background:`${C.ok}12`,border:`1px solid ${C.ok}40`,borderRadius:10,padding:'14px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:10}}>
           <Check size={16} color={C.ok} strokeWidth={2.5}/>
-          <div style={{fontSize:15,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
+          <div style={{fontSize:18,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
         </div>
-        {[['Your Personal Brand','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Your Playbook','p9',(outputs.p9||'')+(outputs.p11?'\n\n---\n\n'+outputs.p11:'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:16,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:15,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
+        {[['Your Personal Brand','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Your Playbook','p9',(outputs.p9||'')+(outputs.p11?'\n\n---\n\n'+outputs.p11:'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:17,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
 
-        <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:15,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
+        <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:17,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
         <div style={{marginTop:16,background:'linear-gradient(135deg,#1A2540 0%,#2A3F60 100%)',borderRadius:12,padding:'24px 28px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
           <div>
-            <div style={{fontSize:11,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:'#7AB87A',marginBottom:6}}>Bonus module</div>
+            <div style={{fontSize:14,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:'#7AB87A',marginBottom:6}}>Bonus module</div>
             <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#FFFFFF',marginBottom:6}}>Income Now</div>
             <div style={{fontSize:18,color:'#CBD5E0',lineHeight:1.65,maxWidth:420}}>A job search takes time. Having income flowing while you search changes everything. Consulting, fractional leadership, and advisory opportunities matched to your seniority and expertise.</div>
           </div>
           <Btn onClick={()=>nav('income')} style={{background:'#7AB87A',flexShrink:0}}>Generate My Income Plan <ChevronRight size={14}/></Btn>
         </div>
         <div style={{marginTop:24,padding:'20px 24px',background:'#FAFBFC',border:`1.5px solid ${C.border}`,borderRadius:12}}>
-          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:4}}>Your Deliverables</div>
-          <div style={{fontSize:15,color:C.gray,marginBottom:16}}>Take your Reimagine work with you.</div>
+          <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:4}}>Your Deliverables</div>
+          <div style={{fontSize:18,color:C.gray,marginBottom:16}}>Take your Reimagine work with you.</div>
           <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
             <Btn onClick={downloadOnePager}><Download size={14}/>Download One-Pager (PDF)</Btn>
             <Btn secondary onClick={downloadAllMarkdown}><Download size={14}/>Download All Outputs (Markdown)</Btn>
@@ -2480,7 +2480,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <div style={{width:62,height:62,borderRadius:14,background:'#7AB87A12',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
               <div>
                 <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
-                <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
+                <div style={{fontSize:18,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
               </div>
             </div>)}
           </div>
@@ -2511,15 +2511,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <p style={{margin:'8px 0 0'}}>Paste the full job description or upload the PDF. Reimagine works best with the actual posting text. If you have your own context about the role (who told you about it, what they said about the team, why you are interested), add it to the text field below the JD. The richer the context, the sharper the playbook.</p>
         </CoachingCallout>}
         {!isDemo&&<div style={S.card}>
-          <div style={{fontSize:14,color:C.gray,fontStyle:'italic',marginBottom:14,textAlign:'center'}}>The richer the input, the sharper the output.</div>
+          <div style={{fontSize:18,color:C.gray,fontStyle:'italic',marginBottom:14,textAlign:'center'}}>The richer the input, the sharper the output.</div>
           <FileUpload label="Upload a PDF of the job description" hint="PDF only. For other formats, paste the text below." fileName={profile.jdFile} onFile={async f=>{pr('jdFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('jd',t);setErr(null)}catch(e){setErr('Could not read this PDF. Try pasting the text instead.')}finally{setFileLoading(false)}}}/>
-          {fileLoading&&<div style={{fontSize:14,color:C.gray,marginTop:8}}>Reading the PDF…</div>}
-          <div style={{textAlign:'center',color:C.gray,fontSize:14,margin:'14px 0',fontStyle:'italic'}}>or</div>
+          {fileLoading&&<div style={{fontSize:16,color:C.gray,marginTop:8}}>Reading the PDF…</div>}
+          <div style={{textAlign:'center',color:C.gray,fontSize:16,margin:'14px 0',fontStyle:'italic'}}>or</div>
           <div style={S.field}>
             <label style={S.label}>Paste the job description</label>
             <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder="Paste the full job description here..."/>
           </div>
-          {outputs.op&&<div style={{fontSize:14,color:C.goldL,fontStyle:'italic',marginTop:6}}>You have an existing playbook below. Building a new one will replace it.</div>}
+          {outputs.op&&<div style={{fontSize:18,color:C.goldL,fontStyle:'italic',marginTop:6}}>You have an existing playbook below. Building a new one will replace it.</div>}
         </div>}
         {!isDemo&&<Btn onClick={()=>generate('op',()=>P.op(pc,outputs,chosen,profile.jd),{maxTokens:7500,msg:'Building your Opportunity Playbook…'})} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>{outputs.op?'Build a new playbook':'Build My Playbook'}</Btn>}
         {err&&<ErrBox msg={err}/>}
@@ -2567,7 +2567,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {magicLinkSentTo?<div style={S.card}>
             <h1 style={{...S.title,fontSize:28,marginBottom:14}}>Check your email.</h1>
             <p style={{...S.sub,marginBottom:18}}>We sent a sign-in link to <strong style={{color:C.cream}}>{magicLinkSentTo}</strong>. The link expires in 15 minutes.</p>
-            <p style={{fontSize:14,color:C.gray,marginBottom:18,lineHeight:1.6}}>If you don't see it within a minute, check your spam folder, or request another link.</p>
+            <p style={{fontSize:16,color:C.gray,marginBottom:18,lineHeight:1.6}}>If you don't see it within a minute, check your spam folder, or request another link.</p>
             <Btn secondary onClick={()=>{setMagicLinkSentTo(null);setSignupStep('email');setSignupError('')}}>Use a different email</Btn>
           </div>:signupStep==='details'?<>
             <h1 style={{...S.title,fontSize:34,marginBottom:10}}>Looks like this is your first time.</h1>
@@ -2603,7 +2603,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <div style={{marginTop:16}}>
                 <Btn onClick={submitEmailStep} disabled={signupSubmitting}>{signupSubmitting?<><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Checking</>:<>Continue <ChevronRight size={14}/></>}</Btn>
               </div>
-              <div style={{fontSize:13,color:C.gray,marginTop:14,lineHeight:1.6}}>We use this to save your work across devices. No spam, no sharing.</div>
+              <div style={{fontSize:16,color:C.gray,marginTop:14,lineHeight:1.6}}>We use this to save your work across devices. No spam, no sharing.</div>
             </div>
           </>}
         </div>
@@ -2615,14 +2615,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
     {invalidationBanner&&<div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1000,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'14px 20px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',alignItems:'center',gap:16,maxWidth:720}}>
-      <div style={{fontSize:15,color:'#1A2540',lineHeight:1.5}}>{invalidationBanner.message}</div>
+      <div style={{fontSize:18,color:'#1A2540',lineHeight:1.5}}>{invalidationBanner.message}</div>
       <button onClick={()=>setInvalidationBanner(null)} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#718096',fontSize:18,cursor:'pointer',padding:4,fontFamily:'inherit',flexShrink:0}}>×</button>
     </div>}
     <div style={{height:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
       {migrationOpen&&!signedInUser&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
         <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:520,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
           <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Save your work across devices.</h2>
-          <p style={{fontSize:16,color:'#4A5568',lineHeight:1.65,marginBottom:20}}>Sign up with your email to save your progress. Next time you open Reimagine on any device, your work will be there.</p>
+          <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:20}}>Sign up with your email to save your progress. Next time you open Reimagine on any device, your work will be there.</p>
           <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
             <Btn onClick={()=>{setMigrationOpen(false);setSignedUp(false)}}>Set up sign-in <ChevronRight size={14}/></Btn>
             <Btn secondary onClick={()=>{try{localStorage.setItem('pe_migration_dismissed','true')}catch{};setMigrationOpen(false)}}>No thanks</Btn>
