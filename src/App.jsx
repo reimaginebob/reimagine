@@ -812,6 +812,7 @@ export default function PivotEngine(){
   const[magicLinkSentTo,setMagicLinkSentTo]=useState(null)
   const[migrationOpen,setMigrationOpen]=useState(false)
   const[authToast,setAuthToast]=useState(null)
+  const[invalidationBanner,setInvalidationBanner]=useState(null)
   const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p}}catch{}return[{role:'assistant',content:'Hi. I can help you with how Reimagine works. What would you like to know?'}]})
   const[showPulse,setShowPulse]=useState(false)
   const[hasSeenCorrectionsIntro,setHasSeenCorrectionsIntro]=useState(()=>{try{return localStorage.getItem('reimagine_seen_corrections_intro')==='1'}catch{return false}})
@@ -834,6 +835,7 @@ export default function PivotEngine(){
   useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
   useEffect(()=>{setShowPulse(false);const t=setTimeout(()=>setShowPulse(true),90000);return()=>clearTimeout(t)},[step])
   useEffect(()=>{window.scrollTo({top:0,behavior:'instant'})},[step])
+  useEffect(()=>{if(!invalidationBanner)return;const t=setTimeout(()=>setInvalidationBanner(null),10000);return()=>clearTimeout(t)},[invalidationBanner])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
   useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,signedInUser])
 
@@ -842,6 +844,45 @@ export default function PivotEngine(){
   const rep=(f,v)=>setProfile(p=>({...p,rep:{...p.rep,[f]:v}}))
   const out=(k,v)=>setOutputs(o=>({...o,[k]:v}))
   const markDone=(sid)=>setDone(d=>d.includes(sid)?d:[...d,sid])
+  // Forward dependency map for state invalidation. Listed in pipeline order.
+  const DEPENDENCY_ORDER=['p1','p2','p3','p4','deepOpts','p5','chosen','p6','p7','p8','p_res','p9','p10','p11','income']
+  const downstreamOf=(source)=>{const idx=DEPENDENCY_ORDER.indexOf(source);if(idx<0)return[];return DEPENDENCY_ORDER.slice(idx+1)}
+  const invalidateDownstream=(source)=>{
+    const downstream=downstreamOf(source)
+    if(downstream.length===0)return null
+    const snapshot={deepOpts:[...deepOpts],chosen,outputs:{...outputs},done:[...done]}
+    setOutputs(o=>{const updated={...o};for(const k of downstream){if(k!=='deepOpts'&&k!=='chosen')updated[k]=''}return updated})
+    if(downstream.includes('deepOpts'))setDeepOpts(['','',''])
+    if(downstream.includes('chosen'))setChosen('')
+    setDone(d=>d.filter(s=>!downstream.includes(s)))
+    return snapshot
+  }
+  const restoreSnapshot=(snapshot)=>{
+    if(!snapshot)return
+    setDeepOpts(snapshot.deepOpts)
+    setChosen(snapshot.chosen)
+    setOutputs(snapshot.outputs)
+    setDone(snapshot.done)
+  }
+  const INVALIDATION_MESSAGES={
+    p1:'Cleared your Wiring & Compass, Brand Synthesis, and all downstream work so they match the new Resume Analysis.',
+    p2:'Cleared your Brand Synthesis and all downstream work so they match the new Wiring & Compass.',
+    p3:'Cleared your Wide View, Deep Dive, and all downstream work so they match the new Brand Synthesis.',
+    p4:'Cleared your Wide View selections, Deep Dive, and downstream playbook so they match the new options.',
+    deepOpts:'Cleared your Deep Dive and downstream playbook so they match the new selections.',
+    p5:'Cleared your chosen focus and downstream playbook so they match the new Deep Dive.',
+    chosen:'Cleared your downstream playbook so it matches the new chosen focus.',
+    p6:'Cleared your LinkedIn Remix, Resume Refresh, Playbook, and Income Now so they match the new Bridge Story.',
+    p7:'Cleared your LinkedIn Remix, Resume Refresh, Playbook, and Income Now so they match the new Go-to-Market.',
+    p8:'Cleared your Resume Refresh, Playbook, and Income Now so they match the new LinkedIn Remix.',
+    p_res:'Cleared your Playbook and Income Now so they match the new Resume Refresh.',
+    p9:'Cleared your Income Now so it matches the refreshed Playbook.',
+  }
+  const invalidationMessage=(source)=>INVALIDATION_MESSAGES[source]||'Cleared downstream work so it matches your changes.'
+  const cascadeInvalidate=(source)=>{
+    const snapshot=invalidateDownstream(source)
+    if(snapshot)setInvalidationBanner({message:invalidationMessage(source),snapshot})
+  }
   const advance=(from,to)=>{markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
   const nav=(to)=>{if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null);window.scrollTo(0,0)}
   const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);window.scrollTo(0,0)}}
@@ -1376,7 +1417,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <p style={{margin:'8px 0 0',fontSize:14,color:C.gray}}>You can also ask in the chat in the corner if you want a worked example.</p>
         </div>}
         <OutPanel text={outputs.p1} onCopy={copy} copied={copied}/>
-        {!isDemo&&<RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} hint="Did we read your experience right? If we misclassified a role, missed an accomplishment, or got the seniority wrong, tell us here." placeholder="e.g. 'My time at MoneyGram was internal strategy work, not consulting.' Or: 'I led a team of 12, not 4.' Or: 'You missed my P&L ownership at Acme.'" onRegenerate={v=>{recordCorrection('p1',v);out('p1','');generate('p1',()=>P.p1(pc)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
+        {!isDemo&&<RefineBox value={feedback.p1} onChange={v=>setFb('p1',v)} hint="Did we read your experience right? If we misclassified a role, missed an accomplishment, or got the seniority wrong, tell us here." placeholder="e.g. 'My time at MoneyGram was internal strategy work, not consulting.' Or: 'I led a team of 12, not 4.' Or: 'You missed my P&L ownership at Acme.'" onRegenerate={v=>{cascadeInvalidate('p1');recordCorrection('p1',v);out('p1','');generate('p1',()=>P.p1(pc)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now that we see what you've built, let's understand how you're wired and what environments bring out your best work.</div>}
       {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p1','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p1','p2')}>Explore My Wiring <ChevronRight size={14}/></Btn></div>}
       </>}
@@ -1398,7 +1439,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>:outputs.p2&&<>
         {!isDemo&&<CoachingCallout>Read this slowly. The lines that ring true are the integration working. The lines that miss should be corrected in the "What did we get wrong?" box below; those corrections cascade to every later section.</CoachingCallout>}
         <OutPanel text={outputs.p2} onCopy={copy} copied={copied}/>
-        {!isDemo&&<RefineBox value={feedback.p2} onChange={v=>setFb('p2',v)} hint="Does this capture how you actually work? If we mischaracterized your wiring, your strengths, or what energizes you, tell us." placeholder="e.g. 'I thrive in fast-paced environments, not deliberate ones.' Or: 'Mentoring is my biggest source of energy, you ranked it third.' Or: 'I am not an introvert at work, just selective.'" onRegenerate={v=>{recordCorrection('p2',v);out('p2','');generate('p2',()=>P.p2(pc,outputs.p1)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
+        {!isDemo&&<RefineBox value={feedback.p2} onChange={v=>setFb('p2',v)} hint="Does this capture how you actually work? If we mischaracterized your wiring, your strengths, or what energizes you, tell us." placeholder="e.g. 'I thrive in fast-paced environments, not deliberate ones.' Or: 'Mentoring is my biggest source of energy, you ranked it third.' Or: 'I am not an introvert at work, just selective.'" onRegenerate={v=>{cascadeInvalidate('p2');recordCorrection('p2',v);out('p2','');generate('p2',()=>P.p2(pc,outputs.p1)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Time to bring it all together: your accomplishments, your wiring, and your values, into one clear statement of who you are professionally.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p2','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p2','p3')}>Build My Brand <ChevronRight size={14}/></Btn></div>}
       </>}
@@ -1452,7 +1493,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <p style={{margin:'8px 0 0'}}>The Golden Thread is the pattern. The Personal Brand is the statement you can use anywhere. The Capabilities are the proof behind both. Read each in turn and notice where the language fits. Sharpen anything that misses in the "What did we get wrong?" box below.</p>
         </CoachingCallout>}
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
-        {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the brand or value proposition misses the mark, tell us what's off." placeholder="e.g. 'My golden thread is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The brand line does not match how my colleagues describe me.'" onRegenerate={v=>{recordCorrection('p3',v);out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
+        {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the brand or value proposition misses the mark, tell us what's off." placeholder="e.g. 'My golden thread is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The brand line does not match how my colleagues describe me.'" onRegenerate={v=>{cascadeInvalidate('p3');recordCorrection('p3',v);out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Let's see what's possible: the full landscape of directions that fit your strengths, values, and interests.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');setP3Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
       </>}
@@ -1612,7 +1653,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const selectableBlocks=optBlocks.filter(b=>{const t=extractTitle(b);return t&&isSelectable(t)})
                 if(selectableBlocks.length<2)return <div style={{margin:'12px 0',padding:'18px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10}}>
                   <div style={{fontSize:15,color:'#1A2540',lineHeight:1.6,marginBottom:12}}>We weren't able to generate a complete set of options for this lane. Click the regenerate button below to try again.</div>
-                  <Btn small onClick={()=>generateP4()}><RotateCcw size={11}/>Regenerate this lane</Btn>
+                  <Btn small onClick={()=>{cascadeInvalidate('p4');generateP4()}}><RotateCcw size={11}/>Regenerate this lane</Btn>
                 </div>
                 const extractSubPath=(block)=>{
                   const m=block.match(/\*\*(Same Role, Same Industry|Similar Role, Different Industry)\*\*/i)
@@ -1686,7 +1727,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <Btn onClick={()=>advance('p4','p5')}>Go Deeper <ChevronRight size={14}/></Btn>
           </div>}
           {selected.length===0&&available.length>0&&<div style={{fontSize:15,color:C.gray,marginTop:12,textAlign:'center'}}>Select at least one role above to continue.</div>}
-          {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Did we read your fit wrong? If a role you would actually consider is missing, or one we suggested doesn't match your experience, tell us. You can also ask for a different mix here: more startups, fewer consulting roles, more in a specific industry." placeholder="e.g. 'I would not go back to consulting, drop those options.' Or: 'You missed fractional CFO roles.' Or: 'The Industry Insider lane needs more advisory roles, not operating.'" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{recordCorrection('p4',v);out('p4','');setLaneTab(0);setP4Intro(false);generateP4(v,'Updating your options…')}}/>}
+          {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Did we read your fit wrong? If a role you would actually consider is missing, or one we suggested doesn't match your experience, tell us. You can also ask for a different mix here: more startups, fewer consulting roles, more in a specific industry." placeholder="e.g. 'I would not go back to consulting, drop those options.' Or: 'You missed fractional CFO roles.' Or: 'The Industry Insider lane needs more advisory roles, not operating.'" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{cascadeInvalidate('p4');recordCorrection('p4',v);out('p4','');setLaneTab(0);setP4Intro(false);generateP4(v,'Updating your options…')}}/>}
         </>
       })()}
       {err&&<ErrBox msg={err}/>}
@@ -1774,7 +1815,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </div>}
             </>:<div style={S.out}><MD text={outputs.p5}/></div>}
           </>}
-          {!isDemo&&<RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} hint="Did we misread fit on any of these options? If something we said about an option doesn't match your background or your interest, tell us." placeholder="e.g. 'You said this role needs more sales experience than I have, but I led a $50M sales org.' Or: 'I am not interested in Option B at all, replace it.' Or: 'The obstacle you flagged is not really a concern for me.'" onRegenerate={v=>{recordCorrection('p5',v);out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:6000,msg:'Updating your deep dive…'})}}/>}
+          {!isDemo&&<RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} hint="Did we misread fit on any of these options? If something we said about an option doesn't match your background or your interest, tell us." placeholder="e.g. 'You said this role needs more sales experience than I have, but I led a $50M sales org.' Or: 'I am not interested in Option B at all, replace it.' Or: 'The obstacle you flagged is not really a concern for me.'" onRegenerate={v=>{cascadeInvalidate('p5');recordCorrection('p5',v);out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:6000,msg:'Updating your deep dive…'})}}/>}
           {!isDemo&&<>
             <div style={{margin:'24px 0 12px',padding:'16px 20px',background:'#FFF8F0',border:`2px solid ${C.gold}40`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
               <span style={{fontSize:16,color:C.goldL,fontWeight:500}}>Not what you expected? Go back and explore different options.</span>
@@ -1813,7 +1854,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <label style={S.label}>I've decided to pursue…</label>
           <div style={{fontSize:17,color:C.gray,marginBottom:14,lineHeight:1.6}}>Click the option you want as your focus. This becomes the foundation for everything that follows.</div>
           {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
-            {deepOpts.filter(v=>v&&v!=='?').map(opt=><button key={opt} onClick={()=>setChosen(opt)} style={{padding:'14px 20px',borderRadius:8,border:`2px solid ${chosen===opt?C.gold:C.border}`,background:chosen===opt?`${C.gold}15`:'white',color:chosen===opt?C.goldL:'#374258',fontSize:17,fontWeight:chosen===opt?600:400,cursor:'pointer',fontFamily:'inherit',textAlign:'left',transition:'all 0.15s',display:'flex',alignItems:'center',gap:10}}>{chosen===opt&&<Check size={14} color={C.gold} strokeWidth={3}/>}{opt}</button>)}
+            {deepOpts.filter(v=>v&&v!=='?').map(opt=><button key={opt} onClick={()=>{if(chosen&&chosen!==opt)cascadeInvalidate('chosen');setChosen(opt)}} style={{padding:'14px 20px',borderRadius:8,border:`2px solid ${chosen===opt?C.gold:C.border}`,background:chosen===opt?`${C.gold}15`:'white',color:chosen===opt?C.goldL:'#374258',fontSize:17,fontWeight:chosen===opt?600:400,cursor:'pointer',fontFamily:'inherit',textAlign:'left',transition:'all 0.15s',display:'flex',alignItems:'center',gap:10}}>{chosen===opt&&<Check size={14} color={C.gold} strokeWidth={3}/>}{opt}</button>)}
           </div>}
           <div style={{fontSize:14,color:C.gray,marginTop:8}}>Or describe a different path:</div>
           <textarea style={{...S.ta,minHeight:60,marginTop:6}} value={deepOpts.filter(v=>v&&v!=='?').includes(chosen)?'':chosen} onChange={e=>setChosen(e.target.value)} placeholder="e.g. Fractional CMO in the B2B SaaS ecosystem…"/>
@@ -1868,7 +1909,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {outputs.p6&&<>{!isDemo&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:15,color:'#1A2540',lineHeight:1.65}}>
         <strong>Learn the structure, then make it yours.</strong>
         <p style={{margin:'8px 0 0'}}>Your Bridge Story is built on three pieces: a human truth about who you are, the professional proof that follows from it, and the next chapter that fits. Once you can name those three, you can carry the structure into any real conversation, in your own words. The exact phrasing below is a starting point, not a script.</p>
-      </div>}<OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like you? If the story misreads your motivation, your transition, or the through-line, tell us." placeholder="e.g. 'My pivot was not to find more meaning; I was forced out.' Or: 'You called my last role a step back; it was lateral.' Or: 'The opening line does not sound like me.'" onRegenerate={v=>{recordCorrection('p6',v);out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:5000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p6','');setP6Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
+      </div>}<OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like you? If the story misreads your motivation, your transition, or the through-line, tell us." placeholder="e.g. 'My pivot was not to find more meaning; I was forced out.' Or: 'You called my last role a step back; it was lateral.' Or: 'The opening line does not sound like me.'" onRegenerate={v=>{cascadeInvalidate('p6');recordCorrection('p6',v);out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:5000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p6','');setP6Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -2035,7 +2076,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </div>
             <div style={S.out}><MD text={part34}/></div>
           </>}
-          {!isDemo&&<RefineBox value={feedback.p7} onChange={v=>setFb('p7',v)} hint="Did we read your target market wrong, or misclassify any of these companies? Tell us." placeholder="e.g. 'I do not want to target enterprise; I am going SMB.' Or: 'You said Acme is hiring; they did layoffs last month.' Or: 'My contact at Beta is wrong; that person left.'" updateLabel="Update my strategy" freshLabel="Show me a fresh set" onRegenerate={v=>{recordCorrection('p7',v);out('p7','');generate('p7',()=>P.p7(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{webSearch:true,maxTokens:7000})}}/>}
+          {!isDemo&&<RefineBox value={feedback.p7} onChange={v=>setFb('p7',v)} hint="Did we read your target market wrong, or misclassify any of these companies? Tell us." placeholder="e.g. 'I do not want to target enterprise; I am going SMB.' Or: 'You said Acme is hiring; they did layoffs last month.' Or: 'My contact at Beta is wrong; that person left.'" updateLabel="Update my strategy" freshLabel="Show me a fresh set" onRegenerate={v=>{cascadeInvalidate('p7');recordCorrection('p7',v);out('p7','');generate('p7',()=>P.p7(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{webSearch:true,maxTokens:7000})}}/>}
           {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Companies identified. Now let's update how you show up online so the right people can find you.</div>}
           {!isDemo&&<div style={S.row}>
             <Btn secondary onClick={()=>{out('p7','');setP7Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn>
@@ -2055,7 +2096,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&!outputs.p8&&!loading&&<Btn onClick={()=>generate('p8',()=>P.p8(pc,outputs,chosen),{maxTokens:3500})}><Sparkles size={14}/>Remix My LinkedIn</Btn>}
       {loading&&<Loading msg="Rewriting your LinkedIn for your new direction…" step="p8"/>}
       {outputs.p8&&<><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>
-      {!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your LinkedIn profile. Open LinkedIn in another tab and apply the changes yourself.</div>}{!isDemo&&<RefineBox value={feedback.p8} onChange={v=>setFb('p8',v)} hint="Does this profile capture you accurately? If a strength is missing or the headline misreads your target, tell us." placeholder="e.g. 'The headline says VP Sales; I am aiming for CRO.' Or: 'You missed my board experience.' Or: 'The About section reads as too junior.'" onRegenerate={v=>{recordCorrection('p8',v);out('p8','');generate('p8',()=>P.p8(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:3500})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>LinkedIn updated. Now let's reshape your resume so the strongest evidence lands in the first 7 seconds.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p8','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p8','p_res')}>Refresh My Resume <ChevronRight size={14}/></Btn></div>}</>}
+      {!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your LinkedIn profile. Open LinkedIn in another tab and apply the changes yourself.</div>}{!isDemo&&<RefineBox value={feedback.p8} onChange={v=>setFb('p8',v)} hint="Does this profile capture you accurately? If a strength is missing or the headline misreads your target, tell us." placeholder="e.g. 'The headline says VP Sales; I am aiming for CRO.' Or: 'You missed my board experience.' Or: 'The About section reads as too junior.'" onRegenerate={v=>{cascadeInvalidate('p8');recordCorrection('p8',v);out('p8','');generate('p8',()=>P.p8(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:3500})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>LinkedIn updated. Now let's reshape your resume so the strongest evidence lands in the first 7 seconds.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p8','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p8','p_res')}>Refresh My Resume <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -2069,7 +2110,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&!outputs.p_res&&!loading&&<Btn onClick={()=>generate('p_res',()=>P.p_res(pc,outputs,chosen),{maxTokens:5000})}><Sparkles size={14}/>Refresh My Resume</Btn>}
       {loading&&<Loading msg="Rewriting your resume for your new direction…" step="p_res"/>}
       {outputs.p_res&&<><OutPanel text={outputs.p_res} onCopy={copy} copied={copied}/>
-      {!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your resume file. Apply the changes in your actual resume document yourself, save it as PDF, and use the updated version for applications and outreach.</div>}{!isDemo&&<RefineBox value={feedback.p_res} onChange={v=>setFb('p_res',v)} hint="Did we get an accomplishment wrong, or miss one that matters for your target? Tell us." placeholder="e.g. 'You said I led 4 people; it was 12.' Or: 'You missed my $50M P&L.' Or: 'The summary frames me as a generalist; I am a supply-chain specialist.'" onRegenerate={v=>{recordCorrection('p_res',v);out('p_res','');generate('p_res',()=>P.p_res(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:5000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Almost there. Let's prepare you for the conversations ahead: the landscape, the language, and the questions you'll face.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p_res','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p_res','p9')}>Build My Playbook <ChevronRight size={14}/></Btn></div>}</>}
+      {!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your resume file. Apply the changes in your actual resume document yourself, save it as PDF, and use the updated version for applications and outreach.</div>}{!isDemo&&<RefineBox value={feedback.p_res} onChange={v=>setFb('p_res',v)} hint="Did we get an accomplishment wrong, or miss one that matters for your target? Tell us." placeholder="e.g. 'You said I led 4 people; it was 12.' Or: 'You missed my $50M P&L.' Or: 'The summary frames me as a generalist; I am a supply-chain specialist.'" onRegenerate={v=>{cascadeInvalidate('p_res');recordCorrection('p_res',v);out('p_res','');generate('p_res',()=>P.p_res(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:5000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Almost there. Let's prepare you for the conversations ahead: the landscape, the language, and the questions you'll face.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p_res','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p_res','p9')}>Build My Playbook <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -2186,7 +2227,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {remixSection&&<div style={{marginTop:14}}><OutPanel text={remixSection} onCopy={copy} copied={copied}/></div>}
         </>})()}
         {outputs.p10&&<><div style={{marginTop:24,marginBottom:10}}><h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:C.gold,margin:0}}>Interview Prep</h2><p style={{fontSize:16,color:C.gray,marginTop:6}}>The questions that will come up and how to talk about each one with confidence.</p></div><OutPanel text={outputs.p10} onCopy={copy} copied={copied}/></>}
-        {!isDemo&&<RefineBox value={feedback.p9} onChange={v=>setFb('p9',v)} hint="Did we miscall what's actually hard about this role, or what really matters in the interviews? Tell us." placeholder="e.g. 'The technical questions miss what they really care about.' Or: 'You said comp is the hard ask; it is title.' Or: 'I have direct experience with that framework, you said I did not.'" onRegenerate={v=>{recordCorrection('p9',v);out('p9','');out('p10','');out('p11','');setStoryUpdated({});setLoading(true);setErr(null);setLoadMsg('Updating your playbook...');Promise.all([callClaude(correctionsBlock(profile.corrections)+P.p9(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:4000}),callClaude(correctionsBlock(profile.corrections)+P.p10(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:3500}),callClaude(correctionsBlock(profile.corrections)+P.p11(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:4000})]).then(([r1,r2,r3])=>{out('p9',r1);out('p10',r2);out('p11',r3)}).catch(e=>setErr(e.message)).finally(()=>setLoading(false))}}/>}
+        {!isDemo&&<RefineBox value={feedback.p9} onChange={v=>setFb('p9',v)} hint="Did we miscall what's actually hard about this role, or what really matters in the interviews? Tell us." placeholder="e.g. 'The technical questions miss what they really care about.' Or: 'You said comp is the hard ask; it is title.' Or: 'I have direct experience with that framework, you said I did not.'" onRegenerate={v=>{cascadeInvalidate('p9');recordCorrection('p9',v);out('p9','');out('p10','');out('p11','');setStoryUpdated({});setLoading(true);setErr(null);setLoadMsg('Updating your playbook...');Promise.all([callClaude(correctionsBlock(profile.corrections)+P.p9(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:4000}),callClaude(correctionsBlock(profile.corrections)+P.p10(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:3500}),callClaude(correctionsBlock(profile.corrections)+P.p11(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:4000})]).then(([r1,r2,r3])=>{out('p9',r1);out('p10',r2);out('p11',r3)}).catch(e=>setErr(e.message)).finally(()=>setLoading(false))}}/>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p9','');out('p10','');out('p11','');setP9Intro(false);setStoryUpdated({});window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>{markDone('p9');markDone('p10');advance('p9','complete')}}>Complete My Reimagine <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
@@ -2362,7 +2403,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {loading&&<Loading msg="Building your Income Now plan, this one is thorough…" step="income"/>}
       {outputs.income&&<>
         <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
-        {!isDemo&&<RefineBox value={feedback.income} onChange={v=>setFb('income',v)} hint="Did we misread your readiness for any of these income paths, or miss one that fits? Tell us." placeholder="e.g. 'I have a strong network for fractional work; lead with that.' Or: 'You suggested coaching; I have no interest.' Or: 'The platform recommendations do not match my pricing.'" updateLabel="Update my plan" freshLabel="Show me a fresh plan" onRegenerate={v=>{recordCorrection('income',v);out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:6000})}}/>}
+        {!isDemo&&<RefineBox value={feedback.income} onChange={v=>setFb('income',v)} hint="Did we misread your readiness for any of these income paths, or miss one that fits? Tell us." placeholder="e.g. 'I have a strong network for fractional work; lead with that.' Or: 'You suggested coaching; I have no interest.' Or: 'The platform recommendations do not match my pricing.'" updateLabel="Update my plan" freshLabel="Show me a fresh plan" onRegenerate={v=>{cascadeInvalidate('income');recordCorrection('income',v);out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:6000})}}/>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('income','');setIncomeIntro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
@@ -2482,6 +2523,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   return <>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
+    {invalidationBanner&&<div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1000,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'14px 20px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',alignItems:'center',gap:16,maxWidth:720}}>
+      <div style={{fontSize:15,color:'#1A2540',lineHeight:1.5}}>{invalidationBanner.message}</div>
+      <button onClick={()=>{restoreSnapshot(invalidationBanner.snapshot);setInvalidationBanner(null)}} style={{background:'transparent',border:`1px solid ${C.gold}`,borderRadius:6,color:C.gold,fontWeight:600,fontSize:14,padding:'6px 14px',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>Undo</button>
+      <button onClick={()=>setInvalidationBanner(null)} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#718096',fontSize:18,cursor:'pointer',padding:4,fontFamily:'inherit',flexShrink:0}}>×</button>
+    </div>}
     <div style={{height:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
       {migrationOpen&&!signedInUser&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
         <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:520,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
