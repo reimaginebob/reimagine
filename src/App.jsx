@@ -864,6 +864,7 @@ export default function PivotEngine(){
   useEffect(()=>{if(!invalidationBanner)return;const t=setTimeout(()=>setInvalidationBanner(null),10000);return()=>clearTimeout(t)},[invalidationBanner])
   useEffect(()=>{if(step==='decision')decisionInitialChosenRef.current=chosen},[step])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
+  useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);deleteAccount()},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,markedOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,markedOpts,chosen,signedInUser])
 
   const pr=(f,v)=>setProfile(p=>({...p,[f]:v}))
@@ -1005,6 +1006,19 @@ export default function PivotEngine(){
     setSignedInUser(null)
     setStep('welcome')
   }
+  const deleteAccount=async()=>{
+    const confirmed=window.confirm('This permanently deletes your profile, outputs, and chat history.\n\nYou can sign back in with the same email to start over from scratch.\n\nContinue?')
+    if(!confirmed)return
+    try{
+      const r=await fetch('/api/account/delete',{method:'POST',credentials:'include'})
+      if(!r.ok){const e=await r.json().catch(()=>({error:'Delete failed'}));throw new Error(e.error||'Delete failed')}
+      try{localStorage.removeItem('pe_v3')}catch{}
+      try{Object.keys(localStorage).forEach(k=>{if(k.startsWith('reimagine_')||k.startsWith('pe_'))localStorage.removeItem(k)})}catch{}
+      window.location.href='/'
+    }catch(err){
+      alert('Could not delete your account: '+(err.message||'unknown error'))
+    }
+  }
   const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setMarkedOpts([]);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
   const exportProfile=()=>{const data={profile,outputs,done,deepOpts,markedOpts,chosen};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
   const downloadAllMarkdown=()=>{
@@ -1131,7 +1145,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#FFFFFF',marginBottom:6}}>Welcome back</div>
           <div style={{fontSize:16,color:'#CBD5E0',lineHeight:1.6}}>You have work in progress. Pick up right where you left off.</div>
         </div>
-        <Btn onClick={()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step&&d.step!=='welcome'){setStep(d.step)}else if(d.done&&d.done.length>0){setStep(d.done[d.done.length-1])}}}catch{}}} style={{background:C.gold,flexShrink:0}}>Continue Where I Left Off <ChevronRight size={14}/></Btn>
+        <div style={{display:'flex',flexDirection:'column',gap:8,alignItems:'flex-end',flexShrink:0}}>
+          <Btn onClick={()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step&&d.step!=='welcome'){setStep(d.step)}else if(d.done&&d.done.length>0){setStep(d.done[d.done.length-1])}}}catch{}}} style={{background:C.gold}}>Continue Where I Left Off <ChevronRight size={14}/></Btn>
+          {signedInUser&&<button onClick={deleteAccount} style={{background:'transparent',color:'#CBD5E0',border:'none',padding:'4px 0',fontSize:13,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Or start fresh (delete everything and begin again)</button>}
+        </div>
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="380" height="132" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
@@ -2614,6 +2631,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </>:<>
             <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
           </>}
+          {!isDemo&&signedInUser&&<button onClick={deleteAccount} title="Delete your profile and start over from scratch" style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'5px 10px',fontSize:12,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Start Fresh</button>}
           {!isDemo&&signedInUser&&<button onClick={signOut} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'5px 10px',fontSize:12,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign out</button>}
           {!isDemo&&!signedInUser&&<button onClick={()=>{setSignedUp(false);setMagicLinkSentTo(null)}} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'5px 10px',fontSize:12,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign in</button>}
         </div>

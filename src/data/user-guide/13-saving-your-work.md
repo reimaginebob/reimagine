@@ -56,6 +56,21 @@ Use Copy All to move text into:
 
 The Copy All works for all generated sections, including the Bridge Story, the Go-to-Market plan, the LinkedIn copy, the playbook, and the Income Now plan.
 
+## Start over from scratch
+
+If you want to redo your entire journey, the **Start Fresh** option in the top-right header permanently deletes your profile, outputs, and chat history. You can sign back in with the same email and start over from the Welcome screen.
+
+Use this when:
+- Your initial inputs were wrong and you want a clean slate.
+- You want to redo the journey with a different framing of your story.
+- You no longer want your data in Reimagine.
+
+Start Fresh is not the same as Sign Out. Sign Out keeps your profile and signs you back in next time. Start Fresh removes everything from Reimagine's servers (your profile, outputs, marked picks, chosen direction, chat history, and active sessions) and signs you out.
+
+When you click Start Fresh, a browser dialog asks you to confirm. After you confirm, the page reloads to the Welcome screen, signed out. If you want to come back, sign in with the same email and you'll receive a fresh magic link to start over.
+
+If you are signed in and the Welcome screen shows a "Continue Where I Left Off" panel because you have work in progress, a smaller "Or start fresh" link appears below the continue button as a quieter second surface.
+
 ## What to do if your work disappears
 
 If you return to Reimagine and your session is gone, two things to check:
