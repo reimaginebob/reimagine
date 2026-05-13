@@ -12,7 +12,9 @@ This phase is short. Get it right.
 
 ## What this step does
 
-Reimagine writes your complete 30-second answer to "tell me about yourself," tailored to the direction you committed to in Phase 2. It draws from your Brand Synthesis (the golden thread, your personal brand) and your accomplishments, weaving them into a single flowing story that sounds like you talking, not like a resume being read aloud.
+Reimagine writes your complete 30-second answer to "tell me about yourself," tailored to the focus you chose at the end of Phase 2. It draws from your Brand Synthesis (the golden thread, your personal brand) and your accomplishments, weaving them into a single flowing story that sounds like you talking, not like a resume being read aloud.
+
+The best answers to "tell me about yourself" are the why behind the what: the durable qualities that explain why your accomplishments happened. That is the part of you that doesn't change when your title does, and it is what makes you memorable beyond your resume.
 
 The output is built on a three-part formula that comes from *Making Your Own Weather*:
 
@@ -32,6 +34,22 @@ Before generating, you will see an introduction screen that walks through the th
 - **The 30-Second "Tell Me About Yourself."** The complete answer, written as one flowing story without labels or section breaks. Read it out loud at a conversational pace.
 - **Why They Remember You.** Two or three sentences on what your story leads with and why it sticks. This is coaching, not script.
 - **The Three Things They Remember.** Distilled to three lines: who you are (the personal quality, not a job title), what you have delivered (one proof point with a number), and where you are headed (the role and why it fits). Closes with one sentence that ties them together.
+- **What Would Make This Stronger.** Appears only when Reimagine could not find strong personal evidence to ground the opener. Names 1 to 3 specific things you could add to your profile to make the next pass sharper.
+
+## How the opening is grounded
+
+The opening line of your Bridge Story carries a lot of weight. It is what makes you the one person the listener remembers. For that line to land as confidence rather than as posturing, Reimagine grounds the human or identity trait it claims in one of four sources from your profile:
+
+1. **A specific non-work activity** that demonstrates the trait. A side project, weekend mentoring, a volunteer commitment, a community role, something you build or care for outside your job. This is the most natural anchor because it shows the listener that who you are at work is who you are everywhere.
+2. **A specific assessment finding** from a personality or strengths assessment you have taken. Affintus, StrengthsFinder, Hogan, DISC, Predictive Index, others. Naming the assessment, the trait it surfaced, and what that trait means lets the opener carry externally validated weight without bragging.
+3. **A specific reputation signal.** The kind of work colleagues consistently bring you in for, the praise you keep hearing, the moment people remember you in a crisis. Pulled directly from what you wrote in the Reputation step of Orientation.
+4. **A specific formative experience.** A moment, a season, or a shaping influence that explains why you operate the way you do. Currently surfaced from context within your passions or reputation inputs.
+
+Reimagine uses the strongest of these four sources for your specific profile. The grounding is what makes the opener feel earned. The Four Cs framework from *Making Your Own Weather* names the principle: the opener has to be grounded in specific evidence, because confidence comes from clarity that is rooted in your convictions.
+
+**When the grounding is thin.** If none of the four sources are strong in your profile, Reimagine does not fabricate one. It leads with your strongest professional proof for the opener and adds a **What Would Make This Stronger** section that names what you could add to your profile to produce a sharper opener on the next pass. Common things to add: a side project or weekend pursuit, an assessment finding, a formative life experience. Add what feels true, click regenerate, and the new opener will have a personal anchor to work from.
+
+Honest thin beats fabricated full. A grounded opener with a Strengthen note attached is more useful than an opener that makes claims about you the listener cannot trace to anything.
 
 ## Do not try to memorize it
 

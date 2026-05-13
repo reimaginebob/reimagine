@@ -39,7 +39,7 @@ A few specifics: take an assessment if you do not have one (the difference is si
 
 **Sign-in is by email.** First visit, enter your email; a sign-in link arrives in your inbox. No password. Sign-in is what makes your work travel across devices.
 
-**You can come back.** Once you commit to one direction at the Decision step, Reimagine builds your story, target list, LinkedIn, and resume around it. You can later come back to that Decision step, choose a different option, and run that one through the journey too. You only need one new job, but you can explore as many options as you want.
+**You can come back.** Once you choose one direction at the Your Focus step, Reimagine builds your story, target list, LinkedIn, and resume around it. You can later come back to Your Focus, choose a different option, and run that one through the journey too. You only need one new job, but you can explore as many options as you want.
 
 **Reimagine generates copy. You apply it.** The LinkedIn Remix and Resume Refresh outputs are recommendations you take into your own LinkedIn profile and resume document. The tool does not modify those for you.
 

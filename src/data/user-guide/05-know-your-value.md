@@ -74,6 +74,8 @@ If you skipped the assessment, this section is shorter and more abstract. Reimag
 
 The first time you reach this step, Reimagine shows a short interstitial framing what comes next: "Phase 1, where the pieces integrate." Take a moment with it. This is often the section where users first see their work history and their wiring as one connected story.
 
+The interstitial also frames why this section matters across the rest of your career: this is the most portable part of you. Roles change, titles change, the company name on your resume changes. Your natural gifting goes with you to whatever's next. In interviews this becomes the color behind the black and white of the work itself, the why behind the what.
+
 Then click **Analyze My Wiring**. About a minute to generate.
 
 ### What you will get back

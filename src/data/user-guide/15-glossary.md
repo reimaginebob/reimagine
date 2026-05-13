@@ -20,7 +20,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Familiar Ground.** One of the three paths in the Wide View. Same function, same or adjacent industry. Where your existing track record speaks most directly.
 
-**Go-to-Market Strategy.** Phase 4 of the journey. A target company list, a hiring executive profile, a personalized outreach template, and a LinkedIn signal tweak. All built around the direction you committed to.
+**Go-to-Market Strategy.** Phase 4 of the journey. A target company list, a hiring executive profile, a personalized outreach template, and a LinkedIn signal tweak. All built around your chosen focus.
 
 **Golden Thread.** The single consistent theme that runs through your accomplishments, your wiring, and your reputation. Surfaced in Brand Synthesis.
 
@@ -56,7 +56,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Reputation.** The final input in the Orientation phase. External data about how others see you, gathered through four short prompts.
 
-**Resume Refresh.** The second step in Phase 5. Your resume rewritten so the strongest evidence for your target role lands in the first seven seconds.
+**Resume Refresh.** The second step in Phase 5. Your resume rewritten so the strongest evidence for your target role is visible in the first seven seconds.
 
 **Sarah Chen.** The fictional executive used in Reimagine's demo mode. A VP of Talent Acquisition in healthcare with 15 years of experience.
 

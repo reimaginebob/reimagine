@@ -102,9 +102,9 @@ Each subsequent step uses the updated inputs and the regenerated upstream output
 
 You can stop regenerating wherever the changes no longer matter. If your edit only affected the early phases and the rest of your journey was already aligned, you do not need to redo it all.
 
-## Exploring a different direction after committing
+## Exploring a different direction after choosing your focus
 
-You committed to one direction in Phase 2 and walked through Phases 3, 4, and 5 with it. Now you are curious what the journey would look like for a different option.
+You chose one direction at Your Focus in Phase 2 and walked through Phases 3, 4, and 5 with it. Now you are curious what the journey would look like for a different option.
 
 The light way: change the chosen direction and regenerate from Phase 3.
 

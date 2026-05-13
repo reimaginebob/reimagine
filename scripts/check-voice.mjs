@@ -17,6 +17,9 @@ const SOFT_WARN = [
   { pattern: /\bMost people\b/i, name: '"Most people" comparison framing', advice: 'Rewrite as second person or positive-side claim. Allowed only when followed by factual reassurance (e.g., "Most people do not finish in one sitting").' },
   { pattern: /\bMost professionals\b/i, name: '"Most professionals" comparison framing', advice: 'Rewrite from second person.' },
   { pattern: /\bMost leaders\b/i, name: '"Most leaders" comparison framing', advice: 'Rewrite from second person.' },
+  { pattern: /\b(it|that|this) lands\b/i, name: '"lands" as AI-speak verb', advice: 'Rewrite with the plain verb the meaning requires (e.g., "Read it slowly" instead of "Take it slowly when it lands").' },
+  { pattern: /\bsits at the intersection\b/i, name: '"sits at the intersection" AI-speak', advice: 'Rewrite with a plain verb.' },
+  { pattern: /\bcommitting to\b/i, name: '"committing to" (legacy decision-step verb)', advice: 'The decision step is now Your Focus. Use "choosing" or "going with" in user-facing copy.' },
 ]
 
 let hardFailures = 0

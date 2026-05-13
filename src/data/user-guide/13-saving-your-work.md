@@ -4,7 +4,7 @@ This chapter covers how Reimagine saves your progress, how your work syncs acros
 
 ## How saving works
 
-When you are signed in, Reimagine saves your progress to your account automatically as you go. Your inputs, your outputs, the options you selected in the Deep Dive, the direction you committed to, and any corrections you have submitted are all saved against your email and synced to your devices.
+When you are signed in, Reimagine saves your progress to your account automatically as you go. Your inputs, your outputs, the options you selected in the Deep Dive, your chosen focus, and any corrections you have submitted are all saved against your email and synced to your devices.
 
 Three things worth knowing.
 
@@ -36,7 +36,7 @@ You can download it from two places on the Complete screen: the banner at the to
 
 Use it to share your story with a recruiter, a coach, or someone in your network you would like to refer you. It is designed to be readable in 60 seconds.
 
-A creative use worth trying: upload the PDF into **Notebook LM** (Google's free notebook tool) and use the Audio Summary feature to generate a short podcast-style episode about you. Hearing two hosts talk about your background lands differently than reading the same content on paper. Chapter 10 has the full setup.
+A creative use worth trying: upload the PDF into **Notebook LM** (Google's free notebook tool) and use the Audio Summary feature to generate a short podcast-style episode about you. Hearing two hosts talk about your background hits you differently than reading the same content on paper. Chapter 10 has the full setup.
 
 ### The target company list as a CSV
 

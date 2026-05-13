@@ -20,7 +20,7 @@ If a job search is going to take longer than your runway, having income flowing 
 
 ## What this module does
 
-Reimagine builds a complete fractional and consulting plan tailored to your background, your seniority, and the direction you committed to in Phase 2. The plan has six parts:
+Reimagine builds a complete fractional and consulting plan tailored to your background, your seniority, and the focus you chose at the end of Phase 2. The plan has six parts:
 
 1. **Where to show up**. Four to six marketplaces and platforms (Catalant, Toptal, Bolste, Business Talent Group, etc.) matched to your function, with realistic rate ranges and the first step to get listed on each.
 2. **Your consulting presence**. A positioning headline, a 150-word bio, four specific service offerings (each with a problem-first title, the buyer, the deliverable, the outcome, and a price), and a complete outreach message you can send to your network.

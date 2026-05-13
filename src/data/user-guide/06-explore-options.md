@@ -38,7 +38,11 @@ The bet of this path is your industry expertise. The number one filter most empl
 
 The options here are deliberately stripped of your current title and current industry. They get generated from your capabilities, your values, your passions, and the life themes that show up across your profile. Vehicles range broadly: W-2, consulting, fractional, advisory, board seats, founding something, joining something at the ground floor, acquiring something, teaching, writing. Whichever vehicle fits the work, not whichever fits the resume.
 
-At least two options in every Work That Matters output are marked **(non-obvious option)** at the end of their rationale. The test for those: a role you would not have generated yourself if asked to list possibilities. The bet of this path is fit; the proof requires more careful framing in your story, but the alignment is the point.
+The Work That Matters path always appears. It is the path Reimagine exists to deliver, and the lane where the tool earns its name. Familiar Ground and Industry Insider will almost always populate for anyone with a real career, because they are anchored in resume evidence. Work That Matters asks for more: it asks the tool to synthesize your values, your passions, and your life outside work into options you would not have generated yourself.
+
+A thin Work That Matters lane signals that the inputs need to be deeper, and the path may still be the right one for you. If the section lists only one or two options, or if it lists none and shows a diagnostic instead, Reimagine is telling you the truth: the raw signals it has from you do not yet support a confident set of options. The diagnostic block will name what is missing and prompt you for the specific dimensions that would help the model find the path. Add what it asks for in the refine box below, click regenerate, and try again.
+
+The transparency principle: Reimagine will not invent Work That Matters options to hit a quota of three. An honest thin lane is more useful than a padded full one. A single grounded option plus a diagnostic is the tool working as intended. Use the diagnostic to add the missing context, and the regenerated set will be stronger.
 
 Most people will find themselves drawn to one or two paths more than the third. That is normal. The goal of the Wide View is not to convince you that all three are equally appealing. It is to make sure you considered all three before choosing.
 
@@ -60,7 +64,7 @@ For each path, a series of role options. Each option includes:
 - **A vehicle**. How the role is structured (W-2, consulting, fractional, entrepreneurship, entrepreneurship through acquisition, franchise).
 - **A rationale** grounded in specific evidence from your profile. Your wiring, your accomplishments, your passions. That explains why this role is a fit.
 
-The strongest path will have the deepest analysis. The weaker paths will have fewer options with shorter rationale. Reimagine is trying not to pad weaker paths to fill space, so if a path only has two strong options, it will stop at two.
+The strongest path will have the deepest analysis. The weaker paths will have fewer options with shorter rationale. Reimagine is trying not to pad weaker paths to fill space, so if a path only has two strong options, it will stop at two. Work That Matters is the one exception: that section always appears, and when the evidence is too thin for a full set, Reimagine shows a diagnostic naming what is missing rather than inventing options to hit a count.
 
 ### What good looks like
 
@@ -89,7 +93,7 @@ This is one of the most-refined steps in the journey. Use it freely. Refinement 
 **Push back on the read:**
 - "You have me as primarily Industry Insider, but I think Work That Matters is where I want to focus. Lead with that path instead."
 
-**Two ways to open the refine box:** expand the **Want to make changes?** toggle directly below the output, or click the **Tell us what to change** shortcut button at the bottom of the options list. The shortcut scrolls you down and opens the refine box for you. Handy when a thought lands partway through reading and you do not want to lose your place. Both routes get you to the same place.
+**Two ways to open the refine box:** expand the **Want to make changes?** toggle directly below the output, or click the **Tell us what to change** shortcut button at the bottom of the options list. The shortcut scrolls you down and opens the refine box for you. Handy when you have a thought partway through reading and you do not want to lose your place. Both routes get you to the same place.
 
 **Two ways to act once the refine box is open:**
 
@@ -124,7 +128,7 @@ The Deep Dive is grounded in two sources. First, your profile. Your Brand Synthe
 
 What this step does *not* do is hit the live web. Reimagine reserves live web research for Phase 4, the Go-to-Market step, where current market signals. Recent funding rounds, leadership changes, hiring patterns at specific companies. Actually matter. For the Deep Dive, the question is "what does this role look like in practice and how does my background map," which is well within Claude's training-data knowledge and does not need a real-time data source.
 
-If you want to validate the Deep Dive against current postings before committing, the fastest way is to run a quick LinkedIn search on the role titles Reimagine lists in **What this role is called** and read three or four real postings. The day-to-day descriptions and "what they are looking for" sections from real postings should rhyme with what Reimagine produced.
+If you want to validate the Deep Dive against current postings before choosing your focus, the fastest way is to run a quick LinkedIn search on the role titles Reimagine lists in **What this role is called** and read three or four real postings. The day-to-day descriptions and "what they are looking for" sections from real postings should rhyme with what Reimagine produced.
 
 ### On the screen
 

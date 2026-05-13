@@ -65,6 +65,8 @@ Once Reimagine has read the file, you will see a green checkmark and a character
 
 This is the input that does the most work. Read Chapter 3 if you have not already.
 
+An assessment shows the durable part of you: where your natural strengths lie, what energizes you, and the environments where you do your best work. These qualities don't depend on title, compensation, or where you worked. They travel with you into every role that comes next, which is why this layer raises the quality of everything Reimagine generates downstream.
+
 **Upload an assessment file.** PDF, Word, or text. The tool reads it and pastes the contents into the text field below.
 
 **Or paste results directly.** Use the text field. You can paste the full report, a summary, or both.
