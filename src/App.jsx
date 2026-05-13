@@ -853,6 +853,12 @@ export default function PivotEngine(){
   const assessRef=useRef()
   const repOtherRef=useRef()
   const decisionInitialChosenRef=useRef(null)
+  // Blocks the debounced auto-save effect once a Start Fresh delete is in
+  // flight. Without this, a setTimeout(save, 800) scheduled by an earlier
+  // state change can fire AFTER deleteAccount's localStorage.removeItem and
+  // BEFORE window.location navigation completes, repopulating pe_v3 with the
+  // full pre-delete state. Checked at fire time so any pending timer aborts.
+  const deletingRef=useRef(false)
 
   useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3')}catch{};return}const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.markedOpts)setMarkedOpts(d.markedOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
@@ -865,7 +871,7 @@ export default function PivotEngine(){
   useEffect(()=>{if(step==='decision')decisionInitialChosenRef.current=chosen},[step])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);deleteAccount()},[signedInUser])
-  useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,markedOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,markedOpts,chosen,signedInUser])
+  useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{if(deletingRef.current)return;try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,markedOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,markedOpts,chosen,signedInUser])
 
   const pr=(f,v)=>setProfile(p=>({...p,[f]:v}))
   const loc=(f,v)=>setProfile(p=>({...p,loc:{...p.loc,[f]:v}}))
@@ -1009,13 +1015,20 @@ export default function PivotEngine(){
   const deleteAccount=async()=>{
     const confirmed=window.confirm('This permanently deletes your profile, outputs, and chat history.\n\nYou can sign back in with the same email to start over from scratch.\n\nContinue?')
     if(!confirmed)return
+    // Set before the await so any pending debounced save timer (scheduled
+    // before the user clicked Start Fresh) sees the flag and bails out
+    // instead of repopulating localStorage / PUTing to the server.
+    deletingRef.current=true
     try{
       const r=await fetch('/api/account/delete',{method:'POST',credentials:'include'})
       if(!r.ok){const e=await r.json().catch(()=>({error:'Delete failed'}));throw new Error(e.error||'Delete failed')}
       try{localStorage.removeItem('pe_v3')}catch{}
       try{Object.keys(localStorage).forEach(k=>{if(k.startsWith('reimagine_')||k.startsWith('pe_'))localStorage.removeItem(k)})}catch{}
-      window.location.href='/'
+      // location.replace forces a synchronous navigation that does not leave
+      // a history entry pointing back at the live React tree.
+      window.location.replace('/')
     }catch(err){
+      deletingRef.current=false
       alert('Could not delete your account: '+(err.message||'unknown error'))
     }
   }
