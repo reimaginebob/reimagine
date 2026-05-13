@@ -505,7 +505,7 @@ const LOADING_PREVIEWS = {
     'Four to six core capabilities, each anchored to a real moment in your history',
   ],
   p4: [
-    'Familiar Ground: roles where the skills you already have land directly. Same function in your industry or one next door, or the same kind of work in a new context.',
+    'Familiar Ground: roles where the skills you already have transfer directly. Same function in your industry, or the same kind of work in a new context.',
     'Industry Insider: where the way you understand your sector becomes an asset in a different kind of role',
     'Work That Matters: roles your profile points to that you might not have put on your own list. At least two of these every time are deliberately non-obvious.',
     'Every option includes who tends to thrive in it, where it lives, and the specific reason it fits you',
@@ -744,7 +744,7 @@ function Sidebar({step,done,onNav,isDemo,prog}){return <div style={{width:260,ba
     <div style={{fontSize:14,color:'#FFFFFF',fontWeight:600,marginBottom:8}}>You're {prog}% complete</div>
     <div style={{width:'100%',height:5,background:'#0F1A30',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:3,transition:'width 0.4s'}}/></div>
   </div>}
-  {PHASES.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:16,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||(sid==='income'&&done.includes('complete'))||(sid==='op'&&done.includes('complete')),isComplete=sid==='complete'&&isDone;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{META[sid]}</span>{active&&<span style={{fontSize:isDemo?10:9,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:isDemo?C.gold:`${C.gold}CC`,padding:isDemo?'2px 8px':'1px 6px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
+  {PHASES.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:16,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||(sid==='income'&&done.includes('complete'))||(sid==='op'&&done.includes('complete')),isComplete=sid==='complete'&&isDone;return <div key={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{META[sid]}</span>{active&&<span style={{fontSize:10,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'2px 8px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
 </div>}
 
 const DEMO_TOUR=[
@@ -827,6 +827,7 @@ export default function PivotEngine(){
   const importFileRef=useRef()
   const assessRef=useRef()
   const repOtherRef=useRef()
+  const decisionInitialChosenRef=useRef(null)
 
   useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3')}catch{};return}const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
@@ -836,6 +837,7 @@ export default function PivotEngine(){
   useEffect(()=>{setShowPulse(false);const t=setTimeout(()=>setShowPulse(true),90000);return()=>clearTimeout(t)},[step])
   useEffect(()=>{window.scrollTo({top:0,behavior:'instant'})},[step])
   useEffect(()=>{if(!invalidationBanner)return;const t=setTimeout(()=>setInvalidationBanner(null),10000);return()=>clearTimeout(t)},[invalidationBanner])
+  useEffect(()=>{if(step==='decision')decisionInitialChosenRef.current=chosen},[step])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
   useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,signedInUser])
 
@@ -849,20 +851,11 @@ export default function PivotEngine(){
   const downstreamOf=(source)=>{const idx=DEPENDENCY_ORDER.indexOf(source);if(idx<0)return[];return DEPENDENCY_ORDER.slice(idx+1)}
   const invalidateDownstream=(source)=>{
     const downstream=downstreamOf(source)
-    if(downstream.length===0)return null
-    const snapshot={deepOpts:[...deepOpts],chosen,outputs:{...outputs},done:[...done]}
+    if(downstream.length===0)return
     setOutputs(o=>{const updated={...o};for(const k of downstream){if(k!=='deepOpts'&&k!=='chosen')updated[k]=''}return updated})
     if(downstream.includes('deepOpts'))setDeepOpts(['','',''])
     if(downstream.includes('chosen'))setChosen('')
     setDone(d=>d.filter(s=>!downstream.includes(s)))
-    return snapshot
-  }
-  const restoreSnapshot=(snapshot)=>{
-    if(!snapshot)return
-    setDeepOpts(snapshot.deepOpts)
-    setChosen(snapshot.chosen)
-    setOutputs(snapshot.outputs)
-    setDone(snapshot.done)
   }
   const INVALIDATION_MESSAGES={
     p1:'Cleared your Wiring & Compass, Brand Synthesis, and all downstream work so they match the new Resume Analysis.',
@@ -880,8 +873,10 @@ export default function PivotEngine(){
   }
   const invalidationMessage=(source)=>INVALIDATION_MESSAGES[source]||'Cleared downstream work so it matches your changes.'
   const cascadeInvalidate=(source)=>{
-    const snapshot=invalidateDownstream(source)
-    if(snapshot)setInvalidationBanner({message:invalidationMessage(source),snapshot})
+    const downstream=downstreamOf(source)
+    if(downstream.length===0)return
+    invalidateDownstream(source)
+    setInvalidationBanner({message:invalidationMessage(source)})
   }
   const advance=(from,to)=>{markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
   const nav=(to)=>{if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null);window.scrollTo(0,0)}
@@ -1550,7 +1545,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           const takeaway=takeawayMatch?takeawayMatch[1].trim():''
           const laneConfigs=[
             {key:'wtm',name:'Work That Matters',pattern:/(?:^|\n)(?:#{1,3}\s*(?:PATH\s*\d+\s*:?\s*)?|\*\*)(?:WORK THAT MATTERS|IKIGAI|MEANINGFUL WORK|WORK WITH MEANING)[^\n]*/i,desc:'The intersection of what you love, what you\'re good at, what the world needs, and what you can be paid for. This path is for leaders who want meaning and impact alongside compensation.'},
-            {key:'insider',name:'Industry Insider',pattern:/(?:^|\n)(?:#{1,3}\s*(?:PATH\s*\d+\s*:?\s*)?|\*\*)(?:THE\s+)?INDUSTRY INSIDER[^\n]*/i,desc:'Your insider knowledge is a competitive advantage. You understand how organizations think, what problems keep leaders up at night, and how decisions get made. This path leverages that credibility in new ways.'},
+            {key:'insider',name:'Industry Insider',pattern:/(?:^|\n)(?:#{1,3}\s*(?:PATH\s*\d+\s*:?\s*)?|\*\*)(?:THE\s+)?INDUSTRY INSIDER[^\n]*/i,desc:'Your insider knowledge is a competitive advantage. You understand how organizations think, what problems keep leaders up at night, and how decisions get made. This path puts that credibility to work in new ways.'},
             {key:'familiar',name:'Familiar Ground',pattern:/(?:^|\n)(?:#{1,3}\s*(?:PATH\s*\d+\s*:?\s*)?|\*\*)FAMILIAR GROUND[^\n]*/i,desc:'Your track record speaks immediately. This path builds directly on where you\'ve been: bigger scope, more authority, and the chance to apply everything you\'ve learned at a higher level.'}
           ]
           const found=[]
@@ -1709,7 +1704,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 }
                 return <>
                   {preamble&&<div style={{fontSize:15,color:'#374258',lineHeight:1.7,marginBottom:16}}><MD text={preamble}/></div>}
-                  <div style={{fontSize:14,color:C.goldL,fontStyle:'italic',lineHeight:1.6,marginBottom:14,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6}}>Click any role card to see why Reimagine suggested it, what the work actually looks like, and how your background maps to it.</div>
+                  <div style={{fontSize:14,color:'#4A5568',lineHeight:1.55,marginBottom:14,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6}}>Click any role card to see why Reimagine suggested it, what the work looks like, and how your background maps to it.</div>
                   {renderedBlocks}
                 </>
               })()}
@@ -1819,7 +1814,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {!isDemo&&<>
             <div style={{margin:'24px 0 12px',padding:'16px 20px',background:'#FFF8F0',border:`2px solid ${C.gold}40`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
               <span style={{fontSize:16,color:C.goldL,fontWeight:500}}>Not what you expected? Go back and explore different options.</span>
-              <Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p4')}}><ArrowLeft size={13}/>Choose Different Options</Btn>
+              <Btn secondary onClick={()=>{cascadeInvalidate('deepOpts');nav('p4')}}><ArrowLeft size={13}/>Choose Different Options</Btn>
             </div>
             <div style={S.row}>
               <Btn secondary onClick={()=>{out('p5','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn>
@@ -1851,21 +1846,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{fontSize:19,color:C.cream,fontWeight:600,lineHeight:1.6}}>{chosen}</div>
       </div>:<>
         <div style={S.card}>
-          <label style={S.label}>I've decided to pursue…</label>
-          <div style={{fontSize:17,color:C.gray,marginBottom:14,lineHeight:1.6}}>Click the option you want as your focus. This becomes the foundation for everything that follows.</div>
+          <label style={S.label}>Choose your focus</label>
+          <div style={{fontSize:17,color:C.gray,marginBottom:14,lineHeight:1.6}}>{deepOpts.filter(v=>v&&v!=='?').length===1?'Confirm this is the direction you want to pursue, or describe a different path below.':'Click the option you want as your focus, or describe a different path below.'} This becomes the foundation for everything that follows.</div>
           {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
             {deepOpts.filter(v=>v&&v!=='?').map(opt=><button key={opt} onClick={()=>{if(chosen&&chosen!==opt)cascadeInvalidate('chosen');setChosen(opt)}} style={{padding:'14px 20px',borderRadius:8,border:`2px solid ${chosen===opt?C.gold:C.border}`,background:chosen===opt?`${C.gold}15`:'white',color:chosen===opt?C.goldL:'#374258',fontSize:17,fontWeight:chosen===opt?600:400,cursor:'pointer',fontFamily:'inherit',textAlign:'left',transition:'all 0.15s',display:'flex',alignItems:'center',gap:10}}>{chosen===opt&&<Check size={14} color={C.gold} strokeWidth={3}/>}{opt}</button>)}
           </div>}
           <div style={{fontSize:14,color:C.gray,marginTop:8}}>Or describe a different path:</div>
-          <textarea style={{...S.ta,minHeight:60,marginTop:6}} value={deepOpts.filter(v=>v&&v!=='?').includes(chosen)?'':chosen} onChange={e=>setChosen(e.target.value)} placeholder="e.g. Fractional CMO in the B2B SaaS ecosystem…"/>
+          <textarea style={{...S.ta,minHeight:60,marginTop:6}} value={deepOpts.filter(v=>v&&v!=='?').includes(chosen)?'':chosen} onChange={e=>setChosen(e.target.value)} placeholder="e.g. a hybrid of two of the options above, or a refinement that wasn't surfaced…"/>
         </div>
         <div style={S.card}>
           <div style={{fontWeight:600,color:C.cream,fontSize:13,marginBottom:9}}>Not ready yet?</div>
-          <Btn secondary onClick={()=>{out('p5','');setDeepOpts(['','','']);nav('p5')}}>Explore different options →</Btn>
+          <Btn secondary onClick={()=>{cascadeInvalidate('deepOpts');nav('p5')}}>Explore different options →</Btn>
           <div style={{fontSize:15,color:C.gray,marginTop:9}}>Or close the tool and come back, your progress is saved automatically.</div>
         </div>
         {err&&<ErrBox msg={err}/>}
-        <div style={S.row}><Btn onClick={()=>chosen?advance('decision','p6'):setErr('Please enter your decision to continue.')}>Build My Bridge Story <ChevronRight size={14}/></Btn></div>
+        <div style={S.row}><Btn onClick={()=>{if(!chosen){setErr('Please enter your decision to continue.');return}const initial=decisionInitialChosenRef.current;if(initial&&initial!==chosen&&outputs.p6)cascadeInvalidate('chosen');advance('decision','p6')}}>Build My Bridge Story <ChevronRight size={14}/></Btn></div>
       </>}
     </div>
 
@@ -2525,7 +2520,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
     {invalidationBanner&&<div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1000,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'14px 20px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',alignItems:'center',gap:16,maxWidth:720}}>
       <div style={{fontSize:15,color:'#1A2540',lineHeight:1.5}}>{invalidationBanner.message}</div>
-      <button onClick={()=>{restoreSnapshot(invalidationBanner.snapshot);setInvalidationBanner(null)}} style={{background:'transparent',border:`1px solid ${C.gold}`,borderRadius:6,color:C.gold,fontWeight:600,fontSize:14,padding:'6px 14px',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>Undo</button>
       <button onClick={()=>setInvalidationBanner(null)} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#718096',fontSize:18,cursor:'pointer',padding:4,fontFamily:'inherit',flexShrink:0}}>×</button>
     </div>}
     <div style={{height:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
