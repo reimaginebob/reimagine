@@ -69,7 +69,7 @@ The version you came in with was optimized for the role you used to want. The ve
 **What this step does.** Three pieces of prep, all generated together so you have everything you need for the conversations ahead.
 
 1. **The Crash Course**. The 10 essential terms or acronyms your target space uses, the top 3 tools practitioners rely on, three thought leaders to follow on LinkedIn, and the single fastest move you can make this week to build credibility.
-2. **Interview Prep**. The top three to five questions or concerns that will surface in interviews for this role, each with three evidence-based talking points grounded in your specific accomplishments.
+2. **Interview Prep**. The top three to five questions or concerns that will surface in interviews for this role, each with three evidence-based talking points grounded in your specific accomplishments. The output always includes a "why this company or role" variant with talking points pulled from the passions, values, and life experiences you named in Orientation. If those inputs were thin, the talking points flag the gap and ask you to add context about the target company so Reimagine can sharpen the answer.
 3. **STAR Stories**. The three strongest, most relevant stories from your background, structured using the *Making Your Own Weather* STAR framework. Each story includes Situation, **Thinking** (the most important section. How you diagnosed the problem and chose your path), Action, and Result. Plus a "Strengthen This Story" section telling you what details would make each story stronger if you can recall them.
 
 **On the screen.** Click **Build My Playbook** to generate. This is a three-part generation, so it can take three to four minutes.
