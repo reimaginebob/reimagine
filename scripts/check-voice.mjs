@@ -11,6 +11,7 @@ const HARD_BAN = [
   { pattern: /—/, name: 'em dash (—)', advice: 'Use commas, periods, colons, or parentheses instead.' },
   { pattern: /\bnot just\s+\w+[,.]?\s+you\s+\w+/i, name: 'logic-flip "not just X, you Y"', advice: 'Rewrite from the positive side.' },
   { pattern: /\byou do not just\s+\w+[,.]?\s+you\s+\w+/i, name: 'logic-flip "you do not just X, you Y"', advice: 'Rewrite from the positive side.' },
+  { pattern: /(This|It|That) (is|was) not [^.]+\.\s+(This|It|That) (is|was) [^.]+\./i, name: 'logic-flip two-sentence "This is not X. This is Y."', advice: 'Rewrite as a single positive-side claim. Drop the negation pivot.' },
 ]
 
 const SOFT_WARN = [
