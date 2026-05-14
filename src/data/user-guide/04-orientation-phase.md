@@ -146,7 +146,7 @@ Four short questions about what other people see in you. Each has a microphone b
 3. **The Two Words.** If your best former manager described your professional superpower in exactly two words, what would they be?
 4. **Additional Feedback.** Performance reviews, LinkedIn recommendations, 360 feedback. Paste anything.
 
-This is the input where prep pays off the most. Spend a few minutes sourcing real material before you fill these in. Look at:
+Spend a few minutes sourcing real material before you fill these in. Look at:
 
 - Old performance reviews
 - LinkedIn recommendations you have received

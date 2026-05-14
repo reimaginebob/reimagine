@@ -92,7 +92,7 @@ Reimagine asks four short questions. You can answer any combination of them, or 
 
 **Good input:** specific moments, not summaries. "Praised for being collaborative" is generic. "After the merger, the new CFO told me in front of the leadership team that I was the only one who got both sides talking to each other" is specific and useful.
 
-**Worth a few minutes of digging before you start.** This is the input where the prep pays off the most. Sources to look through:
+**Worth a few minutes of digging before you start.** Sources to look through:
 
 - Old performance reviews, especially the comments from your manager or skip-level
 - LinkedIn recommendations you have received over the years

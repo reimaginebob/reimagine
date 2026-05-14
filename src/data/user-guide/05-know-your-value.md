@@ -68,7 +68,7 @@ Resume Analysis answered "what have you done." Wiring & Compass answers "how do 
 
 If you uploaded an assessment, this section will name specific patterns about your decision-making, your work style, and your strengths, and will connect them to the results in your resume. The output will sound like a coach who has watched you work for years.
 
-If you skipped the assessment, this section is shorter and more abstract. Reimagine will infer some patterns from your other inputs, but the depth is not the same. This is the step where the difference shows up most clearly.
+If you skipped the assessment, this section is shorter and more abstract. Reimagine will infer some patterns from your other inputs, but the depth is not the same.
 
 ### On the screen
 

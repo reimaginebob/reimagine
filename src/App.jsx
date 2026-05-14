@@ -491,7 +491,7 @@ const COUNTRY_OPTIONS = [
 const LOADING_PREVIEWS = {
   p1: [
     'A clear-eyed read on where you sit in the market right now',
-    'Five to seven of your strongest accomplishments, rewritten so they travel beyond the company where you did them',
+    'Five to seven of your strongest accomplishments, rewritten in language that reads beyond your current employer or industry',
     'What you bring that is distinctive in your peer group, in language you can use in a conversation tomorrow',
   ],
   p2: [
@@ -538,7 +538,7 @@ const LOADING_PREVIEWS = {
   ],
   p9: [
     'The vocabulary, the tools, and the names you need to know to sound credible in this space',
-    'STAR stories built from your real accomplishments, ready for the behavioral questions that come up in every interview',
+    'STAR stories built from your real accomplishments, ready for the behavioral questions common in interviews',
     'The specific questions you should expect for this role, with how to answer each one well',
     'Negotiation talking points anchored in the value you bring',
   ],
@@ -773,9 +773,9 @@ function Sidebar({step,done,onNav,isDemo,prog}){return <div style={{width:260,ba
 
 const DEMO_TOUR=[
   {step:'welcome',title:'Meet Sarah Chen',desc:''},
-  {step:'p1',title:'Step 1: Know Your Value',desc:'Your experience has created more value than most resumes show. This step finds it and puts it in language any industry understands.'},
+  {step:'p1',title:'Step 1: Know Your Value',desc:'This step reads your resume and translates each accomplishment into money made, money saved, or risk mitigated, with numbers attached.'},
   {step:'p2',title:'Step 2: Wiring & Compass',desc:'This step connects how you are wired to the work you do best and the environment where you thrive.'},
-  {step:'p3',title:'Step 3: Brand Synthesis',desc:'When someone asks "what do you do," you want a better answer than your job title. This step builds it: what you do, why you are good at it, and what your work produces.'},
+  {step:'p3',title:'Step 3: Brand Synthesis',desc:'This step turns your resume, your wiring, and your reputation into a two-sentence answer to "what do you do" and the capabilities that back it up.'},
   {step:'p4',title:'Step 4: The Wide View',desc:'This step maps a wider landscape of options to consider, organized into three deliberate paths with specific roles in each.'},
   {step:'p5',title:'Step 5: The Deep Dive',desc:'It\'s easy to get excited about an option on paper. This step shows what the role actually looks like and how your background maps to it.'},
   {step:'decision',title:'Step 6: Sarah\'s Decision',desc:'Having multiple strong options is a good problem to have. This is the moment you choose a direction and everything starts pointing the same way.'},
@@ -1207,9 +1207,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:18,color:'#2D3748',lineHeight:1.7}}>The first step gathers your information: resume, assessment, values, and reputation. <strong style={{color:'#1A2540'}}>That's the only part where you need to do work.</strong> Everything after that is generated for you. You'll review each section and tell us if it feels right before we move on.</div>
         </div>
         {[
-          ['1','Know Your Value','Your experience has created more value than most resumes show. We find it and put it in language any industry understands.'],
+          ['1','Know Your Value','We read your resume and translate each accomplishment into money made, money saved, or risk mitigated, with numbers attached.'],
           ['2','Explore Options','We map three paths forward and go deep on the ones that resonate.'],
-          ['3','Tell Your Story','A great answer to "tell me about yourself" sets the tone for every conversation. We write your bridge story.'],
+          ['3','Tell Your Story','A great answer to "tell me about yourself" sets the tone for the conversation that follows. We write your bridge story.'],
           ['4','Find Your Market','We search for companies that fit and draft your outreach to the right people.'],
           ['5','Get Ready','LinkedIn, resume, industry playbook, and interview prep. You walk in ready.'],
         ].map(([num,phase,desc])=><div key={num} style={{display:'flex',gap:16,marginBottom:20,alignItems:'flex-start'}}>
@@ -1484,7 +1484,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'p1':return <div>
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
       <h1 style={S.title}>Resume Analysis</h1>
-      {!isDemo&&<p style={S.sub}>Your experience has created more value than most resumes show. This step finds it and puts it in language any industry understands.</p>}
+      {!isDemo&&<p style={S.sub}>This step reads your resume and translates each accomplishment into money made, money saved, or risk mitigated, with numbers attached.</p>}
       {!isDemo&&!outputs.p1&&!loading&&<Btn onClick={()=>generate('p1',()=>P.p1(pc))}><Sparkles size={14}/>Analyze My Resume</Btn>}
       {loading&&<Loading msg={loadMsg||'Analyzing your career and translating accomplishments…'} step="p1"/>}
       {outputs.p1&&<>
@@ -1529,11 +1529,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
       <h1 style={S.title}>Brand Synthesis</h1>
-      {!isDemo&&<p style={S.sub}>When someone asks "what do you do," you want a better answer than your job title. This step builds it: a clear statement of what you do, why you are good at it, and how they work together to produce meaningful outcomes.</p>}
+      {!isDemo&&<p style={S.sub}>This step turns your resume, your wiring, and your reputation into a two-sentence answer to "what do you do" and the capabilities that back it up.</p>}
       {!isDemo&&!outputs.p3&&!loading&&p3Intro&&(()=>{
         const cards=[
-          {icon:<Fingerprint size={34} color={C.gold}/>,name:'The Golden Thread',desc:'The single consistent theme that runs through your accomplishments, how you are wired, and what others say about you. This is the throughline you cannot easily see in yourself because you are too close to it.'},
-          {icon:<MessageCircle size={34} color={C.gold}/>,name:'Your Personal Brand',desc:'A clear, two-sentence statement of what you do and why your combination is distinctive. The answer to "what do you do" that actually makes people lean in.'},
+          {icon:<Fingerprint size={34} color={C.gold}/>,name:'The Golden Thread',desc:'The single consistent theme that runs through your accomplishments, how you are wired, and what others say about you. Reimagine names it for you so you can use it in conversation.'},
+          {icon:<MessageCircle size={34} color={C.gold}/>,name:'Your Personal Brand',desc:'A clear, two-sentence statement of what you do and why your combination is distinctive. A direct answer to "what do you do" that you can use in a real conversation.'},
           {icon:<Puzzle size={34} color={C.gold}/>,name:'Your Value Proposition',desc:'The specific capabilities that set you apart, each backed by proof from your track record. Not a list of skills, a map of what you bring and the evidence that it works.'}
         ]
         return <div style={{maxWidth:820,margin:'0 auto'}}>
