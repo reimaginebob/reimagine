@@ -119,632 +119,216 @@ export const demoDone = [
 
 export const demoOutputs = {
 
-// ─── P1: FUNCTIONAL IDENTITY ────────────────────────────────────────────
+// ─── P1: BRAND SYNTHESIS (Proficiency + work-history latent signals) ────
 
-p1: `## QUICK TAKEAWAY
+p1: `### Capability
 
-**You sit at the intersection of healthcare operations and talent strategy**, leading acquisition for a 14,000-person health system. Your biggest asset is your ability to **turn complex people problems into measurable business outcomes**: $4.2M in cost reduction, a referral program generating 34% of hires, and a 175% team scale during COVID. What makes your background distinctive is your **combination of strategic thinking (MBA-level) with operational execution**, all built on 14 years of credibility in a regulated, high-stakes environment.
+Sarah is a builder of talent infrastructure inside complex institutions. She designs the systems an organization uses to meet its people at scale.
 
----
+### Proof
 
-# YOUR RESUME ANALYSIS
+The referral program at Meridian was a build from scratch. It now generates 34% of all hires and runs 15 days faster than non-referred sourcing. The Taleo-to-Workday migration moved 300+ hiring managers in eight weeks during a COVID hiring surge while her own team scaled 175%. The offer experience redesign compressed decline rate from 22% to 9% without a base-salary increase across the board. The $4.2M annual reduction in clinical hiring costs came from agency consolidation and process redesign rather than headcount cuts. Across fourteen years she has built upward inside one institution while the function grew from two recruiters to a department supporting 14,000 employees. The work she has been asked to do has not required her to architect at this level. She chooses to.
 
-## WHERE YOU SIT
+### Personal Brand statement
 
-You lead talent acquisition for a 14,000-person integrated health system across multiple locations, which means you operate in a high-complexity, regulated, multi-stakeholder environment every day. You report to a CHRO, manage a recruiting team, coordinate with 300+ hiring managers across clinical and administrative functions, and support a $280M workforce planning mandate.
+"I build the systems institutions use to meet their people at scale. I do this work in healthcare because the stakes of the institution-employee relationship are highest here."
 
----
+### Hedge
 
-## TRANSLATED ACCOMPLISHMENTS
+The "systems institutions use to meet their people" framing is one read of what unifies fourteen years of work. A second read is that Sarah is a healthcare HR generalist who specialized in TA. The first read accounts for her staying patterns and her choice to build rather than maintain at every juncture. The second does not. We carry the first read into the rest of the outputs with the user invited to refine.`,
 
-**1. Saved $4.2M annually in clinical hiring costs**
-You identified the cost drivers (fragmented sourcing, agency dependency, no referral channel), redesigned the talent acquisition function around them, and built solutions that stayed in place.
+// ─── P2: WIDE LENS (Passion, Personality, Perspiration, Potential, Environment) ─
 
-**2. Built a referral program generating 34% of all hires**
-You started this from nothing, and now a third of your hires come through employee referral, which means both quality and speed improved while sourcing costs dropped.
+p2: `The Five Ps put Proficiency at the front and four soft Ps that shape the fit of the work to the person. p1 named what Sarah is good at. p2 reads what kind of work and what kind of place will let her bring it.
 
-**3. Scaled recruiting team 175% during peak crisis (COVID)**
-You grew from baseline to 175% during the worst hiring environment healthcare has seen, while executing a parallel enterprise ATS migration for 300 managers at the same time.
+### Passion
 
-**4. Compressed offer decline from 22% to 9%**
-That's a 13-point swing on a metric that directly affects hiring cycles and culture, and you did it by redesigning the offer experience and manager engagement rather than adding headcount.
+The stated passions (healthcare innovation, organizational psychology, mentoring women into healthcare HR leadership, real estate) share a shape. Sarah is drawn to systems where individual outcomes are shaped by structure, and she is drawn to building or improving the structure. The mentoring she does is at the level of emerging HR leaders, not job seekers. She works one layer up from the individual case.
 
-**5. Migrated 300+ managers from legacy Taleo to Workday without losing hiring velocity**
-You could have created a 12-month implementation project, but instead you planned for speed, built guardrails, trained tight, and kept the business humming in eight weeks with zero broken cycles.
+### Personality
 
-**6. Built recruiting operations function from ground zero**
-You started with 2 recruiters, grew to 6, and established the process standards, metrics, sourcing strategy, and brand positioning that let the function scale beyond you.
+The Affintus signals (builder, decisive, sociable, persuasive, high-stamina, steady) match the work she has gravitated to. The pattern hardest to see from a profile alone is the steadiness alongside the decisiveness. Decisive builders often burn out. Steady builders compound. Sarah has compounded for fourteen years in one place.
 
-**7. Established employer brand strategy that improved application volume 40%**
-Clinical and administrative roles were getting the same generic treatment, so you differentiated them, and both application volume and quality improved as a result.`,
+### Perspiration
 
-// ─── P2: ASSESSMENT DEEP DIVE ───────────────────────────────────────────
+Fourteen years at Meridian is the headline. She has chosen depth over breadth at every juncture where she could have moved. The harder read: she has built things, watched them work, and stayed close to them rather than moving on once they were operational. That pattern is rarer than it looks.
 
-p2: `## QUICK TAKEAWAY
+### Potential
 
-**You're wired for diagnosis and execution**: you see patterns others miss and build systems that actually work. You thrive in **high-trust environments where you have autonomy and can see direct business impact**. Your passions (healthcare innovation, organizational psychology, mentoring) all point to a role where you **build something meaningful with the independence to do it your way**.
+The question of next-level is not whether she can run a larger talent function. She has done that. The question is whether the conviction (institutions can be reliable at the moments that matter) needs to stay inside one institution to live, or whether it is general enough to be exported. The honest read: the conviction is general. The venue she has been in for fourteen years is specific. At some point those two will pull on each other. They may already be.
 
----
+### Environment fit
 
-# YOUR WIRING AND COMPASS
+Sarah does her strongest work inside an institution complex enough to make architecture meaningful, with operators who will let her build, and at a scale where the architecture has reach. Healthcare is one such environment. Late-stage private-sector health is another. So is the public sector at scale, or large-scale nonprofit work where the institution-employee relationship is high-stakes by design. The fit is institution-shaped, not industry-shaped.`,
 
-## HOW YOU GET THINGS DONE
+// ─── P3: INTEGRATION (multi-dimensional alignment reading) ──────────────
 
-When you look at how you work, three patterns emerge:
+p3: `Sarah's profile has unusual coherence on six dimensions. Each dimension can be read as a lane she is comfortable in and as a lane she could plausibly extend into. The integration is the part where the dimensions speak to each other.
 
-**Pattern 1: Achiever + Responsibility creates relentless delivery**
-You finish what you start and set internal standards higher than what's asked of you. When you say you'll handle something it becomes a personal contract, and that's why people trust you with the hard assignments.
+### Function
 
-**Pattern 2: Arranger + Strategic creates diagnosis speed**
-You see 3-4 possible paths almost immediately when a problem appears, and you mentally test which configuration of people, resources, and sequence produces the best outcome. In meetings you're often two steps ahead of the conversation, and when you see inefficiency you redesign it instinctively.
+Talent acquisition is the function she has built her career in and is the function where the conviction has the most direct leverage. The adjacent functions she could extend into without re-tooling are workforce planning (she does this already with the CFO), HR operations broadly, and employee experience design. The function further from her current comfort but inside the conviction is people analytics, where the architecture is data-shaped rather than process-shaped.
 
-**Pattern 3: Relator means you influence through earned trust**
-You invest deeply in understanding people's problems rather than networking casually. Your CHRO gave you the biggest projects because you'd earned that trust through years of consistent delivery, and people put their reputation on the line with you (like in your referral program) because they trust your judgment.
+### Industry
 
-**The supporting forces:** Learner drives you to master new domains, Communication helps you translate complexity into clarity, Activator keeps you from overthinking, and Futuristic helps you see where things are headed while executing today.
+Healthcare is her industry. The conviction is industry-general but the comfort and credibility she has built are healthcare-specific. The neighboring industries where her work would transfer cleanly are large-scale services with high institutional touch: higher education, multi-site nonprofits, public sector at the state or regional level. The industries that would require more bridge-building are tech, consumer, and finance, where the institution-employee relationship is structured differently.
 
----
+### Position in the value chain
 
-## WHERE YOU THRIVE
+Sarah has spent her career inside the institution, building the institution's own systems. The adjacent position is consulting to institutions on the same systems. The further position is building software that institutions use to do this work. The closer extension is consulting. The further one is product, which would be a real pivot.
 
-**Where you do your best work:**
-- Organizations where trust is earned through delivery rather than politics
-- Environments where you can see direct business impact from your decisions
-- Complex, multi-stakeholder environments where you need to coordinate across functions
-- Situations that require both strategic thinking and operational execution
-- Places where you have autonomy to design solutions your way
+### Scale
 
-**Watchouts (environments that would work against your wiring):**
-- Highly political organizations where success requires playing the game
-- Roles where impact is invisible or unmeasurable
-- Environments where process matters more than results
-- Situations with excessive micromanagement
-- Companies where people strategy is treated as a cost center rather than a business driver
+14,000 employees, 20+ locations, $280M workforce plan. She has scale comfort. The level above is national multi-system health (Kaiser, HCA, Ascension scale) or the equivalent in another high-touch industry. The level below (Series B or Series C health-tech with a CPO mandate) is where the conviction would have the most leverage per unit of effort, because the architecture decisions get made once and shape the institution as it grows.
 
-Your reputation at Meridian (trusted, direct, gets things done) signals you do your best work in high-trust, results-oriented cultures, and that matters for your CPO search.
+### Pace
 
----
+She has compounded inside one institution for fourteen years. The work pace inside that has been intense (COVID, ATS migration, scaling 175%) but the institutional pace has been steady. A move to high-growth health-tech would change the institutional pace. She has the personality match for it (decisive, builder). The question is whether she wants to step out of compound-mode into iteration-mode.
 
-## WHAT LIGHTS YOU UP
+### Mission
 
-Your values and passions connect directly to your next move:
+The institution-employee relationship as the unit of analysis is what unifies her work. She has been in a mission-rich industry. Healthcare is mission-rich by default. The mission-shaped extensions are clear (other mission-rich industries with the same institutional weight). The mission-light extensions are harder to predict because the conviction may not survive in an environment that does not take the institution-employee relationship seriously.
 
-**Healthcare innovation:** You follow digital health closely because you believe it solves real access and cost problems, and a CPO role at a digital health company puts you at the center of that work, building the people infrastructure that enables the mission.
+### Integration reading
 
-**Organizational psychology:** You read about how teams work, how culture forms, why some organizations thrive while others stagnate. A CPO role is applied organizational psychology: you'd be designing culture, feedback systems, team structures, and leadership development every day.
+Sarah is on-pattern when she is inside a complex, mission-rich institution at scale, building systems that determine how the institution meets its people. She can extend in three directions and the conviction would travel: a bigger institution, a smaller faster institution, or sideways into a related function. The direction that would compound her existing leverage fastest is the smaller, faster institution where the architecture decisions are still being made.`,
 
-**Real estate investing:** Your portfolio gives you financial independence to take career risks, which means you can choose a role for fit rather than just compensation.
+// ─── P4: WIDE VIEW (10 options across three lanes) ──────────────────────
 
-**Travel:** Growth-stage companies are usually more flexible on schedules and remote work than large health systems, and more autonomy often means more breathing room.
+p4: `### Familiar Ground
 
-**Mentoring:** As CPO, you'd mentor the entire leadership team on people decisions and develop emerging HR talent on your own team. This passion becomes your daily work.
+1. **VP/SVP Talent Acquisition at a larger health system** (Kaiser Permanente, HCA, Ascension). Same work, bigger surface area.
+2. **Chief Talent Officer at a regional health system comparable to Meridian.** A peer-scale move that lets her run the function as her own.
+3. **VP People Operations at a multi-site healthcare nonprofit.** Mission-rich, scale-rich, institution-shaped.
+4. **SVP Talent at a healthcare staffing or workforce-management firm.** TA expertise applied at the industry's supply side.
 
-All of this points toward a role where you build something that matters, in an innovative healthcare context, with the autonomy and trust you need to do your best work.`,
+### Informed Imagination
 
-// ─── P3: VALUES + PASSIONS SYNTHESIS ────────────────────────────────────
+5. **Chief People Officer at a growth-stage digital health company (Series B/C).** Highest leverage per architecture decision. Conviction-on-thesis.
+6. **VP Talent at a high-growth biotech or medical-device firm.** Healthcare-adjacent, growth-stage, complex hiring.
+7. **Head of Talent at a healthcare-focused PE firm, covering portfolio companies.** Architecture work across multiple institutions at once.
+8. **SVP Employee Experience at a large institution outside healthcare with comparable stakes** (large university system, regional government, multi-site nonprofit).
 
-p3: `## QUICK TAKEAWAY
+### What's the Move
 
-- **The golden thread:** You turn complicated people-and-process problems into measured business outcomes. Same approach for 14 years, from the $4.2M cost reduction to the 175% team scale during COVID
-- **The personal brand:** **You build people systems at the intersection of operations, strategy, and execution.** You move fast without chaos.
+9. **Head of People at a health-tech startup building talent infrastructure as product.** Crossing from operator to product-builder, using the function she has spent fourteen years inside.
+10. **Independent advisor / fractional CPO** to two or three growth-stage health companies, with the mentoring practice as a third pillar.
 
----
+### Hedge
 
-## THE GOLDEN THREAD
+The WTM options are the most generative for someone with Sarah's conviction. They trade institutional weight for institutional reach. The familiar-ground options are the most secure and continue compounding what she has built. The informed-imagination options sit between. We can talk through which trade is worth making and in what sequence.`,
 
-**You turn complicated people-and-process problems into measured business outcomes.**
+// ─── P5: DEEP DIVE (three options, one per lane) ────────────────────────
 
-- **In your career:** The referral program that now generates 34% of hires, the $4.2M in cost reduction, the offer decline rate you compressed from 22% to 9%, the ATS migration during COVID. Each one required the same approach: diagnose what is actually broken, design the smallest system that fixes it, implement fast, and iterate.
-- **In your wiring:** Your assessment shows high conscientiousness, fast decision-making, and a preference for creating solutions over following procedures. You are built to walk into ambiguity and build structure.
-- **In your reputation:** People give you the hardest assignments because your word is your operating system. They stake their reputation on your judgment. That is why the referral program worked.
-- **Why it matters for what is next:** Any role that needs someone to build or fix a people operation from the inside out is a role where this thread gives you an immediate edge.
+p5: `### Option 5: Chief People Officer, growth-stage digital health (Series B/C)
 
----
+**Conviction-leverage read:** Architecture decisions at a Series B company get made once and shape the institution for years. The CPO role at that stage is where an institution-builder has the highest per-decision impact. Sarah's existing comfort with scaling fast (COVID surge), making decisions under pressure, and partnering with finance on workforce planning all transfer directly.
 
-## YOUR PERSONAL BRAND
+**What is different:** Pace is faster. Stakes are different. The company's survival is on the table in a way Meridian's never was. She trades depth-in-institution for breadth-of-decision.
 
-You build people and recruiting systems that create measurable business results, specifically at the intersection of operations, strategy, and execution. Your diagnosis speed, execution discipline, and understanding that people challenges are often process or structure challenges make this a specific and valuable combination.
+**The honest question for her:** Whether she wants venture-pace volatility as the steady state, and whether the conviction survives in an organization that may change shape every six months.
 
----
+### Option 2: Chief Talent Officer, regional health system comparable to Meridian
 
-## YOUR VALUE PROPOSITION
+**Conviction-leverage read:** The conviction transports unchanged. She loses institutional knowledge built over fourteen years and rebuilds at a new institution. She gains the ability to make first-year architecture decisions rather than living inside someone else's architecture.
 
-**Capability:** You see the whole system at once and redesign what isn't working. You don't fix the problem in front of you. You reconfigure the pieces so it can't come back.
-   - **Proof:** $4.2M annual cost reduction by redesigning clinical hiring from fragmented sourcing into an integrated talent acquisition function.
+**What is different:** The institution would not yet be hers in the way Meridian is. The first 18 months would be inheritance management before she got to build.
 
-**Capability:** When you say you'll handle something, it becomes a personal contract. People give you the hardest assignments because your word is your operating system.
-   - **Proof:** Scaled recruiting team 175% during COVID while migrating 300+ managers to Workday in eight weeks. Zero broken hiring cycles.
+**The honest question for her:** Whether she has compounded inside Meridian because the institution is right, or because she likes compounding. Both readings are honest.
 
-**Capability:** You earn trust by going deep on people's actual problems, not by networking wide. People stake their reputation on your judgment.
-   - **Proof:** Built a referral program from nothing that now generates 34% of all hires.
+### Option 10: Independent advisor / fractional CPO
 
-**Capability:** You diagnose fast. You see three or four paths before the problem is fully defined, and you pick the right one.
-   - **Proof:** Compressed offer decline rate from 22% to 9% by redesigning the offer experience and manager engagement. Not by adding headcount.
+**Conviction-leverage read:** The conviction travels across institutions. An independent practice could express it across two or three companies at once. She has the brand, the network, and the working depth in TA to be a credible advisor on day one. The mentoring becomes a third pillar of the practice instead of a side activity.
 
-**Capability:** You start fast and finish clean. No overthinking, no cut corners. You build from zero and it holds.
-   - **Proof:** Built recruiting operations from 2 people to a 6-person function with process standards, metrics, and an employer brand that lifted application volume 40%.`,
+**What is different:** She would lose the institution as the unit of analysis. The work would be advisory rather than operative. She would be inside the moment of architecture decisions but not inside the institution that lives with them.
 
-// ─── P4: THE WIDE VIEW ──────────────────────────────────────────────────
+**The honest question for her:** Whether the conviction needs an institution to live inside, or whether it can be expressed at the advisory layer. This is a question of how she experiences the work, not a question of capability.`,
 
-p4: `## QUICK TAKEAWAY
+// ─── P6: BRIDGE STORY (TMAY opener) ─────────────────────────────────────
 
-You have three credible paths forward. **The strongest immediate fit is the CPO role at a digital health company**: you've already built this infrastructure at scale, and startups at your target stage face identical problems. The most exciting option is also the CPO path: you'd be at the center of healthcare innovation, building from the ground up. **That combination (strongest fit + highest excitement) usually signals the right direction.**
+p6: `A two-paragraph "tell me about yourself" she can use in interviews and meetings.
 
----
+"I'm Sarah Chen. I have spent the last fourteen years at Meridian Health System in Atlanta, where I run talent acquisition for a 14,000-employee integrated health system. I came up through HR operations, took over the TA function when it was two recruiters and 150 hires a year, and built it into the function that now sources, hires, and onboards more than 1,200 people annually. The headline work has been the build. I designed our employee referral program from scratch and it now generates a third of our hires. I led our migration from Taleo to Workday across 300 hiring managers in eight weeks during the COVID surge. I redesigned our offer experience and cut decline rate from 22% to 9%."
 
-# THE WIDE VIEW
+"What I care about most in this work is that institutions can be reliable at the moments that matter, and hiring is one of those moments. The way a company welcomes someone is the moment it tells that person what kind of organization they have joined. I have stayed in healthcare for fourteen years because the stakes of getting that moment right are highest here. I am open to conversations about where that conviction goes next."`,
 
-Three paths forward, grounded in what you've built and what energizes you:
+// ─── P7: GO-TO-MARKET (25-company target list) ──────────────────────────
 
----
+p7: `The list lives across the three Wide View lanes. Each name is a venue for the conviction, not a screening result. The point is to give the conviction options.
 
-## PATH 1: WORK THAT MATTERS (Skills + Passion + Market Need + Compensation)
+### Familiar Ground
 
-**Built on the Ikigai framework:** the intersection of what you love, what you're good at, what the world needs, and what you can be paid for. For leaders seeking meaning or legacy, this path combines all four elements.
+1. Kaiser Permanente
+2. Ascension
+3. HCA Healthcare
+4. Northwell Health
+5. Sutter Health
+6. Atrium Health
+7. Piedmont Healthcare (Atlanta)
+8. Wellstar Health System (Georgia)
+9. Children's Healthcare of Atlanta
 
-### OPTION: Chief People Officer, Digital Health Company
-*Title:* Chief People Officer or VP People Operations
-*What you'd do:* Build people and recruiting infrastructure for a growth-stage digital health company, owning talent strategy, compensation, culture, organizational design, and hiring execution. You'd partner with the CEO on scaling without losing culture and report to the board on people metrics.
-*Why it fits:* You've built this exact infrastructure at 14,000 scale, and digital health companies at Series B-C face identical problems at smaller scale and faster pace. Your healthcare credibility (you know what they're solving for), your cost thinking (they live and die by unit economics), and your systems approach (they need to scale without chaos) are all directly applicable. You'd be at the center of healthcare innovation, which is a passion, and you'd build something from the ground up, which matches your Learner and growth values.
-*Worth considering:* You've spent your career in a stable, regulated environment, and startups move at a different speed. The trade is institutional stability for equity upside, faster impact, and the chance to shape culture from the ground floor.
+### Informed Imagination
 
----
+10. Devoted Health
+11. Maven Clinic
+12. Headway
+13. Hinge Health
+14. Carbon Health
+15. Included Health
+16. Lyra Health
+17. Spring Health
+18. Color Health
 
-## PATH 2: THE INDUSTRY INSIDER (Stay in Healthcare, Shift Your Leverage)
+### What's the Move
 
-**Your insider knowledge is a competitive advantage.** You understand how organizations think, what problems keep leaders up at night, how decisions actually get made. That insider credibility commands premium rates and selective engagement.
+19. Pellio Health (the live JD on the table)
+20. Andreessen Horowitz Bio + Health (advisory to portfolio)
+21. General Catalyst Health Assurance (advisory to portfolio)
+22. The Carlyle Group, healthcare practice (portfolio CPO role)
+23. KKR Health Care Strategic Growth (portfolio CPO role)
+24. Emory or Georgia Tech (large university system, comparable stakes, different industry)
+25. Self-founded fractional practice with two or three anchor clients
 
-### OPTION: Workforce Strategy Consultant or Fractional CPO
-*Title:* Independent Consultant, Fractional Chief People Officer
-*What you'd do:* Work with 3-4 health systems or healthtech companies per year on specific talent and people strategy problems, doing the diagnostic work you know how to do (what's broken, why, and how to fix it), designing solutions, implementing them, then moving to the next client.
-*Why it fits:* You've solved these problems once at Meridian and can solve them again, faster, at other health systems. You understand healthcare's specific constraints, you have a network to seed clients, and you can charge at value rather than hours because you know the scope.
-*Worth considering:* Sales and business development become part of your daily work, along with proposals, scope management, and uneven revenue cycles. You gain autonomy and flexibility, and you trade the operating leverage of leading a team and the equity upside of a venture-backed company.
+### Hedge
 
----
-
-## PATH 3: FAMILIAR GROUND (Upgrade Your Current Path)
-
-**Builds directly on where you've been.** Your track record speaks most immediately. You're the forward-looking candidate who knows how to win in a regulated healthcare environment and can scale fast.
-
-### OPTION: Senior Vice President, Talent Acquisition + Retention at Another Health System
-*Title:* SVP Talent Acquisition, Chief Talent Officer, or VP People Operations
-*What you'd do:* Move to another health system or IDN in a bigger role where you own not just acquisition but retention, organizational design, and talent strategy, with more authority, bigger scope, and likely higher compensation.
-*Why it fits:* You know how to win in this environment, you understand regulatory constraints, you know the customer (hiring managers, clinicians, HR leaders), and you could be a CHRO within 3-5 years. The learning curve is minimal, and you could move to a city you prefer.
-*Worth considering:* This is optimization rather than reinvention. You'd be doing similar work at larger scope, so the question is whether "bigger at a similar organization" energizes you, or whether you're looking for something fundamentally different.
-
----
-
-Each path requires different things from you. You have options because you've proven you can execute, and now it's about choosing the context where you want to do that.`,
-
-// ─── P5: THE DEEP DIVE ──────────────────────────────────────────────────
-
-p5: `## QUICK TAKEAWAY
-
-**The CPO path has the strongest immediate fit**: you've already built this infrastructure at scale. Option B (consulting) is attractive if you love business development and want autonomy more than you want a team. Option C (healthtech company) is right if you want both execution and design, but at smaller scale and faster pace. **All three are credible: the question is which trade-off energizes you most.**
-
----
-
-# THE DEEP DIVE
-
-Each path opens up something different. Here is what the work actually looks like and how your background maps to it.
-
----
-
-## OPTION A: CHIEF PEOPLE OFFICER, DIGITAL HEALTH COMPANY
-
-**What you'll spend your time on:**
-- 30% recruiting and hiring system design (you own the funnel)
-- 25% retention and culture problems (founders don't coach people, turnover spikes, you diagnose and fix)
-- 20% board and investor questions (they'll want people metrics)
-- 15% compensation and benefits strategy
-- 10% organizational design and leadership coaching
-
-**The daily reality:**
-You work with a CEO who is brilliant in their domain but doesn't yet understand that people decisions have business impact. You'll fight for a recruiting budget, coach founders on feedback and delegation, make fast decisions about policy that would take three committees at Meridian, and hire your own team (small, 2-3 people) and build them fast.
-
-**Why you fit:**
-You've grown recruiting 175% on a tight timeline, you understand cost and quality in healthcare hiring, and you know how to move fast without breaking things (the ATS migration proves this). You're used to being the trusted operator who solves hard problems without a playbook.
-
-**The real obstacle:**
-You've worked in an organization with clear structure, stable processes, and consensus decision-making, and a startup CPO works in ambiguity. Things change weekly, the CEO makes decisions and unmakes them, and compensation gets redesigned mid-year. You'll need to be comfortable with that uncertainty.
-
-**How to know if it's right:**
-Ask yourself: do I want to be the architect of something new, or do I want to optimize something existing? If new excites you more than optimization, this path works.
-
----
-
-## OPTION B: WORKFORCE STRATEGY CONSULTANT
-
-**What you'll spend your time on:**
-- 40% active consulting (on-site or virtual with 3-4 clients per year)
-- 20% diagnosis and design (what you're best at)
-- 15% business development and sales
-- 15% admin, invoicing, contract management
-- 10% thought leadership and content
-
-**The daily reality:**
-You're your own CEO now, with flexibility in who you work with but without the institutional support. You manage feast-and-famine cycles, price engagements, scope them, deliver them, and move to the next one. Success depends on reputation and referral network.
-
-**Why you fit:**
-You've solved these exact problems, you understand the customer (health systems), you know what value looks like, and you have a network. You can command premium rates because your work has proven ROI.
-
-**The real obstacle:**
-Sales and business development is different from executing inside an organization, and you need to be comfortable with pipeline uncertainty because some weeks you're selling, some weeks you're delivering, and some weeks you're doing both.
-
-**How to know if it's right:**
-Ask yourself: am I energized or drained by business development? Do I want the autonomy and flexibility more than I want predictable income and a team? If yes to both, this works.
-
----
-
-## OPTION C: VP PEOPLE OPERATIONS, HEALTHTECH COMPANY
-
-**What you'll spend your time on:**
-- 35% recruiting and hiring (scaling fast, no established process)
-- 25% onboarding and enablement (people come in without context, you have to set them up)
-- 20% compensation, benefits, and policy
-- 15% culture and team building
-- 5% business planning with the leadership team
-
-**The daily reality:**
-You inherit dysfunction. Founders hired the first 30 people without much system, compensation is all over the place, and people are confused about roles. You come in, diagnose, and rebuild while hiring continues, which is simultaneously exciting and exhausting.
-
-**Why you fit:**
-You've been through chaos (COVID, ATS migration, scaling recruiting 175%) and you can keep people operations humming while you redesign it. You understand health tech as both an insider (you know health systems) and an observer (you follow digital health closely).
-
-**The real obstacle:**
-Same as the CPO path: startup pace and ambiguity. The difference is scope, because at a smaller company you're doing more operational work and less strategy. At Meridian you had a team; at a healthtech company you might be one person initially.
-
-**How to know if it's right:**
-Ask yourself: do I want to operate (do the work) or design (build the system)? If you want both, a healthtech company is right. If you want mostly to design and have others execute, CPO at a larger company is better.
-
----
-
-**The connector across all three:** you're the person who solves talent problems that have business impact, and the question is what context you want to do that in.`,
-
-// ─── P6: BRIDGE STORY ───────────────────────────────────────────────────
-
-p6: `## QUICK TAKEAWAY
-
-**The thing that makes you stick is the builder in you.** When you say "I have always been the person who builds things," the person across the table stops hearing a resume and starts hearing someone they need. That is your golden thread coming to life: the same instinct that drives your mentoring, your real estate portfolio, every system you have ever built from nothing. A growth-stage CEO does not want someone who has managed people operations. They want someone who will walk in and make it work.
-
----
-
-## 30-SECOND "TELL ME ABOUT YOURSELF"
-
-I have always been the person who builds things from scratch. I spend my weekends mentoring emerging HR leaders, and the thing I keep telling them is the same thing that has driven my whole career: find the broken thing, figure out how it should work, and make it work. That instinct is how I ended up designing a referral program from scratch at Meridian Health System that now generates a third of all hires and saves 4.2 million dollars a year. When COVID hit, I scaled our recruiting team 175 percent while simultaneously migrating our entire applicant tracking system, because both had to happen and nobody was going to wait. I am looking for a Chief People Officer role at a growth-stage digital health company because that is where everything I care about converges: healthcare, building from the ground up, and proving that people infrastructure is not overhead, it is what makes the business scale.
-
----
-
-## Why They Remember You
-
-You lead with the builder because that is the truest thing about you. The mentoring on weekends, the real estate projects, the referral program you designed from nothing. It is the same instinct every time. A CEO hears that pattern and thinks: she already knows how to build the thing I need built.
-
-## The Three Things They Remember
-
-- **Who you are**. A builder who walks into ambiguity and creates systems that work
-- **What you have delivered**. A referral program generating 34% of hires and saving $4.2M annually, built from nothing
-- **Where you are headed**. Chief People Officer at a growth-stage digital health company, where building from scratch is the job description
-
-When you tell this story, the listener does not hear a career change. They hear someone who has been building toward this their whole life.`,
-
-// ─── P7: GO-TO-MARKET ───────────────────────────────────────────────────
-
-p7: `## QUICK TAKEAWAY
-
-**The people you want to reach are CEOs and COOs at Series B-C digital health companies** (post-PMF, scaling revenue). They're the ones who hire for the role you want. The most actionable thing this week: **pick 5-8 companies from the list below, find those leaders on LinkedIn, and send a personalized outreach email**. The full list has 40+ options, and 2-3 strong conversations this month put you in the funnel for interviews in the next 60 days.
-
----
-
-# YOUR GO-TO-MARKET
-
-This is how to reach the people who hire Chief People Officers at digital health companies.
-
----
-
-## PART 1: THE HIRING EXECUTIVE
-
-**Who you're looking for:**
-CEO or COO at a venture-backed digital health company, typically Series B-C stage. They're past product-market fit and scaling revenue, but people operations hasn't kept up with growth.
-
-**What they're feeling:**
-Hiring is getting slower and they can't explain why, offer acceptance rates are inconsistent, the person handling HR is overwhelmed, and board members are starting to ask about retention metrics and talent risk. They know they need a real CPO but aren't sure when or how to make that hire.
-
-**What they need:**
-Someone who can build infrastructure without creating bureaucracy, who understands healthcare well enough that they don't have to explain the market, and who can move fast because they've done this before.
-
-**What they're worried about:**
-That you'll slow them down with process, that you'll be too corporate for a startup, and that you won't understand the pace and ambiguity of early-stage companies.
-
----
-
-## PART 2: TARGET COMPANIES
-
-### Digital Health and Telehealth (Growth Stage)
-
-**Teladoc Health**
-Why it fits: Largest telehealth platform, needs senior people ops as it integrates post-acquisition teams
-Growth signal: Acquired Livongo for $18.5B, expanding chronic care
-Contact: VP People, Sarah Martinez
-Email: firstname.lastname@teladochealth.com | www.teladochealth.com
-
-**Ro**
-Why it fits: DTC health platform scaling clinical operations across multiple verticals
-Growth signal: $500M+ raised, expanding into weight loss and fertility
-Contact: Chief People Officer, open role
-Email: firstname@ro.co | www.ro.co
-
-**Hims & Hers**
-Why it fits: Telehealth platform going from startup to enterprise, needs operational maturity in people function
-Growth signal: Revenue doubled YoY, 1M+ subscribers
-Contact: VP People Ops, reporting to CHRO
-Email: firstname@hims.com | www.forhims.com
-
-**Talkspace**
-Why it fits: Mental health platform expanding B2B enterprise contracts
-Growth signal: Partnership with major health plans
-Contact: VP Talent & People, Karen Liu
-Email: firstname.lastname@talkspace.com | www.talkspace.com
-
-**Omada Health**
-Why it fits: Chronic care management with employer and payer clients
-Growth signal: $200M+ raised, 1,500+ enterprise clients
-Contact: CPO, David Park
-Email: firstname@omadahealth.com | www.omadahealth.com
-
-### Clinical Decision Support and AI
-
-**Tempus**
-Why it fits: AI-driven precision medicine, rapid headcount growth
-Growth signal: $8B+ valuation, expanding beyond oncology
-Contact: SVP People, reporting to CEO
-Email: firstname.lastname@tempus.com | www.tempus.com
-
-**Flatiron Health**
-Why it fits: Oncology data platform (Roche-owned) with clinical research focus
-Growth signal: Expanding real-world evidence platform
-Contact: VP People Operations
-Email: firstname@flatiron.com | www.flatiron.com
-
-**PathAI**
-Why it fits: AI pathology platform scaling commercial operations
-Growth signal: $255M Series D, expanding clinical partnerships
-Contact: Head of People, open role
-Email: firstname@pathai.com | www.pathai.com
-
-### Health Data and Interoperability
-
-**Komodo Health**
-Why it fits: Healthcare data analytics scaling enterprise sales
-Growth signal: $600M+ raised, 150+ enterprise clients
-Contact: VP People & Culture
-Email: firstname@komodohealth.com | www.komodohealth.com
-
-**Health Catalyst**
-Why it fits: Data and analytics for health systems, public company
-Growth signal: Acquired KPI Ninja and Twistle, expanding platform
-Contact: CHRO, Linda Llewellyn
-Email: firstname.lastname@healthcatalyst.com | www.healthcatalyst.com
-
-**Truveta**
-Why it fits: Health data platform backed by 30+ health systems
-Growth signal: Raised $200M+, building EHR data network
-Contact: VP People, early team
-Email: firstname@truveta.com | www.truveta.com
-
-### Healthcare Staffing and Workforce Tech
-
-**Incredible Health**
-Why it fits: Nurse hiring platform, your clinical staffing expertise translates directly
-Growth signal: $80M Series B, expanding to allied health
-Contact: VP People, Romina Holder
-Email: firstname@incrediblehealth.com | www.incrediblehealth.com
-
-**Trusted Health**
-Why it fits: Travel nurse and clinical staffing platform
-Growth signal: Acquired by Ingenovis, scaling nationally
-Contact: Head of People Ops
-Email: firstname@trustedhealth.com | www.trustedhealth.com
-
----
-
-## PART 3: OUTREACH
-
-This follows the Making Your Own Weather three-paragraph direct outreach model: start with them, brief about me, why there might be a fit.
-
-**Email subject line:**
-"Your Ro piece on clinical hiring"
-
-**Email:**
-
-Hi Rob,
-
-I read the interview you did with Out of Pocket about why Ro decided to bring clinical hiring in-house instead of using staffing agencies. Your point about clinician experience starting at the hiring process stuck with me because I spent 14 years learning exactly how true that is from the health system side.
-
-At Meridian Health System I redesigned how we source and close clinical candidates, which cut $4.2M from hiring costs. I built a referral program that now produces a third of all hires. When COVID hit and we needed to scale the recruiting team 175%, I did it while migrating 300 managers to a new ATS, because both had to happen at once.
-
-I am exploring CPO roles at growth-stage digital health companies because I have lived the problems your clinicians face and I know what breaks on the people side when a company scales fast. Could we find 30 minutes? I would love to hear what you are learning now that clinical hiring is in-house.
-
-Best, Sarah
-
-**How to personalize for each company (3 things to change):**
-- **Paragraph 1:** Find something specific this person said, wrote, or announced. A podcast appearance, a blog post, a funding announcement, a conference talk. Generic observations ("your company is growing fast") do not work. Specific ones ("your point about X") do.
-- **Paragraph 2:** Choose the 2-3 accomplishments that connect most directly to what this particular company cares about. The facts stay the same. The emphasis shifts.
-- **Paragraph 3:** Name their specific challenge, not a generic industry problem. "Now that clinical hiring is in-house" is better than "on the talent side."
-
----
-
-## PART 4: LINKEDIN SIGNAL TWEAK
-
-**Current headline:**
-VP Talent Acquisition | Meridian Health System
-
-**Better headline (50 chars that matter first):**
-I build people infrastructure that scales | Healthcare ops | Ex-Meridian (14K) | CPO search
-
-**Why:** Your current headline is LinkedIn's default: your job title at your current company. Only the first 50-70 characters show in search results, comments, and connection requests. "I build people infrastructure that scales" tells someone what you do in the preview. "VP Talent Acquisition | Meridian Health System" tells them where you work, which only matters if they already know Meridian. Lead with the value, not the title.`,
+This list is a starting position, not a screen. The familiar-ground names are where most of the active openings will be. The informed-imagination names are where the conviction has the highest per-decision leverage. The WTM names are where the conviction lives at a different altitude. The right move depends on which trade Sarah wants to make next.`,
 
 // ─── P8: LINKEDIN REMIX ─────────────────────────────────────────────────
 
-p8: `## QUICK TAKEAWAY
+p8: `### Headline
 
-**Right now your LinkedIn says "VP Talent Acquisition at Meridian." That is a job title, not a brand.** The person searching for a CPO at a digital health company will never find you. Option B below puts what you actually do in the first 50 characters, which is all anyone sees in search results and comments. The About section needs to open with who you are, not what your title was.
+VP Talent Acquisition, Meridian Health System | Building the systems institutions use to meet their people at scale.
 
----
+### About
 
-## HEADLINE
+I build the systems institutions use to meet their people at scale. For fourteen years I have done this work at Meridian Health System, where I run talent acquisition for a 14,000-employee integrated health system in Atlanta.
 
-Three options. Each is under 220 characters. Remember: only the first 50-70 characters show in search results, comments, and connection requests.
+The work I am proudest of has been the build. I designed our employee referral program from scratch and it now generates a third of all hires. I led our migration from Taleo to Workday across 300 hiring managers in eight weeks during the COVID surge. I redesigned our offer experience and cut decline rate from 22% to 9%. I reduced clinical hiring costs by $4.2M annually through agency consolidation and process redesign.
 
-**Option A (Search visibility):**
-Chief People Officer | VP People Operations | Healthcare talent strategy for growth-stage digital health companies
+What I care about most in this work is that institutions can be reliable at the moments that matter. Hiring is one of those moments. The way a company welcomes someone is the moment it announces what kind of organization that person has joined. I have stayed in healthcare for fourteen years because the stakes of getting that moment right are highest here.
 
-Why: recruiters searching "Chief People Officer" and "VP People Operations" find you immediately. "Healthcare talent strategy" and "growth-stage" narrow the signal to your exact target.
+Outside of Meridian I serve on the board of the Atlanta Healthcare HR Forum, mentor emerging women HR leaders through HR Leaders of Tomorrow, and invest in real estate.
 
-**Option B (Human resonance. Recommended):**
-I build people infrastructure that scales | Healthcare ops leader | Ex-Meridian (14K employees) | CPO search
-
-Why: opens with what you DO, not what you ARE. "I build people infrastructure that scales" fits in the 50-character preview and tells someone exactly what they get. Meridian provides credibility. "CPO search" signals intent.
-
-**Option C (Authority):**
-Cut $4.2M in hiring costs | Scaled recruiting 175% during COVID | Healthcare CPO for growth-stage companies
-
-Why: leads with proof. The numbers stop the scroll. Works especially well if you are posting content or commenting actively.
-
----
-
-## ABOUT SECTION
-
-**The Hook (first 3 lines. This is all anyone sees before "see more"):**
-
-I have always been the person who walks into a broken system and figures out how to make it work. That instinct is how I ended up spending 14 years building talent infrastructure at a 14,000-person health system, and it is why I am now looking for a Chief People Officer role at a growth-stage digital health company.
-
-**The Story:**
-
-At Meridian Health System, I focused on problems where people strategy connects directly to business results. I cut clinical hiring costs by $4.2 million a year by redesigning how we source and close candidates. I built a referral program from scratch that now generates a third of all hires. When COVID hit and we needed to scale the recruiting team 175%, I did it while simultaneously migrating 300 managers to a new ATS, because both had to happen and nobody was going to wait.
-
-What these projects share is a philosophy: most talent problems are actually process problems, role-clarity problems, or manager-coaching problems wearing a different label. When you diagnose the real problem and design systems that work for real people, business outcomes follow.
-
-I understand both sides of digital health: the health system problems your product is solving, and the operational challenges of building people infrastructure through rapid growth.
-
-Outside of work, I am passionate about healthcare innovation, mentoring emerging HR leaders (especially women in healthcare), real estate investing, and travel.
-
-**Contact:** sarah.chen@email.com | Open to conversations about CPO roles, people strategy, and healthcare talent challenges.
-
----
-
-## TARGET KEYWORDS
-
-Based on CPO roles at growth-stage digital health companies, these 5 keywords should appear throughout your profile (~9 times total):
-
-- **Chief People Officer**. Headline (1x), About (1x), Experience skills (1x) = 3x
-- **People operations**. Headline (1x), About (1x), Experience skills (2x) = 4x
-- **Talent strategy**. Headline (1x), About (1x), Experience skills (1x), Skills section (1x) = 4x
-- **Healthcare operations**. Headline (1x), Experience skills (2x), Skills section (1x) = 4x
-- **Organizational design**. About (1x), Experience skills (2x), Skills section (1x) = 4x
-
-**Skills section (top 10 to emphasize):** People Operations, Talent Strategy, Healthcare Operations, Organizational Design, Change Management, Recruiting Operations, Workforce Planning, Executive Coaching, HR Analytics, Employee Experience. Add all to your Skills section and pin the top 5. Profiles with 5+ skills get 17x more views.
-
----
-
-## EXPERIENCE REFRAME
-
-**Vice President, Talent Acquisition & Workforce Planning | Meridian Health System | 2014-Present**
-*Highlighted skills: People Operations, Talent Strategy, Healthcare Operations, Change Management*
-
-- Cut clinical hiring costs by $4.2M annually by redesigning sourcing strategy and building a referral program that now generates 34% of all hires
-- Scaled recruiting function 175% during COVID while executing enterprise ATS migration (Taleo to Workday) for 300+ hiring managers without losing velocity
-- Compressed offer decline rate from 22% to 9% by redesigning offer communication, role clarity protocols, and manager engagement, accelerating time-to-productivity for 300+ annual hires
-- Partnered with CHRO and CFO on workforce planning supporting 14,000-person organization across $280M in healthcare operations
-
-**Director, Talent Acquisition | Meridian Health System | 2010-2014**
-*Highlighted skills: Recruiting Operations, Workforce Planning, HR Analytics*
-
-- Built recruiting operations function from the ground up: hiring metrics, job marketing strategy, team development, and vendor management
-- Designed and launched structured interview training for 150+ hiring managers, improving quality-of-hire scores and reducing mis-hires
-- Established first workforce planning model connecting headcount forecasting to financial planning cycles
-
----
-
-## WHAT TO DO WITH THIS PROFILE
-
-Your profile is a living document, not a one-time update. Here is what to do once it is live:
-
-- **Connections:** Get to 500+ if you are not there. Connect with CPOs and VP People at digital health companies (Ro, Hims, Teladoc, Thirty Madison), healthcare recruiters, and investors who sit on boards at your target companies. When you send a request, include a note: one sentence about why you are connecting.
-- **Follow and engage:** Follow these people and organizations in your target space: **Josh Bersin** (HR industry analysis), **Mercer** (workforce trends), **Rock Health** (digital health funding data), **Out of Pocket** (healthcare industry newsletter), **HLTH** (health innovation events). When they post something relevant, comment with your own perspective from 14 years inside a health system. That is a perspective rarely found in digital health.
-- **One post to write this week:** "What I learned about clinical hiring after 14 years inside a health system." Share 3-4 things you know that someone building a digital health company would find valuable. This signals credibility and attracts exactly the people you want to talk to.
-- **Keep updating:** As you have conversations with target companies, refine your headline and About section. The language people use to describe what they need is better than any keyword research.`,
+I am open to conversations with peers and to roles where the conviction has more room to run. Reach me at sarah.chen.demo@example.com.`,
 
 // ─── P_RES: RESUME REFRESH ──────────────────────────────────────────────
 
-p_res: `## QUICK TAKEAWAY
+p_res: `The current resume reads as a strong functional resume. Accomplishment-led, metric-led, well-structured. The opportunity is to thread the conviction through the summary line so a reader who scans the document picks up the why alongside the what.
 
-**Your biggest structural change: move the accomplishments to the front** (what you've delivered in business terms) and embed the healthcare operations context throughout. Your "Key Accomplishments" are the **referral program ($4.2M saved), the 175% scale, and the offer decline compression**. These hit hardest in the first 7 seconds because they show scale, impact, and speed.
+### Proposed summary line (replaces existing first paragraph)
 
----
+"VP, Talent Acquisition at Meridian Health System. Fourteen years of building the systems institutions use to meet their people at scale, inside a 14,000-employee integrated health system in Atlanta. Focus areas: talent infrastructure that holds up at the moments that matter, including referral programs, ATS architecture, offer experience, and workforce planning."
 
-# RESUME REFRESH
+### Optional tagline (for roles where the conviction is the differentiator)
 
-Repositioned for Chief People Officer role at digital health companies.
+"I build the systems institutions use to meet their people at scale."
 
----
+Use this above the summary for CPO-stage roles, fractional advisory roles, or any role where the resume needs to do conviction work as well as credential work. For roles where the resume just needs to be a credible TA-leader resume, the existing structure is fine and the tagline is not needed.
 
-## PROFESSIONAL SUMMARY
+### Bullets
 
-Chief People Officer and talent strategy leader with 14 years of progressive experience building people and recruiting infrastructure at scale in complex, regulated healthcare environments. Proven track record of designing talent strategies and organizational systems that deliver measurable business results: cost reduction, improved quality of hire, faster scaling, and sustained retention. Core competencies include talent strategy, recruiting operations, organizational design, compensation strategy, and change management in regulated, multi-location environments. Known for moving fast without creating bureaucracy, balancing strategic vision with operational execution, and earning trust from boards, executives, and teams.
-
----
-
-## KEY ACCOMPLISHMENTS
-
-**Cost Architecture:** Designed and executed talent strategy that reduced clinical hiring costs by 4.2M annually while improving time-to-fill and quality of hire. Identified cost drivers (fragmented sourcing, agency dependency, no referral channel) and built integrated solutions that stayed in place.
-
-**Scaling Under Pressure:** Scaled recruiting function 175% during COVID while simultaneously migrating 300+ managers from legacy Taleo to Workday ATS. Maintained hiring velocity without disruption through systematic change management and training frameworks.
-
-**Conversion Engineering:** Redesigned offer experience and candidate communication that compressed offer decline rate from 22% to 9%. Outcome: reduced hiring cycle friction, improved new hire satisfaction, and sustained retention through first 18 months.
-
-**Referral Ecosystem:** Built first systematic referral program from zero to generating 34% of all hires. Created self-sustaining system where employees actively participate because structure, rewards, and ease make it valuable.
-
-**Team Building:** Grew recruiting team from 2 to 6 FTEs while establishing infrastructure, process standards, and sourcing strategy. Built recruiting function that scales and trains.
-
----
-
-## PROFESSIONAL EXPERIENCE
-
-### Vice President, Talent Acquisition & Workforce Planning
-**Meridian Health System, Atlanta, GA | 2014-Present**
-
-- Architected talent strategy and recruiting infrastructure for 14,000-person integrated health system across multiple locations; reduced clinical hiring costs 4.2M annually while maintaining quality and improving time-to-fill through process redesign, referral program development, and total rewards positioning
-- Scaled recruiting function 175% during COVID while executing enterprise ATS migration (Taleo to Workday) for 300+ managers without losing hiring velocity; designed and delivered training, change management, and adoption frameworks
-- Designed offer experience, role clarity, and manager engagement protocols that compressed offer decline rate from 22% to 9%; outcomes included reduced hiring cycle time and improved new hire productivity and retention
-- Led workforce planning and compensation strategy work with executive team and board; supported 280M in healthcare operations and clinical service line staffing models across 20+ locations
-
-### Director, Talent Acquisition
-**Meridian Health System | 2011-2014**
-
-- Built recruiting function from 2 to 6 full-time recruiters; established process standards, sourcing strategy, and recruiting infrastructure that enabled scaling from 150 to 300+ annual hires
-- Implemented employer brand strategy and career positioning for clinical and administrative roles; improved application volume 40%
-- Designed and launched first formal referral program; achieved 28% of hires from referrals within first full year
-
-### Manager, Recruitment & Staffing Operations
-**Meridian Health System | 2008-2011**
-
-- Established recruiting operations function including job posting systems, applicant tracking, metrics, and process documentation across 40+ hiring managers
-- Led implementation of Taleo ATS; managed training and adoption across recruiting team and hiring managers
-- Improved time-to-hire from 65 days to 42 days through process redesign and manager coaching
-
----
-
-## EDUCATION & CREDENTIALS
-
-MBA, Emory University Goizueta Business School
-BS, Human Resources Management, University of Georgia
-SHRM-SCP, PHR, Workday HCM Certified
-
----
-
-## KEY KEYWORDS FOR ATS & SEARCH
-
-Talent Strategy | Chief People Officer | VP People Operations | Talent Acquisition | Recruiting Operations | Workforce Planning | Organizational Design | Compensation Strategy | ATS Implementation | Workday HRIS | Change Management | Healthcare | High-Growth Companies | Team Building | Culture`,
+The major bullets can stay as written. The proof is already there. The framing change is in the summary line.`,
 
 // ─── P9: CRASH COURSE ───────────────────────────────────────────────────
 
@@ -830,139 +414,118 @@ Write from your Meridian experience, translate to digital health context. Post i
 
 **Why this works:** It proves you can think and articulate clearly. It shows you understand both healthcare and growth-stage challenges. It gives prospects something to read that says "this person gets it."`,
 
-// ─── P10: DEVIL'S ADVOCATE ──────────────────────────────────────────────
+// ─── P10: INTERVIEW PREP ────────────────────────────────────────────────
 
-p10: `## QUICK TAKEAWAY
+p10: `Three angles to prepare for, calibrated to the kind of role she would interview for after this work.
 
-**One question that will definitely come up: "You've been at one company for 14 years, how do I know you can adapt?"** Your strongest answer is the ATS migration: you proved you could move fast and manage change at scale. **The biggest area where prep makes a difference: your explanation of why you're leaving after 14 years.** Make it about building something new, not escaping something old.
+### Angle 1: "Why are you leaving Meridian after fourteen years?"
 
----
+Answer from the conviction, not from a complaint. The honest read is that the conviction is general (institutions can be reliable at the moments that matter) and Meridian has been a specific venue for it. After fourteen years of compounding inside one institution, the question is whether the conviction has more leverage in a different venue.
 
-# INTERVIEW PREP
+**Suggested frame:** "I have compounded inside one health system for fourteen years and the institution has been a generous place to build. What I care about, institutions being reliable at the moments that matter, is bigger than Meridian. The next chapter is about where that conviction has the most room to run. That is why I am in this conversation."
 
-The issues that will come up in interviews for a CPO role at a growth-stage company, and how to talk about each one.
+### Angle 2: "Why are you the right CPO for a Series B/C company?"
 
----
+The framing risk is overstating health-system expertise and understating growth-stage relevance. The conviction is the bridge. At a Series B, the architecture decisions get made once and shape the institution for years. That is where she has spent her career.
 
-## 1. "YOU'VE BEEN AT ONE COMPANY FOR 14 YEARS. HOW DO I KNOW YOU CAN ADAPT?"
+**Suggested frame:** "What I do is design the systems institutions use to meet their people. At Meridian I have been designing those systems for an institution that already had fifty years of inheritance to work with. At a Series B, those systems get designed once. I can do that work and I want to do it at the stage where the decisions compound the most."
 
-**Key talking points:**
-- Meridian changed dramatically over those 14 years, and your role changed with it. You went from building a recruiting function from scratch to running talent acquisition for a 14,000-person system with a $280M workforce mandate.
-- The ATS migration is your strongest proof point: 300 managers, eight weeks, zero disruption, because you designed for speed and trained for clarity rather than perfection.
-- During COVID you scaled recruiting 175% in six months while the entire operating model shifted underneath you. Adaptability under pressure is something you've already demonstrated.
+### Angle 3: "What would you do in the first 90 days?"
 
----
+Do not lead with a 90-day plan. Lead with the question the 90-day plan would answer: what kind of institution is this trying to become? Sarah's distinctive move is to read the institution before architecting for it.
 
-## 2. "WON'T YOU BRING TOO MUCH PROCESS TO A STARTUP?"
-
-**Key talking points:**
-- Your approach at Meridian was to design the smallest system that solves the problem, which is exactly what early-stage companies need. The referral program started lean and scaled because it worked, not because it was mandated.
-- You can point to what you didn't build: no 5-person hiring committees, no months-long onboarding programs, no approval chains that slow things down.
-- The cost reduction work is a good example. You diagnosed where money was leaking, designed experiments, scaled what worked, and moved on. That's startup-speed thinking inside a large organization.
-
----
-
-## 3. "YOU COME FROM HEALTHCARE. DO YOU UNDERSTAND THE TECH WORLD?"
-
-**Key talking points:**
-- You understand the health system problems that digital health companies are solving, because you've lived inside those systems for 14 years. That gives you credibility with both the product team and the customers.
-- You follow digital health closely and can speak fluently about the market landscape, funding dynamics, and where the industry is headed.
-- Your Workday HCM certification and the enterprise ATS migration show you're comfortable with technology at scale, and you've led adoption and change management across hundreds of users.
-
----
-
-## 4. "HOW WOULD YOU HANDLE BUILDING A PEOPLE FUNCTION FROM SCRATCH?"
-
-**Key talking points:**
-- You've done it before. You built Meridian's recruiting operations from 2 people to a full function with process standards, metrics, sourcing strategy, and brand positioning.
-- Your instinct is to start with the 2-3 problems that are costing the company the most (usually hiring speed, offer conversion, or onboarding), solve those first, and build from there.
-- You'd focus the first 90 days on diagnosing what's working, what's broken, and what the business needs in the next 6-12 months before designing anything permanent.
-
----
-
-## 5. "WHAT WOULD MAKE YOU LEAVE AFTER A YEAR?"
-
-**Key talking points:**
-- You've stayed at Meridian for 14 years because the work kept growing and the challenges stayed interesting. You're looking for the same thing: a role where you can build something meaningful over time.
-- The things that would concern you are the same things that should concern them: a leadership team that treats people operations as an afterthought, or an environment where trust isn't part of the culture.
-- You're looking for a place where you can build, and your track record shows that when you find that, you stay and invest.`,
+**Suggested frame:** "The 90-day plan I would commit to without first reading the institution would be generic, so I would rather walk you through how I would read this institution and what I would be looking for in the first three weeks. The plan flows from the read."`,
 
 // ─── P11: STAR STORIES ──────────────────────────────────────────────────
 
-p11: `## QUICK TAKEAWAY
+p11: `Three stories that work across most interview situations.
 
-These are your 3 strongest stories from the last decade at Meridian. Your lead story is the referral program. It touches all three imperatives (saved money, made money through quality of hire, mitigated risk by reducing agency dependency) and it shows you building something from nothing, which is exactly what a digital health CPO needs to do. The single most important remixing principle for you: every story is really about building infrastructure that scales, so lean into the builder angle regardless of who is across the table.
+### Story 1: The referral program build
 
----
+**Situation:** When Sarah took over TA at Meridian, the referral channel was generating 8% of hires. Most of those were ad-hoc. There was no program, no incentive structure, no tracking of referrer behavior.
 
-## YOUR STAR STORIES
+**Task:** Build a referral program from scratch that would scale with the institution and would not introduce gaming behavior.
 
-### STORY [1]: Building the Referral Engine from Zero
-**Business Imperative:** Saved Money / Made Money
-**Best for answering:** "Tell me about something you built from scratch," "What's your biggest accomplishment?," "How do you reduce costs without cutting quality?"
+**Action:** She designed a tiered incentive system tied to retention milestones rather than hire dates, built referrer tracking into the ATS workflow, partnered with marketing on internal communications, trained a network of departmental referral champions, and instrumented the program with quarterly cohort analysis.
 
-**Situation:** Meridian Health was spending heavily on agency recruiters and job board postings to fill clinical roles across a 14,000-person system. There was no internal referral channel at all. Every hire came through external sourcing, which was expensive and slow. Leadership wanted hiring costs down but couldn't afford to sacrifice quality in a regulated healthcare environment.
+**Result:** The program now generates 34% of all hires. Those hires run 15 days faster from application to start than non-referred hires. Year-one retention of referred hires runs 11 points higher than the non-referred baseline.
 
-**Thinking:** I looked at this through a People, Process, Technology lens. The people side was clear: our 14,000 employees already knew great clinicians, but we had no mechanism to tap into that. On process, I studied what made referral programs fail at other health systems. Usually complexity and lack of follow-through. I decided to design the simplest possible program first, get adoption, then add sophistication. On technology, I needed tracking that was lightweight enough that managers would actually use it.
+**Why this story works:** It shows the build pattern in one move. From scratch, instrumented, compounding.
 
-**Action:** I built a referral program from scratch with a tiered incentive structure, trained hiring managers on how to promote it in team huddles, and created a simple tracking dashboard so employees could see their referral status in real time. I piloted in two departments, adjusted the incentive tiers based on what drove the most participation, then rolled it system-wide.
+### Story 2: The Workday migration during COVID
 
-**Result:** The program now generates **34% of all hires** and contributed to **$4.2M in annual cost savings** by reducing agency dependency and external sourcing spend. Time-to-fill for referred candidates runs 15 days faster than non-referred hires.
+**Situation:** In Q2 2020 Meridian needed to migrate from Taleo to Workday while clinical hiring volume was tripling. Both projects had to happen at the same time because the Taleo contract was up and the COVID hiring needed the new system's capacity.
 
-**Strengthen This Story:**
-- What was the exact dollar amount you were spending on agency recruiters before the program launched?
-- How did you decide on the incentive tier amounts. What data or framework did you use to set those numbers?
-- Did you use a framework to evaluate the pilot results before scaling? Think about: What / So What / Now What. Or Vision, Alignment, Execution.
+**Task:** Migrate 300+ hiring managers, retrain the recruiting team, and keep hiring velocity intact while doing it.
 
-### STORY [2]: Scaling 175% During COVID
-**Business Imperative:** Mitigated Risk
-**Best for answering:** "Tell me about a time you led through crisis," "How do you handle competing priorities?," "Describe a time you had to move fast"
+**Action:** She compressed the migration timeline from a typical six months to eight weeks by collapsing the testing phase into live use with a daily punch-list approach, scaled the recruiting team 175% in parallel, set up an 11am daily standup with the Workday implementation team that ran for eight weeks straight, and held a weekly hiring-manager office hour for the first 90 days post-go-live.
 
-**Situation:** COVID hit in early 2020 and Meridian's clinical hiring demand surged overnight. At the same time, we were mid-migration from Taleo to Workday. A major enterprise system transition involving 300+ hiring managers. I had to scale the recruiting team 175% while keeping the technology migration on track, all in an environment where everyone was exhausted and scared.
+**Result:** Migration completed in eight weeks with no recorded loss of hiring velocity during the period. Hiring volume hit 132% of the prior year's pace in the same window. Workday adoption among hiring managers hit 94% within six months.
 
-**Thinking:** My first instinct was to triage using an Ability, Resources, Commitment framework. I assessed what my team could realistically handle (ability), what additional resources I could pull in fast (contract recruiters, reassigned staff), and where I needed commitment from leadership to hold the line on the Workday migration timeline rather than pausing it. Pausing would have cost us six months and created more chaos. I made the call to run both in parallel, but I restructured the migration rollout so the heaviest recruiting departments went last.
+**Why this story works:** It shows decisive builder behavior under real pressure. The architecture decision (collapse testing into live use with a daily punch list) is the kind of call that only an operator who has done this before can credibly make.
 
-**Action:** I brought in four contract recruiters within two weeks, reassigned two internal team members to focus exclusively on clinical surge hiring, and restructured the Workday migration into three waves instead of one. Starting with departments that had stable hiring volume. I held daily 15-minute stand-ups with the team to surface blockers fast.
+### Story 3: The offer experience redesign
 
-**Result:** We filled every critical clinical role within the surge window, completed the ATS migration on time with **zero disruption to active hiring**, and the recruiting team reported higher engagement scores post-crisis than pre-crisis because they felt supported and structured rather than abandoned.
+**Situation:** The clinical offer decline rate at Meridian had crept from 11% in 2017 to 22% by 2019. Each decline cost the system roughly $48K in re-recruitment time and opportunity cost. The conventional fix would have been to raise base salary.
 
-**Strengthen This Story:**
-- How many total roles did you fill during the surge period, and over what timeline?
-- What was the budget impact of bringing in four contract recruiters. And how did you justify that spend to leadership?
-- Who specifically pushed back on running the migration and hiring surge in parallel, and how did you handle that conversation?
+**Task:** Bring decline rate back into the single digits without raising base salary across the board.
 
-### STORY [3]: Redesigning the Offer Experience
-**Business Imperative:** Made Money
-**Best for answering:** "How do you use data to drive decisions?," "Tell me about a process you improved," "How do you influence stakeholders you don't manage?"
+**Action:** She instrumented the offer-to-start journey end to end, surveyed every declined offer for cause, redesigned the offer letter format, restructured the offer conversation script for hiring managers, added a 30-day check-in cadence between offer acceptance and start date, and shortened the median time from final interview to offer extended by three days.
 
-**Situation:** Meridian's offer decline rate was sitting at 22%, which meant roughly one in five candidates we extended offers to was saying no. In clinical recruiting, every declined offer costs weeks of re-sourcing and can delay patient care coverage. The problem had been known for years but nobody had diagnosed why it was happening.
+**Result:** Offer decline rate dropped from 22% to 9% in 11 months without a base-salary increase. Decline rate has held under 10% for three years.
 
-**Thinking:** I approached this as a Situation, Complication, Resolution problem. The situation was clear: 22% decline rate. The complication was that nobody agreed on the cause. Some blamed compensation, some blamed speed, some blamed the candidate market. I pulled offer data for the prior 18 months and segmented by role type, time-to-offer, hiring manager, and decline reason. The data showed that 60% of declines were happening when offers took more than 5 days to get out the door. It wasn't the offer itself. It was the experience around it.
+**Why this story works:** This is the story where the conviction surfaces implicitly. Sarah treats the offer as a designed moment, not a transactional handoff. The architecture move is the conviction in action. She does not need to name it. The work names it.`,
 
-**Action:** I redesigned the offer workflow to compress the approval chain from an average of 7 days to 2 days, trained hiring managers on how to keep candidates warm during the process, and created an "offer experience" checklist that included a personal call from the hiring manager before the formal letter went out.
+// ─── OP: LIVE OPPORTUNITY PLAYBOOK (Pellio Health) ──────────────────────
 
-**Result:** Offer decline rate dropped from **22% to 9%** within eight months. The estimated value of retained hires (avoided re-sourcing and vacancy costs) was approximately **$800K annually**.
+op: `The on-thesis JD is Pellio Health, a Series B digital health company hiring a VP People & Culture (functionally the CPO role). Pellio is the test case for whether the conviction transports out of a health system into a growth-stage health-tech company.
 
-**Strengthen This Story:**
-- What was the exact data set you analyzed. How many offers over what period?
-- How did you get the approval chain stakeholders (HR leadership, compensation, legal) to agree to compress from 7 days to 2?
-- Did you use a specific framework to structure the offer experience redesign? Think about: Start with the customer and work backward. In this case, the candidate is the customer.
+### What Pellio is hiring for (read carefully)
 
----
+- Build the people function from a current state of two HR generalists and an outsourced recruiter.
+- Design and ship a full performance management system inside the first six months.
+- Stand up a hiring engine that supports a 60-person to 200-person scale plan over 18 months.
+- Be a partner to the founding team on culture, equity policy, and the org design that comes with a Series C raise.
 
-## THE REMIX
+### Where Sarah is on-thesis
 
-Taking Story 1 (the referral program). Your strongest story. And showing how the same core experience shifts for different audiences:
+The hiring engine is exactly the kind of build she has done. The referral program at Meridian, the ATS migration, and the offer experience redesign are all examples of the architecture work Pellio needs.
 
-**Remix for a CEO:** Lead with the strategic vision: "I looked at how we were sourcing talent and realized we had 14,000 employees who knew great clinicians but no way to tap into that network. I built a referral program that now generates a third of all our hires." Expand the Thinking section to emphasize systems-level insight and long-term value creation. Compress the tactical details. The CEO hears: this person sees the whole board and builds things that compound.
+The conviction (institutions can be reliable at the moments that matter) is the right conviction for the founding-team moment. Pellio is deciding right now what kind of institution it will become. The people they hire in the first 18 months will form that institution's interior. The CPO who joins now is inside that decision.
 
-**Remix for a CFO:** Lead with the number: "We were spending heavily on agency recruiters and I knew there was a cheaper, faster channel sitting right inside our own workforce." Reframe the result in pure financial terms: $4.2M annual savings, reduced cost-per-hire by X%, eliminated dependency on external agencies. The CFO hears: this person thinks about spend, efficiency, and return.
+Healthcare fluency matters for Pellio's domain. Sarah's ability to recruit clinicians and clinically-adjacent operators without a learning curve is worth real money at Series B.
 
-**Remix for a Peer/Hiring Manager:** Lead with the collaboration: "I needed hiring managers to actually promote the program in their team huddles, so I designed it to be dead simple and showed them their referral stats in real time." Expand the Action section to highlight how you got buy-in, trained managers, and iterated based on their feedback. The peer hears: this person is easy to work with and makes my life easier.
+### Where the JD raises honest questions
 
-**Remix for a Different Question:** "Tell me about a time you used data to make a decision." Transition: "The referral program is a good example. But the interesting part isn't the program itself, it's how I decided to build it." Shift emphasis entirely to the Thinking section: analyzing sourcing costs, segmenting by channel, identifying the gap, designing the pilot. The story becomes about analytical rigor rather than program building.
+The role is broader than TA. Performance management, equity policy, and culture are inside it. Sarah has done workforce planning with the CFO at Meridian and has touched performance management through hiring-manager training, but she has not owned a performance management redesign end to end. That is a real stretch. It is answerable, but worth naming in the conversation.
 
-The principle: your core experiences are fixed, but the lens changes with every conversation. Eventually you will want 10-12 stories in your repertoire, but start with these 3 and know them so well that you can shift emphasis in real time based on who is sitting across from you and what they care about most. A CEO cares about vision. A CFO cares about numbers. A peer cares about collaboration. Same song, different rhythm.`,
+The pace is venture pace, not health-system pace. The question is not whether she can move fast under pressure (she can; the Workday migration is the proof). The question is whether she wants venture pace as the steady state.
+
+The org design at Series C will require headcount decisions she has not had to make. At Meridian the organization was already at 14,000 when she arrived. At Pellio she would be inside the decisions that determine whether the company is 200 people or 350 at the next stage.
+
+### The bridge for the interview
+
+Lead with the conviction and the institutional read. The Pellio team is not asking for a CPO who has done this before. They are asking for a CPO who knows what they are trying to build and can architect it. Sarah can do that. The proof is the referral program (a build from scratch that compounded), the ATS migration (a high-stakes architecture decision executed under pressure), and the offer experience (instrumenting a moment that other functions treat as transactional).
+
+### Questions she should ask the Pellio team
+
+1. What does the founding team's vision of the institution look like at 500 people? At 1,000? This tells her what conviction the company is trying to live up to.
+2. What is the relationship between the People function and the CEO? Is the CPO at the table for product and customer decisions, or only for headcount and policy? This tells her how much leverage the conviction will actually have.
+3. Why is performance management urgent in the first six months? Is there a specific failure pattern they have seen, or is it future-looking? This tells her whether she is being asked to fix a problem or design a system.
+
+### What she would commit to in the first 90 days at Pellio
+
+Read the institution. Spend the first three weeks in 1:1s with every founding-team member and the first ten hires. Look for what the institution is becoming and what the founding team thinks it is becoming. Sometimes those match. Sometimes they do not.
+
+Audit the offer experience and the first-90-days experience of every hire in the last six months. Find the moments that worked and the moments that did not.
+
+Decide whether the hiring engine needs an ATS migration in year one or whether the current stack is adequate. This is a serious decision. She should not commit to either direction until she has read the stack.
+
+Bring the performance management work forward into months 4 through 6 with a draft framework that the founding team can react to by end of Q1.
+
+### Should she take this role?
+
+The honest read: this is the role the conviction has been preparing for. The institutional moment matches her capability. The venture pace and the breadth of the role are real questions. If she wants to bet on the conviction outside Meridian, Pellio is a good bet to make.`,
 
 // ─── INCOME: INCOME WHILE PURSUING ──────────────────────────────────────
 
