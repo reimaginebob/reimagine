@@ -1302,17 +1302,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {signedInUser&&<button onClick={deleteAccount} style={{background:'transparent',color:'#CBD5E0',border:'none',padding:'4px 0',fontSize:15,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Or start fresh (delete everything and begin again)</button>}
         </div>
       </div>}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+      <div style={{display:'flex',justifyContent:'flex-start',alignItems:'flex-start',marginBottom:16}}>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="380" height="132" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
           <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.18"/>
           <circle cx="44" cy="60" r="18" fill="#e4572e"/>
           <text x="92" y="80" fontSize="72" fontWeight="900" letterSpacing="-2.5" fill="#0e1a2b">Re<tspan fill="#e4572e">imagine</tspan></text>
           <text x="92" y="132" fontSize="26" fontWeight="700" letterSpacing="-0.3" fill="#55617a">Your <tspan fontWeight="800" fill="#0e1a2b">Career</tspan>. Your <tspan fontWeight="900" fill="#e4572e">Future</tspan>.</text>
         </svg>
+        {/* Demo entry point hidden 2026-05-14 pending cleanup; underlying isDemo logic, demoData, and DEMO_TOUR remain intact for re-enable */}
+        {/*
         <a href="/?demo=true" style={{display:'inline-flex',alignItems:'center',gap:10,padding:'14px 28px',background:'#e4572e',borderRadius:8,textDecoration:'none',flexShrink:0,boxShadow:'0 2px 8px rgba(228,87,46,0.3)',marginTop:4}}>
           <span style={{fontSize:17,fontWeight:700,color:'#fff',whiteSpace:'nowrap'}}>See a Demo Here</span>
           <span style={{fontSize:18,color:'#fff',lineHeight:1}}>&#9654;</span>
         </a>
+        */}
       </div>
       <p style={{fontSize:20,fontWeight:500,color:'#1A2540',lineHeight:1.75,margin:'0 0 28px'}}>If your job search feels stuck, <span style={{fontWeight:700,color:'#e4572e'}}>you are not the problem.</span> It's that you can't see all the places your experience could take you. <span style={{fontWeight:700,color:'#e4572e'}}>Reimagine</span> takes what you've done, how you're wired, and what you care about to help you land a rewarding role faster than you imagined. Reimagine your career now.</p>
 
