@@ -98,7 +98,7 @@ Here is one of the more interesting things users do with the PDF, and it is more
 
 It is a little bit fun. It is also surprisingly useful. There is something about hearing someone else talk about you that is validating in ways reading the same words on a page cannot match. When the hosts react to a specific accomplishment, or call out something that makes your combination distinctive, you get an unexpected outside perspective on the brand you just built. That perspective tends to land in a way that paper does not.
 
-A few minutes to set up. A few minutes of audio to listen back. Most people who try it once are surprised by how grounding it feels. The moment Reimagine's output stops being words on a page and starts feeling like a story you can carry into a room.
+A few minutes to set up. A few minutes of audio to listen back. The effect tends to be grounding, often surprisingly so. The moment Reimagine's output stops being words on a page and starts feeling like a story you can carry into a room.
 
 ## How to come back to your results
 

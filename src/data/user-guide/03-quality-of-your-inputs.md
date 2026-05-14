@@ -100,7 +100,7 @@ Reimagine asks four short questions. You can answer any combination of them, or 
 - Emails or notes from former bosses, colleagues, clients, or partners where they said something specific you remember
 - Slack or chat messages where a teammate thanked you for something concrete
 
-If you do not have anything in writing, sit with the four questions for a few minutes. Most people can recall at least one moment of professional praise if they give themselves the space. The more specific the moment, the more useful it is.
+If you do not have anything in writing, sit with the four questions for a few minutes. A moment of professional praise usually surfaces when you give yourself the space. The more specific the moment, the more useful it is.
 
 ## You can speak instead of type
 

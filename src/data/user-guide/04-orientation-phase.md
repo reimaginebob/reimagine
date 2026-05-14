@@ -153,7 +153,7 @@ Spend a few minutes sourcing real material before you fill these in. Look at:
 - 360 or peer feedback if you have it
 - Notes, emails, or messages from former bosses, colleagues, clients, or partners where they said something specific you remember
 
-If you have nothing in writing, sit with the questions for a moment. Most people can recall at least one moment of praise if they give themselves the space. The more specific the moment, the more useful it is. The Memory and the Emergency Call do the most work for the analysis that follows, so prioritize those.
+If you have nothing in writing, sit with the questions for a moment. A moment of praise usually surfaces when you give yourself the space. The more specific the moment, the more useful it is. The Memory and the Emergency Call do the most work for the analysis that follows, so prioritize those.
 
 Click **Continue** when you are done.
 

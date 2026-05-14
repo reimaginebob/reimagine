@@ -26,7 +26,7 @@ By the time you finish the journey, you will have:
 
 ## How long it takes
 
-Plan for about 20 to 30 minutes for the intake (the questions Reimagine asks you), and then more time as you read each section, give feedback, and let it regenerate where you want adjustments. The tool generates each section in roughly one to two minutes. Most people do not finish in one sitting and they do not need to. Your work is saved automatically once you sign in (a one-time email link, no password). Pick it back up from any device.
+Plan for about 20 to 30 minutes for the intake (the questions Reimagine asks you), and then more time as you read each section, give feedback, and let it regenerate where you want adjustments. The tool generates each section in roughly one to two minutes. The full journey is meant to be paced across multiple sessions, not completed in one. Your work is saved automatically once you sign in (a one-time email link, no password). Pick it back up from any device.
 
 ## How it actually works
 

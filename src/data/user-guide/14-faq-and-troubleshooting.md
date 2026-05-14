@@ -3,7 +3,7 @@
 ## Getting started
 
 **How long does this take?**
-The intake takes about 20 to 30 minutes. The full journey, including reading each output and refining where you want to, usually takes a few hours spread over multiple sessions. Most people do not finish in one sitting.
+The intake takes about 20 to 30 minutes. The full journey, including reading each output and refining where you want to, usually takes a few hours spread over multiple sessions. The full journey is meant to be paced across multiple sessions.
 
 **Do I need to sign in?**
 Yes, by email. The welcome screen asks for your email and sends a magic-link to your inbox. (If you are new to Reimagine, it also asks for your first and last name on a second step.) Click the link and you are in. No password. Your sign-in lasts 30 days and refreshes each time you open the tool, so active users almost never see the sign-in screen again. Signing in is what makes your work follow you across devices.

@@ -12,7 +12,7 @@ Try the demo at **reimagine2-two.vercel.app/?demo=true** to see what it produces
 
 - Your resume (any format)
 - An assessment from the last three years (Affintus, CliftonStrengths, MBTI, DiSC, Hogan, etc.). Affintus is free and takes 15 minutes
-- About 20 to 30 minutes for the intake. The full journey takes longer; most people do not finish in one sitting
+- About 20 to 30 minutes for the intake. The full journey takes longer than one sitting; pace yourself across multiple sessions
 
 ## The single most important idea
 

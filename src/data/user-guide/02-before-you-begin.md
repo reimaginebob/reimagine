@@ -45,7 +45,7 @@ If you decide to skip the assessment entirely, Reimagine will still work, but th
 
 ### 3. About 20 to 30 minutes for the intake
 
-That covers entering your information and getting your first set of results. The full journey takes longer because each phase asks you to read what was generated and decide whether to refine it. Most people do not finish in one sitting. You do not need to.
+That covers entering your information and getting your first set of results. The full journey takes longer because each phase asks you to read what was generated and decide whether to refine it. The journey is meant to be paced; you do not need to finish in one sitting.
 
 ## Use a laptop, desktop, or tablet
 

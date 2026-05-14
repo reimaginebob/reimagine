@@ -44,7 +44,7 @@ A thin Work That Matters lane signals that the inputs need to be deeper, and the
 
 The transparency principle: Reimagine will not invent Work That Matters options to hit a quota of three. An honest thin lane is more useful than a padded full one. A single grounded option plus a diagnostic is the tool working as intended. Use the diagnostic to add the missing context, and the regenerated set will be stronger.
 
-Most people will find themselves drawn to one or two paths more than the third. That is normal. The goal of the Wide View is not to convince you that all three are equally appealing. It is to make sure you considered all three before choosing.
+It is normal to feel drawn to one or two paths more than the third. The Wide View is meant to be a horizon, not a prescription.
 
 ### On the screen
 
