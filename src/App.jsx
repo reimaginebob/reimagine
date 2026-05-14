@@ -1404,10 +1404,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'reputation':return <div>
       <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
       <h1 style={S.title}>Your Reputation</h1>
-      <p style={S.sub}>Other people notice things in you that you can't see in yourself. This step captures that outside view, and uses it to strengthen everything that follows.</p>
+      <p style={S.sub}>Oftentimes, others see qualities in us that aren't apparent to ourselves.</p>
       <CoachingCallout>
-        <strong style={{color:'#1A2540'}}>This is the input where preparation pays off the most.</strong>
-        <p style={{margin:'8px 0 0'}}>Reimagine reads other people's words about you for patterns you cannot easily see in yourself. The more specific the source material, the sharper the output.</p>
+        <p style={{margin:0}}>Reimagine reads other people's words about you for patterns you cannot easily see in yourself. The more specific the source material, the sharper the output.</p>
         <p style={{margin:'12px 0 4px',fontWeight:600}}>Good example, The Memory:</p>
         <p style={{margin:'0 0 8px',fontStyle:'italic'}}>"My boss said I was a really good leader during a tough quarter."</p>
         <p style={{margin:'0 0 4px',fontWeight:600}}>Better example, The Memory:</p>

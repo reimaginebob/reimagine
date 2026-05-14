@@ -78,6 +78,7 @@ Supporting Strengths (6-10): Learner, Individualization, Communication, Activato
     twoWords: "Trusted Architect",
     other: "I've been told I'm the person people call when something is broken and needs to work by Monday. I take that seriously. I also know I can be impatient with people who don't share my sense of urgency. That's something I'm working on."
   },
+  lifeEvents: "My dad was laid off when I was sixteen, in a restructuring that took out his whole department in one morning. He had spent twenty-two years there, and I watched both how he held it together at home and how badly the company handled the goodbye. That is where my conviction came from: the people side of work is where companies either honor their word or break it. Every system I have built since starts from one question: would this hold up on the worst day?",
   jd: `VP of People & Culture | Series B Healthtech | New York or Remote
 
 Company:
