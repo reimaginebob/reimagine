@@ -4,7 +4,7 @@ This is the only phase where you do the work. Everything that follows is generat
 
 If you have not read **Chapter 3: The Quality of Your Inputs** yet, do that first. This chapter assumes you have.
 
-The Orientation phase has six screens, in this order:
+The Orientation phase has seven screens, in this order:
 
 1. Welcome
 2. Location & Work
@@ -12,6 +12,7 @@ The Orientation phase has six screens, in this order:
 4. Assessments
 5. Values, Passions & Causes
 6. Reputation
+7. Your Story (optional)
 
 You can navigate them with the **Continue** and **Back** buttons at the bottom of each screen, or jump to any completed step using the sidebar on the left.
 
@@ -111,11 +112,30 @@ This is the input where prep pays off the most. Spend a few minutes sourcing rea
 
 If you have nothing in writing, sit with the questions for a moment. Most people can recall at least one moment of praise if they give themselves the space. The more specific the moment, the more useful it is. The Memory and the Emergency Call do the most work for the analysis that follows, so prioritize those.
 
-Click **Begin Phase 1** when you are done.
+Click **Continue** when you are done.
+
+## Screen 7: Your Story (optional)
+
+The final orientation step is the most personal one. Reimagine asks for a life experience that shapes how you work but is not on your resume. Where you grew up. A role you played in your family. A community commitment that runs across decades. The kind of thing that explains a recurring pattern in your career the resume cannot show.
+
+The field is optional. Some users have rich material here; some do not. If you do, it becomes one of the strongest grounding sources Reimagine has for your Bridge Story and brand work, often the most distinctive thing the listener walks away remembering.
+
+A canonical example: a first-generation American who grew up translating between immigrant parents and the new country develops a literal and cultural bilinguality that becomes a transferable strength for client-technical translation work. Nobody puts this on LinkedIn; everything in their career flows from it. Other shapes the field can take: a season of caregiving that built your tolerance for ambiguity, an athletic or artistic discipline carried since childhood, a defining loss, a community role that runs across decades.
+
+A few prompts if you are stuck:
+
+- A formative role you played in your family.
+- A specific experience that shaped how you operate.
+- A commitment you have held across decades.
+- A way you have always been described that has nothing to do with your career.
+
+The button at the bottom adapts. If you type anything, it reads **Continue**. If the field is empty, it reads **Continue without sharing** so the skip path is explicit. Both are valid.
+
+When you click Continue, Reimagine shows the **Orientation complete** card and moves into Phase 1.
 
 ## What happens next
 
-When you finish Reputation, Reimagine shows a short **Orientation complete** card before moving into Phase 1. The card acknowledges that you have finished the input phase: everything from here on is output. Read it, then click Continue.
+When you finish Your Story (or skip it), Reimagine shows a short **Orientation complete** card before moving into Phase 1. The card acknowledges that you have finished the input phase: everything from here on is output. Read it, then click Continue.
 
 From Phase 1 on, you are no longer entering data. You are reviewing what Reimagine generates from your inputs, telling it what to adjust where needed, and advancing to the next phase when each result feels right.
 
