@@ -4,15 +4,16 @@ This is the only phase where you do the work. Everything that follows is generat
 
 If you have not read **Chapter 3: The Quality of Your Inputs** yet, do that first. This chapter assumes you have.
 
-The Orientation phase has seven screens, in this order:
+The Orientation phase has eight screens, in this order:
 
 1. Welcome
 2. Location & Work
 3. Your Resume
-4. Assessments
-5. Values, Passions & Causes
-6. Reputation
-7. Your Story (optional)
+4. Your LinkedIn (optional)
+5. Assessments
+6. Values, Passions & Causes
+7. Reputation
+8. Your Story (optional)
 
 You can navigate them with the **Continue** and **Back** buttons at the bottom of each screen, or jump to any completed step using the sidebar on the left.
 
@@ -62,7 +63,49 @@ Once Reimagine has read the file, you will see a green checkmark and a character
 
 **A reminder from Chapter 3:** the more your resume includes specific outcomes. Money made, money saved, risk mitigated, with numbers attached. The better the output. If you have time, add a few numbers before you upload. If you do not, that is fine. Reimagine will flag where it would help and you can come back later.
 
-## Screen 4: Assessments
+## Screen 4: Your LinkedIn (optional)
+
+This step is optional. Adding it sharpens what Reimagine knows about you in ways the resume alone cannot.
+
+### Why bother
+
+Your LinkedIn profile holds material your resume does not:
+
+- **Your About section** is your own public self-positioning, often phrased differently than your resume. Reimagine reads it as a tone reference for the Bridge Story and as a starting baseline for the LinkedIn Remix later in the journey.
+- **Recommendations** are direct quotes from colleagues. These count as reputational signal alongside what you enter on the Reputation screen.
+- **Skills with endorsement counts** carry social proof. They show the competencies others have validated, the ones with public backing behind them.
+- **Activity** (what you post, comment on, share) signals values and passions in a way you may not articulate yourself.
+
+There is a second reason worth flagging. In Phase 5 (Get Ready), Reimagine generates a LinkedIn Remix: recommendations for your headline, your About section, and your experience entries. Without your current profile as input, the Remix is generated from scratch. With it, the Remix becomes a true *refresh*. Reimagine can say "your current About section reads X; change Y to Z" rather than producing generic recommendations you have to map onto your real profile yourself.
+
+### How to export your LinkedIn as a PDF
+
+LinkedIn has a built-in PDF export. It is on the desktop site (not the mobile app, which lacks the equivalent option).
+
+**Step by step:**
+
+1. Sign in to LinkedIn at **linkedin.com** on a desktop or laptop browser.
+2. Click your profile photo (top right) or the **Me** button in the navigation bar.
+3. Choose **View profile** from the dropdown. You should land on the page whose URL starts with `linkedin.com/in/your-handle`.
+4. Find the **More** button. It sits in the section just below your name and headline, next to the buttons labeled **Open to** and **Add profile section**. The exact wording may shift slightly with LinkedIn redesigns, but **More** has been the consistent label.
+5. Click **More**. A dropdown menu appears.
+6. Choose **Save to PDF**.
+7. The PDF downloads automatically to your default download folder. It will be named something like `Profile.pdf` or `[Your Name].pdf`.
+
+If the **More** dropdown does not show **Save to PDF**, LinkedIn may be A/B testing a different layout for your account. The fallback is to copy your About section and any recommendations into the paste field on the Reimagine LinkedIn screen instead of uploading a PDF.
+
+### On the Reimagine screen
+
+Two ways to provide your LinkedIn content:
+
+- **Upload the PDF** you just exported. Drag it onto the upload area or click to browse.
+- **Paste content directly** into the text field below the upload area. Useful if you cannot get the PDF export to work, or if you only want to share specific sections (just the About section, say, or only your recommendations).
+
+If you do not have a LinkedIn profile, or you do not want to share it, click **Skip this step**. The orientation continues. Reimagine will work without LinkedIn input; it just will not have the signal that LinkedIn provides.
+
+When you have either uploaded or pasted (or chosen to skip), click **Continue**.
+
+## Screen 5: Assessments
 
 This is the input that does the most work. Read Chapter 3 if you have not already.
 
@@ -82,7 +125,7 @@ An assessment shows the durable part of you: where your natural strengths lie, w
 
 Click **Continue** when you are done.
 
-## Screen 5: Values, Passions & Causes
+## Screen 6: Values, Passions & Causes
 
 Two short fields. Both have a microphone button. You can speak your answers instead of typing them.
 
@@ -94,7 +137,7 @@ Two short fields. Both have a microphone button. You can speak your answers inst
 
 Both fields are required. Click **Continue**.
 
-## Screen 6: Reputation
+## Screen 7: Reputation
 
 Four short questions about what other people see in you. Each has a microphone button.
 
@@ -114,7 +157,7 @@ If you have nothing in writing, sit with the questions for a moment. Most people
 
 Click **Continue** when you are done.
 
-## Screen 7: Your Story (optional)
+## Screen 8: Your Story (optional)
 
 The final orientation step is the most personal one. Reimagine asks for a life experience that shapes how you work but is not on your resume. Where you grew up. A role you played in your family. A community commitment that runs across decades. The kind of thing that explains a recurring pattern in your career the resume cannot show.
 
