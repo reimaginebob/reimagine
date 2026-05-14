@@ -2,12 +2,13 @@
   "name": "reimagine",
   "version": "1.0.0",
   "dependencies": {
+    "@neondatabase/serverless": "^0.9.0",
+    "docx": "^8.5.0",
+    "lucide-react": "^0.383.0",
+    "mammoth": "^1.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "mammoth": "^1.6.0",
-    "lucide-react": "^0.383.0",
-    "resend": "^4.0.0",
-    "@neondatabase/serverless": "^0.9.0"
+    "resend": "^4.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",

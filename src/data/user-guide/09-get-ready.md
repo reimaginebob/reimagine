@@ -12,7 +12,11 @@ By the end of this phase, you walk into every conversation prepared.
 
 ## Step 5.1: LinkedIn Remix
 
-**What this step does.** Reimagine generates a new suggested headline and a new About section, written for the role you are pursuing. You then go into LinkedIn yourself and apply the changes. Copy the headline you want, paste it into your profile's edit screen, do the same with the About section. Reimagine produces the copy. You do the actual update.
+**What this step does.** Reimagine generates suggested updates for your LinkedIn profile: a new headline, a new About section, and reframed experience bullets, all written for the role you are pursuing. You then go into LinkedIn yourself and apply the changes. Reimagine produces the copy. You do the actual update.
+
+**If you uploaded your LinkedIn profile in Orientation,** this step becomes a true refresh. Reimagine references your current profile and recommends specific edits ("your current headline reads X; change it to Y; here is why"). The output is anchored in what you actually have, not generated from scratch. Most users find this version sharper and easier to apply.
+
+**If you skipped the LinkedIn upload,** Reimagine generates recommendations from scratch based on your Brand Synthesis, Bridge Story, and target direction. The output is still useful; you just have to map it onto your current profile yourself.
 
 LinkedIn is not an online resume. It is your personal brand on the web, and how it shows up to recruiters and hiring managers depends almost entirely on the headline and the first three lines of your About section. This step gives you new versions of both, plus a few other recommendations that work together.
 
@@ -40,17 +44,26 @@ Refine until the copy sounds like you.
 
 ## Step 5.2: Resume Refresh
 
-**What this step does.** Reimagine generates a refreshed version of your resume: a recommended new summary, a Key Accomplishments section that pulls your strongest evidence above the fold, and guidance on which roles to expand and which to compress. The recommendations are designed to make the strongest evidence for your target role land in the first seven seconds, which is the average time a recruiter spends on a first read.
+**What this step does.** Reimagine generates a refreshed version of your resume: a repositioned summary, a Key Accomplishments section that pulls your strongest evidence above the fold, the rest of your work history rewritten for relevance to your target, and your education. The recommendations are designed to make the strongest evidence for your target role land in the first seven seconds, which is the average time a recruiter spends on a first read.
 
-You take Reimagine's output and apply it to your own resume document. The tool does not edit the file you uploaded; it gives you the new shape and the new copy, and you do the actual rewrite in Word, Google Docs, or wherever your resume lives.
+The output arrives in two forms on the same screen:
 
-The version you came in with was optimized for the role you used to want. The version you build from this output is optimized for the role you are going after.
+1. **A rendered text view** that shows the full refresh on screen.
+2. **A Word document** you can download with one click. The downloaded file uses a clean hybrid format: header with your contact line, Summary, Key Accomplishments above the fold, Experience, and Education.
+
+You choose which path fits.
+
+- **Want the finished file?** Click **Download as Word** and the .docx lands in your downloads folder. Open it, polish it if you want, save it under whatever filename you prefer.
+- **Want to keep your existing resume's format?** Click **Copy text** and paste the sections you want into your own template. Use as much or as little of the rewrite as fits.
+
+The tool does not edit the file you uploaded. It produces a new Word document and the matching text. The version you came in with was optimized for the role you used to want. The version you take out of this step is optimized for the role you are going after.
 
 **What you will get back.**
 
 - **A repositioned summary** at the top of the resume.
-- **A Key Accomplishments section** with your most powerful achievements, reframed as money made, money saved, or risk mitigated, with numbers attached. (If you prefer a different header on your actual resume, Career Highlights, Career Milestones, or Selected Achievements all work.)
-- **Recommendations on which roles to expand and which to compress** based on relevance to your target.
+- **A Key Accomplishments section** with three to five of your most powerful achievements, reframed as money made, money saved, or risk mitigated, with numbers attached. (If you prefer a different header on your finished resume, Career Highlights, Career Milestones, or Selected Achievements all work.)
+- **A rewritten work history** with three to six bullets per role, each starting with an action verb and ending with a business result.
+- **Education** carried through from your uploaded resume.
 
 **What good looks like.** The summary should sound like the Personal Brand from Phase 1, written in resume language. The Key Accomplishments bullets should each name a specific outcome with a number. If a bullet describes a duty rather than a result, that is a candidate for refining.
 
@@ -60,7 +73,7 @@ The version you came in with was optimized for the role you used to want. The ve
 - "The summary doesn't capture my pivot from finance to product."
 - "Add the migration project I led at my second company."
 
-**Then take it to your resume document.** Open your existing resume in Word, Google Docs, or whatever you used to write it. Replace your summary with the new one. Add a Key Accomplishments section near the top (or whatever header you prefer, such as Career Highlights or Selected Achievements) so your strongest evidence lands in the first half of the page. Adjust the rest of your roles per Reimagine's guidance: expand the ones that matter most for your target, compress the ones that matter less. Save a new version with a clear filename so you do not lose your old resume in the process.
+**If the download looks off,** click Regenerate. The output usually lands right the second time. The hint under the buttons points to the same regenerate action that is already on the screen.
 
 **When you are ready,** click **Build My Playbook** to advance.
 

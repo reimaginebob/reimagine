@@ -314,21 +314,64 @@ I am open to conversations with peers and to roles where the conviction has more
 
 // ─── P_RES: RESUME REFRESH ──────────────────────────────────────────────
 
-p_res: `The current resume reads as a strong functional resume. Accomplishment-led, metric-led, well-structured. The opportunity is to thread the conviction through the summary line so a reader who scans the document picks up the why alongside the what.
-
-### Proposed summary line (replaces existing first paragraph)
-
-"VP, Talent Acquisition at Meridian Health System. Fourteen years of building the systems institutions use to meet their people at scale, inside a 14,000-employee integrated health system in Atlanta. Focus areas: talent infrastructure that holds up at the moments that matter, including referral programs, ATS architecture, offer experience, and workforce planning."
-
-### Optional tagline (for roles where the conviction is the differentiator)
-
-"I build the systems institutions use to meet their people at scale."
-
-Use this above the summary for CPO-stage roles, fractional advisory roles, or any role where the resume needs to do conviction work as well as credential work. For roles where the resume just needs to be a credible TA-leader resume, the existing structure is fine and the tagline is not needed.
-
-### Bullets
-
-The major bullets can stay as written. The proof is already there. The framing change is in the summary line.`,
+p_res: JSON.stringify({
+  header: {
+    name: "Sarah Chen",
+    city: "Atlanta, GA",
+    email: "sarah.chen.demo@example.com",
+    phone: "",
+    linkedin: "linkedin.com/in/sarahchen-demo"
+  },
+  summary: "I build the systems institutions use to meet their people at scale. For fourteen years I have done this work at Meridian Health System, where I run talent acquisition for a 14,000-employee integrated health system in Atlanta. I am pursuing a Chief People Officer role at a growth-stage digital health company because the architecture decisions that shape an institution for years get made once, and that is where I want to be.",
+  keyAccomplishments: [
+    "Designed an employee referral program from scratch that now generates 34% of all hires and runs 15 days faster from application to start than non-referred sourcing.",
+    "Reduced clinical hiring costs by $4.2M annually through agency consolidation and process redesign across a 14,000-employee health system.",
+    "Led the Taleo-to-Workday migration for 300+ hiring managers in eight weeks during a COVID hiring surge, with no recorded loss of hiring velocity.",
+    "Compressed clinical offer decline rate from 22% to 9% in 11 months through end-to-end offer-experience redesign, without a base-salary increase.",
+    "Scaled the recruiting function 175% in parallel with the migration; hiring volume hit 132% of the prior year's pace in the same window."
+  ],
+  experience: [
+    {
+      company: "Meridian Health System",
+      title: "Vice President, Talent Acquisition & Workforce Planning",
+      dates: "2014 to Present",
+      location: "Atlanta, GA",
+      bullets: [
+        "Lead talent acquisition for a 14,000-employee integrated health system across 20+ locations and a $280M workforce plan.",
+        "Built the referral program from scratch with a retention-milestone incentive structure; it now generates 34% of all hires and lifts year-one retention by 11 points over the non-referred baseline.",
+        "Drove $4.2M in annual clinical hiring cost reduction through agency consolidation and process redesign.",
+        "Compressed offer decline rate from 22% to 9% in 11 months through end-to-end offer-experience redesign and a 30-day check-in cadence between offer acceptance and start.",
+        "Led Taleo-to-Workday migration across 300+ hiring managers in eight weeks during the COVID surge; Workday adoption hit 94% within six months."
+      ]
+    },
+    {
+      company: "Meridian Health System",
+      title: "Director, Talent Acquisition",
+      dates: "2011 to 2014",
+      location: "Atlanta, GA",
+      bullets: [
+        "Grew recruiting function from 2 to 6 full-time recruiters; established process standards, sourcing strategy, and recruiting infrastructure that enabled scaling from 150 to 300+ annual hires.",
+        "Launched the first formal referral program; achieved 28% of hires from referrals within the first full year.",
+        "Implemented employer-brand strategy and career positioning for clinical and administrative roles; lifted application volume 40%."
+      ]
+    },
+    {
+      company: "Meridian Health System",
+      title: "Manager, Recruitment & Staffing Operations",
+      dates: "2008 to 2011",
+      location: "Atlanta, GA",
+      bullets: [
+        "Built recruiting operations function across 40+ hiring managers, including job posting systems, applicant tracking, metrics, and process documentation.",
+        "Led the initial Taleo ATS implementation, including training and adoption across the recruiting team and hiring managers.",
+        "Improved time-to-hire from 65 days to 42 days through process redesign and manager coaching."
+      ]
+    }
+  ],
+  education: [
+    { institution: "Emory University, Goizueta Business School", degree: "MBA", year: "" },
+    { institution: "University of Georgia", degree: "BS, Human Resources Management", year: "" }
+  ]
+}, null, 2),
 
 // ─── P9: CRASH COURSE ───────────────────────────────────────────────────
 
