@@ -47,6 +47,12 @@ If you decide to skip the assessment entirely, Reimagine will still work, but th
 
 That covers entering your information and getting your first set of results. The full journey takes longer because each phase asks you to read what was generated and decide whether to refine it. Most people do not finish in one sitting. You do not need to.
 
+## Use a laptop, desktop, or tablet
+
+Reimagine works best on a larger screen. If you are on a phone, rotate to landscape mode for a usable experience. Portrait phone view is currently limited because of how the sidebar navigation is built. The sidebar takes up most of the viewport on a narrow portrait screen, leaving very little room for the content.
+
+A future release will add full responsive design for phones. For now, landscape mode on a phone is the workaround if a larger screen is not available. If you visit Reimagine on a portrait phone, a small banner at the top of the page will remind you and you can dismiss it for the session.
+
 ## You can speak instead of type
 
 Most of the text fields in Reimagine have a small microphone button next to them. It looks like this:

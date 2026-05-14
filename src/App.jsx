@@ -840,6 +840,9 @@ export default function PivotEngine(){
   const[invalidationBanner,setInvalidationBanner]=useState(null)
   const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p}}catch{}return[{role:'assistant',content:'Hi. I can help you with how Reimagine works. What would you like to know?'}]})
   const[showPulse,setShowPulse]=useState(false)
+  const[isSmallPortrait,setIsSmallPortrait]=useState(false)
+  const[mobileBannerDismissed,setMobileBannerDismissed]=useState(()=>{try{return sessionStorage.getItem('reimagine_mobile_advisory_dismissed')==='1'}catch{return false}})
+  const dismissMobileBanner=()=>{try{sessionStorage.setItem('reimagine_mobile_advisory_dismissed','1')}catch{};setMobileBannerDismissed(true)}
   const[hasSeenCorrectionsIntro,setHasSeenCorrectionsIntro]=useState(()=>{try{return localStorage.getItem('reimagine_seen_corrections_intro')==='1'}catch{return false}})
   const dismissCorrectionsIntro=()=>{try{localStorage.setItem('reimagine_seen_corrections_intro','1')}catch{};setHasSeenCorrectionsIntro(true)}
   const[hasSeenP2Milestone,setHasSeenP2Milestone]=useState(()=>{try{return localStorage.getItem('reimagine_seen_p2_milestone')==='1'}catch{return false}})
@@ -866,6 +869,7 @@ export default function PivotEngine(){
   useEffect(()=>{if(isDemo||isTest)return;try{const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v3');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
   useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
   useEffect(()=>{setShowPulse(false);const t=setTimeout(()=>setShowPulse(true),90000);return()=>clearTimeout(t)},[step])
+  useEffect(()=>{const check=()=>{const portrait=window.matchMedia('(orientation: portrait)').matches;const small=window.innerWidth<500;setIsSmallPortrait(portrait&&small)};check();window.addEventListener('resize',check);window.addEventListener('orientationchange',check);return()=>{window.removeEventListener('resize',check);window.removeEventListener('orientationchange',check)}},[])
   useEffect(()=>{window.scrollTo({top:0,behavior:'instant'})},[step])
   useEffect(()=>{if(!invalidationBanner)return;const t=setTimeout(()=>setInvalidationBanner(null),10000);return()=>clearTimeout(t)},[invalidationBanner])
   useEffect(()=>{if(step==='decision')decisionInitialChosenRef.current=chosen},[step])
@@ -2651,6 +2655,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <Btn secondary onClick={()=>{try{localStorage.setItem('pe_migration_dismissed','true')}catch{};setMigrationOpen(false)}}>No thanks</Btn>
           </div>
         </div>
+      </div>}
+      {isSmallPortrait&&!mobileBannerDismissed&&<div style={{background:'#1A2540',color:'#FFFFFF',padding:'14px 16px',display:'flex',alignItems:'flex-start',gap:12,fontSize:17,lineHeight:1.5,borderBottom:`2px solid ${C.gold}`,flexShrink:0}}>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:700,marginBottom:4}}>Reimagine works best on a larger screen.</div>
+          <div style={{fontSize:16,color:'#CBD5E0'}}>For the best experience, rotate your phone to landscape, or open this on a tablet or laptop.</div>
+        </div>
+        <button onClick={dismissMobileBanner} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#CBD5E0',fontSize:22,cursor:'pointer',padding:'0 4px',lineHeight:1,fontFamily:'inherit'}}>×</button>
       </div>}
       <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <a href="/" style={{textDecoration:'none',cursor:'pointer'}}>
