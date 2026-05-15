@@ -2739,7 +2739,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <Btn small onClick={()=>{const today=new Date().toISOString().slice(0,10);const rawFirstLine=(profile.resume||'').split(/\n/).find(l=>l.trim())||'';const nameParts=rawFirstLine.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ');const firstName=nameParts.length>2&&nameParts.length<50?nameParts.split(' ')[0].toLowerCase():(signupForm.firstName?signupForm.firstName.trim().toLowerCase():'reimagine');const md=`# Live Opportunity Playbook\n\n*Generated ${today}*\n\n---\n\n${outputs.op}`;const blob=new Blob([md],{type:'text/markdown'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`reimagine_playbook_${firstName}_${today}.md`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)}}><Download size={11}/>Download as Markdown</Btn>
           </div>
           <OutPanel text={outputs.op} onCopy={copy} copied={copied}/>
-          {!isDemo&&<RefineBox value={feedback.op} onChange={v=>setFb('op',v)} hint="Did we read the JD or your background right? Tell us what to adjust." placeholder="e.g. 'You missed that the role explicitly requires P&L experience.' Or: 'My time at [Company] was internal strategy, not consulting.' Or: 'Emphasize the operating depth angle more, less on strategic vision.'" onRegenerate={v=>{recordCorrection('op',v);out('op','');generate('op',()=>P.op(pc,outputs,chosen,profile.jd)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:11000,msg:'Building your Opportunity Playbook…'})}}/>}
+          {!isDemo&&<RefineBox value={feedback.op} onChange={v=>setFb('op',v)} hint="Did we read the JD or your background right? Tell us what to adjust." placeholder="e.g. 'You missed that the role explicitly requires P&L experience.' Or: 'My time at [Company] was internal strategy, not consulting.' Or: 'Emphasize the operating depth angle more, less on strategic vision.'" onRegenerate={v=>{recordCorrection('op',v);out('op','');generate('op',()=>P.op(pc,outputs,chosen,profile.jd)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:14000,msg:'Building your Opportunity Playbook…'})}}/>}
           {!isDemo&&<details style={{marginTop:24}}>
             <summary style={{cursor:'pointer',fontSize:18,fontWeight:600,color:C.goldL,padding:'10px 0'}}>Build for another opportunity</summary>
             <div style={{marginTop:12}}>
@@ -2754,7 +2754,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 </div>
                 <div style={{fontSize:18,color:C.goldL,fontStyle:'italic',marginTop:6}}>Building a new playbook will replace the one above.</div>
               </div>
-              <Btn onClick={()=>generate('op',()=>P.op(pc,outputs,chosen,profile.jd),{maxTokens:11000,msg:'Building your Opportunity Playbook…'})} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build a new playbook</Btn>
+              <Btn onClick={()=>generate('op',()=>P.op(pc,outputs,chosen,profile.jd),{maxTokens:14000,msg:'Building your Opportunity Playbook…'})} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build a new playbook</Btn>
               {err&&<ErrBox msg={err}/>}
             </div>
           </details>}
@@ -2775,7 +2775,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder="Paste the full job description here..."/>
             </div>
           </div>}
-          {!isDemo&&<Btn onClick={()=>generate('op',()=>P.op(pc,outputs,chosen,profile.jd),{maxTokens:11000,msg:'Building your Opportunity Playbook…'})} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build My Playbook</Btn>}
+          {!isDemo&&<Btn onClick={()=>generate('op',()=>P.op(pc,outputs,chosen,profile.jd),{maxTokens:14000,msg:'Building your Opportunity Playbook…'})} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build My Playbook</Btn>}
           {err&&<ErrBox msg={err}/>}
         </>}
       </>}
