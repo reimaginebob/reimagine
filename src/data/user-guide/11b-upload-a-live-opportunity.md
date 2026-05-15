@@ -70,7 +70,7 @@ A framing card above the output names these three groups so you can scan to the 
 
 Examples:
 
-- "You missed that the role explicitly requires P&L experience. Lean into that more."
+- "You missed that the role explicitly requires P&L experience. Emphasize that more."
 - "My time at [Company] was internal strategy, not consulting. Recast the alignment with that in mind."
 - "The STAR stories are too leadership-heavy. The role is more individual contributor. Pick stories that show that."
 - "The cover letter is too formal. I would write more directly than this."

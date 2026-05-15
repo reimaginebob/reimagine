@@ -118,7 +118,7 @@ Use **Update with my changes** to fold the changes in. Use **Start fresh** to cl
 The Bridge Story you finalize here becomes:
 
 - The opening of your **LinkedIn About section** in Phase 5. The first three lines of your About section are what shows above the "see more" cutoff. Most readers see those three lines and nothing else. Reimagine uses your Bridge Story opening as the anchor for those three lines.
-- The structure of your **answer to "tell me about yourself"** in interviews. You will revisit this story in interview prep, and Reimagine will help you remix it for different audiences (a CEO, a CFO, a peer) in the Playbook step in Phase 5.
+- The structure of your **answer to "tell me about yourself"** in interviews. You will revisit this story in interview prep, and Reimagine will help you shift it for different audiences (a CEO, a CFO, a peer) in the Playbook step in Phase 5.
 - The voice template for your **outreach emails** in Phase 4. The way you talk in your Bridge Story sets the tone for how Reimagine drafts your peer-to-peer outreach.
 
 Spending an extra five minutes refining the Bridge Story until it really sounds like you saves you ten minutes of refining each downstream output that inherits its voice.

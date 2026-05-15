@@ -143,7 +143,7 @@ Four things come out of this step:
 
 ### On the screen
 
-The first time you reach this step, Reimagine shows a short interstitial. The interstitial frames the synthesis as a moment of integration. for some users, the first time their work and the rest of them show up as one coherent picture; for others, a moment that surfaces a tension worth sitting with. Read it as a mirror, not a verdict.
+The first time you reach this step, Reimagine shows a short interstitial. The interstitial frames the synthesis as a moment of integration. for some users, the first time their work and the rest of them show up as one coherent picture; for others, a moment that surfaces a tension. Read it as a mirror, not a verdict.
 
 Then click **Synthesize My Brand**. About a minute to generate.
 

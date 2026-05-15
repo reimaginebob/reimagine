@@ -13,6 +13,7 @@ const HARD_BAN = [
   { pattern: /\byou do not just\s+\w+[,.]?\s+you\s+\w+/i, name: 'logic-flip "you do not just X, you Y"', advice: 'Rewrite from the positive side.' },
   { pattern: /(This|It|That) (is|was) not [^.]+\.\s+(This|It|That) (is|was) [^.]+\./i, name: 'logic-flip two-sentence "This is not X. This is Y."', advice: 'Rewrite as a single positive-side claim. Drop the negation pivot.' },
   { pattern: /\b(most (people|others|folks|peers)|than most|unlike most|than the (typical|average) [a-zA-Z]+|what most [a-zA-Z]+ (do|miss|will|cannot))\b/i, name: 'comparison framing ("most people/others", "than most", "unlike most", "than the typical/average X", "what most X do/miss")', advice: 'State the evidence in specific detail and let the listener draw the conclusion. Never elevate the user by contrast to unnamed others.' },
+  { pattern: /\b(worth sitting with|sit with (this|that)|let that land|lean into|hold space for|get curious about|notice what comes up|take a moment to consider|trust the process|honor your journey)\b/i, name: 'AI-coaching register phrase', advice: 'Name the observation directly and let it stand. Delete the reflective-register framing.' },
 ]
 
 const SOFT_WARN = [
