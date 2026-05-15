@@ -56,7 +56,8 @@ export async function getSessionUser(req, res = null) {
   const token = getSessionToken(req)
   if (!token) return null
   const rows = await sql`
-    SELECT u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login_at
+    SELECT u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login_at,
+           u.privacy_version, u.terms_version
     FROM sessions s
     JOIN users u ON u.id = s.user_id
     WHERE s.token = ${token} AND s.expires_at > NOW()

@@ -9,7 +9,9 @@ export default async function handler(req, res) {
 
   const tokenHash = hashToken(token)
   const rows = await sql`
-    SELECT email, first_name, last_name, expires_at, used_at FROM magic_link_tokens
+    SELECT email, first_name, last_name, expires_at, used_at,
+           privacy_accepted_at, privacy_version, terms_accepted_at, terms_version
+    FROM magic_link_tokens
     WHERE token_hash = ${tokenHash}
     LIMIT 1
   `
@@ -33,9 +35,16 @@ export default async function handler(req, res) {
     userId = existing[0].id
     await sql`UPDATE users SET last_login_at = NOW() WHERE id = ${userId}`
   } else {
+    // Carry the acceptance captured on the signup form (stored on the token
+    // row by request-link.js) onto the new users row. New accounts always
+    // reach this branch with these populated; the legal gate in
+    // request-link.js guarantees a token row cannot exist for a new account
+    // without acceptance.
     const created = await sql`
-      INSERT INTO users (email, first_name, last_name, last_login_at)
-      VALUES (${row.email}, ${row.first_name}, ${row.last_name}, NOW())
+      INSERT INTO users (email, first_name, last_name, last_login_at,
+        privacy_accepted_at, privacy_version, terms_accepted_at, terms_version)
+      VALUES (${row.email}, ${row.first_name}, ${row.last_name}, NOW(),
+        ${row.privacy_accepted_at}, ${row.privacy_version}, ${row.terms_accepted_at}, ${row.terms_version})
       RETURNING id
     `
     userId = created[0].id

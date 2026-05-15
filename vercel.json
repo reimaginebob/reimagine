@@ -7,7 +7,9 @@
   ],
   "rewrites": [
     { "source": "/auth/verify", "destination": "/api/auth/verify" },
-    { "source": "/api/(.*)", "destination": "/api/$1" }
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/privacy", "destination": "/index.html" },
+    { "source": "/terms", "destination": "/index.html" }
   ],
   "headers": [
     {

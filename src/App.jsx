@@ -5,6 +5,11 @@ import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, Ch
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import Chat from "./components/Chat"
+import Privacy from "./Privacy"
+import Terms from "./Terms"
+import CookieBanner from "./CookieBanner"
+import LegalReacceptanceModal from "./LegalReacceptanceModal"
+import { PRIVACY_VERSION, TOS_VERSION, PRIVACY_VERSION_MATERIAL, TOS_VERSION_MATERIAL } from "./config/legal"
 
 // voice-allow
 const SYS = `You are a Career Strategist within Reimagine, a career strategy tool by Career Club, built on Making Your Own Weather by Bob Goodwin.
@@ -931,6 +936,9 @@ const DEMO_TOUR=[
 
 export default function PivotEngine(){
   const _params=new URLSearchParams(window.location.search)
+  const _path=typeof window!=='undefined'?(window.location.pathname.replace(/\/+$/,'')||'/'):'/'
+  if(_path==='/privacy')return <Privacy/>
+  if(_path==='/terms')return <Terms/>
   const isDemo=_params.get('demo')==='true'
   const isTest=_params.get('test')==='true'
   const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',linkedin:'',linkedinFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',corrections:[],jd:'',jdFile:''}
@@ -975,6 +983,9 @@ export default function PivotEngine(){
   const[signupForm,setSignupForm]=useState({firstName:'',lastName:'',email:''})
   const[signupSubmitting,setSignupSubmitting]=useState(false)
   const[signupError,setSignupError]=useState('')
+  const[privacyAccepted,setPrivacyAccepted]=useState(false)
+  const[termsAccepted,setTermsAccepted]=useState(false)
+  const[reaccept,setReaccept]=useState(null)
   const[signupStep,setSignupStep]=useState('email')
   const[signedInUser,setSignedInUser]=useState(null)
   const[magicLinkSentTo,setMagicLinkSentTo]=useState(null)
@@ -1014,6 +1025,7 @@ export default function PivotEngine(){
   useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3')}catch{};return}const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.markedOpts)setMarkedOpts(d.markedOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
   useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const d=serverProfile.profile;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.markedOpts)setMarkedOpts(d.markedOpts);if(d.chosen)setChosen(d.chosen)}else{try{const blob=localStorage.getItem('pe_v3');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
+  useEffect(()=>{if(!signedInUser)return;const needsPrivacy=signedInUser.privacy_version!=null&&signedInUser.privacy_version!==PRIVACY_VERSION_MATERIAL;const needsTerms=signedInUser.terms_version!=null&&signedInUser.terms_version!==TOS_VERSION_MATERIAL;if(needsPrivacy||needsTerms)setReaccept({needsPrivacyReaccept:needsPrivacy,needsTermsReaccept:needsTerms})},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;try{const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v3');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
   useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
   useEffect(()=>{setShowPulse(false);const t=setTimeout(()=>setShowPulse(true),90000);return()=>clearTimeout(t)},[step])
@@ -1140,12 +1152,13 @@ export default function PivotEngine(){
     const ln=signupForm.lastName.trim()
     const em=signupForm.email.trim()
     if(!fn||!ln){setSignupError('Please fill in your first and last name.');return}
+    if(!privacyAccepted||!termsAccepted){setSignupError('Please review and accept the Privacy Agreement and Terms of Service to continue.');return}
     setSignupError('')
     setSignupSubmitting(true)
     // Keep the existing Apps Script beta-signup pipeline firing on new-user submissions.
     try{fetch('https://script.google.com/macros/s/AKfycbz_wPKjaBRW6wlqmm7X-baYyU1FuuTjKBgZIjc8zp77d4cUDD589dyK5ePqDyLCjunEEw/exec',{method:'POST',body:JSON.stringify({firstName:fn,lastName:ln,email:em,timestamp:new Date().toISOString()})}).catch(()=>{})}catch{}
     try{
-      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln})})
+      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln,privacyAccepted:true,privacyVersion:PRIVACY_VERSION,termsAccepted:true,termsVersion:TOS_VERSION})})
       if(!r.ok){
         const data=await r.json().catch(()=>({}))
         if(r.status===429)setSignupError('Too many requests. Try again in an hour.')
@@ -2823,6 +2836,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 <label style={S.label}>Last name</label>
                 <input style={S.inp} value={signupForm.lastName} onChange={e=>setSignupForm(f=>({...f,lastName:e.target.value}))} placeholder="Last name" onKeyDown={e=>{if(e.key==='Enter')submitDetailsStep()}}/>
               </div>
+              <div style={{margin:'4px 0 18px'}}>
+                <label style={{display:'flex',alignItems:'flex-start',gap:12,padding:'12px 4px',minHeight:44,cursor:'pointer',fontSize:17,lineHeight:1.55,color:C.cream}}>
+                  <input type="checkbox" checked={privacyAccepted} onChange={e=>setPrivacyAccepted(e.target.checked)} style={{width:20,height:20,marginTop:2,accentColor:C.gold,flexShrink:0,cursor:'pointer'}}/>
+                  <span>I have read and agree to the <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{color:C.gold,textDecoration:'underline',padding:'0 2px'}}>Privacy Agreement</a>.</span>
+                </label>
+                <label style={{display:'flex',alignItems:'flex-start',gap:12,padding:'12px 4px',minHeight:44,cursor:'pointer',fontSize:17,lineHeight:1.55,color:C.cream}}>
+                  <input type="checkbox" checked={termsAccepted} onChange={e=>setTermsAccepted(e.target.checked)} style={{width:20,height:20,marginTop:2,accentColor:C.gold,flexShrink:0,cursor:'pointer'}}/>
+                  <span>I have read and agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{color:C.gold,textDecoration:'underline',padding:'0 2px'}}>Terms of Service</a>.</span>
+                </label>
+              </div>
               {signupError&&<ErrBox msg={signupError}/>}
               <div style={{marginTop:16,display:'flex',gap:10,flexWrap:'wrap'}}>
                 <Btn onClick={submitDetailsStep} disabled={signupSubmitting}>{signupSubmitting?<><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Sending</>:<>Send my sign-in link <ChevronRight size={14}/></>}</Btn>
@@ -2847,6 +2870,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     </div>
+    <CookieBanner/>
   </>
 
   return <>
@@ -2917,6 +2941,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <footer style={{marginTop:40,padding:'20px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',textAlign:'center'}}>
             <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',background:'#FFFFFF',border:`1px solid ${C.gold}`,borderRadius:8,color:C.gold,fontWeight:600,fontSize:17,textDecoration:'none'}}>Read the full User Guide (PDF)</a>
             <p style={{margin:'8px 0 0',fontSize:15,color:'#718096',lineHeight:1.5}}>Everything Reimagine does, explained in plain English.</p>
+            <p style={{margin:'14px 0 0',fontSize:14,color:'#718096'}}>
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{color:'#718096',textDecoration:'underline'}}>Privacy</a>
+              <span style={{margin:'0 8px'}}>·</span>
+              <a href="/terms" target="_blank" rel="noopener noreferrer" style={{color:'#718096',textDecoration:'underline'}}>Terms</a>
+            </p>
           </footer>
           {isDemo&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:32,paddingTop:24,borderTop:`1px solid ${C.border}`}}>
             <div>{demoIdx>0&&<button onClick={demoPrev} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,fontSize:17,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>← Previous</button>}</div>
@@ -2928,5 +2957,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     </div>
     {signedInUser&&<Chat currentStep={step} onNavigate={nav} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages}/>}
+    {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
+    <CookieBanner/>
   </>
 }
