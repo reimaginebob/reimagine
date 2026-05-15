@@ -1,17 +1,5 @@
 # 2. Before You Begin
 
-## Try the demo first
-
-Before you start your own session, look at the demo. It walks you through a complete journey using a fictional executive named Sarah Chen so you can see what every step produces before you commit your own time.
-
-The demo is at: **https://reimagine2-two.vercel.app/?demo=true**
-
-[screenshot: the welcome screen with the "See a Demo Here" button in the top right]
-
-Click **Next** at each step to advance through Sarah's journey. You will not be asked for any of your own information. The point is to see what Reimagine builds when it has good inputs, so you have a clear picture of the destination before you start packing.
-
-When you are ready to start your own session, go to **https://reimagine2-two.vercel.app** and click **Let's get started**.
-
 ## What to bring
 
 You will get the most out of Reimagine if you have these three things ready before you start.
