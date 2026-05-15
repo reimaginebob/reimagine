@@ -578,6 +578,34 @@ const normalizeWork = (p) => {
   return next
 }
 
+// Detection mirrors the build-time voice guard (scripts/check-voice.mjs):
+// the five HARD_BAN patterns plus the AI-coaching SOFT_WARN list. The pattern
+// data is wrapped in voice-allow so the banned phrases held here as detection
+// data do not trip the guard's own scan of App.jsx.
+// voice-allow
+const VOICE_MIGRATION_PATTERNS = [
+  /—/,
+  /\bnot just\s+\w+[,.]?\s+you\s+\w+/i,
+  /\byou do not just\s+\w+[,.]?\s+you\s+\w+/i,
+  /(This|It|That) (is|was) not [^.]+\.\s+(This|It|That) (is|was) [^.]+\./i,
+  /\b(most (people|others|folks|peers)|than most|unlike most|than the (typical|average) [a-zA-Z]+|what most [a-zA-Z]+ (do|miss|will|cannot))\b/i,
+  /\b(worth sitting with|sit with (this|that)|let that land|lean into|hold space for|get curious about|notice what comes up|take a moment to consider|trust the process|honor your journey)\b/i,
+]
+// voice-allow-end
+
+function detectStaleVoice(outputs) {
+  const counts = {}
+  let total = 0
+  if (!outputs) return { found: false, counts, total }
+  for (const [key, val] of Object.entries(outputs)) {
+    if (!val || typeof val !== 'string') continue
+    let c = 0
+    for (const re of VOICE_MIGRATION_PATTERNS) { if (re.test(val)) c++ }
+    if (c > 0) { counts[key] = c; total += c }
+  }
+  return { found: total > 0, counts, total }
+}
+
 const stripMarkdown = (text) => {
   return (text || '')
     .replace(/\*\*(.+?)\*\*/g, '$1')
@@ -992,6 +1020,9 @@ export default function PivotEngine(){
   const[migrationOpen,setMigrationOpen]=useState(false)
   const[authToast,setAuthToast]=useState(null)
   const[invalidationBanner,setInvalidationBanner]=useState(null)
+  const[voiceMigBanner,setVoiceMigBanner]=useState(false)
+  const[voiceBannerDismissed,setVoiceBannerDismissed]=useState(false)
+  const voiceMigCheckedRef=useRef(false)
   const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p}}catch{}return[{role:'assistant',content:'Hi. I can help you with how Reimagine works. What would you like to know?'}]})
   const[showPulse,setShowPulse]=useState(false)
   const[isSmallPortrait,setIsSmallPortrait]=useState(false)
@@ -1036,6 +1067,7 @@ export default function PivotEngine(){
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);deleteAccount()},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{if(deletingRef.current)return;try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,markedOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,markedOpts,chosen,signedInUser])
+  useEffect(()=>{if(isDemo||isTest)return;if(voiceMigCheckedRef.current)return;if(profile.voiceMigrationDismissed)return;if(!done.includes('complete'))return;if(!Object.values(outputs).some(v=>v&&v.length>0))return;voiceMigCheckedRef.current=true;if(detectStaleVoice(outputs).found)setVoiceMigBanner(true)},[done,outputs,profile.voiceMigrationDismissed])
 
   const pr=(f,v)=>setProfile(p=>({...p,[f]:v}))
   const loc=(f,v)=>setProfile(p=>({...p,loc:{...p.loc,[f]:v}}))
@@ -1297,6 +1329,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.markedOpts)setMarkedOpts(data.markedOpts);if(data.chosen)setChosen(data.chosen);const lastStep=data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome';setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
   const prog=(step==='income'||step==='op')?100:Math.round((ALL.indexOf(step)/ALL.indexOf('complete'))*100)
   const pc={loc:{...profile.loc,work:Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||'')},resume:profile.resume,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep}
+  const dismissVoiceMig=()=>{setVoiceBannerDismissed(true);setProfile(p=>{const n=(p.voiceMigrationDismissCount||0)+1;return{...p,voiceMigrationDismissCount:n,...(n>=3?{voiceMigrationDismissed:true}:{})}})}
+  const regenVoiceMig=()=>{setProfile(p=>({...p,voiceMigrationDismissed:true}));setVoiceBannerDismissed(true);cascadeInvalidate('p1');out('p1','');nav('p1');generate('p1',()=>P.p1(pc))}
+  const showVoiceMigBanner=voiceMigBanner&&!voiceBannerDismissed&&!profile.voiceMigrationDismissed&&!isDemo&&!isTest
 
   const rStep=()=>{switch(step){
     case'welcome':return isDemo?<div>
@@ -2874,6 +2909,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     {invalidationBanner&&<div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1000,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'14px 20px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',alignItems:'center',gap:16,maxWidth:720}}>
       <div style={{fontSize:18,color:'#1A2540',lineHeight:1.5}}>{invalidationBanner.message}</div>
       <button onClick={()=>setInvalidationBanner(null)} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#718096',fontSize:18,cursor:'pointer',padding:4,fontFamily:'inherit',flexShrink:0}}>×</button>
+    </div>}
+    {showVoiceMigBanner&&<div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1001,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'18px 22px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',flexDirection:'column',gap:14,maxWidth:560,width:'calc(100% - 32px)'}}>
+      <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.55}}>We tightened the voice across Reimagine for confidence-shaped sections of your work. Click below to regenerate your foundation work with the new voice. Your Brand Synthesis, Wide View, Bridge Story, and downstream playbook will refresh to match. This takes 5 to 10 minutes total.</div>
+        <button onClick={dismissVoiceMig} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#718096',fontSize:18,cursor:'pointer',padding:4,fontFamily:'inherit',flexShrink:0}}>×</button>
+      </div>
+      <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+        <Btn onClick={regenVoiceMig}>Regenerate My Foundation</Btn>
+        <Btn secondary onClick={dismissVoiceMig}>Not Now</Btn>
+      </div>
     </div>}
     <div style={{height:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
       {migrationOpen&&!signedInUser&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
