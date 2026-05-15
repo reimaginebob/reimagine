@@ -61,9 +61,6 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 **Sarah Chen.** The fictional executive used in Reimagine's demo mode. A VP of Talent Acquisition in healthcare with 15 years of experience.
 
 **STAR (Situation, Thinking, Action, Result).** The interview story framework Reimagine uses in the Playbook. The T stands for *Thinking*, not Tasks. Because the most important part of any interview story is how you thought through the problem.
-
-**System prompt.** The instructions Reimagine sends to Claude with each generation. You do not interact with it directly. It contains the voice rules and methodology that make Reimagine sound like itself.
-
 **TMAY.** "Tell me about yourself." The interview question the Bridge Story is built to answer.
 
 **Value Proposition.** The list of capabilities backed by proof points generated in Brand Synthesis. Four to six entries, each with a capability statement and concrete evidence from your track record.
@@ -73,7 +70,3 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 **Wiring & Compass.** The second step in Phase 1. How you are wired, where you thrive, and what lights you up. Drawn from your assessment, values, and accomplishments.
 
 **Work That Matters.** One of the three paths in the Wide View. The Ikigai path, for people ready for more meaning in their work or at a stage where legacy matters more than maximizing comp.
-
----
-
-*Next: [What's New in This Build →](16-whats-new.md)*

@@ -2122,16 +2122,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </>:<div style={S.out}><MD text={outputs.p5}/></div>}
           </>}
           {!isDemo&&<RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} hint="Did we misread fit on any of these options? If something we said about an option doesn't match your background or your interest, tell us." placeholder="e.g. 'You said this role needs more sales experience than I have, but I led a $50M sales org.' Or: 'I am not interested in Option B at all, replace it.' Or: 'The obstacle you flagged is not really a concern for me.'" onRegenerate={v=>{cascadeInvalidate('p5');recordCorrection('p5',v);out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:6000,msg:'Updating your deep dive…'})}}/>}
-          {!isDemo&&<>
-            <div style={{margin:'24px 0 12px',padding:'16px 20px',background:'#FFF8F0',border:`2px solid ${C.gold}40`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
-              <span style={{fontSize:17,color:C.goldL,fontWeight:500}}>Not what you expected? Go back and explore different options.</span>
-              <Btn secondary onClick={()=>{cascadeInvalidate('deepOpts');nav('p4')}}><ArrowLeft size={13}/>Choose Different Options</Btn>
-            </div>
-            <div style={S.row}>
-              <Btn secondary onClick={()=>{out('p5','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn>
-              <Btn onClick={()=>advance('p5','decision')}>Make My Decision <ChevronRight size={14}/></Btn>
-            </div>
-          </>}
+          {!isDemo&&<div style={S.row}>
+            <Btn secondary onClick={()=>{out('p5','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn>
+            <Btn secondary onClick={()=>{cascadeInvalidate('deepOpts');nav('p4')}}><ArrowLeft size={13}/>Choose Different Options</Btn>
+            <Btn onClick={()=>advance('p5','decision')}>Make My Decision <ChevronRight size={14}/></Btn>
+          </div>}
         </>}
         {err&&<ErrBox msg={err}/>}
       </div>

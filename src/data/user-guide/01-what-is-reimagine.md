@@ -30,7 +30,7 @@ Plan for about 20 to 30 minutes for the intake (the questions Reimagine asks you
 
 ## How it actually works
 
-Behind the scenes, Reimagine sends your inputs to Claude, a large language model from Anthropic, with carefully tuned instructions for each step. Claude returns the analysis. Reimagine formats it, presents it to you, and gives you a way to refine it.
+Reimagine sends your inputs to Claude, a large language model from Anthropic, with carefully tuned instructions for each step. Claude returns the analysis. Reimagine formats it, presents it to you, and gives you a way to refine it.
 
 You do not need to know any of that to use the tool. You do need to know two things:
 

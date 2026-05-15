@@ -41,7 +41,6 @@ If something is not working the way you expect, check **Chapter 14: FAQ and Trou
 
 14. [FAQ and Troubleshooting](14-faq-and-troubleshooting.md)
 15. [Glossary](15-glossary.md)
-16. [What's New in This Build](16-whats-new.md)
 
 ## A note on how Reimagine works with you
 

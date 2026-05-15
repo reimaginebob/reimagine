@@ -117,7 +117,7 @@ This keeps your Phase 1 work (Brand Synthesis, Wiring & Compass) and your Phase 
 
 ## A reminder on what regeneration costs
 
-Each regeneration is a fresh call to Claude. There is no cost to you in money. The only cost is time. Most steps take one to two minutes; the Go-to-Market and Income Now steps take longer because they include live web research.
+Each regeneration produces a fresh version. There is no cost to you in money. The only cost is time. Most steps take one to two minutes; the Go-to-Market and Income Now steps take longer because they include live web research.
 
 Refine and regenerate freely. The tool gets better with that feedback, and so does your output.
 

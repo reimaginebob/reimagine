@@ -84,7 +84,7 @@ There are two things worth knowing:
 
 ## How we protect your data
 
-All connections to Reimagine use HTTPS. Sign-in is passwordless: the link in your email expires after 15 minutes and works only once. Sessions are managed with HttpOnly cookies, which means JavaScript running on the page cannot read them. Your data is stored in a managed Postgres database (Neon, hosted on AWS) with encryption at rest. Inputs sent to Anthropic's Claude service for generation are governed by Anthropic's standard data handling.
+All connections to Reimagine use HTTPS. Sign-in is passwordless: the link in your email expires after 15 minutes and works only once. Your session is protected with secure cookies that pages cannot read. Your data is stored in an encrypted database. Inputs sent to Anthropic's Claude service for generation are governed by Anthropic's standard data handling.
 
 Career Club is a small team and does not currently hold formal security certifications such as SOC 2. If you have specific security or compliance requirements before signing up, email [bob@career.club](mailto:bob@career.club).
 
