@@ -16,7 +16,7 @@ Try the demo at **reimagine2-two.vercel.app/?demo=true** to see what it produces
 
 ## The single most important idea
 
-The quality of your inputs sets the ceiling on the quality of your outputs. The first 20 minutes of the journey. Your resume, your assessment, your values, your passions, and four short reputation prompts. Are where the leverage is. Put your best foot forward at the intake and Reimagine will do the same for you in everything that follows.
+The quality of your inputs determines how much Reimagine can help you. The first 20 minutes of the journey are where the leverage is: your resume, your assessment, your values, your passions, and four short reputation prompts. Put your best foot forward at the intake and Reimagine will do the same for you in everything that follows.
 
 A few specifics: take an assessment if you do not have one (the difference is significant). When you describe your passions, do not filter for what feels professionally relevant. The unexpected combinations are what Reimagine looks for. For the reputation step, dig up old performance reviews, LinkedIn recommendations, and 360 feedback before you start.
 
