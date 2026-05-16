@@ -57,7 +57,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
       })
       if (!res.ok || !res.body) {
         const fallback = res.status === 401
-          ? 'Sign in first and the helper will come back online.'
+          ? 'Sign in first to use Reimagine Help.'
           : 'Sorry, something went wrong. Try again in a moment.'
         setMessages(m => {
           const copy = [...m]
@@ -94,7 +94,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
     } catch {
       setMessages(m => {
         const copy = [...m]
-        copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach the helper just now. Try again in a moment.' }
+        copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach Reimagine Help just now. Try again in a moment.' }
         return copy
       })
     } finally {
@@ -135,7 +135,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
               fontSize: 22, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
               animation: showPulse ? 'pe-chat-pulse-scale 2s ease-in-out infinite' : 'none',
             }}
-            aria-label={showPulse ? 'Need help? Open helper chat' : 'Open helper chat'}
+            aria-label={showPulse ? 'Need help? Open Reimagine Help' : 'Open Reimagine Help'}
           >
             ?
           </button>
@@ -158,7 +158,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
         padding: '14px 18px', borderBottom: '1px solid #E2E5EA',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <div style={{ fontFamily: 'Georgia,serif', fontSize: 19, fontWeight: 600, color: C.gold }}>Reimagine helper</div>
+        <div style={{ fontFamily: 'Georgia,serif', fontSize: 19, fontWeight: 600, color: C.gold }}>Reimagine Help</div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button
             onClick={() => setMessages([INTRO_MSG])}

@@ -37,6 +37,8 @@ A few specifics: take an assessment if you do not have one (the difference is si
 
 **You can speak instead of type.** Most input fields have a microphone button. Tap it and talk.
 
+**Reimagine Help is on every screen.** Click the button in the bottom-right corner to ask a question about how Reimagine works.
+
 **Sign-in is by email.** First visit, enter your email; a sign-in link arrives in your inbox. No password. Sign-in is what makes your work travel across devices.
 
 **You can come back.** Once you choose one direction at the Your Focus step, Reimagine builds your story, target list, LinkedIn, and resume around it. You can later come back to Your Focus, choose a different option, and run that one through the journey too. You only need one new job, but you can explore as many options as you want.
