@@ -1649,21 +1649,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'life-events':return <div>
       {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>}
       <h1 style={S.title}>Your Story</h1>
-      <p style={S.sub}>Sometimes the most distinctive part of how you work comes from a life experience outside your resume. Where you grew up. A role you played in your family. A season that changed you. A community commitment that runs across decades. If something like that shapes who you are at work, share it here.</p>
+      <p style={S.sub}>We'd love to get to know you better. The things that shape who we are often don't show up on a resume, like where we grew up, the role we played in our family, an identity we carry, a person who shaped us, a long-running commitment, or a season that changed us. If something like that comes to mind, share it. One thing or several.</p>
       <div style={S.card}>
         <div style={S.field}>
-          <label style={S.label}>What we'd like to know</label>
-          <div style={S.helperText}>Optional, and only what you're comfortable telling us. Reimagine reads this for patterns that explain your career arc, patterns the resume can't show.</div>
-          <textarea style={{...S.ta,minHeight:180}} value={profile.lifeEvents||''} onChange={e=>pr('lifeEvents',e.target.value)} placeholder="e.g. I grew up translating for my parents who moved to the U.S. from Vietnam. I have always been the person who bridges two worlds. I see that pattern in every role I have taken."/>
-        </div>
-        <div style={{...S.helperText,fontStyle:'italic',marginTop:16}}>
-          Some prompts that may help if you're stuck:
-          <ul style={{marginTop:8,paddingLeft:20}}>
-            <li>A formative role you played in your family.</li>
-            <li>A specific experience that shaped how you operate.</li>
-            <li>A commitment you've held across decades.</li>
-            <li>A way you've always been described that has nothing to do with your career.</li>
-          </ul>
+          <div style={S.helperText}>Optional. Share only what you're comfortable with.</div>
+          <textarea style={{...S.ta,minHeight:180}} value={profile.lifeEvents||''} onChange={e=>pr('lifeEvents',e.target.value)}/>
         </div>
       </div>
       <div style={S.row}><Btn secondary onClick={()=>nav('reputation')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('life-events','orientation-done')}>{(profile.lifeEvents||'').trim()?'Continue':'Continue without sharing'} <ChevronRight size={14}/></Btn></div>
