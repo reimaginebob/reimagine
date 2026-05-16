@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import * as mammoth from "mammoth"
 import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle } from "docx"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import Chat from "./components/Chat"
@@ -860,7 +860,7 @@ function OutPanel({text,onCopy,copied,expandLabel}){
     else{takeaway=afterMarker.trim();full=''}
   }
   return <div data-print="content" style={S.out}>
-    <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>onCopy(text)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
+    <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}><Btn small onClick={()=>onCopy(text)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn><Btn small onClick={()=>window.print()}><Printer size={11}/>Print</Btn></div>
     {hasTakeaway&&full?<>
       <MD text={`## QUICK TAKEAWAY\n${takeaway}`}/>
       <button data-expand="true" onClick={()=>setExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:10,margin:'20px 0 8px',padding:'14px 22px',background:expanded?`${C.gold}15`:`${C.gold}10`,border:`2px solid ${C.gold}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:17,fontWeight:700,color:C.goldL,transition:'all 0.2s',width:'100%'}}>
@@ -1067,6 +1067,28 @@ export default function PivotEngine(){
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);deleteAccount()},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{if(deletingRef.current)return;try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,markedOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,markedOpts,chosen,signedInUser])
+  useEffect(()=>{
+    const originalTitle=document.title
+    const sectionName=META[step]||'Output'
+    const su=signedInUser||{}
+    const fn=(su.first_name||'').trim()
+    const ln=(su.last_name||'').trim()
+    let userName=(fn&&ln)?`${fn} ${ln}`:(fn||ln)
+    if(!userName)userName=(profile.name||'').trim()
+    if(!userName)userName=`${(signupForm.firstName||'').trim()} ${(signupForm.lastName||'').trim()}`.trim()
+    if(!userName)userName='My Reimagine Work'
+    const d=new Date()
+    const dateStr=`${d.getMonth()+1}-${d.getDate()}-${String(d.getFullYear()).slice(-2)}`
+    const printTitle=`Reimagine ${sectionName} ${userName} ${dateStr}`
+    const onBeforePrint=()=>{document.title=printTitle}
+    const onAfterPrint=()=>{document.title=originalTitle}
+    window.addEventListener('beforeprint',onBeforePrint)
+    window.addEventListener('afterprint',onAfterPrint)
+    return ()=>{
+      window.removeEventListener('beforeprint',onBeforePrint)
+      window.removeEventListener('afterprint',onAfterPrint)
+    }
+  },[step,signedInUser,profile.name,signupForm.firstName,signupForm.lastName])
   useEffect(()=>{if(isDemo||isTest)return;if(voiceMigCheckedRef.current)return;if(profile.voiceMigrationDismissed)return;if(!done.includes('complete'))return;if(!Object.values(outputs).some(v=>v&&v.length>0))return;voiceMigCheckedRef.current=true;if(detectStaleVoice(outputs).found)setVoiceMigBanner(true)},[done,outputs,profile.voiceMigrationDismissed])
 
   const pr=(f,v)=>setProfile(p=>({...p,[f]:v}))
