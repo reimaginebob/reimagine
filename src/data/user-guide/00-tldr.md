@@ -1,4 +1,4 @@
-# Reimagine User Guide. TLDR
+# Quick Start Guide
 
 A short summary of the full guide.
 
