@@ -1074,7 +1074,12 @@ export default function PivotEngine(){
     const fn=(su.first_name||'').trim()
     const ln=(su.last_name||'').trim()
     let userName=(fn&&ln)?`${fn} ${ln}`:(fn||ln)
-    if(!userName)userName=(profile.name||'').trim()
+    if(!userName){
+      // No account name (demo, or before the user has an account): derive it from
+      // the resume's first line, the same source the markdown export uses.
+      const rawFirst=((profile.resume||'').split(/\n/).find(l=>l.trim())||'').replace(/[^a-zA-Z ]/g,'').trim()
+      if(rawFirst.length>2&&rawFirst.length<50)userName=rawFirst.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())
+    }
     if(!userName)userName=`${(signupForm.firstName||'').trim()} ${(signupForm.lastName||'').trim()}`.trim()
     if(!userName)userName='My Reimagine Work'
     const d=new Date()
@@ -1088,7 +1093,7 @@ export default function PivotEngine(){
       window.removeEventListener('beforeprint',onBeforePrint)
       window.removeEventListener('afterprint',onAfterPrint)
     }
-  },[step,signedInUser,profile.name,signupForm.firstName,signupForm.lastName])
+  },[step,signedInUser,profile.resume,signupForm.firstName,signupForm.lastName])
   useEffect(()=>{if(isDemo||isTest)return;if(voiceMigCheckedRef.current)return;if(profile.voiceMigrationDismissed)return;if(!done.includes('complete'))return;if(!Object.values(outputs).some(v=>v&&v.length>0))return;voiceMigCheckedRef.current=true;if(detectStaleVoice(outputs).found)setVoiceMigBanner(true)},[done,outputs,profile.voiceMigrationDismissed])
 
   const pr=(f,v)=>setProfile(p=>({...p,[f]:v}))
