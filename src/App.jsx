@@ -2932,11 +2932,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>}
     {showVoiceMigBanner&&<div data-print="hide" style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1001,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'18px 22px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',flexDirection:'column',gap:14,maxWidth:560,width:'calc(100% - 32px)'}}>
       <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.55}}>We tightened the voice across Reimagine for confidence-shaped sections of your work. Click below to regenerate your foundation work with the new voice. Your Brand Synthesis, Wide View, Bridge Story, and downstream playbook will refresh to match. This takes 5 to 10 minutes total.</div>
+        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.55}}>Reimagine's writing has improved since you completed this. Refreshing your work updates it to use the cleaner version. Your choices stay the same; only the language reads better. Takes 10 to 15 minutes. Worth doing now if you have the time.</div>
         <button onClick={dismissVoiceMig} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#718096',fontSize:18,cursor:'pointer',padding:4,fontFamily:'inherit',flexShrink:0}}>×</button>
       </div>
       <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-        <Btn onClick={regenVoiceMig}>Regenerate My Foundation</Btn>
+        <Btn onClick={regenVoiceMig}>Refresh My Work</Btn>
         <Btn secondary onClick={dismissVoiceMig}>Not Now</Btn>
       </div>
     </div>}
