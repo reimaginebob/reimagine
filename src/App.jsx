@@ -1130,11 +1130,8 @@ export default function PivotEngine(){
   const[deepExpanded,setDeepExpanded]=useState(false)
   const[hasProgress,setHasProgress]=useState(false)
   const[laneTab,setLaneTab]=useState(0)
-  const[p3Intro,setP3Intro]=useState(true)
   const[p4Intro,setP4Intro]=useState(true)
-  const[p6Intro,setP6Intro]=useState(true)
   const[p7Intro,setP7Intro]=useState(true)
-  const[incomeIntro,setIncomeIntro]=useState(true)
   const[p9Intro,setP9Intro]=useState(true)
   const[storyInputs,setStoryInputs]=useState({})
   const[storyLoading,setStoryLoading]=useState(null)
@@ -1890,7 +1887,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <OutPanel text={outputs.p2} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p2} onChange={v=>setFb('p2',v)} hint="Does this capture how you actually work? If we mischaracterized your wiring, your strengths, or what energizes you, tell us." placeholder="e.g. 'I thrive in fast-paced environments, not deliberate ones.' Or: 'Mentoring is my biggest source of energy, you ranked it third.' Or: 'I am not an introvert at work, just selective.'" onRegenerate={v=>{cascadeInvalidate('p2');recordCorrection('p2',v);out('p2','');generate('p2',()=>P.p2(pc,outputs.p1)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Time to bring it all together: your accomplishments, your durable qualities, and your values, into one clear statement of who you are professionally.</div>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p2','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p2','p3')}>Build My Brand <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p2','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>{advance('p2','p3');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}}>Build My Brand <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -1901,34 +1898,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
       <h1 style={S.title}>Brand Synthesis</h1>
       {!isDemo&&<p style={S.sub}>This step turns your resume, your wiring, and your reputation into a two-sentence answer to "what do you do" and the capabilities that back it up.</p>}
-      {!isDemo&&!outputs.p3&&!loading&&p3Intro&&(()=>{
-        const cards=[
-          {icon:<Fingerprint size={34} color={C.gold}/>,name:'The Golden Thread',desc:'The single consistent theme that runs through your accomplishments, how you operate, and what others say about you. Reimagine names it for you so you can use it in conversation.'},
-          {icon:<MessageCircle size={34} color={C.gold}/>,name:'Your Personal Brand',desc:'A clear, two-sentence statement of what you do and why your combination is distinctive. A direct answer to "what do you do" that you can use in a real conversation.'},
-          {icon:<Puzzle size={34} color={C.gold}/>,name:'Your Value Proposition',desc:'The specific capabilities that set you apart, each backed by proof from your track record. Not a list of skills, a map of what you bring and the evidence that it works.'}
-        ]
-        return <div style={{maxWidth:820,margin:'0 auto'}}>
-          <div style={{textAlign:'center',marginBottom:40}}>
-            <div style={{width:72,height:72,borderRadius:18,background:`${C.gold}15`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}><Sparkles size={32} color={C.gold}/></div>
-            <h2 style={{fontSize:34,fontWeight:700,color:'#1A2540',marginBottom:16}}>Your Professional Identity</h2>
-            <p style={{fontSize:20,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>We just analyzed three layers of data: your resume, your durable qualities, and your reputation. Now we distill all of it into a clear professional identity you can use everywhere: in interviews, on LinkedIn, and in conversations that matter.</p>
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
-            {cards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
-              <div style={{width:62,height:62,borderRadius:14,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
-              <div>
-                <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
-                <div style={{fontSize:18,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
-              </div>
-            </div>)}
-          </div>
-          <div style={{background:'#F0F4F8',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'24px 28px',marginBottom:32}}>
-            <div style={{fontSize:18,color:'#1A2540',lineHeight:1.75,fontWeight:500}}>On the next screen, you will see your brand synthesis: the golden thread, your personal brand statement, and a value proposition with proof points from your career. Read it carefully and let us know if anything feels off. This becomes the foundation for everything that follows.</div>
-          </div>
-          <div style={{textAlign:'center'}}><Btn onClick={()=>{setP3Intro(false);generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}}><Sparkles size={14}/>Synthesize My Brand</Btn></div>
-        </div>
-      })()}
-      {!isDemo&&!outputs.p3&&!loading&&!p3Intro&&<Btn onClick={()=>generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}><Sparkles size={14}/>Synthesize My Brand</Btn>}
+      {!isDemo&&!outputs.p3&&!loading&&<Btn onClick={()=>generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}><Sparkles size={14}/>Synthesize My Brand</Btn>}
       {loading&&<Loading msg="Finding the pattern across all your data…" step="p3"/>}
       {outputs.p3&&!isDemo&&!hasSeenP3Milestone?<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'32px 36px',borderRadius:12,margin:'0 auto 24px',maxWidth:720}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:26,color:'#1A2540',margin:'0 0 16px',fontWeight:700}}>Where your work and your wiring meet</h2>
@@ -1954,7 +1924,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the brand or value proposition misses the mark, tell us what's off." placeholder="e.g. 'My golden thread is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The brand line does not match how my colleagues describe me.'" onRegenerate={v=>{cascadeInvalidate('p3');recordCorrection('p3',v);out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Let's see what's possible: the full landscape of directions that fit your strengths, values, and interests.</div>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');setP3Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -2358,7 +2328,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:16,color:C.gray,marginTop:9}}>Or close the tool and come back, your progress is saved automatically.</div>
         </div>
         {err&&<ErrBox msg={err}/>}
-        <div style={S.row}><Btn onClick={()=>{if(!chosen){setErr('Please enter your decision to continue.');return}const initial=decisionInitialChosenRef.current;if(initial&&initial!==chosen&&outputs.p6)cascadeInvalidate('chosen');advance('decision','p6')}}>Build My Bridge Story <ChevronRight size={14}/></Btn></div>
+        <div style={S.row}><Btn onClick={()=>{if(!chosen){setErr('Please enter your decision to continue.');return}const initial=decisionInitialChosenRef.current;if(initial&&initial!==chosen&&outputs.p6)cascadeInvalidate('chosen');advance('decision','p6');generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:5000})}}>Build My Bridge Story <ChevronRight size={14}/></Btn></div>
       </>}
     </div>
 
@@ -2369,40 +2339,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <h1 style={S.title}>Your Bridge Story</h1>
       {!isDemo&&<p style={S.sub}>Tell your story clearly, concisely, and compellingly, connecting where you've been to where you're heading.</p>}
       <div style={S.note}>Pursuing: <strong style={{color:C.cream}}>{chosen}</strong></div>
-      {!isDemo&&!outputs.p6&&!loading&&p6Intro&&(()=>{
-        const cards=[
-          {icon:<Fingerprint size={34} color={C.gold}/>,name:'Start With Who You Are',desc:'The best answers to "tell me about yourself" start with something personal: a value, a passion, a pattern that makes you the one person in the conversation they remember. The job title comes later.'},
-          {icon:<Target size={34} color={C.gold}/>,name:'Connect It to What You Have Done',desc:'Your accomplishments happened because of all of who you are: your wiring, your values, your life experiences, the things you care about. We connect that whole picture to two or three proof points (made money, saved money, mitigated risk), and the listener walks away with a story they remember.'},
-          {icon:<Send size={34} color={C.gold}/>,name:'Land on Where You Are Headed',desc:'The close frames your next move as the natural next chapter. When all three parts connect, the listener walks away thinking: of course that is what they should do next.'}
-        ]
-        return <div style={{maxWidth:820,margin:'0 auto'}}>
-          <div style={{textAlign:'center',marginBottom:40}}>
-            <div style={{width:72,height:72,borderRadius:18,background:`${C.gold}15`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}><Sparkles size={32} color={C.gold}/></div>
-            <h2 style={{fontSize:34,fontWeight:700,color:'#1A2540',marginBottom:16}}>Your Bridge Story</h2>
-            <p style={{fontSize:20,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto 18px'}}>The opening 30 seconds of an interview shapes everything that follows. Here is a three-part formula that makes your answer memorable, personal, and impossible to confuse with anyone else in the room.</p>
-            <p style={{fontSize:18,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>"Tell me about yourself" is the first question in most interviews. Most answers are a recital of the resume: what you did and where. The best answers are the why behind the what, the durable qualities that explain why those results happened. This is your color behind the black and white of the work itself.</p>
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
-            {cards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
-              <div style={{width:62,height:62,borderRadius:14,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
-              <div>
-                <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
-                <div style={{fontSize:18,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
-              </div>
-            </div>)}
-          </div>
-          <div style={{background:'#F0F4F8',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'24px 28px',marginBottom:32}}>
-            <div style={{fontSize:18,color:'#1A2540',lineHeight:1.75,fontWeight:500}}>On the next screen, we will write your complete "tell me about yourself" answer, plus coaching on what makes it stick and the three things people will remember after you leave the room. Read it out loud, it should sound like you, not like a script.</div>
-          </div>
-          <div style={{textAlign:'center'}}><Btn onClick={()=>{setP6Intro(false);generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:5000})}}><Sparkles size={14}/>Write My Bridge Story</Btn></div>
-        </div>
-      })()}
-      {!isDemo&&!outputs.p6&&!loading&&!p6Intro&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:5000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
+      {!isDemo&&!outputs.p6&&!loading&&<Btn onClick={()=>generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:5000})}><Sparkles size={14}/>Write My Bridge Story</Btn>}
       {loading&&<Loading msg="Crafting your bridge story in three lengths…" step="p6"/>}
       {outputs.p6&&<>{!isDemo&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:'#1A2540',lineHeight:1.65}}>
         <strong>Learn the structure, then make it yours.</strong>
         <p style={{margin:'8px 0 0'}}>Your Bridge Story is built on three pieces: a human truth about who you are, the professional proof that follows from it, and the next chapter that fits. Once you can name those three, you can carry the structure into any real conversation, in your own words. The exact phrasing below is a starting point, not a script.</p>
-      </div>}<OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like you? If the story misreads your motivation, your transition, or the through-line, tell us." placeholder="e.g. 'My pivot was not to find more meaning; I was forced out.' Or: 'You called my last role a step back; it was lateral.' Or: 'The opening line does not sound like me.'" onRegenerate={v=>{cascadeInvalidate('p6');recordCorrection('p6',v);out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:5000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p6','');setP6Intro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
+      </div>}<OutPanel text={outputs.p6} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like you? If the story misreads your motivation, your transition, or the through-line, tell us." placeholder="e.g. 'My pivot was not to find more meaning; I was forced out.' Or: 'You called my last role a step back; it was lateral.' Or: 'The opening line does not sound like me.'" onRegenerate={v=>{cascadeInvalidate('p6');recordCorrection('p6',v);out('p6','');generate('p6',()=>P.p6(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:5000})}}/>}{!isDemo&&<div style={{margin:'20px 0 10px',fontSize:16,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Your story is ready. Now let's find the right companies and build outreach to the people you'd want to reach.</div>}{!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p6','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p6','p7')}>Find My Market <ChevronRight size={14}/></Btn></div>}</>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
@@ -2884,39 +2826,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <h1 style={S.title}>Income Now</h1>
       <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>Targeting: <strong>{chosen||'your chosen direction'}</strong></div>
       {incomeCallout}
-      {!isDemo&&!outputs.income&&!loading&&incomeIntro&&(()=>{
-        const cards=[
-          {icon:<DollarSign size={34} color="#7AB87A"/>,name:'Consulting & Fractional Leadership',desc:'Your expertise has market value right now. We identify consulting and fractional roles where your seniority and track record command premium rates, without waiting for a full-time offer.'},
-          {icon:<Clock size={34} color="#7AB87A"/>,name:'Bridge the Gap',desc:'A job search takes time, and having income flowing changes the dynamic completely. You make better decisions when you are choosing, not settling. These options keep revenue coming in while you search.'},
-          {icon:<Lightbulb size={34} color="#7AB87A"/>,name:'Leverage What You Know',desc:'Advisory boards, speaking engagements, coaching, content. Ways to monetize your expertise that build your visibility and credibility for your target role at the same time.'}
-        ]
-        return <div style={{maxWidth:820,margin:'0 auto'}}>
-          <div style={{textAlign:'center',marginBottom:40}}>
-            <div style={{width:72,height:72,borderRadius:18,background:'#7AB87A15',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}><DollarSign size={32} color="#7AB87A"/></div>
-            <h2 style={{fontSize:34,fontWeight:700,color:'#1A2540',marginBottom:16}}>Income While You Search</h2>
-            <p style={{fontSize:20,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>Your job search is an investment in your future, but it does not have to mean putting income on hold. This module identifies ways to generate revenue right now using the expertise you already have, matched to your seniority and target market.</p>
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
-            {cards.map((card,i)=><div key={i} style={{background:'white',border:'1.5px solid #7AB87A30',borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
-              <div style={{width:62,height:62,borderRadius:14,background:'#7AB87A12',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
-              <div>
-                <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
-                <div style={{fontSize:18,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
-              </div>
-            </div>)}
-          </div>
-          <div style={{background:'#F0F8F0',border:'1.5px solid #7AB87A30',borderRadius:14,padding:'24px 28px',marginBottom:32}}>
-            <div style={{fontSize:18,color:'#1A2540',lineHeight:1.75,fontWeight:500}}>On the next screen, we will build a personalized income plan with specific opportunities, realistic rate ranges, and actionable first steps you can take this week. Everything is matched to your experience level and the market you are targeting.</div>
-          </div>
-          <div style={{textAlign:'center'}}><Btn onClick={()=>{setIncomeIntro(false);generate('income',()=>P.income(pc,outputs,chosen),{maxTokens:6000,msg:'Building your Income Now plan…'})}} style={{background:'#7AB87A'}}><Sparkles size={14}/>Build My Income Plan</Btn></div>
-        </div>
-      })()}
-      {!isDemo&&!outputs.income&&!loading&&!incomeIntro&&<Btn onClick={()=>generate('income',()=>P.income(pc,outputs,chosen),{maxTokens:6000,msg:'Building your Income Now plan…'})} style={{background:'#7AB87A'}}><Sparkles size={14}/>Build My Income Plan</Btn>}
+      {!isDemo&&!outputs.income&&!loading&&<Btn onClick={()=>generate('income',()=>P.income(pc,outputs,chosen),{maxTokens:6000,msg:'Building your Income Now plan…'})} style={{background:'#7AB87A'}}><Sparkles size={14}/>Build My Income Plan</Btn>}
       {loading&&<Loading msg="Building your Income Now plan, this one is thorough…" step="income"/>}
       {outputs.income&&<>
         <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.income} onChange={v=>setFb('income',v)} hint="Did we misread your readiness for any of these income paths, or miss one that fits? Tell us." placeholder="e.g. 'I have a strong network for fractional work; lead with that.' Or: 'You suggested coaching; I have no interest.' Or: 'The platform recommendations do not match my pricing.'" updateLabel="Update my plan" freshLabel="Show me a fresh plan" onRegenerate={v=>{cascadeInvalidate('income');recordCorrection('income',v);out('income','');generate('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:6000})}}/>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('income','');setIncomeIntro(false);window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('income','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to Results</Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>}
