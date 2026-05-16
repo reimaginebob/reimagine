@@ -1,0 +1,142 @@
+/*
+ * Print stylesheet for Reimagine.
+ *
+ * Reimagine renders everything with inline React styles, so a stylesheet rule
+ * only wins with !important. These rules are scoped entirely inside
+ * @media print and have zero effect on the normal rendered app.
+ *
+ * The app shell is a 100vh box (overflow: hidden) wrapping a scrollable
+ * content column (overflow-y: auto). Those constraints are inline styles on
+ * plain divs with no class hooks, so the reset is anchored on #root rather
+ * than on `main` (there is no <main> element here). data-print="hide" marks
+ * chrome to drop; data-print="content" marks the column to expand to paper.
+ */
+
+@media print {
+  @page {
+    size: letter;
+    margin: 0.75in;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    font-family: Georgia, 'Times New Roman', serif !important;
+    font-size: 12pt !important;
+    line-height: 1.5 !important;
+  }
+
+  #root {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Neutralize the inline-styled shell: 100vh heights, overflow:hidden, and
+     the overflow-y:auto scroll container all clip the print otherwise. */
+  #root * {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+  }
+
+  /* Chrome that does not belong on paper. button covers every <Btn> and the
+     OutPanel expand toggle since both render real <button> elements. */
+  [data-print='hide'],
+  nav,
+  aside,
+  footer,
+  button {
+    display: none !important;
+  }
+
+  /* Expand the printable content column to the full page width. */
+  [data-print='content'] {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+    flex: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  /* Typography for paper. */
+  h1 {
+    font-size: 22pt !important;
+    margin-top: 0 !important;
+    margin-bottom: 12pt !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  h2 {
+    font-size: 16pt !important;
+    margin-top: 18pt !important;
+    margin-bottom: 8pt !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  h3 {
+    font-size: 14pt !important;
+    margin-top: 12pt !important;
+    margin-bottom: 6pt !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-size: 12pt !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  p,
+  li,
+  blockquote {
+    color: #000000 !important;
+    page-break-inside: avoid !important;
+  }
+
+  ul,
+  ol {
+    padding-left: 22pt !important;
+  }
+
+  /* lucide-react renders decorative SVG icons. None are content. */
+  svg {
+    display: none !important;
+  }
+
+  /* Show link targets on paper, but not internal anchors or JS hrefs. */
+  a {
+    color: #000000 !important;
+    text-decoration: underline !important;
+  }
+
+  a[href]:after {
+    content: ' (' attr(href) ')' !important;
+    font-size: 10pt !important;
+    color: #555555 !important;
+    word-break: break-all !important;
+  }
+
+  a[href^='#']:after,
+  a[href^='javascript:']:after {
+    content: '' !important;
+  }
+}

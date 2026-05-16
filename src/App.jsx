@@ -859,7 +859,7 @@ function OutPanel({text,onCopy,copied,expandLabel}){
     if(splitAt!==-1){takeaway=afterMarker.slice(0,splitAt).trim();full=afterMarker.slice(splitAt).replace(/^[\n-]+/,'')}
     else{takeaway=afterMarker.trim();full=''}
   }
-  return <div style={S.out}>
+  return <div data-print="content" style={S.out}>
     <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>onCopy(text)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
     {hasTakeaway&&full?<>
       <MD text={`## QUICK TAKEAWAY\n${takeaway}`}/>
@@ -908,7 +908,7 @@ function SpeechBtn({onResult,style}){
 }
 function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel}){
   const[open,setOpen]=useState(false)
-  return <div style={{marginTop:28,marginBottom:28,border:`2px solid ${C.gold}`,borderRadius:12,overflow:'hidden',background:`${C.gold}10`}}>
+  return <div data-print="hide" style={{marginTop:28,marginBottom:28,border:`2px solid ${C.gold}`,borderRadius:12,overflow:'hidden',background:`${C.gold}10`}}>
     <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <div style={{width:8,height:8,borderRadius:'50%',background:C.gold,flexShrink:0}}/>
@@ -2896,11 +2896,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   return <>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
-    {invalidationBanner&&<div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1000,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'14px 20px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',alignItems:'center',gap:16,maxWidth:720}}>
+    {invalidationBanner&&<div data-print="hide" style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1000,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'14px 20px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',alignItems:'center',gap:16,maxWidth:720}}>
       <div style={{fontSize:18,color:'#1A2540',lineHeight:1.5}}>{invalidationBanner.message}</div>
       <button onClick={()=>setInvalidationBanner(null)} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#718096',fontSize:18,cursor:'pointer',padding:4,fontFamily:'inherit',flexShrink:0}}>×</button>
     </div>}
-    {showVoiceMigBanner&&<div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1001,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'18px 22px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',flexDirection:'column',gap:14,maxWidth:560,width:'calc(100% - 32px)'}}>
+    {showVoiceMigBanner&&<div data-print="hide" style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1001,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'18px 22px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',flexDirection:'column',gap:14,maxWidth:560,width:'calc(100% - 32px)'}}>
       <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
         <div style={{fontSize:18,color:'#1A2540',lineHeight:1.55}}>We tightened the voice across Reimagine for confidence-shaped sections of your work. Click below to regenerate your foundation work with the new voice. Your Brand Synthesis, Wide View, Bridge Story, and downstream playbook will refresh to match. This takes 5 to 10 minutes total.</div>
         <button onClick={dismissVoiceMig} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#718096',fontSize:18,cursor:'pointer',padding:4,fontFamily:'inherit',flexShrink:0}}>×</button>
@@ -2911,7 +2911,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     </div>}
     <div style={{height:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
-      {migrationOpen&&!signedInUser&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      {migrationOpen&&!signedInUser&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
         <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:520,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
           <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Save your work across devices.</h2>
           <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:20}}>Sign up with your email to save your progress. Next time you open Reimagine on any device, your work will be there.</p>
@@ -2921,14 +2921,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
         </div>
       </div>}
-      {isSmallPortrait&&!mobileBannerDismissed&&<div style={{background:'#1A2540',color:'#FFFFFF',padding:'14px 16px',display:'flex',alignItems:'flex-start',gap:12,fontSize:17,lineHeight:1.5,borderBottom:`2px solid ${C.gold}`,flexShrink:0}}>
+      {isSmallPortrait&&!mobileBannerDismissed&&<div data-print="hide" style={{background:'#1A2540',color:'#FFFFFF',padding:'14px 16px',display:'flex',alignItems:'flex-start',gap:12,fontSize:17,lineHeight:1.5,borderBottom:`2px solid ${C.gold}`,flexShrink:0}}>
         <div style={{flex:1}}>
           <div style={{fontWeight:700,marginBottom:4}}>Reimagine works best on a larger screen.</div>
           <div style={{fontSize:16,color:'#CBD5E0'}}>For the best experience, rotate your phone to landscape, or open this on a tablet or laptop.</div>
         </div>
         <button onClick={dismissMobileBanner} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#CBD5E0',fontSize:22,cursor:'pointer',padding:'0 4px',lineHeight:1,fontFamily:'inherit'}}>×</button>
       </div>}
-      <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+      <div data-print="hide" style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <a href="/" style={{textDecoration:'none',cursor:'pointer'}}>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="148" height="34" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
             <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.25"/>
@@ -2948,18 +2948,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {!isDemo&&!signedInUser&&<button onClick={()=>{setSignedUp(false);setMagicLinkSentTo(null)}} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign in</button>}
         </div>
       </div>
-      {authToast&&<div style={{background:authToast==='ok'?'#7AB87A':'#C8924A',color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:16,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12,flexShrink:0}}>
+      {authToast&&<div data-print="hide" style={{background:authToast==='ok'?'#7AB87A':'#C8924A',color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:16,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12,flexShrink:0}}>
         <span>{authToast==='ok'?`Signed in${signedInUser?.email?` as ${signedInUser.email}`:''}.`:authToast==='invalid'?'That sign-in link is not valid. Request a new one.':authToast==='used'?'That sign-in link has already been used. Request a new one.':authToast==='expired'?'That sign-in link expired. Request a new one.':''}</span>
         <button onClick={()=>setAuthToast(null)} style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>Dismiss</button>
       </div>}
       <div style={{display:'flex',flex:1,minHeight:0}}>
-        <div style={{width:260,background:'#1A2540',borderRight:'1px solid #0F1A30',padding:'16px 0',overflowY:'auto',flexShrink:0}}>
+        <div data-print="hide" style={{width:260,background:'#1A2540',borderRight:'1px solid #0F1A30',padding:'16px 0',overflowY:'auto',flexShrink:0}}>
           {isDemo&&<div style={{pointerEvents:'none'}}>
             <Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog}/>
           </div>}
           {!isDemo&&<Sidebar step={step} done={done} onNav={nav} prog={prog}/>}
         </div>
-        <div style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
+        <div data-print="content" style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
               <h2 style={{fontFamily:'Georgia,serif',fontSize:26,fontWeight:700,color:'#1A2540',margin:0}}>{demoGuide.title}</h2>
@@ -2968,7 +2968,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <p style={{fontSize:18,color:'#2D3748',lineHeight:1.75,margin:0}}>{demoGuide.desc}</p>
           </div>}
           {isDemo&&step!=='welcome'?<div className="demo-content">{rStep()}</div>:rStep()}
-          <footer style={{marginTop:40,padding:'20px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',textAlign:'center'}}>
+          <footer data-print="hide" style={{marginTop:40,padding:'20px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',textAlign:'center'}}>
             <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',background:'#FFFFFF',border:`1px solid ${C.gold}`,borderRadius:8,color:C.gold,fontWeight:600,fontSize:17,textDecoration:'none'}}>Read the full User Guide (PDF)</a>
             <p style={{margin:'8px 0 0',fontSize:15,color:'#718096',lineHeight:1.5}}>Everything Reimagine does, explained in plain English.</p>
             <p style={{margin:'14px 0 0',fontSize:14,color:'#718096'}}>

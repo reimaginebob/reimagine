@@ -22,6 +22,7 @@ export default function CookieBanner() {
 
   return (
     <div
+      data-print="hide"
       role="region"
       aria-label="Cookie notice"
       style={{

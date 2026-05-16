@@ -106,7 +106,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
     return (
       <>
         {showPulse && <style>{"@keyframes pe-chat-pulse-scale{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}@keyframes pe-chat-pulse-fade{0%,100%{opacity:0.7}50%{opacity:1}}"}</style>}
-        <div style={{
+        <div data-print="hide" style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
@@ -145,7 +145,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
   }
 
   return (
-    <div style={{
+    <div data-print="hide" style={{
       position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
       width: 380, maxWidth: 'calc(100vw - 24px)', height: 560, maxHeight: 'calc(100vh - 48px)',
       background: '#fff',

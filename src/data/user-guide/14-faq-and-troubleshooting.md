@@ -87,7 +87,7 @@ Four ways:
 4. Click **Copy All** on any section to copy that section's text to your clipboard. The output strips markdown symbols so the paste is clean.
 
 **Can I print the full output?**
-Use **Copy All** on each section, paste into a document, and print from there. The one-page PDF is also printable.
+Yes. Press Ctrl+P on Windows or Cmd+P on Mac from the section you want to print. Reimagine produces a clean printout of that section: the full content, paper-friendly type, no sidebar or buttons. From the print dialog you can save it as a PDF or send it to a printer. If you would rather paste into a document first, use **Copy All** at the top of the section. Both paths work, so pick whichever fits how you want to use the output. The one-page PDF on the Complete screen is also printable.
 
 **Where do I share feedback about Reimagine itself?**
 There is a short feedback survey on the **Complete** screen at the end of the journey. Otherwise, email Bob at [bob@career.club](mailto:bob@career.club).

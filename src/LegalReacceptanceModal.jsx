@@ -53,6 +53,7 @@ export default function LegalReacceptanceModal({
 
   return (
     <div
+      data-print="hide"
       style={{
         position: 'fixed',
         inset: 0,
