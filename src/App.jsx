@@ -339,6 +339,9 @@ const PHASES=[
 ]
 const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',narrowing:'Narrow Your Picks',p5:'The Deep Dive',decision:'Your Focus',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
 const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','life-events','orientation-done','p1','p2','p3','p4','narrowing','p5','decision','p6','p7','p8','p_res','p9','complete','income','op']
+// Captured at module load (before any beforeprint can change document.title) so
+// afterprint always restores the true base title regardless of effect re-runs.
+const BASE_DOC_TITLE=typeof document!=='undefined'?document.title:'Reimagine'
 
 const S={
   title:{fontFamily:'Georgia,serif',fontSize:38,fontWeight:700,color:"#1A2540",margin:'0 0 14px',lineHeight:1.2},
@@ -1068,7 +1071,6 @@ export default function PivotEngine(){
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);deleteAccount()},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{if(deletingRef.current)return;try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,markedOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,markedOpts,chosen,signedInUser])
   useEffect(()=>{
-    const originalTitle=document.title
     const sectionName=META[step]||'Output'
     const su=signedInUser||{}
     const fn=(su.first_name||'').trim()
@@ -1086,7 +1088,7 @@ export default function PivotEngine(){
     const dateStr=`${d.getMonth()+1}-${d.getDate()}-${String(d.getFullYear()).slice(-2)}`
     const printTitle=`Reimagine ${sectionName} ${userName} ${dateStr}`
     const onBeforePrint=()=>{document.title=printTitle}
-    const onAfterPrint=()=>{document.title=originalTitle}
+    const onAfterPrint=()=>{document.title=BASE_DOC_TITLE}
     window.addEventListener('beforeprint',onBeforePrint)
     window.addEventListener('afterprint',onAfterPrint)
     return ()=>{
