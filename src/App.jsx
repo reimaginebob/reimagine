@@ -2149,7 +2149,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <p style={{margin:0}}>If a role is not what you thought it was, the "What did we get wrong?" box below sharpens it.</p>
           </CoachingCallout>}
           {p5Takeaway&&<div style={S.out}>
-            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(outputs.p5)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
+            <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}><Btn small onClick={()=>copy(outputs.p5)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn><Btn small onClick={()=>window.print()}><Printer size={11}/>Print</Btn></div>
             <MD text={`## QUICK TAKEAWAY\n${p5Takeaway}`}/>
             <button data-expand="true" onClick={()=>setDeepExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:10,margin:'20px 0 8px',padding:'14px 22px',background:deepExpanded?`${C.gold}15`:`${C.gold}10`,border:`2px solid ${C.gold}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:17,fontWeight:700,color:C.goldL,transition:'all 0.2s',width:'100%'}}>
               <ChevronRight size={18} style={{transform:deepExpanded?'rotate(90deg)':'none',transition:'transform 0.2s'}}/>
@@ -2325,7 +2325,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         const part12=splitPoint>0?cleanText.slice(0,splitPoint):cleanText
         const part34=splitPoint>0?cleanText.slice(splitPoint):''
         return <>
-          <div style={S.out}><div style={{fontSize:16,color:C.goldL,fontStyle:'italic',lineHeight:1.6,marginBottom:14,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6}}>Note: contact names are surfaced from public sources and may be out of date. Verify on LinkedIn or the company website before reaching out.</div><div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}><Btn small onClick={()=>copy(cleanText)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div><MD text={part12}/></div>
+          <div style={S.out}><div style={{fontSize:16,color:C.goldL,fontStyle:'italic',lineHeight:1.6,marginBottom:14,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6}}>Note: contact names are surfaced from public sources and may be out of date. Verify on LinkedIn or the company website before reaching out.</div><div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}><Btn small onClick={()=>copy(cleanText)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn><Btn small onClick={()=>window.print()}><Printer size={11}/>Print</Btn></div><MD text={part12}/></div>
           <div style={{margin:'16px 0',padding:'16px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
             <div>
               <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:4}}>Download your company list</div>
@@ -2712,6 +2712,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Check size={16} color={C.ok} strokeWidth={2.5}/>
           <div style={{fontSize:18,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
         </div>
+        <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}><Btn small onClick={()=>window.print()}><Printer size={11}/>Print</Btn></div>
         {[['Your Personal Brand','p3',outputs.p3],['Your Bridge Story','p6',outputs.p6],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Your Playbook','p9',(outputs.p9||'')+(outputs.p11?'\n\n---\n\n'+outputs.p11:'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:17,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
 
         <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:17,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
