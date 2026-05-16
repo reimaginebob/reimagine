@@ -123,7 +123,7 @@ function renderMarkdown(md) {
   return blocks
 }
 
-export default function LegalPage({ markdown }) {
+export default function MarkdownPage({ markdown, topBack = false, footerExtra = null }) {
   return (
     <div style={{ minHeight: '100vh', background: COL.bg, fontFamily: 'Outfit,sans-serif' }}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -134,6 +134,7 @@ export default function LegalPage({ markdown }) {
           padding: '12px 24px',
           display: 'flex',
           alignItems: 'center',
+          ...(topBack ? { justifyContent: 'space-between' } : {}),
         }}
       >
         <a href="/" style={{ textDecoration: 'none', cursor: 'pointer' }}>
@@ -151,6 +152,22 @@ export default function LegalPage({ markdown }) {
             </text>
           </svg>
         </a>
+        {topBack && (
+          <a
+            href="/"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              color: '#FFFFFF',
+              fontWeight: 600,
+              fontSize: 16,
+              textDecoration: 'none',
+            }}
+          >
+            ← Back to Reimagine
+          </a>
+        )}
       </div>
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 24px 80px' }}>
         <div style={{ maxWidth: '65ch' }}>{renderMarkdown(markdown)}</div>
@@ -173,6 +190,7 @@ export default function LegalPage({ markdown }) {
           >
             Back to Reimagine
           </a>
+          {footerExtra && <div style={{ marginTop: 20 }}>{footerExtra}</div>}
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
-import LegalPage from './LegalPage'
+import MarkdownPage from './MarkdownPage'
 import { TERMS_MD } from './legalDocs'
 
 export default function Terms() {
-  return <LegalPage markdown={TERMS_MD} />
+  return <MarkdownPage markdown={TERMS_MD} />
 }

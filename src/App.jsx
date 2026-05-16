@@ -7,6 +7,7 @@ import { testProfile } from "./testData"
 import Chat from "./components/Chat"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
+import QuickStart from "./QuickStart"
 import CookieBanner from "./CookieBanner"
 import LegalReacceptanceModal from "./LegalReacceptanceModal"
 import { PRIVACY_VERSION, TOS_VERSION, PRIVACY_VERSION_MATERIAL, TOS_VERSION_MATERIAL } from "./config/legal"
@@ -970,6 +971,7 @@ export default function PivotEngine(){
   const _path=typeof window!=='undefined'?(window.location.pathname.replace(/\/+$/,'')||'/'):'/'
   if(_path==='/privacy')return <Privacy/>
   if(_path==='/terms')return <Terms/>
+  if(_path==='/quick-start')return <QuickStart/>
   const isDemo=_params.get('demo')==='true'
   const isTest=_params.get('test')==='true'
   const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',linkedin:'',linkedinFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',corrections:[],jd:'',jdFile:''}
@@ -1391,6 +1393,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn onClick={()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step&&d.step!=='welcome'){setStep(d.step)}else if(d.done&&d.done.length>0){setStep(d.done[d.done.length-1])}}}catch{}}} style={{background:C.gold}}>Continue Where I Left Off <ChevronRight size={14}/></Btn>
           {signedInUser&&<button onClick={deleteAccount} style={{background:'transparent',color:'#CBD5E0',border:'none',padding:'4px 0',fontSize:15,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Or start fresh (delete everything and begin again)</button>}
         </div>
+      </div>}
+      {!hasProgress&&!isDemo&&!isTest&&<div style={{background:'#1A2540',borderRadius:12,padding:'18px 28px',marginBottom:24,display:'flex',justifyContent:'center'}}>
+        <Btn onClick={()=>{window.location.href='/quick-start'}} style={{background:C.gold}}>Read the Quick Start Guide <ChevronRight size={14}/></Btn>
       </div>}
       <div style={{display:'flex',justifyContent:'flex-start',alignItems:'flex-start',marginBottom:16}}>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="380" height="132" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>

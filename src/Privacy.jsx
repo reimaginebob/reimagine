@@ -1,6 +1,6 @@
-import LegalPage from './LegalPage'
+import MarkdownPage from './MarkdownPage'
 import { PRIVACY_MD } from './legalDocs'
 
 export default function Privacy() {
-  return <LegalPage markdown={PRIVACY_MD} />
+  return <MarkdownPage markdown={PRIVACY_MD} />
 }
