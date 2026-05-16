@@ -76,7 +76,7 @@
   h1 {
     font-size: 22pt !important;
     margin-top: 0 !important;
-    margin-bottom: 12pt !important;
+    margin-bottom: 4pt !important;
     page-break-after: avoid !important;
     break-after: avoid !important;
   }
@@ -84,7 +84,7 @@
   h2 {
     font-size: 16pt !important;
     margin-top: 18pt !important;
-    margin-bottom: 8pt !important;
+    margin-bottom: 3pt !important;
     page-break-after: avoid !important;
     break-after: avoid !important;
   }
@@ -92,7 +92,7 @@
   h3 {
     font-size: 14pt !important;
     margin-top: 12pt !important;
-    margin-bottom: 6pt !important;
+    margin-bottom: 2pt !important;
     page-break-after: avoid !important;
     break-after: avoid !important;
   }
