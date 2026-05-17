@@ -1143,6 +1143,8 @@ export default function PivotEngine(){
   const[exploredRoleTitles,setExploredRoleTitles]=useState([])
   const[npsAsked,setNpsAsked]=useState(false)
   const[migratedFromPreV1,setMigratedFromPreV1]=useState(false)
+  const[generatingSection,setGeneratingSection]=useState(null)
+  const[sectionErrors,setSectionErrors]=useState({})
   const[demoIdx,setDemoIdx]=useState(0)
   const[activeTab,setActiveTab]=useState(0)
   const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})
@@ -1318,7 +1320,9 @@ export default function PivotEngine(){
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
     logCorrection(correction)
   }
-  const generate=async(key,fn,opts={})=>{window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(key,r)}catch(e){setErr(e.message)}finally{setLoading(false)}}
+  const generate=async(key,fn,opts={})=>{if(generatingSection)return;window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(key,r)}catch(e){setErr(e.message)}finally{setLoading(false)}}
+  const canGenSection=(id)=>!loading&&(!generatingSection||generatingSection===id)
+  const generateSection=async(sectionId,fn,opts={})=>{if(loading||(generatingSection&&generatingSection!==sectionId))return;setGeneratingSection(sectionId);setSectionErrors(e=>({...e,[sectionId]:null}));try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(sectionId,r)}catch(e){setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))}finally{setGeneratingSection(null)}}
   const generateP4=async(extraContext='',msg='Mapping your opportunity landscape, this takes a moment…')=>{
     window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(msg)
     const opts={highTemp:true,maxTokens:5000}
