@@ -719,6 +719,9 @@ const normalizeWork = (p) => {
 // didMigrate is true iff rules 1-5 / 7 / 8 changed state; rule 6 (key defaulting) does NOT count.
 const V1_STEPS = new Set(ALL)
 const ROLE_SUBMODULES = ['p5','p6','p7','p8','p9','p10','p11','p_res','income']
+const POST_P5_SUBMODULES = ROLE_SUBMODULES.filter(k=>k!=='p5')
+const LANE_LABELS = {familiar:'Familiar Ground',insider:'Industry Insider',wtm:'Work That Matters',specific:'Specific Role'}
+const laneLabelFor = (ln) => LANE_LABELS[ln]||'Specific Role'
 const normalizeProfileState = (loaded) => {
   const s = loaded && typeof loaded === 'object' ? { ...loaded } : {}
   s.outputs = s.outputs && typeof s.outputs === 'object' ? { ...s.outputs } : {}
@@ -1145,6 +1148,10 @@ export default function PivotEngine(){
   const[migratedFromPreV1,setMigratedFromPreV1]=useState(false)
   const[generatingSection,setGeneratingSection]=useState(null)
   const[sectionErrors,setSectionErrors]=useState({})
+  const[currentRoleSaved,setCurrentRoleSaved]=useState(false)
+  const[roleSwitchModal,setRoleSwitchModal]=useState(null)
+  const playbookSavePendingRef=useRef(false)
+  const afterSaveRunRef=useRef(null)
   const[demoIdx,setDemoIdx]=useState(0)
   const[activeTab,setActiveTab]=useState(0)
   const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})
@@ -1256,6 +1263,18 @@ export default function PivotEngine(){
   },[step,signedInUser,profile.resume,signupForm.firstName,signupForm.lastName])
   useEffect(()=>{if(isDemo||isTest)return;if(voiceMigCheckedRef.current)return;if(profile.voiceMigrationDismissed)return;if(!done.includes('complete'))return;if(!Object.values(outputs).some(v=>v&&v.length>0))return;voiceMigCheckedRef.current=true;if(detectStaleVoice(outputs).found)setVoiceMigBanner(true)},[done,outputs,profile.voiceMigrationDismissed])
 
+  useEffect(()=>{
+    const onAfter=()=>{
+      if(!playbookSavePendingRef.current)return
+      playbookSavePendingRef.current=false
+      setCurrentRoleSaved(true)
+      const r=afterSaveRunRef.current
+      afterSaveRunRef.current=null
+      if(r)r()
+    }
+    window.addEventListener('afterprint',onAfter)
+    return ()=>window.removeEventListener('afterprint',onAfter)
+  },[])
   const pr=(f,v)=>setProfile(p=>({...p,[f]:v}))
   const loc=(f,v)=>setProfile(p=>({...p,loc:{...p.loc,[f]:v}}))
   const rep=(f,v)=>setProfile(p=>({...p,rep:{...p.rep,[f]:v}}))
@@ -1320,9 +1339,9 @@ export default function PivotEngine(){
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
     logCorrection(correction)
   }
-  const generate=async(key,fn,opts={})=>{if(generatingSection)return;window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(key,r)}catch(e){setErr(e.message)}finally{setLoading(false)}}
+  const generate=async(key,fn,opts={})=>{if(generatingSection)return;window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(key,r);if(ROLE_SUBMODULES.includes(key))setCurrentRoleSaved(false)}catch(e){setErr(e.message)}finally{setLoading(false)}}
   const canGenSection=(id)=>!loading&&(!generatingSection||generatingSection===id)
-  const generateSection=async(sectionId,fn,opts={})=>{if(loading||(generatingSection&&generatingSection!==sectionId))return;setGeneratingSection(sectionId);setSectionErrors(e=>({...e,[sectionId]:null}));try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(sectionId,r)}catch(e){setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))}finally{setGeneratingSection(null)}}
+  const generateSection=async(sectionId,fn,opts={})=>{if(loading||(generatingSection&&generatingSection!==sectionId))return;setGeneratingSection(sectionId);setSectionErrors(e=>({...e,[sectionId]:null}));try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(sectionId,r);if(ROLE_SUBMODULES.includes(sectionId))setCurrentRoleSaved(false)}catch(e){setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))}finally{setGeneratingSection(null)}}
   const generateP4=async(extraContext='',msg='Mapping your opportunity landscape, this takes a moment…')=>{
     window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(msg)
     const opts={highTemp:true,maxTokens:5000}
@@ -1416,7 +1435,7 @@ export default function PivotEngine(){
       alert('Could not delete your account: '+(err.message||'unknown error'))
     }
   }
-  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setSelectedLane('');setExploredRoleTitles([]);setNpsAsked(false);setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
+  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setSelectedLane('');setExploredRoleTitles([]);setNpsAsked(false);setCurrentRoleSaved(false);setRoleSwitchModal(null);setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
   const exportProfile=()=>{const data={profile,outputs,done,deepOpts,chosen};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
   const downloadAllMarkdown=()=>{
     const today=new Date().toISOString().slice(0,10)
@@ -1516,6 +1535,39 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);const lastStep=data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome';setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
   const prog=(step==='income'||step==='op')?100:Math.round((ALL.indexOf(step)/ALL.indexOf('complete'))*100)
   const pc={loc:{...profile.loc,work:Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||'')},resume:profile.resume,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep}
+  const recordExploredRole=(title,lane)=>setExploredRoleTitles(prev=>{const ts=new Date().toISOString();const i=prev.findIndex(r=>r.title===title);if(i>=0){const n=[...prev];n[i]={...n[i],lane,lastExplored:ts};return n}return[...prev,{title,lane,lastExplored:ts}].slice(-20)})
+  const applyRoleSwitchDoor1=(newRoleTitle,lane)=>{
+    setCurrentRoleSaved(false)
+    setOutputs(o=>{const u={...o};for(const k of ROLE_SUBMODULES)u[k]='';return u})
+    setDone(d=>d.filter(s=>!ROLE_SUBMODULES.includes(s)))
+    setChosen(newRoleTitle)
+    setSelectedLane(lane)
+    recordExploredRole(newRoleTitle,lane)
+    setFeedback(f=>{const u={...f};for(const k of ROLE_SUBMODULES)u[k]='';return u})
+  }
+  const applyRoleSwitchDoor2=(derivedTitle)=>{
+    setCurrentRoleSaved(false)
+    setOutputs(o=>({...o,op:''}))
+    setDone(d=>d.filter(s=>s!=='op'))
+    setChosen(derivedTitle)
+    setSelectedLane('specific')
+    recordExploredRole(derivedTitle,'specific')
+    setFeedback(f=>({...f,op:''}))
+  }
+  const deriveOpRoleTitle=(jd)=>{const ln=((jd||'').split(/\n/).find(l=>l.trim())||'').trim();return ln?ln.slice(0,80):'Job Description'}
+  const maybeConfirmRoleSwitch=(run)=>{
+    const postP5=POST_P5_SUBMODULES.some(k=>outputs[k]&&outputs[k].length>0)
+    if(postP5&&!currentRoleSaved)setRoleSwitchModal({run})
+    else run()
+  }
+  const switchToRole=(newRoleTitle,lane)=>maybeConfirmRoleSwitch(()=>{applyRoleSwitchDoor1(newRoleTitle,lane);advance('p4','focus');generate('p5',()=>P.p5(pc,outputs,newRoleTitle,laneLabelFor(lane)))})
+  const reExploreRole=(newRoleTitle,lane)=>maybeConfirmRoleSwitch(()=>{applyRoleSwitchDoor1(newRoleTitle,lane);nav('focus');generate('p5',()=>P.p5(pc,outputs,newRoleTitle,laneLabelFor(lane)))})
+  const switchToOpRole=(jd,onReady)=>{const title=deriveOpRoleTitle(jd);maybeConfirmRoleSwitch(()=>{applyRoleSwitchDoor2(title);if(onReady)onReady(title)})}
+  const savePlaybookPdf=()=>{playbookSavePendingRef.current=true;afterSaveRunRef.current=null;window.print()}
+  const roleSwitchSavePdf=()=>{const r=roleSwitchModal&&roleSwitchModal.run;afterSaveRunRef.current=r||null;playbookSavePendingRef.current=true;setRoleSwitchModal(null);setTimeout(()=>window.print(),50)}
+  const roleSwitchContinue=()=>{const r=roleSwitchModal&&roleSwitchModal.run;setRoleSwitchModal(null);if(r)r()}
+  const roleSwitchCancel=()=>setRoleSwitchModal(null)
+  const showPlaybookFooter=!isDemo&&step==='focus'&&POST_P5_SUBMODULES.some(k=>outputs[k]&&outputs[k].length>0)
   const dismissVoiceMig=()=>{setVoiceBannerDismissed(true);setProfile(p=>{const n=(p.voiceMigrationDismissCount||0)+1;return{...p,voiceMigrationDismissCount:n,...(n>=3?{voiceMigrationDismissed:true}:{})}})}
   const regenVoiceMig=()=>{setProfile(p=>({...p,voiceMigrationDismissed:true}));setVoiceBannerDismissed(true);cascadeInvalidate('p1');out('p1','');nav('p1');generate('p1',()=>P.p1(pc))}
   const showVoiceMigBanner=voiceMigBanner&&!voiceBannerDismissed&&!profile.voiceMigrationDismissed&&!isDemo&&!isTest
@@ -2609,6 +2661,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     {invalidationBanner&&<div data-print="hide" style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1000,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'14px 20px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',alignItems:'center',gap:16,maxWidth:720}}>
       <div style={{fontSize:18,color:'#1A2540',lineHeight:1.5}}>{invalidationBanner.message}</div>
       <button onClick={()=>setInvalidationBanner(null)} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#718096',fontSize:18,cursor:'pointer',padding:4,fontFamily:'inherit',flexShrink:0}}>×</button>
+    </div>}
+    {roleSwitchModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:520,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Save your current playbook before exploring another role?</h2>
+        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:20}}>You've generated content for <strong>{chosen||'this role'}</strong>. Switching to another role will clear it. Save it as a PDF first if you want to keep this version.</p>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <Btn onClick={roleSwitchSavePdf}><Printer size={14}/>Save as PDF</Btn>
+          <Btn secondary onClick={roleSwitchContinue}>Continue without saving</Btn>
+          <Btn secondary onClick={roleSwitchCancel}>Cancel</Btn>
+        </div>
+      </div>
+    </div>}
+    {showPlaybookFooter&&<div data-print="hide" style={{position:'fixed',left:0,right:0,bottom:0,zIndex:900,background:'#1A2540',borderTop:`2px solid ${C.gold}`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
+      <div style={{fontSize:15,color:'#CBD5E0'}}>Keep this playbook. Save it as a PDF to your device.{currentRoleSaved?' Saved.':''}</div>
+      <Btn onClick={savePlaybookPdf}><Printer size={14}/>Save Playbook as PDF</Btn>
     </div>}
     {showVoiceMigBanner&&<div data-print="hide" style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1001,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'18px 22px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',flexDirection:'column',gap:14,maxWidth:560,width:'calc(100% - 32px)'}}>
       <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
