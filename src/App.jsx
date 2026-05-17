@@ -2344,6 +2344,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       }
       const otherRoles=(exploredRoleTitles||[]).filter(r=>r.title&&r.title!==chosen)
       return <div>
+        <div data-print="hide">
         {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
         <h1 style={S.title}>{chosen||'Your Focus Playbook'}</h1>
         {selectedLane&&<p style={{...S.sub,marginBottom:18}}>Direction: <strong style={{color:C.gold}}>{laneLbl}</strong></p>}
@@ -2378,6 +2379,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
         </div>}
         {err&&!generatingSection&&<ErrBox msg={err}/>}
+        </div>
+        <div data-print="content" className="pe-print-playbook" style={{display:'none'}}>
+          <div className="pe-print-head"><div style={{fontSize:13,fontWeight:700,letterSpacing:'1px',color:'#C8924A',textTransform:'uppercase'}}>Reimagine · career.club</div><div style={{fontSize:26,fontWeight:700,fontFamily:'Georgia,serif',color:'#1A2540',marginTop:4}}>{chosen||'Your Focus Playbook'}</div>{selectedLane&&<div style={{fontSize:14,color:'#4A5568',marginTop:2}}>Direction: {laneLbl}</div>}</div>
+          {FOCUS_ORDER.filter(sec=>outputs[sec.id]&&outputs[sec.id].length>0).map(sec=><section key={sec.id} className="pe-print-section">
+            <h2 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>{sec.label}</h2>
+            {sec.id==='p_res'?<pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',margin:0}}>{(()=>{const j=parseResumeJSON(outputs.p_res);return j?renderResumeText(j):outputs.p_res})()}</pre>:<MD text={sec.id==='p7'?outputs.p7.replace(/```json[\s\S]*?(?:```|$)/gi,'').replace(/\n{3,}/g,'\n\n').trim():outputs[sec.id]}/>}
+          </section>)}
+        </div>
       </div>
     }
     case'p6':return <div>

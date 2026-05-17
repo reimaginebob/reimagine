@@ -139,4 +139,28 @@
   a[href^='javascript:']:after {
     content: '' !important;
   }
+
+  /* Save Playbook as PDF: the assembled single-role document. Always in the
+     DOM on the focus screen (no mount/print race), hidden on screen via an
+     inline display:none, revealed only on paper here. */
+  .pe-print-playbook {
+    display: block !important;
+  }
+
+  .pe-print-playbook .pe-print-head {
+    border-bottom: 2pt solid #c8924a !important;
+    padding-bottom: 8pt !important;
+    margin-bottom: 16pt !important;
+  }
+
+  .pe-print-section {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    margin-bottom: 16pt !important;
+  }
+
+  .pe-print-section + .pe-print-section {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
 }
