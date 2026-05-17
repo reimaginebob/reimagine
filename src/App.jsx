@@ -464,15 +464,15 @@ TRIANGULATION DISCIPLINE: When multiple personal inputs are available (multiple 
 const PHASES=[
   {id:0,label:'Orientation',color:'#8A9BB8',steps:['welcome','location','resume','linkedin','assessment','values','reputation','life-events']},
   {id:1,label:'Know Your Value',color:'#C8924A',steps:['p1','p2','p3']},
-  {id:2,label:'Explore Options',color:'#C8924A',steps:['p4','narrowing','p5','decision']},
+  {id:2,label:'Explore Options',color:'#C8924A',steps:['twoDoors','laneSelect','p4','focus']},
   {id:3,label:'Tell Your Story',color:'#C8924A',steps:['p6']},
   {id:4,label:'Find Your Market',color:'#C8924A',steps:['p7']},
   {id:5,label:'Get Ready',color:'#C8924A',steps:['p8','p_res','p9','complete']},
   {id:6,label:'Upload a Live Opportunity',color:'#C8924A',steps:['op']},
   {id:7,label:'Income Now',color:'#C8924A',steps:['income']},
 ]
-const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'The Wide View',narrowing:'Narrow Your Picks',p5:'The Deep Dive',decision:'Your Focus',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
-const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','life-events','orientation-done','p1','p2','p3','p4','narrowing','p5','decision','p6','p7','p8','p_res','p9','complete','income','op']
+const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',twoDoors:'Choose Your Path',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
+const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','life-events','orientation-done','p1','p2','p3','twoDoors','laneSelect','p4','focus','op','complete']
 // Captured at module load (before any beforeprint can change document.title) so
 // afterprint always restores the true base title regardless of effect re-runs.
 const BASE_DOC_TITLE=typeof document!=='undefined'?document.title:'Reimagine'
@@ -1115,7 +1115,6 @@ export default function PivotEngine(){
   const[outputs,setOutputs]=useState(isDemo?demoOutputs:IO)
   const[done,setDone]=useState(isDemo?[...demoDone]:[])
   const[deepOpts,setDeepOpts]=useState(isDemo?[...demoDeepOpts]:['','',''])
-  const[markedOpts,setMarkedOpts]=useState(isDemo?[...demoDeepOpts].filter(v=>v&&v!=='?'):[])
   const[chosen,setChosen]=useState(isDemo?demoChosen:'')
   const[demoIdx,setDemoIdx]=useState(0)
   const[activeTab,setActiveTab]=useState(0)
@@ -1180,7 +1179,6 @@ export default function PivotEngine(){
   const importFileRef=useRef()
   const assessRef=useRef()
   const repOtherRef=useRef()
-  const decisionInitialChosenRef=useRef(null)
   // Blocks the debounced auto-save effect once a Start Fresh delete is in
   // flight. Without this, a setTimeout(save, 800) scheduled by an earlier
   // state change can fire AFTER deleteAccount's localStorage.removeItem and
@@ -1188,9 +1186,9 @@ export default function PivotEngine(){
   // full pre-delete state. Checked at fire time so any pending timer aborts.
   const deletingRef=useRef(false)
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3')}catch{};return}const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.markedOpts)setMarkedOpts(d.markedOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3')}catch{};return}const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const d=serverProfile.profile;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.markedOpts)setMarkedOpts(d.markedOpts);if(d.chosen)setChosen(d.chosen)}else{try{const blob=localStorage.getItem('pe_v3');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const d=serverProfile.profile;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen)}else{try{const blob=localStorage.getItem('pe_v3');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
   useEffect(()=>{if(!signedInUser)return;const needsPrivacy=signedInUser.privacy_version!=null&&signedInUser.privacy_version!==PRIVACY_VERSION_MATERIAL;const needsTerms=signedInUser.terms_version!=null&&signedInUser.terms_version!==TOS_VERSION_MATERIAL;if(needsPrivacy||needsTerms)setReaccept({needsPrivacyReaccept:needsPrivacy,needsTermsReaccept:needsTerms})},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;try{const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v3');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
   useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
@@ -1198,10 +1196,9 @@ export default function PivotEngine(){
   useEffect(()=>{const check=()=>{const portrait=window.matchMedia('(orientation: portrait)').matches;const small=window.innerWidth<500;setIsSmallPortrait(portrait&&small)};check();window.addEventListener('resize',check);window.addEventListener('orientationchange',check);return()=>{window.removeEventListener('resize',check);window.removeEventListener('orientationchange',check)}},[])
   useEffect(()=>{window.scrollTo({top:0,behavior:'instant'})},[step])
   useEffect(()=>{if(!invalidationBanner)return;const t=setTimeout(()=>setInvalidationBanner(null),10000);return()=>clearTimeout(t)},[invalidationBanner])
-  useEffect(()=>{if(step==='decision')decisionInitialChosenRef.current=chosen},[step])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);deleteAccount()},[signedInUser])
-  useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{if(deletingRef.current)return;try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,markedOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,markedOpts,chosen,signedInUser])
+  useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{if(deletingRef.current)return;try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,signedInUser])
   useEffect(()=>{
     const sectionName=META[step]||'Output'
     const su=signedInUser||{}
@@ -1236,13 +1233,12 @@ export default function PivotEngine(){
   const out=(k,v)=>setOutputs(o=>({...o,[k]:v}))
   const markDone=(sid)=>setDone(d=>d.includes(sid)?d:[...d,sid])
   // Forward dependency map for state invalidation. Listed in pipeline order.
-  const DEPENDENCY_ORDER=['p1','p2','p3','p4','markedOpts','deepOpts','p5','chosen','p6','p7','p8','p_res','p9','p10','p11','income']
+  const DEPENDENCY_ORDER=['p1','p2','p3','p4','deepOpts','p5','chosen','p6','p7','p8','p_res','p9','p10','p11','income']
   const downstreamOf=(source)=>{const idx=DEPENDENCY_ORDER.indexOf(source);if(idx<0)return[];return DEPENDENCY_ORDER.slice(idx+1)}
   const invalidateDownstream=(source)=>{
     const downstream=downstreamOf(source)
     if(downstream.length===0)return
-    setOutputs(o=>{const updated={...o};for(const k of downstream){if(k!=='deepOpts'&&k!=='markedOpts'&&k!=='chosen')updated[k]=''}return updated})
-    if(downstream.includes('markedOpts'))setMarkedOpts([])
+    setOutputs(o=>{const updated={...o};for(const k of downstream){if(k!=='deepOpts'&&k!=='chosen')updated[k]=''}return updated})
     if(downstream.includes('deepOpts'))setDeepOpts(['','',''])
     if(downstream.includes('chosen'))setChosen('')
     setDone(d=>d.filter(s=>!downstream.includes(s)))
@@ -1252,7 +1248,6 @@ export default function PivotEngine(){
     p2:'Cleared your Brand Synthesis, Wide View, marked picks, and all downstream work so they match the new Wiring & Compass.',
     p3:'Cleared your Wide View, marked picks, Deep Dive, and all downstream work so they match the new Brand Synthesis.',
     p4:'Cleared your marked picks, Deep Dive, and downstream playbook so they match the new options.',
-    markedOpts:'Cleared your Deep Dive and downstream playbook so they match the new marked picks.',
     deepOpts:'Cleared your Deep Dive and downstream playbook so they match the new selections.',
     p5:'Cleared your chosen focus and downstream playbook so they match the new Deep Dive.',
     chosen:'Cleared your downstream playbook so it matches the new chosen focus.',
@@ -1390,8 +1385,8 @@ export default function PivotEngine(){
       alert('Could not delete your account: '+(err.message||'unknown error'))
     }
   }
-  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setMarkedOpts([]);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
-  const exportProfile=()=>{const data={profile,outputs,done,deepOpts,markedOpts,chosen};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
+  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
+  const exportProfile=()=>{const data={profile,outputs,done,deepOpts,chosen};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
   const downloadAllMarkdown=()=>{
     const today=new Date().toISOString().slice(0,10)
     const rawFirstLine=(profile.resume||'').split(/\n/).find(l=>l.trim())||''
@@ -1487,7 +1482,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const w=window.open('','_blank')
     if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),500)}
   };
-  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.markedOpts)setMarkedOpts(data.markedOpts);if(data.chosen)setChosen(data.chosen);const lastStep=data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome';setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
+  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);const lastStep=data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome';setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
   const prog=(step==='income'||step==='op')?100:Math.round((ALL.indexOf(step)/ALL.indexOf('complete'))*100)
   const pc={loc:{...profile.loc,work:Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||'')},resume:profile.resume,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep}
   const dismissVoiceMig=()=>{setVoiceBannerDismissed(true);setProfile(p=>{const n=(p.voiceMigrationDismissCount||0)+1;return{...p,voiceMigrationDismissCount:n,...(n>=3?{voiceMigrationDismissed:true}:{})}})}
@@ -1924,414 +1919,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the brand or value proposition misses the mark, tell us what's off." placeholder="e.g. 'My golden thread is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The brand line does not match how my colleagues describe me.'" onRegenerate={v=>{cascadeInvalidate('p3');recordCorrection('p3',v);out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Let's see what's possible: the full landscape of directions that fit your strengths, values, and interests.</div>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','p4')}>See My Options <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','twoDoors')}>See My Options <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
-    case'p4':return <div>
-      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 2 · Explore Options</div>}
-      <h1 style={S.title}>The Wide View</h1>
-      {!isDemo&&<p style={S.sub}>You have told us your story: your resume, your gifts, what you value, and what lights you up. We have been listening. Now we take everything we know about you and map out the full landscape of what is possible.</p>}
-      {!isDemo&&!outputs.p4&&!loading&&<Btn onClick={()=>{setLaneTab(0);generateP4()}}><Sparkles size={14}/>Generate My Options</Btn>}
-      {loading&&<Loading msg={loadMsg||'Mapping your full opportunity landscape across all three paths…'} step="p4"/>}
-      {outputs.p4&&p4Intro&&(()=>{
-        const pathCards=[
-          {icon:<Heart size={34} color="#C8924A"/>,name:'Work That Matters',desc:'Built on the Japanese concept of Ikigai, the intersection of what you love, what you are good at, what the world needs, and what you can be paid for. These roles stretch beyond your current title, grounded in who you actually are and what gives your work meaning.'},
-          {icon:<Network size={34} color="#C8924A"/>,name:'Industry Insider',desc:'You know your industry from the inside. These options map the full ecosystem around your experience: clients, vendors, consultants, adjacent players, where your insider knowledge is a real competitive advantage.'},
-          {icon:<Briefcase size={34} color="#C8924A"/>,name:'Familiar Ground',desc:'Same function, same or adjacent industry, bigger scope. Your track record speaks immediately here. The key is showing you are the forward-looking candidate, with the experience to back it up.'}
-        ]
-        return <div style={{maxWidth:820,margin:'0 auto'}}>
-          <div style={{textAlign:'center',marginBottom:40}}>
-            <div style={{width:72,height:72,borderRadius:18,background:`${C.gold}15`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}><Sparkles size={32} color={C.gold}/></div>
-            <h2 style={{fontSize:34,fontWeight:700,color:'#1A2540',marginBottom:16}}>Three Paths Forward</h2>
-            <p style={{fontSize:20,color:'#4A5568',lineHeight:1.7,maxWidth:660,margin:'0 auto'}}>We took everything you shared: your experience, your gifts, and what matters to you, and mapped out where it all points. Your options are organized into three paths.</p>
-          </div>
-          <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'22px 26px',borderRadius:8,margin:'0 0 24px',fontSize:18,color:'#1A2540',lineHeight:1.7}}>
-            <strong style={{fontSize:19}}>How this works</strong>
-            <p style={{margin:'10px 0 8px'}}>Reimagine has organized your career options into three paths below. Each path holds specific role suggestions.</p>
-            <ol style={{margin:'0 0 8px 20px',padding:0}}>
-              <li>Read the descriptions of all three paths.</li>
-              <li>Click any role card to see why it was suggested and what the role looks like.</li>
-              <li>Pick up to three roles across any combination of the paths.</li>
-            </ol>
-            <p style={{margin:'0 0 0',fontSize:16,color:C.gray}}>You can change your mind later; roles you do not pick are not lost. If anything here is unclear, ask in the chat in the corner.</p>
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:36}}>
-            {pathCards.map((card,i)=><div key={i} style={{background:'white',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 32px',display:'flex',gap:24,alignItems:'flex-start'}}>
-              <div style={{width:62,height:62,borderRadius:14,background:`${C.gold}12`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{card.icon}</div>
-              <div>
-                <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:8}}>{card.name}</div>
-                <div style={{fontSize:18,color:'#4A5568',lineHeight:1.7}}>{card.desc}</div>
-              </div>
-            </div>)}
-          </div>
-          <div style={{background:'#F0F4F8',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'24px 28px',marginBottom:32}}>
-            <div style={{fontSize:18,color:'#1A2540',lineHeight:1.75,fontWeight:500}}>On the next screen, you will see specific roles across these three paths. Take your time browsing, then select up to three that resonate with you. Your choices can come from any combination of paths, or all from one. There is no wrong answer here.</div>
-          </div>
-          <div style={{textAlign:'center'}}><Btn onClick={()=>{setP4Intro(false);window.scrollTo(0,0)}}>Show Me My Options <ChevronRight size={14}/></Btn></div>
-        </div>
-      })()}
-      {outputs.p4&&!p4Intro&&(()=>{
-        const parseLanes=(text)=>{
-          if(!text)return{takeaway:'',lanes:[]}
-          const takeawayMatch=text.match(/## QUICK TAKEAWAY([\s\S]*?)(?=\n---|\n#[^#])/i)
-          const takeaway=takeawayMatch?takeawayMatch[1].trim():''
-          const laneConfigs=[
-            {key:'wtm',name:'Work That Matters',pattern:/(?:^|\n)(?:#{1,3}\s*(?:PATH\s*\d+\s*:?\s*)?|\*\*)(?:WORK THAT MATTERS|IKIGAI|MEANINGFUL WORK|WORK WITH MEANING)[^\n]*/i,desc:'The intersection of what you love, what you\'re good at, what the world needs, and what you can be paid for. This path is for leaders who want meaning and impact alongside compensation.'},
-            {key:'insider',name:'Industry Insider',pattern:/(?:^|\n)(?:#{1,3}\s*(?:PATH\s*\d+\s*:?\s*)?|\*\*)(?:THE\s+)?INDUSTRY INSIDER[^\n]*/i,desc:'Your insider knowledge is a competitive advantage. You understand how organizations think, what problems keep leaders up at night, and how decisions get made. This path puts that credibility to work in new ways.'},
-            {key:'familiar',name:'Familiar Ground',pattern:/(?:^|\n)(?:#{1,3}\s*(?:PATH\s*\d+\s*:?\s*)?|\*\*)FAMILIAR GROUND[^\n]*/i,desc:'Your track record speaks immediately. This path builds directly on where you\'ve been: bigger scope, more authority, and the chance to apply everything you\'ve learned at a higher level.'}
-          ]
-          const found=[]
-          for(let i=0;i<laneConfigs.length;i++){
-            const cfg=laneConfigs[i]
-            const match=text.match(cfg.pattern)
-            if(match)found.push({cfg,matchIdx:match.index,matchEnd:match.index+match[0].length})
-          }
-          found.sort((a,b)=>a.matchIdx-b.matchIdx)
-          const lanes=[]
-          for(let i=0;i<found.length;i++){
-            const{cfg,matchEnd}=found[i]
-            const startIdx=matchEnd
-            const endIdx=i<found.length-1?found[i+1].matchIdx:text.length
-            const laneText=text.slice(startIdx,endIdx).trim()
-            lanes.push({...cfg,content:laneText})
-          }
-          return{takeaway,lanes}
-        }
-        const{takeaway:p4Takeaway,lanes:rawLanes}=parseLanes(outputs.p4)
-        const lanes=rawLanes.filter(l=>l.content&&l.content.trim())
-        const extractOptions=(text)=>{
-          if(!text)return[]
-          const opts=[]
-          const lines=text.split('\n')
-          let currentLane=''
-          const hasOptionTags=/^#{1,3}\s*OPTION:\s*/m.test(text)
-          for(const line of lines){
-            const trimLine=line.trim()
-            if(/WORK THAT MATTERS|IKIGAI/i.test(trimLine)&&(trimLine.startsWith('**')||trimLine.startsWith('#')||/^WORK|^IKIGAI/i.test(trimLine)))currentLane='Work That Matters'
-            else if(/THE INDUSTRY INSIDER|INDUSTRY INSIDER/i.test(trimLine)&&(trimLine.startsWith('**')||trimLine.startsWith('#')||/^THE INDUSTRY|^INDUSTRY/i.test(trimLine)))currentLane='Industry Insider'
-            else if(/FAMILIAR GROUND/i.test(trimLine)&&(trimLine.startsWith('**')||trimLine.startsWith('#')||/^FAMILIAR/i.test(trimLine)))currentLane='Familiar Ground'
-            if(!currentLane)continue
-            if(hasOptionTags){
-              const optMatch=trimLine.match(/^#{1,3}\s*OPTION:\s*(.+)/)
-              if(optMatch){
-                const title=optMatch[1].replace(/\*\*/g,'').replace(/^OPTION:\s*/i,'').trim()
-                if(title.length>4&&title.length<120)opts.push({title,lane:currentLane})
-              }
-            }else{
-              const boldMatch=trimLine.match(/^\*\*([A-Z][^*]{4,120})\*\*$/)||trimLine.match(/^#{1,3}\s+([A-Z][^\n]{4,120})$/)
-              if(boldMatch){
-                const title=boldMatch[1].replace(/\*\*/g,'').trim()
-                if(!/^(Vehicle|Organization Type|Title|For each|Start with|The intersection|Builds directly|You know|This path|Your track|Your insider|Adjacent|Ecosystem|Clients|Vendors|Consultants|Upstream|Downstream|Trade Associations|Educators|Regulators|What has changed|Why you are|What closes|EMPATHY|Why it fits|Worth considering|Token Budget|Insider knowledge|Why you are already|What closes the gap|Direct industry|Consulting and advisory|Same Role|Similar Role)/i.test(title))
-                  opts.push({title,lane:currentLane})
-              }
-            }
-          }
-          return opts
-        }
-        const available=extractOptions(outputs.p4)
-        const toggleOpt=(title)=>{
-          setMarkedOpts(prev=>{
-            if(prev.includes(title)){
-              setDeepOpts(d=>d.map(v=>v===title?'':v))
-              return prev.filter(t=>t!==title)
-            }
-            return [...prev,title]
-          })
-        }
-        const activeLane=lanes[laneTab]||lanes[0]
-        return <>
-          {lanes.length>0&&<>
-            {markedOpts.length>0&&<div style={{position:'sticky',top:0,zIndex:5,background:'#FFFFFF',borderBottom:`2px solid ${C.gold}`,padding:'12px 20px',fontSize:16,color:'#1A2540',fontWeight:600,display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-              <span>Marked: {markedOpts.length}</span>
-              {markedOpts.length>3&&<span style={{fontSize:15,fontWeight:400,color:C.gray}}>You'll narrow to 3 on the next screen.</span>}
-            </div>}
-            <div style={{margin:'20px 0 16px',padding:'16px 20px',background:'#EEF4FF',border:'2px solid #3B82F6',borderRadius:12,display:'flex',alignItems:'center',gap:12}}>
-              <div style={{width:36,height:36,borderRadius:8,background:'#3B82F6',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Check size={18} color="white" strokeWidth={3}/></div>
-              <div style={{fontSize:18,color:'#1E3A5F',lineHeight:1.6}}><strong style={{fontSize:19}}>Check the box next to any roles that interest you</strong> from any combination of paths. You'll narrow to three on the next screen if you mark more than that. Then scroll down and hit <span style={{display:'inline-block',padding:'3px 12px',background:C.gold,color:'white',borderRadius:6,fontSize:15,fontWeight:700,verticalAlign:'middle',margin:'0 3px',lineHeight:'22px'}}>Go Deeper <span style={{fontSize:14}}>›</span></span> at the bottom of the page.</div>
-            </div>
-            <div style={{display:'flex',gap:8,marginBottom:0,flexWrap:'wrap'}}>
-              {lanes.map((lane,i)=><button data-lane-tab key={lane.key} onClick={()=>setLaneTab(i)} style={{padding:'14px 22px',borderRadius:10,border:`2px solid ${laneTab===i?C.gold:C.border}`,background:laneTab===i?`${C.gold}12`:'white',color:laneTab===i?C.goldL:'#4A5568',fontSize:17,fontWeight:laneTab===i?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s',flex:'1 1 0',textAlign:'center',minWidth:140}}>{lane.name}</button>)}
-            </div>
-            {activeLane&&<div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:'0 0 12px 12px',borderTop:'none',padding:'28px 30px',marginBottom:16}}>
-              <div style={{fontSize:18,color:'#4A5568',lineHeight:1.7,marginBottom:20,fontStyle:'italic'}}>{activeLane.desc}</div>
-              {(()=>{
-                const content=activeLane.content||''
-                const availTitles=available.map(a=>a.title)
-                const hasOptionTags=/^#{1,3}\s*OPTION:\s*/m.test(content)
-                const splitPattern=hasOptionTags
-                  ? /(?=^#{1,3}\s*OPTION:\s*)/m
-                  : /(?=^(?:\*\*[A-Z][^*]{4,120}\*\*\s*$|#{1,3}\s+[A-Z][^\n]{4,120}$))/m
-                const optBlocks=content.split(splitPattern)
-                const titlePattern=hasOptionTags
-                  ? /^#{1,3}\s*OPTION:\s*(.+)/m
-                  : /^(?:\*\*([A-Z][^*]{4,120})\*\*\s*$|#{1,3}\s+([A-Z][^\n]{4,120})$)/m
-                const extractTitle=(block)=>{
-                  const m=block.match(titlePattern)
-                  if(!m)return null
-                  return (m[1]||m[2]||'').replace(/\*\*/g,'').replace(/^OPTION:\s*/i,'').trim()
-                }
-                const preamble=optBlocks.length>0&&!titlePattern.test(optBlocks[0])?optBlocks.shift():null
-                const excludePattern=/^(Vehicle|Organization Type|Title|For each|Start with|The intersection|Builds directly|You know|This path|Your track|Your insider|Adjacent|Ecosystem|Clients|Vendors|Consultants|Upstream|Downstream|Trade Associations|Educators|Regulators|What has changed|Why you are|What closes|EMPATHY|Why it fits|Worth considering|Token Budget|Insider knowledge|Direct industry|Consulting and advisory|Why you are already|What closes the gap)/i
-                const isSelectable=(title)=>{
-                  if(!title||title.length<=4)return false
-                  if(availTitles.includes(title))return true
-                  return !excludePattern.test(title)
-                }
-                const selectableBlocks=optBlocks.filter(b=>{const t=extractTitle(b);return t&&isSelectable(t)})
-                if(selectableBlocks.length<2)return <div style={{margin:'12px 0',padding:'18px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10}}>
-                  <div style={{fontSize:17,color:'#1A2540',lineHeight:1.6,marginBottom:12}}>We weren't able to generate a complete set of options for this lane. Click the regenerate button below to try again.</div>
-                  <Btn small onClick={()=>{cascadeInvalidate('p4');generateP4()}}><RotateCcw size={11}/>Regenerate this lane</Btn>
-                </div>
-                const extractSubPath=(block)=>{
-                  const m=block.match(/\*\*(Same Role, Same Industry|Similar Role, Different Industry)\*\*/i)
-                  return m?m[1]:null
-                }
-                const stripSubPathLine=(text)=>text.replace(/^\s*\*\*(Same Role, Same Industry|Similar Role, Different Industry)\*\*\s*\n?/im,'').trimStart()
-                const renderCard=(block,bi)=>{
-                  const title=extractTitle(block)
-                  const selectable=title&&isSelectable(title)
-                  if(!selectable)return <div key={bi} style={{fontSize:18,color:'#374258',lineHeight:1.7,marginBottom:12}}><MD text={block}/></div>
-                  const titleMatch=block.match(titlePattern)
-                  const rawBody=titleMatch?block.slice(block.indexOf('\n',block.indexOf(titleMatch[0]))+1).trim():block
-                  const body=stripSubPathLine(rawBody)
-                  const isSelected=markedOpts.includes(title)
-                  return <div key={bi} style={{marginBottom:16,border:`2px solid ${isSelected?C.gold:C.border}`,borderRadius:12,overflow:'hidden',transition:'all 0.2s'}}>
-                    <button data-checkbox onClick={()=>toggleOpt(title)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'14px 20px',background:isSelected?`${C.gold}12`:'#FAFBFC',border:'none',borderBottom:`1px solid ${isSelected?`${C.gold}30`:C.border}`,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s'}}>
-                      <div style={{width:24,height:24,borderRadius:6,border:`2px solid ${isSelected?C.gold:'#CBD5E0'}`,background:isSelected?C.gold:'white',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isSelected&&<Check size={14} color="white" strokeWidth={3}/>}</div>
-                      <div style={{fontSize:19,fontWeight:700,color:isSelected?C.goldL:'#1A2540',flex:1}}>{title}</div>
-                      <div style={{fontSize:18,color:C.gold,flexShrink:0,lineHeight:1}}>›</div>
-                    </button>
-                    <div style={{padding:'16px 20px',fontSize:18,color:'#374258',lineHeight:1.7}}><MD text={body}/></div>
-                  </div>
-                }
-                const isFamiliar=activeLane.key==='familiar'
-                const familiarGrouped=isFamiliar&&optBlocks.some(b=>extractSubPath(b))
-                let renderedBlocks
-                if(familiarGrouped){
-                  const sameRole=[]
-                  const similarRole=[]
-                  const unlabeled=[]
-                  optBlocks.forEach((b,bi)=>{
-                    const sp=extractSubPath(b)
-                    if(sp==='Same Role, Same Industry'||/same role, same industry/i.test(sp||''))sameRole.push({b,bi})
-                    else if(sp==='Similar Role, Different Industry'||/similar role, different industry/i.test(sp||''))similarRole.push({b,bi})
-                    else unlabeled.push({b,bi})
-                  })
-                  renderedBlocks=<>
-                    {unlabeled.map(({b,bi})=>renderCard(b,bi))}
-                    {sameRole.length>0&&<div style={{marginBottom:24}}>
-                      <h3 style={{fontSize:22,fontWeight:700,color:C.gold,margin:'0 0 4px',paddingTop:16,borderTop:`2px solid ${C.gold}33`}}>Same Role, Same Industry</h3>
-                      <p style={{fontSize:18,color:C.gray,margin:'0 0 12px',fontStyle:'italic'}}>The roles where your existing track record speaks most directly.</p>
-                      {sameRole.map(({b,bi})=>renderCard(b,bi))}
-                    </div>}
-                    {similarRole.length>0&&<div>
-                      <h3 style={{fontSize:22,fontWeight:700,color:C.gold,margin:'0 0 4px',paddingTop:16,borderTop:`2px solid ${C.gold}33`}}>Similar Role, Different Industry</h3>
-                      <p style={{fontSize:18,color:C.gray,margin:'0 0 12px',fontStyle:'italic'}}>Where your skills travel to a new context.</p>
-                      {similarRole.map(({b,bi})=>renderCard(b,bi))}
-                    </div>}
-                  </>
-                }else{
-                  renderedBlocks=optBlocks.map((b,bi)=>renderCard(b,bi))
-                }
-                return <>
-                  {preamble&&<div style={{fontSize:18,color:'#374258',lineHeight:1.7,marginBottom:16}}><MD text={preamble}/></div>}
-                  <div style={{fontSize:16,color:'#4A5568',lineHeight:1.55,marginBottom:14,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6}}>Click any role card to see why Reimagine suggested it, what the work looks like, and how your background maps to it.</div>
-                  {renderedBlocks}
-                </>
-              })()}
-            </div>}
-          </>}
-          {lanes.length===0&&<div style={{margin:'20px 0 12px',fontSize:18,color:'#4A5568',lineHeight:1.65}}>Read through your options below, then <strong style={{color:'#1A2540'}}>select up to 3 roles</strong> from the checklist that follows. We'll go deep on the ones you choose.</div>}
-          {outputs.p4&&<div style={{marginTop:24}}><OutPanel text={outputs.p4} onCopy={copy} copied={copied} expandLabel="Click here to see all your options"/></div>}
-          {markedOpts.length>0&&<div style={{marginTop:16,padding:'16px 20px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:12,display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:16}}>
-            <div style={{flex:'1 1 320px',minWidth:0}}>
-              <div style={{fontSize:16,color:'#4A5568',marginBottom:12,fontWeight:600}}>{markedOpts.length<=3?`Marked (${markedOpts.length}):`:`Marked (${markedOpts.length}, you'll narrow to 3 on the next screen):`}</div>
-              <ol style={{margin:0,paddingLeft:24,fontSize:18,color:'#1A2540',lineHeight:1.6}}>
-                {markedOpts.map((s,i)=><li key={i} style={{marginBottom:6}}><strong>{s}</strong></li>)}
-              </ol>
-            </div>
-            <Btn onClick={()=>{if(markedOpts.length===0){setErr('Mark at least one role to continue.');return}if(markedOpts.length<=3){const padded=[...markedOpts,'','',''].slice(0,3);setDeepOpts(padded);advance('p4','p5')}else{advance('p4','narrowing')}}}>Go Deeper <ChevronRight size={14}/></Btn>
-          </div>}
-          {markedOpts.length===0&&available.length>0&&<div style={{fontSize:16,color:C.gray,marginTop:12,textAlign:'center'}}>Mark at least one role above to continue.</div>}
-          {!isDemo&&<RefineBox value={feedback.p4} onChange={v=>setFb('p4',v)} hint="Did we read your fit wrong? If a role you would actually consider is missing, or one we suggested doesn't match your experience, tell us. You can also ask for a different mix here: more startups, fewer consulting roles, more in a specific industry." placeholder="e.g. 'I would not go back to consulting, drop those options.' Or: 'You missed fractional CFO roles.' Or: 'The Industry Insider lane needs more advisory roles, not operating.'" updateLabel="Update my options" freshLabel="Show me a fresh set" onRegenerate={v=>{cascadeInvalidate('p4');recordCorrection('p4',v);out('p4','');setLaneTab(0);setP4Intro(false);generateP4(v,'Updating your options…')}}/>}
-        </>
-      })()}
-      {err&&<ErrBox msg={err}/>}
-    </div>
-
-    case'narrowing':{
-      const narrowSelected=deepOpts.filter(v=>v&&v!=='?')
-      const toggleNarrow=(title)=>{
-        if(deepOpts.includes(title)){
-          setDeepOpts(d=>d.map(v=>v===title?'':v))
-        }else if(narrowSelected.length<3){
-          const emptyIdx=deepOpts.findIndex(v=>!v||v==='?')
-          if(emptyIdx>=0)setDeepOpts(d=>d.map((v,j)=>j===emptyIdx?title:v))
-        }
-      }
-      return <div>
-        {!isDemo&&<div style={S.tag('#C8924A')}>Phase 2 · Explore Options</div>}
-        <h1 style={S.title}>Narrow Your Picks</h1>
-        <p style={S.sub}>You marked {markedOpts.length} roles to explore. The Deep Dive goes deep on three. Pick the three you want.</p>
-        <div style={{margin:'20px 0',padding:'16px 20px',background:`${C.gold}10`,border:`1.5px solid ${C.gold}`,borderRadius:12}}>
-          <div style={{fontSize:16,fontWeight:600,color:'#1A2540',marginBottom:8}}>Selected: {narrowSelected.length} of 3</div>
-          <div style={{fontSize:16,color:'#4A5568',lineHeight:1.55}}>Click a marked role to add it to your three, or click again to swap it out. The Deep Dive will analyze each one in detail.</div>
-        </div>
-        {markedOpts.map((title,i)=>{
-          const isSelected=deepOpts.includes(title)
-          const canSelect=narrowSelected.length<3||isSelected
-          const rationale=extractRationaleForTitle(outputs.p4,title)
-          return <div key={i} onClick={()=>{if(canSelect)toggleNarrow(title)}} style={{margin:'12px 0',padding:'16px 20px',background:isSelected?`${C.gold}15`:'#FFFFFF',border:`2px solid ${isSelected?C.gold:C.border}`,borderRadius:12,cursor:canSelect?'pointer':'default',opacity:canSelect?1:0.55,transition:'all 0.15s'}}>
-            <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-              <div style={{width:24,height:24,borderRadius:6,border:`2px solid ${isSelected?C.gold:'#CBD5E0'}`,background:isSelected?C.gold:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:2}}>{isSelected&&<Check size={14} color="#FFFFFF" strokeWidth={3}/>}</div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:19,fontWeight:600,color:'#1A2540',marginBottom:rationale?4:0}}>{title}</div>
-                {rationale&&<div style={{fontSize:18,color:'#4A5568',lineHeight:1.55}}>{rationale}</div>}
-              </div>
-            </div>
-          </div>
-        })}
-        <div style={S.row}>
-          <Btn secondary onClick={()=>nav('p4')}><ArrowLeft size={13}/>Back to all options</Btn>
-          <Btn onClick={()=>{if(narrowSelected.length===0){setErr('Pick at least one role to continue.');return}advance('narrowing','p5')}}>Go Deeper <ChevronRight size={14}/></Btn>
-        </div>
-        {err&&<ErrBox msg={err}/>}
-      </div>
-    }
-
-    case'p5':{
-      const filledOpts=deepOpts.filter(v=>v&&v!=='?')
-
-      const parseOptions=(text)=>{
-        if(!text)return{takeaway:'',options:[]}
-        const takeawayMarker='## QUICK TAKEAWAY'
-        let takeaway=''
-        const tkIdx=text.indexOf(takeawayMarker)
-        if(tkIdx!==-1){
-          const afterTk=text.slice(tkIdx+takeawayMarker.length)
-          const nextH2=afterTk.search(/\n## /)
-          takeaway=nextH2!==-1?afterTk.slice(0,nextH2).trim():afterTk.trim()
-        }
-        const trimmed=text.replace(/^[\s\S]*?(?=## OPTION [ABC])/m,'')
-        const parts=trimmed.split(/^## OPTION [ABC]/m).filter(Boolean)
-        const options=parts.map(part=>{
-          const sections={title:'',reality:'',fit:'',brief:''}
-          const h3Reality=part.match(/### THE ROLE([\s\S]*?)(?=### WHY YOU FIT|### WORTH CONSIDERING|$)/)
-          const h3Fit=part.match(/### WHY YOU FIT([\s\S]*?)(?=### WORTH CONSIDERING|$)/)
-          const h3Brief=part.match(/### WORTH CONSIDERING([\s\S]*?)$/)
-          sections.reality=h3Reality?h3Reality[1].trim():''
-          sections.fit=h3Fit?h3Fit[1].trim():''
-          sections.brief=h3Brief?h3Brief[1].trim():''
-          return sections
-        })
-        return{takeaway,options}
-      }
-
-      const{takeaway:p5Takeaway,options:parsed}=parseOptions(outputs.p5)
-      const sectionStyle={background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'24px 28px',marginBottom:14,boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}
-      const sectionLabel={fontSize:17,fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',color:C.gold,marginBottom:14,display:'block'}
-
-      return <div>
-        {!isDemo&&<div style={S.tag('#C8924A')}>Phase 2 · Explore Options</div>}
-        <h1 style={S.title}>The Deep Dive</h1>
-        {!isDemo&&<p style={S.sub}>It's easy to get excited about an option on paper. This step shows what the role actually looks like and how your background maps to it.</p>}
-        {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{margin:'20px 0 16px',padding:'16px 20px',background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:12}}>
-          <div style={{fontSize:16,color:'#4A5568',marginBottom:12,fontWeight:600}}>Going deep on these:</div>
-          <ol style={{margin:0,paddingLeft:24,fontSize:18,color:'#1A2540',lineHeight:1.6}}>
-            {filledOpts.map((o,i)=><li key={i} style={{marginBottom:6}}><strong>{o}</strong></li>)}
-          </ol>
-        </div>}
-        {!isDemo&&!outputs.p5&&!loading&&filledOpts.length>0&&<div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap'}}>
-          <Btn onClick={()=>generate('p5',()=>P.p5(pc,outputs,deepOpts),{maxTokens:6000,msg:'Building your deep dive…'})}><Sparkles size={14}/>Explore These Options</Btn>
-          <Btn secondary onClick={()=>nav('p4')}><ArrowLeft size={13}/>Change My Selections</Btn>
-        </div>}
-        {!isDemo&&filledOpts.length===0&&!outputs.p5&&<div style={{...S.err,marginTop:0}}><AlertCircle size={13} color={C.err} style={{flexShrink:0}}/><span>Go back to The Wide View and select at least one option to explore.</span></div>}
-        {loading&&<Loading msg={loadMsg||'Building your deep dive…'} step="p5"/>}
-        {outputs.p5&&<>
-          {!isDemo&&<CoachingCallout>
-            <strong style={{color:'#1A2540'}}>Three reads to compare.</strong>
-            <p style={{margin:'8px 0 8px'}}>Below are deeper looks at each of your three selected roles. Read them slowly. The next step is picking one to focus on, which lets Reimagine sharpen everything downstream (your bridge story, target companies, resume refresh) around that direction.</p>
-            <p style={{margin:'0 0 8px'}}>You are not locking it in. You can always go back and choose again later, and the work will update around your new choice.</p>
-            <p style={{margin:0}}>If a role is not what you thought it was, the "What did we get wrong?" box below sharpens it.</p>
-          </CoachingCallout>}
-          {p5Takeaway&&<div style={S.out}>
-            <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}><Btn small onClick={()=>copy(outputs.p5)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn><Btn small onClick={()=>window.print()}><Printer size={11}/>Print</Btn></div>
-            <MD text={`## QUICK TAKEAWAY\n${p5Takeaway}`}/>
-            <button data-expand="true" onClick={()=>setDeepExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:10,margin:'20px 0 8px',padding:'14px 22px',background:deepExpanded?`${C.gold}15`:`${C.gold}10`,border:`2px solid ${C.gold}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:17,fontWeight:700,color:C.goldL,transition:'all 0.2s',width:'100%'}}>
-              <ChevronRight size={18} style={{transform:deepExpanded?'rotate(90deg)':'none',transition:'transform 0.2s'}}/>
-              {deepExpanded?'Hide full analysis':'Click here for a deeper understanding'}
-            </button>
-          </div>}
-          {(deepExpanded||!p5Takeaway)&&<>
-            <div style={{display:'flex',gap:8,marginBottom:20,marginTop:p5Takeaway?16:0,flexWrap:'wrap'}}>
-              {filledOpts.map((opt,i)=><button key={i} onClick={()=>setActiveTab(i)} style={{padding:'12px 22px',borderRadius:8,border:`2px solid ${activeTab===i?C.gold:C.border}`,background:activeTab===i?`${C.gold}15`:'white',color:activeTab===i?C.goldL:'#4A5568',fontSize:17,fontWeight:activeTab===i?600:400,cursor:'pointer',fontFamily:'inherit',transition:'all 0.15s'}}>{opt}</button>)}
-            </div>
-            {parsed[activeTab]&&(parsed[activeTab].reality||parsed[activeTab].fit||parsed[activeTab].brief)?<>
-              {parsed[activeTab].reality&&<div style={sectionStyle}>
-                <span style={sectionLabel}>The Role</span>
-                <MD text={parsed[activeTab].reality}/>
-              </div>}
-              {parsed[activeTab].fit&&<div style={sectionStyle}>
-                <span style={sectionLabel}>Why You Fit</span>
-                <MD text={parsed[activeTab].fit}/>
-              </div>}
-              {parsed[activeTab].brief&&<div style={sectionStyle}>
-                <span style={sectionLabel}>Worth Considering</span>
-                <MD text={parsed[activeTab].brief}/>
-              </div>}
-            </>:<div style={S.out}><MD text={outputs.p5}/></div>}
-          </>}
-          {!isDemo&&<RefineBox value={feedback.p5} onChange={v=>setFb('p5',v)} hint="Did we misread fit on any of these options? If something we said about an option doesn't match your background or your interest, tell us." placeholder="e.g. 'You said this role needs more sales experience than I have, but I led a $50M sales org.' Or: 'I am not interested in Option B at all, replace it.' Or: 'The obstacle you flagged is not really a concern for me.'" onRegenerate={v=>{cascadeInvalidate('p5');recordCorrection('p5',v);out('p5','');generate('p5',()=>P.p5(pc,outputs,deepOpts)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:6000,msg:'Updating your deep dive…'})}}/>}
-          {!isDemo&&<div style={S.row}>
-            <Btn secondary onClick={()=>{out('p5','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn>
-            <Btn secondary onClick={()=>{cascadeInvalidate('deepOpts');nav('p4')}}><ArrowLeft size={13}/>Choose Different Options</Btn>
-            <Btn onClick={()=>advance('p5','decision')}>Make My Decision <ChevronRight size={14}/></Btn>
-          </div>}
-        </>}
-        {err&&<ErrBox msg={err}/>}
-      </div>
-    }
-
-    case'decision':return <div>
-      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 2 · Explore Options</div>}
-      <h1 style={S.title}>Your Focus</h1>
-      {!isDemo&&<p style={S.sub}>Having multiple strong options is a good problem to have. This is the moment you choose a direction and everything starts pointing the same way.</p>}
-      {!isDemo&&<CoachingCallout>
-        <strong style={{color:'#1A2540'}}>Picking one to focus on.</strong>
-        <p style={{margin:'8px 0 8px'}}>This choice tells Reimagine which direction to sharpen everything downstream around: your bridge story, your target companies, your resume refresh, your interview prep. Take a moment to sit with the three before you pick.</p>
-        <p style={{margin:'0 0 12px'}}>You are not locking it in. If a different direction starts to feel right after you see the downstream work, come back here and pick again. Everything updates around your new choice.</p>
-        <p style={{margin:'0 0 8px',fontWeight:600,color:'#1A2540'}}>How to choose when all three feel viable:</p>
-        <ul style={{margin:'0 0 0 20px',padding:0}}>
-          <li style={{margin:'0 0 4px'}}>Which one would you most want to tell people you are pursuing?</li>
-          <li style={{margin:'0 0 4px'}}>Which one's day-to-day work would you be most ready to do tomorrow morning?</li>
-          <li style={{margin:0}}>Which one has the most credible bridge from where you are now to where it sits?</li>
-        </ul>
-      </CoachingCallout>}
-      {isDemo?<div style={S.card}>
-        <label style={S.label}>Pursuing</label>
-        <div style={{fontSize:19,color:C.cream,fontWeight:600,lineHeight:1.6}}>{chosen}</div>
-      </div>:<>
-        <div style={S.card}>
-          <label style={S.label}>Choose your focus</label>
-          <div style={{fontSize:18,color:C.gray,marginBottom:14,lineHeight:1.6}}>{deepOpts.filter(v=>v&&v!=='?').length===1?'Confirm this is the direction you want to pursue, or describe a different path below.':'Click the option you want as your focus, or describe a different path below.'} This becomes the foundation for everything that follows.</div>
-          {deepOpts.filter(v=>v&&v!=='?').length>0&&<div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
-            {deepOpts.filter(v=>v&&v!=='?').map(opt=><button key={opt} onClick={()=>{if(chosen&&chosen!==opt)cascadeInvalidate('chosen');setChosen(opt)}} style={{padding:'14px 20px',borderRadius:8,border:`2px solid ${chosen===opt?C.gold:C.border}`,background:chosen===opt?`${C.gold}15`:'white',color:chosen===opt?C.goldL:'#374258',fontSize:17,fontWeight:chosen===opt?600:400,cursor:'pointer',fontFamily:'inherit',textAlign:'left',transition:'all 0.15s',display:'flex',alignItems:'center',gap:10}}>{chosen===opt&&<Check size={14} color={C.gold} strokeWidth={3}/>}{opt}</button>)}
-          </div>}
-          <div style={{fontSize:16,color:C.gray,marginTop:8}}>Or describe a different path:</div>
-          <textarea style={{...S.ta,minHeight:60,marginTop:6}} value={deepOpts.filter(v=>v&&v!=='?').includes(chosen)?'':chosen} onChange={e=>setChosen(e.target.value)} placeholder="e.g. a hybrid of two of the options above, or a refinement that wasn't surfaced…"/>
-        </div>
-        <div style={S.card}>
-          <div style={{fontWeight:600,color:C.cream,fontSize:16,marginBottom:9}}>Not ready yet?</div>
-          <Btn secondary onClick={()=>{cascadeInvalidate('deepOpts');nav('p5')}}>Explore different options →</Btn>
-          <div style={{fontSize:16,color:C.gray,marginTop:9}}>Or close the tool and come back, your progress is saved automatically.</div>
-        </div>
-        {err&&<ErrBox msg={err}/>}
-        <div style={S.row}><Btn onClick={()=>{if(!chosen){setErr('Please enter your decision to continue.');return}const initial=decisionInitialChosenRef.current;if(initial&&initial!==chosen&&outputs.p6)cascadeInvalidate('chosen');advance('decision','p6');generate('p6',()=>P.p6(pc,outputs,chosen),{maxTokens:5000})}}>Build My Bridge Story <ChevronRight size={14}/></Btn></div>
-      </>}
-    </div>
-
+    case'twoDoors':return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>What would you like to do next?</h1><p style={S.sub}>Two Doors screen. Implemented in WS6.</p></div>
+    case'laneSelect':return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>Three directions to consider</h1><p style={S.sub}>Lane Selection screen. Implemented in WS6.</p></div>
+    case'p4':return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>Role options</h1><p style={S.sub}>Lane Option view. Implemented in WS6.</p></div>
+    case'focus':return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>Focus playbook</h1><p style={S.sub}>Focus playbook. Implemented in WS6.</p></div>
     case'p6':return <div>
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
 
