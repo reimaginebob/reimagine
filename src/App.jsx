@@ -943,6 +943,40 @@ const extractRationaleForTitle = (p4Text, title) => {
   return ''
 }
 
+const LANE_CARDS = [
+  { id:'familiar', label:'Familiar Ground', tagline:'Same kind of work, in a new seat.', blurb:'Could be a bigger scope, the same role at a different company, or your function applied in a new industry. Your track record speaks immediately because the work itself is familiar territory.' },
+  { id:'insider', label:'Industry Insider', tagline:'Your industry expertise, in more places than you might think.', blurb:'Employers consistently prefer candidates who already understand their industry, which means the ecosystem around your current role holds more options than you may realize: clients, vendors, consultants, regulators, adjacent players. Same insider knowledge, broader spectrum of seats.' },
+  { id:'wtm', label:'Work That Matters', tagline:'A real pivot toward meaning.', blurb:"Built on the intersection of what you love, what you're good at, what the world needs, and what you can be paid for. The biggest move of the three paths, and the one that most often stretches beyond your current title." },
+]
+const OPTION_SPLIT_RE = /(?=^#{1,3}\s*OPTION:\s*)/m
+const OPTION_COUNT_RE = /^#{1,3}\s*OPTION:/mg
+const sliceLaneBlock = (text, header) => {
+  if (!text) return ''
+  const sm = text.match(new RegExp(`^##\\s*${header}\\b[^\\n]*\\n`, 'mi'))
+  if (!sm) return ''
+  const rest = text.slice(sm.index + sm[0].length)
+  const b = rest.search(/^#{2,}/m)
+  return (b >= 0 ? rest.slice(0, b) : rest).trim()
+}
+const laneOptionsOnly = (text) => {
+  if (!text) return ''
+  const i = text.search(/^#{1,3}\s*OPTION:/m)
+  return i >= 0 ? text.slice(i).trim() : ''
+}
+const extractLaneOptions = (text) => {
+  if (!text) return { context:'', takeaway:'', options:[], optionCount:0 }
+  const context = sliceLaneBlock(text, 'CONTEXT')
+  const takeaway = sliceLaneBlock(text, 'QUICK TAKEAWAY')
+  const body = laneOptionsOnly(text)
+  const options = body ? body.split(OPTION_SPLIT_RE).map(s => s.trim()).filter(s => /^#{1,3}\s*OPTION:/.test(s)) : []
+  const optionCount = (text.match(OPTION_COUNT_RE) || []).length
+  return { context, takeaway, options, optionCount }
+}
+const laneOptionTitle = (block) => {
+  const m = (block || '').match(/^#{1,3}\s*OPTION:\s*(.+)$/m)
+  return m ? m[1].replace(/\*+/g, '').trim() : ''
+}
+
 const SHUFFLED_POOLS = (() => {
   const pools = {}
   Object.keys(STEP_QUOTES).forEach(k => { pools[k] = shuffleArr(STEP_QUOTES[k]) })
@@ -1068,6 +1102,23 @@ function SpeechBtn({onResult,style}){
       {listening?<Mic size={18} color="#FFFFFF"/>:<Mic size={18} color={C.gray}/>}
     </button>
   </>
+}
+function SeeMoreOptions({lane,prevTitles,onSubmit,disabled}){
+  const[open,setOpen]=useState(false)
+  const[text,setText]=useState('')
+  return <div style={{marginTop:28,marginBottom:8,border:`2px solid ${C.gold}`,borderRadius:12,overflow:'hidden',background:`${C.gold}10`,maxWidth:820}}>
+    <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+      <span style={{fontSize:17,fontWeight:700,color:C.gold}}>See more options at this level</span>
+      {open?<ChevronUp size={18} color={C.gold} strokeWidth={2.5}/>:<ChevronDown size={18} color={C.gold} strokeWidth={2.5}/>}
+    </button>
+    {open&&<div style={{background:'#FFFFFF',padding:'16px 20px',borderTop:`1px solid ${C.border}`}}>
+      <div style={{fontSize:16,color:C.gray,marginBottom:12,lineHeight:1.65}}>Optional: tell us what didn't fit and we'll factor it in. We won't repeat the options you've already seen.</div>
+      <textarea style={{...S.ta,minHeight:70}} value={text} onChange={e=>setText(e.target.value)} placeholder="e.g. 'These skew too senior.' Or: 'I want roles closer to product, not ops.'"/>
+      <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
+        <Btn disabled={disabled} onClick={()=>{setOpen(false);const t=text;setText('');onSubmit(lane,t,prevTitles)}}><Sparkles size={13}/>Show more options</Btn>
+      </div>
+    </div>}
+  </div>
 }
 function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel}){
   const[open,setOpen]=useState(false)
@@ -1568,6 +1619,27 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const roleSwitchContinue=()=>{const r=roleSwitchModal&&roleSwitchModal.run;setRoleSwitchModal(null);if(r)r()}
   const roleSwitchCancel=()=>setRoleSwitchModal(null)
   const showPlaybookFooter=!isDemo&&step==='focus'&&POST_P5_SUBMODULES.some(k=>outputs[k]&&outputs[k].length>0)
+  const laneData=(outputs.p4&&typeof outputs.p4==='object')?outputs.p4:{}
+  const generateLane=async(lane,opts={})=>{
+    if(loading||generatingSection)return
+    window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Mapping your options for this direction…')
+    try{
+      const prompt=correctionsBlock(profile.corrections)+P.p4(pc,outputs.p1,outputs.p2,outputs.p3,lane,opts.previous||[],opts.feedback||'')
+      const r=await callClaude(prompt,{highTemp:true,maxTokens:5000})
+      setOutputs(o=>{
+        const prev=(o.p4&&typeof o.p4==='object')?o.p4:{}
+        const existing=prev[lane]||''
+        let merged=r
+        if(existing){const add=laneOptionsOnly(r);merged=add?existing.trimEnd()+'\n\n'+add:existing}
+        return {...o,p4:{...prev,[lane]:merged}}
+      })
+    }catch(e){setErr(e.message)}finally{setLoading(false)}
+  }
+  const pickLane=(lane)=>{setSelectedLane(lane);advance('laneSelect','p4');if(!(laneData[lane]&&laneData[lane].length))generateLane(lane)}
+  const switchLaneTab=(lane)=>{setSelectedLane(lane);if(!(laneData[lane]&&laneData[lane].length))generateLane(lane);window.scrollTo(0,0)}
+  const seeMoreOptions=(lane,fb,prevTitles)=>generateLane(lane,{feedback:fb,previous:prevTitles,msg:'Finding more options for this direction…'})
+  const dismissWelcomeBack=()=>{setMigratedFromPreV1(false);try{localStorage.setItem('pe_welcome_back_v1','true')}catch{}}
+  const showWelcomeBack=migratedFromPreV1&&(()=>{try{return !localStorage.getItem('pe_welcome_back_v1')}catch{return true}})()
   const dismissVoiceMig=()=>{setVoiceBannerDismissed(true);setProfile(p=>{const n=(p.voiceMigrationDismissCount||0)+1;return{...p,voiceMigrationDismissCount:n,...(n>=3?{voiceMigrationDismissed:true}:{})}})}
   const regenVoiceMig=()=>{setProfile(p=>({...p,voiceMigrationDismissed:true}));setVoiceBannerDismissed(true);cascadeInvalidate('p1');out('p1','');nav('p1');generate('p1',()=>P.p1(pc))}
   const showVoiceMigBanner=voiceMigBanner&&!voiceBannerDismissed&&!profile.voiceMigrationDismissed&&!isDemo&&!isTest
@@ -2007,9 +2079,70 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {err&&<ErrBox msg={err}/>}
     </div>
 
-    case'twoDoors':return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>What would you like to do next?</h1><p style={S.sub}>Two Doors screen. Implemented in WS6.</p></div>
-    case'laneSelect':return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>Three directions to consider</h1><p style={S.sub}>Lane Selection screen. Implemented in WS6.</p></div>
-    case'p4':return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>Role options</h1><p style={S.sub}>Lane Option view. Implemented in WS6.</p></div>
+    case'twoDoors':return <div>
+      {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
+      {showWelcomeBack&&<div data-print="hide" style={{position:'relative',background:`${C.gold}12`,border:`1px solid ${C.gold}40`,borderRadius:12,padding:'20px 50px 20px 24px',marginBottom:24,maxWidth:860}}>
+        <button onClick={dismissWelcomeBack} aria-label="Dismiss" style={{position:'absolute',top:12,right:14,background:'transparent',border:'none',color:C.gray,fontSize:20,cursor:'pointer',fontFamily:'inherit',lineHeight:1}}>×</button>
+        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7}}><strong>Welcome back.</strong> We've reworked the next part of Reimagine to make exploring your options less overwhelming. Your story (resume, assessment, values, reputation, brand synthesis) is right where you left it. Roles you previously explored will regenerate fresh from your latest inputs; if you want to keep any role exactly as it was, save its PDF. Pick the kind of move you want to explore below.</div>
+      </div>}
+      <h1 style={S.title}>What would you like to do next?</h1>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,maxWidth:920,marginTop:8}}>
+        <button onClick={()=>advance('twoDoors','laneSelect')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit'}}>
+          <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:10}}>Not sure where to aim?</div>
+          <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>Reimagine takes your experience, wiring, values, and reputation and maps it to specific roles you could pursue, from a stronger version of what you do today to a complete shift toward work that matters. Pick the kind of move you want to explore, and we'll build the full playbook for any role that interests you.</div>
+          <div style={{marginTop:16,color:C.gold,fontWeight:600,fontSize:16,display:'flex',alignItems:'center',gap:6}}>Explore directions <ChevronRight size={15}/></div>
+        </button>
+        <button onClick={()=>advance('twoDoors','op')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit'}}>
+          <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:10}}>Analyze a specific role.</div>
+          <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>Paste in a job description and get the full playbook for it.</div>
+          <div style={{marginTop:16,color:C.gold,fontWeight:600,fontSize:16,display:'flex',alignItems:'center',gap:6}}>Analyze a job description <ChevronRight size={15}/></div>
+        </button>
+      </div>
+    </div>
+    case'laneSelect':return <div>
+      {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
+      <h1 style={S.title}>Three directions to consider.</h1>
+      <p style={S.sub}>Pick the one you want to start with. You can come back to the others anytime.</p>
+      <div style={{display:'flex',flexDirection:'column',gap:18,maxWidth:860}}>
+        {LANE_CARDS.map(L=><button key={L.id} onClick={()=>pickLane(L.id)} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'26px 30px',cursor:'pointer',fontFamily:'inherit'}}>
+          <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:6}}>{L.label}</div>
+          <div style={{fontSize:17,fontStyle:'italic',color:C.gold,marginBottom:10}}>{L.tagline}</div>
+          <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{L.blurb}</div>
+        </button>)}
+      </div>
+    </div>
+    case'p4':{
+      if(!selectedLane)return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>Pick a direction first</h1><div style={S.row}><Btn onClick={()=>nav('laneSelect')}>Choose a direction <ChevronRight size={14}/></Btn></div></div>
+      const laneText=laneData[selectedLane]||''
+      const L=LANE_CARDS.find(x=>x.id===selectedLane)||{label:laneLabelFor(selectedLane),tagline:''}
+      const lo=extractLaneOptions(laneText)
+      const titles=lo.options.map(laneOptionTitle).filter(Boolean)
+      const otherLanes=Object.keys(laneData).filter(k=>k!==selectedLane&&laneData[k])
+      return <div>
+        {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
+        <h1 style={S.title}>{L.label}</h1>
+        {L.tagline&&<p style={{...S.sub,fontStyle:'italic',color:C.gold,marginBottom:14}}>{L.tagline}</p>}
+        {loading&&<Loading msg={loadMsg||'Mapping your options for this direction…'} step="p4"/>}
+        {!loading&&!laneText&&<div style={S.row}><Btn onClick={()=>generateLane(selectedLane)}><Sparkles size={14}/>Show My Options</Btn></div>}
+        {!loading&&laneText&&<>
+          {lo.context&&<div style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 18px',maxWidth:760}}><MD text={lo.context}/></div>}
+          {lo.takeaway&&<div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'0 0 22px',maxWidth:760}}><MD text={lo.takeaway}/></div>}
+          {lo.optionCount<3&&<div style={{background:`${C.gold}12`,border:`1px solid ${C.gold}35`,borderRadius:10,padding:'18px 22px',marginBottom:20,fontSize:17,color:'#1A2540',lineHeight:1.7,maxWidth:760}}><strong>We're seeing fewer strong options at this level for you.</strong> Here {lo.optionCount===1?'is the 1':`are the ${lo.optionCount}`} we found. Tell us what we got wrong below and we'll generate more, or try another direction with one of the other paths.</div>}
+          <div style={{display:'flex',flexDirection:'column',gap:16,maxWidth:820}}>
+            {lo.options.map((blk,i)=>{const t=laneOptionTitle(blk);return <button key={i} onClick={()=>switchToRole(t,selectedLane)} disabled={loading||!!generatingSection} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'22px 26px',cursor:'pointer',fontFamily:'inherit'}}>
+              <div style={{fontSize:20,fontWeight:700,color:'#1A2540',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}><span>{t}</span><span style={{color:C.gold,fontSize:15,fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>Build this playbook <ChevronRight size={14}/></span></div>
+              <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}><MD text={blk.replace(/^#{1,3}\s*OPTION:.*$/m,'').trim()}/></div>
+            </button>})}
+          </div>
+          <SeeMoreOptions lane={selectedLane} prevTitles={titles} onSubmit={seeMoreOptions} disabled={loading||!!generatingSection}/>
+          <div style={S.row}>
+            <Btn secondary onClick={()=>nav('laneSelect')}>Explore another direction</Btn>
+            {otherLanes.map(k=><Btn key={k} secondary onClick={()=>switchLaneTab(k)}>Back to {laneLabelFor(k)}</Btn>)}
+          </div>
+        </>}
+        {err&&<ErrBox msg={err}/>}
+      </div>
+    }
     case'focus':return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>Focus playbook</h1><p style={S.sub}>Focus playbook. Implemented in WS6.</p></div>
     case'p6':return <div>
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
