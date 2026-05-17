@@ -24,12 +24,8 @@ A few specifics: take an assessment if you do not have one (the difference is si
 
 1. **Orientation**. Your inputs. The only phase where you do the work.
 2. **Know Your Value**. Reimagine translates your accomplishments and synthesizes a personal brand.
-3. **Explore Options**. Three paths, dozens of role options, then a Deep Dive on up to three you select.
-4. **Tell Your Story**. Your bridge story, structured around who you are as a human, how that played out in your career, and what you are looking for.
-5. **Find Your Market**. A target company list with hiring decision-makers and personalized outreach drawing from the hidden job market, not job boards.
-6. **Get Ready**. Recommended LinkedIn and resume copy to apply yourself, plus a playbook of language, people, interview prep, and STAR stories.
-7. **Income Now (bonus)**. A fractional and consulting income plan if you need revenue while you search.
-8. **Upload a Live Opportunity (bonus)**. Paste or upload any job description you find in the wild and Reimagine produces a tailored playbook for that specific role, drawing on everything you have built. The most natural reason to come back to Reimagine during a search.
+3. **Explore Options**. Pick a direction (Familiar Ground, Industry Insider, or Work That Matters) and Reimagine shows specific roles for it. Or paste a job description for a role you already have in hand.
+4. **The Focus playbook**. Click any role and Reimagine builds a complete playbook for that one role: The Role, Bridge Story, Lingo & Playbook, Interview Prep, STAR Stories, Resume Refresh, LinkedIn Remix, Go-to-Market, and Income Now. The Role generates immediately; the rest generate on demand, in that order. Save any playbook as a PDF, and re-explore other roles anytime.
 
 ## Things worth knowing before you start
 

@@ -1,6 +1,6 @@
 # 11b. Bonus. Upload a Live Opportunity
 
-This is a bonus module that activates after you finish the main journey. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here.
+This is **Door 2** on the Two Doors screen in Phase 2 (Chapter 6). Whenever you have a specific job description in hand, choose Door 2, paste it in, and Reimagine builds a full playbook for that exact role. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here. You no longer have to finish the main journey first; Door 2 is available as soon as you reach the Two Doors screen.
 
 ## When to use it
 
