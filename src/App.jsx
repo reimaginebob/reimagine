@@ -715,6 +715,29 @@ const normalizeWork = (p) => {
   return next
 }
 
+// Pure. Normalizes a persisted profile blob to the v1 shape. Returns {normalizedState, didMigrate}.
+// didMigrate is true iff rules 1-5 / 7 / 8 changed state; rule 6 (key defaulting) does NOT count.
+const V1_STEPS = new Set(ALL)
+const ROLE_SUBMODULES = ['p5','p6','p7','p8','p9','p10','p11','p_res','income']
+const normalizeProfileState = (loaded) => {
+  const s = loaded && typeof loaded === 'object' ? { ...loaded } : {}
+  s.outputs = s.outputs && typeof s.outputs === 'object' ? { ...s.outputs } : {}
+  const isPreV1 = !('selectedLane' in s) || !('exploredRoleTitles' in s)
+  let migrated = false
+  const M = () => { migrated = true }
+  if (s.outputs.p4 !== undefined && typeof s.outputs.p4 === 'string') { delete s.outputs.p4; M() }
+  if (typeof s.outputs.p5 === 'string' && (s.outputs.p5.indexOf('## OPTION A') >= 0 || s.outputs.p5.indexOf('## OPTION B') >= 0)) { delete s.outputs.p5; M() }
+  if (s.chosen && !(s.selectedLane && String(s.selectedLane).length)) { s.chosen = ''; for (const k of ROLE_SUBMODULES) delete s.outputs[k]; s.step = 'twoDoors'; M() }
+  if (Array.isArray(s.done) && s.done.some(x => x === 'decision' || x === 'narrowing')) { s.done = s.done.filter(x => x !== 'decision' && x !== 'narrowing'); M() }
+  if ((Array.isArray(s.deepOpts) && s.deepOpts.some(v => v && v !== '')) || (Array.isArray(s.markedOpts) && s.markedOpts.length)) { s.deepOpts = ['', '', '']; if ('markedOpts' in s) delete s.markedOpts; M() }
+  if (!('selectedLane' in s)) s.selectedLane = ''
+  if (!('exploredRoleTitles' in s)) s.exploredRoleTitles = []
+  if (!('npsAsked' in s)) s.npsAsked = false
+  if (s.step && !V1_STEPS.has(s.step)) { s.step = 'twoDoors'; M() }
+  if (isPreV1 && s.step === 'complete') { s.step = 'twoDoors'; M() }
+  return { normalizedState: s, didMigrate: migrated }
+}
+
 // Detection mirrors the build-time voice guard (scripts/check-voice.mjs):
 // the five HARD_BAN patterns plus the AI-coaching SOFT_WARN list. The pattern
 // data is wrapped in voice-allow so the banned phrases held here as detection
@@ -1116,6 +1139,10 @@ export default function PivotEngine(){
   const[done,setDone]=useState(isDemo?[...demoDone]:[])
   const[deepOpts,setDeepOpts]=useState(isDemo?[...demoDeepOpts]:['','',''])
   const[chosen,setChosen]=useState(isDemo?demoChosen:'')
+  const[selectedLane,setSelectedLane]=useState('')
+  const[exploredRoleTitles,setExploredRoleTitles]=useState([])
+  const[npsAsked,setNpsAsked]=useState(false)
+  const[migratedFromPreV1,setMigratedFromPreV1]=useState(false)
   const[demoIdx,setDemoIdx]=useState(0)
   const[activeTab,setActiveTab]=useState(0)
   const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})
@@ -1186,11 +1213,11 @@ export default function PivotEngine(){
   // full pre-delete state. Checked at fire time so any pending timer aborts.
   const deletingRef=useRef(false)
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3')}catch{};return}const load=async()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}};load()},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.npsAsked)setNpsAsked(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}},[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const d=serverProfile.profile;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen)}else{try{const blob=localStorage.getItem('pe_v3');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.npsAsked)setNpsAsked(true);if(x.didMigrate)setMigratedFromPreV1(true)}else{try{const blob=localStorage.getItem('pe_v4');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
   useEffect(()=>{if(!signedInUser)return;const needsPrivacy=signedInUser.privacy_version!=null&&signedInUser.privacy_version!==PRIVACY_VERSION_MATERIAL;const needsTerms=signedInUser.terms_version!=null&&signedInUser.terms_version!==TOS_VERSION_MATERIAL;if(needsPrivacy||needsTerms)setReaccept({needsPrivacyReaccept:needsPrivacy,needsTermsReaccept:needsTerms})},[signedInUser])
-  useEffect(()=>{if(isDemo||isTest)return;try{const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v3');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
+  useEffect(()=>{if(isDemo||isTest)return;try{const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v4');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
   useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
   useEffect(()=>{setShowPulse(false);const t=setTimeout(()=>setShowPulse(true),90000);return()=>clearTimeout(t)},[step])
   useEffect(()=>{const check=()=>{const portrait=window.matchMedia('(orientation: portrait)').matches;const small=window.innerWidth<500;setIsSmallPortrait(portrait&&small)};check();window.addEventListener('resize',check);window.addEventListener('orientationchange',check);return()=>{window.removeEventListener('resize',check);window.removeEventListener('orientationchange',check)}},[])
@@ -1198,7 +1225,7 @@ export default function PivotEngine(){
   useEffect(()=>{if(!invalidationBanner)return;const t=setTimeout(()=>setInvalidationBanner(null),10000);return()=>clearTimeout(t)},[invalidationBanner])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);deleteAccount()},[signedInUser])
-  useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{if(deletingRef.current)return;try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen});localStorage.setItem('pe_v3',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,signedInUser])
+  useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{if(deletingRef.current)return;try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,npsAsked});localStorage.setItem('pe_v4',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,npsAsked,signedInUser])
   useEffect(()=>{
     const sectionName=META[step]||'Output'
     const su=signedInUser||{}
@@ -1385,7 +1412,7 @@ export default function PivotEngine(){
       alert('Could not delete your account: '+(err.message||'unknown error'))
     }
   }
-  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
+  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setSelectedLane('');setExploredRoleTitles([]);setNpsAsked(false);setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
   const exportProfile=()=>{const data={profile,outputs,done,deepOpts,chosen};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
   const downloadAllMarkdown=()=>{
     const today=new Date().toISOString().slice(0,10)
@@ -1515,7 +1542,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:18,color:'#CBD5E0',lineHeight:1.6}}>You have work in progress. Pick up right where you left off.</div>
         </div>
         <div style={{display:'flex',flexDirection:'column',gap:8,alignItems:'flex-end',flexShrink:0}}>
-          <Btn onClick={()=>{try{const r=localStorage.getItem('pe_v3');if(r){const d=JSON.parse(r);if(d.step&&d.step!=='welcome'){setStep(d.step)}else if(d.done&&d.done.length>0){setStep(d.done[d.done.length-1])}}}catch{}}} style={{background:C.gold}}>Continue Where I Left Off <ChevronRight size={14}/></Btn>
+          <Btn onClick={()=>{try{const r=localStorage.getItem('pe_v4');if(r){const d=JSON.parse(r);if(d.step&&d.step!=='welcome'){setStep(d.step)}else if(d.done&&d.done.length>0){setStep(d.done[d.done.length-1])}}}catch{}}} style={{background:C.gold}}>Continue Where I Left Off <ChevronRight size={14}/></Btn>
           {signedInUser&&<button onClick={deleteAccount} style={{background:'transparent',color:'#CBD5E0',border:'none',padding:'4px 0',fontSize:15,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Or start fresh (delete everything and begin again)</button>}
         </div>
       </div>}
