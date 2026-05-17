@@ -784,15 +784,15 @@ const STEP_DISPLAY_NAMES = {
   p1: 'Resume Analysis',
   p2: 'Wiring & Compass',
   p3: 'Brand Synthesis',
-  p4: 'Wide View',
-  p5: 'Deep Dive',
+  p4: 'Role Options',
+  p5: 'The Role',
   p6: 'Bridge Story',
   p7: 'Go-To-Market',
-  p8: 'LinkedIn Refresh',
+  p8: 'LinkedIn Remix',
   p_res: 'Resume Refresh',
-  p9: 'Playbook',
+  p9: 'Lingo & Playbook',
   p10: 'Interview Prep',
-  p11: 'Negotiation',
+  p11: 'STAR Stories',
   income: 'Income Now',
 }
 
@@ -828,15 +828,14 @@ const LOADING_PREVIEWS = {
     'Four to six core capabilities, each anchored to a real moment in your history',
   ],
   p4: [
-    'Familiar Ground: roles where the skills you already have transfer directly. Same function in your industry, or the same kind of work in a new context.',
-    'Industry Insider: where the way you understand your sector becomes an asset in a different kind of role',
-    'Work That Matters: roles your profile points to that you might not have put on your own list. At least two of these every time are deliberately non-obvious.',
-    'Every option includes who tends to thrive in it, where it lives, and the specific reason it fits you',
+    'A focused set of roles at this level, matched to your strengths, values, and the direction you picked',
+    'For each option: what the role is, the kind of organization it lives in, and the specific reason it fits you',
+    'Options you can take deeper into a full playbook, or refine if they miss',
   ],
   p5: [
-    'A deeper read on each of the directions you flagged, beyond the one-line description',
-    'Why each one fits your background, what to think through before choosing your focus, and the fastest path in',
-    'Where each option is strong and where it would stretch you',
+    'A clear read on this role: what it actually is and what the work looks like day to day',
+    'Why your background maps to it, and where it would stretch you',
+    'What to think through before you invest in the full playbook',
   ],
   p6: [
     'Your Bridge Story: the 30-second answer to "tell me about yourself" that connects who you have been with what you are looking for next',
@@ -861,9 +860,18 @@ const LOADING_PREVIEWS = {
   ],
   p9: [
     'The vocabulary, the tools, and the names you need to know to sound credible in this space',
-    'STAR stories built from your real accomplishments, ready for the behavioral questions common in interviews',
-    'The specific questions you should expect for this role, with how to answer each one well',
-    'Negotiation talking points anchored in the value you bring',
+    'Who the players are and what is happening in this market right now',
+    'Enough fluency to walk into a conversation about this work like you belong there',
+  ],
+  p10: [
+    'The specific questions this role will surface, behavioral and role-specific',
+    'Evidence-based talking points for each, drawn from your real track record',
+    'How to handle the hard ones without scrambling in the moment',
+  ],
+  p11: [
+    'Your three strongest stories in Situation, Thinking, Action, Result form',
+    'Each tied to a business imperative the role actually cares about',
+    'How to retell one story for a CEO, a CFO, or a peer without starting over',
   ],
   income: [
     'The marketplaces and channels where someone with your background can land paid work this month',
@@ -1404,12 +1412,12 @@ export default function PivotEngine(){
     setDone(d=>d.filter(s=>!downstream.includes(s)))
   }
   const INVALIDATION_MESSAGES={
-    p1:'Cleared your Wiring & Compass, Brand Synthesis, Wide View, marked picks, and all downstream work so they match the new Resume Analysis.',
-    p2:'Cleared your Brand Synthesis, Wide View, marked picks, and all downstream work so they match the new Wiring & Compass.',
-    p3:'Cleared your Wide View, marked picks, Deep Dive, and all downstream work so they match the new Brand Synthesis.',
-    p4:'Cleared your marked picks, Deep Dive, and downstream playbook so they match the new options.',
-    deepOpts:'Cleared your Deep Dive and downstream playbook so they match the new selections.',
-    p5:'Cleared your chosen focus and downstream playbook so they match the new Deep Dive.',
+    p1:'Cleared your Wiring & Compass, Brand Synthesis, role options, and any playbook work so they match the new Resume Analysis.',
+    p2:'Cleared your Brand Synthesis, role options, and any playbook work so they match the new Wiring & Compass.',
+    p3:'Cleared your role options and any playbook work so they match the new Brand Synthesis.',
+    p4:'Cleared your downstream playbook so it matches the new options.',
+    deepOpts:'Cleared your downstream playbook so it matches the new selections.',
+    p5:'Cleared your downstream playbook so it matches the new role.',
     chosen:'Cleared your downstream playbook so it matches the new chosen focus.',
     p6:'Cleared your LinkedIn Remix, Resume Refresh, Playbook, and Income Now so they match the new Bridge Story.',
     p7:'Cleared your LinkedIn Remix, Resume Refresh, Playbook, and Income Now so they match the new Go-to-Market.',
@@ -1555,7 +1563,7 @@ export default function PivotEngine(){
     const nameParts=rawFirstLine.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ')
     const name=nameParts.length>2&&nameParts.length<50?nameParts:''
     const firstName=name?name.split(' ')[0].toLowerCase():(signupForm.firstName?signupForm.firstName.trim().toLowerCase():'reimagine')
-    const stepNames={p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'Wide View',p5:'Deep Dive',p6:'Bridge Story / Tell Me About Yourself',p7:'Go-To-Market',p8:'LinkedIn Refresh',p_res:'Resume Refresh',p9:'Playbook & Interview Prep & Negotiation',income:'Income Now',op:'Live Opportunity Playbook'}
+    const stepNames={p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',p4:'Role Options',p5:'The Role',p6:'Bridge Story / Tell Me About Yourself',p7:'Go-To-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Lingo & Playbook',p10:'Interview Prep',p11:'STAR Stories',income:'Income Now',op:'Live Opportunity Playbook'}
     const sections=Object.entries(stepNames).filter(([k])=>outputs[k]&&outputs[k].trim()).map(([k,n])=>`## ${n}\n\n${outputs[k]}`).join('\n\n---\n\n')
     const md=`# Reimagine: ${name||'Your Career Strategy'}\n\n*Generated ${today}*\n\n---\n\n${sections}\n`
     const blob=new Blob([md],{type:'text/markdown'})
@@ -1782,7 +1790,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
         {[
           ['1','Know Your Value','We read your resume and translate each accomplishment into money made, money saved, or risk mitigated, with numbers attached.'],
-          ['2','Explore Options','We map three paths forward and go deep on the ones that resonate.'],
+          ['2','Explore Options','We show you specific roles to consider, then build a full playbook for any that resonate.'],
           ['3','Tell Your Story','A great answer to "tell me about yourself" sets the tone for the conversation that follows. We write your bridge story.'],
           ['4','Find Your Market','We search for companies that fit and draft your outreach to the right people.'],
           ['5','Get Ready','LinkedIn, resume, industry playbook, and interview prep. You walk in ready.'],
@@ -2134,7 +2142,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </CoachingCallout>}
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the brand or value proposition misses the mark, tell us what's off." placeholder="e.g. 'My golden thread is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The brand line does not match how my colleagues describe me.'" onRegenerate={v=>{cascadeInvalidate('p3');recordCorrection('p3',v);out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
-        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Let's see what's possible: the full landscape of directions that fit your strengths, values, and interests.</div>}
+        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Next, choose how you want to explore what's possible.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','twoDoors')}>See My Options <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
