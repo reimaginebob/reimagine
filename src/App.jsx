@@ -465,14 +465,10 @@ const PHASES=[
   {id:0,label:'Orientation',color:'#8A9BB8',steps:['welcome','location','resume','linkedin','assessment','values','reputation','life-events']},
   {id:1,label:'Know Your Value',color:'#C8924A',steps:['p1','p2','p3']},
   {id:2,label:'Explore Options',color:'#C8924A',steps:['twoDoors','laneSelect','p4','focus']},
-  {id:3,label:'Tell Your Story',color:'#C8924A',steps:['p6']},
-  {id:4,label:'Find Your Market',color:'#C8924A',steps:['p7']},
-  {id:5,label:'Get Ready',color:'#C8924A',steps:['p8','p_res','p9','complete']},
-  {id:6,label:'Upload a Live Opportunity',color:'#C8924A',steps:['op']},
-  {id:7,label:'Income Now',color:'#C8924A',steps:['income']},
 ]
 const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Brand Synthesis',twoDoors:'Choose Your Path',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
 const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','life-events','orientation-done','p1','p2','p3','twoDoors','laneSelect','p4','focus','op','complete']
+const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','linkedin','assessment','values','reputation','life-events','orientation-done','p1','p2','p3'])
 // Captured at module load (before any beforeprint can change document.title) so
 // afterprint always restores the true base title regardless of effect re-runs.
 const BASE_DOC_TITLE=typeof document!=='undefined'?document.title:'Reimagine'
@@ -1144,7 +1140,7 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
     </div>}
   </div>
 }
-function Sidebar({step,done,onNav,isDemo,prog}){
+function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,exploredRoleTitles,onReExplore}){
   const navRef=useRef(null)
   const sidebarFirstRender=useRef(true)
   useEffect(()=>{
@@ -1152,12 +1148,15 @@ function Sidebar({step,done,onNav,isDemo,prog}){
     const el=navRef.current&&navRef.current.querySelector(`[data-step="${step}"]`)
     if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',behavior:'smooth'})
   },[step])
+  const hasPrereq=(sid)=>sid==='p4'?!!selectedLane:sid==='focus'?!!chosen:false
+  const explored=Array.isArray(exploredRoleTitles)?[...exploredRoleTitles].sort((a,b)=>String(b.lastExplored||'').localeCompare(String(a.lastExplored||''))):[]
   return <div ref={navRef} style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
   {typeof prog==='number'&&<div style={{padding:'16px 18px 20px',borderBottom:'1px solid #0F1A30',marginBottom:8}}>
     <div style={{fontSize:18,color:'#FFFFFF',fontWeight:600,marginBottom:8}}>You're {prog}% complete</div>
     <div style={{width:'100%',height:5,background:'#0F1A30',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:3,transition:'width 0.4s'}}/></div>
   </div>}
-  {PHASES.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||((sid==='income'||sid==='op')&&(done.includes('complete')||step==='complete')),isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{META[sid]}</span>{active&&<span style={{fontSize:14,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
+  {PHASES.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||hasPrereq(sid),isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{META[sid]}{sid==='focus'&&chosen?<span style={{display:'block',fontSize:13,fontWeight:400,color:'#8A9BB8',marginTop:2}}>{chosen}</span>:null}</span>{active&&<span style={{fontSize:14,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
+  {explored.length>0&&<div style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid #8A9BB8`}}><div style={{width:8,height:8,borderRadius:'50%',background:'#8A9BB8'}}/>Roles You've Explored</div>{explored.map((r,i)=>{const isCur=r.title===chosen&&step==='focus';return <div key={i} onClick={()=>onReExplore&&onReExplore(r.title,r.lane)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:onReExplore?'pointer':'default',background:isCur?'rgba(200,146,74,0.18)':'transparent',borderLeft:`5px solid ${isCur?C.gold:'transparent'}`,fontSize:16,fontWeight:isCur?700:400,color:isCur?'#FFFFFF':'#CBD5E0',transition:'all 0.15s'}}><span style={{flex:1}}>{r.title}</span><span style={{fontSize:13,color:C.gold,whiteSpace:'nowrap',flexShrink:0}}>Re-explore →</span></div>})}</div>}
 </div>}
 
 const DEMO_TOUR=[
@@ -1584,7 +1583,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),500)}
   };
   const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);const lastStep=data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome';setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
-  const prog=(step==='income'||step==='op')?100:Math.round((ALL.indexOf(step)/ALL.indexOf('complete'))*100)
+  const prog=INPUT_PHASE_STEPS.has(step)?Math.round((ALL.indexOf(step)/ALL.indexOf('p3'))*100):null
   const pc={loc:{...profile.loc,work:Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||'')},resume:profile.resume,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep}
   const recordExploredRole=(title,lane)=>setExploredRoleTitles(prev=>{const ts=new Date().toISOString();const i=prev.findIndex(r=>r.title===title);if(i>=0){const n=[...prev];n[i]={...n[i],lane,lastExplored:ts};return n}return[...prev,{title,lane,lastExplored:ts}].slice(-20)})
   const applyRoleSwitchDoor1=(newRoleTitle,lane)=>{
@@ -3026,7 +3025,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{fontSize:14,color:C.gray}}>Step {demoIdx+1} of {DEMO_TOUR.length}</div>
             <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${((demoIdx+1)/DEMO_TOUR.length)*100}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
           </>:<>
-            <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
+            {typeof prog==='number'&&<div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>}
           </>}
           {!isDemo&&signedInUser&&<button onClick={deleteAccount} title="Delete your profile and start over from scratch" style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Start Fresh</button>}
           {!isDemo&&signedInUser&&<button onClick={signOut} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign out</button>}
@@ -3040,9 +3039,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{display:'flex',flex:1,minHeight:0}}>
         <div data-print="hide" style={{width:260,background:'#1A2540',borderRight:'1px solid #0F1A30',padding:'16px 0',overflowY:'auto',flexShrink:0}}>
           {isDemo&&<div style={{pointerEvents:'none'}}>
-            <Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog}/>
+            <Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog} exploredRoleTitles={[]}/>
           </div>}
-          {!isDemo&&<Sidebar step={step} done={done} onNav={nav} prog={prog}/>}
+          {!isDemo&&<Sidebar step={step} done={done} onNav={nav} prog={prog} selectedLane={selectedLane} chosen={chosen} exploredRoleTitles={exploredRoleTitles} onReExplore={reExploreRole}/>}
         </div>
         <div data-print="content" style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
