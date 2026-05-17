@@ -1140,6 +1140,64 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
     </div>}
   </div>
 }
+function DemoUnavailable(){
+  return <div style={{minHeight:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+    <div style={{maxWidth:520,textAlign:'center'}}>
+      <h1 style={{fontFamily:'Georgia,serif',fontSize:32,fontWeight:700,color:C.cream,margin:'0 0 14px'}}>The demo is being rebuilt.</h1>
+      <p style={{fontSize:18,color:C.gray,lineHeight:1.7,margin:'0 0 28px'}}>We've reworked how Reimagine explores your options. The guided demo is coming back soon for the new flow. In the meantime, you can start your own.</p>
+      <a href="/" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 22px',background:C.gold,color:C.bg,borderRadius:8,fontWeight:700,fontSize:17,textDecoration:'none'}}>Go to Reimagine <ChevronRight size={16}/></a>
+    </div>
+  </div>
+}
+function NpsModal({chosen,onSubmitted,onClose}){
+  const[a,setA]=useState({nps:null,valuable:'',confidence:null,accuracy:null,open:''})
+  const[sending,setSending]=useState(false)
+  const[done,setDone]=useState(false)
+  const sv=(k,v)=>setA(s=>({...s,[k]:v}))
+  const submit=async()=>{
+    setSending(true)
+    try{await fetch('https://script.google.com/macros/s/AKfycbz5RgmQgmqM4qhar3YviuoPMbDvdSKSOJlRX6-qmbQKOI7t6IbnETxkc-NfG3m4LitAtg/exec',{method:'POST',body:JSON.stringify({...a,chosen,timestamp:new Date().toISOString()})})}catch{}
+    setSending(false);setDone(true);onSubmitted()
+  }
+  return <div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px',overflowY:'auto'}}>
+    <div style={{background:'#FFFFFF',borderRadius:14,padding:'30px 34px',maxWidth:560,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative',margin:'auto'}}>
+      <button onClick={onClose} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:C.gray,fontSize:22,cursor:'pointer',fontFamily:'inherit',lineHeight:1}}>×</button>
+      {done?<div style={{textAlign:'center',padding:'16px 0'}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:10}}>Thank you.</h2>
+        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:20}}>Your feedback shapes where Reimagine goes next.</p>
+        <Btn onClick={onClose}>Back to my playbook</Btn>
+      </div>:<>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:23,fontWeight:700,color:'#1A2540',marginBottom:6}}>How is this landing for you?</h2>
+        <p style={{fontSize:16,color:'#4A5568',lineHeight:1.6,marginBottom:18}}>You've built real work here. A few quick questions help us make it better.</p>
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:16,fontWeight:600,color:'#1A2540',marginBottom:6}}>How likely are you to recommend Reimagine to someone in career transition?</div>
+          <div style={{fontSize:13,color:C.gray,marginBottom:8,display:'flex',justifyContent:'space-between'}}><span>Not at all likely</span><span>Extremely likely</span></div>
+          <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>{[0,1,2,3,4,5,6,7,8,9,10].map(n=><button key={n} onClick={()=>sv('nps',n)} style={{width:36,height:36,borderRadius:6,border:`1.5px solid ${a.nps===n?C.gold:C.border}`,background:a.nps===n?C.gold:'transparent',color:a.nps===n?'#FFFFFF':'#4A5568',fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{n}</button>)}</div>
+        </div>
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:16,fontWeight:600,color:'#1A2540',marginBottom:6}}>Which part has been most valuable so far?</div>
+          <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Know Your Value','Explore Options','The Role','Bridge Story','Interview Prep','It all came together'].map(o=><button key={o} onClick={()=>sv('valuable',o)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${a.valuable===o?C.gold:C.border}`,background:a.valuable===o?`${C.gold}20`:'transparent',color:a.valuable===o?'#A06828':'#4A5568',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}</div>
+        </div>
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:16,fontWeight:600,color:'#1A2540',marginBottom:6}}>How has your confidence about your next move changed?</div>
+          <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Much less confident','Less confident','About the same','More confident','Much more confident'].map(o=><button key={o} onClick={()=>sv('confidence',o)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${a.confidence===o?C.gold:C.border}`,background:a.confidence===o?`${C.gold}20`:'transparent',color:a.confidence===o?'#A06828':'#4A5568',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}</div>
+        </div>
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:16,fontWeight:600,color:'#1A2540',marginBottom:6}}>How well did Reimagine capture who you are and what you bring?</div>
+          <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Missed the mark','Partially','Mostly right','Very well','Nailed it'].map(o=><button key={o} onClick={()=>sv('accuracy',o)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${a.accuracy===o?C.gold:C.border}`,background:a.accuracy===o?`${C.gold}20`:'transparent',color:a.accuracy===o?'#A06828':'#4A5568',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}</div>
+        </div>
+        <div style={{marginBottom:18}}>
+          <div style={{fontSize:16,fontWeight:600,color:'#1A2540',marginBottom:6}}>Anything we should know? <span style={{color:C.gray,fontWeight:400}}>(optional)</span></div>
+          <textarea style={{...S.ta,minHeight:70}} value={a.open} onChange={e=>sv('open',e.target.value)} placeholder="Share anything on your mind…"/>
+        </div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <Btn disabled={sending||a.nps===null} onClick={submit}>{sending?'Sending…':'Submit feedback'}</Btn>
+          <Btn secondary onClick={onClose}>Maybe later</Btn>
+        </div>
+      </>}
+    </div>
+  </div>
+}
 function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,exploredRoleTitles,onReExplore}){
   const navRef=useRef(null)
   const sidebarFirstRender=useRef(true)
@@ -1182,6 +1240,7 @@ export default function PivotEngine(){
   if(_path==='/terms')return <Terms/>
   if(_path==='/quick-start')return <QuickStart/>
   const isDemo=_params.get('demo')==='true'
+  if(isDemo)return <DemoUnavailable/>
   const isTest=_params.get('test')==='true'
   const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',linkedin:'',linkedinFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',corrections:[],jd:'',jdFile:''}
   const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''}
@@ -1195,6 +1254,8 @@ export default function PivotEngine(){
   const[selectedLane,setSelectedLane]=useState('')
   const[exploredRoleTitles,setExploredRoleTitles]=useState([])
   const[npsAsked,setNpsAsked]=useState(false)
+  const[npsOpen,setNpsOpen]=useState(false)
+  const npsShownRef=useRef(false)
   const[migratedFromPreV1,setMigratedFromPreV1]=useState(false)
   const[generatingSection,setGeneratingSection]=useState(null)
   const[sectionErrors,setSectionErrors]=useState({})
@@ -1284,6 +1345,7 @@ export default function PivotEngine(){
   useEffect(()=>{if(!invalidationBanner)return;const t=setTimeout(()=>setInvalidationBanner(null),10000);return()=>clearTimeout(t)},[invalidationBanner])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);deleteAccount()},[signedInUser])
+  useEffect(()=>{if(isTest)return;if(npsAsked||npsShownRef.current)return;if(outputs.p9&&outputs.p9.length>0){npsShownRef.current=true;setNpsOpen(true)}},[outputs.p9,npsAsked])
   useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{if(deletingRef.current)return;try{const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,npsAsked});localStorage.setItem('pe_v4',blob);if(signedInUser)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}};const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,npsAsked,signedInUser])
   useEffect(()=>{
     const sectionName=META[step]||'Output'
@@ -2980,6 +3042,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     </div>}
+    {npsOpen&&<NpsModal chosen={chosen} onSubmitted={()=>{setNpsAsked(true);setNpsOpen(false)}} onClose={()=>setNpsOpen(false)}/>}
     {showPlaybookFooter&&<div data-print="hide" style={{position:'fixed',left:0,right:0,bottom:0,zIndex:900,background:'#1A2540',borderTop:`2px solid ${C.gold}`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
       <div style={{fontSize:15,color:'#CBD5E0'}}>Keep this playbook. Save it as a PDF to your device.{currentRoleSaved?' Saved.':''}</div>
       <Btn onClick={savePlaybookPdf}><Printer size={14}/>Save Playbook as PDF</Btn>
