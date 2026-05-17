@@ -1390,9 +1390,9 @@ export default function PivotEngine(){
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
     logCorrection(correction)
   }
-  const generate=async(key,fn,opts={})=>{if(generatingSection)return;window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(key,r);if(ROLE_SUBMODULES.includes(key))setCurrentRoleSaved(false)}catch(e){setErr(e.message)}finally{setLoading(false)}}
+  const generate=async(key,fn,opts={})=>{if(generatingSection)return;window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}}catch(e){setErr(e.message)}finally{setLoading(false)}}
   const canGenSection=(id)=>!loading&&(!generatingSection||generatingSection===id)
-  const generateSection=async(sectionId,fn,opts={})=>{if(loading||(generatingSection&&generatingSection!==sectionId))return;setGeneratingSection(sectionId);setSectionErrors(e=>({...e,[sectionId]:null}));try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(sectionId,r);if(ROLE_SUBMODULES.includes(sectionId))setCurrentRoleSaved(false)}catch(e){setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))}finally{setGeneratingSection(null)}}
+  const generateSection=async(sectionId,fn,opts={})=>{if(loading||(generatingSection&&generatingSection!==sectionId))return;setGeneratingSection(sectionId);setSectionErrors(e=>({...e,[sectionId]:null}));try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(sectionId,r);markDone(sectionId);if(ROLE_SUBMODULES.includes(sectionId))setCurrentRoleSaved(false)}catch(e){setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))}finally{setGeneratingSection(null)}}
   const generateP4=async(extraContext='',msg='Mapping your opportunity landscape, this takes a moment…')=>{
     window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(msg)
     const opts={highTemp:true,maxTokens:5000}
@@ -2143,7 +2143,182 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {err&&<ErrBox msg={err}/>}
       </div>
     }
-    case'focus':return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>Focus playbook</h1><p style={S.sub}>Focus playbook. Implemented in WS6.</p></div>
+    case'focus':{
+      const FOCUS_ORDER=[
+        {id:'p5',label:'The Role',load:'Reading this role against your background…'},
+        {id:'p6',label:'Your Bridge Story',load:'Crafting your bridge story in three lengths…'},
+        {id:'p9',label:'Lingo & Playbook',load:'Building your industry crash course…'},
+        {id:'p10',label:'Interview Prep',load:'Preparing you for the questions ahead…'},
+        {id:'p11',label:'STAR Stories',load:'Building your strongest STAR stories…'},
+        {id:'p_res',label:'Resume Refresh',load:'Rewriting your resume for this direction…'},
+        {id:'p8',label:'LinkedIn Remix',load:'Drafting your LinkedIn updates…'},
+        {id:'p7',label:'Go-to-Market',load:'Researching companies and building outreach…'},
+        {id:'income',label:'Income Now',load:'Building your Income Now plan…'},
+      ]
+      const laneLbl=laneLabelFor(selectedLane)
+      const gp=(id)=>({
+        p5:()=>P.p5(pc,outputs,chosen,laneLbl),
+        p6:()=>P.p6(pc,outputs,chosen),
+        p9:()=>P.p9(pc,outputs,chosen),
+        p10:()=>P.p10(pc,outputs,chosen),
+        p11:()=>P.p11(pc,outputs,chosen),
+        p_res:()=>P.p_res(pc,outputs,chosen),
+        p8:()=>P.p8(pc,outputs,chosen),
+        p7:()=>P.p7(pc,outputs,chosen,laneLbl),
+        income:()=>P.income(pc,outputs,chosen),
+      }[id])
+      const go=(id)=>({p5:{maxTokens:4000},p6:{maxTokens:5000},p7:{webSearch:true,maxTokens:7000},p8:{maxTokens:3500},p_res:{maxTokens:5000},p9:{maxTokens:4000},p10:{maxTokens:3500},p11:{maxTokens:4000},income:{maxTokens:6000}}[id]||{})
+      const genSec=(id)=>generateSection(id,gp(id),go(id))
+      const refineSec=(id,v)=>{recordCorrection(id,v);generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}
+      const renderBody=(id)=>{
+        if(id==='p6')return <>{!isDemo&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 16px',fontSize:17,color:'#1A2540',lineHeight:1.65}}><strong>Learn the structure, then make it yours.</strong><p style={{margin:'8px 0 0'}}>Your Bridge Story is built on three pieces: a human truth about who you are, the professional proof that follows from it, and the next chapter that fits. Once you can name those three, you can carry the structure into any real conversation, in your own words. The exact phrasing below is a starting point, not a script.</p></div>}<OutPanel text={outputs.p6} onCopy={copy} copied={copied}/></>
+        if(id==='p9')return <>{!isDemo&&<CoachingCallout><strong style={{color:'#1A2540'}}>How to use this</strong><p style={{margin:'8px 0 0'}}>The Crash Course gives you the vocabulary, tools, and thought leaders that signal credibility in this space. Use it to prep for conversations and to find people to follow on LinkedIn.</p></CoachingCallout>}<OutPanel text={outputs.p9} onCopy={copy} copied={copied}/></>
+        if(id==='p10')return <OutPanel text={outputs.p10} onCopy={copy} copied={copied}/>
+        if(id==='p8')return <><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your LinkedIn profile. Open LinkedIn in another tab and apply the changes yourself.</div>}</>
+        if(id==='income')return <><div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div><OutPanel text={outputs.income} onCopy={copy} copied={copied}/></>
+        if(id==='p_res'){
+          const resumeJson=outputs.p_res?parseResumeJSON(outputs.p_res):null
+          const resumeText=resumeJson?renderResumeText(resumeJson):''
+          if(resumeJson)return <>
+            <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Below is your Resume Refresh, ready to download and print as a Word document. If you prefer your existing format, copy the sections you want into your own template.</div>
+            <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:17,lineHeight:1.65,color:C.cream,margin:0}}>{resumeText}</pre></div>
+            <div style={S.row}><Btn onClick={()=>downloadResumeWord(resumeJson)}><Download size={14}/>Download as Word</Btn><Btn secondary onClick={()=>copy(resumeText)}>{copied?<><CheckCheck size={13}/>Copied</>:<><Copy size={13}/>Copy text</>}</Btn></div>
+            {!isDemo&&<div style={S.footnote}>Reimagine does not modify your original resume file. The download is a new Word document you can edit, save, and share.</div>}
+          </>
+          return <><div style={S.note}>The download didn't come together cleanly on this try. This happens once in a while. Regenerate this section and it usually lands right the second time.</div><div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:16,lineHeight:1.65,color:C.cream,margin:0}}>{outputs.p_res}</pre></div></>
+        }
+        if(id==='p7'){
+          const cleanText=outputs.p7.replace(/```json\s*[\s\S]*?(?:```|$)/gi,'').replace(/\n{3,}/g,'\n\n').trim()
+          const splitPoint=cleanText.search(/##?\s*PART 3|##?\s*Outreach Template/i)
+          const part12=splitPoint>0?cleanText.slice(0,splitPoint):cleanText
+          const part34=splitPoint>0?cleanText.slice(splitPoint):''
+          return <>
+            <div style={S.out}><div style={{fontSize:16,color:C.goldL,fontStyle:'italic',lineHeight:1.6,marginBottom:14,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6}}>Note: contact names are surfaced from public sources and may be out of date. Verify on LinkedIn or the company website before reaching out.</div><div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}><Btn small onClick={()=>copy(cleanText)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn><Btn small onClick={()=>window.print()}><Printer size={11}/>Print</Btn></div><MD text={part12}/></div>
+            <div style={{margin:'16px 0',padding:'16px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
+              <div><div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:4}}>Download your company list</div><div style={{fontSize:16,color:C.goldL}}>Save as a spreadsheet to track outreach, add notes, and share with your network.</div></div>
+              <Btn onClick={()=>{
+                const parseCompanies=(text)=>{
+                  const jsonMatch=text.match(/```json\s*([\s\S]*?)```/i)
+                  if(jsonMatch){try{const arr=JSON.parse(jsonMatch[1]);if(Array.isArray(arr)&&arr.length>0){const o2=arr.map(c=>({name:c.name||c.company||'',what:c.what||c.whatTheyDo||'',industry:c.industry||'',size:c.size||'',hq:c.hq||c.headquarters||'',fit:c.fit||c.whyItFits||'',growth:c.growth||c.growthSignal||'',contact:c.contact||c.contactName||'',contactLinkedIn:c.contactLinkedIn||c.linkedin||c.linkedIn||c.linkedInUrl||'',source:c.source||c.contactSource||'',emailConvention:c.emailConvention||c.email||'',website:c.website||c.url||''})).filter(c=>c.name);if(o2.length>0)return o2}}catch(e){}}
+                  const companies=[];let current=null
+                  const finalize=()=>{if(current&&(current.fit||current.growth||current.contact||current.emailConvention||current.what||current.industry||current.size||current.hq||current.source))companies.push(current);current=null}
+                  for(const line of text.split('\n')){
+                    const trimmed=line.trim()
+                    const nameMatch=trimmed.match(/^\*\*([^*]+?)\*\*\.?$/)
+                    if(nameMatch){const name=nameMatch[1].trim().replace(/\.$/,'');if(/^PART\s|^Company Name$|^Why it fits|^Growth signal|^Contact|^Email|^Source|^The Hook|^The Story|^The Close|^Paragraph\s|^What|^Industry|^Size|^HQ/i.test(name)){finalize();continue}finalize();current={name,what:'',industry:'',size:'',hq:'',fit:'',growth:'',contact:'',contactLinkedIn:'',source:'',emailConvention:'',website:''};continue}
+                    if(!current)continue
+                    if(/^What they do:/i.test(trimmed))current.what=trimmed.replace(/^What they do:\s*/i,'').trim()
+                    else if(/^Industry:/i.test(trimmed))current.industry=trimmed.replace(/^Industry:\s*/i,'').trim()
+                    else if(/^Size:/i.test(trimmed))current.size=trimmed.replace(/^Size:\s*/i,'').trim()
+                    else if(/^HQ:/i.test(trimmed))current.hq=trimmed.replace(/^HQ:\s*/i,'').trim()
+                    else if(/^Why it fits:/i.test(trimmed))current.fit=trimmed.replace(/^Why it fits:\s*/i,'').trim()
+                    else if(/^Growth signal:/i.test(trimmed))current.growth=trimmed.replace(/^Growth signal:\s*/i,'').trim()
+                    else if(/^Contact:/i.test(trimmed)){const c=trimmed.replace(/^Contact:\s*/i,'').trim();const li=c.match(/(https?:\/\/[^\s)]*linkedin\.com\/[^\s)]+)/i);if(li){current.contactLinkedIn=li[1];current.contact=c.replace(li[1],'').replace(/[|()\s]+$/,'').trim()}else current.contact=c}
+                    else if(/^Source:/i.test(trimmed))current.source=trimmed.replace(/^Source:\s*/i,'').trim()
+                    else if(/^Email:/i.test(trimmed)){const e=trimmed.replace(/^Email:\s*/i,'').trim();const parts=e.split('|').map(s=>s.trim());current.emailConvention=parts[0]||'';const url=parts.slice(1).join(' ').match(/(https?:\/\/\S+)/);if(url)current.website=url[1]}
+                  }
+                  finalize();return companies
+                }
+                const companies=parseCompanies(outputs.p7)
+                if(companies.length===0){alert('Could not extract company data from the strategy output. Try regenerating the strategy, or copy the text directly.');return}
+                const esc=s=>`"${(s||'').replace(/"/g,'""')}"`
+                const header='Company,What they do,Industry,Size,HQ,Why it fits,Growth signal,Contact name & LinkedIn,Source,Email convention,Website'
+                const rows=companies.map(c=>{const contactCell=[c.contact,c.contactLinkedIn].filter(Boolean).join(' | ');return [c.name,c.what,c.industry,c.size,c.hq,c.fit,c.growth,contactCell,c.source,c.emailConvention,c.website].map(esc).join(',')})
+                const csv=header+'\n'+rows.join('\n')
+                const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url
+                const nameSlug=(profile.resume||'').split(/\n/)[0]?.replace(/[^a-zA-Z ]/g,'').trim().split(' ').slice(0,2).join('-')||'companies'
+                const roleSlug=(chosen||'target').replace(/[^a-zA-Z0-9 ]/g,'').trim().split(' ').slice(0,4).join('-')
+                a.download=`${nameSlug}_${roleSlug}_${new Date().toISOString().slice(0,10)}.csv`
+                document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)
+              }} style={{flexShrink:0}}>Download CSV</Btn>
+            </div>
+            {part34&&<div style={S.out}><MD text={part34}/></div>}
+          </>
+        }
+        if(id==='p11'){
+          const raw=outputs.p11
+          const remixIdx=raw.search(/## (THE REMIX|SAME STORY, DIFFERENT ANGLE)/i)
+          const quickIdx=raw.search(/## QUICK TAKEAWAY/i)
+          const quickEnd=raw.search(/## YOUR STAR STORIES/i)
+          const quickTakeaway=(quickIdx>=0&&quickEnd>quickIdx)?raw.substring(quickIdx,quickEnd):''
+          const remixSection=remixIdx>=0?raw.substring(remixIdx):''
+          const storySections=[]
+          const matches=[...raw.matchAll(/### STORY\s*\[?\d+\]?[:\s]*/gi)]
+          matches.forEach((m,i)=>{const start=m.index+m[0].length;const end=matches[i+1]?matches[i+1].index:(remixIdx>=0?remixIdx:raw.length);const block=raw.substring(start,end).trim();if(block.length>50)storySections.push({id:i,text:block,title:block.split('\n')[0].replace(/^\*+|\*+$/g,'').trim()})})
+          return <>
+            {quickTakeaway&&<OutPanel text={quickTakeaway} onCopy={copy} copied={copied}/>}
+            {storySections.map(story=>{
+              const strengthenIdx=story.text.search(/\*\*Strengthen This Story[:\s]*\*\*/i)
+              const mainContent=strengthenIdx>=0?story.text.substring(0,strengthenIdx).trim():story.text
+              const strengthenContent=strengthenIdx>=0?story.text.substring(strengthenIdx).trim():''
+              return <div key={story.id} style={{...S.out,marginTop:14,position:'relative'}}>
+                <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}><Btn small onClick={()=>copy('### STORY '+(story.id+1)+': '+story.text)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy</>}</Btn></div>
+                <MD text={'### '+mainContent}/>
+                {strengthenContent&&<div style={{background:`${C.gold}08`,border:`1px solid ${C.gold}25`,borderRadius:8,padding:'16px 20px',marginTop:16}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}><Lightbulb size={18} color={C.gold}/><span style={{fontSize:16,fontWeight:700,color:C.goldL}}>Strengthen This Story</span></div>
+                  <MD text={strengthenContent.replace(/\*\*Strengthen This Story[:\s]*\*\*/i,'').trim()}/>
+                  {!isDemo&&<div style={{marginTop:14}}><div style={{display:'flex',gap:8,alignItems:'flex-end'}}>
+                    <div style={{flex:1,position:'relative'}}><textarea style={{...S.ta,minHeight:60,paddingRight:hasSpeech?44:15}} placeholder="Add details here: numbers, names, context, then regenerate this story…" value={storyInputs[story.id]||''} onChange={e=>setStoryInputs(s=>({...s,[story.id]:e.target.value}))}/>{hasSpeech&&<SpeechBtn onResult={t=>setStoryInputs(s=>({...s,[story.id]:(s[story.id]||'')+t}))} style={{position:'absolute',right:8,bottom:8}}/>}</div>
+                    <button style={{...S.btn,padding:'10px 18px',fontSize:17,opacity:storyLoading===story.id?0.6:1,whiteSpace:'nowrap'}} disabled={storyLoading===story.id} onClick={async()=>{
+                      const extra=storyInputs[story.id]||'';setStoryLoading(story.id)
+                      try{
+                        const storyPrompt=`Regenerate ONLY this single STAR story. Keep the same format (### STORY [${story.id+1}]: title, Business Imperative, Best for answering, Situation, Thinking, Action, Result, then **Strengthen This Story:** section).\n\nORIGINAL STORY:\n${story.text}\n\nUSER ADDITIONS:\n${extra||'(none)'}\n\nPROFILE: ${outputs.p1}\nBRAND: ${outputs.p3}\nTARGET ROLE: ${chosen}\n\nIncorporate the user's additions into the story naturally. Update the Strengthen section to reflect what is still missing AFTER the additions. Follow all STAR framework rules from the original prompt: T=Thinking, connect to business imperatives, season with personality from Brand Synthesis where natural, frame for ${chosen}.`
+                        const result=await callClaude(correctionsBlock(profile.corrections)+storyPrompt,{maxTokens:2500})
+                        const cleaned=result.replace(/^### STORY\s*\[?\d+\]?[:\s]*/i,'').trim()
+                        const curRaw=outputs.p11;const curRemixIdx=curRaw.search(/## (THE REMIX|SAME STORY, DIFFERENT ANGLE)/i)
+                        let rebuilt='';const allMatches=[...curRaw.matchAll(/### STORY\s*\[?\d+\]?[:\s]*/gi)];let lastEnd=0
+                        allMatches.forEach((am,ai)=>{rebuilt+=curRaw.substring(lastEnd,am.index)+am[0];const blockEnd=allMatches[ai+1]?allMatches[ai+1].index:(curRemixIdx>=0?curRemixIdx:curRaw.length);if(ai===story.id){rebuilt+=cleaned+'\n\n'}else{rebuilt+=curRaw.substring(am.index+am[0].length,blockEnd)}lastEnd=blockEnd})
+                        if(curRemixIdx>=0)rebuilt+=curRaw.substring(curRemixIdx);else if(lastEnd<curRaw.length)rebuilt+=curRaw.substring(lastEnd)
+                        out('p11',rebuilt);setCurrentRoleSaved(false);setStoryInputs(s=>({...s,[story.id]:''}));if(extra.trim())setStoryUpdated(s=>({...s,[story.id]:true}))
+                      }catch(e){setSectionErrors(p=>({...p,p11:e.message||'Could not regenerate this story.'}))}finally{setStoryLoading(null)}
+                    }}>{storyLoading===story.id?<><Loader2 size={14} className="spin"/>Regenerating…</>:<><RotateCcw size={13}/>Regenerate Story</>}</button>
+                  </div></div>}
+                </div>}
+                {storyUpdated[story.id]&&<div style={{background:`${C.gold}10`,border:`1px solid ${C.gold}30`,borderRadius:8,padding:'12px 16px',marginTop:12,display:'flex',alignItems:'flex-start',gap:10}}><Lightbulb size={16} color={C.gold} style={{marginTop:2,flexShrink:0}}/><span style={{fontSize:16,color:C.goldL,lineHeight:1.5}}>You added new details. If any meaningfully change your value proposition, consider revisiting your Resume Refresh and LinkedIn Remix sections too.</span></div>}
+              </div>})}
+            {remixSection&&<div style={{marginTop:14}}><OutPanel text={remixSection} onCopy={copy} copied={copied}/></div>}
+          </>
+        }
+        return <OutPanel text={outputs[id]} onCopy={copy} copied={copied}/>
+      }
+      const otherRoles=(exploredRoleTitles||[]).filter(r=>r.title&&r.title!==chosen)
+      return <div>
+        {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
+        <h1 style={S.title}>{chosen||'Your Focus Playbook'}</h1>
+        {selectedLane&&<p style={{...S.sub,marginBottom:18}}>Direction: <strong style={{color:C.gold}}>{laneLbl}</strong></p>}
+        {FOCUS_ORDER.map(sec=>{
+          const id=sec.id
+          const has=outputs[id]&&outputs[id].length>0
+          const isGen=generatingSection===id||(id==='p5'&&loading&&!has)
+          return <section key={id} style={{marginTop:32}}>
+            <h2 style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8}}>{sec.label}</h2>
+            {isGen&&<Loading msg={sec.load} step={id}/>}
+            {!isGen&&sectionErrors[id]&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors[id]} <Btn small secondary onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
+            {!isGen&&!sectionErrors[id]&&has&&<>
+              {renderBody(id)}
+              {!isDemo&&<RefineBox value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
+            </>}
+            {!isGen&&!sectionErrors[id]&&!has&&<div style={S.row}>
+              {id==='p5'
+                ?<Btn disabled={loading} onClick={()=>generate('p5',gp('p5'),go('p5'))}><Sparkles size={14}/>Generate The Role</Btn>
+                :<Btn disabled={!canGenSection(id)} onClick={()=>genSec(id)}><Sparkles size={14}/>Generate {sec.label}</Btn>}
+            </div>}
+          </section>
+        })}
+        <div style={{margin:'40px 0 12px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>This is yours now. Take it where it makes sense, or look at another direction below.</div>
+        <div style={S.row}>
+          <Btn secondary onClick={()=>nav('p4')}>See more roles in this direction</Btn>
+          <Btn secondary onClick={()=>nav('laneSelect')}>Explore another direction</Btn>
+        </div>
+        {otherRoles.length>0&&<div style={{marginTop:20}}>
+          <div style={{fontSize:15,fontWeight:700,color:C.gray,textTransform:'uppercase',letterSpacing:'1px',marginBottom:10}}>Open a role you've already explored</div>
+          <div style={{display:'flex',flexDirection:'column',gap:8,maxWidth:560}}>
+            {otherRoles.map((r,i)=><button key={i} onClick={()=>reExploreRole(r.title,r.lane||selectedLane)} disabled={loading||!!generatingSection} style={{textAlign:'left',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 16px',cursor:'pointer',fontFamily:'inherit',fontSize:16,color:'#1A2540',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><span>{r.title}</span><span style={{color:C.gold,fontSize:14,fontWeight:600,whiteSpace:'nowrap'}}>Re-explore <ChevronRight size={13}/></span></button>)}
+          </div>
+        </div>}
+        {err&&!generatingSection&&<ErrBox msg={err}/>}
+      </div>
+    }
     case'p6':return <div>
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
 
