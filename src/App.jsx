@@ -4,6 +4,7 @@ import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, TabSt
 import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
+import { detectVoiceViolations } from "./voice-patterns.mjs"
 import Chat from "./components/Chat"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
@@ -126,6 +127,39 @@ async function callClaude(prompt, opts={}) {
   if(!res.ok){const e=await res.json();throw new Error(e.error?.message||"API error")}
   const data=await res.json()
   return data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n")
+}
+
+// Runtime voice gate. Wraps callClaude: scan the model's output with the
+// shared voice-patterns library; on a hard violation, retry with a tightened
+// prompt that quotes the violation back. Cap at 2 retries (3 attempts), then
+// fall open (return the last output) and log the persistent failure. Retries
+// are invisible to the user (the loading state stays on the whole time).
+// API errors from callClaude propagate unchanged so existing error UI works.
+const VOICE_MAX_RETRIES = 2
+async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
+  let lastResult = ''
+  let lastViolations = []
+  for (let attempt = 0; attempt <= VOICE_MAX_RETRIES; attempt++) {
+    let prompt = promptFn()
+    if (attempt > 0 && lastViolations.length > 0) {
+      const v = lastViolations[0]
+      prompt += `\n\nCRITICAL: the previous generation contained a BANNED CONSTRUCTION: "${String(v.match).replace(/"/g,'\\"').slice(0,200)}" (${v.note}) Refuse this construction. Rewrite the affected passage as the positive claim on its own. Do not produce any sentence of that shape anywhere in your output.`
+    }
+    const result = await callClaude(prompt, opts)
+    const violations = detectVoiceViolations(result, { includeSoft: false })
+    if (violations.length === 0) {
+      if (attempt > 0 && typeof meta.onEvent === 'function') {
+        try { meta.onEvent({ step: meta.step, attempt, recovered: true, violations: lastViolations.slice(0,8) }) } catch {}
+      }
+      return result
+    }
+    lastResult = result
+    lastViolations = violations
+  }
+  if (typeof meta.onEvent === 'function') {
+    try { meta.onEvent({ step: meta.step, attempt: VOICE_MAX_RETRIES, recovered: false, violations: lastViolations.slice(0,8) }) } catch {}
+  }
+  return lastResult
 }
 
 function loadPDFJS(){return new Promise(resolve=>{if(window.pdfjsLib){resolve(window.pdfjsLib);return}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=()=>{window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';resolve(window.pdfjsLib)};document.head.appendChild(s)})}
@@ -1453,15 +1487,34 @@ export default function PivotEngine(){
       fetch(CORRECTIONS_LOG_URL,{method:'POST',body:JSON.stringify(payload)}).catch(()=>{})
     }catch{}
   }
+  const logVoiceEvent=(evt)=>{
+    if(!CORRECTIONS_LOG_URL||CORRECTIONS_LOG_URL.startsWith('PASTE_'))return
+    try{
+      const payload={
+        type:'voice_violation',
+        userEmail:(signupForm.email||'').trim(),
+        userName:((signupForm.firstName||'')+' '+(signupForm.lastName||'')).trim(),
+        step:evt.step||'',
+        stepDisplayName:STEP_DISPLAY_NAMES[evt.step]||evt.step||'',
+        attempt:Number(evt.attempt||0),
+        recovered:!!evt.recovered,
+        violationNames:(evt.violations||[]).map(v=>v.name).join(', '),
+        violationExcerpts:(evt.violations||[]).map(v=>String(v.match||'').slice(0,120)).join(' | '),
+        appVersion:APP_VERSION,
+        browser:navigator.userAgent||'',
+      }
+      fetch(CORRECTIONS_LOG_URL,{method:'POST',body:JSON.stringify(payload)}).catch(()=>{})
+    }catch{}
+  }
   const recordCorrection=(step,text)=>{
     if(!text||!text.trim())return
     const correction={id:`corr_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,step,text:text.trim(),created_at:new Date().toISOString()}
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
     logCorrection(correction)
   }
-  const generate=async(key,fn,opts={})=>{if(generatingSection)return;window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}}catch(e){setErr(e.message)}finally{setLoading(false)}}
+  const generate=async(key,fn,opts={})=>{if(generatingSection)return;window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}}catch(e){setErr(e.message)}finally{setLoading(false)}}
   const canGenSection=(id)=>!loading&&(!generatingSection||generatingSection===id)
-  const generateSection=async(sectionId,fn,opts={})=>{if(loading||(generatingSection&&generatingSection!==sectionId))return;setGeneratingSection(sectionId);setSectionErrors(e=>({...e,[sectionId]:null}));try{const r=await callClaude(correctionsBlock(profile.corrections)+fn(),opts);out(sectionId,r);markDone(sectionId);if(ROLE_SUBMODULES.includes(sectionId))setCurrentRoleSaved(false)}catch(e){setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))}finally{setGeneratingSection(null)}}
+  const generateSection=async(sectionId,fn,opts={})=>{if(loading||(generatingSection&&generatingSection!==sectionId))return;setGeneratingSection(sectionId);setSectionErrors(e=>({...e,[sectionId]:null}));try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:sectionId,onEvent:logVoiceEvent});out(sectionId,r);markDone(sectionId);if(ROLE_SUBMODULES.includes(sectionId))setCurrentRoleSaved(false)}catch(e){setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))}finally{setGeneratingSection(null)}}
   const generateP4=async(extraContext='',msg='Mapping your opportunity landscape, this takes a moment…')=>{
     window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(msg)
     const opts={highTemp:true,maxTokens:5000}

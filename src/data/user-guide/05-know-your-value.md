@@ -109,7 +109,7 @@ Where the triangulation surfaces a tension between your explicit inputs and your
 - **"Where You're Growing" should be honest about runway.** It should describe what is visible in your evidence. If the section overclaims runway you have not earned, refine.
 - **"The Environment That Fits You" should describe a real place.** "A founder-led company in a regulated industry where you have direct access to decision-makers" is doing its job. "A collaborative, fast-paced environment" is not. that describes everywhere.
 
-If a tension surfaces ("your values point toward stability but your career pattern is restless"), sit with it. Tensions are valid data about who you are. If the surfaced tension misses, the refine box is where you tell Reimagine.
+If a tension surfaces ("your values point toward stability but your career pattern is restless"), consider it. Tensions are valid data about who you are. If the surfaced tension misses, the refine box is where you tell Reimagine.
 
 ### How to refine
 
@@ -187,7 +187,7 @@ The Capability + Proof structure makes the integration visible: a human quality 
 
 **Test the Golden Thread by walking it back.** Once Reimagine names the thread, you should be able to look at your accomplishments, your wiring read, and your patterns of work history, and see the same thread in all of them. If the thread fits one of the sources but not the others, it is incomplete. Refine.
 
-**Read the alignment reading slowly.** The section will name an overall picture (strong, one or two dimensions off, or multiple dimensions misaligned) and call out specific dimensions where the evidence supports a clear read. If the read names a tension that fits your experience, sit with it before reacting. this is often where the most actionable next step lives. If the read misses, the refine box is the place to push back.
+**Read the alignment reading slowly.** The section will name an overall picture (strong, one or two dimensions off, or multiple dimensions misaligned) and call out specific dimensions where the evidence supports a clear read. If the read names a tension that fits your experience, consider it before reacting. this is often where the most actionable next step lives. If the read misses, the refine box is the place to push back.
 
 ### How to refine
 

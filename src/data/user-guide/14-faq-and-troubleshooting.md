@@ -92,7 +92,7 @@ Yes. Press Ctrl+P on Windows or Cmd+P on Mac from the section you want to print.
 **Where do I share feedback about Reimagine itself?**
 There is a short feedback survey on the **Complete** screen at the end of the journey. Otherwise, email Bob at [bob@career.club](mailto:bob@career.club).
 
-## When something is genuinely broken
+## When something is broken
 
 If a step keeps failing or the output is not making sense after multiple refines:
 

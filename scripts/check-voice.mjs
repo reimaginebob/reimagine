@@ -1,5 +1,17 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { patternsFor } from '../src/voice-patterns.mjs'
+
+// Build-time voice guard. Scans source for banned constructions BEFORE build.
+//
+// Single source of truth: patterns live in src/voice-patterns.mjs and are
+// shared with the runtime validator (generate/generateSection). This file
+// enforces only the 'build' scoped subset - tight constructions we author
+// deliberately (em dashes, banned intensifiers, AI-coaching register) whose
+// presence in source IS the failure. Logic-flip and comparative-standing
+// patterns are 'runtime' scoped: source legitimately quotes/documents them
+// (the Making Your Own Weather quote pool, demo fixtures, user-guide
+// examples), so they are gated on model OUTPUT at runtime, not on source.
 
 const FILES_TO_CHECK = [
   'src/App.jsx',
@@ -7,22 +19,8 @@ const FILES_TO_CHECK = [
   ...fs.readdirSync('src/data/user-guide').map(f => path.join('src/data/user-guide', f)),
 ]
 
-const HARD_BAN = [
-  { pattern: /—/, name: 'em dash (—)', advice: 'Use commas, periods, colons, or parentheses instead.' },
-  { pattern: /\bnot just\s+\w+[,.]?\s+you\s+\w+/i, name: 'logic-flip "not just X, you Y"', advice: 'Rewrite from the positive side.' },
-  { pattern: /\byou do not just\s+\w+[,.]?\s+you\s+\w+/i, name: 'logic-flip "you do not just X, you Y"', advice: 'Rewrite from the positive side.' },
-  { pattern: /(This|It|That) (is|was) not [^.]+\.\s+(This|It|That) (is|was) [^.]+\./i, name: 'logic-flip two-sentence "This is not X. This is Y."', advice: 'Rewrite as a single positive-side claim. Drop the negation pivot.' },
-  { pattern: /\b(most (people|others|folks|peers)|than most|unlike most|than the (typical|average) [a-zA-Z]+|what most [a-zA-Z]+ (do|miss|will|cannot))\b/i, name: 'comparison framing ("most people/others", "than most", "unlike most", "than the typical/average X", "what most X do/miss")', advice: 'State the evidence in specific detail and let the listener draw the conclusion. Never elevate the user by contrast to unnamed others.' },
-]
-
-const SOFT_WARN = [
-  { pattern: /\b(worth sitting with|sit with (this|that)|let that land|lean into|hold space for|get curious about|notice what comes up|take a moment to consider|trust the process|honor your journey)\b/i, name: 'AI-coaching register phrase', advice: 'Name the observation directly and let it stand. Prompt-level rules carry the primary suppression; this is a build-time backstop.' },
-  { pattern: /\bMost professionals\b/i, name: '"Most professionals" comparison framing', advice: 'Rewrite from second person.' },
-  { pattern: /\bMost leaders\b/i, name: '"Most leaders" comparison framing', advice: 'Rewrite from second person.' },
-  { pattern: /\b(it|that|this) lands\b/i, name: '"lands" as AI-speak verb', advice: 'Rewrite with the plain verb the meaning requires (e.g., "Read it slowly" instead of "Take it slowly when it lands").' },
-  { pattern: /\bsits at the intersection\b/i, name: '"sits at the intersection" AI-speak', advice: 'Rewrite with a plain verb.' },
-  { pattern: /\bcommitting to\b/i, name: '"committing to" (legacy decision-step verb)', advice: 'The decision step is now Your Focus. Use "choosing" or "going with" in user-facing copy.' },
-]
+const BUILD_HARD = patternsFor('build', { includeSoft: false })
+const BUILD_SOFT = patternsFor('build', { includeSoft: true }).filter(p => p.severity === 'soft')
 
 let hardFailures = 0
 let softWarnings = 0
@@ -41,16 +39,16 @@ for (const file of FILES_TO_CHECK) {
     if (/\/\/\s*voice-allow-end\b/.test(line)) { allow = false; return }
     if (allow) return
 
-    for (const rule of HARD_BAN) {
-      if (rule.pattern.test(line)) {
+    for (const rule of BUILD_HARD) {
+      if (rule.re.test(line)) {
         console.error(`[FAIL] ${file}:${idx + 1} — ${rule.name}`)
         console.error(`       ${line.trim().substring(0, 120)}`)
-        console.error(`       ${rule.advice}`)
+        console.error(`       ${rule.note}`)
         hardFailures++
       }
     }
-    for (const rule of SOFT_WARN) {
-      if (rule.pattern.test(line)) {
+    for (const rule of BUILD_SOFT) {
+      if (rule.re.test(line)) {
         console.warn(`[WARN] ${file}:${idx + 1} — ${rule.name}`)
         console.warn(`       ${line.trim().substring(0, 120)}`)
         softWarnings++

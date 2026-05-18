@@ -11,6 +11,34 @@ const SHEET_ID = 'PASTE_SHEET_ID_HERE'
 function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents || '{}')
+
+    // Runtime voice validator events. Additive and backward compatible: only
+    // type === 'voice_violation' takes this branch; correction events below
+    // are unchanged. Writes to a separate "Reimagine Voice Violations" tab.
+    if (body.type === 'voice_violation') {
+      const VOICE_SHEET = 'Reimagine Voice Violations'
+      const ss = SpreadsheetApp.openById(SHEET_ID)
+      let vs = ss.getSheetByName(VOICE_SHEET)
+      if (!vs) {
+        vs = ss.insertSheet(VOICE_SHEET)
+        vs.appendRow(['Timestamp', 'User Email', 'User Name', 'Step', 'Step Display Name', 'Attempt', 'Outcome', 'Violation Names', 'Violation Excerpts', 'App Version', 'Browser'])
+      }
+      vs.appendRow([
+        new Date(),
+        String(body.userEmail || '').slice(0, 200),
+        String(body.userName || '').slice(0, 200),
+        String(body.step || '').slice(0, 50),
+        String(body.stepDisplayName || '').slice(0, 100),
+        Number(body.attempt || 0),
+        body.recovered ? 'recovered' : 'failed-open',
+        String(body.violationNames || '').slice(0, 500),
+        String(body.violationExcerpts || '').slice(0, 5000),
+        String(body.appVersion || '').slice(0, 50),
+        String(body.browser || '').slice(0, 200),
+      ])
+      return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON)
+    }
+
     const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME) || SpreadsheetApp.openById(SHEET_ID).getSheets()[0]
 
     sheet.appendRow([

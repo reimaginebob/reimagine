@@ -68,7 +68,7 @@ Supporting Strengths (6-10): Learner, Individualization, Communication, Activato
   passions: `What energizes me outside of work:
 
 - Healthcare innovation. I follow digital health closely. I believe technology can solve real access and cost problems in healthcare, and I want to be part of that.
-- Organizational psychology. I read about how teams work, how culture forms, and why some organizations thrive while others stagnate. This isn't just professional interest; it genuinely fascinates me.
+- Organizational psychology. I read about how teams work, how culture forms, and why some organizations thrive while others stagnate. This isn't just professional interest; it fascinates me.
 - Real estate investing. I've been building a small portfolio of rental properties. I enjoy the strategy, the numbers, and the long-term wealth building.
 - Travel. I recharge through travel, especially internationally. New perspectives keep me sharp.
 - Mentoring. I spend time mentoring emerging HR leaders, especially women in healthcare. This gives me energy and purpose beyond my day job.`,
