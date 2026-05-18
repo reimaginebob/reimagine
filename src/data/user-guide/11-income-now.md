@@ -1,5 +1,7 @@
 # 11. Bonus. Income Now
 
+> **Where this lives now.** Income Now is the final section (position 9) inside the Focus playbook for a specific role (Chapter 6). It is reached by generating it there, not as a separate top-level step. Everything below still describes what it produces and how to use it.
+
 When money gets tight, the temptation is to take whatever pays the bills. Reimagine has a different idea.
 
 Income Now turns the same expertise that makes you valuable for a permanent role into income you can start generating right now: consulting, gig work, fractional engagements. Real money, from your real skills, while you keep searching for the right full-time fit.

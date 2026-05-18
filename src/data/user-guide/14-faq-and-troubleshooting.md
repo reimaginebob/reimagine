@@ -71,11 +71,11 @@ Tell it in the feedback box. Example: "My time at MoneyGram was internal strateg
 **The Bridge Story or LinkedIn copy uses words I would never say.**
 Refine. Examples: "Don't use the word 'unlock.' Don't use 'leverage.' Don't use phrases like 'not just X but Y.' I would not say any of those." Reimagine will adjust.
 
-**I want to explore a different direction after I picked one.**
-Click **Your Focus** in the sidebar. Pick a different option or type a new one. Then click forward through Phases 3, 4, and 5 regenerating each step. Chapter 12 covers this in detail.
+**I want to explore a different direction or role after I picked one.**
+Use **Explore another direction** to return to the three directions, or pick a different role in the Lane Option view. Any role you have opened before also appears under **Roles You've Explored** in the sidebar with a Re-explore action. Switching roles regenerates that role's Focus playbook fresh; if the current playbook has unsaved work, Reimagine offers to save it as a PDF first. Chapter 6 covers this in detail.
 
-**I want a different mix of options in the Wide View.**
-Use the refine box on the Wide View. Examples: "Add more startups." "Remove consulting roles." "Show me more in healthtech." Click **Update my options**.
+**I want a different mix of options for a direction.**
+On the Lane Option view, open **See more options at this level** and tell Reimagine what did not fit. Examples: "Add more startups." "Remove consulting roles." "Show me more in healthtech." It generates more options for the same direction without repeating the ones you have seen.
 
 ## Output and deliverables
 

@@ -1,5 +1,7 @@
 # 7. Phase 3. Tell Your Story
 
+> **Where this lives now.** Your Bridge Story is generated inside the Focus playbook for a specific role (Chapter 6), as the second section after The Role. It is no longer a separate phase you walk to in order. This chapter explains what the Bridge Story is and what good looks like; the Focus playbook is where you generate and refine it.
+
 This phase has one step, and it carries more weight than its size suggests: your **Bridge Story**.
 
 "Tell me about yourself" is the first question in almost every meaningful professional conversation. A first phone call with a recruiter. The opening 30 seconds of an interview. A networking introduction at a conference. A cold meeting with someone who agreed to give you 20 minutes. The answer you give in those 30 seconds sets the tone for everything that follows.

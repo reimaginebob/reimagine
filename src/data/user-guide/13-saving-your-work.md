@@ -4,7 +4,9 @@ This chapter covers how Reimagine saves your progress, how your work syncs acros
 
 ## How saving works
 
-When you are signed in, Reimagine saves your progress to your account automatically as you go. Your inputs, your outputs, the options you selected in the Deep Dive, your chosen focus, and any corrections you have submitted are all saved against your email and synced to your devices.
+When you are signed in, Reimagine saves your progress to your account automatically as you go. Your inputs, your outputs, the direction you picked, the list of roles you have explored, and any corrections you have submitted are all saved against your email and synced to your devices.
+
+One thing that is **not** saved server-side in v1: the generated content of a Focus playbook. Reimagine holds one active role's playbook at a time, and re-exploring a role regenerates it fresh from your current inputs. To keep a specific playbook exactly as it was, save it as a PDF (next section). Saving and restoring playbooks without regenerating is planned for a future release.
 
 Three things worth knowing.
 
@@ -13,6 +15,18 @@ Three things worth knowing.
 **Your data is stored on Career Club's database.** When you sign in, your work is saved to a database the team maintains, keyed to your email. The only parties that see your inputs are Anthropic's Claude service (which generates each section) and Career Club's own database (which holds your progress).
 
 **Local fallback for users who decline sign-in.** If you reach the welcome screen and dismiss the sign-in prompt, Reimagine still works using browser-local storage. You can complete the full journey without an account. The trade-off is that you cannot move between devices, and clearing browser data clears your work. Sign-in is the safer mode for anyone using Reimagine seriously.
+
+## Save a Focus playbook as PDF
+
+The Focus playbook (Chapter 6) is where Reimagine builds everything for one role. Because that content is not stored between sessions, the PDF is how you keep it.
+
+**Where the button is.** Once you have generated at least one section past The Role, a footer bar appears at the bottom of the Focus playbook with a **Save Playbook as PDF** button. It stays in view as you scroll, so it is there the moment you decide a playbook is worth keeping.
+
+**What it produces.** Clicking it assembles every section you have generated for this role (The Role, Bridge Story, and whatever else you built) into a single clean document and opens your browser's print dialog. Choose "Save as PDF" as the destination. The result is formatted for paper, with each section on its own page and Reimagine branding, so it reads well when you send it to a coach, a mentor, or someone you would like to refer you.
+
+**Why this matters in v1.** Reimagine keeps one active role's playbook at a time. Open a different role and the prior role's sections are cleared so the new role does not show stale content. The PDF lives on your device, so it survives any role switch, any change to your inputs, and any future product update. It is the way to keep a playbook between sessions today.
+
+**The save-first prompt.** If you start switching to another role while the current playbook has unsaved work past The Role, Reimagine stops and asks first: save it as a PDF, continue without saving, or cancel. It is there so you never lose a playbook you cared about by accident. If you have already saved this playbook's current state, the prompt does not appear.
 
 ## Continuing where you left off
 
