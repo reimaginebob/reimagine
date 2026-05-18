@@ -813,19 +813,19 @@ const COUNTRY_OPTIONS = [
 
 const LOADING_PREVIEWS = {
   p1: [
-    'A clear-eyed read on where you sit in the market right now',
-    'Five to seven of your strongest accomplishments, rewritten in language that reads beyond your current employer or industry',
-    'What you bring that is distinctive in your peer group, in language you can use in a conversation tomorrow',
+    'An honest read on how the market sees your background right now',
+    'Five to seven of your strongest accomplishments, rewritten so they make sense outside your current company or industry',
+    'What sets you apart from peers, in plain language you can use in a real conversation',
   ],
   p2: [
-    'How you make decisions, where your energy comes from, and where it drains',
-    'The conditions under which you do your best work, drawn straight from your assessment and reputation answers',
-    'What lights you up at work, and why that matters for the next chapter',
+    'How you make decisions, what energizes you, and what wears you out',
+    'The conditions where you do your best work, based on your assessment and reputation answers',
+    'What engages you at work, and why that matters for what comes next',
   ],
   p3: [
-    'The pattern that connects your accomplishments, your reputation, and how you work, the throughline that has been there all along',
+    'The through-line that connects your accomplishments, your reputation, and how you work',
     'A two-sentence personal brand you can drop into a LinkedIn About or use to open a conversation',
-    'Four to six core capabilities, each anchored to a real moment in your history',
+    'Four to six core capabilities, each anchored to a specific accomplishment',
   ],
   p4: [
     'A focused set of roles at this level, matched to your strengths, values, and the direction you picked',
@@ -839,24 +839,24 @@ const LOADING_PREVIEWS = {
   ],
   p6: [
     'Your Bridge Story: the 30-second answer to "tell me about yourself" that connects who you have been with what you are looking for next',
-    'Built from your real accomplishments and the personal throughline that runs through them',
-    'Designed to sound natural when you say it out loud',
+    'Built from your accomplishments and the through-line that connects them',
+    'Written to sound natural when you say it out loud',
   ],
   p7: [
-    'Twenty to thirty companies that fit your direction, each with what they do, the industry they sit in, their size, and where they are headquartered',
-    'A growth signal on each one so you can see why they are in motion right now',
+    'Twenty to thirty companies that fit your direction, with what they do, their industry, size, and headquarters',
+    'A growth signal on each: recent funding, expansion, or new hires',
     'The specific hiring executive at each company, sourced from public signals you can verify',
-    'A direct outreach approach grounded in the Making Your Own Weather model, with a template you can adapt in five minutes',
+    'A direct outreach approach from Making Your Own Weather, with a template you can adapt and send',
   ],
   p8: [
     'Three headline options that say what you do without sounding like everyone else in your field',
-    'An About section rewritten from your bridge story, so the top of your profile sounds like the person Reimagine just described',
-    'Common keywords found in postings for your target role, and where to place them on your profile for search visibility',
+    'An About section rewritten from your Bridge Story, so the top of your profile sounds like the person Reimagine just described',
+    'Common keywords from postings for your target role, and where to place them on your profile for search visibility',
   ],
   p_res: [
-    'A summary section that opens with your throughline instead of a generic objective',
-    'Your strongest accomplishments pulled forward and rewritten to point at where you are going next',
-    'Experience bullets reframed for the role you want, with work that does not serve that direction de-emphasized',
+    'A summary section that opens with your through-line instead of a generic objective',
+    'Your strongest accomplishments rewritten to align with the direction you are pursuing',
+    'Experience bullets reframed for the role you want, with less-relevant work pulled back',
   ],
   p9: [
     'The vocabulary, the tools, and the names you need to know to sound credible in this space',
@@ -875,15 +875,15 @@ const LOADING_PREVIEWS = {
   ],
   income: [
     'The marketplaces and channels where someone with your background can land paid work this month',
-    'A consulting positioning, a bio you can paste anywhere, and four service offerings drawn from what you have actually done',
+    'A consulting positioning, a bio you can paste anywhere, and four service offerings built from what you have actually done',
     'A fractional pitch for the kind of company that buys this work, plus a 48-hour plan to start',
-    'This is bridge income, designed to sit alongside the main strategy, not replace it',
+    'Bridge income, designed to run alongside the main search, not replace it',
   ],
   op: [
-    'How this opportunity aligns with your chosen path',
-    'Tailored framing of your Brand Synthesis for this specific role',
-    '3 STAR stories tuned to the questions this role will ask',
-    'Getting past the screening interview, objections, questions to ask, and a cover letter draft',
+    'How this opportunity aligns with the direction you are pursuing',
+    'Your Brand Synthesis framed for this specific role',
+    '3 STAR stories aimed at the questions this role will ask',
+    'How to get past the screening interview, common objections, questions to ask them, and a cover letter draft',
   ],
 }
 
@@ -2036,7 +2036,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={S.card}>
         <div style={S.field}>
           <div style={S.helperText}>Optional. Share only what you're comfortable with.</div>
-          <textarea style={{...S.ta,minHeight:180}} value={profile.lifeEvents||''} onChange={e=>pr('lifeEvents',e.target.value)}/>
+          <div style={{position:'relative'}}>
+            <textarea style={{...S.ta,minHeight:180,paddingRight:hasSpeech?44:15}} value={profile.lifeEvents||''} onChange={e=>pr('lifeEvents',e.target.value)}/>
+            {hasSpeech&&<SpeechBtn onResult={t=>pr('lifeEvents',(profile.lifeEvents||'')+t)} style={{position:'absolute',right:8,bottom:8}}/>}
+          </div>
         </div>
       </div>
       <div style={S.row}><Btn secondary onClick={()=>nav('reputation')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('life-events','orientation-done')}>{(profile.lifeEvents||'').trim()?'Continue':'Continue without sharing'} <ChevronRight size={14}/></Btn></div>
@@ -2088,10 +2091,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&!outputs.p2&&!loading&&<Btn onClick={()=>generate('p2',()=>P.p2(pc,outputs.p1))}><Sparkles size={14}/>Analyze My Wiring</Btn>}
       {loading&&<Loading msg="Cross-referencing assessment, values, and accomplishments…" step="p2"/>}
       {outputs.p2&&!isDemo&&!hasSeenP2Milestone?<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'32px 36px',borderRadius:12,margin:'0 auto 24px',maxWidth:720}}>
-        <h2 style={{fontFamily:'Georgia,serif',fontSize:26,color:'#1A2540',margin:'0 0 16px',fontWeight:700}}>Phase 1, where the pieces integrate</h2>
-        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 14px'}}>Your assessment showed your natural gifting. Your values named what matters. Your reputation captured what others see. Wiring &amp; Compass connects those threads to your actual work experience.</p>
-        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 14px'}}>What you're about to read is the most portable part of you. Roles change, titles change, the company name on your resume changes. Your gifting goes with you to whatever's next. In interviews, this is the color behind the black and white of the work itself. It's the why behind the what.</p>
-        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 24px'}}>For many people, this is the section that puts the whole career into focus for the first time. Read it slowly.</p>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:26,color:'#1A2540',margin:'0 0 16px',fontWeight:700}}>Your wiring comes into focus</h2>
+        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 14px'}}>Your assessment named your natural gifting. Your values named what matters. Your reputation named what others see. Wiring &amp; Compass pulls those three readings together into a single portrait of how you operate at your best.</p>
+        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 14px'}}>This is the most portable part of you. Roles change, titles change, company names change. Your wiring goes with you to whatever comes next. In interviews, this is the color behind the black and white of the work itself.</p>
+        <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 24px'}}>Read it slowly. Brand Synthesis comes next, where this picture meets your work history.</p>
         <Btn onClick={dismissP2Milestone}>Show me what Reimagine found <ChevronRight size={14}/></Btn>
       </div>:outputs.p2&&<>
         {!isDemo&&isP2OldStyle&&!oldStyleDismissed.p2&&<div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',position:'relative'}}>
