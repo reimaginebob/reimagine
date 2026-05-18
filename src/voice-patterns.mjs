@@ -106,6 +106,51 @@ export const HARD_PATTERNS = [
     appliesTo: ['build', 'runtime'],
     note: 'Em dash: banned in shipped copy.',
   },
+  // --- 2026-05-18 hedging-calibration / overclaim refusal (runtime-only;
+  // absolutism words have legitimate uses outside interpretive synthesis,
+  // so these must not block the build) ---
+  {
+    name: 'absolutism-every-major',
+    re: /\bevery\s+(?:major|single|important|key|critical)\s+[a-z]+(?:\s+[a-z]+){0,2}\s+(?:\w+\s+){0,3}(?:you|she|he|they)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Absolutism: "every [adjective] [noun] you [verb]": name the specific instances, do not collapse to "every".',
+  },
+  {
+    name: 'absolutism-the-hardest',
+    re: /\bthe\s+(?:hardest|most\s+\w+|only)\s+\w+/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Absolutism: "the hardest X" / "the most X" / "the only Y" without referent.',
+  },
+  {
+    name: 'absolutism-career-arc',
+    re: /\byou\s+have\s+spent\s+your\s+career\s+\w+ing\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Life-arc framing presented as fact.',
+  },
+  {
+    name: 'mind-reading-by-verbing',
+    re: /\bby\s+(?:refusing|choosing|caring|insisting|believing|wanting|hoping)\s+(?:to\s+|about\s+|in\s+)/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Mind-reading: "by [verb]-ing" attributing internal motivation. Require verbatim quote backing.',
+  },
+  {
+    name: 'mind-reading-conviction-mission',
+    re: /\byour\s+(?:conviction|mission|belief)\s+(?:that|is|to)\s+/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Mind-reading: claiming the user has a specific conviction/mission/belief without verbatim quote.',
+  },
+  {
+    name: 'slogan-cadence-the-x-is-the-y',
+    re: /\bThe\s+(?:\w+\s+){1,5}is\s+the\s+(?:\w+\s+)*\w+\.\s+The\s+(?:\w+\s+){1,5}is\s+the\s+(?:\w+\s+)*\w+\./i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Slogan cadence: paired declarative "The X is the Y. The Z is the W." sentences.',
+  },
 ]
 
 export const SOFT_PATTERNS = [
