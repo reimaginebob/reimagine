@@ -1821,7 +1821,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </a>
         */}
       </div>
-      <p style={{fontSize:20,fontWeight:500,color:'#1A2540',lineHeight:1.75,margin:'0 0 28px'}}>If your job search feels stuck, <span style={{fontWeight:700,color:'#e4572e'}}>you are not the problem.</span> It's that you can't see all the places your experience could take you. <span style={{fontWeight:700,color:'#e4572e'}}>Reimagine</span> takes what you've done, how you operate, and what you care about to help you land a rewarding role faster than you imagined. Reimagine your career now.</p>
+      <p style={{fontSize:20,fontWeight:500,color:'#1A2540',lineHeight:1.75,margin:'0 0 28px'}}><span style={{fontWeight:700,color:'#e4572e'}}>Reimagine</span> maps what you've done, how you operate, and what you care about to roles you can pursue, and gives you a clear story, a target list of companies, and a playbook for every conversation ahead. Start where the work is worth doing.</p>
 
       <CoachingCallout>
         <strong style={{color:'#1A2540'}}>Take your time.</strong>
@@ -2215,13 +2215,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
       {showWelcomeBack&&<div data-print="hide" style={{position:'relative',background:`${C.gold}12`,border:`1px solid ${C.gold}40`,borderRadius:12,padding:'20px 50px 20px 24px',marginBottom:24,maxWidth:860}}>
         <button onClick={dismissWelcomeBack} aria-label="Dismiss" style={{position:'absolute',top:12,right:14,background:'transparent',border:'none',color:C.gray,fontSize:20,cursor:'pointer',fontFamily:'inherit',lineHeight:1}}>×</button>
-        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7}}><strong>Welcome back.</strong> We've reworked the next part of Reimagine to make exploring your options less overwhelming. Your story (resume, assessment, values, reputation, brand synthesis) is right where you left it. Roles you previously explored will regenerate fresh from your latest inputs; if you want to keep any role exactly as it was, save its PDF. Pick the kind of move you want to explore below.</div>
+        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7}}><strong>Welcome back.</strong> Pick a direction to explore: you'll see specific roles inside it, why each one fits you, and how to land them. Your story (resume, assessment, values, reputation, brand synthesis) is right where you left it. Roles you previously explored will regenerate fresh from your latest inputs; if you want to keep any exactly as it was, save its PDF first.</div>
       </div>}
       <h1 style={S.title}>What would you like to do next?</h1>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,maxWidth:920,marginTop:8}}>
         <button onClick={()=>advance('twoDoors','laneSelect')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit'}}>
-          <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:10}}>Not sure where to aim?</div>
-          <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>Reimagine takes your experience, wiring, values, and reputation and maps it to specific roles you could pursue, from a stronger version of what you do today to a complete shift toward work that matters. Pick the kind of move you want to explore, and we'll build the full playbook for any role that interests you.</div>
+          <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:10}}>Map your next direction.</div>
+          <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>Three directions mapped to your experience, wiring, values, and reputation: from a stronger version of what you do today to a complete shift toward work that matters. Pick the kind of move to explore. We'll build the full playbook for any role that interests you.</div>
           <div style={{marginTop:16,color:C.gold,fontWeight:600,fontSize:16,display:'flex',alignItems:'center',gap:6}}>Explore directions <ChevronRight size={15}/></div>
         </button>
         <button onClick={()=>advance('twoDoors','op')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit'}}>
