@@ -882,15 +882,10 @@ const LOADING_PREVIEWS = {
     'Who the players are and what is happening in this market right now',
     'Enough fluency to walk into a conversation about this work like you belong there',
   ],
-  p10: [
-    'The specific questions this role will surface, behavioral and role-specific',
-    'Evidence-based talking points for each, drawn from your real track record',
-    'How to handle the hard ones without scrambling in the moment',
-  ],
   p11: [
-    'Your three strongest stories in Situation, Thinking, Action, Result form',
-    'Each tied to a business imperative the role actually cares about',
-    'How to retell one story for a CEO, a CFO, or a peer without starting over',
+    'Ten to twelve questions you are most likely to face for this role',
+    'For each behavioral question, a Situation, Thinking, Action, Result breakdown with what your inputs support and what would strengthen each section',
+    'Opening moves that connect your past experience to the situation the interviewer is facing now',
   ],
   income: [
     'The marketplaces and channels where someone with your background can land paid work this month',
