@@ -1233,12 +1233,18 @@ const BSV_SLOTS=[
 ]
 function BridgeStoryOptionCard({slot,opt,selected,small,onPick,onEdit,editedText}){
   const[editing,setEditing]=useState(false)
-  const[draft,setDraft]=useState(editedText||'')
+  // Pre-fill the edit textarea with the user's prior edit if present,
+  // otherwise the option's text. Picking an option already commits the
+  // phrasing the user wants to keep; "Edit in your voice" should let them
+  // tweak it, not start from blank.
+  const[draft,setDraft]=useState(editedText||opt.text||'')
   const taRef=useRef(null)
   useEffect(()=>{if(editing&&taRef.current)taRef.current.focus()},[editing])
-  useEffect(()=>{if(!editing)setDraft(editedText||'')},[editedText,editing])
+  useEffect(()=>{if(!editing)setDraft(editedText||opt.text||'')},[editedText,editing,opt.text])
   const pick=()=>onPick(slot.key,opt.id)
-  const commit=()=>{setEditing(false);const t=draft.trim();onEdit(slot.key,t?t:null)}
+  // Treat draft equal to the option's text as "no edit" so a user who opens
+  // edit and blurs without changing anything does not get marked as edited.
+  const commit=()=>{setEditing(false);const t=draft.trim();onEdit(slot.key,(!t||t===opt.text)?null:t)}
   const[showSrc,setShowSrc]=useState(false)
   const srcPhrase=humanizeSources(opt.sources)
   return <div
@@ -1560,6 +1566,11 @@ export default function PivotEngine(){
   const[signupStep,setSignupStep]=useState('email')
   const[signedInUser,setSignedInUser]=useState(null)
   const[magicLinkSentTo,setMagicLinkSentTo]=useState(null)
+  // Set when the user signs in on a different tab while this tab is showing
+  // "Check your email". The render switches to a "you can close this safely"
+  // fallback after we try (and usually fail, due to browser policy) to
+  // window.close() ourselves.
+  const[signedInElsewhere,setSignedInElsewhere]=useState(false)
   const[migrationOpen,setMigrationOpen]=useState(false)
   const[authToast,setAuthToast]=useState(null)
   const[invalidationBanner,setInvalidationBanner]=useState(null)
@@ -1594,10 +1605,27 @@ export default function PivotEngine(){
   // BEFORE window.location navigation completes, repopulating pe_v3 with the
   // full pre-delete state. Checked at fire time so any pending timer aborts.
   const deletingRef=useRef(false)
+  // Cross-tab sign-in detection while the user is on "Check your email".
+  // The originating tab subscribes; the tab where /api/me resolves to a
+  // signed-in user broadcasts on BroadcastChannel('reimagine-auth') and
+  // writes a localStorage key. The storage event is the fallback for any
+  // browser without BroadcastChannel support. On signal we attempt to close
+  // this tab; window.close() is blocked for non-script-opened tabs in most
+  // browsers, so the render switches to a "you can close this safely" view.
+  useEffect(()=>{
+    if(!magicLinkSentTo||typeof window==='undefined')return
+    setSignedInElsewhere(false)
+    let bc=null
+    const handleSignal=()=>{setSignedInElsewhere(true);try{window.close()}catch{}}
+    try{if(typeof BroadcastChannel!=='undefined'){bc=new BroadcastChannel('reimagine-auth');bc.onmessage=(e)=>{if(e&&e.data&&e.data.type==='signed_in')handleSignal()}}}catch{}
+    const onStorage=(e)=>{if(e.key==='pe_signed_in_at'&&e.newValue)handleSignal()}
+    window.addEventListener('storage',onStorage)
+    return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
+  },[magicLinkSentTo])
 
   useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.npsAsked)setNpsAsked(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}},[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.npsAsked)setNpsAsked(true);if(x.didMigrate)setMigratedFromPreV1(true)}else{try{const blob=localStorage.getItem('pe_v4');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.npsAsked)setNpsAsked(true);if(x.didMigrate)setMigratedFromPreV1(true)}else{try{const blob=localStorage.getItem('pe_v4');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
   useEffect(()=>{if(!signedInUser)return;const needsPrivacy=signedInUser.privacy_version!=null&&signedInUser.privacy_version!==PRIVACY_VERSION_MATERIAL;const needsTerms=signedInUser.terms_version!=null&&signedInUser.terms_version!==TOS_VERSION_MATERIAL;if(needsPrivacy||needsTerms)setReaccept({needsPrivacyReaccept:needsPrivacy,needsTermsReaccept:needsTerms})},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;try{const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v4');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
   useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
@@ -1625,7 +1653,12 @@ export default function PivotEngine(){
     if(!userName)userName='My Reimagine Work'
     const d=new Date()
     const dateStr=`${d.getMonth()+1}-${d.getDate()}-${String(d.getFullYear()).slice(-2)}`
-    const printTitle=`Reimagine ${sectionName} ${userName} ${dateStr}`
+    // Include the chosen role in the print title (and therefore the suggested
+    // PDF filename) so two saves for two different roles are distinguishable.
+    // Strip em/en dashes from the role string defensively, since em dashes can
+    // break some download flows depending on OS handling.
+    const rolePart=chosen?`${chosen.replace(new RegExp('[\u2014\u2013]','g'),' ').replace(/\s+/g,' ').trim()} `:''
+    const printTitle=`Reimagine ${rolePart}${sectionName} ${userName} ${dateStr}`
     const onBeforePrint=()=>{document.title=printTitle}
     const onAfterPrint=()=>{document.title=BASE_DOC_TITLE}
     window.addEventListener('beforeprint',onBeforePrint)
@@ -1634,7 +1667,7 @@ export default function PivotEngine(){
       window.removeEventListener('beforeprint',onBeforePrint)
       window.removeEventListener('afterprint',onAfterPrint)
     }
-  },[step,signedInUser,profile.resume,signupForm.firstName,signupForm.lastName])
+  },[step,signedInUser,profile.resume,signupForm.firstName,signupForm.lastName,chosen])
   useEffect(()=>{if(isDemo||isTest)return;if(voiceMigCheckedRef.current)return;if(profile.voiceMigrationDismissed)return;if(!done.includes('complete'))return;if(!Object.values(outputs).some(v=>v&&v.length>0))return;voiceMigCheckedRef.current=true;if(detectStaleVoice(outputs).found)setVoiceMigBanner(true)},[done,outputs,profile.voiceMigrationDismissed])
 
   useEffect(()=>{
@@ -1866,7 +1899,7 @@ export default function PivotEngine(){
     }
   }
   const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setSelectedLane('');setExploredRoleTitles([]);setNpsAsked(false);setCurrentRoleSaved(false);setRoleSwitchModal(null);setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
-  const exportProfile=()=>{const data={profile,outputs,done,deepOpts,chosen};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
+  const exportProfile=()=>{const data={step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,npsAsked};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
   const downloadAllMarkdown=()=>{
     const today=new Date().toISOString().slice(0,10)
     const rawFirstLine=(profile.resume||'').split(/\n/).find(l=>l.trim())||''
@@ -1962,7 +1995,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const w=window.open('','_blank')
     if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),500)}
   };
-  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);const lastStep=data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome';setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
+  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);if(data.selectedLane!==undefined)setSelectedLane(data.selectedLane);if(Array.isArray(data.exploredRoleTitles))setExploredRoleTitles(data.exploredRoleTitles);if(data.npsAsked)setNpsAsked(data.npsAsked);const lastStep=(typeof data.step==='string'&&data.step)?data.step:(data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome');setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
   const prog=INPUT_PHASE_STEPS.has(step)?Math.round((ALL.indexOf(step)/ALL.indexOf('p3'))*100):null
   const pc={loc:{...profile.loc,work:Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||'')},resume:profile.resume,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep,frameworks:profile.frameworks}
   const recordExploredRole=(title,lane)=>setExploredRoleTitles(prev=>{const ts=new Date().toISOString();const i=prev.findIndex(r=>r.title===title);if(i>=0){const n=[...prev];n[i]={...n[i],lane,lastExplored:ts};return n}return[...prev,{title,lane,lastExplored:ts}].slice(-20)})
@@ -2147,6 +2180,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn onClick={()=>advance('welcome','location')}>Let's get started <ChevronRight size={14}/></Btn>
           <input ref={importFileRef} type="file" accept=".json" style={{display:'none'}} onChange={e=>e.target.files[0]&&importProfile(e.target.files[0])}/>
           <Btn onClick={()=>importFileRef.current?.click()} style={{background:'#2A3F60'}}><Upload size={14}/>Load a Saved Profile</Btn>
+          {Object.values(outputs).some(v=>v&&(typeof v==='string'?v.length>0:true))&&<Btn onClick={exportProfile} style={{background:'#2A3F60'}}><Download size={14}/>Save Profile as JSON</Btn>}
         </>}
       </div>
     </div>
@@ -2670,7 +2704,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{margin:'40px 0 12px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>This is yours now. Take it where it makes sense, or look at another direction below.</div>
         <div style={S.row}>
           <Btn secondary onClick={()=>nav('p4')}>See more roles in this direction</Btn>
-          <Btn secondary onClick={()=>nav('laneSelect')}>Explore another direction</Btn>
+        </div>
+        <div style={{marginTop:12}}>
+          <button onClick={()=>nav('laneSelect')} style={{background:'none',border:'none',padding:0,fontSize:16,color:C.grayL,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline',display:'inline-flex',alignItems:'center',gap:4}}>Or explore another direction <ChevronRight size={12}/></button>
         </div>
         {otherRoles.length>0&&<div style={{marginTop:20}}>
           <div style={{fontSize:15,fontWeight:700,color:C.gray,textTransform:'uppercase',letterSpacing:'1px',marginBottom:10}}>Open a role you've already explored</div>
@@ -2884,12 +2920,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>}
       <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 24px'}}>
         <div style={{maxWidth:520,width:'100%'}}>
-          {magicLinkSentTo?<div style={S.card}>
+          {magicLinkSentTo?(signedInElsewhere?<div style={S.card}>
+            <h1 style={{...S.title,fontSize:28,marginBottom:14}}>Signed in.</h1>
+            <p style={{...S.sub,marginBottom:0}}>You signed in on another tab. You can close this one safely.</p>
+          </div>:<div style={S.card}>
             <h1 style={{...S.title,fontSize:28,marginBottom:14}}>Check your email.</h1>
             <p style={{...S.sub,marginBottom:18}}>We sent a sign-in link to <strong style={{color:C.cream}}>{magicLinkSentTo}</strong>. The link expires in 15 minutes.</p>
             <p style={{fontSize:16,color:C.gray,marginBottom:18,lineHeight:1.6}}>If you don't see it within a minute, check your spam folder, or request another link.</p>
             <Btn secondary onClick={()=>{setMagicLinkSentTo(null);setSignupStep('email');setSignupError('')}}>Use a different email</Btn>
-          </div>:signupStep==='details'?<>
+          </div>):signupStep==='details'?<>
             <h1 style={{...S.title,fontSize:34,marginBottom:10}}>Looks like this is your first time.</h1>
             <p style={{...S.sub,marginBottom:24}}>Tell us who you are and we'll send your sign-in link.</p>
             <div style={S.card}>
