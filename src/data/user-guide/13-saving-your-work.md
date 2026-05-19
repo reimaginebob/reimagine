@@ -1,5 +1,7 @@
 # 13. Saving and Sharing Your Work
 
+> *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
+
 This chapter covers how Reimagine saves your progress, how your work syncs across devices, and how to take your finished strategy with you.
 
 ## How saving works

@@ -1,5 +1,7 @@
 # Quick Start Guide
 
+> *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
+
 A short summary of the full guide.
 
 ## What Reimagine is

@@ -1,5 +1,7 @@
 # 9. Phase 5. Get Ready
 
+> *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
+
 > **Where this lives now.** These preparation pieces are generated inside the Focus playbook for a specific role (Chapter 6), as sections: Lingo & Playbook, Interview Prep, STAR Stories, Resume Refresh, and LinkedIn Remix. They are no longer separate phases. This chapter explains what each produces and what good looks like; the Focus playbook is where you generate and refine them, in any order.
 
 This phase has three steps that prepare you for the conversations your outreach will create:

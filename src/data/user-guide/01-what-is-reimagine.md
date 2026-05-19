@@ -1,5 +1,7 @@
 # 1. What Reimagine Is
 
+> *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
+
 ## In one paragraph
 
 Reimagine is a web-based career strategy tool for senior professionals in transition. You bring your resume, an assessment, a few honest answers about your values and reputation, and your sense of what you want next. Reimagine walks you through a structured journey that turns those inputs into a personal brand, a map of options, a story you can tell, a list of target companies, an outreach plan, and the materials you need to walk into conversations ready. It is built on the methodology in Bob Goodwin's book *Making Your Own Weather*.

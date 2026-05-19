@@ -1,5 +1,7 @@
 # 4. Phase 0. Orientation: Telling Reimagine About You
 
+> *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
+
 This is the only phase where you do the work. Everything that follows is generated for you. This chapter walks through each screen so you know what to expect and what good input looks like at each one.
 
 If you have not read **Chapter 3: The Quality of Your Inputs** yet, do that first. This chapter assumes you have.

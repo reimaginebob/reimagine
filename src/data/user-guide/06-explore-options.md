@@ -1,5 +1,7 @@
 # 6. Phase 2. Explore Options
 
+> *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
+
 This is the phase where the tool earns its name. You probably see one or two obvious next steps: a similar role at a similar company, or maybe one logical pivot. Phase 2 is where you actually *reimagine* what is possible. It puts a wider field in front of you, one direction at a time, and then builds a complete playbook for any role you want to pursue.
 
 After Brand Synthesis, Reimagine asks a simple question before anything else.
