@@ -82,7 +82,7 @@ TOOLS YOU USE (never name these in output, just do what they describe):
 - Every strength has a flip side. Name where the person shines (the strength at its best) and where to watch out (what it looks like overdeveloped or misdirected). Self-awareness is an asset, and naming the watch-out demonstrates it. In output, use headers like "Where You Shine" and "Where to Watch Out," never "balcony," "basement," "shadow," or "assessment signal."
 - When structuring stories, T stands for Thought Process, not Tasks. Show how they think, not just what they did. The company is hiring their brain.
 - The language of business is numbers. Strip vague claims, replace with specific evidence.
-- People hire people, not resumes. Proficiency gets the interview; passion, personality, work ethic, and potential get the offer. Help the person bring more of who they actually are into the room, not less. A candidate who dials down their humanity to play it safe becomes forgettable. This matters most on the Industry Insider and Work That Matters paths, where there will be proficiency gaps. When the technical fit is a 7 out of 10, the human dimensions close the gap: the interviewer who thinks "she cares about what we do, she is already learning our space, and I can picture her on this team" is making a hire. Passion is a bridge that carries people over gaps in direct experience, if it is real and the interviewer can feel it.
+- People hire people, not resumes. Proficiency gets the interview; passion, personality, work ethic, and potential get the offer. Help the person bring more of who they actually are into the conversation, not less. A candidate who dials down their humanity to play it safe becomes forgettable. This matters most on the Industry Insider and Work That Matters paths, where there will be proficiency gaps. When the technical fit is a 7 out of 10, the human dimensions close the gap: the interviewer who thinks "she cares about what we do, she is already learning our space, and I can picture her on this team" is making a hire. Passion is a bridge that carries people over gaps in direct experience, if it is real and the interviewer can feel it.
 - Same story, different emphasis depending on who is listening. The facts do not change. The lens shifts based on what the audience cares about. This is especially critical outside of Familiar Ground, where the interviewer or networking contact may not immediately see the connection between the person's background and the opportunity. The remixing skill is what bridges that gap: shift emphasis to show why the underlying capability translates, why the passion for their space is real, and why the thought process is portable even when the industry context is new. A CFO wants financial discipline, a CEO wants strategic arc, a CHRO wants cultural fit. When preparing someone for interviews or outreach, think across five dimensions: Strategy (business outcomes, frameworks, scalability), Culture (collaboration, leadership style, team fit), Oneself (self-awareness, humility, resilience, growth), Passion (why this company, why this work, what lights them up), and Expertise (domain depth, technical credibility, staying current).
 
 CAREER VEHICLES TO CONSIDER:
@@ -276,6 +276,51 @@ function bridgeStoryToProse(v){
     const f=(slot.options||[])[0];return f&&f.text?f.text:''
   }
   return [pick('slot1',bs.slot1_human_anchor),pick('slot2',bs.slot2_career_manifestation),pick('slot3',bs.slot3_forward_move)].filter(Boolean).join(' ')
+}
+// Maps raw source field IDs from the p6 JSON to human-readable phrases.
+// The render layer translates; the prompt still emits field IDs. Never show
+// a raw token to the user; unmapped tokens fall back to a generic phrase.
+const SOURCE_LABELS={
+  'values':'your stated values',
+  'passions':'your stated passions',
+  'p3.golden_thread':'your Brand Synthesis',
+  'p3.personal_brand':'your Brand Synthesis',
+  'p3.value_prop':'your Brand Synthesis',
+  'p3.wiring_synthesis':'your Brand Synthesis',
+  'p3.capabilities':'your Brand Synthesis',
+  'rep.memory':'what colleagues say about you',
+  'rep.emergency':'what colleagues say about you',
+  'rep.twoWords':'what colleagues say about you',
+  'rep.other':'what colleagues say about you',
+  'lifeEvents':'a story you told us in Orientation',
+  'lifeEvents.praise':'a story you told us in Orientation',
+  'lifeEvents.jobSearch':'what you shared about your job search',
+  'work.pattern':'your career history',
+  'work.accomplishment':'your career history',
+  'work.role':'your career history',
+  'work.arc':'your career arc',
+  'assess':'your assessment',
+  'assess.affintus':'your assessment',
+  'assessType':'your assessment',
+  'selectedLane':'the direction you chose',
+  'exploredRoleTitles':'the roles you have explored',
+  'frameworks':'the frameworks you have used',
+  'loc':'your location and work preferences',
+  'loc.country':'your location and work preferences',
+  'loc.work':'your location and work preferences',
+}
+// Translate + dedupe source tokens into one readable phrase. Unmapped tokens
+// collapse to a single generic phrase; raw field names never reach the user.
+function humanizeSources(sources){
+  const seen=[]
+  for(const s of (Array.isArray(sources)?sources:[])){
+    const ph=SOURCE_LABELS[s]||'your Orientation inputs'
+    if(seen.indexOf(ph)===-1)seen.push(ph)
+  }
+  if(!seen.length)return ''
+  if(seen.length===1)return seen[0]
+  if(seen.length===2)return seen[0]+' and '+seen[1]
+  return seen.slice(0,-1).join(', ')+', and '+seen[seen.length-1]
 }
 // Deterministic short hash (djb2 -> base36). Change-detection only, not security.
 function hashStr(s){s=typeof s==='string'?s:JSON.stringify(s||'');let h=5381;for(let i=0;i<s.length;i++){h=((h<<5)+h+s.charCodeAt(i))>>>0}return h.toString(36)}
@@ -693,7 +738,7 @@ const STEP_QUOTES = {
     "The language of business is numbers. Financial statements are numbers. Board presentations are numbers. When companies make decisions, they reach for data.",
     "What you find on the other side of that struggle, if you go through it with intention, is not just a job. It is a sharper sense of who you are, what you want, and what you are worth.",
     "Your personal brand cannot be designed from the outside. It has to be discovered from the inside.",
-    "The goal is to walk into any room, hear Tell Me About Yourself, and feel clarity where there used to be anxiety. You know who you are. You know your story. Now you are just telling the truth.",
+    "The goal is to walk into any interview or conversation, hear Tell Me About Yourself, and feel clarity where there used to be anxiety. You know who you are. You know your story. Now you are just telling the truth.",
     "Convictions lead to Clarity. Clarity leads to Confidence. Confidence is Contagious.",
     "You cannot manufacture confidence without the convictions underneath it.",
     "Having a strong background and being able to communicate it effectively are two different skills, and the gap between them is where most searches quietly stall.",
@@ -735,7 +780,7 @@ const STEP_QUOTES = {
     "They are hiring your brain. Not your resume. Not your list of previous employers. Your brain. They want to understand how you approach problems, what you notice that other people overlook, and why the choices you make are the choices you make.",
     "Practice does not make perfect. Practice makes habits. If you rehearse the wrong version of your story, you become very good at telling it wrong. What you need is perfect practice.",
     "Preparation becomes poise. Poise becomes composure. And composure is that quality of grounded confidence that people feel before they can articulate why.",
-    "The goal is not a performance. Not a memorized script. A depth of preparation that lets you be present in the room and respond naturally.",
+    "The goal is not a performance. Not a memorized script. A depth of preparation that lets you be present in the conversation and respond naturally.",
   ],
   // Phase 4: Find Your Market , networking, outreach, companies
   p7: [
@@ -760,7 +805,7 @@ const STEP_QUOTES = {
   // Phase 5: Get Ready , playbook + interview prep + negotiation (HEAVIEST , 3 parallel API calls)
   p9: [
     "Preparation becomes poise. Poise becomes composure. And composure is that quality of grounded confidence that people feel before they can articulate why.",
-    "The goal is not a performance. Not a memorized script. A depth of preparation that lets you be present in the room and respond naturally.",
+    "The goal is not a performance. Not a memorized script. A depth of preparation that lets you be present in the conversation and respond naturally.",
     "A great salesperson does not discount their product at the finish line. They know what it is worth, they have the data to support it, and they ask for it with confidence and warmth.",
     "The single best phrase in a negotiation is: would that be fair?",
     "State your number. And then be quiet.",
@@ -1155,7 +1200,6 @@ function OutPanel({text,onCopy,copied,expandLabel}){
   </div>
 }
 
-const BSV_TAG_LABEL={values:'Values',reputation:'Reputation',trait:'Trait',passion:'Passion',formative:'Formative',interest:'Interest',star:'Accomplishment',pattern:'Pattern',arc:'Career arc',continuation:'Continuation',synthesis:'Synthesis',why_now:'Why now'}
 const BSV_SLOTS=[
   {key:'slot1',bs:'slot1_human_anchor',tag:'anchor_type',label:'Something human about you',desc:'A trait, value, passion, or formative experience. Personal first, not your title.'},
   {key:'slot2',bs:'slot2_career_manifestation',tag:'manifestation_type',label:'Your career in action',desc:'How that shows up in your work: an accomplishment, a recurring pattern, or your arc.'},
@@ -1169,7 +1213,8 @@ function BridgeStoryOptionCard({slot,opt,selected,small,onPick,onEdit,editedText
   useEffect(()=>{if(!editing)setDraft(editedText||'')},[editedText,editing])
   const pick=()=>onPick(slot.key,opt.id)
   const commit=()=>{setEditing(false);const t=draft.trim();onEdit(slot.key,t?t:null)}
-  const tagLbl=BSV_TAG_LABEL[opt[slot.tag]]||opt[slot.tag]
+  const[showSrc,setShowSrc]=useState(false)
+  const srcPhrase=humanizeSources(opt.sources)
   return <div
     role="button" tabIndex={0} aria-pressed={selected}
     aria-label={`${slot.label}. Option: ${opt.text}. ${selected?'Selected.':'Press Enter to pick.'}`}
@@ -1177,28 +1222,36 @@ function BridgeStoryOptionCard({slot,opt,selected,small,onPick,onEdit,editedText
     onKeyDown={e=>{if(editing)return;if(e.key===' '||e.key==='Enter'){e.preventDefault();pick()}}}
     className="bsv-card"
     style={{flex:1,minWidth:0,background:selected?`${C.gold}10`:'#FFFFFF',border:`1px solid ${selected?C.gold:C.border}`,borderLeft:`3px solid ${selected?C.gold:'transparent'}`,borderRadius:10,padding:'16px 18px',cursor:'pointer',display:'flex',flexDirection:'column',gap:10,transition:'border-color 0.15s, background 0.15s',boxSizing:'border-box',outline:'none'}}>
-    <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10}}>
-      <span style={{...S.tag(C.gold),margin:0,fontSize:12}} aria-label={`Type: ${tagLbl}`}>{tagLbl}</span>
-      {selected&&<span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.gold,fontSize:13,fontWeight:700,flexShrink:0}}><Check size={13}/>Picked</span>}
-    </div>
+    {selected&&<div style={{display:'flex',justifyContent:'flex-end'}}><span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.gold,fontSize:13,fontWeight:700}}><Check size={13}/>Picked</span></div>}
     {editing
       ?<textarea ref={taRef} value={draft} onChange={e=>setDraft(e.target.value)} onBlur={commit}
          aria-label={`Edit your ${slot.label} text`}
          style={{...S.ta,minHeight:90,fontSize:17}}/>
       :<div style={{fontSize:17,color:C.cream,lineHeight:1.6}}>{editedText||opt.text}{editedText&&<span style={{display:'block',fontSize:13,color:C.gray,marginTop:6,fontStyle:'italic'}}>Edited. Original: {opt.text}</span>}</div>}
-    <div style={{display:'flex',flexWrap:'wrap',gap:6}} aria-label="Best for">
-      {(opt.best_for||[]).map((b,i)=><span key={i} style={{fontSize:13,color:C.gray,border:`1px solid ${C.border}`,borderRadius:14,padding:'3px 10px',background:C.input}}>{b}</span>)}
-    </div>
-    <div style={{fontSize:13,color:C.gray,fontStyle:'italic'}}>Drawn from: {(opt.sources||[]).join(', ')}</div>
+    {(opt.best_for||[]).length>0&&<div style={{fontSize:12,color:C.gray,lineHeight:1.5}} aria-label="Best for"><span style={{fontWeight:600}}>Best for:</span> {(opt.best_for||[]).join(' · ')}</div>}
+    {srcPhrase&&<div>
+      <button onClick={e=>{e.stopPropagation();setShowSrc(v=>!v)}} aria-expanded={showSrc} style={{background:'transparent',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',fontSize:12,color:C.gray,textDecoration:'underline'}}>Why this option?</button>
+      {showSrc&&<div style={{fontSize:12,color:C.gray,marginTop:4,fontStyle:'italic'}}>Drawn from {srcPhrase}.</div>}
+    </div>}
     {selected&&!editing&&<button onClick={e=>{e.stopPropagation();setEditing(true)}} style={{...S.sm,alignSelf:'flex-start'}}>Edit in your voice</button>}
+  </div>
+}
+function BridgeStoryDiagnostic({d}){
+  const[open,setOpen]=useState(false)
+  return <div style={{marginTop:12}}>
+    <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{background:'transparent',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',fontSize:14,color:C.gray,textDecoration:'underline'}}>Why these options? ({open?'hide':'show'})</button>
+    {open&&<div style={{marginTop:8,background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 16px',fontSize:15,color:C.gray,lineHeight:1.6}}>
+      <div><strong style={{color:C.grayL}}>What your inputs support:</strong> {d.what_your_inputs_support}</div>
+      <div style={{marginTop:6}}><strong style={{color:C.grayL}}>What would strengthen it:</strong> {d.what_would_strengthen_it}</div>
+    </div>}
   </div>
 }
 function BridgeStoryView({p6,p6Legacy,isDemo,isSmallPortrait,onPick,onEdit,onRegenerate,onMigrateGenerate,currentHashes,copied,onCopy}){
   const[dismissedStale,setDismissedStale]=useState(false)
   if(typeof p6==='string'&&p6Legacy)return <div style={S.out}>
-    <div style={{fontSize:20,fontWeight:700,color:'#1A2540',marginBottom:8}}>We have updated how Bridge Story works.</div>
-    <p style={{fontSize:17,color:C.gray,lineHeight:1.65,margin:'0 0 18px'}}>Generate the new version to see your building blocks.</p>
-    <Btn onClick={onMigrateGenerate}><Sparkles size={14}/>Generate</Btn>
+    <div style={{fontSize:20,fontWeight:700,color:'#1A2540',marginBottom:8}}>Your Bridge Story has been updated.</div>
+    <p style={{fontSize:17,color:C.gray,lineHeight:1.65,margin:'0 0 18px'}}>We moved from one written answer to a menu of starter options you can pick and adapt to sound like you. Your previous version is preserved on your device until you generate the new one.</p>
+    <Btn onClick={onMigrateGenerate}><Sparkles size={14}/>Generate the new version</Btn>
   </div>
   if(typeof p6==='string'&&p6.length>0)return <OutPanel text={p6} onCopy={onCopy} copied={copied}/>
   const valid=p6&&typeof p6==='object'&&p6.bridge_story&&validateBridgeStoryShape(p6.bridge_story)
@@ -1219,7 +1272,7 @@ function BridgeStoryView({p6,p6Legacy,isDemo,isSmallPortrait,onPick,onEdit,onReg
   const assembled=BSV_SLOTS.map(resolved).filter(Boolean).join(' ')
   return <div data-print="content">
     <style>{".bsv-card:hover{border-color:"+C.gold+" !important}.bsv-card:focus-visible{box-shadow:0 0 0 3px "+C.gold+"55 !important;border-color:"+C.gold+" !important}"}</style>
-    {!isDemo&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'16px 20px',borderRadius:10,marginBottom:18,fontSize:17,color:'#1A2540',lineHeight:1.65}}><strong>Learn the structure.</strong> Three building blocks: something human about you, your career in action, where you are going next. For each block we give you three starter options drawn from your Orientation, tagged for the situation. Pick what fits, edit in your voice, and you have an answer for any room.</div>}
+    {!isDemo&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'16px 20px',borderRadius:10,marginBottom:18,fontSize:17,color:'#1A2540',lineHeight:1.65}}><strong>Learn the structure.</strong> Tell me about yourself opens most interviews and most networking conversations. The strongest answers start with the human, not the resume. We give you three building blocks with three starter options each, drawn from your Orientation. Pick the option in each block that sounds most like you and edit in your voice.</div>}
     {stale&&<div role="status" style={{background:`${C.gold}18`,border:`1px solid ${C.gold}55`,borderRadius:10,padding:'14px 18px',marginBottom:18,display:'flex',flexWrap:'wrap',alignItems:'center',gap:12}}>
       <span style={{fontSize:16,color:C.goldL,lineHeight:1.55,flex:1,minWidth:240}}>Your Orientation has changed since this Bridge Story was generated. Regenerate to pick up the latest, or keep your current picks.</span>
       <div style={{display:'flex',gap:8}}><Btn small onClick={onRegenerate}><RotateCcw size={12}/>Regenerate</Btn><Btn small secondary onClick={()=>setDismissedStale(true)}>Keep current</Btn></div>
@@ -1235,10 +1288,7 @@ function BridgeStoryView({p6,p6Legacy,isDemo,isSmallPortrait,onPick,onEdit,onReg
             editedText={u&&u.picked_id===o.id&&u.edited_text?u.edited_text:''}
             onPick={onPick} onEdit={onEdit}/>)}
         </div>
-        {slot.diagnostic&&<div style={{marginTop:12,background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 16px',fontSize:15,color:C.gray,lineHeight:1.6}}>
-          <div><strong style={{color:C.grayL}}>What your inputs support:</strong> {slot.diagnostic.what_your_inputs_support}</div>
-          <div style={{marginTop:6}}><strong style={{color:C.grayL}}>What would strengthen it:</strong> {slot.diagnostic.what_would_strengthen_it}</div>
-        </div>}
+        {slot.diagnostic&&<BridgeStoryDiagnostic d={slot.diagnostic}/>}
       </section>
     })}
     <div style={{...S.out,marginTop:8,background:`${C.gold}08`}}>
@@ -1246,8 +1296,10 @@ function BridgeStoryView({p6,p6Legacy,isDemo,isSmallPortrait,onPick,onEdit,onReg
         <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:0}}>Your assembled bridge story</h3>
         <Btn small onClick={()=>onCopy(assembled)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy</>}</Btn>
       </div>
+      {allPicked&&<div style={{fontSize:19,fontWeight:700,color:'#1A2540',lineHeight:1.5,marginBottom:12,paddingLeft:14,borderLeft:`3px solid ${C.gold}`}}>Congratulations! You have a framework for tell-me-about-yourself you can use with confidence.</div>}
       {!allPicked&&<div style={{fontSize:14,color:C.gray,marginBottom:8,fontStyle:'italic'}}>Showing the first option in any block you have not picked yet.</div>}
       <p style={{fontSize:18,color:C.cream,lineHeight:1.7,margin:0}}>{assembled||'Pick an option in each block to assemble your answer.'}</p>
+      <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:14,fontStyle:'italic'}}>Here is your bridge story. Take it where it makes sense.</div>
     </div>
   </div>
 }

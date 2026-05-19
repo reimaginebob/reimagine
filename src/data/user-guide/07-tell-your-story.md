@@ -18,7 +18,7 @@ This phase is short. Get it right.
 
 Earlier versions of Reimagine wrote your whole answer in your voice and handed it to you. That sounds helpful, and it tested badly for the same reason Interview Prep did before its own rewrite. When the tool writes the finished sentence, it gets the words almost right, and "almost right" is the hardest thing to fix. You are left to accept a paragraph that is not quite you, or rewrite it from scratch. Either way the answer is the tool's, not yours.
 
-The Bridge Story is the thing you *use* in a room, not the thing you read to recognize yourself (that is Brand Synthesis, Chapter 5). Different purpose, different format. So Reimagine now gives you the structure and the raw material, and you do the part only you can do: choose what is true and say it the way you talk.
+The Bridge Story is the thing you *use* in a conversation, not the thing you read to recognize yourself (that is Brand Synthesis, Chapter 5). Different purpose, different format. So Reimagine now gives you the structure and the raw material, and you do the part only you can do: choose what is true and say it the way you talk.
 
 This also makes the Bridge Story a persistent asset. Your picks and edits are saved with your profile and feed the later steps that need a "tell me about yourself," so the work you do here once carries forward.
 
@@ -48,11 +48,11 @@ The Bridge Story section opens with a short note on the three-block structure. R
 
 Three blocks, stacked. For each block:
 
-- **Three option cards.** Each card shows a starter opener, a small tag for what kind of anchor it is (for Block 1: values, reputation, trait, passion, formative, or interest; for Block 2: accomplishment, pattern, or career arc; for Block 3: continuation, synthesis, or why now), chips for the situations it fits best (recruiter screen, networking coffee, panel opener), and a footnote naming which of your Orientation inputs it was drawn from. Every option triangulates at least two of your inputs; an option built on a single source is rejected before you see it.
+- **Three option cards.** Each card shows a starter opener, a small **Best for:** line naming the situations it suits (recruiter screen, networking coffee, panel opener), and a **Why this option?** link you can open to see, in plain language, which of your Orientation inputs the option was drawn from. Every option triangulates at least two of your inputs; an option built on a single source is rejected before you see it.
 - **Pick and edit.** Click a card to pick it. The picked card highlights. Click **Edit in your voice** on the picked card to open a text box and rewrite the opener in your own words. Your edit saves when you click away. You can pick a different card any time; your edit stays attached to the option you edited.
-- **A diagnostic.** Below the three cards, two plain-language lines: **what your inputs support** (which of your inputs triangulate to make this block strong) and **what would strengthen it** (what is thin, and the specific Orientation field to flesh out).
+- **A diagnostic, collapsed by default.** Below the three cards is a **Why these options?** toggle. Open it for two plain-language lines: **what your inputs support** (which of your inputs triangulate to make this block strong) and **what would strengthen it** (what is thin, and the specific Orientation field to flesh out).
 
-Below all three blocks: **Your assembled bridge story**, a live preview that strings your picks (with your edits) into one flowing answer, with a Copy button. Until you have picked in every block, the preview shows the first option of any block you have not chosen yet, so you always see a complete answer.
+Below all three blocks: **Your assembled bridge story**, a live preview that strings your picks (with your edits) into one flowing answer, with a Copy button. Until you have picked in every block, the preview shows the first option of any block you have not chosen yet, so you always see a complete answer. Once you have picked in all three blocks, a short line above the preview confirms you have a framework you can use with confidence.
 
 ## When your Orientation changes later
 
@@ -86,7 +86,7 @@ This is a story you will say to real humans, so the test is whether it sounds li
 
 **Check the opening.** Block 1 should be something true about you as a person, not a credential. A strong opening sounds like:
 
-> I have always been the person in the room who figures out why something is not selling and then fixes it.
+> I have always been the person who figures out why something is not selling and then fixes it.
 
 A weak opening sounds like:
 
@@ -104,7 +104,7 @@ The first starts with the human and pivots into the career. The second starts wi
 
 You have two tools here, and they do different jobs.
 
-**Pick and edit** is the everyday tool. Different option fits better for a recruiter screen than a panel opener? Pick the one tagged for the room you are walking into. A starter is close but not your words? Edit it. This costs nothing and does not regenerate anything.
+**Pick and edit** is the everyday tool. Different option fits better for a recruiter screen than a panel opener? Pick the one tagged for the situation you are walking into. A starter is close but not your words? Edit it. This costs nothing and does not regenerate anything.
 
 **The refine box** (the "What did we get wrong?" box below the section) is for when the whole set is off: the options misread your background, the diagnostics point at the wrong gap, the tone is wrong across the board. Describe what is off and Reimagine regenerates the blocks. The microphone button is in the refine box; talking through what feels off is often easier than typing it.
 
