@@ -869,10 +869,20 @@ const normalizeProfileState = (loaded) => {
   // is truthy, so prompt template interpolation embeds the bad string and the
   // model refuses to generate. Clear the slot and let the existing migration
   // banner surface it as needing regeneration. Excludes p6 (handled above).
-  for (const k of ['p1','p2','p3','p7','p8','p9','income','op']) {
+  for (const k of ['p1','p2','p3','p5','p7','p8','p9','income','op']) {
     const v = s.outputs[k]
     if (v === undefined || v === null || v === '') continue
     if (typeof v !== 'string' || v.includes('[object Object]')) { delete s.outputs[k]; M() }
+  }
+  // Heal corrupted entries in profile.corrections. correctionsBlock prepends
+  // every correction's text to every prompt, so a single corruption here
+  // poisons every subsequent generation: the model sees "[object Object]"
+  // in its input and either refuses or echoes a "TECHNICAL ISSUE" string
+  // back into outputs, which the next load resurfaces. Drop the bad entries
+  // on load and let the migration banner fire.
+  if (Array.isArray(s.profile?.corrections)) {
+    const cleaned = s.profile.corrections.filter(c => !(typeof c?.text === 'string' && c.text.includes('[object Object]')))
+    if (cleaned.length !== s.profile.corrections.length) { s.profile = { ...s.profile, corrections: cleaned }; M() }
   }
   if (s.chosen && !(s.selectedLane && String(s.selectedLane).length)) { s.chosen = ''; for (const k of ROLE_SUBMODULES) delete s.outputs[k]; s.step = 'twoDoors'; M() }
   if (Array.isArray(s.done) && s.done.some(x => x === 'decision' || x === 'narrowing')) { s.done = s.done.filter(x => x !== 'decision' && x !== 'narrowing'); M() }
