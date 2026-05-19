@@ -3,7 +3,22 @@ import { generateToken, hashToken } from '../_lib/session.js'
 import { sendMagicLinkEmail } from '../_lib/email.js'
 
 const TOKEN_EXPIRY_MINUTES = 15
-const RATE_LIMIT_PER_HOUR = 5
+// Rate limits keyed by email. Both windows must clear for a request to pass.
+// 5 / 15 minutes covers mistypes, spam-folder retry, and a fresh link after
+// expiry. 20 / hour catches abusive patterns while staying well below
+// Resend's per-account ceilings.
+const RATE_LIMIT_15MIN = 5
+const RATE_LIMIT_1HOUR = 20
+
+function getRequestOrigin(req) {
+  const proto = req.headers['x-forwarded-proto'] || 'https'
+  const host = req.headers['x-forwarded-host'] || req.headers.host
+  return `${proto}://${host}`
+}
+
+function formatHHMMUtc(date) {
+  return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -40,13 +55,38 @@ export default async function handler(req, res) {
   const tokenTermsAt = isNewAccount ? nowIso : null
   const tokenTermsVersion = isNewAccount && typeof termsVersion === 'string' ? termsVersion : null
 
-  // Rate limit: max 5 magic link requests per email per hour
-  const recent = await sql`
-    SELECT COUNT(*) AS count FROM magic_link_tokens
-    WHERE email = ${normalizedEmail} AND created_at > NOW() - INTERVAL '1 hour'
+  // Dual-window rate limit. We query both windows in one round trip, then
+  // compute the earliest moment the limiting window opens back up. When both
+  // windows bind, the user waits until the later of the two recovery points.
+  const counts = await sql`
+    SELECT
+      COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '15 minutes') AS c15,
+      MIN(created_at) FILTER (WHERE created_at > NOW() - INTERVAL '15 minutes') AS min15,
+      COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '1 hour') AS c60,
+      MIN(created_at) FILTER (WHERE created_at > NOW() - INTERVAL '1 hour') AS min60
+    FROM magic_link_tokens
+    WHERE email = ${normalizedEmail}
   `
-  if (parseInt(recent[0].count, 10) >= RATE_LIMIT_PER_HOUR) {
-    return res.status(429).json({ error: 'Too many requests. Try again later.' })
+  const row = counts[0] || {}
+  const c15 = parseInt(row.c15 || 0, 10)
+  const c60 = parseInt(row.c60 || 0, 10)
+  let retryAt = null
+  if (c15 >= RATE_LIMIT_15MIN && row.min15) {
+    retryAt = new Date(new Date(row.min15).getTime() + 15 * 60 * 1000)
+  }
+  if (c60 >= RATE_LIMIT_1HOUR && row.min60) {
+    const next = new Date(new Date(row.min60).getTime() + 60 * 60 * 1000)
+    if (!retryAt || next > retryAt) retryAt = next
+  }
+  if (retryAt) {
+    const minutes = Math.max(1, Math.ceil((retryAt.getTime() - Date.now()) / 60000))
+    const message = [
+      'Too many sign-in attempts.',
+      `For your security, we are pausing new sign-in links for this email until ${formatHHMMUtc(retryAt)} UTC (about ${minutes} minutes from now).`,
+      'If you have a recent link in your email or spam folder, it should still work.',
+      'If you need help, email support@career.club.',
+    ].join('\n')
+    return res.status(429).json({ error: message, retryAt: retryAt.toISOString() })
   }
 
   const rawToken = generateToken()
@@ -60,7 +100,11 @@ export default async function handler(req, res) {
     VALUES (${tokenHash}, ${normalizedEmail}, ${firstName || null}, ${lastName || null}, ${expiresAt.toISOString()}, ${userAgent}, ${ipAddress}, ${tokenPrivacyAt}, ${tokenPrivacyVersion}, ${tokenTermsAt}, ${tokenTermsVersion})
   `
 
-  const baseUrl = process.env.MAGIC_LINK_BASE_URL || 'https://reimagine2-two.vercel.app'
+  // Build the verify URL from the request origin so preview deploys
+  // authenticate against the preview domain and production against production.
+  // The prior MAGIC_LINK_BASE_URL env override pinned every deploy to a single
+  // host; removed because that was the exact cause of the preview-auth bug.
+  const baseUrl = getRequestOrigin(req)
   const link = `${baseUrl}/auth/verify?token=${rawToken}`
 
   try {
