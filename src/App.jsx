@@ -2356,7 +2356,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 {['S','T','A','R'].map(k=>{const sec=q.star_breakdown[k];if(!sec)return null;return <div key={k} style={{marginTop:k==='S'?6:14}}>
                   <div style={{fontSize:16,fontWeight:700,color:C.goldL,marginBottom:4}}>{k} - {lbl[k]}</div>
                   <div style={{fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>From your inputs:</em> {sec.raw_material}</div>
-                  {k==='S'&&sec.relevance_bridge_draft&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>The opening move:</em> This is where the strongest version of your answer makes the interviewer lean in. Draft your opener: <strong>"{sec.relevance_bridge_draft}"</strong> That sentence makes the interviewer hear themselves. If you have researched the company before the interview, sharpen it with their actual context.</div>}
+                  {k==='S'&&sec.relevance_bridge_draft&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>Open with:</em> <strong>"{sec.relevance_bridge_draft}"</strong>. Names the parallel between your past and what the interviewer likely faces. Sharpen the second half with company-specific details when you have them.</div>}
                   <div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>To strengthen:</em> {sec.to_strengthen}</div>
                 </div>})}
                 <div style={{marginTop:14,fontSize:15,color:C.gray,fontStyle:'italic'}}>Drill down to develop the full story from these bones, in your voice.</div>
