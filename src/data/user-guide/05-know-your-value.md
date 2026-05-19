@@ -1,5 +1,7 @@
 # 5. Phase 1. Know Your Value
 
+> *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
+
 This is the foundation phase. Everything you generate later in the journey. your bridge story, your target companies, your outreach, your LinkedIn, your resume refresh, your playbook. is built on what comes out of Phase 1. If the foundation is sharp, everything downstream is sharp. If the foundation is generic, the rest of the journey carries that around.
 
 Plan to spend more time here than on any other phase. Read the outputs carefully. Refine where they do not yet sound like you. The 15 extra minutes you spend in Phase 1 saves an hour of refining in Phases 3 through 5.

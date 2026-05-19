@@ -6,7 +6,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Affintus.** A free 15-minute professional assessment Reimagine recommends if you do not already have one. It produces results you can paste into the Assessment input screen.
 
-**Bridge Story.** Your answer to "tell me about yourself," written in three parts: who you are personally, how that played out professionally, and where you are headed. Generated in Phase 3.
+**Bridge Story.** Your answer to "tell me about yourself," structured as three building blocks: something human about you, your career in action, and where you are going next. Reimagine gives you three starter options for each block, tagged for the situation and drawn from your Orientation. You pick what fits and edit it in your own words. Your picks and edits are saved as a persistent asset and feed the later steps that need a "tell me about yourself." Generated in the Focus playbook (Phase 3). See Chapter 7 for the model and how to use it.
 
 **Brand Synthesis.** The third step in Phase 1. Reimagine combines your resume, your wiring, and your reputation into a single professional identity: a golden thread, a personal brand statement, and a value proposition with proof points.
 
@@ -65,7 +65,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 **Sarah Chen.** The fictional executive used in Reimagine's demo mode. A VP of Talent Acquisition in healthcare with 15 years of experience.
 
 **STAR (Situation, Thinking, Action, Result).** The interview story framework Reimagine uses in the Playbook. The T stands for *Thinking*, not Tasks. Because the most important part of any interview story is how you thought through the problem.
-**TMAY.** "Tell me about yourself." The interview question the Bridge Story is built to answer.
+**TMAY.** "Tell me about yourself." The interview question the Bridge Story is built to answer, in three building blocks you pick and edit rather than one paragraph recited.
 
 **Value Proposition.** The list of capabilities backed by proof points generated in Brand Synthesis. Four to six entries, each with a capability statement and concrete evidence from your track record.
 

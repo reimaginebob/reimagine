@@ -68,8 +68,14 @@ Use the feedback box. Describe how you want it to sound. Example: "I'm more rese
 **Reimagine read my background wrong.**
 Tell it in the feedback box. Example: "My time at MoneyGram was internal strategy work, not consulting." Click **Update with my correction**. Factual corrections persist across the whole session, so the correction propagates to every later section that depends on it.
 
+**Why does the Bridge Story look different from what I expected?**
+As of 2026-05-19, the Bridge Story is no longer one finished paragraph Reimagine writes for you. It is three building blocks (something human about you, your career in action, where you are going next), with three starter options each, tagged for the situation. You pick the option that fits and edit it in your own words. The assembled preview at the bottom shows your picks strung together. The reason for the change: when the tool wrote the whole answer, it landed almost-right, and almost-right is the hardest thing to fix. Picking and editing keeps the answer yours. Chapter 7 covers the model in full.
+
+**My Bridge Story still shows my old version, or a banner says my Orientation changed.**
+If you generated a Bridge Story before 2026-05-19, you will see a one-time prompt to generate the new building-blocks version. Click Generate. If you changed your Orientation after generating, a banner offers to Regenerate (rebuild from your current inputs) or Keep current (leave your picks and edits as they are). Reimagine asks rather than overwriting, so your edits are never lost without your say-so.
+
 **The Bridge Story or LinkedIn copy uses words I would never say.**
-Refine. Examples: "Don't use the word 'unlock.' Don't use 'leverage.' Don't use phrases like 'not just X but Y.' I would not say any of those." Reimagine will adjust.
+For the Bridge Story, pick a different option or click **Edit in your voice** on the picked card and rewrite it in your own words. That edit saves with your profile. For LinkedIn copy and other sections, use the refine box. Examples: "Don't use the word 'unlock.' Don't use 'leverage.' Don't use phrases like 'not just X but Y.' I would not say any of those." Reimagine will adjust.
 
 **I want to explore a different direction or role after I picked one.**
 Use **Explore another direction** to return to the three directions, or pick a different role in the Lane Option view. Any role you have opened before also appears under **Roles You've Explored** in the sidebar with a Re-explore action. Switching roles regenerates that role's Focus playbook fresh; if the current playbook has unsaved work, Reimagine offers to save it as a PDF first. Chapter 6 covers this in detail.
@@ -92,7 +98,7 @@ Yes. Press Ctrl+P on Windows or Cmd+P on Mac from the section you want to print.
 **Where do I share feedback about Reimagine itself?**
 There is a short feedback survey on the **Complete** screen at the end of the journey. Otherwise, email Bob at [bob@career.club](mailto:bob@career.club).
 
-## When something is broken
+## When something stays broken
 
 If a step keeps failing or the output is not making sense after multiple refines:
 

@@ -172,6 +172,31 @@ export const SOFT_PATTERNS = [
   },
 ]
 
+// Memorability principle (Bridge Story Slot 1 only). NOT part of HARD_PATTERNS:
+// applied solely by the p6 Slot-1 validation step, never by the global runtime
+// gate or the build-time check-voice scan. Slot 1 MUST start with something
+// human, never a role/title/company/time-anchor/work-artifact framing.
+export const MEMORABILITY_PATTERNS = [
+  { name: 'mem-im-a-role', re: /^\s*i(?:['\u2019]m|\s+am)\s+(?:an?|the)\s+(?:senior|junior|principal|chief|head|director|manager|leader|engineer|designer|developer|architect|analyst|consultant|advisor|strategist|specialist|operator|founder|cofounder|partner|owner|executive|professional|marketer|recruiter|coach|writer|editor|researcher|scientist|programmer|coordinator|product|software|data|account|vice|customer|business|technical|sales|marketing|finance|operations|hr)\b/i },
+  { name: 'mem-ive-spent', re: /^\s*i(?:['\u2019]ve|\s+have)\s+spent\b/i },
+  { name: 'mem-after-n-years', re: /^\s*after\s+(?:\d+\s*\+?|an?\s+(?:few|couple|dozen|handful)|several|many|few|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)\s*\+?\s*years?\b/i },
+  { name: 'mem-for-the-past-over', re: /^\s*(?:for\s+the\s+(?:past|last)\s+(?:(?:\d+\s*\+?|an?\s+(?:few|couple|dozen|handful)|several|many|few|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)\s+)?(?:years?|decades?|months?)|over\s+(?:the\s+(?:past|last)\s+)?(?:(?:\d+\s*\+?|an?\s+(?:few|couple|dozen|handful)|several|many|few|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)\s+)?(?:years?|decades?|months?))\b/i },
+  { name: 'mem-with-n-years-experience', re: /^\s*with\s+(?:\d+\s*\+?|an?\s+(?:few|couple|dozen|handful)|several|many|few|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)\s*\+?\s*years?\s+of\s+experience\b/i },
+  { name: 'mem-as-a-role', re: /^\s*as\s+(?:an?|the)\s+(?:senior|junior|principal|chief|head|director|manager|leader|engineer|designer|developer|architect|analyst|consultant|advisor|strategist|specialist|operator|founder|cofounder|partner|owner|executive|professional|marketer|recruiter|coach|writer|editor|researcher|scientist|programmer|coordinator|product|software|data|account|vice|customer|business|technical|sales|marketing|finance|operations|hr)\b/i },
+  { name: 'mem-throughout-my-career', re: /^\s*throughout\s+my\s+career\b/i },
+  { name: 'mem-my-career-background', re: /^\s*my\s+(?:career|background|experience)\s+(?:in|spans|is|has\s+been)\b/i },
+  { name: 'mem-currently-i-verb', re: /^\s*currently[,]?\s+i\s+(?:lead|head|run|manage|oversee|direct|drive)\b/i },
+  { name: 'mem-bare-title-with-years', re: /^\s*[a-z][\w\s]{2,40}\s+with\s+(?:\d+\s*\+?|an?\s+(?:few|couple|dozen|handful)|several|many|few|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)\s*\+?\s*years?\s+of\b/i },
+]
+
+// Returns the first MEMORABILITY_PATTERNS name that matches (trimmed), else null.
+export function detectMemorabilityViolation(text) {
+  if (typeof text !== 'string' || !text.trim()) return null
+  const t = text.trim()
+  for (const p of MEMORABILITY_PATTERNS) { if (p.re.test(t)) return p.name }
+  return null
+}
+
 /**
  * Patterns that apply in a given scope ('runtime' | 'build').
  */

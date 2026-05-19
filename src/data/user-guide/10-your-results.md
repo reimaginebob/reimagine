@@ -1,5 +1,7 @@
 # 10. Your Results
 
+> *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
+
 When you finish Phase 5, Reimagine takes you to a screen called **Complete**. This is the destination of the journey. Everything you have generated up to this point is gathered here, organized, and made portable.
 
 This chapter walks through what is on that screen and how to use it.
