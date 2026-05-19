@@ -170,6 +170,20 @@ export const SOFT_PATTERNS = [
     appliesTo: ['runtime'],
     note: 'AI-poetic register.',
   },
+  // "room/rooms" as an abstract stand-in for a situation, conversation, or
+  // audience ("an answer for any room", "depending on the room", "carry into
+  // a room"). Prefix-anchored and excludes the legitimate spatial sense
+  // ("room for the content") and latitude sense ("room to run / to grow"),
+  // so it does not fire on those. Scoped to build (source scan) and runtime
+  // (model output). Specific situational labels (panel opener, recruiter
+  // screen) are fine and unaffected.
+  {
+    name: 'room-as-situation-placeholder',
+    re: /\b(?:for|in|into|on|across|enter(?:ing)?|walk(?:ing)?\s+into|step(?:ping)?\s+into|present\s+in|carr(?:y|ied|ying)\s+into|read(?:ing)?)\s+(?:the|a|an|any|every|each|that|this|another|some|no)\s+(?:right\s+|wrong\s+|same\s+|different\s+|next\s+|other\s+)?rooms?\b(?!\s+(?:for|to)\b)/i,
+    severity: 'soft',
+    appliesTo: ['build', 'runtime'],
+    note: 'Abstract "room/rooms" for a situation, conversation, or audience. Use situation, conversation, interview, screen, panel, or meeting.',
+  },
 ]
 
 // Memorability principle (Bridge Story Slot 1 only). NOT part of HARD_PATTERNS:
