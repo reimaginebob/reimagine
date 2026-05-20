@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import * as mammoth from "mammoth"
 import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, TabStopType } from "docx"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectMemorabilityViolation } from "./voice-patterns.mjs"
@@ -2751,19 +2751,31 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <button onClick={dismissWelcomeBack} aria-label="Dismiss" style={{position:'absolute',top:12,right:14,background:'transparent',border:'none',color:C.gray,fontSize:20,cursor:'pointer',fontFamily:'inherit',lineHeight:1}}>×</button>
         <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7}}><strong>Welcome back.</strong> Pick a direction to explore: you'll see specific roles inside it, why each one fits you, and how to land them. Your story (resume, assessment, values, reputation, brand synthesis) is right where you left it. Roles you previously explored will regenerate fresh from your latest inputs; if you want to keep any exactly as it was, save its PDF first.</div>
       </div>}
-      <h1 style={S.title}>What would you like to do next?</h1>
+      <h1 style={S.title}>Your Personal Brand is built. Now, the fun part.</h1>
+      <p style={S.sub}>Reimagine helps you explore new paths AND optimize existing opportunities. Which would you like to do now?</p>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,maxWidth:920,marginTop:8}}>
-        <button onClick={()=>advance('twoDoors','laneSelect')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit'}}>
-          <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:10}}>Map your next direction.</div>
-          <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>Three directions mapped to your experience, wiring, values, and reputation: from a stronger version of what you do today to a complete shift toward work that matters. Pick the kind of move to explore. We'll build the full playbook for any role that interests you.</div>
-          <div style={{marginTop:16,color:C.gold,fontWeight:600,fontSize:16,display:'flex',alignItems:'center',gap:6}}>Explore directions <ChevronRight size={15}/></div>
+        <button onClick={()=>advance('twoDoors','laneSelect')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
+          <div style={{fontSize:12,fontWeight:700,color:C.gray,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>Explore new paths</div>
+          <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:10}}>Where could my Personal Brand take me?</div>
+          <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>Three directions mapped to your Personal Brand: a stronger version of what you do today, a lateral move into adjacent work, and work that matters to you on a different axis.</div>
+          <div style={{borderTop:`1px solid ${C.border}`,marginTop:18,paddingTop:14,display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>You'll see three directions, each with role candidates and reasoning.</div>
+            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Clock size={14} style={{flexShrink:0}}/>About 90 seconds to generate.</div>
+          </div>
+          <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:C.gold,color:'#FFFFFF',padding:'10px 18px',borderRadius:8,fontWeight:600,fontSize:16}}>Explore directions <ChevronRight size={15}/></div>
         </button>
-        <button onClick={()=>advance('twoDoors','op')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit'}}>
-          <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:10}}>Analyze a specific role.</div>
-          <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>Paste in a job description and get the full playbook for it.</div>
-          <div style={{marginTop:16,color:C.gold,fontWeight:600,fontSize:16,display:'flex',alignItems:'center',gap:6}}>Analyze a job description <ChevronRight size={15}/></div>
+        <button onClick={()=>advance('twoDoors','op')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
+          <div style={{fontSize:12,fontWeight:700,color:C.gray,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>Optimize an opportunity</div>
+          <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:10}}>How does my Personal Brand match this role?</div>
+          <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>Paste a job description. Get a per-role playbook: fit against your Personal Brand, gaps to close, interview prep, and outreach plan for the people who decide.</div>
+          <div style={{borderTop:`1px solid ${C.border}`,marginTop:18,paddingTop:14,display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>You'll see a tailored playbook for one specific job.</div>
+            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Clock size={14} style={{flexShrink:0}}/>About 2 to 3 minutes (includes live research on the company).</div>
+          </div>
+          <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:'transparent',color:C.gold,border:`1.5px solid ${C.gold}`,padding:'8.5px 16.5px',borderRadius:8,fontWeight:600,fontSize:16}}>Analyze a job description <ChevronRight size={15}/></div>
         </button>
       </div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:22,fontSize:14,color:C.gray,maxWidth:920}}><RotateCcw size={14}/>Pick whichever. The other is right here when you come back.</div>
     </div>
     case'laneSelect':return <div>
       {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
