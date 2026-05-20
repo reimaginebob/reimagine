@@ -16,7 +16,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/build-user-guide.mjs && node scripts/check-voice.mjs",
+    "prebuild": "node scripts/build-user-guide.mjs && node scripts/check-voice.mjs && node scripts/check-prompt-refs.mjs",
     "build": "vite build",
     "preview": "vite preview"
   }
