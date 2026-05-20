@@ -11,12 +11,17 @@
     "resend": "^4.0.0"
   },
   "devDependencies": {
+    "@babel/eslint-parser": "^7.28.6",
+    "@babel/preset-react": "^7.28.5",
     "@vitejs/plugin-react": "^4.2.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
     "vite": "^5.0.0"
   },
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/build-user-guide.mjs && node scripts/check-voice.mjs && node scripts/check-prompt-refs.mjs",
+    "lint": "eslint \"src/**/*.{js,jsx}\" \"api/**/*.js\"",
+    "prebuild": "node scripts/build-user-guide.mjs && node scripts/check-voice.mjs && node scripts/check-prompt-refs.mjs && npm run lint",
     "build": "vite build",
     "preview": "vite preview"
   }
