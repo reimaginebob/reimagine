@@ -52,7 +52,15 @@ Three blocks, stacked. For each block:
 - **Pick and edit.** Click a card to pick it. The picked card highlights. Click **Edit in your voice** on the picked card to open a text box and rewrite the opener in your own words. Your edit saves when you click away. You can pick a different card any time; your edit stays attached to the option you edited.
 - **A diagnostic, collapsed by default.** Below the three cards is a **Why these options?** toggle. Open it for two plain-language lines: **what your inputs support** (which of your inputs triangulate to make this block strong) and **what would strengthen it** (what is thin, and the specific Orientation field to flesh out).
 
-Below all three blocks: **Your assembled bridge story**, a live preview that strings your picks (with your edits) into one flowing answer, with a Copy button. Until you have picked in every block, the preview shows the first option of any block you have not chosen yet, so you always see a complete answer. Once you have picked in all three blocks, a short line above the preview confirms you have a framework you can use with confidence.
+Below all three blocks: **Your assembled bridge story**, a live preview that strings your picks (with your edits) into one flowing answer, with a Copy button and a **Print this section** button. Until you have picked in every block, the preview shows the first option of any block you have not chosen yet, so you always see a complete answer. Once you have picked in all three blocks, a short line above the preview confirms you have a framework you can use with confidence.
+
+Below the assembled preview: **Your bridge story, in your own words**, a freeform textarea where you write the version you will speak. The first time all three slots have picks, Reimagine pre-fills this textarea with the assembled preview so you start from a working draft. After that the field is yours; pick changes do not silently overwrite what you have written. A **Reset to the assembled version** link lets you re-sync to the latest picks when you want a fresh start. Saves when you click away. Later sections that need a "tell me about yourself" read this freeform version when it is non-empty and fall back to the assembled picks when it is not.
+
+At the top of the section a small **Saved** indicator shows the auto-save state: *Saved · just now* / *Saved · a moment ago* / *Saving…* / *Save failed · retrying*. At the bottom a **Save and return to playbook** button force-saves and scrolls you back to the top of the playbook so you can move on to the next section.
+
+## If a block does not feel right
+
+Under each block's diagnostic toggle is a small **None of these feel right? Tell us what to fix.** disclosure. Open it, write what is off (for example, "the options lean too hard on the volunteer work; I want options that lead with the assessment finding"), and click **Regenerate this block**. Only that block changes. Your picks in the other two blocks stay, along with the freeform textarea. The new options can take up to three attempts to clear the voice rules and (for Block 1) the human-first rule; if all three attempts miss, the section shows an inline note and you can try again with a different framing.
 
 ## When your Orientation changes later
 

@@ -163,4 +163,30 @@
     page-break-before: always !important;
     break-before: page !important;
   }
+
+  /* Section-level print for the Bridge Story. Toggled via body.printing-
+     bridge-story before window.print(). visibility:hidden on the app shell
+     plus visibility:visible on the Bridge Story container is the reliable
+     cross-browser way to print one section without unmounting the rest. */
+  body.printing-bridge-story #root {
+    visibility: hidden !important;
+  }
+
+  body.printing-bridge-story #bsv-print-root,
+  body.printing-bridge-story #bsv-print-root * {
+    visibility: visible !important;
+  }
+
+  body.printing-bridge-story #bsv-print-root {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+  }
+
+  body.printing-bridge-story #bsv-print-root [data-print='hide'],
+  body.printing-bridge-story #bsv-print-root .bsv-no-print {
+    display: none !important;
+    visibility: hidden !important;
+  }
 }
