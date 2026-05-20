@@ -8,13 +8,17 @@ After Brand Synthesis, Reimagine asks a simple question before anything else.
 
 ## The Two Doors
 
-The first screen in Phase 2 offers two ways forward. Neither is the "right" one. They serve different moments.
+The first screen in Phase 2 opens with the headline **"Your Personal Brand is built. Now, the fun part."** followed by a one-line framing: *Reimagine helps you explore new paths AND optimize existing opportunities. Which would you like to do now?* The uppercase AND is intentional. Both paths are real options. Neither is the "right" one.
 
-**Door 1: Not sure where to aim?** Reimagine maps your experience, wiring, values, and reputation to specific roles you could pursue, from a stronger version of what you do today to a complete shift toward work that matters. Pick the kind of move you want to explore, and Reimagine builds the full playbook for any role that interests you. Choose this door when you want the tool to widen the field for you.
+Below the framing line, two cards sit side by side. Each carries a small eyebrow label, a question-framed title, a short body, a preview footer (what you will see and how long it takes), and a call-to-action button.
 
-**Door 2: Analyze a specific role.** Paste in a job description and get the full playbook for that exact role. Choose this door when you already have a posting in hand and want Reimagine focused on it. (Door 2 is covered in Chapter 11b.)
+**Door 1: Explore new paths.** Titled **Where could my Personal Brand take me?** The body reads: *Three directions mapped to your Personal Brand: a stronger version of what you do today, a lateral move into adjacent work, and work that matters to you on a different axis.* The preview footer notes that you will see three directions with role candidates and reasoning, and that it takes about 90 seconds to generate. The primary CTA on this card is **Explore directions →** (solid gold button). Choose this door when you want the tool to widen the field for you.
 
-If you are returning after a previous version of Reimagine, a short welcome-back note appears here. Your story (resume, assessment, values, reputation, brand synthesis) is exactly where you left it. Roles you explored before regenerate fresh from your latest inputs. If you want to keep a prior playbook word for word, save its PDF (see "Save your playbook" below).
+**Door 2: Optimize an opportunity.** Titled **How does my Personal Brand match this role?** The body reads: *Paste a job description. Get a per-role playbook: fit against your Personal Brand, gaps to close, interview prep, and outreach plan for the people who decide.* The preview footer notes that you will see a tailored playbook for one specific job, and that it takes about 2 to 3 minutes (the longer time covers live research on the company). The secondary CTA on this card is **Analyze a job description →** (outlined gold button). Choose this door when you already have a posting in hand and want Reimagine focused on it. (Door 2 is covered in Chapter 11b.)
+
+Below the two cards, a single line with a refresh icon reminds you: *Pick whichever. The other is right here when you come back.* The two paths are not mutually exclusive. Choose either one, finish what you need, and the other is available the next time you reach this screen.
+
+If you are returning after a previous version of Reimagine, a short welcome-back note appears above the headline. Your story (resume, assessment, values, reputation, brand synthesis) is exactly where you left it. Roles you explored before regenerate fresh from your latest inputs. If you want to keep a prior playbook word for word, save its PDF (see "Save your playbook" below).
 
 ## Door 1: Pick a direction
 
