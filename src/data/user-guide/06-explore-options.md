@@ -58,7 +58,9 @@ Click a role and Reimagine builds a **Focus playbook**: a single, assembled page
 
 **The Role generates immediately.** The first section, The Role, generates the moment you click in: what the role actually is, why you fit, and what to think through before going deeper. You read this first to decide whether the role is worth more of your time.
 
-**Everything else generates on demand.** The remaining sections each have a Generate button. You build the playbook at your own pace, in the order that fits you. The default arc is deliberate:
+**Everything else generates on demand.** The remaining sections each have a Generate button. Before you click, every section shows a one-line subhead under its heading that names what the section produces, plus a **What you'll get** disclosure link that expands two or three sentences on what feeds the section, what to do with the output, and anything specific worth knowing. Read the subhead while scrolling; open the disclosure when you want the deeper context. The subhead stays visible after you generate; the disclosure stays collapsed by default once content is on the page.
+
+You build the playbook at your own pace, in the order that fits you. The default arc is deliberate:
 
 1. **The Role.** What the role is, why you fit, what to weigh.
 2. **Your Bridge Story.** The 30-second answer that connects where you have been to where you are going.

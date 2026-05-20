@@ -106,6 +106,21 @@ export const HARD_PATTERNS = [
     appliesTo: ['build', 'runtime'],
     note: 'Em dash: banned in shipped copy.',
   },
+  // "Rooms where..." / "rooms in which..." used as audience or situation
+  // placeholder (e.g., "make people visible in rooms where they have no
+  // voice"). Singular and plural both fire. The existing
+  // `room-as-situation-placeholder` SOFT_PATTERN catches some prefix-anchored
+  // singular shapes; this HARD_PATTERN closes the relative-clause gap that
+  // landed in production LinkedIn Remix output on 2026-05-20. Use
+  // "conversations where" / "conversations in which" or a specific situation
+  // label (interview, panel, screen, meeting).
+  {
+    name: 'rooms-where-relative-clause',
+    re: /\brooms?\s+(?:where|in\s+which)\b/i,
+    severity: 'hard',
+    appliesTo: ['build', 'runtime'],
+    note: 'Rooms used as audience placeholder followed by a relative clause. Use conversations or a specific situation label.',
+  },
   // --- 2026-05-18 hedging-calibration / overclaim refusal (runtime-only;
   // absolutism words have legitimate uses outside interpretive synthesis,
   // so these must not block the build) ---
