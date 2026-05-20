@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import * as mammoth from "mammoth"
 import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, TabStopType } from "docx"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectMemorabilityViolation } from "./voice-patterns.mjs"
