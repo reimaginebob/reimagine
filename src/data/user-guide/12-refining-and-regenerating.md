@@ -53,7 +53,7 @@ Stylistic adjustments do not persist across other sections the way factual corre
 
 ### When to use Start fresh
 
-Use **Start fresh** if the current direction is wrong enough that refining it will not help. Examples: the wrong path is leading the Wide View, or the Bridge Story is built around a part of your background you do not want to lead with. A fresh generation lets Reimagine try a different angle.
+Use **Start fresh** if the current direction is wrong enough that refining it will not help. Examples: the wrong direction is shaping your Role Options, or the Bridge Story is built around a part of your background you do not want to lead with. A fresh generation lets Reimagine try a different angle.
 
 Start fresh does not delete previously submitted corrections from your profile; those still apply to the new generation.
 
@@ -115,7 +115,7 @@ The light way: change the chosen direction and regenerate from Phase 3.
 3. Click forward to **Your Bridge Story** and regenerate.
 4. Continue forward through Phases 4 and 5 regenerating each step.
 
-This keeps your Phase 1 work (Brand Synthesis, Wiring & Compass) and your Phase 2 exploration (Wide View, Deep Dive) intact. Only the parts of the journey that depend on your chosen direction get rewritten.
+This keeps your Phase 1 work (Brand Synthesis, Wiring & Compass) and your Phase 2 picks (the direction you chose and the role options you saw) intact. Only the parts that depend on your chosen role get rewritten.
 
 ## A reminder on what regeneration costs
 

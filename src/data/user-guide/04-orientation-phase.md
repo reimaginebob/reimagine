@@ -135,7 +135,7 @@ Two short fields. Both have a microphone button. You can speak your answers inst
 
 **Passions, Interests & Causes. 3 to 5 things you care about.** What you read about for fun, volunteer your time for, or could talk about for 30 minutes with no preparation. Hobbies, industries that fascinate you, communities you belong to, causes close to your heart.
 
-**One thing worth knowing:** it can be tempting to filter your answers for what feels professionally relevant. Try not to. The Wide View phase later in the journey looks for unexpected combinations between your professional life and the rest of you, so the side project, the cause, the hobby, the industry you read about for fun are all worth including.
+**One thing worth knowing:** it can be tempting to filter your answers for what feels professionally relevant. Try not to. The Explore Options phase looks for unexpected combinations between your professional life and the rest of you, so the side project, the cause, the hobby, the industry you read about for fun are all worth including.
 
 Both fields are required. Click **Continue**.
 

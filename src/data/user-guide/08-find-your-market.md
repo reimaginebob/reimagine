@@ -67,7 +67,7 @@ The LinkedIn headline tweak should make sense for the role you are pursuing. The
 
 ## How to refine
 
-This is the second-most-refined step in the journey, after the Wide View. Common refinements:
+This is the second-most-refined step in Reimagine, after Role Options. Common refinements:
 
 - "Focus on companies in the Southeast. I'm not relocating from Atlanta."
 - "Add more startups and fewer enterprise companies."
