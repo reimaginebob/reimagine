@@ -119,6 +119,52 @@ const C = {
   ok:'#2E7D52',err:'#C0392B'
 }
 
+// Runtime output cleanup applied to every Anthropic response before any
+// downstream consumer touches it (JSON parsing, storage to outputs.<step>,
+// render). Belt-and-suspenders for two voice rules whose prompt-source
+// enforcement the model still sometimes overrides under generation pressure:
+// the em-dash family (single, double-hyphen substitute) and the audience-
+// placeholder "rooms" construction. Telemetry via console.warn fires when
+// either filter strips at least one occurrence, so post-ship monitoring
+// shows how often the model is slipping past the prompt rule. Pure-string,
+// idempotent, safe on JSON payloads (neither pattern is a legitimate JSON
+// token). The function body intentionally contains the banned characters
+// and the banned construction as its own match targets, so the surrounding
+// voice-allow markers exempt this region from the build-time scan.
+// voice-allow
+function stripEmDashes(text) {
+  if (typeof text !== 'string' || !text) return text
+  const emDashHits = (text.match(/—|--/g) || []).length
+  const roomsHits = (text.match(/\brooms?\s+(?:where|in\s+which)\b/gi) || []).length
+  let out = text
+  // Space + em-dash + space: sentence break if the next character after the
+  // trailing space is uppercase; otherwise treat as a parenthetical pause.
+  out = out.replace(/ — (?=[A-Z])/g, '. ')
+  out = out.replace(/ — (?=[a-z])/g, ', ')
+  // Bare em-dash (no surrounding spaces) becomes comma plus space.
+  out = out.replace(/—/g, ', ')
+  // Double-hyphen, the common LLM substitute for em-dash.
+  out = out.replace(/--/g, ', ')
+  // Audience-placeholder noun phrase becomes conversation(s). Preserves
+  // singular vs plural and capitalization of the original noun so sentence-
+  // initial occurrences do not drop their capital.
+  out = out.replace(/\b(rooms?)\s+(where|in\s+which)\b/gi, (_match, noun, tail) => {
+    const isPlural = /s$/i.test(noun)
+    let repl = isPlural ? 'conversations' : 'conversation'
+    if (/^[A-Z]/.test(noun)) repl = repl.charAt(0).toUpperCase() + repl.slice(1)
+    const cleanTail = tail.toLowerCase().replace(/\s+/g, ' ')
+    return `${repl} ${cleanTail}`
+  })
+  if (emDashHits > 0) {
+    console.warn(`[stripEmDashes] filtered ${emDashHits} em-dash variant${emDashHits === 1 ? '' : 's'} from LLM output`)
+  }
+  if (roomsHits > 0) {
+    console.warn(`[stripEmDashes] rewrote ${roomsHits} audience-placeholder noun phrase${roomsHits === 1 ? '' : 's'} from LLM output`)
+  }
+  return out
+}
+// voice-allow-end
+
 async function callClaude(prompt, opts={}) {
   const{webSearch=false,highTemp=false,maxTokens=5000}=opts
   const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined
@@ -126,7 +172,8 @@ async function callClaude(prompt, opts={}) {
   const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
   if(!res.ok){const e=await res.json();throw new Error(e.error?.message||"API error")}
   const data=await res.json()
-  return data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n")
+  const raw=data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n")
+  return stripEmDashes(raw)
 }
 
 // Runtime voice gate. Wraps callClaude: scan the model's output with the
@@ -1356,6 +1403,55 @@ function BridgeStoryDiagnostic({d}){
       <div><strong style={{color:C.grayL}}>What your inputs support:</strong> {d.what_your_inputs_support}</div>
       <div style={{marginTop:6}}><strong style={{color:C.grayL}}>What would strengthen it:</strong> {d.what_would_strengthen_it}</div>
     </div>}
+  </div>
+}
+
+// Per-section expectation-setting under each Generate button on the Focus
+// Playbook. Two layers: always-visible subhead (sets the basic expectation
+// in one line) and an expandable "What you'll get" disclosure (2-3 sentences
+// on what the section produces, what feeds it, what to do with the output).
+// Closes the Consumer Insights gap where users had to click Generate to find
+// out what a section was. Per the design-for-readability tier override, the
+// always-visible subhead is Tier 1 Body (18px) rather than the original
+// brief's footnote spec; the disclosure toggle is Tier 2 Helper (16px); the
+// expanded detail body is Tier 1 Body (18px) navy.
+const SECTION_EXPLAINERS = {
+  p6: {
+    subhead: 'Three building blocks for your tell-me-about-yourself answer.',
+    detail: 'Three slots: something human about you, your career in action, where you are going. Three starter options per slot, drawn from your Orientation. Pick the option in each block that sounds like you, edit in your voice, and you have an answer for any interview or networking conversation. If a block does not feel right, regenerate just that block with your feedback.',
+  },
+  p9: {
+    subhead: 'The vocabulary and frameworks for the conversations ahead.',
+    detail: 'Built from your Brand Synthesis and the language of this specific role. Surfaces the words this role uses for the work, the frameworks worth referencing in interviews, and the postures that land well. Read it before each conversation to stay grounded in the vocabulary that signals fit.',
+  },
+  p11: {
+    subhead: 'Ten to twelve likely questions with answers built from your evidence.',
+    detail: 'For each behavioral question, a Situation-Thinking-Action-Result breakdown with what your inputs support and what would strengthen each part. For non-behavioral questions, framing recommendations. Opening moves connect your past experience to the situation the interviewer is facing now. Use this to prepare without scripting; you should be able to speak the answers in your voice.',
+  },
+  p_res: {
+    subhead: 'Your resume rewritten for this specific role, downloadable as a Word document.',
+    detail: "Bullets tuned to the role's language, accomplishments reordered to surface what matters most for this opportunity, and a summary tailored to the position. Download the .docx, open in Word, and adjust formatting to your preference. The point is content fit; the visual style stays yours.",
+  },
+  p8: {
+    subhead: 'Your LinkedIn About section rewritten to lead with your strongest opener for this role.',
+    detail: 'The human-first principle from Bridge Story, applied to LinkedIn. Built from your Brand Synthesis and tuned for the audience your profile is now trying to reach. Paste it into the LinkedIn About field on your profile.',
+  },
+  p7: {
+    subhead: 'Target companies and the outreach plan for reaching the people who decide.',
+    detail: 'Live web research on companies whose change-state matches your value. Specific named targets, the most likely hiring decision-maker, and a draft outreach plan with timing and angle. Runs longer than other sections because of the live research; expect a longer loading state.',
+  },
+  income: {
+    subhead: 'How to position yourself for paid consulting while you keep searching.',
+    detail: 'Translation of your full-time-employment value into a consulting frame, with positioning, pricing, and the first three asks. For the gap between when you stop earning and when the next role starts. Optional; skip if income continuity is not a concern for you right now.',
+  },
+}
+
+function SectionExplainer({subhead, detail}) {
+  const [open, setOpen] = useState(false)
+  return <div style={{margin:'0 0 16px'}}>
+    <p style={{fontSize:18,color:C.gray,fontWeight:400,lineHeight:1.5,margin:'0 0 8px'}}>{subhead}</p>
+    <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{background:'transparent',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',fontSize:16,color:C.gold,fontWeight:500,textDecoration:'underline'}}>What you'll get ({open?'hide':'show'})</button>
+    {open&&<div style={{marginTop:10,fontSize:18,color:'#1A2540',lineHeight:1.65,background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'14px 18px'}}>{detail}</div>}
   </div>
 }
 function bsvRelative(then,now){
@@ -2775,7 +2871,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:'transparent',color:C.gold,border:`1.5px solid ${C.gold}`,padding:'8.5px 16.5px',borderRadius:8,fontWeight:600,fontSize:16}}>Analyze a job description <ChevronRight size={15}/></div>
         </button>
       </div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:22,fontSize:14,color:C.gray,maxWidth:920}}><RotateCcw size={14}/>Pick whichever. The other is right here when you come back.</div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:22,fontSize:16,color:C.gray,maxWidth:920}}><RotateCcw size={14}/>Pick whichever. The other is right here when you come back.</div>
     </div>
     case'laneSelect':return <div>
       {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
@@ -2950,6 +3046,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           const isGen=generatingSection===id||(id==='p5'&&loading&&!has)
           return <section key={id} style={{marginTop:32}}>
             <h2 style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8}}>{sec.label}</h2>
+            {SECTION_EXPLAINERS[id]&&<SectionExplainer subhead={SECTION_EXPLAINERS[id].subhead} detail={SECTION_EXPLAINERS[id].detail}/>}
             {isGen&&<Loading msg={sec.load} step={id}/>}
             {!isGen&&sectionErrors[id]&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors[id]} <Btn small secondary onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
             {!isGen&&!sectionErrors[id]&&has&&<>
