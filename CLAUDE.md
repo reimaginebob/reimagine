@@ -80,3 +80,31 @@ reimagine/
 ## When in doubt
 
 Ask. Bob would rather answer a clarifying question than have you guess on a load-bearing decision. Especially around prompt voice, beta-window timing, and anything that touches the values step or assessment ingestion (those two areas have a future initiative scoped against them).
+
+## GitHub operations
+
+For pull request operations in this repo (open, watch CI, merge), use the `gh` CLI directly via Bash. `gh` was installed via `winget install GitHub.cli` and authenticated via `gh auth login` on 2026-05-20 — auth persists across sessions under the current Windows user.
+
+**Standing workflow for every PR:**
+
+1. Push the branch after static gates pass.
+2. Open the PR with `gh pr create --title "<title>" --body-file <temp-markdown-file>`. Write the body to a temp file first to avoid shell-escaping issues with long markdown.
+3. Watch CI with `gh pr checks --watch` until it returns success.
+4. Merge with `gh pr merge --squash` once CI is green and no conflicts.
+5. Report the PR URL and the merge commit SHA when done.
+
+**PATH note for git-bash sessions.** `gh.exe` lives at `C:\Program Files\GitHub CLI\gh.exe` on Windows. winget puts it on the Windows PATH, but git-bash doesn't fully inherit that PATH. At the top of any session that will use `gh`, run:
+
+```
+export PATH="/c/Program Files/GitHub CLI:$PATH"
+```
+
+If `gh` is not found on first invocation, this is the fix — not a re-install.
+
+**Do not:**
+
+- Look for or attempt to install a GitHub MCP connector. The `gh` CLI is the chosen path for this repo; the MCP layer adds friction without payoff for our PR pattern.
+- Hand the user a URL and ask them to paste title/body manually. That pattern is retired now that `gh` is available.
+- Skip CI watching. Always confirm checks pass before merging.
+
+If `gh auth status` ever returns "not logged in" (e.g., after a credential expiry), surface that to the user and ask them to re-run `gh auth login` rather than falling back to the URL-paste pattern.
