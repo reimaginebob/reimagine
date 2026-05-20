@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import * as mammoth from "mammoth"
 import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, TabStopType } from "docx"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectMemorabilityViolation } from "./voice-patterns.mjs"
@@ -1358,15 +1358,20 @@ const BSV_SLOTS=[
   {key:'slot2',bs:'slot2_career_manifestation',tag:'manifestation_type',label:'Your career in action',desc:'How that shows up in your work: an accomplishment, a recurring pattern, or your arc.'},
   {key:'slot3',bs:'slot3_forward_move',tag:'framing',label:'Where you are going next',desc:'What you are looking for, as the natural next step.'},
 ]
-function BridgeStoryOptionCard({slot,opt,selected,small,onPick,onEdit,editedText}){
+function BridgeStoryOptionCard({slot,opt,selected,anyPicked,small,onPick,onEdit,editedText}){
   const[editing,setEditing]=useState(false)
   // Pre-fill the edit textarea with the user's prior edit if present,
   // otherwise the option's text. Picking an option already commits the
-  // phrasing the user wants to keep; "Edit in your voice" should let them
-  // tweak it, not start from blank.
+  // phrasing the user wants to keep; the textarea opens immediately so the
+  // user can tweak in their voice without an intermediate button click.
   const[draft,setDraft]=useState(editedText||opt.text||'')
   const taRef=useRef(null)
+  // Focus the textarea whenever editing flips on.
   useEffect(()=>{if(editing&&taRef.current)taRef.current.focus()},[editing])
+  // Auto-open the textarea the moment this card becomes selected. Driven by
+  // `selected` flipping false to true; deselection by picking a sibling card
+  // resets the state, so picking again re-opens.
+  useEffect(()=>{if(selected)setEditing(true);else setEditing(false)},[selected])
   useEffect(()=>{if(!editing)setDraft(editedText||opt.text||'')},[editedText,editing,opt.text])
   const pick=()=>onPick(slot.key,opt.id)
   // Treat draft equal to the option's text as "no edit" so a user who opens
@@ -1374,25 +1379,28 @@ function BridgeStoryOptionCard({slot,opt,selected,small,onPick,onEdit,editedText
   const commit=()=>{setEditing(false);const t=draft.trim();onEdit(slot.key,(!t||t===opt.text)?null:t)}
   const[showSrc,setShowSrc]=useState(false)
   const srcPhrase=humanizeSources(opt.sources)
+  // Dim unpicked siblings to ~50% once any card in the slot is picked, so
+  // the picked card carries the visual focus. Hover lifts an unpicked card
+  // back to 85% for legibility while the user considers switching.
+  const dim=anyPicked&&!selected
   return <div
     role="button" tabIndex={0} aria-pressed={selected}
     aria-label={`${slot.label}. Option: ${opt.text}. ${selected?'Selected.':'Press Enter to pick.'}`}
     onClick={()=>{if(!editing)pick()}}
     onKeyDown={e=>{if(editing)return;if(e.key===' '||e.key==='Enter'){e.preventDefault();pick()}}}
-    className="bsv-card"
-    style={{flex:1,minWidth:0,background:selected?`${C.gold}10`:'#FFFFFF',border:`1px solid ${selected?C.gold:C.border}`,borderLeft:`3px solid ${selected?C.gold:'transparent'}`,borderRadius:10,padding:'16px 18px',cursor:'pointer',display:'flex',flexDirection:'column',gap:10,transition:'border-color 0.15s, background 0.15s',boxSizing:'border-box',outline:'none'}}>
-    {selected&&<div style={{display:'flex',justifyContent:'flex-end'}}><span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.gold,fontSize:13,fontWeight:700}}><Check size={13}/>Picked</span></div>}
+    className={`bsv-card${dim?' bsv-card-dim':''}`}
+    style={{flex:1,minWidth:0,background:selected?`${C.gold}10`:'#FFFFFF',border:`1px solid ${selected?C.gold:C.border}`,borderLeft:`3px solid ${selected?C.gold:'transparent'}`,borderRadius:10,padding:'16px 18px',cursor:'pointer',display:'flex',flexDirection:'column',gap:10,transition:'border-color 0.15s, background 0.15s, opacity 0.15s',boxSizing:'border-box',outline:'none',opacity:dim?0.5:1}}>
+    {selected&&<div style={{display:'flex',justifyContent:'flex-end'}}><span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.gold,fontSize:14,fontWeight:700}}><Check size={14}/>Picked</span></div>}
     {editing
       ?<textarea ref={taRef} value={draft} onChange={e=>setDraft(e.target.value)} onBlur={commit}
          aria-label={`Edit your ${slot.label} text`}
-         style={{...S.ta,minHeight:90,fontSize:17}}/>
-      :<div style={{fontSize:17,color:C.cream,lineHeight:1.6}}>{editedText||opt.text}{editedText&&<span style={{display:'block',fontSize:13,color:C.gray,marginTop:6,fontStyle:'italic'}}>Edited. Original: {opt.text}</span>}</div>}
-    {(opt.best_for||[]).length>0&&<div style={{fontSize:12,color:C.gray,lineHeight:1.5}} aria-label="Best for"><span style={{fontWeight:600}}>Best for:</span> {(opt.best_for||[]).join(' · ')}</div>}
+         style={{...S.ta,minHeight:90,fontSize:18}}/>
+      :<div style={{fontSize:18,color:C.cream,lineHeight:1.6}}>{editedText||opt.text}{editedText&&<span style={{display:'block',fontSize:15,color:C.gray,marginTop:6,fontStyle:'italic'}}>Edited. Original: {opt.text}</span>}</div>}
+    {(opt.best_for||[]).length>0&&<div style={{fontSize:15,color:C.gray,lineHeight:1.5}} aria-label="Best for"><span style={{fontWeight:600}}>Best for:</span> {(opt.best_for||[]).join(' · ')}</div>}
     {srcPhrase&&<div>
-      <button onClick={e=>{e.stopPropagation();setShowSrc(v=>!v)}} aria-expanded={showSrc} style={{background:'transparent',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',fontSize:12,color:C.gray,textDecoration:'underline'}}>Why this option?</button>
-      {showSrc&&<div style={{fontSize:12,color:C.gray,marginTop:4,fontStyle:'italic'}}>Drawn from {srcPhrase}.</div>}
+      <button onClick={e=>{e.stopPropagation();setShowSrc(v=>!v)}} aria-expanded={showSrc} style={{background:'transparent',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',fontSize:15,color:C.gray,textDecoration:'underline'}}>Why this option?</button>
+      {showSrc&&<div style={{fontSize:15,color:C.gray,marginTop:4,fontStyle:'italic'}}>Drawn from {srcPhrase}.</div>}
     </div>}
-    {selected&&!editing&&<button onClick={e=>{e.stopPropagation();setEditing(true)}} style={{...S.sm,alignSelf:'flex-start'}}>Edit in your voice</button>}
   </div>
 }
 function BridgeStoryDiagnostic({d}){
@@ -1561,9 +1569,36 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
     onFreeform(assembled)
   },[allPicked,assembled,p6.user_freeform,onFreeform])
   return <div id="bsv-print-root" data-print="content">
-    <style>{".bsv-card:hover{border-color:"+C.gold+" !important}.bsv-card:focus-visible{box-shadow:0 0 0 3px "+C.gold+"55 !important;border-color:"+C.gold+" !important}"}</style>
+    <style>{".bsv-card:hover{border-color:"+C.gold+"66 !important}.bsv-card-dim:hover{opacity:0.85 !important}.bsv-card:focus-visible{box-shadow:0 0 0 3px "+C.gold+"55 !important;border-color:"+C.gold+" !important}"}</style>
     <div className="bsv-no-print" style={{display:'flex',justifyContent:'flex-end',marginBottom:6}}><SavedIndicator saveStatus={saveStatus} lastSaveAt={lastSaveAt}/></div>
-    {!isDemo&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'16px 20px',borderRadius:10,marginBottom:18,fontSize:17,color:'#1A2540',lineHeight:1.65}}><strong>Learn the structure.</strong> Tell me about yourself opens most interviews and most networking conversations. The strongest answers start with the human, not the resume. We give you three building blocks with three starter options each, drawn from your Orientation. Pick the option in each block that sounds most like you and edit in your voice. If a block does not feel right, tell us what to fix and we will regenerate just that block.</div>}
+    {!isDemo&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'18px 22px',borderRadius:10,marginBottom:18,color:'#1A2540'}}>
+      <div style={{fontSize:14,fontWeight:700,color:C.gray,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>Learn the structure</div>
+      <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 10px',lineHeight:1.3}}>Three building blocks for your "tell me about yourself" answer.</h3>
+      <p style={{fontSize:18,color:'#1A2540',lineHeight:1.6,margin:'0 0 14px'}}>"Tell me about yourself" opens most interviews and most networking conversations. The strongest answers start with the human, not the resume.</p>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:12,marginBottom:14}}>
+        {[
+          {n:'Block 1',head:'Something human about you',body:'A value, trait, passion, or formative thing. Not a title.',Icon:Heart,accent:C.gold,badgeBg:'#FAEEDA',badgeText:'#854F0B'},
+          {n:'Block 2',head:'Your career in action',body:'A specific accomplishment, a pattern, or the shape of your arc.',Icon:Target,accent:'#185FA5',badgeBg:'#E6F1FB',badgeText:'#0C447C'},
+          {n:'Block 3',head:"Where you're going",body:'Why this direction is the natural next step after blocks 1 and 2.',Icon:ArrowUpRight,accent:'#1D9E75',badgeBg:'#E1F5EE',badgeText:'#085041'},
+        ].map(c=><div key={c.n} style={{background:'#FFFFFF',border:`0.5px solid ${C.border}`,borderLeft:`3px solid ${c.accent}`,borderRadius:8,padding:14,display:'flex',flexDirection:'column',gap:8}}>
+          <c.Icon size={20} color={c.accent} aria-hidden="true"/>
+          <div style={{fontSize:14,fontWeight:700,color:C.gray,textTransform:'uppercase',letterSpacing:'0.08em'}}>{c.n}</div>
+          <div style={{fontSize:18,fontWeight:700,color:'#1A2540',lineHeight:1.35}}>{c.head}</div>
+          <div style={{fontSize:18,color:'#1A2540',lineHeight:1.5}}>{c.body}</div>
+          <div style={{marginTop:'auto'}}><span style={{display:'inline-block',background:c.badgeBg,color:c.badgeText,fontSize:14,fontWeight:700,letterSpacing:'0.02em',padding:'4px 10px',borderRadius:999}}>3 options to pick from</span></div>
+        </div>)}
+      </div>
+      <p style={{fontSize:18,color:'#1A2540',lineHeight:1.6,margin:'0 0 12px'}}>Click an option to use as your starter. Edit it in your voice. If a block does not feel right, tell us what to fix and we will regenerate just that block.</p>
+      <details style={{marginTop:6}}>
+        <summary style={{cursor:'pointer',fontFamily:'inherit',fontSize:16,color:C.gold,fontWeight:500}}>See a sample of what one block looks like</summary>
+        <div style={{marginTop:10,background:'#FFFFFF',border:`0.5px solid ${C.border}`,borderRadius:8,padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
+          <div style={{fontSize:14,fontWeight:700,color:C.gray,textTransform:'uppercase',letterSpacing:'0.08em'}}>Sample, Block 1 starter options</div>
+          <div style={{fontSize:18,color:'#1A2540',lineHeight:1.55}}><strong>Option A.</strong> What sticks with me about leading teams is the moment someone realizes they have more agency than they thought.</div>
+          <div style={{fontSize:18,color:'#1A2540',lineHeight:1.55}}><strong>Option B.</strong> I'm the person who reads the situation before the meeting starts. It's how I figure out what's actually being decided.</div>
+          <div style={{fontSize:18,color:'#1A2540',lineHeight:1.55}}><strong>Option C.</strong> My career has been about translation: turning what one group cares about into language another group can act on.</div>
+        </div>
+      </details>
+    </div>}
     {stale&&<div role="status" data-print="hide" style={{background:`${C.gold}18`,border:`1px solid ${C.gold}55`,borderRadius:10,padding:'14px 18px',marginBottom:18,display:'flex',flexWrap:'wrap',alignItems:'center',gap:12}}>
       <span style={{fontSize:16,color:C.goldL,lineHeight:1.55,flex:1,minWidth:240}}>Your Orientation has changed since this Bridge Story was generated. Regenerate to pick up the latest, or keep your current picks.</span>
       <div style={{display:'flex',gap:8}}><Btn small onClick={onRegenerate}><RotateCcw size={12}/>Regenerate</Btn><Btn small secondary onClick={()=>setDismissedStale(true)}>Keep current</Btn></div>
@@ -1574,10 +1609,11 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
         <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 4px'}}>{s.label}</h3>
         <div style={{fontSize:15,color:C.gray,margin:'0 0 12px',lineHeight:1.5}}>{s.desc}</div>
         <div style={{display:'flex',flexDirection:isSmallPortrait?'column':'row',gap:12,alignItems:'stretch'}}>
-          {(slot.options||[]).map(o=><BridgeStoryOptionCard key={o.id} slot={s} opt={o} small={isSmallPortrait}
+          {(()=>{const anyPicked=!!(u&&u.picked_id);return (slot.options||[]).map(o=><BridgeStoryOptionCard key={o.id} slot={s} opt={o} small={isSmallPortrait}
             selected={!!(u&&u.picked_id===o.id)}
+            anyPicked={anyPicked}
             editedText={u&&u.picked_id===o.id&&u.edited_text?u.edited_text:''}
-            onPick={onPick} onEdit={onEdit}/>)}
+            onPick={onPick} onEdit={onEdit}/>)})()}
         </div>
         {slot.diagnostic&&<BridgeStoryDiagnostic d={slot.diagnostic}/>}
         <SlotRegenerateBox slotKey={s.bs} onSubmit={(text)=>onRegenerateSlot(s.bs,text)} busy={regeneratingSlot===s.bs} error={slotErrors&&slotErrors[s.bs]}/>

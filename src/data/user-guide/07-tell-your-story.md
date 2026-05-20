@@ -42,14 +42,14 @@ So Block 1 has a hard rule. Every option in it must start with something human, 
 
 ## On the screen
 
-The Bridge Story section opens with a short note on the three-block structure. Read it. Then click **Generate** (or **Generate Bridge Story** if it has not run yet). About a minute to generate.
+The Bridge Story section opens with a **Learn the structure** panel: an eyebrow label, a headline, a one-sentence lead-in, and a row of three cards (one per block) that each carry an icon, the block name, a one-line description, and a `3 options to pick from` badge. A `See a sample of what one block looks like` link expands three sample starter options when you want a worked example. Below the panel, click **Generate** (or **Generate Bridge Story** if it has not run yet). About a minute to generate.
 
 ## What you will get back
 
 Three blocks, stacked. For each block:
 
 - **Three option cards.** Each card shows a starter opener, a small **Best for:** line naming the situations it suits (recruiter screen, networking coffee, panel opener), and a **Why this option?** link you can open to see, in plain language, which of your Orientation inputs the option was drawn from. Every option triangulates at least two of your inputs; an option built on a single source is rejected before you see it.
-- **Pick and edit.** Click a card to pick it. The picked card highlights. Click **Edit in your voice** on the picked card to open a text box and rewrite the opener in your own words. Your edit saves when you click away. You can pick a different card any time; your edit stays attached to the option you edited.
+- **Pick and edit.** Click a card to pick it. The picked card highlights, the other two dim, and a text box opens immediately on the picked card with the starter text pre-filled and the cursor focused. Edit in your voice. Your edit saves when you click away. You can pick a different card any time; the previous edit stays attached to the option you edited, and the new card opens its own text box.
 - **A diagnostic, collapsed by default.** Below the three cards is a **Why these options?** toggle. Open it for two plain-language lines: **what your inputs support** (which of your inputs triangulate to make this block strong) and **what would strengthen it** (what is thin, and the specific Orientation field to flesh out).
 
 Below all three blocks: **Your assembled bridge story**, a live preview that strings your picks (with your edits) into one flowing answer, with a Copy button and a **Print this section** button. Until you have picked in every block, the preview shows the first option of any block you have not chosen yet, so you always see a complete answer. Once you have picked in all three blocks, a short line above the preview confirms you have a framework you can use with confidence.
