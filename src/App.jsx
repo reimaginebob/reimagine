@@ -1001,7 +1001,6 @@ const normalizeProfileState = (loaded) => {
   if ((Array.isArray(s.deepOpts) && s.deepOpts.some(v => v && v !== '')) || (Array.isArray(s.markedOpts) && s.markedOpts.length)) { s.deepOpts = ['', '', '']; if ('markedOpts' in s) delete s.markedOpts; M() }
   if (!('selectedLane' in s)) s.selectedLane = ''
   if (!('exploredRoleTitles' in s)) s.exploredRoleTitles = []
-  if (!('npsAsked' in s)) s.npsAsked = false
   if (s.step && !V1_STEPS.has(s.step)) { s.step = 'twoDoors'; M() }
   if (isPreV1 && s.step === 'complete') { s.step = 'twoDoors'; M() }
   return { normalizedState: s, didMigrate: migrated }
@@ -1723,55 +1722,6 @@ function DemoUnavailable(){
     </div>
   </div>
 }
-function NpsModal({chosen,onSubmitted,onClose}){
-  const[a,setA]=useState({nps:null,valuable:'',confidence:null,accuracy:null,open:''})
-  const[sending,setSending]=useState(false)
-  const[done,setDone]=useState(false)
-  const sv=(k,v)=>setA(s=>({...s,[k]:v}))
-  const submit=async()=>{
-    setSending(true)
-    try{await fetch('https://script.google.com/macros/s/AKfycbz5RgmQgmqM4qhar3YviuoPMbDvdSKSOJlRX6-qmbQKOI7t6IbnETxkc-NfG3m4LitAtg/exec',{method:'POST',body:JSON.stringify({...a,chosen,timestamp:new Date().toISOString()})})}catch{}
-    setSending(false);setDone(true);onSubmitted()
-  }
-  return <div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px',overflowY:'auto'}}>
-    <div style={{background:'#FFFFFF',borderRadius:14,padding:'30px 34px',maxWidth:560,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative',margin:'auto'}}>
-      <button onClick={onClose} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:C.gray,fontSize:22,cursor:'pointer',fontFamily:'inherit',lineHeight:1}}>×</button>
-      {done?<div style={{textAlign:'center',padding:'16px 0'}}>
-        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:10}}>Thank you.</h2>
-        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:20}}>Your feedback shapes where Reimagine goes next.</p>
-        <Btn onClick={onClose}>Back to my playbook</Btn>
-      </div>:<>
-        <h2 style={{fontFamily:'Georgia,serif',fontSize:23,fontWeight:700,color:'#1A2540',marginBottom:6}}>How is this landing for you?</h2>
-        <p style={{fontSize:16,color:'#4A5568',lineHeight:1.6,marginBottom:18}}>You've built real work here. A few quick questions help us make it better.</p>
-        <div style={{marginBottom:16}}>
-          <div style={{fontSize:16,fontWeight:600,color:'#1A2540',marginBottom:6}}>How likely are you to recommend Reimagine to someone in career transition?</div>
-          <div style={{fontSize:13,color:C.gray,marginBottom:8,display:'flex',justifyContent:'space-between'}}><span>Not at all likely</span><span>Extremely likely</span></div>
-          <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>{[0,1,2,3,4,5,6,7,8,9,10].map(n=><button key={n} onClick={()=>sv('nps',n)} style={{width:36,height:36,borderRadius:6,border:`1.5px solid ${a.nps===n?C.gold:C.border}`,background:a.nps===n?C.gold:'transparent',color:a.nps===n?'#FFFFFF':'#4A5568',fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{n}</button>)}</div>
-        </div>
-        <div style={{marginBottom:16}}>
-          <div style={{fontSize:16,fontWeight:600,color:'#1A2540',marginBottom:6}}>Which part has been most valuable so far?</div>
-          <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Know Your Value','Explore Options','The Role','Bridge Story','Interview Prep','It all came together'].map(o=><button key={o} onClick={()=>sv('valuable',o)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${a.valuable===o?C.gold:C.border}`,background:a.valuable===o?`${C.gold}20`:'transparent',color:a.valuable===o?'#A06828':'#4A5568',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}</div>
-        </div>
-        <div style={{marginBottom:16}}>
-          <div style={{fontSize:16,fontWeight:600,color:'#1A2540',marginBottom:6}}>How has your confidence about your next move changed?</div>
-          <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Much less confident','Less confident','About the same','More confident','Much more confident'].map(o=><button key={o} onClick={()=>sv('confidence',o)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${a.confidence===o?C.gold:C.border}`,background:a.confidence===o?`${C.gold}20`:'transparent',color:a.confidence===o?'#A06828':'#4A5568',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}</div>
-        </div>
-        <div style={{marginBottom:16}}>
-          <div style={{fontSize:16,fontWeight:600,color:'#1A2540',marginBottom:6}}>How well did Reimagine capture who you are and what you bring?</div>
-          <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Missed the mark','Partially','Mostly right','Very well','Nailed it'].map(o=><button key={o} onClick={()=>sv('accuracy',o)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${a.accuracy===o?C.gold:C.border}`,background:a.accuracy===o?`${C.gold}20`:'transparent',color:a.accuracy===o?'#A06828':'#4A5568',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}</div>
-        </div>
-        <div style={{marginBottom:18}}>
-          <div style={{fontSize:16,fontWeight:600,color:'#1A2540',marginBottom:6}}>Anything we should know? <span style={{color:C.gray,fontWeight:400}}>(optional)</span></div>
-          <textarea style={{...S.ta,minHeight:70}} value={a.open} onChange={e=>sv('open',e.target.value)} placeholder="Share anything on your mind…"/>
-        </div>
-        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          <Btn disabled={sending||a.nps===null} onClick={submit}>{sending?'Sending…':'Submit feedback'}</Btn>
-          <Btn secondary onClick={onClose}>Maybe later</Btn>
-        </div>
-      </>}
-    </div>
-  </div>
-}
 function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,exploredRoleTitles,onReExplore}){
   const navRef=useRef(null)
   const sidebarFirstRender=useRef(true)
@@ -1827,9 +1777,6 @@ export default function PivotEngine(){
   const[chosen,setChosen]=useState(isDemo?demoChosen:'')
   const[selectedLane,setSelectedLane]=useState('')
   const[exploredRoleTitles,setExploredRoleTitles]=useState([])
-  const[npsAsked,setNpsAsked]=useState(false)
-  const[npsOpen,setNpsOpen]=useState(false)
-  const npsShownRef=useRef(false)
   const[migratedFromPreV1,setMigratedFromPreV1]=useState(false)
   const[generatingSection,setGeneratingSection]=useState(null)
   const[sectionErrors,setSectionErrors]=useState({})
@@ -1870,6 +1817,7 @@ export default function PivotEngine(){
   const[survey,setSurvey]=useState({nps:null,valuable:'',confidence:null,accuracy:null,open:''})
   const[surveySubmitted,setSurveySubmitted]=useState(false)
   const[surveySubmitting,setSurveySubmitting]=useState(false)
+  const[surveyError,setSurveyError]=useState(null)
   const[signedUp,setSignedUp]=useState(isDemo||isTest)
   const[signupForm,setSignupForm]=useState({firstName:'',lastName:'',email:''})
   const[signupSubmitting,setSignupSubmitting]=useState(false)
@@ -1937,9 +1885,9 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.npsAsked)setNpsAsked(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}},[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.npsAsked)setNpsAsked(true);if(x.didMigrate)setMigratedFromPreV1(true)}else{try{const blob=localStorage.getItem('pe_v4');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(x.didMigrate)setMigratedFromPreV1(true)}else{try{const blob=localStorage.getItem('pe_v4');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
   useEffect(()=>{if(!signedInUser)return;const needsPrivacy=signedInUser.privacy_version!=null&&signedInUser.privacy_version!==PRIVACY_VERSION_MATERIAL;const needsTerms=signedInUser.terms_version!=null&&signedInUser.terms_version!==TOS_VERSION_MATERIAL;if(needsPrivacy||needsTerms)setReaccept({needsPrivacyReaccept:needsPrivacy,needsTermsReaccept:needsTerms})},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;try{const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v4');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
   useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
@@ -1949,12 +1897,11 @@ export default function PivotEngine(){
   useEffect(()=>{if(!invalidationBanner)return;const t=setTimeout(()=>setInvalidationBanner(null),10000);return()=>clearTimeout(t)},[invalidationBanner])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);deleteAccount()},[signedInUser])
-  useEffect(()=>{if(isTest)return;if(npsAsked||npsShownRef.current)return;if(outputs.p9&&outputs.p9.length>0){npsShownRef.current=true;setNpsOpen(true)}},[outputs.p9,npsAsked])
   useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{
     if(deletingRef.current)return
     setSaveStatus('saving')
     try{
-      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,npsAsked})
+      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles})
       localStorage.setItem('pe_v4',blob)
       if(signedInUser){
         try{const r=await fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob});if(!r.ok)throw new Error('save_failed')}catch{setSaveStatus('error');return}
@@ -1962,7 +1909,7 @@ export default function PivotEngine(){
       setLastSaveAt(Date.now())
       setSaveStatus('saved')
     }catch{setSaveStatus('error')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,npsAsked,signedInUser,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,signedInUser,isDemo,isTest])
   useEffect(()=>{
     const sectionName=META[step]||'Output'
     const su=signedInUser||{}
@@ -2291,8 +2238,8 @@ export default function PivotEngine(){
       alert('Could not delete your account: '+(err.message||'unknown error'))
     }
   }
-  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setSelectedLane('');setExploredRoleTitles([]);setNpsAsked(false);setCurrentRoleSaved(false);setRoleSwitchModal(null);setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
-  const exportProfile=()=>{const data={step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,npsAsked};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
+  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setSelectedLane('');setExploredRoleTitles([]);setCurrentRoleSaved(false);setRoleSwitchModal(null);setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
+  const exportProfile=()=>{const data={step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
   const downloadAllMarkdown=()=>{
     const today=new Date().toISOString().slice(0,10)
     const rawFirstLine=(profile.resume||'').split(/\n/).find(l=>l.trim())||''
@@ -2388,7 +2335,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const w=window.open('','_blank')
     if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),500)}
   };
-  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);if(data.selectedLane!==undefined)setSelectedLane(data.selectedLane);if(Array.isArray(data.exploredRoleTitles))setExploredRoleTitles(data.exploredRoleTitles);if(data.npsAsked)setNpsAsked(data.npsAsked);const lastStep=(typeof data.step==='string'&&data.step)?data.step:(data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome');setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
+  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);if(data.selectedLane!==undefined)setSelectedLane(data.selectedLane);if(Array.isArray(data.exploredRoleTitles))setExploredRoleTitles(data.exploredRoleTitles);const lastStep=(typeof data.step==='string'&&data.step)?data.step:(data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome');setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
   const prog=INPUT_PHASE_STEPS.has(step)?Math.round((ALL.indexOf(step)/ALL.indexOf('p3'))*100):null
   const pc={loc:{...profile.loc,work:Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||'')},resume:profile.resume,linkedin:profile.linkedin,lifeEvents:profile.lifeEvents,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep,frameworks:profile.frameworks}
   const recordExploredRole=(title,lane)=>setExploredRoleTitles(prev=>{const ts=new Date().toISOString();const i=prev.findIndex(r=>r.title===title);if(i>=0){const n=[...prev];n[i]={...n[i],lane,lastExplored:ts};return n}return[...prev,{title,lane,lastExplored:ts}].slice(-20)})
@@ -3156,7 +3103,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.gray,lineHeight:1.6,margin:'0 0 22px',fontStyle:'italic'}}>Also in the sidebar: <strong>Income Now</strong> turns your existing expertise into consulting or fractional income while you continue the search. For some people the bridge becomes the path.</p>
       </>}
 
-      {!surveyDone&&<div style={{...S.card,marginBottom:22,border:`1px solid ${C.gold}40`}}>
+      {!surveyDone&&<div id="survey" style={{...S.card,marginBottom:22,border:`1px solid ${C.gold}40`}}>
         {!surveySubmitted?<>
           <div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:C.cream,marginBottom:4}}>Before you go: 60 seconds of feedback</div>
           <div style={{fontSize:18,color:C.gray,marginBottom:20,lineHeight:1.6}}>You're helping us make this better for everyone who comes after you. All questions are optional.</div>
@@ -3172,7 +3119,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={S.field}>
             <label style={S.label}>Which part of the process was most valuable to you?</label>
             <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:4}}>
-              {['Know Your Value','Explore Options','Tell Your Story','Find Your Market','Get Ready','It all came together'].map(o=><button key={o} onClick={()=>setSv('valuable',o)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${survey.valuable===o?C.gold:C.border}`,background:survey.valuable===o?`${C.gold}20`:'transparent',color:survey.valuable===o?C.goldL:C.grayL,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}
+              {['Know Your Value','Choosing a direction','Role Options','Bridge Story','Interview Prep','LinkedIn Remix','Resume Refresh','Go-to-Market','It all came together'].map(o=><button key={o} onClick={()=>setSv('valuable',o)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${survey.valuable===o?C.gold:C.border}`,background:survey.valuable===o?`${C.gold}20`:'transparent',color:survey.valuable===o?C.goldL:C.grayL,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}
             </div>
           </div>
 
@@ -3195,14 +3142,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <textarea style={{...S.ta,minHeight:80}} value={survey.open} onChange={e=>setSv('open',e.target.value)} placeholder="Share anything on your mind…"/>
           </div>
 
+          {surveyError&&<div role="alert" style={{fontSize:16,color:C.err,lineHeight:1.5,marginBottom:10,padding:'10px 14px',background:`${C.err}10`,border:`1px solid ${C.err}40`,borderRadius:8}}>{surveyError}</div>}
           <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-            <Btn onClick={async()=>{
-              setSurveySubmitting(true)
+            <Btn disabled={surveySubmitting||survey.nps===null} onClick={async()=>{
+              setSurveyError(null);setSurveySubmitting(true)
               try{
-                await fetch('https://script.google.com/macros/s/AKfycbz5RgmQgmqM4qhar3YviuoPMbDvdSKSOJlRX6-qmbQKOI7t6IbnETxkc-NfG3m4LitAtg/exec',{method:'POST',body:JSON.stringify({...survey,chosen,timestamp:new Date().toISOString()})})
-              }catch{}
-              setSurveySubmitting(false)
-              setSurveySubmitted(true)
+                const resp=await fetch('/api/survey/submit',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({nps_score:survey.nps,most_valuable:survey.valuable,confidence:survey.confidence,accuracy:survey.accuracy,open_text:survey.open,chosen_role:chosen})})
+                if(!resp.ok){
+                  let msg='Submission failed. Please try again.'
+                  try{const j=await resp.json();if(j&&j.error)msg=j.error}catch{}
+                  setSurveyError(msg);setSurveySubmitting(false);return
+                }
+                setSurveySubmitting(false);setSurveySubmitted(true)
+              }catch(e){
+                setSurveyError('We could not save your feedback. Check your connection and try again.');setSurveySubmitting(false)
+              }
             }}>Submit Feedback</Btn>
             <Btn secondary onClick={()=>setSurveyDone(true)}>No thanks</Btn>
           </div>
@@ -3405,7 +3359,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     </div>}
-    {npsOpen&&<NpsModal chosen={chosen} onSubmitted={()=>{setNpsAsked(true);setNpsOpen(false)}} onClose={()=>setNpsOpen(false)}/>}
     {showPlaybookFooter&&<div data-print="hide" style={{position:'fixed',left:0,right:0,bottom:0,zIndex:900,background:'#1A2540',borderTop:`2px solid ${C.gold}`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
       <div style={{fontSize:15,color:'#CBD5E0'}}>Keep this playbook. Save it as a PDF to your device.{currentRoleSaved?' Saved.':''}</div>
       <Btn onClick={savePlaybookPdf}><Printer size={14}/>Save Playbook as PDF</Btn>
@@ -3453,6 +3406,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </>:<>
             {typeof prog==='number'&&<div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>}
           </>}
+          {!isDemo&&<button onClick={()=>{const scroll=()=>{const el=document.getElementById('survey');if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})};if(step==='complete'){requestAnimationFrame(scroll)}else{nav('complete');setTimeout(()=>requestAnimationFrame(scroll),50)}}} style={{background:'transparent',color:C.gold,border:'none',padding:'6px 10px',fontSize:17,fontWeight:700,cursor:'pointer',fontFamily:'inherit',marginLeft:8,display:'inline-flex',alignItems:'center',gap:6}}><MessageSquare size={16}/>Share feedback</button>}
           {!isDemo&&signedInUser&&<button onClick={deleteAccount} title="Delete your profile and start over from scratch" style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Start Fresh</button>}
           {!isDemo&&signedInUser&&<button onClick={signOut} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign out</button>}
           {!isDemo&&!signedInUser&&<button onClick={()=>{setSignedUp(false);setMagicLinkSentTo(null)}} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign in</button>}
