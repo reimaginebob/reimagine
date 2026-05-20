@@ -1570,7 +1570,7 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
     </div>}
     {BSV_SLOTS.map(s=>{
       const slot=bs[s.bs],u=up[s.key]
-      return <section key={s.key} style={{marginBottom:26}} aria-label={s.label}>
+      return <section key={s.key} id={`slot-${s.bs}`} style={{marginBottom:26}} aria-label={s.label}>
         <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 4px'}}>{s.label}</h3>
         <div style={{fontSize:15,color:C.gray,margin:'0 0 12px',lineHeight:1.5}}>{s.desc}</div>
         <div style={{display:'flex',flexDirection:isSmallPortrait?'column':'row',gap:12,alignItems:'stretch'}}>
@@ -2011,6 +2011,17 @@ export default function PivotEngine(){
   }
   const advance=(from,to)=>{markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
   const nav=(to)=>{if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null);window.scrollTo(0,0)}
+  // Scroll new output into view AFTER generation completes. Every generate
+  // path already scrolls to 0,0 on click (so the loading panel is visible);
+  // none scroll after the API returns, leaving the user wherever they
+  // scrolled during the wait. These helpers fire from each finally block
+  // after the loading state clears, scrolling the new content's heading to
+  // the top of the viewport. Wrapped in requestAnimationFrame so React has
+  // committed and the browser has painted the new content before the scroll
+  // resolves a target position. Null-check on the element handles the case
+  // where the user navigated to a different step before generation finished.
+  const scrollToOutput=(key)=>{requestAnimationFrame(()=>{const el=document.getElementById(`section-${key}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
+  const scrollToSlot=(slotKey)=>{requestAnimationFrame(()=>{const el=document.getElementById(`slot-${slotKey}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
   const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);window.scrollTo(0,0)}}
   const demoPrev=()=>{if(demoIdx>0){const prev=demoIdx-1;setDemoIdx(prev);setStep(DEMO_TOUR[prev].step);window.scrollTo(0,0)}}
   const logCorrection=(correction)=>{
@@ -2056,9 +2067,9 @@ export default function PivotEngine(){
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
     logCorrection(correction)
   }
-  const generate=async(key,fn,opts={})=>{if(generatingSection)return;window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}}catch(e){setErr(e.message)}finally{setLoading(false)}}
+  const generate=async(key,fn,opts={})=>{if(generatingSection)return;window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}}catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput(key)}}
   const canGenSection=(id)=>!loading&&(!generatingSection||generatingSection===id)
-  const generateSection=async(sectionId,fn,opts={})=>{if(loading||(generatingSection&&generatingSection!==sectionId))return;setGeneratingSection(sectionId);setSectionErrors(e=>({...e,[sectionId]:null}));try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:sectionId,onEvent:logVoiceEvent});out(sectionId,r);markDone(sectionId);if(ROLE_SUBMODULES.includes(sectionId))setCurrentRoleSaved(false)}catch(e){setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))}finally{setGeneratingSection(null)}}
+  const generateSection=async(sectionId,fn,opts={})=>{if(loading||(generatingSection&&generatingSection!==sectionId))return;setGeneratingSection(sectionId);setSectionErrors(e=>({...e,[sectionId]:null}));try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:sectionId,onEvent:logVoiceEvent});out(sectionId,r);markDone(sectionId);if(ROLE_SUBMODULES.includes(sectionId))setCurrentRoleSaved(false)}catch(e){setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))}finally{setGeneratingSection(null);scrollToOutput(sectionId)}}
   const generateP4=async(extraContext='',msg='Mapping your opportunity landscape, this takes a moment…')=>{
     window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(msg)
     const opts={highTemp:true,maxTokens:5000}
@@ -2077,7 +2088,7 @@ export default function PivotEngine(){
     try{
       const raw=await callClaudeWithVoiceGate(buildPrompt,opts,{step:'p4',onEvent:logVoiceEvent,runner:laneRunner})
       out('p4',raw)
-    }catch(e){setErr(e.message)}finally{setLoading(false)}
+    }catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput('p4')}
   }
   const currentP6Hashes=()=>({rep_hash:hashStr(JSON.stringify(profile.rep||{})),values_hash:hashStr(profile.values||''),passions_hash:hashStr(profile.passions||''),assess_hash:hashStr(profile.assess||''),frameworks_hash:hashStr(JSON.stringify(profile.frameworks||[])),lifeEvents_hash:hashStr(profile.lifeEvents||''),p3_hash:hashStr(outputs.p3||'')})
   const generateP6=async({refine='',suppressCascade=false}={})=>{
@@ -2105,7 +2116,7 @@ export default function PivotEngine(){
       }
       setCurrentRoleSaved(false)
     }catch(e){setSectionErrors(prev=>({...prev,p6:e.message||'Generation failed. Try again.'}))}
-    finally{setGeneratingSection(null)}
+    finally{setGeneratingSection(null);scrollToOutput('p6')}
   }
   const regenerateP6WithoutCascade=()=>generateP6({suppressCascade:true})
   const updateP6Pick=(slotKey,picked_id)=>{setOutputs(o=>{const p=o.p6;if(!p||typeof p!=='object')return o;const up={...(p.user_picks||{})};up[slotKey]={picked_id,edited_text:(up[slotKey]&&up[slotKey].edited_text)||null};return {...o,p6:{...p,user_picks:up}}});setCurrentRoleSaved(false)}
@@ -2155,7 +2166,7 @@ export default function PivotEngine(){
       })
       setCurrentRoleSaved(false)
     }catch(e){setSlotErrors(prev=>({...prev,[slotKey]:e.message||'Generation failed. Try again.'}))}
-    finally{setRegeneratingSlot(null)}
+    finally{setRegeneratingSlot(null);scrollToSlot(slotKey)}
   }
   // Force-flush the debounced save, show a brief toast, scroll to the top
   // of the playbook so the user lands on the next pending section.
@@ -2391,7 +2402,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         if(existing){const add=laneOptionsOnly(r);merged=add?existing.trimEnd()+'\n\n'+add:existing}
         return {...o,p4:{...prev,[lane]:merged}}
       })
-    }catch(e){setErr(e.message)}finally{setLoading(false)}
+    }catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput('p4')}
   }
   const pickLane=(lane)=>{setSelectedLane(lane);advance('laneSelect','p4');if(!(laneData[lane]&&laneData[lane].length))generateLane(lane)}
   const switchLaneTab=(lane)=>{setSelectedLane(lane);if(!(laneData[lane]&&laneData[lane].length))generateLane(lane);window.scrollTo(0,0)}
@@ -2747,7 +2758,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
     case'p1':return <div>
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
-      <h1 style={S.title}>Resume Analysis</h1>
+      <h1 id="section-p1" style={S.title}>Resume Analysis</h1>
       {!isDemo&&<p style={S.sub}>This step reads your resume for the value you've created (money made, money saved, or risk mitigated, with numbers attached) and the patterns in your career that say something about who you are at work.</p>}
       {!isDemo&&!outputs.p1&&!loading&&<Btn onClick={()=>generate('p1',()=>P.p1(pc))}><Sparkles size={14}/>Analyze My Resume</Btn>}
       {loading&&<Loading msg={loadMsg||'Analyzing your career and translating accomplishments…'} step="p1"/>}
@@ -2776,7 +2787,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
     case'p2':return <div>
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
-      <h1 style={S.title}>Wiring & Compass</h1>
+      <h1 id="section-p2" style={S.title}>Wiring & Compass</h1>
       {!isDemo&&<p style={S.sub}>This step connects how you operate to the work you do best and the environment where you thrive.</p>}
       {!isDemo&&!outputs.p2&&!loading&&<Btn onClick={()=>generate('p2',()=>P.p2(pc,outputs.p1))}><Sparkles size={14}/>Analyze My Wiring</Btn>}
       {loading&&<Loading msg="Cross-referencing assessment, values, and accomplishments…" step="p2"/>}
@@ -2808,7 +2819,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
 
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
-      <h1 style={S.title}>Brand Synthesis</h1>
+      <h1 id="section-p3" style={S.title}>Brand Synthesis</h1>
       {!isDemo&&<p style={S.sub}>This step turns your resume, your wiring, and your reputation into a two-sentence answer to "what do you do" and the capabilities that back it up.</p>}
       {!isDemo&&!outputs.p3&&!loading&&<Btn onClick={()=>generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2))}><Sparkles size={14}/>Synthesize My Brand</Btn>}
       {loading&&<Loading msg="Finding the pattern across all your data…" step="p3"/>}
@@ -2894,7 +2905,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const otherLanes=Object.keys(laneData).filter(k=>k!==selectedLane&&laneData[k])
       return <div>
         {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
-        <h1 style={S.title}>{L.label}</h1>
+        <h1 id="section-p4" style={S.title}>{L.label}</h1>
         {L.tagline&&<p style={{...S.sub,fontStyle:'italic',color:C.gold,marginBottom:14}}>{L.tagline}</p>}
         {loading&&<Loading msg={loadMsg||'Mapping your options for this direction…'} step="p4"/>}
         {!loading&&!laneText&&<div style={S.row}><Btn onClick={()=>generateLane(selectedLane)}><Sparkles size={14}/>Show My Options</Btn></div>}
@@ -3045,7 +3056,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             :(outputs[id]&&outputs[id].length>0)
           const isGen=generatingSection===id||(id==='p5'&&loading&&!has)
           return <section key={id} style={{marginTop:32}}>
-            <h2 style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8}}>{sec.label}</h2>
+            <h2 id={`section-${id}`} style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8}}>{sec.label}</h2>
             {SECTION_EXPLAINERS[id]&&<SectionExplainer subhead={SECTION_EXPLAINERS[id].subhead} detail={SECTION_EXPLAINERS[id].detail}/>}
             {isGen&&<Loading msg={sec.load} step={id}/>}
             {!isGen&&sectionErrors[id]&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors[id]} <Btn small secondary onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
