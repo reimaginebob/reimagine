@@ -7,6 +7,19 @@
 //   a simplified format ({prompt, webSearch, highTemp, maxTokens}). Either way,
 //   the server forces SYS and model. Existing clients keep working without changes.
 
+// Vercel Pro ceiling. The handler is non-streaming (await fetch + await
+// response.json), so it holds the connection open for the full Anthropic
+// generation. Heaviest prompts (p8 LinkedIn Remix, p3 Brand Synthesis,
+// p11 Interview Prep, p_res Resume Refresh) regularly run 90-150 seconds
+// against the larger profile shapes; without an explicit cap the function
+// was hitting the platform default and returning a `---` status (Vercel's
+// tell for a function that never returned). Streaming is the proper fix
+// and lives in its own follow-up brief; this raises the ceiling so heavy
+// generations have headroom in the meantime.
+export const config = {
+  maxDuration: 300,
+};
+
 const SYS = `You are a Career Strategist within Reimagine, a career strategy tool by Career Club, built on Making Your Own Weather by Bob Goodwin.
 
 WHAT THIS IS:
