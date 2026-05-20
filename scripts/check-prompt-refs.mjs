@@ -82,7 +82,105 @@ if (missing.length > 0) {
   process.exit(1)
 }
 
-console.log(`check-prompt-refs: OK (${pcKeys.size} pc keys, ${prompts.length} prompt templates checked)`)
+// --- Chat-helper invariant -------------------------------------------------
+// Catches the class of drift that landed the 2026-05-20 audit findings:
+// `src/components/Chat.jsx` STEP_LABELS and the `api/chat.js` system-prompt
+// step-id table both name step IDs the helper can NAVIGATE to. If either
+// names an ID that does not exist in the navigable step map (META), the
+// chat helper offers a dead navigation target.
+//
+// Source of truth: the META constant in src/App.jsx. The reverse check (every
+// META step is named in STEP_LABELS / table) is intentionally not enforced;
+// some META steps are internal-only and not appropriate navigation targets.
+
+const META_REGEX = /const\s+META\s*=\s*\{/
+const metaMatch = raw.match(META_REGEX)
+if (!metaMatch) {
+  console.error('check-prompt-refs: FAIL\nCould not locate `const META=` in src/App.jsx.')
+  process.exit(1)
+}
+const metaOpenIdx = metaMatch.index + metaMatch[0].length - 1
+const metaCloseIdx = findMatchingBrace(raw, metaOpenIdx)
+if (metaCloseIdx === -1) {
+  console.error('check-prompt-refs: FAIL\nCould not find matching `}` for `const META=` literal.')
+  process.exit(1)
+}
+const metaBody = raw.slice(metaOpenIdx + 1, metaCloseIdx)
+const metaKeys = extractTopLevelKeys(metaBody)
+
+// Sanity: META must include the two known kebab-case keys. If parser drift
+// hides them, the chat-helper invariant becomes silently wrong.
+const REQUIRED_META_KEYS = ['life-events', 'orientation-done']
+const missingRequired = REQUIRED_META_KEYS.filter(k => !metaKeys.has(k))
+if (missingRequired.length > 0) {
+  console.error('check-prompt-refs: FAIL')
+  console.error(`META parser did not capture expected kebab-case keys: ${missingRequired.join(', ')}.`)
+  console.error('This usually means the extractTopLevelKeys identifier regex or quoted-string handling regressed.')
+  process.exit(1)
+}
+
+// Parse STEP_LABELS from src/components/Chat.jsx.
+const CHAT_PATH = 'src/components/Chat.jsx'
+const chatSrc = fs.readFileSync(CHAT_PATH, 'utf-8')
+const stepLabelsMatch = chatSrc.match(/const\s+STEP_LABELS\s*=\s*\{/)
+if (!stepLabelsMatch) {
+  console.error(`check-prompt-refs: FAIL\nCould not locate \`const STEP_LABELS=\` in ${CHAT_PATH}.`)
+  process.exit(1)
+}
+const stepLabelsOpenIdx = stepLabelsMatch.index + stepLabelsMatch[0].length - 1
+const stepLabelsCloseIdx = findMatchingBrace(chatSrc, stepLabelsOpenIdx)
+if (stepLabelsCloseIdx === -1) {
+  console.error(`check-prompt-refs: FAIL\nCould not find matching \`}\` for STEP_LABELS in ${CHAT_PATH}.`)
+  process.exit(1)
+}
+const stepLabelsKeys = extractTopLevelKeys(chatSrc.slice(stepLabelsOpenIdx + 1, stepLabelsCloseIdx))
+
+// Parse the api/chat.js SYSTEM_PROMPT step-id table. The table sits inside a
+// JS template literal, so the data-row regex must be region-anchored to
+// avoid matching the header row, the separator row, or any pipe-delimited
+// content that may appear elsewhere in the prompt body. Start after the
+// header sentinel; stop at the closing sentence; skip the `|---|---|`
+// separator row explicitly.
+const API_CHAT_PATH = 'api/chat.js'
+const apiChatSrc = fs.readFileSync(API_CHAT_PATH, 'utf-8')
+const TABLE_START_SENTINEL = '| Step id | User-facing name (use these to match user intent) |'
+const TABLE_END_SENTINEL = "If the user's request does not clearly map to one of the rows above, do not include NAVIGATE: in your reply."
+const tableStartIdx = apiChatSrc.indexOf(TABLE_START_SENTINEL)
+const tableEndIdx = apiChatSrc.indexOf(TABLE_END_SENTINEL)
+if (tableStartIdx === -1 || tableEndIdx === -1 || tableEndIdx <= tableStartIdx) {
+  console.error(`check-prompt-refs: FAIL\nCould not locate the step-id table region in ${API_CHAT_PATH}.`)
+  console.error(`  Looked for start sentinel: "${TABLE_START_SENTINEL}"`)
+  console.error(`  Looked for end sentinel:   "${TABLE_END_SENTINEL}"`)
+  process.exit(1)
+}
+const tableRegion = apiChatSrc.slice(tableStartIdx + TABLE_START_SENTINEL.length, tableEndIdx)
+const apiTableSteps = new Set()
+const DATA_ROW = /^\|\s*([A-Za-z_0-9-]+)\s*\|/
+for (const line of tableRegion.split('\n')) {
+  if (/^\|\s*-+\s*\|/.test(line)) continue // separator row
+  const m = line.match(DATA_ROW)
+  if (m) apiTableSteps.add(m[1])
+}
+
+// Cross-check. Every STEP_LABELS key and every table step-id must exist in META.
+const chatHelperMissing = [] // { source, id }
+for (const id of stepLabelsKeys) {
+  if (!metaKeys.has(id)) chatHelperMissing.push({ source: `${CHAT_PATH} STEP_LABELS`, id })
+}
+for (const id of apiTableSteps) {
+  if (!metaKeys.has(id)) chatHelperMissing.push({ source: `${API_CHAT_PATH} system-prompt table`, id })
+}
+if (chatHelperMissing.length > 0) {
+  console.error('check-prompt-refs: FAIL')
+  console.error('The following chat-helper step IDs do not exist in `META` (src/App.jsx):')
+  for (const { source, id } of chatHelperMissing) {
+    console.error(`  - ${source}: ${id}`)
+  }
+  console.error('Remove the orphan IDs, or add the missing steps to META.')
+  process.exit(1)
+}
+
+console.log(`check-prompt-refs: OK (${pcKeys.size} pc keys, ${prompts.length} prompt templates, ${metaKeys.size} META keys, ${stepLabelsKeys.size} STEP_LABELS, ${apiTableSteps.size} api/chat.js table rows checked)`)
 
 // --- Helpers ---
 
@@ -160,10 +258,19 @@ function extractTopLevelKeys(body) {
   const flushKey = () => {
     const k = pendingKey.trim()
     if (k) {
-      // Strip surrounding quotes if quoted-key
-      const unquoted = k.replace(/^['"]|['"]$/g, '')
-      // Only accept identifier-shaped keys
-      if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(unquoted)) keys.add(unquoted)
+      // Strip a single pair of surrounding quotes if quoted-key. Quoted keys
+      // appear as `'foo':` or `"foo":`; both forms must round-trip through
+      // here so META keys like `'life-events':` and `'orientation-done':` are
+      // captured. Without this, the chat-helper invariant would silently
+      // pass for an actually-broken step map.
+      let unquoted = k
+      if ((unquoted.startsWith("'") && unquoted.endsWith("'")) ||
+          (unquoted.startsWith('"') && unquoted.endsWith('"'))) {
+        unquoted = unquoted.slice(1, -1)
+      }
+      // Identifier-shape accepts hyphens to admit kebab-case keys (the META
+      // set uses two: `life-events` and `orientation-done`).
+      if (/^[A-Za-z_$][A-Za-z0-9_$-]*$/.test(unquoted)) keys.add(unquoted)
     }
     pendingKey = ''
   }
@@ -178,8 +285,11 @@ function extractTopLevelKeys(body) {
       continue
     }
     if (mode === 'dq') {
-      if (c === '\\') { i++; continue }
-      if (c === '"') { mode = 'code'; continue }
+      // Mirror the single-quote accumulation so double-quoted keys like
+      // `"foo":` round-trip into the key set (flushKey strips the quotes).
+      if (c === '\\') { if (expectingKey && depth === 0) pendingKey += c; i++; if (expectingKey && depth === 0) pendingKey += body[i]; continue }
+      if (c === '"') { mode = 'code'; if (expectingKey && depth === 0) pendingKey += c; continue }
+      if (expectingKey && depth === 0) pendingKey += c
       continue
     }
     if (mode === 'tmpl') {
@@ -194,7 +304,7 @@ function extractTopLevelKeys(body) {
     if (c === '/' && n === '/') { mode = 'line-comment'; i++; continue }
     if (c === '/' && n === '*') { mode = 'block-comment'; i++; continue }
     if (c === "'") { mode = 'sq'; if (expectingKey && depth === 0) pendingKey += c; continue }
-    if (c === '"') { mode = 'dq'; continue }
+    if (c === '"') { mode = 'dq'; if (expectingKey && depth === 0) pendingKey += c; continue }
     if (c === '`') { mode = 'tmpl'; continue }
     if (c === '{' || c === '[' || c === '(') { depth++; continue }
     if (c === '}' || c === ']' || c === ')') {

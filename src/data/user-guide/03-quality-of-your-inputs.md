@@ -26,7 +26,7 @@ Each one feeds something specific later in the journey. Understanding that conne
 
 ### Location and work preference
 
-This shapes every option Reimagine generates and every company it recommends. If you are open to relocation, the Wide View opens up. If you are remote-only in a specific country, the company list narrows accordingly.
+This shapes every option Reimagine generates and every company it recommends. If you are open to relocation, the range of role options Reimagine can map opens up. If you are remote-only in a specific country, the company list narrows accordingly.
 
 **Good input:** specific country, optionally a city or metro, and a clear work arrangement. The tool offers fully remote, hybrid, on-site, open to relocation, and open to relocation with conditions.
 
@@ -77,7 +77,7 @@ These two fields are short, and they are the difference between a list of *plaus
 
 **Good input:** specific and honest. "Sustainability" is fine. "Sustainability, especially how cities adapt their infrastructure" is better. "Mentoring" is fine. "Mentoring first-generation college students through nonprofits in my city" is much better.
 
-**A common slip:** filtering your answers for what feels professionally relevant. Try not to. The Wide View phase later in the journey looks for unexpected combinations between your professional life and the rest of you, and your real passions are exactly what it needs. The youth sports coaching, the side project, the cause you donate to, the industry you read about for fun. Those are all worth including. Some of the most surprising connections in the whole journey come from inputs people almost left out.
+**A common slip:** filtering your answers for what feels professionally relevant. Try not to. The Explore Options phase later on looks for unexpected combinations between your professional life and the rest of you, and your full set of passions is what it needs. The youth sports coaching, the side project, the cause you donate to, the industry you read about for fun. Those are all worth including. Some of the most surprising connections in the whole experience come from inputs people almost left out.
 
 ### Reputation
 

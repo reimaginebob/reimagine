@@ -2,24 +2,33 @@ import { useState, useEffect, useRef } from 'react'
 
 const INTRO_MSG = { role: 'assistant', content: 'Hi. I can help you with how Reimagine works. What would you like to know?' }
 
+// Mirror of META in src/App.jsx. The build-time invariant in
+// scripts/check-prompt-refs.mjs verifies every key here exists in META.
+// p9 and p10 deliberately share the same user-facing name; do not
+// deduplicate.
 const STEP_LABELS = {
   welcome: 'Welcome',
   location: 'Location & Work',
   resume: 'Your Resume',
+  linkedin: 'Your LinkedIn',
   assessment: 'Assessments',
   values: 'Values, Passions & Causes',
   reputation: 'Reputation',
+  'life-events': 'Your Story',
+  'orientation-done': 'Orientation Complete',
   p1: 'Resume Analysis',
   p2: 'Wiring & Compass',
   p3: 'Brand Synthesis',
-  p4: 'The Wide View',
-  p5: 'The Deep Dive',
-  decision: 'Your Decision',
+  twoDoors: 'Choose Your Path',
+  laneSelect: 'Pick a Direction',
+  p4: 'Role Options',
+  focus: 'Focus Playbook',
   p6: 'Your Bridge Story',
   p7: 'Go-to-Market',
   p8: 'LinkedIn Remix',
   p_res: 'Resume Refresh',
   p9: 'Your Playbook',
+  p10: 'Your Playbook',
   complete: 'Complete',
   income: 'Income Now',
   op: 'Upload a Live Opportunity',

@@ -53,20 +53,25 @@ When you include NAVIGATE: in your reply, the value MUST be one of the step ids 
 | welcome | Welcome |
 | location | Location & Work |
 | resume | Your Resume |
+| linkedin | Your LinkedIn |
 | assessment | Assessments |
 | values | Values, Passions & Causes |
 | reputation | Reputation |
+| life-events | Your Story |
+| orientation-done | Orientation Complete |
 | p1 | Resume Analysis (Phase 1, Know Your Value) |
 | p2 | Wiring & Compass (Phase 1, Know Your Value) |
 | p3 | Brand Synthesis (Phase 1, Know Your Value) |
-| p4 | The Wide View (Phase 2, Explore Options) |
-| p5 | The Deep Dive (Phase 2, Explore Options) |
-| decision | Your Decision (Phase 2, Explore Options) |
+| twoDoors | Choose Your Path (Phase 2, Explore Options) |
+| laneSelect | Pick a Direction (Phase 2, Explore Options) |
+| p4 | Role Options (Phase 2, Explore Options) |
+| focus | Focus Playbook (Phase 2, Explore Options) |
 | p6 | Your Bridge Story (Phase 3, Tell Your Story) |
 | p7 | Go-to-Market (Phase 4, Find Your Market) |
 | p8 | LinkedIn Remix (Phase 5, Get Ready) |
 | p_res | Resume Refresh (Phase 5, Get Ready) |
 | p9 | Your Playbook (Phase 5, Get Ready) |
+| p10 | Your Playbook (Phase 5, Get Ready) |
 | complete | Complete |
 | income | Income Now (post-completion bonus) |
 | op | Upload a Live Opportunity (post-completion bonus) |
