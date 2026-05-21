@@ -165,6 +165,41 @@ function stripEmDashes(text) {
 }
 // voice-allow-end
 
+// Post-processing for AI-meta-narration. Same shape as stripEmDashes:
+// the model produces these constructions reliably under output-budget
+// pressure and does not respond to the voice gate's corrective callout,
+// so retry-on-detect is the wrong enforcement mechanism. Drop offending
+// lines deterministically. Each pattern matches a contiguous AI-narration
+// shape; matching is case-insensitive on phrase but case-sensitive on the
+// first-person "I" (lowercase "i" would false-positive on "if I need to
+// know" and similar). Telemetry via console.warn fires when at least one
+// line is dropped, so post-ship monitoring shows how often the model is
+// slipping past the prompt rule.
+// voice-allow
+const META_NARRATION_PATTERNS = [
+  /\bI need to (?:continue|search|create|write|synthesize|finalize|now|compile|gather)\b/,
+  /\bLet me (?:search|create|continue|synthesize|now|write|finalize|compile|gather)\b/,
+  /\b(?:due to|given|with) (?:the )?token (?:constraints?|limits?|budget)\b/i,
+  /\bI'?ll (?:now|continue) (?:synthesize|write|create|produce|compile|search|finalize|gather)\b/,
+  /\bI (?:will|am going to) now (?:synthesize|write|create|produce|compile|finalize|gather)\b/,
+]
+function stripMetaNarration(text) {
+  if (typeof text !== 'string' || !text) return text
+  const lines = text.split('\n')
+  let dropped = 0
+  const kept = lines.filter(line => {
+    for (const re of META_NARRATION_PATTERNS) {
+      if (re.test(line)) { dropped++; return false }
+    }
+    return true
+  })
+  if (dropped > 0) {
+    console.warn(`[stripMetaNarration] dropped ${dropped} meta-narration line${dropped === 1 ? '' : 's'} from LLM output`)
+  }
+  return kept.join('\n')
+}
+// voice-allow-end
+
 async function callClaude(prompt, opts={}) {
   const{webSearch=false,highTemp=false,maxTokens=5000}=opts
   const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined
@@ -173,7 +208,7 @@ async function callClaude(prompt, opts={}) {
   if(!res.ok){const e=await res.json();throw new Error(e.error?.message||"API error")}
   const data=await res.json()
   const raw=data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n")
-  return stripEmDashes(raw)
+  return stripMetaNarration(stripEmDashes(raw))
 }
 
 // Runtime voice gate. Wraps callClaude: scan the model's output with the
