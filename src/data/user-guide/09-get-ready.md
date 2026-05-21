@@ -20,7 +20,7 @@ By the end of this phase, you walk into every conversation prepared.
 
 **If you uploaded your LinkedIn profile in Orientation,** this step becomes a true refresh. Reimagine references your current profile and recommends specific edits ("your current headline reads X; change it to Y; here is why"). The output is anchored in what you actually have, not generated from scratch. Most users find this version sharper and easier to apply.
 
-**If you skipped the LinkedIn upload,** Reimagine generates recommendations from scratch based on your Brand Synthesis, Bridge Story, and target direction. The output is still useful; you just have to map it onto your current profile yourself.
+**If you skipped the LinkedIn upload,** Reimagine generates recommendations from scratch based on your Personal Brand, Bridge Story, and target direction. The output is still useful; you just have to map it onto your current profile yourself.
 
 LinkedIn is not an online resume. It is your personal brand on the web, and how it shows up to recruiters and hiring managers depends almost entirely on the headline and the first three lines of your About section. This step gives you new versions of both, plus a few other recommendations that work together.
 

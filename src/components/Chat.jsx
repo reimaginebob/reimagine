@@ -16,7 +16,7 @@ const STEP_LABELS = {
   reputation: 'Reputation',
   'life-events': 'Your Story',
   'orientation-done': 'Orientation Complete',
-  p3: 'Your Read',
+  p3: 'Personal Brand',
   twoDoors: 'Choose Your Path',
   laneSelect: 'Pick a Direction',
   p4: 'Role Options',

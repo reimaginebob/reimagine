@@ -8,7 +8,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Bridge Story.** Your answer to "tell me about yourself," structured as three building blocks: something human about you, your career in action, and where you are going next. Reimagine gives you three starter options for each block, tagged for the situation and drawn from your Orientation. You pick what fits and edit it in your own words. Your picks and edits are saved as a persistent asset and feed the later steps that need a "tell me about yourself." Generated in the Focus playbook (Phase 3). See Chapter 7 for the model and how to use it.
 
-**Brand Synthesis.** The third step in Phase 1. Reimagine combines your resume, your wiring, and your reputation into a single professional identity: a golden thread, a personal brand statement, and a value proposition with proof points.
+**Brand Synthesis.** Retired in 2026-05-20. The Phase 1 output is now Personal Brand, a single flowing prose synthesis that includes the through-line, evidence triangulation, a transfer reading, and dimensional fit across function, industry, position, scale, pace, and mission.
 
 **Career Club.** The company that builds Reimagine. Founded by Bob Goodwin.
 
@@ -26,7 +26,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Go-to-Market Strategy.** A section of the Focus playbook (position 8 in the arc). A target company list, a hiring executive profile, a personalized outreach template, and a LinkedIn signal tweak, built around the role you are exploring. It runs live web research, so it is the most expensive section to generate and sits late in the arc on purpose.
 
-**Golden Thread.** The single consistent theme that runs through your accomplishments, your wiring, and your reputation. Surfaced in Brand Synthesis.
+**Golden Thread.** The single consistent theme that runs through your accomplishments, your wiring, and your reputation. Surfaced as the lead sentence of your Personal Brand.
 
 **Key Accomplishments.** The section of your resume that holds your strongest career achievements, reframed as money made, money saved, or risk mitigated with numbers attached. The Resume Refresh step (Phase 5) generates these for you. In *Making Your Own Weather*, this same idea is called your "Greatest Hits"; Reimagine uses Key Accomplishments as the user-facing label because it reads cleanly as a resume section header. Career Highlights, Career Milestones, or Selected Achievements work equally well if you prefer one of those.
 
@@ -50,11 +50,11 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Path.** Older term for a Direction (lane). The three are Familiar Ground, Industry Insider, and Work That Matters, chosen one at a time on the Lane Selection screen.
 
-**Personal Brand.** A two-sentence value proposition that captures what you do and why your combination is distinctive. Generated in Brand Synthesis.
+**Personal Brand.** The single Phase 1 output. A flowing 600-800 word prose synthesis of who you are at work: a lead sentence stating the through-line, two or three paragraphs triangulating evidence across your career, your assessment, your reputation, and your story, a transfer paragraph naming forward contexts, dimensional fit across function/industry/position/scale/pace/mission with bolded inline keywords, and a closing italic invitation to confirm or redirect the framing.
 
 **Playbook.** In v1, the Lingo & Playbook section of the Focus playbook: industry vocabulary, the players, and what is happening in the space right now. Interview Prep and STAR Stories are now their own sections in the same playbook.
 
-**Quick Takeaway.** The short summary at the top of every generated section. Three to five sentences that give you the essentials without expanding the full output.
+**Quick Takeaway.** A short summary at the top of some generated sections. Three to five sentences that give you the essentials without expanding the full output. Retired from the Personal Brand output in 2026-05-20; the lead sentence now carries that role.
 
 **Refine box.** The "Want to make changes?" box below every generated output. Where you tell Reimagine what to adjust before regenerating.
 
@@ -67,7 +67,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 **STAR (Situation, Thinking, Action, Result).** The interview story framework Reimagine uses in the Playbook. The T stands for *Thinking*, not Tasks. Because the most important part of any interview story is how you thought through the problem.
 **TMAY.** "Tell me about yourself." The interview question the Bridge Story is built to answer, in three building blocks you pick and edit rather than one paragraph recited.
 
-**Value Proposition.** The list of capabilities backed by proof points generated in Brand Synthesis. Four to six entries, each with a capability statement and concrete evidence from your track record.
+**Value Proposition.** Retired as a separately-labeled section in 2026-05-20. The capability-plus-proof entries are now woven into the Personal Brand prose, with specific accomplishments and numbers cited inline as proof of the through-line.
 
 **Wide View.** Retired in v1. The old single screen showing all three paths at once is replaced by the Two Doors screen, Lane Selection, and the Lane Option view (one direction at a time).
 
@@ -79,6 +79,6 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Two Doors.** The first screen in Phase 2. Door 1 leads to picking a direction and exploring roles; Door 2 takes a pasted job description and builds a playbook for that exact role.
 
-**Wiring & Compass.** The second step in Phase 1. How you are wired, where you thrive, and what lights you up. Drawn from your assessment, values, and accomplishments.
+**Wiring & Compass.** Retired as a separate user-visible step in 2026-05-20. The wiring read (how you are wired, where you thrive, what lights you up, drawn from your assessment, values, and accomplishments) is now an internal analytical pass that feeds your Personal Brand.
 
 **Work That Matters.** One of the three directions on the Lane Selection screen. The Ikigai direction, for people ready for more meaning in their work or at a stage where legacy matters more than maximizing comp.

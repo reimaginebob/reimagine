@@ -22,7 +22,7 @@ Use it when:
 You paste a job description or upload it as a PDF. Reimagine combines it with everything you built in the main journey and produces a complete playbook for that specific role. The playbook includes:
 
 - An honest read on whether the role aligns with the path you chose, where it stretches you, and the watch-outs you should know going in
-- A tailored framing of your Brand Synthesis emphasized for this specific role
+- A tailored framing of your Personal Brand emphasized for this specific role
 - STAR stories remixed for the questions this role's interview cycle is most likely to ask
 - A separate section on getting past the screening interview, with the things you should land cleanly in that first 30-minute recruiter or HR conversation
 - Likely objections and rebuttals grounded in your actual experience

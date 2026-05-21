@@ -1,6 +1,6 @@
 # 5. Phase 1. Know Your Value
 
-> *(KYV consolidated 2026-05-20. Phase 1 used to be three user-visible steps; now it is one: Your Read.)*
+> *(KYV consolidated 2026-05-20. Phase 1 used to be three user-visible steps; now it is one: Personal Brand.)*
 
 This is the foundation phase. Everything you generate later in the journey: your bridge story, your target companies, your outreach, your LinkedIn, your resume refresh, your playbook. All of it is built on what comes out of Phase 1. If the foundation is sharp, everything downstream is sharp. If the foundation is generic, the rest of the journey carries that around.
 
@@ -8,23 +8,23 @@ Plan to spend more time reading and refining Phase 1 than any later phase. The 1
 
 ## One step, one read
 
-Phase 1 is a single step: **Your Read**. You click one button, you wait once, and you get one flowing prose synthesis of who you are at work. Behind the scenes Reimagine runs three analytical passes (resume analysis, wiring and compass, then the synthesis), but those passes never reach the screen as separate outputs. The integration is the deliverable.
+Phase 1 is a single step: **Personal Brand**. You click one button, you wait once, and you get one flowing prose synthesis of who you are at work. Behind the scenes Reimagine runs three analytical passes (resume analysis, wiring and compass, then the synthesis), but those passes never reach the screen as separate outputs. The integration is the deliverable.
 
 The synthesis pulls from everything you provided in Orientation: your resume, your assessment, your values, your passions, your reputation answers, your life-shaping experiences. The three passes feed each other and produce a single read with five parts woven into one continuous document.
 
 ## On the screen
 
-Click **Generate Your Read**. The full generation takes about three to four minutes. Reimagine shows a rotating quote from a thinker on purpose, leadership, or resilience while the work runs. A short stage line above the quote tells you where in the chain Reimagine is:
+Click **Build My Personal Brand**. The full generation takes about three to four minutes. Reimagine shows a rotating quote from a thinker on purpose, leadership, or resilience while the work runs. A short stage line above the quote tells you where in the chain Reimagine is:
 
 - **Reading your resume** while the first pass runs
 - **Cross-referencing with your wiring** while the second pass runs
-- **Writing your read** while the synthesis runs
+- **Writing your synthesis** while the synthesis runs
 
 The quote is for you, not for the analysis. Use the time.
 
 ## What you will get back
 
-Your Read is a single prose document, roughly 600 to 800 words, that reads in four to five minutes. Five parts flow as one continuous read:
+Personal Brand is a single prose document, roughly 600 to 800 words, that reads in four to five minutes. Five parts flow as one continuous read:
 
 1. **The lead sentence.** One declarative sentence at the very top stating the through-line of your work: the operational commitment that runs through your choices. Specific enough that another profile would not be described the same way, and specific enough that you could plausibly push back if it misses.
 2. **Triangulation across sources.** A short setup ("Three sources converge on it") then two or three paragraphs of evidence-anchored synthesis. Each paragraph names a source dimension explicitly (your career history, your assessment results, your colleagues' words, your orientation answers, your life-shaping experiences) and shows where the sources point to the same shape. Specific accomplishments with numbers cited inline as proof.
@@ -58,7 +58,7 @@ Use **Start fresh** to clear your correction and regenerate from scratch.
 
 ## When you are happy with it
 
-Click **See My Options** to advance to Phase 2: Explore Options. Your Read becomes the source of truth Reimagine uses to generate everything that follows. The dimensions you and Reimagine surfaced as worth examining (often scale, mission, or position in the value chain) are exactly what Phase 2's Two Doors is designed to sharpen.
+Click **See My Options** to advance to Phase 2: Explore Options. Personal Brand becomes the source of truth Reimagine uses to generate everything that follows. The dimensions you and Reimagine surfaced as worth examining (often scale, mission, or position in the value chain) are exactly what Phase 2's Two Doors is designed to sharpen.
 
 ## Phase 1 in one paragraph
 

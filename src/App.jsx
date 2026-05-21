@@ -390,11 +390,11 @@ const asText = v => (typeof v === 'string' && v.trim() && !v.includes('[object O
 const SOURCE_LABELS={
   'values':'your stated values',
   'passions':'your stated passions',
-  'p3.golden_thread':'your Brand Synthesis',
-  'p3.personal_brand':'your Brand Synthesis',
-  'p3.value_prop':'your Brand Synthesis',
-  'p3.wiring_synthesis':'your Brand Synthesis',
-  'p3.capabilities':'your Brand Synthesis',
+  'p3.golden_thread':'your Personal Brand',
+  'p3.personal_brand':'your Personal Brand',
+  'p3.value_prop':'your Personal Brand',
+  'p3.wiring_synthesis':'your Personal Brand',
+  'p3.capabilities':'your Personal Brand',
   'rep.memory':'what colleagues say about you',
   'rep.emergency':'what colleagues say about you',
   'rep.twoWords':'what colleagues say about you',
@@ -656,8 +656,18 @@ async function extractText(file){
   return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(file)})
 }
 
+// Italic underscore pattern: matches `_text_` only when both underscores are
+// flanked by non-alphanumeric characters (or string boundaries). This avoids
+// false-positive matches inside identifiers like `snake_case_word` or
+// `outputs.p3_version`. Min 2 chars between underscores; mockup always wraps
+// a phrase or paragraph, so single-char italic is intentionally not supported.
+// Tested in scripts/test-md-italic.mjs.
+const ITALIC_UNDERSCORE = /(?<![A-Za-z0-9_])_([^_\s][^_]*?[^_\s])_(?![A-Za-z0-9_])/g
+const normalizeItalicUnderscores = (s) => s.replace(ITALIC_UNDERSCORE, '*$1*')
 function Inline({text}){
-  const parts=text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/)
+  // Normalize `_italic_` to `*italic*` first so the existing splitter handles
+  // both styles uniformly.
+  const parts=normalizeItalicUnderscores(text).split(/(\*\*[^*]+\*\*|\*[^*]+\*)/)
   return <>{parts.map((p,i)=>{
     if(p.startsWith('**')&&p.endsWith('**'))return <strong key={i} style={{color:"#1A2540",fontWeight:600}}>{p.slice(2,-2)}</strong>
     if(p.startsWith('*')&&p.endsWith('*'))return <em key={i} style={{color:C.gold}}>{p.slice(1,-1)}</em>
@@ -829,7 +839,7 @@ For this output specifically: the force IS the through-line, named in the lead s
 
 OUTPUT SHAPE (load-bearing).
 
-This output is a SINGLE FLOWING PROSE READ. No "##" section headers above the document title. The reader experiences one continuous read of who they are at work, with the dimensions to address in the next phase woven in.
+This output is a SINGLE FLOWING PROSE READ. No "##" section headers anywhere. No labeled sections beyond the prose itself. Do not produce a standalone Environment paragraph, a labeled Dimensions section, a Capabilities block, or any other structural header. The six dimensions weave into prose with bolded inline keywords as the worked example shows. The reader experiences one continuous read of who they are at work, with the dimensions to address in the next phase woven in.
 
 LENGTH TARGET: 4 to 5 minutes of reading time, roughly 600 to 800 words.
 
@@ -840,6 +850,8 @@ PART 1: THE LEAD SENTENCE.
 One declarative sentence stating the through-line. This functions as the Golden Thread, presented as the read's opening rather than under a section label.
 
 Form: a specific operational commitment another profile would not be described the same way. The sentence must be precise enough to be wrong. A different person would have a different lead, and the user could plausibly redirect this one if it misses.
+
+LIFT TEST (load-bearing): the lead sentence must anchor in a specific operational move from the user's career or a named life experience from Your Story. A lead that could lift cleanly onto another user's profile is a failure. If the inputs do not support a specific lead, name what is missing in plain language and invite the user to add it ("Your inputs name commercial leadership consistently but the specific operational move that runs through it has not surfaced yet. Tell us about a moment in your career that felt most like the work you want to keep doing, and the lead will sharpen."), rather than producing a generic characterization. An honest "what is missing" lead is a hit; a generic characterization is a miss.
 
 POSITIVE FRAMING (load-bearing): state what this person DOES, BUILDS, CHOOSES TOWARD. Never define the user by negation.
 
@@ -877,6 +889,8 @@ HONEST WHEN THIN: if fewer than 2 input dimensions support the read, name only t
 PART 3: "WHERE THIS TRANSFERS" PARAGRAPH.
 
 One paragraph naming forward-looking contexts where this operational commitment is rare and valuable. Translation move: 2 or 3 specific industries, role types, or problem spaces where the through-line applies. Do not characterize the user as exceptional or uncommon. Let the contexts speak for themselves.
+
+NO PRESCRIPTIVE COACHING (load-bearing): do not recommend specific training programs, bootcamps, certifications, courses, named services, or commercial products. No "consider a UX bootcamp," no "look at Springboard or Designlab," no "an MBA would help here," no "the Stanford Executive Program," no "get a PMP." Forward-looking content names operational contexts, role archetypes, industries, and dimensional fit. It does not name specific things to enroll in, buy, or pay for. If a credential or pathway genuinely matters to the read, name the category in plain language ("a formal product-design credential or a portfolio of work that demonstrates the same skill") rather than a specific provider.
 
 This paragraph does NOT need a header. It flows from the triangulation paragraphs naturally. A sentence like "Where this operational stance transfers is to..." or "What this through-line points toward is..." opens the paragraph.
 
@@ -977,7 +991,7 @@ const PHASES=[
   {id:1,label:'Know Your Value',color:'#C8924A',steps:['p3']},
   {id:2,label:'Explore Options',color:'#C8924A',steps:['twoDoors','laneSelect','p4','focus']},
 ]
-const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Your Read',twoDoors:'Choose Your Path',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
+const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Personal Brand',twoDoors:'Choose Your Path',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
 const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','life-events','orientation-done','p1','p2','p3','twoDoors','laneSelect','p4','focus','op','complete']
 const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','linkedin','assessment','values','reputation','life-events','orientation-done','p1','p2','p3'])
 // Captured at module load (before any beforeprint can change document.title) so
@@ -1324,7 +1338,7 @@ const stripMarkdown = (text) => {
 const STEP_DISPLAY_NAMES = {
   p1: 'Resume Analysis',
   p2: 'Wiring & Compass',
-  p3: 'Your Read',
+  p3: 'Personal Brand',
   p4: 'Role Options',
   p5: 'The Role',
   p6: 'Bridge Story',
@@ -1422,7 +1436,7 @@ const LOADING_PREVIEWS = {
   ],
   op: [
     'How this opportunity aligns with the direction you are pursuing',
-    'Your Brand Synthesis framed for this specific role',
+    'Your Personal Brand framed for this specific role',
     '3 STAR stories aimed at the questions this role will ask',
     'How to get past the screening interview, common objections, questions to ask them, and a cover letter draft',
   ],
@@ -1691,7 +1705,7 @@ const SECTION_EXPLAINERS = {
   },
   p9: {
     subhead: 'The vocabulary and frameworks for the conversations ahead.',
-    detail: 'Built from your Brand Synthesis and the language of this specific role. Surfaces the words this role uses for the work, the frameworks worth referencing in interviews, and the postures that land well. Read it before each conversation to stay grounded in the vocabulary that signals fit.',
+    detail: 'Built from your Personal Brand and the language of this specific role. Surfaces the words this role uses for the work, the frameworks worth referencing in interviews, and the postures that land well. Read it before each conversation to stay grounded in the vocabulary that signals fit.',
   },
   p11: {
     subhead: 'Ten to twelve likely questions with answers built from your evidence.',
@@ -1703,7 +1717,7 @@ const SECTION_EXPLAINERS = {
   },
   p8: {
     subhead: 'Your LinkedIn About section rewritten to lead with your strongest opener for this role.',
-    detail: 'The human-first principle from Bridge Story, applied to LinkedIn. Built from your Brand Synthesis and tuned for the audience your profile is now trying to reach. Paste it into the LinkedIn About field on your profile.',
+    detail: 'The human-first principle from Bridge Story, applied to LinkedIn. Built from your Personal Brand and tuned for the audience your profile is now trying to reach. Paste it into the LinkedIn About field on your profile.',
   },
   p7: {
     subhead: 'Target companies and the outreach plan for reaching the people who decide.',
@@ -2007,7 +2021,7 @@ const DEMO_TOUR=[
   {step:'welcome',title:'Meet Sarah Chen',desc:''},
   {step:'p1',title:'Step 1: Know Your Value',desc:'This step reads your resume and translates each accomplishment into money made, money saved, or risk mitigated, with numbers attached.'},
   {step:'p2',title:'Step 2: Wiring & Compass',desc:'This step connects how you are wired to the work you do best and the environment where you thrive.'},
-  {step:'p3',title:'Step 3: Brand Synthesis',desc:'This step turns your resume, your wiring, and your reputation into a two-sentence answer to "what do you do" and the capabilities that back it up.'},
+  {step:'p3',title:'Step 1: Personal Brand',desc:'This step turns your resume, your wiring, and your reputation into a single flowing read of who you are at work, with the dimensions to address in Two Doors named.'},
   {step:'p4',title:'Step 4: The Wide View',desc:'This step maps a wider landscape of options to consider, organized into three deliberate paths with specific roles in each.'},
   {step:'p5',title:'Step 5: The Deep Dive',desc:'It\'s easy to get excited about an option on paper. This step shows what the role actually looks like and how your background maps to it.'},
   {step:'decision',title:'Step 6: Sarah\'s Decision',desc:'Having multiple strong options is a good problem to have. This is the moment you choose a direction and everything starts pointing the same way.'},
@@ -2110,7 +2124,7 @@ export default function PivotEngine(){
   const[mobileBannerDismissed,setMobileBannerDismissed]=useState(()=>{try{return sessionStorage.getItem('reimagine_mobile_advisory_dismissed')==='1'}catch{return false}})
   const dismissMobileBanner=()=>{try{sessionStorage.setItem('reimagine_mobile_advisory_dismissed','1')}catch{};setMobileBannerDismissed(true)}
   // Migration detector for the p3 output format. Brief 2 collapsed p1/p2
-  // into a single Your Read step and rewrote p3 to a prose synthesis. The
+  // into a single Personal Brand step and rewrote p3 to a prose synthesis. The
   // detector reads outputs.p3_version, set to 'v2' on every successful new-
   // format generation (both generateChain and refreshP3 paths). Profiles
   // with saved p3 but no v2 flag see a one-time refresh banner.
@@ -2247,9 +2261,9 @@ export default function PivotEngine(){
     setDone(d=>d.filter(s=>!downstream.includes(s)))
   }
   const INVALIDATION_MESSAGES={
-    p1:'Cleared your Wiring & Compass, Brand Synthesis, role options, and any playbook work so they match the new Resume Analysis.',
-    p2:'Cleared your Brand Synthesis, role options, and any playbook work so they match the new Wiring & Compass.',
-    p3:'Cleared your role options and any playbook work so they match the new Brand Synthesis.',
+    p1:'Cleared your Personal Brand, role options, and any playbook work so they match the new resume analysis.',
+    p2:'Cleared your Personal Brand, role options, and any playbook work so they match the new wiring read.',
+    p3:'Cleared your role options and any playbook work so they match the new Personal Brand.',
     p4:'Cleared your downstream playbook so it matches the new options.',
     deepOpts:'Cleared your downstream playbook so it matches the new selections.',
     p5:'Cleared your downstream playbook so it matches the new role.',
@@ -2342,7 +2356,7 @@ export default function PivotEngine(){
   const generateChain=async()=>{
     if(loading||generatingSection)return
     window.scrollTo(0,0)
-    setLoading(true);setErr(null);setLoadMsg('Reading your inputs and writing your read…')
+    setLoading(true);setErr(null);setLoadMsg('Reading your inputs and writing your synthesis…')
     setLoadingStage('Reading your resume')
     try{
       const o1=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+P.p1(pc),{},{step:'p1',onEvent:logVoiceEvent})
@@ -2350,7 +2364,7 @@ export default function PivotEngine(){
       setLoadingStage('Cross-referencing with your wiring')
       const o2=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+P.p2(pc,o1),{},{step:'p2',onEvent:logVoiceEvent})
       out('p2',o2)
-      setLoadingStage('Writing your read')
+      setLoadingStage('Writing your synthesis')
       const o3=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+P.p3(pc,o1,o2),{},{step:'p3',onEvent:logVoiceEvent})
       setOutputs(prev=>({...prev,p3:o3,p3_version:'v2'}))
     }catch(e){setErr(e.message)}
@@ -2370,8 +2384,8 @@ export default function PivotEngine(){
       return generateChain()
     }
     window.scrollTo(0,0)
-    setLoading(true);setErr(null);setLoadMsg('Writing your read in the new format…')
-    setLoadingStage('Writing your read')
+    setLoading(true);setErr(null);setLoadMsg('Writing your Personal Brand in the new format…')
+    setLoadingStage('Writing your synthesis')
     try{
       const fn=()=>correctionsBlock(profile.corrections)+P.p3(pc,outputs.p1,outputs.p2)+(extraContext?`\n\nNEW CORRECTION FROM THIS SECTION: ${extraContext}`:'')
       const o3=await callClaudeWithVoiceGate(fn,{},{step:'p3',onEvent:logVoiceEvent})
@@ -2574,7 +2588,7 @@ export default function PivotEngine(){
     const nameParts=rawFirstLine.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ')
     const name=nameParts.length>2&&nameParts.length<50?nameParts:''
     const firstName=name?name.split(' ')[0].toLowerCase():(signupForm.firstName?signupForm.firstName.trim().toLowerCase():'reimagine')
-    const stepNames={p3:'Your Read',p4:'Role Options',p5:'The Role',p6:'Bridge Story / Tell Me About Yourself',p7:'Go-To-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Lingo & Playbook',p10:'Interview Prep',p11:'Interview Prep',income:'Income Now',op:'Live Opportunity Playbook'}
+    const stepNames={p3:'Personal Brand',p4:'Role Options',p5:'The Role',p6:'Bridge Story / Tell Me About Yourself',p7:'Go-To-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Lingo & Playbook',p10:'Interview Prep',p11:'Interview Prep',income:'Income Now',op:'Live Opportunity Playbook'}
     const sections=Object.entries(stepNames).filter(([k])=>outputs[k]&&outputs[k].trim()).map(([k,n])=>`## ${n}\n\n${outputs[k]}`).join('\n\n---\n\n')
     const md=`# Reimagine: ${name||'Your Career Strategy'}\n\n*Generated ${today}*\n\n---\n\n${sections}\n`
     const blob=new Blob([md],{type:'text/markdown'})
@@ -2594,7 +2608,7 @@ export default function PivotEngine(){
     const date=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
     const fileDate=new Date().toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'-')
     const esc=t=>(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    const md2html=t=>(t||'').split('\n').map(l=>l.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')).join('<br>')
+    const md2html=t=>normalizeItalicUnderscores(t||'').split('\n').map(l=>l.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')).join('<br>')
     const extractSection=(text,headings)=>{
       if(!text)return ''
       for(const h of headings){
@@ -2647,7 +2661,7 @@ body{font-family:Outfit,sans-serif;font-size:11px;color:#1A2540;line-height:1.55
 </style></head><body>
 <div class="header"><div><div class="badge">Reimagine by Career Club</div><h1>${esc(name)}</h1></div><div class="sub">Career Strategy · ${esc(date)}</div></div>
 ${chosen?`<div class="chosen">Pursuing: ${esc(chosen)}</div>`:''}
-${sectionFull('Your Read',yourRead)}
+${sectionFull('Your Personal Brand',yourRead)}
 <div class="grid">
 ${section('How You Show Up',howYouShowUp)}
 ${section('What Energizes You',whatEnergizes)}
@@ -2944,7 +2958,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <h1 style={S.title}>Assessment Data<InfoTooltip label="Which assessment to use">Any of these works: Affintus (free), CliftonStrengths, Hogan, DiSC, MBTI, Enneagram, PI. Affintus is the recommended free option if you do not already have results.</InfoTooltip></h1>
       <p style={S.sub}>Your resume shows what you've done. An assessment shows the durable part of you: where your natural strengths lie, what energizes you, and the environments where you do your best work. These qualities don't depend on title, compensation, or where you worked. They travel with you into every role that comes next. Without an assessment, we can only work with your track record. With it, we can connect your results to the qualities that produced them, and surface what you'll carry forward.</p>
       <CoachingCallout>
-        <strong style={{color:'#1A2540'}}>Highly recommended.</strong> An assessment (Affintus, CliftonStrengths, Hogan, DiSC, MBTI, Enneagram, PI) gives Reimagine the strongest read on how you work, where you thrive, and where to watch out. If you skip this, the Wiring &amp; Compass section gets shorter and more generic, and the Brand Synthesis loses some of its sharpest evidence. Affintus is free and takes about 15 minutes if you do not have one already.
+        <strong style={{color:'#1A2540'}}>Highly recommended.</strong> An assessment (Affintus, CliftonStrengths, Hogan, DiSC, MBTI, Enneagram, PI) gives Reimagine the strongest read on how you work, where you thrive, and where to watch out. If you skip this, the synthesis gets shorter and more generic, and your Personal Brand loses some of its sharpest evidence. Affintus is free and takes about 15 minutes if you do not have one already.
         <p style={{margin:'8px 0 0',fontStyle:'italic',fontSize:15}}>Have more than one? Upload them all; Reimagine reads each as a distinct source.</p>
       </CoachingCallout>
       <div style={S.card}>
@@ -3088,7 +3102,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
 
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
-      <h1 id="section-p3" style={S.title}>Your Read</h1>
+      <h1 id="section-p3" style={S.title}>Your Personal Brand</h1>
       {!isDemo&&<p style={S.sub}>A single synthesis of your resume, your wiring, and your reputation: the through-line that runs through your work, with a forward read into the choice coming next.</p>}
 
       {/* Migration banner. Shown only when a v1 p3 exists. Refresh runs p3
@@ -3096,15 +3110,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           stale-voice banner while showing. */}
       {!isDemo&&isP3OldStyle&&!p3MigrationDismissed&&!loading&&<div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',position:'relative'}}>
         <button type="button" onClick={dismissP3Migration} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
-        <p style={{margin:'0 24px 12px 0',fontSize:17,color:'#1A2540',lineHeight:1.65}}>We have updated how we present your analysis. Click Refresh to see your read in the new format. The rest of your work (Two Doors, Bridge Story, anything else you have already built) stays as it is.</p>
+        <p style={{margin:'0 24px 12px 0',fontSize:17,color:'#1A2540',lineHeight:1.65}}>We have updated how we present your Personal Brand. Click Refresh to see it in the new format. The rest of your work (Two Doors, Bridge Story, anything else you have already built) stays as it is.</p>
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
           <Btn onClick={()=>refreshP3('')}>Refresh</Btn>
           <Btn secondary onClick={dismissP3Migration}>Keep current view</Btn>
         </div>
       </div>}
 
-      {!isDemo&&!outputs.p3&&!loading&&<Btn onClick={generateChain}><Sparkles size={14}/>Generate Your Read</Btn>}
-      {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your read…'} step="p3"/>}
+      {!isDemo&&!outputs.p3&&!loading&&<Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn>}
+      {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3"/>}
       {outputs.p3&&!loading&&<>
         {!isDemo&&!hasSeenCorrectionsIntro&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:'#1A2540',lineHeight:1.65,position:'relative'}}>
           <button type="button" onClick={dismissCorrectionsIntro} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
@@ -3113,7 +3127,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <p style={{margin:'8px 0 0',fontSize:16,color:C.gray}}>You can also ask in the chat in the corner if you want a worked example.</p>
         </div>}
         <OutPanel text={outputs.p3} onCopy={copy} copied={copied}/>
-        {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional read misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{cascadeInvalidate('p3');recordCorrection('p3',v);out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
+        {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{cascadeInvalidate('p3');recordCorrection('p3',v);out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Next, choose how you want to explore what's possible.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');out('p1','');out('p2','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','twoDoors')}>See My Options <ChevronRight size={14}/></Btn></div>}
       </>}

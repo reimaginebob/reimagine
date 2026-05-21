@@ -21,7 +21,7 @@
   "scripts": {
     "dev": "vite",
     "lint": "eslint \"src/**/*.{js,jsx}\" \"api/**/*.js\"",
-    "prebuild": "node scripts/build-user-guide.mjs && node scripts/check-voice.mjs && node scripts/check-prompt-refs.mjs && npm run lint",
+    "prebuild": "node scripts/build-user-guide.mjs && node scripts/check-voice.mjs && node scripts/check-prompt-refs.mjs && node scripts/test-md-italic.mjs && npm run lint",
     "build": "vite build",
     "preview": "vite preview"
   }

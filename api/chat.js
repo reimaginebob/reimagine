@@ -59,7 +59,7 @@ When you include NAVIGATE: in your reply, the value MUST be one of the step ids 
 | reputation | Reputation |
 | life-events | Your Story |
 | orientation-done | Orientation Complete |
-| p3 | Your Read (Phase 1, Know Your Value) |
+| p3 | Personal Brand (Phase 1, Know Your Value) |
 | twoDoors | Choose Your Path (Phase 2, Explore Options) |
 | laneSelect | Pick a Direction (Phase 2, Explore Options) |
 | p4 | Role Options (Phase 2, Explore Options) |

@@ -18,13 +18,13 @@ This phase is short. Get it right.
 
 Earlier versions of Reimagine wrote your whole answer in your voice and handed it to you. That sounds helpful, and it tested badly for the same reason Interview Prep did before its own rewrite. When the tool writes the finished sentence, it gets the words almost right, and "almost right" is the hardest thing to fix. You are left to accept a paragraph that is not quite you, or rewrite it from scratch. Either way the answer is the tool's, not yours.
 
-The Bridge Story is the thing you *use* in a conversation, not the thing you read to recognize yourself (that is Brand Synthesis, Chapter 5). Different purpose, different format. So Reimagine now gives you the structure and the raw material, and you do the part only you can do: choose what is true and say it the way you talk.
+The Bridge Story is the thing you *use* in a conversation, not the thing you read to recognize yourself (that is Personal Brand, Chapter 5). Different purpose, different format. So Reimagine now gives you the structure and the raw material, and you do the part only you can do: choose what is true and say it the way you talk.
 
 This also makes the Bridge Story a persistent asset. Your picks and edits are saved with your profile and feed the later steps that need a "tell me about yourself," so the work you do here once carries forward.
 
 ## What this step does
 
-Reimagine builds three **building blocks** for your answer, tailored to the focus you chose at the end of Phase 2. It draws from your Orientation inputs and your Brand Synthesis (the golden thread, your personal brand). For each block it gives you **three starter options**, each one a short opener you finish in your own words, not a polished sentence to recite.
+Reimagine builds three **building blocks** for your answer, tailored to the focus you chose at the end of Phase 2. It draws from your Orientation inputs and your Personal Brand (the golden thread, your personal brand). For each block it gives you **three starter options**, each one a short opener you finish in your own words, not a polished sentence to recite.
 
 The three blocks come from the *Making Your Own Weather* formula for "tell me about yourself":
 
@@ -32,7 +32,7 @@ The three blocks come from the *Making Your Own Weather* formula for "tell me ab
 2. **Your career in action.** How that human thing has shown up in your work: a specific accomplishment framed as money made, money saved, or risk mitigated with a number; a pattern that recurs across roles; or the shape of your career arc.
 3. **Where you are going next.** Why your chosen direction is the natural next step, as the outcome of the first two blocks, not a change of subject.
 
-The through-line that ties the three together is already set upstream by your Brand Synthesis golden thread. There is no separate fourth block. When the three connect, the listener hears one story, not a list.
+The through-line that ties the three together is already set upstream by your Personal Brand golden thread. There is no separate fourth block. When the three connect, the listener hears one story, not a list.
 
 ## The memorability principle (why Block 1 never leads with a title)
 

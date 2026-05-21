@@ -36,7 +36,7 @@ When Reimagine misreads your background, tell it. Examples:
 
 These corrections do something important: **they stick.** When you submit a factual correction on one section, Reimagine saves it to your profile. Every later section you regenerate reads from that corrections list and honors them. You no longer need to make the same correction repeatedly across multiple sections.
 
-If you correct a wrong call in Resume Analysis (Phase 1, step 1), then later regenerate Brand Synthesis (Phase 1, step 3), the Brand Synthesis output will know about the correction. The wrong assumption stops cascading.
+When you correct your Personal Brand, the correction joins your profile and applies to every later section you regenerate. The wrong assumption stops cascading.
 
 ### Stylistic adjustments
 
@@ -89,18 +89,16 @@ Continue forward, regenerating any later steps that should reflect the change.
 
 ### A practical example
 
-Say you finished your Brand Synthesis (Phase 1, step 3) and realized you forgot to mention that you led the post-merger integration at your last company, a large project that is central to who you are professionally.
+Say you finished your Personal Brand and realized you forgot to mention that you led the post-merger integration at your last company, a large project that is central to who you are professionally.
 
 You would:
 
 1. Click **Your Resume** in the sidebar to return to that screen.
 2. Update the resume text to include the merger integration with its outcomes and numbers.
-3. Click forward to **Resume Analysis** in the sidebar.
-4. Open the feedback box on Resume Analysis, click **Start fresh**, and regenerate.
-5. Continue to **Wiring & Compass** and regenerate.
-6. Continue to **Brand Synthesis** and regenerate.
+3. Click forward to **Personal Brand** in the sidebar.
+4. Open the feedback box, click **Start fresh**, and regenerate the Personal Brand.
 
-Each subsequent step uses the updated inputs and the regenerated upstream outputs. By the time you reach Brand Synthesis again, the merger integration will be in the foundation.
+The Personal Brand re-runs the three analytical passes (resume analysis, wiring read, synthesis) against your updated inputs. By the time it finishes, the merger integration will be in the foundation.
 
 You can stop regenerating wherever the changes no longer matter. If your edit only affected the early phases and the rest of your journey was already aligned, you do not need to redo it all.
 
@@ -115,7 +113,7 @@ The light way: change the chosen direction and regenerate from Phase 3.
 3. Click forward to **Your Bridge Story** and regenerate.
 4. Continue forward through Phases 4 and 5 regenerating each step.
 
-This keeps your Phase 1 work (Brand Synthesis, Wiring & Compass) and your Phase 2 picks (the direction you chose and the role options you saw) intact. Only the parts that depend on your chosen role get rewritten.
+This keeps your Phase 1 work (Personal Brand, Personal Brand) and your Phase 2 picks (the direction you chose and the role options you saw) intact. Only the parts that depend on your chosen role get rewritten.
 
 ## A reminder on what regeneration costs
 
