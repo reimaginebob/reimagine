@@ -1661,7 +1661,7 @@ function Loading({ msg = 'Generating your analysis…', step = '' }) {
       <div style={{fontSize:20,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:8}}>"{isStepPool ? q : q.text}"</div>
       <div style={{fontSize:16,color:C.gold,fontWeight:600}}>{isStepPool ? MYOW_ATTR : q.author}</div>
     </div>
-    <div style={{fontSize:15,color:C.gray,marginTop:20}}>This may take 1–2 minutes</div>
+    <div style={{fontSize:15,color:C.gray,marginTop:20}}>{(step==='p6'||step==='p7')?'This may take 4–5 minutes':'This may take 1–2 minutes'}</div>
   </div>
 }
 function ErrBox({msg}){return <div style={S.err}><AlertCircle size={13} color={C.err} style={{flexShrink:0,marginTop:1}}/><span style={{whiteSpace:'pre-line'}}>{msg}</span></div>}
