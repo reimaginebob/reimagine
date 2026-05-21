@@ -1,6 +1,6 @@
 # 7. Phase 3. Tell Your Story
 
-> **Where this lives now.** Your Bridge Story is generated inside the Focus playbook for a specific role (Chapter 6), as the second section after The Role. It is no longer a separate phase you walk to in order. This chapter explains what the Bridge Story is, how the building-blocks model works, and what good looks like; the Focus playbook is where you generate, pick, and edit it.
+> **Where this lives now.** Your Bridge Story is generated inside the Focus Playbook for a specific role (Chapter 6), as the second section after The Role. It is no longer a separate phase you walk to in order. This chapter explains what the Bridge Story is, how the building-blocks model works, and what good looks like; the Focus Playbook is where you generate, pick, and edit it.
 
 > **What changed (2026-05-19).** Reimagine used to write you one finished 30-second paragraph. It now gives you the bones instead: three building blocks, three starter options for each, tagged for the situation, so you pick what fits and put it in your own words. The reason for the change is below.
 
