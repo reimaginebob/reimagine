@@ -33,7 +33,7 @@ const STEP_LABELS = {
 }
 const VALID_STEPS = new Set(Object.keys(STEP_LABELS))
 
-export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissPulse, messages, setMessages }) {
+export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0 }) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -114,7 +114,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
       <>
         {showPulse && <style>{"@keyframes pe-chat-pulse-scale{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}@keyframes pe-chat-pulse-fade{0%,100%{opacity:0.7}50%{opacity:1}}"}</style>}
         <div data-print="hide" style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
+          position: 'fixed', bottom: 24 + bottomOffset, right: 24, zIndex: 1000,
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
           {showPulse && (
@@ -153,7 +153,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
 
   return (
     <div data-print="hide" style={{
-      position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
+      position: 'fixed', bottom: 24 + bottomOffset, right: 24, zIndex: 1000,
       width: 380, maxWidth: 'calc(100vw - 24px)', height: 560, maxHeight: 'calc(100vh - 48px)',
       background: '#fff',
       border: '1px solid #E2E5EA', borderRadius: 14,
