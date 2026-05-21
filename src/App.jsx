@@ -2958,7 +2958,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           ['2','Explore Options','We show you specific roles to consider, then build a full playbook for any that resonate.'],
           ['3','Tell Your Story','A great answer to "tell me about yourself" sets the tone for the conversation that follows. We write your bridge story.'],
           ['4','Find Your Market','We search for companies that fit and draft your outreach to the right people.'],
-          ['5','Get Ready','LinkedIn, resume, industry playbook, and interview prep. You walk in ready.'],
+          ['5','Get Ready','LinkedIn, resume, industry briefing, and interview prep. You walk in ready.'],
         ].map(([num,phase,desc])=><div key={num} style={{display:'flex',gap:16,marginBottom:20,alignItems:'flex-start'}}>
           <div style={{width:34,height:34,borderRadius:'50%',background:`${C.gold}25`,border:`2px solid ${C.gold}60`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:17,fontWeight:700,color:C.gold}}>
             {num}
