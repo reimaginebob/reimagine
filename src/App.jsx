@@ -10,6 +10,7 @@ import Privacy from "./Privacy"
 import Terms from "./Terms"
 import QuickStart from "./QuickStart"
 import CookieBanner from "./CookieBanner"
+import { Analytics, track } from "@vercel/analytics/react"
 import LegalReacceptanceModal from "./LegalReacceptanceModal"
 import { PRIVACY_VERSION, TOS_VERSION, PRIVACY_VERSION_MATERIAL, TOS_VERSION_MATERIAL } from "./config/legal"
 
@@ -1752,7 +1753,7 @@ const BSV_SLOTS=[
   {key:'slot2',bs:'slot2_career_manifestation',tag:'manifestation_type',label:'Your career in action',desc:'How that shows up in your work: an accomplishment, a recurring pattern, or your arc.'},
   {key:'slot3',bs:'slot3_forward_move',tag:'framing',label:'Where you are going next',desc:'What you are looking for, as the natural next step.'},
 ]
-function BridgeStoryOptionCard({slot,opt,selected,anyPicked,small,onPick,onEdit,editedText}){
+function BridgeStoryOptionCard({slot,opt,selected,anyPicked,small,onPick,onEdit,editedText,blockNum,optionIndex}){
   const[editing,setEditing]=useState(false)
   // Pre-fill the edit textarea with the user's prior edit if present,
   // otherwise the option's text. Picking an option already commits the
@@ -1767,7 +1768,7 @@ function BridgeStoryOptionCard({slot,opt,selected,anyPicked,small,onPick,onEdit,
   // resets the state, so picking again re-opens.
   useEffect(()=>{if(selected)setEditing(true);else setEditing(false)},[selected])
   useEffect(()=>{if(!editing)setDraft(editedText||opt.text||'')},[editedText,editing,opt.text])
-  const pick=()=>onPick(slot.key,opt.id)
+  const pick=()=>{track('bridge_block_picked',{block:blockNum,optionIndex});onPick(slot.key,opt.id)}
   // Treat draft equal to the option's text as "no edit" so a user who opens
   // edit and blurs without changing anything does not get marked as edited.
   const commit=()=>{setEditing(false);const t=draft.trim();onEdit(slot.key,(!t||t===opt.text)?null:t)}
@@ -2013,9 +2014,11 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
         <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 4px'}}>{s.label}</h3>
         <div style={{fontSize:15,color:C.gray,margin:'0 0 12px',lineHeight:1.5}}>{s.desc}</div>
         <div style={{display:'flex',flexDirection:isSmallPortrait?'column':'row',gap:12,alignItems:'stretch'}}>
-          {(()=>{const anyPicked=!!(u&&u.picked_id);return (slot.options||[]).map(o=><BridgeStoryOptionCard key={o.id} slot={s} opt={o} small={isSmallPortrait}
+          {(()=>{const anyPicked=!!(u&&u.picked_id);const blockNum=BSV_SLOTS.indexOf(s)+1;return (slot.options||[]).map((o,oi)=><BridgeStoryOptionCard key={o.id} slot={s} opt={o} small={isSmallPortrait}
             selected={!!(u&&u.picked_id===o.id)}
             anyPicked={anyPicked}
+            blockNum={blockNum}
+            optionIndex={oi}
             editedText={u&&u.picked_id===o.id&&u.edited_text?u.edited_text:''}
             onPick={onPick} onEdit={onEdit}/>)})()}
         </div>
@@ -2377,7 +2380,7 @@ export default function PivotEngine(){
   // p3 as v2. Empty writes (clearing the slot) deliberately also clear the
   // flag so a regenerate-with-clear path starts fresh.
   const out=(k,v)=>setOutputs(o=>{const u={...o,[k]:v};if(k==='p3'){if(v&&typeof v==='string'&&v.trim())u.p3_version='v2';else delete u.p3_version}return u})
-  const markDone=(sid)=>setDone(d=>d.includes(sid)?d:[...d,sid])
+  const markDone=(sid)=>{track('section_completed',{step:sid});setDone(d=>d.includes(sid)?d:[...d,sid])}
   // Forward dependency map for state invalidation. Listed in pipeline order.
   const DEPENDENCY_ORDER=['p1','p2','p3','p4','deepOpts','p5','chosen','p6','p7','p8','p_res','p9','p10','p11','income']
   const downstreamOf=(source)=>{const idx=DEPENDENCY_ORDER.indexOf(source);if(idx<0)return[];return DEPENDENCY_ORDER.slice(idx+1)}
@@ -2411,7 +2414,7 @@ export default function PivotEngine(){
     setInvalidationBanner({message:invalidationMessage(source)})
   }
   const advance=(from,to)=>{markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
-  const nav=(to)=>{if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null);window.scrollTo(0,0)}
+  const nav=(to)=>{track('step_entered',{step:to});if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null);window.scrollTo(0,0)}
   // Scroll new output into view AFTER generation completes. Every generate
   // path already scrolls to 0,0 on click (so the loading panel is visible);
   // none scroll after the API returns, leaving the user wherever they
@@ -2468,7 +2471,7 @@ export default function PivotEngine(){
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
     logCorrection(correction)
   }
-  const generate=async(key,fn,opts={})=>{if(generatingSection)return;window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}}catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput(key)}}
+  const generate=async(key,fn,opts={})=>{if(generatingSection)return;track('generation_started',{step:key});window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}}catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput(key)}}
   // Brief 2 (KYV consolidation): chain runner for the Phase 1 collapse.
   // p1 -> p2 -> p3 run sequentially in a single user-visible wait. Outputs
   // are threaded through local variables (NOT read back from React state)
@@ -3856,6 +3859,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   </>
 
   return <>
+    <Analytics/>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
     {invalidationBanner&&<div data-print="hide" style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1000,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'14px 20px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',alignItems:'center',gap:16,maxWidth:720}}>
