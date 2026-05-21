@@ -1863,11 +1863,9 @@ const FOCUS_GROUPS = [
 ]
 
 function SectionExplainer({subhead, detail}) {
-  const [open, setOpen] = useState(false)
   return <div style={{margin:'0 0 16px'}}>
     <p style={{fontSize:18,color:C.gray,fontWeight:400,lineHeight:1.5,margin:'0 0 8px'}}>{subhead}</p>
-    <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{background:'transparent',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',fontSize:16,color:C.gold,fontWeight:500,textDecoration:'underline'}}>What you'll get ({open?'hide':'show'})</button>
-    {open&&<div style={{marginTop:10,fontSize:18,color:'#1A2540',lineHeight:1.65,background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'14px 18px'}}>{detail}</div>}
+    <div style={{marginTop:10,fontSize:18,color:'#1A2540',lineHeight:1.65,background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'14px 18px'}}>{detail}</div>
   </div>
 }
 function bsvRelative(then,now){
@@ -3502,17 +3500,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
           return <>
             {!isDemo&&<div data-print="hide" style={{background:'#FFFFFF',border:`0.5px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'18px 22px',margin:'4px 0 8px'}}>
-              <div style={{fontSize:12,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold,marginBottom:10}}>How to use your playbook</div>
-              <p style={{fontSize:17,color:'#1A2540',lineHeight:1.6,margin:'0 0 14px'}}>This page assembles a complete playbook for this role: a single working document you take into your search and update as you learn. {totalNumbered} sections across {FOCUS_GROUPS.length} groups.</p>
+              <div style={{fontSize:13,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold,marginBottom:10}}>How to use your playbook</div>
+              <p style={{fontSize:18,color:'#1A2540',lineHeight:1.6,margin:'0 0 14px'}}>This page assembles a complete playbook for this role: a single working document you take into your search and update as you learn. {totalNumbered} sections across {FOCUS_GROUPS.length} groups.</p>
               <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'14px 24px',marginBottom:14}}>
                 {FOCUS_GROUPS.map((g,gi)=><div key={g.label}>
-                  <div style={{fontSize:14,fontWeight:700,color:'#1A2540',marginBottom:4}}>Group {gi+1} · {g.label}</div>
-                  <ul style={{margin:0,paddingLeft:18,fontSize:15,color:C.gray,lineHeight:1.55}}>
+                  <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:4}}>Group {gi+1} · {g.label}</div>
+                  <ul style={{margin:0,paddingLeft:18,fontSize:16,color:C.gray,lineHeight:1.55}}>
                     {g.sectionIds.map(sid=><li key={sid}>{sectionNums[sid]}. {focusById[sid].label}</li>)}
                   </ul>
                 </div>)}
               </div>
-              <p style={{fontSize:15,color:C.gray,fontStyle:'italic',lineHeight:1.55,margin:0}}>Generate in any order, or jump ahead if you have a specific reason. When you have what you need, the Save Playbook as PDF button at the bottom builds the one-file version you can keep, share, or come back to.</p>
+              <p style={{fontSize:16,color:C.gray,fontStyle:'italic',lineHeight:1.55,margin:0}}>Generate in any order, or jump ahead if you have a specific reason. When you have what you need, the Save Playbook as PDF button at the bottom builds the one-file version you can keep, share, or come back to.</p>
             </div>}
             {FOCUS_GROUPS.map((g,gi)=><div key={g.label}>
               {groupDivider(`Group ${gi+1} · ${g.label}`,C.gold)}
