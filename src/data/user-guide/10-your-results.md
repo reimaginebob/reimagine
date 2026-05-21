@@ -38,9 +38,11 @@ If you skip the survey, click **No thanks** to dismiss it and continue to your r
 
 Below the survey, every output you generated is shown as its own card. Each card has:
 
-- A title. Your Personal Brand, Your Bridge Story, Go-to-Market Strategy, LinkedIn Remix, Resume Refresh, Your Playbook, Income Now (if you generated it).
+- A title. Your Personal Brand, The Role, Your Bridge Story, The Lingo, Interview Prep, Resume Refresh, LinkedIn Remix, Go-to-Market Strategy, Income Now (if you generated it).
 - A **Copy** button that copies the full text of that section to your clipboard.
 - A **View** button that takes you to that section's page where you can read it in full and refine it again if you want to.
+
+A header above the section cards names the role: **"Focus Playbook · [Role Name]."** If you explored multiple roles, this header reminds you which Focus Playbook's outputs you are looking at. Your Personal Brand sits above the header as a standalone card because it is constant across every role you explore. Income Now, if you generated it, renders below the seven section cards as a bonus stripe with a slightly demoted card style and a one-line description in place of a content preview.
 
 This is where the journey becomes a working library. Bookmark it. Open it before a coaching call, before an interview, before drafting an email. Each card is one click away from the full output. No need to re-navigate the journey to find what you need.
 
@@ -49,12 +51,14 @@ This is where the journey becomes a working library. Bookmark it. Open it before
 Each output has its own purpose. A short field guide:
 
 - **Your Personal Brand**. Read this before any conversation where someone is going to ask "what do you do." The two-sentence personal brand and the value proposition behind it are the spine of every other answer.
+- **The Role**. Read this before any conversation about whether this role is the right fit for you. The rest of the Focus Playbook builds on it, so re-reading the read on the role grounds the harder choices that follow.
 - **Your Bridge Story**. Read this aloud before a phone screen or an interview. Not to memorize, but to put the three parts (who you are as a human, how that has played out in your career, where you are headed) back into your head.
-- **Go-to-Market Strategy**. Your operating manual for the search itself. The hiring executive profile tells you who to reach. The target company list tells you where. The outreach template is your starting draft, personalized per company. (Don't forget: the **Download CSV** button on the Phase 4 screen pulls the company list out as a working spreadsheet. Open it in Excel, Google Sheets, or Numbers and run your search from it. Add columns as you go: when you reached out, who you reached out to, what you heard back, what the next step is.)
-- **LinkedIn Remix**. Copy the headline you chose into LinkedIn. Copy the About section. Apply the experience reframes. The output stays here for reference; the work happens in your LinkedIn profile.
+- **The Lingo**. Review before networking events, informational calls, and any first conversation in this space. The terms, the tools, and the people you should know to sound like someone already inside the conversation.
+- **Interview Prep**. Review before any interview. The STAR stories inside Interview Prep are worth reading before any conversation that might surface them, and worth remixing in real time based on who is across the table. The Same Story Different Angle subsection is the practice ground for that remixing.
 - **Resume Refresh**. Open your resume document and apply the changes. The summary, the career highlights, the role expansion and compression guidance.
-- **Your Playbook**. Review the crash course before networking events in your target space. Review the interview prep before any interview. Review the STAR stories before any conversation that might surface them, and remix them in real time based on who is across the table.
-- **Income Now**. Your fastest path to revenue while you search, if you generated it.
+- **LinkedIn Remix**. Copy the headline you chose into LinkedIn. Copy the About section. Apply the experience reframes. The output stays here for reference; the work happens in your LinkedIn profile.
+- **Go-to-Market Strategy**. Your operating manual for the search itself. The hiring executive profile tells you who to reach. The target company list tells you where. The outreach template is your starting draft, personalized per company. (Don't forget: the **Download CSV** button on the Phase 4 screen pulls the company list out as a working spreadsheet. Open it in Excel, Google Sheets, or Numbers and run your search from it. Add columns as you go: when you reached out, who you reached out to, what you heard back, what the next step is.)
+- **Income Now**. Your fastest path to revenue while you search, if you generated it. Renders as a bonus stripe below the seven section cards on Complete, with a slimmer card body and a one-line description in place of a preview snippet.
 
 ## Your progress is saved across devices
 

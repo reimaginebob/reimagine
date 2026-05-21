@@ -2,13 +2,13 @@
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
-This is **Door 2** on the Two Doors screen in Phase 2 (Chapter 6). Whenever you have a specific job description in hand, choose Door 2, paste it in, and Reimagine builds a full playbook for that exact role. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here. You no longer have to finish the main journey first; Door 2 is available as soon as you reach the Two Doors screen.
+This is **Door 2** on the Two Doors screen in Phase 2 (Chapter 6). Whenever you have a specific job description in hand, choose Door 2, paste it in, and Reimagine builds a complete Opportunity Playbook for that exact role. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here. You no longer have to finish the main journey first; Door 2 is available as soon as you reach the Two Doors screen.
 
 ## When to use it
 
-The full Reimagine journey gives you a strategy. Who you are, where you fit, three paths through your possible directions, a chosen target, a bridge story, a target company list, refreshed LinkedIn and resume, and a path-level playbook.
+The full Reimagine journey gives you a strategy. Who you are, where you fit, three directions through your possible options, a chosen target, a bridge story, a target company list, refreshed LinkedIn and resume, and a Focus Playbook.
 
-That strategy gets you ready to act. Specific roles come into view: a posting your network forwarded you, a job description you found on LinkedIn, an opportunity you uncovered through your outreach. When one of those lands in your sights and you want to be sharp for it, this module turns it into a complete playbook tailored to that exact role.
+That strategy gets you ready to act. Specific roles come into view: a posting your network forwarded you, a job description you found on LinkedIn, an opportunity you uncovered through your outreach. When one of those lands in your sights and you want to be sharp for it, this module turns it into a complete Opportunity Playbook tailored to that exact role.
 
 Use it when:
 
@@ -19,7 +19,7 @@ Use it when:
 
 ## What this module produces
 
-You paste a job description or upload it as a PDF. Reimagine combines it with everything you built in the main journey and produces a complete playbook for that specific role. The playbook includes:
+You paste a job description or upload it as a PDF. Reimagine combines it with everything you built in the main journey and produces a complete Opportunity Playbook for that specific role. It includes:
 
 - An honest read on whether the role aligns with the path you chose, where it stretches you, and the watch-outs you should know going in
 - A tailored framing of your Personal Brand emphasized for this specific role
@@ -64,7 +64,7 @@ A framing card above the output names these three groups so you can scan to the 
 ## What good looks like
 
 - **The alignment section should be honest, not flattering.** If the role is off-path from what you chose in Phase 2, the playbook should say so plainly and explain why. Reimagine coaches; it does not gatekeep. The decision to pursue is yours.
-- **The STAR stories should be substantively remixed, not generic.** Each story should target specific questions this JD's interview cycle is likely to ask. If the STAR stories feel interchangeable with the ones in your path-level Playbook, refine.
+- **The STAR stories should be substantively remixed, not generic.** Each story should target specific questions this JD's interview cycle is likely to ask. If the STAR stories feel interchangeable with the ones in your Focus Playbook, refine.
 - **The screening-interview section should give you 4 to 5 things you can land cleanly in a 30-minute conversation.** Not a full pitch, not generic advice. A focused list: accomplishments stated simply, your "why this role" in one line, your "why now" in one line, a culture-fit signal, and a question that gives the recruiter something to advocate with.
 - **The cover letter should sound like a letter you would write yourself to a hiring manager.** Not HR-formula language, not generic enthusiasm.
 
@@ -77,7 +77,7 @@ Examples:
 - "The STAR stories are too leadership-heavy. The role is more individual contributor. Pick stories that show that."
 - "The cover letter is too formal. I would write more directly than this."
 
-Use **Update with my correction** to fold corrections in. The corrections you submit on this module persist on your profile and propagate to any later playbooks you build for other roles, just like factual corrections elsewhere in the tool (Chapter 12 covers this in detail).
+Use **Update with my correction** to fold corrections in. The corrections you submit on this module persist on your profile and propagate to any later Focus Playbooks or Opportunity Playbooks you build for other roles, just like factual corrections elsewhere in the tool (Chapter 12 covers this in detail).
 
 ## One playbook at a time
 

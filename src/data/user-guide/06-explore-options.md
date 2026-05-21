@@ -18,7 +18,7 @@ Below the framing line, two cards sit side by side. Each carries a small eyebrow
 
 Below the two cards, a single line with a refresh icon reminds you: *Pick whichever. The other is right here when you come back.* The two paths are not mutually exclusive. Choose either one, finish what you need, and the other is available the next time you reach this screen.
 
-If you are returning after a previous version of Reimagine, a short welcome-back note appears above the headline. Your story (resume, assessment, values, reputation, brand synthesis) is exactly where you left it. Roles you explored before regenerate fresh from your latest inputs. If you want to keep a prior playbook word for word, save its PDF (see "Save your playbook" below).
+If you are returning after a previous version of Reimagine, a short welcome-back note appears above the headline. Your story (resume, assessment, values, reputation, Personal Brand) is exactly where you left it. Roles you explored before regenerate fresh from your latest inputs. If you want to keep a prior playbook word for word, save its PDF (see "Save your playbook" below).
 
 ## Door 1: Pick a direction
 
@@ -42,7 +42,7 @@ At the top, a context line grounds the options in your own material, naming the 
 - **A vehicle.** How the role is structured (W-2, consulting, fractional, advisory, board, founding or buying something).
 - **A rationale** grounded in specific evidence from your profile: your wiring, your accomplishments, your passions, why this role fits.
 
-Click any role to build its full playbook (the Focus playbook, below).
+Click any role to build its full playbook (the Focus Playbook, below).
 
 **Fewer than expected is honest, not broken.** Reimagine will not pad a weak direction to hit a count. If only one or two strong options exist at this level for you, it says so and points you to the feedback box to generate more, or to try another direction. An honest short list is more useful than a padded one.
 
@@ -52,25 +52,38 @@ Click any role to build its full playbook (the Focus playbook, below).
 - **Explore another direction.** Returns to the three directions. Your current direction's options are preserved.
 - **Back to a direction you already generated.** If you have looked at more than one direction this session, you can flip straight back to a previous one without regenerating it.
 
-## The Focus playbook
+## The Focus Playbook
 
-Click a role and Reimagine builds a **Focus playbook**: a single, assembled page that holds everything for that one role. This replaces the old compare-three-options step. You commit attention to one role at a time and build it out as far as you want.
+Click a role and Reimagine builds a **Focus Playbook**: a single, assembled page that holds everything for that one role. This replaces the old compare-three-options step. You commit attention to one role at a time and build it out as far as you want.
+
+**An orientation card at the top of the page** names what the page is and how the sections fit together. It carries an eyebrow ("How to use your playbook"), a one-sentence framing, a 2-column grid that lists the four groups and the sections inside each, and a short closer that points at the Save Playbook as PDF button at the bottom.
 
 **The Role generates immediately.** The first section, The Role, generates the moment you click in: what the role actually is, why you fit, and what to think through before going deeper. You read this first to decide whether the role is worth more of your time.
 
-**Everything else generates on demand.** The remaining sections each have a Generate button. Before you click, every section shows a one-line subhead under its heading that names what the section produces, plus a **What you'll get** disclosure link that expands two or three sentences on what feeds the section, what to do with the output, and anything specific worth knowing. Read the subhead while scrolling; open the disclosure when you want the deeper context. The subhead stays visible after you generate; the disclosure stays collapsed by default once content is on the page.
+**Everything else generates on demand.** The remaining sections each have a Generate button. Before you click, every section shows a one-line subhead under its heading naming what the section produces, plus a short detail panel that adds two or three sentences on what feeds the section and what to do with the output.
 
-You build the playbook at your own pace, in the order that fits you. The default arc is deliberate:
+You build the playbook at your own pace, in the order that fits you. The seven numbered sections are grouped into four named groups so the arc is legible at a glance:
+
+**Group 1 · Understand the role**
 
 1. **The Role.** What the role is, why you fit, what to weigh.
+
+**Group 2 · Build your story**
+
 2. **Your Bridge Story.** The 30-second answer that connects where you have been to where you are going.
-3. **Lingo & Playbook.** The vocabulary, tools, and players that signal credibility in this space.
-4. **Interview Prep.** The questions this role will surface and how to answer each one well.
-5. **STAR Stories.** Your strongest stories in Situation, Thinking, Action, Result form, with coaching to strengthen each.
-6. **Resume Refresh.** Your resume reframed for this direction, ready to download as a Word document.
-7. **LinkedIn Remix.** Headline, About, and experience copy you paste into your profile yourself.
-8. **Go-to-Market.** Live research into target companies and the people inside them, with an outreach approach.
-9. **Income Now.** Bridge income that can run alongside the main strategy while you search.
+3. **The Lingo.** The vocabulary, tools, and players that signal credibility in this space.
+
+**Group 3 · Prepare for the conversation**
+
+4. **Interview Prep.** The questions this role will surface, with STAR stories woven in so each story sits next to the question it best answers.
+
+**Group 4 · Carry it into the market**
+
+5. **Resume Refresh.** Your resume reframed for this direction, ready to download as a Word document.
+6. **LinkedIn Remix.** Headline, About, and experience copy you paste into your profile yourself.
+7. **Go-to-Market.** Live research into target companies and the people inside them, with an outreach approach.
+
+**Bonus · Income Now.** Bridge income that can run alongside the main strategy while you search. Renders below the four groups as a bonus stripe, not numbered alongside the seven.
 
 The arc has a logic: **confirm the role, test the fit, prepare the materials, learn where to apply.** The first sections are fit tests (can I tell this story, do I know the language, can I handle the questions, do I have the proof). The middle sections prepare your materials. Go-to-Market sits late on purpose: it is the most expensive section to generate, so you only pay for it once you have confirmed the role is worth pursuing. A user who stops after Bridge Story never burns the heavy research call.
 
@@ -78,7 +91,7 @@ Each section has a "What did we get wrong?" box. Refining a section regenerates 
 
 ## Save your playbook
 
-A footer bar appears at the bottom of the Focus playbook once you have generated something past The Role. It carries one action: **Save Playbook as PDF.** This assembles every section you have generated for this role into a single clean document and opens your browser's print-to-PDF dialog.
+A footer bar appears at the bottom of the Focus Playbook once you have generated any section. It carries a count of how many sections you have built ("Your playbook so far: N of 7 sections built. Save what you have as a PDF. Come back to generate the rest.") and a **Save Playbook as PDF** button. The button assembles every section you have generated for this role into a single clean document and opens your browser's print-to-PDF dialog.
 
 In v1, the PDF is how you keep a specific playbook between sessions. Reimagine holds one active role's playbook at a time. The PDF lives on your device, so it survives any role switch, any input change, and any future product update. Save the ones you want to keep.
 
@@ -86,7 +99,7 @@ In v1, the PDF is how you keep a specific playbook between sessions. Reimagine h
 
 ## Roles You've Explored
 
-Every role you open a Focus playbook for is recorded in a **Roles You've Explored** section in the sidebar. Each entry shows the role title and a **Re-explore** action.
+Every role you open a Focus Playbook for is recorded in a **Roles You've Explored** section in the sidebar. Each entry shows the role title and a **Re-explore** action.
 
 "Re-explore" is the honest word. Clicking a prior role regenerates its playbook fresh against your current inputs. It does not restore a saved copy. In v1, only the title is remembered, not the generated content. If you saved that role's PDF earlier, you have the prior version on your device for reference; re-exploring produces a new run against your latest material. (Uploading a saved playbook to restore it without regenerating is planned for a future release. It is not available yet.)
 
@@ -94,7 +107,7 @@ The list is sorted by what you touched most recently and holds up to twenty role
 
 ## A reminder you can come back to
 
-You only need one new job. But you can explore as many directions and roles as you want. Your Phase 1 work (Personal Brand, Personal Brand) stays constant. Only the parts that depend on the role you are looking at get rewritten when you switch. The tool is designed to open your eyes to what is possible, not to corner you into one answer.
+You only need one new job. But you can explore as many directions and roles as you want. Your Phase 1 work (Personal Brand) stays constant. Only the parts that depend on the role you are looking at get rewritten when you switch. The tool is designed to open your eyes to what is possible, not to corner you into one answer.
 
 ## Phase 2 in one paragraph
 
