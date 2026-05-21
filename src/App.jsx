@@ -1824,7 +1824,6 @@ const SECTION_EXPLAINERS = {
   },
   p6: {
     subhead: 'Three building blocks for your tell-me-about-yourself answer.',
-    detail: 'Three slots: something human about you, your career in action, where you are going. Three starter options per slot, drawn from your Orientation. Pick the option in each block that sounds like you, edit in your voice, and you have an answer for any interview or networking conversation. If a block does not feel right, regenerate just that block with your feedback.',
   },
   p9: {
     subhead: 'The vocabulary and frameworks for the conversations ahead.',
@@ -1865,7 +1864,7 @@ const FOCUS_GROUPS = [
 function SectionExplainer({subhead, detail}) {
   return <div style={{margin:'0 0 16px'}}>
     <p style={{fontSize:18,color:C.gray,fontWeight:400,lineHeight:1.5,margin:'0 0 8px'}}>{subhead}</p>
-    <div style={{marginTop:10,fontSize:18,color:'#1A2540',lineHeight:1.65,background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'14px 18px'}}>{detail}</div>
+    {detail && <div style={{marginTop:10,fontSize:18,color:'#1A2540',lineHeight:1.65,background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'14px 18px'}}>{detail}</div>}
   </div>
 }
 function bsvRelative(then,now){
@@ -1979,7 +1978,6 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
     <div className="bsv-no-print" style={{display:'flex',justifyContent:'flex-end',marginBottom:6}}><SavedIndicator saveStatus={saveStatus} lastSaveAt={lastSaveAt}/></div>
     {!isDemo&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'18px 22px',borderRadius:10,marginBottom:18,color:'#1A2540'}}>
       <div style={{fontSize:14,fontWeight:700,color:C.gray,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>Learn the structure</div>
-      <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 10px',lineHeight:1.3}}>Three building blocks for your "tell me about yourself" answer.</h3>
       <p style={{fontSize:18,color:'#1A2540',lineHeight:1.6,margin:'0 0 14px'}}>"Tell me about yourself" opens most interviews and most networking conversations. The strongest answers start with the human, not the resume.</p>
       <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:12,marginBottom:14}}>
         {[
