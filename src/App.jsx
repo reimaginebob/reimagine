@@ -479,6 +479,19 @@ function hashStr(s){s=typeof s==='string'?s:JSON.stringify(s||'');let h=5381;for
 
 function renderResumeText(r){
   if(!r)return ''
+
+  // Flatten structured bullets (matches buildResumeDoc's runsFromBullet and highlightParagraph)
+  const bulletToText = (b) => {
+    if (typeof b === 'string') return b
+    if (Array.isArray(b)) return b.map(run => (run && run.text) || '').join('')
+    if (b && typeof b === 'object') {
+      const runs = Array.isArray(b.runs) ? b.runs : []
+      const base = runs.map(run => (run && run.text) || '').join('')
+      return b.roleTag ? `${base} (${b.roleTag})` : base
+    }
+    return ''
+  }
+
   const h=r.header||{}
   const contact=[h.city,h.email,h.phone,h.linkedin].filter(Boolean).join(' · ')
   const lines=[]
@@ -489,7 +502,7 @@ function renderResumeText(r){
   lines.push(r.summary||'')
   lines.push('')
   lines.push('KEY ACCOMPLISHMENTS')
-  ;(r.keyAccomplishments||[]).forEach(b=>lines.push('• '+b))
+  ;(r.keyAccomplishments||[]).forEach(b=>lines.push('• '+bulletToText(b)))
   lines.push('')
   lines.push('EXPERIENCE')
   lines.push('')
@@ -497,7 +510,7 @@ function renderResumeText(r){
     lines.push(`${role.title||''}, ${role.company||''}`.replace(/^, /,'').replace(/, $/,''))
     const sub=[role.dates,role.location].filter(Boolean).join(' · ')
     if(sub)lines.push(sub)
-    ;(role.bullets||[]).forEach(b=>lines.push('• '+b))
+    ;(role.bullets||[]).forEach(b=>lines.push('• '+bulletToText(b)))
     if(idx<(r.experience||[]).length-1)lines.push('')
   })
   lines.push('')
