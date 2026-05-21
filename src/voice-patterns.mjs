@@ -228,6 +228,27 @@ export const HARD_PATTERNS = [
     appliesTo: ['runtime'],
     note: 'Slogan cadence: paired declarative "The X is the Y. The Z is the W." sentences.',
   },
+  // 2026-05-21 p7 hotfix: model under output-budget pressure broke the
+  // fourth wall with first-person process narration ("I need to continue
+  // searching," "Let me search for more," "Due to token constraints, I'll
+  // now synthesize," "Let me create the structured output"). This is the
+  // AI-meta-narration failure class. Two patterns cover it. Both runtime-
+  // only because source content (this brief, prompt refusal examples) can
+  // legitimately quote the construction.
+  {
+    name: 'ai-meta-narration-first-person',
+    re: /\b(?:I\s+(?:need\s+to|will\s+now|am\s+going\s+to|should|can)\s+(?:continue|search|create|write|synthesize|finalize|now)|Let\s+me\s+(?:search|create|continue|synthesize|now|write|finalize))\b/,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'AI-meta-narration: first-person process commentary. Produce the output directly; do not narrate the act of producing it.',
+  },
+  {
+    name: 'ai-meta-narration-token-constraints',
+    re: /\b(?:due\s+to\s+token\s+(?:constraints?|limits?|budget)|token\s+(?:constraints?|limits?|budget)|context\s+(?:constraints?|limits?|window)|I'?ll\s+now\s+(?:synthesize|write|create|produce))\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'AI-meta-narration: commenting on own token/context constraints. Produce what fits or stop; do not announce truncation.',
+  },
 ]
 
 export const SOFT_PATTERNS = [
