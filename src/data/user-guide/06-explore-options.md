@@ -4,7 +4,7 @@
 
 This is the phase where the tool earns its name. You probably see one or two obvious next steps: a similar role at a similar company, or maybe one logical pivot. Phase 2 is where you actually *reimagine* what is possible. It puts a wider field in front of you, one direction at a time, and then builds a complete playbook for any role you want to pursue.
 
-After Brand Synthesis, Reimagine asks a simple question before anything else.
+After Personal Brand, Reimagine asks a simple question before anything else.
 
 ## The Two Doors
 
@@ -94,7 +94,7 @@ The list is sorted by what you touched most recently and holds up to twenty role
 
 ## A reminder you can come back to
 
-You only need one new job. But you can explore as many directions and roles as you want. Your Phase 1 work (Brand Synthesis, Wiring & Compass) stays constant. Only the parts that depend on the role you are looking at get rewritten when you switch. The tool is designed to open your eyes to what is possible, not to corner you into one answer.
+You only need one new job. But you can explore as many directions and roles as you want. Your Phase 1 work (Personal Brand, Personal Brand) stays constant. Only the parts that depend on the role you are looking at get rewritten when you switch. The tool is designed to open your eyes to what is possible, not to corner you into one answer.
 
 ## Phase 2 in one paragraph
 

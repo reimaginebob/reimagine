@@ -9,7 +9,7 @@
 
 // Vercel Pro ceiling. The handler is non-streaming (await fetch + await
 // response.json), so it holds the connection open for the full Anthropic
-// generation. Heaviest prompts (p8 LinkedIn Remix, p3 Brand Synthesis,
+// generation. Heaviest prompts (p8 LinkedIn Remix, the Phase 1 chain p1-p2-p3,
 // p11 Interview Prep, p_res Resume Refresh) regularly run 90-150 seconds
 // against the larger profile shapes; without an explicit cap the function
 // was hitting the platform default and returning a `---` status (Vercel's
@@ -63,7 +63,7 @@ When you make a call like this, name it and invite correction. Use this template
 
 "Reading your time at [Company] as [classification] based on [evidence]. If that's not how you'd describe it, the feedback box below will redo this with the right framing."
 
-For named strengths and patterns in Wiring & Compass, Brand Synthesis, and Resume Analysis sections, include a one-line confidence note where the read is interpretive: "This is what the evidence suggests; tell us if it lands or not."
+For named strengths and patterns in any synthesis or Personal Brand output, include a one-line confidence note where the read is interpretive: "This is what the evidence suggests; tell us if it lands or not."
 
 Do not flag every sentence. Flag the one or two interpretive moves per section that, if wrong, would propagate downstream. The goal is catchable hallucinations, not constant hedging.
 

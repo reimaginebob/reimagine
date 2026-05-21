@@ -146,6 +146,11 @@ console.log(`Extracted p3 prompt source: ${p3Source.length} chars`)
 const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-5'
 const MAX_TOKENS = 4096
+// Match the production temperature in api/claude.js (the non-highTemp path).
+// Without setting this explicitly, the Anthropic API defaults to 1.0, which
+// is what the Brief 2 corpus run actually sampled. The corpus rating is only
+// meaningful if test temperature matches production.
+const TEMPERATURE = 0.7
 const SYS_FILE = path.join(REPO, 'api', 'claude.js')
 function extractSysPrompt() {
   const src = fs.readFileSync(SYS_FILE, 'utf-8')
@@ -167,6 +172,7 @@ async function callClaude(prompt) {
     body: JSON.stringify({
       model: MODEL,
       max_tokens: MAX_TOKENS,
+      temperature: TEMPERATURE,
       system: SYS,
       messages: [{ role: 'user', content: prompt }],
     }),

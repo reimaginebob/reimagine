@@ -26,7 +26,7 @@ A job posting is essentially an RFP. A request for proposal. The company has dec
 
 No good salesperson hits their quota by waiting for RFPs. Good salespeople know their territory. They know what they are selling. They know who would benefit from it. And they reach out proactively. Before the buyer has gotten to the point of writing an RFP, while there is still room to shape the conversation.
 
-That is exactly what this phase is built to do. Your target company list is your territory. Your Brand Synthesis and Bridge Story are what you are selling. The outreach template is your call.
+That is exactly what this phase is built to do. Your target company list is your territory. Your Personal Brand and Bridge Story are what you are selling. The outreach template is your call.
 
 And here is the part that makes this game different from sales: **your quota is one**. You only need one yes. The whole point of this phase is to fill your pipeline with more opportunities than just the RFPs everyone else is chasing, so that when the right yes shows up, you are ready and the conversation is already shaped around you.
 
