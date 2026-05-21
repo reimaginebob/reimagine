@@ -6,7 +6,7 @@ This is the only phase where you do the work. Everything that follows is generat
 
 If you have not read **Chapter 3: The Quality of Your Inputs** yet, do that first. This chapter assumes you have.
 
-The Orientation phase has eight screens, in this order:
+The Orientation phase has nine screens, in this order:
 
 1. Welcome
 2. Location & Work
@@ -16,6 +16,7 @@ The Orientation phase has eight screens, in this order:
 6. Values, Passions & Causes
 7. Reputation
 8. Your Story (optional)
+9. Your Skills
 
 You can navigate them with the **Continue** and **Back** buttons at the bottom of each screen, or jump to any completed step using the sidebar on the left.
 
@@ -176,11 +177,23 @@ A few prompts if you are stuck:
 
 The button at the bottom adapts. If you type anything, it reads **Continue**. If the field is empty, it reads **Continue without sharing** so the skip path is explicit. Both are valid.
 
-When you click Continue, Reimagine shows the **Orientation complete** card and moves into Phase 1.
+When you click Continue, Reimagine moves you to Your Skills.
+
+## Screen 9: Your Skills
+
+After Your Story, Reimagine reads your resume and LinkedIn and extracts a categorized list of your hard skills: technical tools, systems and platforms, certifications, languages, and methodologies. The list shows up in a few seconds, organized into chips you can edit, remove, or add to.
+
+This step is the missing piece of your Proficiency story. Documented skills are on your resume already, just buried in the accomplishment narrative. Skills you have picked up on side projects, fresh certifications you have not added to LinkedIn yet, languages you speak: those are invisible to a screener and to your future readers unless you surface them.
+
+Confirm what is right. Remove what does not apply. Add what is missing. Reimagine uses this list to sharpen every downstream output: which options your background fits, which target companies match, what to highlight on your resume refresh, what to lead with on your LinkedIn headline.
+
+A **Re-extract from my resume and LinkedIn** link below the chips re-runs the extraction. Use it if you have updated your resume since first reaching this step.
+
+Click **Continue** when you are done.
 
 ## What happens next
 
-When you finish Your Story (or skip it), Reimagine shows a short **Orientation complete** card before moving into Phase 1. The card acknowledges that you have finished the input phase: everything from here on is output. Read it, then click Continue.
+When you finish Your Skills, Reimagine shows a short **Orientation complete** card before moving into Phase 1. The card acknowledges that you have finished the input phase: everything from here on is output. Read it, then click Continue.
 
 From Phase 1 on, you are no longer entering data. You are reviewing what Reimagine generates from your inputs, telling it what to adjust where needed, and advancing to the next phase when each result feels right.
 
