@@ -91,9 +91,20 @@ export const HARD_PATTERNS = [
     note: 'Banned intensifier.',
   },
   // AI-coaching register - authored deliberately; presence in source is the failure.
+  // Widened 2026-05-21: the original deictic-only `sit with this/it/that`
+  // regex missed the "worth sitting with" gerund form that landed in
+  // production Personal Brand output. Adding the specific "worth sitting with"
+  // anchor; intentionally NOT adding bare `sitting with` or `sit with the`
+  // because the user-guide chapters use those forms legitimately ("the
+  // question you are sitting with," "sit with the four questions"). Also
+  // adding "take a moment to consider," "get curious about," and "honor your
+  // process," all named in the p3 prompt banned list but previously uncaught.
+  // Prerequisite P2 (edit of SYS book quote that contained "worth sitting
+  // with") shipped in the same PR so the widened gate does not fire on every
+  // model echo of its own system prompt.
   {
     name: 'ai-coaching-sit-with',
-    re: /\b(?:sit\s+with\s+(?:this|it|that)|let\s+that\s+land|lean\s+into|hold\s+space\s+for|honor\s+your\s+journey|trust\s+the\s+process|notice\s+what\s+(?:comes\s+up|arises)|what\s+comes\s+up\s+for\s+you|step\s+into\s+the\s+room)\b/i,
+    re: /\b(?:worth\s+sitting\s+with|sit\s+with\s+(?:this|it|that)|let\s+that\s+land|lean\s+into|hold\s+space\s+for|honor\s+your\s+(?:journey|process)|trust\s+the\s+process|notice\s+what\s+(?:comes\s+up|arises)|what\s+comes\s+up\s+for\s+you|step\s+into\s+the\s+room|take\s+a\s+moment\s+to\s+consider|get\s+curious\s+about)\b/i,
     severity: 'hard',
     appliesTo: ['build', 'runtime'],
     note: 'AI-coaching register.',
@@ -158,6 +169,57 @@ export const HARD_PATTERNS = [
     severity: 'hard',
     appliesTo: ['runtime'],
     note: 'Mind-reading: claiming the user has a specific conviction/mission/belief without verbatim quote.',
+  },
+  // 2026-05-21 KYV polish: a Personal Brand output shipped three "less about X
+  // and more about Y" sentences. The same logic-flip family the standing
+  // memory bans, expressed as a comparative rather than a negation. Runtime-
+  // only because source content (prompt examples, etc.) legitimately quotes
+  // the construction as a banned demo. Prerequisite P1 (rewrite of the p3
+  // worked example that contained this construction) shipped in the same PR
+  // so the model is not instructed to emulate the banned shape.
+  {
+    name: 'logic-flip-less-about-more-about',
+    re: /\bless\s+about\s+[^,;.\n]{2,80}\s+(?:and|than)\s+more\s+about\s+/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Logic-flip "less about X and more about Y" cadence: state the actual point directly.',
+  },
+  // 2026-05-21 KYV polish: same Personal Brand output attributed internal
+  // states the user inputs did not establish ("a season of reassessment,"
+  // "a sense of legacy"). Four sibling patterns cover the shapes the
+  // model uses; existing `mind-reading-conviction-mission` covers a subset
+  // but misses the "season of," "sense of," "gave you a sense of," and
+  // "shaped your conviction" variants. All runtime-only. The "sense of"
+  // pattern uses a whitelist of internal-state nouns to avoid catching
+  // legitimate "sense of humor" / "sense of timing." Whitelist includes
+  // `agency` and `stewardship` per consult finding.
+  {
+    name: 'mind-reading-season-of',
+    re: /\b(?:in\s+)?a\s+season\s+of\s+\w+/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Mind-reading: "in a season of X" attributes internal state. Anchor in verbatim input or remove.',
+  },
+  {
+    name: 'mind-reading-sense-of',
+    re: /\b(?:your|a)\s+sense\s+of\s+(?:legacy|purpose|mission|calling|conviction|destiny|meaning|self|identity|belonging|duty|responsibility|urgency|injustice|fairness|agency|stewardship)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Mind-reading: attributing a specific "sense of X" without verbatim quote. Anchor or remove.',
+  },
+  {
+    name: 'mind-reading-gave-you',
+    re: /\b(?:gave|gives|gave\s+you|gives\s+you)\s+(?:a|the)\s+(?:sense|feeling|conviction|belief|certainty|drive|hunger)\s+(?:of|that|to)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Mind-reading: claiming an experience produced a specific internal state. Anchor in verbatim quote or remove.',
+  },
+  {
+    name: 'mind-reading-shaped-your',
+    re: /\b(?:left\s+you\s+with|shaped\s+your|built\s+your)\s+(?:a\s+)?(?:sense|conviction|certainty|drive|belief|feeling|hunger)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Mind-reading: variant claim that an experience installed a specific internal state. Anchor or remove.',
   },
   {
     name: 'slogan-cadence-the-x-is-the-y',
@@ -224,6 +286,28 @@ export function detectMemorabilityViolation(text) {
   const t = text.trim()
   for (const p of MEMORABILITY_PATTERNS) { if (p.re.test(t)) return p.name }
   return null
+}
+
+// Second-pass dimensional-fit regression detector for p3 (Personal Brand).
+// The p3 prompt instructs the model to weave the six dimensions (Function,
+// Industry, Position, Scale, Pace, Mission) inline with bolded keywords as
+// the worked example demonstrates. The known failure shape is producing
+// six dedicated dimension-titled paragraphs of equal length, which is the
+// old Wiring & Compass output regressed. Counts paragraphs whose first 100
+// characters open with `**[Dimension]**`; five or more dedicated paragraphs
+// is treated as the regression. Used by callClaudeWithVoiceGate in
+// src/App.jsx as a second-pass check that runs only after voice violations
+// clear; runs only when meta.step === 'p3'. Returns a synthetic violation
+// object compatible with the gate's existing telemetry shape on regression,
+// or null when the output is clean.
+export function detectDimensionalFitRegression(text) {
+  if (typeof text !== 'string') return null
+  const dimRe = /^\*\*(Function|Industry|Position(?:\s+in\s+the\s+value\s+chain)?|Scale|Pace|Mission)\*\*/im
+  const paragraphs = text.split(/\n\n+/)
+  const dedicated = paragraphs.filter(p => dimRe.test(p.trim().slice(0, 100)))
+  return dedicated.length >= 5
+    ? { name: 'dimensional-fit-regression', count: dedicated.length, match: `${dedicated.length} dedicated dimension paragraphs`, note: 'Six dedicated dimension paragraphs detected. Output shape is the old W&C structure; this output should weave dimensions inline per the worked example.' }
+    : null
 }
 
 /**

@@ -32,7 +32,7 @@ Your attitude is the keel that runs under the entire journey. Without it, even a
 - Expect the best from yourself and others. People want to help. Do not opt them out of the opportunity.
 - Let the past go. Whatever happened before this search, what is in front of you matters more than what is behind you.
 
-Job search is not something to survive until it is over. It is an experience that builds capacity, develops empathy, and clarifies what the person actually wants. The question worth sitting with: what do I want this next chapter to teach me? Resilience is not bouncing back to where you were. It is coming back stronger than you were.
+Job search is not something to survive until it is over. It is an experience that builds capacity, develops empathy, and clarifies what the person actually wants. The question worth examining: what do I want this next chapter to teach me? Resilience is not bouncing back to where you were. It is coming back stronger than you were.
 
 You can always choose your attitude and your actions. Focus on the circle of control, not the circle of concern.
 
