@@ -2,7 +2,7 @@
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
-> **Where this lives now.** Go-to-Market is generated inside the Focus playbook for a specific role (Chapter 6), in the Go-to-Market section. It sits late in the playbook arc on purpose: it runs live web research and is the most expensive section to generate, so you build it once you have confirmed the role is worth pursuing. This chapter explains what it produces and what good looks like.
+> **Where this lives now.** Go-to-Market is generated inside the Focus Playbook for a specific role (Chapter 6), in the Go-to-Market section. It sits late in the playbook arc on purpose: it runs live web research and is the most expensive section to generate, so you build it once you have confirmed the role is worth pursuing. This chapter explains what it produces and what good looks like.
 
 This phase has one step: your **Go-to-Market Strategy**.
 

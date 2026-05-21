@@ -1,6 +1,6 @@
 # 11. Bonus. Income Now
 
-> **Where this lives now.** Income Now is the final section (position 9) inside the Focus playbook for a specific role (Chapter 6). It is reached by generating it there, not as a separate top-level step. Everything below still describes what it produces and how to use it.
+> **Where this lives now.** Income Now is the bonus section that lives below the seven main sections inside the Focus Playbook for a specific role (Chapter 6). It generates separately and renders with bonus-stripe treatment on both the Focus Playbook page and the Complete page. It is reached by generating it from inside the Focus Playbook, not as a separate top-level step. Everything below still describes what it produces and how to use it.
 
 When money gets tight, the temptation is to take whatever pays the bills. Reimagine has a different idea.
 
