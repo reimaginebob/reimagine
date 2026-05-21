@@ -3546,7 +3546,23 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     }
-    case'complete':{if(!done.includes('complete'))markDone('complete');return <div>
+    case'complete':{
+      if(!done.includes('complete'))markDone('complete')
+      const completeCard=(title,key,content)=>content
+        ?<div key={key} style={{...S.card,marginBottom:12}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+            <div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:'#1A2540'}}>{title}</div>
+            <div style={{display:'flex',gap:7}}>
+              <Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn>
+              <Btn small onClick={()=>nav(key)}>View →</Btn>
+            </div>
+          </div>
+          <div style={{fontSize:17,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div>
+        </div>
+        :null
+      const interviewPrepContent=(outputs.p11||'')+(outputs.p10?(outputs.p11?'\n\n---\n\n':'')+outputs.p10:'')
+      const hasAnyFocusSection=['p5','p6','p9','p10','p11','p_res','p8','p7'].some(k=>outputs[k]&&(typeof outputs[k]==='string'?outputs[k].length>0:true))
+      return <div>
       {!isDemo&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'30px 34px',borderRadius:12,margin:'0 0 24px',maxWidth:760}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:26,color:'#1A2540',margin:'0 0 14px',fontWeight:700}}>You finished the foundation.</h2>
         <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 12px'}}>Your brand, your bridge story, your target companies, your resume, your LinkedIn, your playbook. That is a substantial amount of career-strategy work, and it is all rooted in who you actually are.</p>
@@ -3650,7 +3666,39 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:18,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
         </div>
         <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}><Btn small onClick={()=>window.print()}><Printer size={11}/>Print</Btn></div>
-        {[['Your Personal Brand','p3',outputs.p3],['Your Bridge Story','p6',bridgeStoryToProse(outputs.p6)],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['The Lingo','p9',(outputs.p9||'')+(outputs.p11?'\n\n---\n\n'+outputs.p11:'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:17,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
+        {completeCard('Your Personal Brand','p3',outputs.p3)}
+        {chosen&&hasAnyFocusSection&&<div style={{margin:'24px 0 14px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:6,flexWrap:'wrap'}}>
+            <div style={{fontSize:13,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold}}>Focus Playbook</div>
+            <div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:'#1A2540'}}>{chosen}</div>
+          </div>
+          <div style={{height:1,background:C.border}}/>
+        </div>}
+        {completeCard('The Role','p5',outputs.p5)}
+        {completeCard('Your Bridge Story','p6',bridgeStoryToProse(outputs.p6))}
+        {completeCard('The Lingo','p9',outputs.p9)}
+        {completeCard('Interview Prep','p11',interviewPrepContent)}
+        {completeCard('Resume Refresh','p_res',outputs.p_res)}
+        {completeCard('LinkedIn Remix','p8',outputs.p8)}
+        {completeCard('Go-to-Market Strategy','p7',outputs.p7)}
+        {outputs.income&&<div style={{margin:'24px 0 10px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:6,flexWrap:'wrap'}}>
+            <div style={{fontSize:13,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.goldL}}>Bonus · Income Now</div>
+            <div style={{flex:1,height:1,background:C.border}}/>
+          </div>
+          <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 16px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+              <div>
+                <div style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:600,color:'#1A2540'}}>Income Now</div>
+                <div style={{fontSize:14,color:C.gray,marginTop:2}}>Consulting and fractional positioning while you continue the search.</div>
+              </div>
+              <div style={{display:'flex',gap:7,flexShrink:0}}>
+                <Btn small onClick={()=>copy(outputs.income)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn>
+                <Btn small onClick={()=>nav('income')}>View →</Btn>
+              </div>
+            </div>
+          </div>
+        </div>}
 
         <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:17,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
         <div style={{marginTop:24,padding:'20px 24px',background:'#FAFBFC',border:`1.5px solid ${C.border}`,borderRadius:12}}>
