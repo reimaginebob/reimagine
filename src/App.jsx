@@ -1110,7 +1110,7 @@ const PHASES=[
   {id:1,label:'Know Your Value',color:'#C8924A',steps:['p3']},
   {id:2,label:'Explore Options',color:'#C8924A',steps:['twoDoors','laneSelect','p4','focus']},
 ]
-const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Personal Brand',twoDoors:'Choose Your Path',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Your Playbook',p10:'Your Playbook',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
+const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Personal Brand',twoDoors:'Choose Your Path',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'The Lingo',p10:'The Lingo',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
 const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','life-events','orientation-done','p1','p2','p3','twoDoors','laneSelect','p4','focus','op','complete']
 const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','linkedin','assessment','values','reputation','life-events','orientation-done','p1','p2','p3'])
 // Captured at module load (before any beforeprint can change document.title) so
@@ -1464,7 +1464,7 @@ const STEP_DISPLAY_NAMES = {
   p7: 'Go-To-Market',
   p8: 'LinkedIn Remix',
   p_res: 'Resume Refresh',
-  p9: 'Lingo & Playbook',
+  p9: 'The Lingo',
   p10: 'Interview Prep',
   p11: 'Interview Prep',
   income: 'Income Now',
@@ -1818,6 +1818,10 @@ function BridgeStoryDiagnostic({d}){
 // brief's footnote spec; the disclosure toggle is Tier 2 Helper (16px); the
 // expanded detail body is Tier 1 Body (18px) navy.
 const SECTION_EXPLAINERS = {
+  p5: {
+    subhead: 'A read on this specific role and how your background maps to it.',
+    detail: 'Pulled from your Personal Brand and the public signal on this kind of role. Tells you what the work actually looks like, where you fit cleanly, and where it would stretch you. Read this first; the rest of the playbook builds on it.',
+  },
   p6: {
     subhead: 'Three building blocks for your tell-me-about-yourself answer.',
     detail: 'Three slots: something human about you, your career in action, where you are going. Three starter options per slot, drawn from your Orientation. Pick the option in each block that sounds like you, edit in your voice, and you have an answer for any interview or networking conversation. If a block does not feel right, regenerate just that block with your feedback.',
@@ -1847,6 +1851,16 @@ const SECTION_EXPLAINERS = {
     detail: 'Translation of your full-time-employment value into a consulting frame, with positioning, pricing, and the first three asks. For the gap between when you stop earning and when the next role starts. Optional; skip if income continuity is not a concern for you right now.',
   },
 }
+
+// Focus Playbook section grouping. Numbered sections (1-7) come from
+// FOCUS_GROUPS in order; Income Now is rendered separately as a bonus
+// stripe and is not numbered.
+const FOCUS_GROUPS = [
+  {label:'Understand the role',           sectionIds:['p5']},
+  {label:'Build your story',              sectionIds:['p6','p9']},
+  {label:'Prepare for the conversation',  sectionIds:['p11']},
+  {label:'Carry it into the market',      sectionIds:['p_res','p8','p7']},
+]
 
 function SectionExplainer({subhead, detail}) {
   const [open, setOpen] = useState(false)
@@ -2707,7 +2721,7 @@ export default function PivotEngine(){
     const nameParts=rawFirstLine.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ')
     const name=nameParts.length>2&&nameParts.length<50?nameParts:''
     const firstName=name?name.split(' ')[0].toLowerCase():(signupForm.firstName?signupForm.firstName.trim().toLowerCase():'reimagine')
-    const stepNames={p3:'Personal Brand',p4:'Role Options',p5:'The Role',p6:'Bridge Story / Tell Me About Yourself',p7:'Go-To-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Lingo & Playbook',p10:'Interview Prep',p11:'Interview Prep',income:'Income Now',op:'Live Opportunity Playbook'}
+    const stepNames={p3:'Personal Brand',p4:'Role Options',p5:'The Role',p6:'Bridge Story / Tell Me About Yourself',p7:'Go-To-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'The Lingo',p10:'Interview Prep',p11:'Interview Prep',income:'Income Now',op:'Live Opportunity Playbook'}
     const sections=Object.entries(stepNames).filter(([k])=>outputs[k]&&outputs[k].trim()).map(([k,n])=>`## ${n}\n\n${outputs[k]}`).join('\n\n---\n\n')
     const md=`# Reimagine: ${name||'Your Career Strategy'}\n\n*Generated ${today}*\n\n---\n\n${sections}\n`
     const blob=new Blob([md],{type:'text/markdown'})
@@ -2832,7 +2846,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const roleSwitchSavePdf=()=>{const r=roleSwitchModal&&roleSwitchModal.run;afterSaveRunRef.current=r||null;playbookSavePendingRef.current=true;setRoleSwitchModal(null);setTimeout(()=>window.print(),50)}
   const roleSwitchContinue=()=>{const r=roleSwitchModal&&roleSwitchModal.run;setRoleSwitchModal(null);if(r)r()}
   const roleSwitchCancel=()=>setRoleSwitchModal(null)
-  const showPlaybookFooter=!isDemo&&step==='focus'&&POST_P5_SUBMODULES.some(k=>outputs[k]&&outputs[k].length>0)
+  const focusNumberedIds=FOCUS_GROUPS.flatMap(g=>g.sectionIds)
+  const playbookSectionsBuilt=focusNumberedIds.filter(k=>{const v=outputs[k];return v&&(typeof v==='string'?v.length>0:true)}).length
+  const showPlaybookFooter=!isDemo&&step==='focus'&&playbookSectionsBuilt>0
   const laneData=(outputs.p4&&typeof outputs.p4==='object')?outputs.p4:{}
   const generateLane=async(lane,opts={})=>{
     if(loading||generatingSection)return
@@ -3317,7 +3333,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {lo.optionCount<3&&<div style={{background:`${C.gold}12`,border:`1px solid ${C.gold}35`,borderRadius:10,padding:'18px 22px',marginBottom:20,fontSize:17,color:'#1A2540',lineHeight:1.7,maxWidth:760}}><strong>We're seeing fewer strong options at this level for you.</strong> Here {lo.optionCount===1?'is the 1':`are the ${lo.optionCount}`} we found. Tell us what we got wrong below and we'll generate more, or try another direction with one of the other paths.</div>}
           <div style={{display:'flex',flexDirection:'column',gap:16,maxWidth:820}}>
             {lo.options.map((blk,i)=>{const t=laneOptionTitle(blk);return <button key={i} onClick={()=>switchToRole(t,selectedLane)} disabled={loading||!!generatingSection} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'22px 26px',cursor:'pointer',fontFamily:'inherit'}}>
-              <div style={{fontSize:20,fontWeight:700,color:'#1A2540',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}><span>{t}</span><span style={{color:C.gold,fontSize:15,fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>Build this playbook <ChevronRight size={14}/></span></div>
+              <div style={{fontSize:20,fontWeight:700,color:'#1A2540',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}><span>{t}</span><span style={{color:C.gold,fontSize:15,fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>Open this role <ChevronRight size={14}/></span></div>
               <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}><MD text={blk.replace(/^#{1,3}\s*OPTION:.*$/m,'').trim()}/></div>
             </button>})}
           </div>
@@ -3334,7 +3350,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const FOCUS_ORDER=[
         {id:'p5',label:'The Role',load:'Reading this role against your background…'},
         {id:'p6',label:'Your Bridge Story',load:'Building three blocks for your tell-me-about-yourself answer, with three starter options each…'},
-        {id:'p9',label:'Lingo & Playbook',load:'Building your industry crash course…'},
+        {id:'p9',label:'The Lingo',load:'Building The Lingo for this role…'},
         {id:'p11',label:'Interview Prep',load:'Preparing you for the questions ahead…'},
         {id:'p_res',label:'Resume Refresh',load:'Rewriting your resume for this direction…'},
         {id:'p8',label:'LinkedIn Remix',load:'Drafting your LinkedIn updates…'},
@@ -3448,31 +3464,66 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const otherRoles=(exploredRoleTitles||[]).filter(r=>r.title&&r.title!==chosen)
       return <div>
         <div data-print="hide">
-        {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
+        {!isDemo&&<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginBottom:14}}>
+          <div style={{...S.tag('#8A9BB8'),marginBottom:0}}>Phase 2 · Explore Options</div>
+          <div style={{...S.tag(C.gold),marginBottom:0}}>Focus Playbook</div>
+        </div>}
         <h1 style={S.title}>{chosen||'Your Focus Playbook'}</h1>
         {selectedLane&&<p style={{...S.sub,marginBottom:18}}>Direction: <strong style={{color:C.gold}}>{laneLbl}</strong></p>}
-        {FOCUS_ORDER.map(sec=>{
-          const id=sec.id
-          const has=id==='p6'
-            ?((typeof outputs.p6==='string'&&outputs.p6.length>0)||(outputs.p6&&typeof outputs.p6==='object')||outputs.p6===null)
-            :(outputs[id]&&outputs[id].length>0)
-          const isGen=generatingSection===id||(id==='p5'&&loading&&!has)
-          return <section key={id} style={{marginTop:32}}>
-            <h2 id={`section-${id}`} style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8}}>{sec.label}</h2>
-            {SECTION_EXPLAINERS[id]&&<SectionExplainer subhead={SECTION_EXPLAINERS[id].subhead} detail={SECTION_EXPLAINERS[id].detail}/>}
-            {isGen&&<Loading msg={sec.load} step={id}/>}
-            {!isGen&&sectionErrors[id]&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors[id]} <Btn small secondary onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
-            {!isGen&&!sectionErrors[id]&&has&&<>
-              {renderBody(id)}
-              {!isDemo&&<RefineBox value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
-            </>}
-            {!isGen&&!sectionErrors[id]&&!has&&<div style={S.row}>
-              {id==='p5'
-                ?<Btn disabled={loading} onClick={()=>generate('p5',gp('p5'),go('p5'))}><Sparkles size={14}/>Generate The Role</Btn>
-                :<Btn disabled={!canGenSection(id)} onClick={()=>genSec(id)}><Sparkles size={14}/>Generate {sec.label}</Btn>}
+        {(()=>{
+          const focusById=Object.fromEntries(FOCUS_ORDER.map(s=>[s.id,s]))
+          const sectionNums={};{let n=1;FOCUS_GROUPS.forEach(g=>g.sectionIds.forEach(sid=>{sectionNums[sid]=n++}))}
+          const totalNumbered=focusNumberedIds.length
+          const renderSection=(sec,num)=>{
+            const id=sec.id
+            const has=id==='p6'
+              ?((typeof outputs.p6==='string'&&outputs.p6.length>0)||(outputs.p6&&typeof outputs.p6==='object')||outputs.p6===null)
+              :(outputs[id]&&outputs[id].length>0)
+            const isGen=generatingSection===id||(id==='p5'&&loading&&!has)
+            return <section key={id} style={{marginTop:32}}>
+              <h2 id={`section-${id}`} style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8}}>{num?num+'. ':''}{sec.label}</h2>
+              {SECTION_EXPLAINERS[id]&&<SectionExplainer subhead={SECTION_EXPLAINERS[id].subhead} detail={SECTION_EXPLAINERS[id].detail}/>}
+              {isGen&&<Loading msg={sec.load} step={id}/>}
+              {!isGen&&sectionErrors[id]&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors[id]} <Btn small secondary onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
+              {!isGen&&!sectionErrors[id]&&has&&<>
+                {renderBody(id)}
+                {!isDemo&&<RefineBox value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
+              </>}
+              {!isGen&&!sectionErrors[id]&&!has&&<div style={S.row}>
+                {id==='p5'
+                  ?<Btn disabled={loading} onClick={()=>generate('p5',gp('p5'),go('p5'))}><Sparkles size={14}/>Generate The Role</Btn>
+                  :<Btn disabled={!canGenSection(id)} onClick={()=>genSec(id)}><Sparkles size={14}/>Generate {sec.label}</Btn>}
+              </div>}
+            </section>
+          }
+          const groupDivider=(label,color)=><div style={{marginTop:40,marginBottom:4}}>
+            <div style={{fontSize:13,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color,marginBottom:6}}>{label}</div>
+            <div style={{height:1,background:C.border}}/>
+          </div>
+          return <>
+            {!isDemo&&<div data-print="hide" style={{background:'#FFFFFF',border:`0.5px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'18px 22px',margin:'4px 0 8px'}}>
+              <div style={{fontSize:12,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold,marginBottom:10}}>How to use your playbook</div>
+              <p style={{fontSize:17,color:'#1A2540',lineHeight:1.6,margin:'0 0 14px'}}>This page assembles a complete playbook for this role: a single working document you take into your search and update as you learn. {totalNumbered} sections across {FOCUS_GROUPS.length} groups.</p>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'14px 24px',marginBottom:14}}>
+                {FOCUS_GROUPS.map((g,gi)=><div key={g.label}>
+                  <div style={{fontSize:14,fontWeight:700,color:'#1A2540',marginBottom:4}}>Group {gi+1} · {g.label}</div>
+                  <ul style={{margin:0,paddingLeft:18,fontSize:15,color:C.gray,lineHeight:1.55}}>
+                    {g.sectionIds.map(sid=><li key={sid}>{sectionNums[sid]}. {focusById[sid].label}</li>)}
+                  </ul>
+                </div>)}
+              </div>
+              <p style={{fontSize:15,color:C.gray,fontStyle:'italic',lineHeight:1.55,margin:0}}>Generate in any order, or jump ahead if you have a specific reason. When you have what you need, the Save Playbook as PDF button at the bottom builds the one-file version you can keep, share, or come back to.</p>
             </div>}
-          </section>
-        })}
+            {FOCUS_GROUPS.map((g,gi)=><div key={g.label}>
+              {groupDivider(`Group ${gi+1} · ${g.label}`,C.gold)}
+              {g.sectionIds.map(sid=>renderSection(focusById[sid],sectionNums[sid]))}
+            </div>)}
+            <div>
+              {groupDivider('Bonus · Income Now',C.goldL)}
+              {renderSection(focusById.income)}
+            </div>
+          </>
+        })()}
         <div style={{margin:'40px 0 12px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>This is yours now. Take it where it makes sense, or look at another direction below.</div>
         <div style={S.row}>
           <Btn secondary onClick={()=>nav('p4')}>See more roles in this direction</Btn>
@@ -3601,7 +3652,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:18,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
         </div>
         <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}><Btn small onClick={()=>window.print()}><Printer size={11}/>Print</Btn></div>
-        {[['Your Personal Brand','p3',outputs.p3],['Your Bridge Story','p6',bridgeStoryToProse(outputs.p6)],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['Your Playbook','p9',(outputs.p9||'')+(outputs.p11?'\n\n---\n\n'+outputs.p11:'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:17,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
+        {[['Your Personal Brand','p3',outputs.p3],['Your Bridge Story','p6',bridgeStoryToProse(outputs.p6)],['Go-to-Market Strategy','p7',outputs.p7],['LinkedIn Remix','p8',outputs.p8],['Resume Refresh','p_res',outputs.p_res],['The Lingo','p9',(outputs.p9||'')+(outputs.p11?'\n\n---\n\n'+outputs.p11:'')+(outputs.p10?'\n\n---\n\n'+outputs.p10:'')],['Income Now','income',outputs.income]].filter(([,,c])=>c).map(([title,key,content])=><div key={key} style={{...S.card,marginBottom:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:'#1A2540'}}>{title}</div><div style={{display:'flex',gap:7}}><Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn><Btn small onClick={()=>nav(key)}>View →</Btn></div></div><div style={{fontSize:17,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div></div>)}
 
         <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:17,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
         <div style={{marginTop:24,padding:'20px 24px',background:'#FAFBFC',border:`1.5px solid ${C.border}`,borderRadius:12}}>
@@ -3779,7 +3830,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     </div>}
     {showPlaybookFooter&&<div data-print="hide" style={{position:'fixed',left:0,right:0,bottom:0,zIndex:900,background:'#1A2540',borderTop:`2px solid ${C.gold}`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
-      <div style={{fontSize:15,color:'#CBD5E0'}}>Keep this playbook. Save it as a PDF to your device.{currentRoleSaved?' Saved.':''}</div>
+      <div>
+        <div style={{fontSize:15,color:'#FFFFFF',fontWeight:500}}>Your playbook so far: {playbookSectionsBuilt} of {focusNumberedIds.length} sections built.{currentRoleSaved?' Saved.':''}</div>
+        <div style={{fontSize:13,color:'#CBD5E0',marginTop:2}}>Save what you have as a PDF. Come back to generate the rest.</div>
+      </div>
       <Btn onClick={savePlaybookPdf}><Printer size={14}/>Save Playbook as PDF</Btn>
     </div>}
     {showVoiceMigBanner&&<div data-print="hide" style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1001,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'18px 22px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',flexDirection:'column',gap:14,maxWidth:560,width:'calc(100% - 32px)'}}>
