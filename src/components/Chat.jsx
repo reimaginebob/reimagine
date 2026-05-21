@@ -15,6 +15,7 @@ const STEP_LABELS = {
   values: 'Values, Passions & Causes',
   reputation: 'Reputation',
   'life-events': 'Your Story',
+  'skills': 'Your Skills',
   'orientation-done': 'Orientation Complete',
   p3: 'Personal Brand',
   twoDoors: 'Choose Your Path',

@@ -58,6 +58,7 @@ When you include NAVIGATE: in your reply, the value MUST be one of the step ids 
 | values | Values, Passions & Causes |
 | reputation | Reputation |
 | life-events | Your Story |
+| skills | Your Skills |
 | orientation-done | Orientation Complete |
 | p3 | Personal Brand (Phase 1, Know Your Value) |
 | twoDoors | Choose Your Path (Phase 2, Explore Options) |
