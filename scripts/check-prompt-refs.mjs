@@ -180,6 +180,59 @@ if (chatHelperMissing.length > 0) {
   process.exit(1)
 }
 
+// Label-match invariant. Added 2026-05-21 to close chat-helper-p9p10-label-drift
+// (audit finding 2026-05-21). The check above validates that every
+// STEP_LABELS / api-table key exists in META. This second tier validates that
+// for each shared key the actual label string matches too. ID mismatch fails
+// the build above; label mismatch fails here with its own message.
+const PAIR_RE = /(?:['"]?)([A-Za-z_$][A-Za-z0-9_$-]*)(?:['"]?)\s*:\s*['"]([^'"\\]*)['"]/g
+const buildLabelMap = (body) => {
+  const m = new Map()
+  PAIR_RE.lastIndex = 0
+  let r
+  while ((r = PAIR_RE.exec(body)) !== null) {
+    if (!m.has(r[1])) m.set(r[1], r[2])
+  }
+  return m
+}
+const metaLabels = buildLabelMap(metaBody)
+const stepLabelMap = buildLabelMap(chatSrc.slice(stepLabelsOpenIdx + 1, stepLabelsCloseIdx))
+const apiTableLabels = new Map()
+const API_ROW = /^\|\s*([A-Za-z_0-9-]+)\s*\|\s*(.*?)\s*\|/
+for (const line of tableRegion.split('\n')) {
+  if (/^\|\s*-+\s*\|/.test(line)) continue
+  const rowMatch = line.match(API_ROW)
+  if (rowMatch) {
+    // Strip any trailing parenthetical descriptor that api/chat.js carries
+    // for the chat-helper's benefit (e.g., "(Phase 5, Get Ready)",
+    // "(post-completion bonus)") but META does not; match by leading
+    // label only.
+    const label = rowMatch[2].replace(/\s*\([^)]*\)\s*$/, '').trim()
+    apiTableLabels.set(rowMatch[1], label)
+  }
+}
+
+const labelDrift = []
+for (const [k, v] of stepLabelMap) {
+  if (metaLabels.has(k) && metaLabels.get(k) !== v) {
+    labelDrift.push({ source: `${CHAT_PATH} STEP_LABELS`, id: k, expected: metaLabels.get(k), found: v })
+  }
+}
+for (const [k, v] of apiTableLabels) {
+  if (metaLabels.has(k) && metaLabels.get(k) !== v) {
+    labelDrift.push({ source: `${API_CHAT_PATH} system-prompt table`, id: k, expected: metaLabels.get(k), found: v })
+  }
+}
+if (labelDrift.length > 0) {
+  console.error('check-prompt-refs: FAIL')
+  console.error('The following chat-helper labels do not match META values in src/App.jsx:')
+  for (const { source, id, expected, found } of labelDrift) {
+    console.error(`  - ${source}: ${id} -> "${found}" (META says: "${expected}")`)
+  }
+  console.error('Fix the divergent label, or update META if META is wrong.')
+  process.exit(1)
+}
+
 console.log(`check-prompt-refs: OK (${pcKeys.size} pc keys, ${prompts.length} prompt templates, ${metaKeys.size} META keys, ${stepLabelsKeys.size} STEP_LABELS, ${apiTableSteps.size} api/chat.js table rows checked)`)
 
 // --- Helpers ---
