@@ -3,9 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 const INTRO_MSG = { role: 'assistant', content: 'Hi. I can help you with how Reimagine works. What would you like to know?' }
 
 // Mirror of META in src/App.jsx. The build-time invariant in
-// scripts/check-prompt-refs.mjs verifies every key here exists in META.
-// p9 and p10 deliberately share the same user-facing name; do not
-// deduplicate.
+// scripts/check-prompt-refs.mjs verifies every key here exists in META
+// AND that each STEP_LABELS value matches the corresponding META value.
 const STEP_LABELS = {
   welcome: 'Welcome',
   location: 'Location & Work',
@@ -26,8 +25,8 @@ const STEP_LABELS = {
   p7: 'Go-to-Market',
   p8: 'LinkedIn Remix',
   p_res: 'Resume Refresh',
-  p9: 'Your Playbook',
-  p10: 'Your Playbook',
+  p9: 'The Lingo',
+  p10: 'Interview Prep',
   complete: 'Complete',
   income: 'Income Now',
   op: 'Upload a Live Opportunity',

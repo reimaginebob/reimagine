@@ -6,7 +6,7 @@
 
 const SHEET_NAME = 'Reimagine Corrections Log'
 // Sheet ID: open the Reimagine Corrections Log sheet, copy the long string between /d/ and /edit in the URL
-const SHEET_ID = 'PASTE_SHEET_ID_HERE'
+const SHEET_ID = '1EI62uq_A4HQOLwMuU9W4TTiHayD0ugT0LAz-cZk451c'
 
 function doPost(e) {
   try {

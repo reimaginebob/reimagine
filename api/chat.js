@@ -69,8 +69,8 @@ When you include NAVIGATE: in your reply, the value MUST be one of the step ids 
 | p7 | Go-to-Market (Phase 4, Find Your Market) |
 | p8 | LinkedIn Remix (Phase 5, Get Ready) |
 | p_res | Resume Refresh (Phase 5, Get Ready) |
-| p9 | Your Playbook (Phase 5, Get Ready) |
-| p10 | Your Playbook (Phase 5, Get Ready) |
+| p9 | The Lingo (Phase 5, Get Ready) |
+| p10 | Interview Prep (Phase 5, Get Ready) |
 | complete | Complete |
 | income | Income Now (post-completion bonus) |
 | op | Upload a Live Opportunity (post-completion bonus) |
