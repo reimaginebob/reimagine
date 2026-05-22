@@ -1,87 +1,217 @@
-# Reimagine — Project Context for Claude Code
+# Reimagine — Project Guide for Claude Code
 
-This file gives Claude Code the context it needs to work on Reimagine effectively. Read this on every session start.
+This file is loaded automatically when Claude Code works in this repo. It captures the project-level conventions that briefs in `Output/handoff/` assume. Read it first on every session.
 
-## What Reimagine is
+---
 
-Reimagine is a career strategy tool by Career Club, built on Bob Goodwin's book *Making Your Own Weather*. Single-page React app, deployed to Vercel at reimagine2-two.vercel.app, currently in active beta with a small user pool.
+## 1. What this is
 
-The app walks a user through 7 phases (Orientation, Know Your Value, Explore Options, Tell Your Story, Find Your Market, Get Ready, Income Now) using LLM-generated outputs at each step. The core file is `src/App.jsx`, which contains the entire application — all components, all prompt templates (the `P` object), all state management — in one ~1,700-line file.
+Reimagine is a career-strategy tool in beta with ~20 users (as of May 2026). It walks users through a multi-step orientation, then produces a per-direction playbook covering Personal Brand, Role Options, Bridge Story, The Lingo, Interview Prep, Resume Refresh, LinkedIn Remix, Go-to-Market, and Income Now. The product is React + Vite, deployed on Vercel, with Anthropic API for prompt-driven generation, Neon Postgres + Resend for magic-link auth and cross-device profile sync, and Apps Script integrations for signup and corrections logging.
 
-## Stack
+The product owner is Bob Goodwin (Career Club / Decima LLC). Strategic positioning leans on Bob's book *Making Your Own Weather* (the Four Cs and Five Ps frameworks).
 
-- React 18 + Vite 5
-- Single source file: `src/App.jsx`
-- Demo data: `src/demoData.js`
-- Test data: `src/testData.js`
-- LLM calls go through `/api/claude` (Vercel serverless function, not in this repo unless you've added it)
-- File extraction via `mammoth` (docx) and `pdf.js` (pdf)
-- Icons via `lucide-react`
+Repo: `github.com/reimaginebob/reimagine` → Vercel auto-deploys to `reimagine2-two.vercel.app`.
 
-## Commands
+---
 
-- `npm install` — install dependencies (one-time, after clone)
-- `npm run dev` — local dev server with hot reload
-- `npm run build` — production build via Vite. Must succeed before any commit. The build catches truncated-file syntax errors that copy/paste workflows can introduce.
-- `npm run preview` — preview the production build locally
+## 2. The operating model
 
-## Critical conventions
+Cowork-Claude (Bob's strategic thought partner) drafts implementation briefs at `Output/handoff/` and hands them to Claude Code. Code runs premise verification, applies the changes, and ships the PR. Bob is the source of truth for product decisions; Code is the source of truth for "what currently ships."
 
-### Voice rules (apply to all prompt edits in `src/App.jsx`)
+Every brief follows the format described in section 4. Every PR follows the gh flow described in section 9.
 
-The system prompt (`SYS`) and per-step prompts (`P.p1` through `P.p11`, `P.income`, `P.p_res`) follow strict voice rules. When editing any prompt:
+---
 
-- **No em dashes.** Use commas, periods, colons, or parentheses. The rule is absolute and applies to examples and quoted lines inside prompts. UI text (dropdown labels, placeholders) is currently exempt — do not silently clean those without flagging.
-- **No logic-flip cadence.** Banned constructions: "you do not just X, you Y," "you build X, not Y," "this is not Z, it is W," "they are not evaluating A, they are picturing B." If a sentence pivots through a negation to land its point, rewrite from the positive side.
-- **No AI words.** Banned list includes (non-exhaustive): "exactly," "straightforward," "unlock," "leverage," "utilize," "robust," "seamless," "game-changer," "architecting," "ecosystem," "synergy," "platform" (metaphorical), "space" (meaning industry), "deliberate transition," "navigate," "journey," "transformative," "impactful," "passionate about," "results-driven," "lean in," "double down," "circle back."
-- **No intensifier words.** "genuinely," "honestly," "truly," "real" (as amplifier), "really," "actually," "absolutely," "incredibly," "extremely," "deeply," "uniquely" (when used as filler). If a sentence needs an intensifier, rewrite it.
-- **Second person.** "you," "your" — never third person about the user.
+## 3. Voice rules (load-bearing)
 
-### File integrity (load-bearing)
+Reimagine's voice is the load-bearing differentiator. These rules apply to every user-facing surface: prompts, UI copy, the user guide, emails, marketing.
 
-- Before editing `src/App.jsx`, run `wc -l src/App.jsx` and check the last 200 bytes end with proper closing tags (typically `</>}` then `}`). If the file ends mid-tag, it's truncated — do not edit.
-- After editing, repeat the check. The line count should match expected delta from the change.
-- After editing, ALWAYS run `npm run build` and confirm it succeeds before committing. Vite catches mid-tag truncation that visual review would miss.
-- A 2026-04-30 truncation incident broke production for ~30 minutes. The integrity check costs five seconds.
+### The principles
 
-### Push workflow
+- **Mirror, not cheerleader.** Reflect what's in the user's inputs. Never flatter. Never pre-judge value. Never assert the user is underrecognized before evidence.
+- **Translation, not praise.** Every analytical claim is a translation move (where this capability transfers), not a characterization (what trait you have). The user comes to Reimagine already feeling capable; the value-add is showing where capability transfers, not naming what they already know about themselves.
+- **Lead with the human.** User-facing copy answers "how does this help the person in their job search?" before describing what the feature does.
+- **Plain language, not jargon.** Use the plainest word users know ("chat" not "helper"). Brand UI labels are fine; internal vocabulary should not become how we refer to features in copy.
+- **Surface the insight.** Every analytical chunk uses visual hierarchy (bolded headline + supporting prose, bullets, callouts) so a 7-second scan catches the insight. Wall-of-text paragraphs that bury the punchline are a delight-killer.
+- **Through-line first.** Find the FORCE that integrates the user's choices, not just the pattern. Pattern + source is still failure mode. Signal of done: recognition.
+- **Epistemic humility.** Every interpretive claim is a hypothesis by default. Declarative claims are earned only when the evidence is named in the same paragraph.
+- **Positive framing.** Frame every step as a gain. Never set up the user's current state as deficient or in need of correction.
+- **The user is not a problem to solve.** Job search is heavy enough. Reimagine should be the lightest moment of the user's week.
 
-- Direct push to `main` is the default. Vercel auto-deploys.
-- Do not skip pre-commit hooks unless explicitly instructed.
-- Commit messages: descriptive, include why (not just what), use the imperative mood ("Add company dossier fields" not "Added"). Bob does not require Co-Authored-By attribution; include it only if explicitly requested.
+### Banned constructions
 
-### Beta-window discipline
+These are refused in shipped output. The voice gate at `scripts/check-voice.mjs` catches the patterns that have shown up historically.
 
-Reimagine is in active beta feedback collection. Bob ships changes in deliberate batches, not continuously, so user feedback can be attributed to specific builds. When given an opportunistic improvement to make outside the current task scope, surface it as a suggestion rather than implementing it inline.
+- **Em dashes** in user-facing copy, prompts, and UI strings. Allowed in briefs' narrative prose and internal docs. Deterministic stripper `stripEmDashes` cleans LLM output at runtime.
+- **Logic-flip cadence:** "you do not just X, you Y," "X is not Y, it is Z," "it is not a Z, it is a W," "the next move is less about X and more about Y."
+- **Comparative standing:** "Most people," "many candidates," "the average professional," "most hiring managers do not see X," "where others settle for X."
+- **AI-coaching register:** "worth sitting with," "sit with this," "let that land," "lean into," "hold space for," "get curious about," "notice what comes up," "take a moment to consider," "trust the process," "honor your journey."
+- **AI meta-narration:** "Based on your inputs," "Let me look at," "I'll now produce," "I need to search for." Deterministic stripper `stripMetaNarration` cleans these.
+- **Sincerity qualifiers:** "the honest answer," "frankly," "candidly," "to be honest."
+- **"Rooms" as a synonym for conversations or situations.** Specific labels ("panel opener," "networking coffee") are fine; abstract "room" is not.
+- **Psychotherapy pull-language:** "pulling at you," "weighing on you," "sit with that." Replace with permission-giving register.
+- **Typology labels:** "builder," "operator," "integrator," "strategist," "connector," "hunter," "farmer," "architect," "fixer," "closer."
+- **Slogan-cadence closers:** "X is the engine. Y is the fuel." Inspirational-poster paired sentences.
 
-## Architecture references
+### Enforcement
 
-- **`docs/architecture/underlying-drivers.md`** — scoped (not-yet-built) architecture for replacing the values capture step with a multi-source structured assessment system (Affintus structured ingest + Schwartz PVQ-21 + narrative inference + validation loop). Read Part 1 (V2 Coordination) before doing any V2 work — it specifies what NOT to modify so this future initiative has clean ground when it starts. In particular: do not redesign the values step UX or schema, do not change Affintus referral copy or prominence, do not embed any structured values assessment, do not redesign assessment ingestion logic.
+Voice rules need DETECTION, not just instruction. Three layers:
 
-## Project layout
+1. **In-prompt instructions** in every Clarity-producing prompt (the P object in `src/App.jsx`). Necessary but not sufficient — the model is probabilistic.
+2. **Runtime voice gate** at `scripts/check-voice.mjs` with HARD_PATTERNS that block the build if a shipped output contains a banned construction. Voice-allow regions in App.jsx are documented exceptions; count is watched (current ~12, trending up is a warning sign).
+3. **Deterministic post-processors** like `stripEmDashes` and `stripMetaNarration` that clean output regardless of model compliance. Reach for these when a pattern is model-robust (em dashes are; the model regenerates them even when told not to).
+
+When proposing a voice fix, pair the instruction with a detection or stripping mechanism. "Just add an instruction to the prompt" is a draft, not a fix.
+
+---
+
+## 4. The brief format
+
+Every implementation brief lives at `Output/handoff/YYYY-MM-DD_short-name.md` and follows this shape:
+
+- **Date / Type / Source.** What this is and where it came from.
+- **Pre-flight discovery (scope correction).** What the brief's author verified against current code before drafting. Names what was confirmed already-shipped, retired, or differently-scoped than the brief's original framing implied. Audit / sibling / carry-forward briefs are HYPOTHESES; verify before drafting.
+- **Files affected.** Table of file → change.
+- **Specific changes.** Numbered changes, each with the exact text to replace or insert. Verbatim quotes of existing code so Code can locate the change unambiguously.
+- **Voice rules on inserted text.** Confirm the inserted text passes voice rules. No em dashes in inserted prompt or UI text.
+- **Static gates.** What the build must pass post-change: `npm run build` clean, `check-voice` 0/0, `check-prompt-refs` 0, App.jsx EOF integrity preserved, diff scope limited to named files.
+- **Runtime gate (post-merge, optional).** What Bob (or Cowork-Claude) verifies in production after merge.
+- **Constraints.** Single PR, no effort estimates, PR title format.
+- **Out of scope.** What this brief does NOT touch.
+- **Commit message.** Pre-written commit message Code uses.
+- **Push.** Always direct to `main`; Vercel auto-deploys.
+- **Implementer's checklist.** Numbered steps Code follows: pull, premise-verify, apply changes, run gates, changelog, push, report PR URL + merge SHA.
+
+### Premise verification
+
+Every brief requires Code to verify the brief's premise against current code BEFORE applying changes. If a brief says "P.p11 contains the EVIDENCE-BASED CONFIDENCE block at line X," Code greps for the block. If it's missing or has drifted, Code STOPs and surfaces back to Cowork-Claude rather than proceeding on assumed state.
+
+The brief's "Pre-flight discovery" section captures what Cowork-Claude already verified. The implementer's checklist captures what Code re-verifies before applying changes. Both layers exist because briefs run on snapshots and the codebase moves.
+
+### Substance-grep, not just named-block-existence
+
+When verifying a brief's premise, grep for the SUBSTANCE the brief proposes to add, not just the named block it lands in. Example: a brief proposing "add a per-path adaptation block to p11" might find the named block exists but the substance (FAMILIAR GROUND / INDUSTRY INSIDER / WORK THAT MATTERS branching) is already present under different scaffolding. The brief is reshaping, not adding; scope, title, and PR description change accordingly.
+
+Briefs that come back at 25-80% of their original scope after pre-flight are common (today's audit closeout averaged ~50%). This is not a failure of the audit; it's the discipline working.
+
+---
+
+## 5. Prompt builders (the P object)
+
+`src/App.jsx` contains the P object: ~14 prompt builders for each generation step. Most are single-line template literals at lines ~1110-1120. The current ID set:
+
+- `p1`: Resume Analysis
+- `p2`: Wiring & Compass (assessment synthesis)
+- `p3`: Personal Brand synthesis (Golden Thread + Triangulation + Where This Transfers + Dimensional Fit + closing co-author invitation)
+- `p4`: Wide View (lane options: FAMILIAR GROUND / INDUSTRY INSIDER / WORK THAT MATTERS)
+- `p5`: Deep Dive (per-role analysis)
+- `p6`: Bridge Story / Tell Me About Yourself
+- `p7`: Go-to-Market (target companies + outreach)
+- `p8`: LinkedIn Remix (Headline + About + Experience Reframe)
+- `p9`: The Lingo (sector vocabulary + thought leaders + credibility move)
+- `p10`: **RETIRED** — single-line stub redirecting to p11
+- `p11`: Interview Prep (top questions with STAR breakdown + framing recommendations)
+- `p_res`: Resume Refresh
+- `income`: Income Now
+- `op`: Live Opportunity Playbook (post-completion bonus)
+- `skillsExtract`: Skills capture from resume + LinkedIn (orientation surface)
+
+### Conventions inside prompt builders
+
+- Every Clarity-producing prompt carries a RAW SIGNALS block injecting `pr.values`, `pr.passions`, `pr.rep.*`, `pr.lifeEvents`, and (where present) `pr.skills` and `pr.assess`. The block uses canonical field labels (`VALUES`, `PASSIONS AND CAUSES`, `PRAISE THEY RECEIVE`, `WHO CALLS THEM IN EMERGENCY`, `HOW PEOPLE DESCRIBE THEIR SUPERPOWER`, `OTHER REPUTATION DATA`, `LIFE-SHAPING EXPERIENCES`). Sub-bullet structures and renamed labels are drift.
+- Every Clarity-producing prompt carries the standard voice rule stack: EVIDENCE-BASED CONFIDENCE, EVIDENCE-ANCHORED PATTERNS, NO TYPOLOGY LABELS, NO AI-COACHING REGISTER, EPISTEMIC CALIBRATION, REFUSE overclaim patterns, TRANSLATION NOT PRAISE, LOGIC-FLIP CADENCE refusal.
+- Per-path adaptation (FG / II / WTM branching) is implemented in p4, p5, p11 (STAR stories), p_res (Repositioned Summary + Key Accomplishments), and parts of p6 and p7. p8 added per-path adaptation 2026-05-21. p9 deliberately does not branch by lane (it's a reference guide, not a synthesis surface).
+- App.jsx EOF must remain intact. Always verify line count and final closing tag/brace before AND after every edit. Edit tool may truncate large files; for whole-file changes use git clone + Python rewrite.
+
+---
+
+## 6. The META / STEP_LABELS / api/chat.js invariant
+
+Three surfaces hold step-name labels and must stay in sync:
+
+- `src/App.jsx` `META` (line ~1132): canonical step-name map for sidebar display.
+- `src/components/Chat.jsx` `STEP_LABELS`: chat helper's navigation target table.
+- `api/chat.js` step-id table: chat helper LLM's reference for picking NAVIGATE intents.
+
+`scripts/check-prompt-refs.mjs` enforces a build-time invariant:
+
+- **ID-equality check** (existing): every key in STEP_LABELS and the api/chat.js table must exist in META. ID drift fails the build.
+- **Label-equality check** (added 2026-05-21 via the label-resync PR): for each shared key, STEP_LABELS / api-table label must match META. Label drift fails the build. The api-table check strips trailing parentheticals like `(Phase 5, Get Ready)` and `(post-completion bonus)`.
+
+When adding a new step or renaming an existing one, all three surfaces must be updated in the same PR. The build will catch drift; do not rely on manual cross-checking.
+
+---
+
+## 7. File layout
 
 ```
-reimagine/
-├── CLAUDE.md                              ← this file
-├── package.json
-├── vite.config.js
-├── vercel.json
-├── docs/
-│   └── architecture/
-│       └── underlying-drivers.md          ← future work guardrails
-├── public/                                 ← static assets
-└── src/
-    ├── App.jsx                             ← main file, ~1,700 lines
-    ├── demoData.js                         ← Sarah Chen demo profile
-    ├── testData.js                         ← test profile
-    └── main.jsx                            ← React entry point
+/                                  repo root
+  CLAUDE.md                        this file
+  package.json                     build pipeline + npm scripts
+  vite.config.js
+  index.html
+  
+  src/
+    App.jsx                        main app, all prompt builders, META, voice-allow regions
+    main.jsx                       entry
+    components/
+      Chat.jsx                     chat helper UI + STEP_LABELS
+      CookieBanner.jsx
+      ... (extracted React components)
+    voice-patterns.mjs             HARD_PATTERNS used by the voice gate
+    data/
+      user-guide/                  user-guide markdown chapters (repo source)
+    config/
+    ...
+  
+  api/                             Vercel functions
+    claude.js                      Anthropic API proxy + voice gate enforcement
+    chat.js                        chat helper LLM + step-id table
+    auth/, account/, profile/      magic-link auth + profile sync
+    me.js
+    _lib/
+  
+  scripts/
+    check-voice.mjs                voice gate (build-time, also runtime via api/claude.js)
+    check-prompt-refs.mjs          META/STEP_LABELS/api-table invariant
+    build-user-guide.mjs           regenerates user-guide artifacts
+    reimagine-corrections-log.gs   Apps Script for corrections logging
+    ... other build scripts
+  
+  migrations/                      Postgres schema (Neon)
+  db/migrations/                   alternate migrations folder (known tech debt)
+  
+  Output/                          (Cowork-Claude's workspace, not part of build)
+    handoff/                       implementation briefs YYYY-MM-DD_short-name.md
+    docs/
+      reimagine-user-guide/        canonical user guide source (workspace > repo)
+      reimagine-system-documentation/  internal system docs incl. Ch. 11 changelog
+    audits/                        weekly audit packets
+    briefs/                        broader product briefs
 ```
 
-## When in doubt
+Two notes on drift:
 
-Ask. Bob would rather answer a clarifying question than have you guess on a load-bearing decision. Especially around prompt voice, beta-window timing, and anything that touches the values step or assessment ingestion (those two areas have a future initiative scoped against them).
+- The workspace user guide (`Output/docs/reimagine-user-guide/`) and the repo copy (`src/data/user-guide/`) drift. Every workspace-to-repo sync risks re-introducing voice issues. Flag in sync briefs.
+- Two migration folders exist (`db/migrations/` and `migrations/`). Known tech debt; do not introduce more migrations to the wrong folder. Verify which folder current production reads from before adding.
 
-## GitHub operations
+---
+
+## 8. Standing engineering rules
+
+- **Pull before editing.** Workspace copies drift from main. Always sync before editing source files.
+- **App.jsx integrity.** Check line count and EOF closure before AND after every edit. Never ship a file that ends mid-tag.
+- **No effort estimates.** Engineer-days, weeks, hours, t-shirt sizes are not useful. Describe scope in terms of what it touches (files, surfaces, invariants).
+- **Em dash discipline.** Scrub em dashes from inserted prompt and UI text in briefs. Briefs' narrative prose can use them.
+- **Batch updates during beta.** Don't push improvements continuously. Queue and ship in batches so user feedback maps to known builds.
+- **Use user-facing names in chat with Bob.** "LinkedIn Remix" not "p8." "The Lingo" not "p9." Briefs, code prompts, and PR titles use internal IDs.
+- **Apps Script redeploy: update the EXISTING deployment.** "New deployment" mints a new URL and silently breaks the signup pipeline.
+- **Apps Script POST CORS pattern.** Browser→Apps Script POSTs must omit BOTH fetch mode key AND Content-Type header; either alone triggers preflight that silently drops.
+- **Resend SDK silent-error pattern.** Resend SDK returns `{data, error}` instead of throwing. Always unpack and throw on error or sends fail silently behind a fake 200.
+
+---
+
+## 9. GitHub operations (gh flow)
 
 For pull request operations in this repo (open, watch CI, merge), use the `gh` CLI directly via Bash. `gh` was installed via `winget install GitHub.cli` and authenticated via `gh auth login` on 2026-05-20 — auth persists across sessions under the current Windows user.
 
@@ -108,3 +238,52 @@ If `gh` is not found on first invocation, this is the fix — not a re-install.
 - Skip CI watching. Always confirm checks pass before merging.
 
 If `gh auth status` ever returns "not logged in" (e.g., after a credential expiry), surface that to the user and ask them to re-run `gh auth login` rather than falling back to the URL-paste pattern.
+
+---
+
+## 10. Product north star
+
+Delight the user; word-of-mouth is the engine. Specific delight dimensions:
+
+- **Recognition.** The user reads themselves and thinks "yes, that's me."
+- **Agency.** Information is on the table; the user decides.
+- **Specificity.** The output is precise to this user, not boilerplate that could lift onto another profile.
+- **Surprise.** Reimagine surfaces something the user knows but couldn't articulate.
+- **Honesty.** Reimagine tells the truth, including when inputs are thin. Honest absence beats fabricated inclusion.
+- **Identity confirmation followed by movement.** The user feels seen, then moved forward — not stuck reflecting.
+
+When CTO / CPO / Consumer Insights / Marketing / Design-UX roles disagree internally, delight is the tiebreaker.
+
+---
+
+## 11. Known gaps and deferrals
+
+- **Mobile responsiveness.** Reimagine is desktop-first with hardcoded widths. Portrait phone view is broken; landscape works "good enough." Every brief notes mobile implications until a Complete Mobile Responsiveness brief lands.
+- **V2 launch bundle.** Accounts, paywall, referral, analytics, infrastructure, support — bundled launch planned. Brief at `Output/briefs/2026-05-04_reimagine-launch-plan.md`.
+- **MYOW corpus injection** into Personal Brand synthesis. Open verification gate from the KYV consolidation work.
+- **No BLS/Lightcast labor-market integration.** Intentional. Anti-linear by design. Native LLM training produces both linear and lateral answers.
+- **Skills architecture is LLM-only.** No canonical taxonomy layer, no SkillNer, no Lightcast Open Skills IDs, no O*NET joins. Revisit only for B2B/TA features needing exact-match joins.
+
+---
+
+## 12. Where the source of truth lives for specific topics
+
+- **Audit findings:** `Output/audits/YYYY-MM-DD_pm-packet.md` and the associated `_findings.json` sidecar.
+- **Implementation briefs:** `Output/handoff/`.
+- **User-facing copy authority:** `Output/docs/reimagine-user-guide/` (canonical), synced to `src/data/user-guide/`.
+- **System architecture docs:** `Output/docs/reimagine-system-documentation/`. Chapter 11 is the changelog updated on every infrastructure-touching brief.
+- **Voice patterns:** `src/voice-patterns.mjs` (HARD_PATTERNS) and `scripts/check-voice.mjs` (the gate).
+- **Step labels & invariants:** `META` in `src/App.jsx`, `STEP_LABELS` in `src/components/Chat.jsx`, step-id table in `api/chat.js`, invariant enforced by `scripts/check-prompt-refs.mjs`.
+
+---
+
+## 13. Quick reference: things to never do
+
+- Do not invent values. If a placeholder needs a real value (Apps Script SHEET_ID, env var, etc.) and the real value is not findable, surface back to Bob rather than commit a placeholder.
+- Do not auto-update `Output/audits/_status.json`. That file is Bob's via the dashboard.
+- Do not bypass the voice gate. The `voice-allow` regions are documented exceptions; do not silently add more.
+- Do not bundle unrelated changes into one PR. Batch updates during beta are about cadence, not about cramming.
+- Do not include time or effort estimates in briefs or PR descriptions.
+- Do not ship improvements directly to beta users between feedback cycles; the batch is what shipped between cycles.
+- Do not call features by internal IDs in user-facing copy. "Interview Prep" not "p11." "The Lingo" not "p9."
+- Do not retain placeholder text in shipped files. If a brief leaves an interactive choice for Code, surface it back rather than guessing.
