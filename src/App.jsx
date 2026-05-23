@@ -6,6 +6,7 @@ import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectMemorabilityViolation, detectDimensionalFitRegression } from "./voice-patterns.mjs"
 import Chat from "./components/Chat"
+import SavedPlaybooks from "./components/SavedPlaybooks"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
 import QuickStart from "./QuickStart"
@@ -1379,6 +1380,10 @@ const normalizeWork = (p) => {
 const V1_STEPS = new Set(ALL)
 const ROLE_SUBMODULES = ['p5','p6','p7','p8','p9','p10','p11','p_res','income']
 const POST_P5_SUBMODULES = ROLE_SUBMODULES.filter(k=>k!=='p5')
+// Cap on the user's saved playbooks set. One shared limit across Door 1 (explicit Save)
+// and Door 2 (auto-save on JD upload). Future paid-tier work becomes a per-user value
+// loaded from the user record (V2 launch bundle); the constant is the seam.
+const SAVED_PLAYBOOKS_CAP = 10
 const LANE_LABELS = {familiar:'Familiar Ground',insider:'Industry Insider',wtm:'Work That Matters',specific:'Specific Role'}
 const laneLabelFor = (ln) => LANE_LABELS[ln]||'Specific Role'
 const normalizeProfileState = (loaded) => {
@@ -2236,6 +2241,14 @@ export default function PivotEngine(){
   const[generatingSection,setGeneratingSection]=useState(null)
   const[sectionErrors,setSectionErrors]=useState({})
   const[currentRoleSaved,setCurrentRoleSaved]=useState(false)
+  // Saved playbooks set. Top-level state, hydrated from pe_saved_v1 (separate
+  // from the live-state pe_v4 key so reset() does not clear saved work).
+  // currentRoleInSavedSet + currentSavedSlotIdRef track whether the live role
+  // is a saved record so generate() can write through to that slot.
+  const[savedPlaybooks,setSavedPlaybooks]=useState([])
+  const[currentRoleInSavedSet,setCurrentRoleInSavedSet]=useState(false)
+  const[atCapModal,setAtCapModal]=useState(null)
+  const currentSavedSlotIdRef=useRef(null)
   // Bridge Story Phase 2 state. regeneratingSlot/slotErrors drive the
   // per-slot "What did we get wrong?" affordance. lastSaveAt + saveStatus
   // drive the Saved indicator in the BridgeStoryView header. toast +
@@ -2343,6 +2356,20 @@ export default function PivotEngine(){
   },[magicLinkSentTo])
 
   useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}},[])
+  // Hydrate the saved playbooks set from its own localStorage key on mount.
+  // Demo mode skips persistence; test mode wipes the key so test sessions
+  // start clean (mirrors the pe_v4 gating one line up).
+  useEffect(()=>{
+    if(typeof window==='undefined')return
+    if(isDemo)return
+    if(isTest){try{localStorage.removeItem('pe_saved_v1')}catch{};return}
+    try{
+      const raw=localStorage.getItem('pe_saved_v1')
+      if(!raw)return
+      const data=JSON.parse(raw)
+      if(Array.isArray(data))setSavedPlaybooks(data)
+    }catch{}
+  },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
   useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(x.didMigrate)setMigratedFromPreV1(true)}else{try{const blob=localStorage.getItem('pe_v4');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
   useEffect(()=>{if(!signedInUser)return;const needsPrivacy=signedInUser.privacy_version!=null&&signedInUser.privacy_version!==PRIVACY_VERSION_MATERIAL;const needsTerms=signedInUser.terms_version!=null&&signedInUser.terms_version!==TOS_VERSION_MATERIAL;if(needsPrivacy||needsTerms)setReaccept({needsPrivacyReaccept:needsPrivacy,needsTermsReaccept:needsTerms})},[signedInUser])
@@ -2409,6 +2436,16 @@ export default function PivotEngine(){
       setSaveStatus('saved')
     }catch{setSaveStatus('error')}
   };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,signedInUser,isDemo,isTest])
+  // Persist savedPlaybooks to its own localStorage key on every change.
+  // No debounce: saved-set writes are infrequent (explicit save, auto-save on
+  // JD upload, delete, write-through after section generation) compared to
+  // the live-state autosave above which fires on every render.
+  useEffect(()=>{
+    if(typeof window==='undefined')return
+    if(isDemo)return
+    if(isTest)return
+    try{localStorage.setItem('pe_saved_v1',JSON.stringify(savedPlaybooks))}catch{}
+  },[savedPlaybooks,isDemo,isTest])
   useEffect(()=>{
     const sectionName=META[step]||'Output'
     const su=signedInUser||{}
@@ -2473,6 +2510,14 @@ export default function PivotEngine(){
     if(downstream.includes('deepOpts'))setDeepOpts(['','',''])
     if(downstream.includes('chosen'))setChosen('')
     setDone(d=>d.filter(s=>!downstream.includes(s)))
+    // If any role-level submodule (or op) is in the cleared downstream, the
+    // current role's saved-slot write-through is no longer valid against the
+    // new upstream snapshot. Clear the ref so further generations create fresh
+    // state rather than overwriting a stale saved slot.
+    if(downstream.some(k=>ROLE_SUBMODULES.includes(k)||k==='op')){
+      currentSavedSlotIdRef.current=null
+      setCurrentRoleInSavedSet(false)
+    }
   }
   const INVALIDATION_MESSAGES={
     p1:'Cleared your Personal Brand, role options, and any playbook work so they match the new resume analysis.',
@@ -2553,7 +2598,7 @@ export default function PivotEngine(){
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
     logCorrection(correction)
   }
-  const generate=async(key,fn,opts={})=>{if(generatingSection)return;track('generation_started',{step:key});window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}}catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput(key)}}
+  const generate=async(key,fn,opts={})=>{if(generatingSection)return;track('generation_started',{step:key});window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}if(currentSavedSlotIdRef.current&&(ROLE_SUBMODULES.includes(key)||key==='op')){const slotId=currentSavedSlotIdRef.current;setSavedPlaybooks(prev=>prev.map(rec=>{if(rec.id!==slotId)return rec;const nextOutputs={...rec.outputs,[key]:r};const nextDone=rec.done.includes(key)?rec.done:[...rec.done,key];return{...rec,outputs:nextOutputs,done:nextDone,updatedAt:new Date().toISOString()}}))}}catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput(key)}}
   // Brief 2 (KYV consolidation): chain runner for the Phase 1 collapse.
   // p1 -> p2 -> p3 run sequentially in a single user-visible wait. Outputs
   // are threaded through local variables (NOT read back from React state)
@@ -2794,8 +2839,8 @@ export default function PivotEngine(){
       alert('Could not delete your account: '+(err.message||'unknown error'))
     }
   }
-  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setSelectedLane('');setExploredRoleTitles([]);setCurrentRoleSaved(false);setRoleSwitchModal(null);setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})}}
-  const exportProfile=()=>{const data={step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
+  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setSelectedLane('');setExploredRoleTitles([]);setCurrentRoleSaved(false);setRoleSwitchModal(null);setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''});setCurrentRoleInSavedSet(false);currentSavedSlotIdRef.current=null}}
+  const exportProfile=()=>{const data={step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
   const downloadAllMarkdown=()=>{
     const today=new Date().toISOString().slice(0,10)
     const rawFirstLine=(profile.resume||'').split(/\n/).find(l=>l.trim())||''
@@ -2892,12 +2937,95 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const w=window.open('','_blank')
     if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),500)}
   };
-  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);if(data.selectedLane!==undefined)setSelectedLane(data.selectedLane);if(Array.isArray(data.exploredRoleTitles))setExploredRoleTitles(data.exploredRoleTitles);const lastStep=(typeof data.step==='string'&&data.step)?data.step:(data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome');setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
+  const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);if(data.selectedLane!==undefined)setSelectedLane(data.selectedLane);if(Array.isArray(data.exploredRoleTitles))setExploredRoleTitles(data.exploredRoleTitles);if(Array.isArray(data.savedPlaybooks))setSavedPlaybooks(data.savedPlaybooks);const lastStep=(typeof data.step==='string'&&data.step)?data.step:(data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome');setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
   const prog=INPUT_PHASE_STEPS.has(step)?Math.round((ALL.indexOf(step)/ALL.indexOf('p3'))*100):null
   const pc={loc:{...profile.loc,work:Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||'')},resume:profile.resume,linkedin:profile.linkedin,lifeEvents:profile.lifeEvents,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep,frameworks:profile.frameworks}
   const recordExploredRole=(title,lane)=>setExploredRoleTitles(prev=>{const ts=new Date().toISOString();const i=prev.findIndex(r=>r.title===title);if(i>=0){const n=[...prev];n[i]={...n[i],lane,lastExplored:ts};return n}return[...prev,{title,lane,lastExplored:ts}].slice(-20)})
+  // Saved playbooks: record builders + save/delete helpers + restore.
+  // Door 1 records hold the ROLE_SUBMODULES subset of outputs/done/feedback
+  // plus a snapshot of upstream p1/p2/p3 so a restored playbook is self-
+  // contained against later p3 regeneration. Door 2 records hold only op
+  // (plus its done/feedback entry), the JD blob, and the same upstream
+  // snapshot. See docs/saved-playbooks-pr1-brief.md for the design.
+  const newSavedId=()=>`sp_${Date.now()}_${Math.random().toString(36).slice(2,8)}`
+  const buildUpstreamSnapshot=()=>({p1:outputs.p1||'',p2:outputs.p2||'',p3:outputs.p3||''})
+  const buildDoor1Record=(id,title,lane)=>{
+    const ts=new Date().toISOString()
+    const roleOutputs={}
+    for(const k of ROLE_SUBMODULES)roleOutputs[k]=outputs[k]||''
+    const roleDone=done.filter(s=>ROLE_SUBMODULES.includes(s))
+    const roleFeedback={}
+    for(const k of ROLE_SUBMODULES)roleFeedback[k]=feedback[k]||''
+    return{id,title,lane,source:'door1',createdAt:ts,updatedAt:ts,outputs:roleOutputs,done:roleDone,feedback:roleFeedback,upstream:buildUpstreamSnapshot()}
+  }
+  const buildDoor2Record=(id,title,jdText)=>{
+    const ts=new Date().toISOString()
+    return{id,title,lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||''},upstream:buildUpstreamSnapshot(),jd:jdText||''}
+  }
+  const saveCurrentDoor1=()=>{
+    const id=newSavedId()
+    const rec=buildDoor1Record(id,chosen,selectedLane)
+    setSavedPlaybooks(prev=>[...prev,rec])
+    setCurrentRoleInSavedSet(true)
+    currentSavedSlotIdRef.current=id
+    setToast('Saved to Your playbooks.')
+    setTimeout(()=>setToast(t=>t==='Saved to Your playbooks.'?null:t),3000)
+  }
+  const handleSaveDoor1Click=()=>{
+    if(savedPlaybooks.length>=SAVED_PLAYBOOKS_CAP){
+      setAtCapModal({source:'door1',proceed:()=>saveCurrentDoor1()})
+      return
+    }
+    saveCurrentDoor1()
+  }
+  const deleteFromSavedSet=(id)=>{
+    setSavedPlaybooks(prev=>prev.filter(r=>r.id!==id))
+    if(currentSavedSlotIdRef.current===id){
+      currentSavedSlotIdRef.current=null
+      setCurrentRoleInSavedSet(false)
+    }
+  }
+  // Atomic restore. Writes outputs/done/feedback/chosen/selectedLane/step from
+  // the saved record without triggering any generation. Sets the in-set flag
+  // and tracks the slot id so subsequent section builds write through. Upstream
+  // p1/p2/p3 are restored from the snapshot so newly generated sections after
+  // restore stay consistent with the playbook's original Personal Brand
+  // context, regardless of what the user's current live p3 says.
+  const restoreFromSavedSlot=(rec)=>{
+    setOutputs(o=>{
+      const u={...o}
+      for(const k of ROLE_SUBMODULES)u[k]=(rec.outputs&&rec.outputs[k])||''
+      if(rec.source==='door2')u.op=(rec.outputs&&rec.outputs.op)||''
+      if(rec.upstream){
+        if(rec.upstream.p1)u.p1=rec.upstream.p1
+        if(rec.upstream.p2)u.p2=rec.upstream.p2
+        if(rec.upstream.p3)u.p3=rec.upstream.p3
+      }
+      return u
+    })
+    setDone(d=>{
+      const nonRole=d.filter(s=>!ROLE_SUBMODULES.includes(s)&&s!=='op')
+      return[...nonRole,...(rec.done||[])]
+    })
+    setFeedback(f=>{
+      const u={...f}
+      for(const k of ROLE_SUBMODULES)u[k]=(rec.feedback&&rec.feedback[k])||''
+      if(rec.source==='door2')u.op=(rec.feedback&&rec.feedback.op)||''
+      return u
+    })
+    setChosen(rec.title)
+    setSelectedLane(rec.lane)
+    setCurrentRoleSaved(true)
+    setCurrentRoleInSavedSet(true)
+    currentSavedSlotIdRef.current=rec.id
+    setStep(rec.source==='door2'?'op':'focus')
+    setToast(`Restored: ${rec.title}`)
+    setTimeout(()=>setToast(t=>t===`Restored: ${rec.title}`?null:t),3000)
+  }
   const applyRoleSwitchDoor1=(newRoleTitle,lane)=>{
     setCurrentRoleSaved(false)
+    setCurrentRoleInSavedSet(false)
+    currentSavedSlotIdRef.current=null
     setOutputs(o=>{const u={...o};for(const k of ROLE_SUBMODULES)u[k]='';return u})
     setDone(d=>d.filter(s=>!ROLE_SUBMODULES.includes(s)))
     setChosen(newRoleTitle)
@@ -2905,7 +3033,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     recordExploredRole(newRoleTitle,lane)
     setFeedback(f=>{const u={...f};for(const k of ROLE_SUBMODULES)u[k]='';return u})
   }
-  const applyRoleSwitchDoor2=(derivedTitle)=>{
+  const applyRoleSwitchDoor2=(derivedTitle,jdText)=>{
     setCurrentRoleSaved(false)
     setOutputs(o=>({...o,op:''}))
     setDone(d=>d.filter(s=>s!=='op'))
@@ -2913,18 +3041,55 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setSelectedLane('specific')
     recordExploredRole(derivedTitle,'specific')
     setFeedback(f=>({...f,op:''}))
+    // Door 2 auto-save: create the saved record at JD-upload time. If the saved
+    // set is at cap, open the at-cap modal with the proceed callback set to
+    // create the record once the user makes room. If the user cancels, the
+    // live state is still initialized (above) but no saved slot is created;
+    // the user sees the Opportunity Playbook page with unsaved work.
+    const createRecord=()=>{
+      const id=newSavedId()
+      const rec=buildDoor2Record(id,derivedTitle,jdText)
+      setSavedPlaybooks(prev=>[...prev,rec])
+      setCurrentRoleInSavedSet(true)
+      currentSavedSlotIdRef.current=id
+    }
+    if(savedPlaybooks.length>=SAVED_PLAYBOOKS_CAP){
+      setCurrentRoleInSavedSet(false)
+      currentSavedSlotIdRef.current=null
+      setAtCapModal({source:'door2',proceed:createRecord})
+    }else{
+      createRecord()
+    }
   }
   const deriveOpRoleTitle=(jd)=>{const ln=((jd||'').split(/\n/).find(l=>l.trim())||'').trim();return ln?ln.slice(0,80):'Job Description'}
   const maybeConfirmRoleSwitch=(run)=>{
     const postP5=POST_P5_SUBMODULES.some(k=>outputs[k]&&outputs[k].length>0)
-    if(postP5&&!currentRoleSaved)setRoleSwitchModal({run})
+    // Suppress the modal if the current role is already in the saved set
+    // (either via explicit Save to Your playbooks, or via Door 2 auto-save),
+    // OR via the legacy PDF-saved flag. Either path means the work is preserved.
+    const protectedRole=currentRoleSaved||currentRoleInSavedSet
+    if(postP5&&!protectedRole)setRoleSwitchModal({run})
     else run()
   }
   const switchToRole=(newRoleTitle,lane)=>maybeConfirmRoleSwitch(()=>{applyRoleSwitchDoor1(newRoleTitle,lane);advance('p4','focus');generate('p5',()=>P.p5(pc,outputs,newRoleTitle,laneLabelFor(lane)))})
   const reExploreRole=(newRoleTitle,lane)=>maybeConfirmRoleSwitch(()=>{applyRoleSwitchDoor1(newRoleTitle,lane);nav('focus');generate('p5',()=>P.p5(pc,outputs,newRoleTitle,laneLabelFor(lane)))})
-  const switchToOpRole=(jd,onReady)=>{const title=deriveOpRoleTitle(jd);maybeConfirmRoleSwitch(()=>{applyRoleSwitchDoor2(title);if(onReady)onReady(title)})}
+  const switchToOpRole=(jd,onReady)=>{const title=deriveOpRoleTitle(jd);maybeConfirmRoleSwitch(()=>{applyRoleSwitchDoor2(title,jd);if(onReady)onReady(title)})}
   const savePlaybookPdf=()=>{playbookSavePendingRef.current=true;afterSaveRunRef.current=null;window.print()}
   const roleSwitchSavePdf=()=>{const r=roleSwitchModal&&roleSwitchModal.run;afterSaveRunRef.current=r||null;playbookSavePendingRef.current=true;setRoleSwitchModal(null);setTimeout(()=>window.print(),50)}
+  // Primary action for the role-switch modal. Saves the current role to the
+  // playbooks set (via the at-cap modal if needed), then runs the queued
+  // role-switch action. If the user cancels at-cap, the role-switch is
+  // cancelled too (the queued run does not fire).
+  const roleSwitchSaveToSet=()=>{
+    const r=roleSwitchModal&&roleSwitchModal.run
+    setRoleSwitchModal(null)
+    if(savedPlaybooks.length>=SAVED_PLAYBOOKS_CAP){
+      setAtCapModal({source:'door1',proceed:()=>{saveCurrentDoor1();if(r)r()}})
+      return
+    }
+    saveCurrentDoor1()
+    if(r)r()
+  }
   const roleSwitchContinue=()=>{const r=roleSwitchModal&&roleSwitchModal.run;setRoleSwitchModal(null);if(r)r()}
   const roleSwitchCancel=()=>setRoleSwitchModal(null)
   const focusNumberedIds=FOCUS_GROUPS.flatMap(g=>g.sectionIds)
@@ -3414,6 +3579,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{L.blurb}</div>
         </button>)}
       </div>
+      {!isDemo&&savedPlaybooks.length>0&&<div style={{maxWidth:860}}>
+        <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="wideView" title="Roles you've built"/>
+      </div>}
     </div>
     case'p4':{
       if(!selectedLane)return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>Pick a direction first</h1><div style={S.row}><Btn onClick={()=>nav('laneSelect')}>Choose a direction <ChevronRight size={14}/></Btn></div></div>
@@ -3970,21 +4138,45 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>}
     {roleSwitchModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:520,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
-        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Save your current playbook before exploring another role?</h2>
-        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:20}}>You've generated content for <strong>{chosen||'this role'}</strong>. Switching to another role will clear it. Save it as a PDF first if you want to keep this version.</p>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Save before switching?</h2>
+        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:20}}>You have work on <strong>{chosen||'this role'}</strong> that isn't saved yet. Save to Your playbooks and you can come back to it any time. Or switch without saving and lose the work.</p>
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          <Btn onClick={roleSwitchSavePdf}><Printer size={14}/>Save as PDF</Btn>
-          <Btn secondary onClick={roleSwitchContinue}>Continue without saving</Btn>
+          <Btn onClick={roleSwitchSaveToSet}>Save to Your playbooks</Btn>
+          <Btn secondary onClick={roleSwitchContinue}>Switch without saving</Btn>
           <Btn secondary onClick={roleSwitchCancel}>Cancel</Btn>
+        </div>
+      </div>
+    </div>}
+    {atCapModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:600,width:'100%',maxHeight:'80vh',display:'flex',flexDirection:'column',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>You're at {SAVED_PLAYBOOKS_CAP} saved playbooks</h2>
+        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:18}}>{atCapModal.source==='door2'?'To save this opportunity to Your playbooks, remove one of these.':'To save this exploration to Your playbooks, remove one of these.'}</p>
+        <div style={{overflowY:'auto',marginBottom:18,border:`1px solid ${C.border}`,borderRadius:10}}>
+          {savedPlaybooks.map(rec=><div key={rec.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'12px 16px',borderBottom:`1px solid ${C.border}`}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:16,fontWeight:600,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{rec.title}</div>
+              <div style={{fontSize:13,color:C.gray,marginTop:2}}>{rec.source==='door2'?'Opportunity':laneLabelFor(rec.lane)}</div>
+            </div>
+            <Btn secondary onClick={()=>{const proceed=atCapModal.proceed;deleteFromSavedSet(rec.id);setAtCapModal(null);if(proceed)proceed()}}>Remove</Btn>
+          </div>)}
+        </div>
+        <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}>
+          <Btn secondary onClick={()=>setAtCapModal(null)}>Cancel</Btn>
         </div>
       </div>
     </div>}
     {showPlaybookFooter&&<div data-print="hide" style={{position:'fixed',left:0,right:0,bottom:0,zIndex:900,background:'#1A2540',borderTop:`2px solid ${C.gold}`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
       <div>
-        <div style={{fontSize:15,color:'#FFFFFF',fontWeight:500}}>Your playbook so far: {playbookSectionsBuilt} of {focusNumberedIds.length} sections built.{currentRoleSaved?' Saved.':''}</div>
-        <div style={{fontSize:13,color:'#CBD5E0',marginTop:2}}>Save what you have as a PDF. Come back to generate the rest.</div>
+        <div style={{fontSize:15,color:'#FFFFFF',fontWeight:500}}>Your playbook so far: {playbookSectionsBuilt} of {focusNumberedIds.length} sections built.{currentRoleSaved||currentRoleInSavedSet?' Saved.':''}</div>
+        <div style={{fontSize:13,color:'#CBD5E0',marginTop:2}}>Save what you have. Come back to generate the rest.</div>
       </div>
-      <Btn onClick={savePlaybookPdf}><Printer size={14}/>Save Playbook as PDF</Btn>
+      <div style={{display:'flex',gap:10,flexWrap:'wrap',justifyContent:'flex-end'}}>
+        {chosen&&selectedLane&&selectedLane!=='specific'&&(currentRoleInSavedSet
+          ?<Btn disabled style={{opacity:0.6,cursor:'default'}}>Saved ({savedPlaybooks.length} of {SAVED_PLAYBOOKS_CAP})</Btn>
+          :<Btn onClick={handleSaveDoor1Click}>Save to Your playbooks ({savedPlaybooks.length} of {SAVED_PLAYBOOKS_CAP})</Btn>
+        )}
+        <Btn secondary onClick={savePlaybookPdf}><Printer size={14}/>Save as PDF</Btn>
+      </div>
     </div>}
     {showVoiceMigBanner&&<div data-print="hide" style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1001,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'18px 22px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',flexDirection:'column',gap:14,maxWidth:560,width:'calc(100% - 32px)'}}>
       <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
