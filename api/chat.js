@@ -65,6 +65,7 @@ When you include NAVIGATE: in your reply, the value MUST be one of the step ids 
 | laneSelect | Pick a Direction (Phase 2, Explore Options) |
 | p4 | Role Options (Phase 2, Explore Options) |
 | focus | Focus Playbook (Phase 2, Explore Options) |
+| mylib | My Playbooks |
 | p6 | Your Bridge Story (Phase 3, Tell Your Story) |
 | p7 | Go-to-Market (Phase 4, Find Your Market) |
 | p8 | LinkedIn Remix (Phase 5, Get Ready) |

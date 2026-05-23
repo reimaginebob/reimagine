@@ -125,7 +125,7 @@ function PlaybookCard({ rec, onRestore, onDelete, C }) {
             padding: '10px 16px', borderRadius: 8, cursor: 'pointer',
             fontSize: 15, fontWeight: 600, fontFamily: 'inherit',
           }}>
-          <RotateCcw size={14}/>Restore
+          <RotateCcw size={14}/>Open
         </button>
         <button
           onClick={handleDelete}
@@ -145,7 +145,11 @@ function PlaybookCard({ rec, onRestore, onDelete, C }) {
 
 export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, C, layout = 'wideView', title }) {
   if (!savedPlaybooks || savedPlaybooks.length === 0) return null
-  const heading = title || 'Your playbooks'
+  // Heading rules: title===null suppresses the heading (used by the dashboard
+  // page which carries its own h1). Otherwise use title if provided, else
+  // fall back to 'Your playbooks'.
+  const suppressHeading = title === null
+  const heading = suppressHeading ? '' : (title || 'Your playbooks')
   // wideView: single-column stack below the three lane cards.
   // complete: responsive multi-column grid that fills as the user accumulates
   // playbooks. minmax(300px, 1fr) gives two columns on standard desktop and
@@ -154,13 +158,15 @@ export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, C,
     ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }
     : { display: 'flex', flexDirection: 'column', gap: 14 }
   return (
-    <div style={{ marginTop: 36 }}>
-      <h2 style={{
-        fontFamily: 'Georgia,serif',
-        fontSize: 24, fontWeight: 700,
-        color: '#1A2540',
-        margin: '0 0 14px',
-      }}>{heading}</h2>
+    <div style={{ marginTop: suppressHeading ? 18 : 36 }}>
+      {!suppressHeading && (
+        <h2 style={{
+          fontFamily: 'Georgia,serif',
+          fontSize: 24, fontWeight: 700,
+          color: '#1A2540',
+          margin: '0 0 14px',
+        }}>{heading}</h2>
+      )}
       <div style={containerStyle}>
         {savedPlaybooks.map(rec => (
           <PlaybookCard key={rec.id} rec={rec} onRestore={onRestore} onDelete={onDelete} C={C}/>
