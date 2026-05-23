@@ -3839,6 +3839,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 12px'}}>Your brand, your bridge story, your target companies, your resume, your LinkedIn, your playbook. That is a substantial amount of career-strategy work, and it is all rooted in who you actually are.</p>
         <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:0}}>What you've built here belongs to you. None of it depends on the company you came from or the role you're leaving. The brand, the bridge story, the playbook all go with you into whatever comes next.</p>
       </div>}
+      {!isDemo&&savedPlaybooks.length>0&&<div style={{maxWidth:860,margin:'0 0 24px'}}>
+        <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title="Your playbooks"/>
+      </div>}
+      {!isDemo&&savedPlaybooks.length===0&&chosen&&ROLE_SUBMODULES.some(k=>outputs[k]&&(typeof outputs[k]==='string'?outputs[k].length>0:true))&&<div style={{background:'#FFFFFF',border:`1.5px solid ${C.gold}`,borderRadius:12,padding:'22px 26px',margin:'0 0 24px',maxWidth:760}}>
+        <h3 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>Save this playbook to your collection</h3>
+        <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 14px'}}>You've built work on <strong>{chosen}</strong>. Save it to Your playbooks so you can come back to it any time.</p>
+        <Btn onClick={handleSaveDoor1Click}>Save to Your playbooks</Btn>
+      </div>}
       {!isDemo&&<>
         <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,margin:'0 0 16px'}}>
           <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Pursuing a specific opportunity?</h3>
@@ -4170,12 +4178,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{fontSize:15,color:'#FFFFFF',fontWeight:500}}>Your playbook so far: {playbookSectionsBuilt} of {focusNumberedIds.length} sections built.{currentRoleSaved||currentRoleInSavedSet?' Saved.':''}</div>
         <div style={{fontSize:13,color:'#CBD5E0',marginTop:2}}>Save what you have. Come back to generate the rest.</div>
       </div>
-      <div style={{display:'flex',gap:10,flexWrap:'wrap',justifyContent:'flex-end'}}>
+      <div style={{display:'flex',gap:10,flexWrap:'wrap',justifyContent:'flex-end',alignItems:'center'}}>
         {chosen&&selectedLane&&selectedLane!=='specific'&&(currentRoleInSavedSet
-          ?<Btn disabled style={{opacity:0.6,cursor:'default'}}>Saved ({savedPlaybooks.length} of {SAVED_PLAYBOOKS_CAP})</Btn>
+          ?<div role="status" style={{display:'inline-flex',alignItems:'center',gap:8,background:`${C.gold}26`,color:'#FFFFFF',padding:'10px 16px',borderRadius:999,fontSize:15,fontWeight:600,cursor:'default'}}>
+            <Check size={14} color={C.gold} strokeWidth={2.5}/>Saved ({savedPlaybooks.length} of {SAVED_PLAYBOOKS_CAP})
+          </div>
           :<Btn onClick={handleSaveDoor1Click}>Save to Your playbooks ({savedPlaybooks.length} of {SAVED_PLAYBOOKS_CAP})</Btn>
         )}
-        <Btn secondary onClick={savePlaybookPdf}><Printer size={14}/>Save as PDF</Btn>
+        <Btn secondary onClick={savePlaybookPdf} style={{background:'transparent',border:`1.5px solid ${C.gold}`,color:'#FFFFFF'}}><Printer size={14}/>Save as PDF</Btn>
       </div>
     </div>}
     {showVoiceMigBanner&&<div data-print="hide" style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1001,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'18px 22px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',flexDirection:'column',gap:14,maxWidth:560,width:'calc(100% - 32px)'}}>
