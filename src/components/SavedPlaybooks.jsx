@@ -146,6 +146,13 @@ function PlaybookCard({ rec, onRestore, onDelete, C }) {
 export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, C, layout = 'wideView', title }) {
   if (!savedPlaybooks || savedPlaybooks.length === 0) return null
   const heading = title || 'Your playbooks'
+  // wideView: single-column stack below the three lane cards.
+  // complete: responsive multi-column grid that fills as the user accumulates
+  // playbooks. minmax(300px, 1fr) gives two columns on standard desktop and
+  // falls back to one on narrow viewports without media queries.
+  const containerStyle = layout === 'complete'
+    ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }
+    : { display: 'flex', flexDirection: 'column', gap: 14 }
   return (
     <div style={{ marginTop: 36 }}>
       <h2 style={{
@@ -154,7 +161,7 @@ export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, C,
         color: '#1A2540',
         margin: '0 0 14px',
       }}>{heading}</h2>
-      <div style={{ display: 'flex', flexDirection: layout === 'wideView' ? 'column' : 'column', gap: 14 }}>
+      <div style={containerStyle}>
         {savedPlaybooks.map(rec => (
           <PlaybookCard key={rec.id} rec={rec} onRestore={onRestore} onDelete={onDelete} C={C}/>
         ))}
