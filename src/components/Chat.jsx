@@ -21,6 +21,7 @@ const STEP_LABELS = {
   laneSelect: 'Pick a Direction',
   p4: 'Role Options',
   focus: 'Focus Playbook',
+  mylib: 'My Playbooks',
   p6: 'Your Bridge Story',
   p7: 'Go-to-Market',
   p8: 'LinkedIn Remix',

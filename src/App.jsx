@@ -1130,8 +1130,8 @@ const PHASES=[
   {id:1,label:'Know Your Value',color:'#C8924A',steps:['p3']},
   {id:2,label:'Explore Options',color:'#C8924A',steps:['twoDoors','laneSelect','p4','focus']},
 ]
-const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','skills':'Your Skills','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Personal Brand',twoDoors:'Choose Your Path',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'The Lingo',p10:'Interview Prep',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
-const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p1','p2','p3','twoDoors','laneSelect','p4','focus','op','complete']
+const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','skills':'Your Skills','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Personal Brand',twoDoors:'Choose Your Path',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',mylib:'My Playbooks',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'The Lingo',p10:'Interview Prep',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
+const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p1','p2','p3','twoDoors','laneSelect','p4','focus','mylib','op','complete']
 const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p1','p2','p3'])
 // Captured at module load (before any beforeprint can change document.title) so
 // afterprint always restores the true base title regardless of effect re-runs.
@@ -1380,10 +1380,13 @@ const normalizeWork = (p) => {
 const V1_STEPS = new Set(ALL)
 const ROLE_SUBMODULES = ['p5','p6','p7','p8','p9','p10','p11','p_res','income']
 const POST_P5_SUBMODULES = ROLE_SUBMODULES.filter(k=>k!=='p5')
-// Cap on the user's saved playbooks set. One shared limit across Door 1 (explicit Save)
-// and Door 2 (auto-save on JD upload). Future paid-tier work becomes a per-user value
-// loaded from the user record (V2 launch bundle); the constant is the seam.
+// Cap on the user's saved playbooks set. One shared limit across Door 1 (auto-save
+// past The Role) and Door 2 (auto-save on JD upload). Future paid-tier work becomes
+// a per-user value loaded from the user record (V2 launch bundle); the accessor is
+// the seam: all cap read sites go through getSavedCap() so V2 can swap the body
+// without touching call sites.
 const SAVED_PLAYBOOKS_CAP = 10
+const getSavedCap = () => SAVED_PLAYBOOKS_CAP
 const LANE_LABELS = {familiar:'Familiar Ground',insider:'Industry Insider',wtm:'Work That Matters',specific:'Specific Role'}
 const laneLabelFor = (ln) => LANE_LABELS[ln]||'Specific Role'
 const normalizeProfileState = (loaded) => {
@@ -2249,6 +2252,12 @@ export default function PivotEngine(){
   const[currentRoleInSavedSet,setCurrentRoleInSavedSet]=useState(false)
   const[atCapModal,setAtCapModal]=useState(null)
   const currentSavedSlotIdRef=useRef(null)
+  // Landing decision is one-shot per session. The useEffect that owns it watches
+  // [done, savedPlaybooks, signedInUser] so it can re-evaluate after pe_v4
+  // hydration AND after /api/profile/load resolves for signed-in users. Once
+  // it routes (or explicitly decides not to), the ref locks the decision so
+  // subsequent state changes do not re-route the user mid-session.
+  const landingDecidedRef=useRef(false)
   // Bridge Story Phase 2 state. regeneratingSlot/slotErrors drive the
   // per-slot "What did we get wrong?" affordance. lastSaveAt + saveStatus
   // drive the Saved indicator in the BridgeStoryView header. toast +
@@ -2260,7 +2269,6 @@ export default function PivotEngine(){
   const[saveStatus,setSaveStatus]=useState('idle')
   const[toast,setToast]=useState(null)
   const saveRef=useRef(null)
-  const[roleSwitchModal,setRoleSwitchModal]=useState(null)
   const playbookSavePendingRef=useRef(false)
   const afterSaveRunRef=useRef(null)
   const[demoIdx,setDemoIdx]=useState(0)
@@ -2367,7 +2375,12 @@ export default function PivotEngine(){
       const raw=localStorage.getItem('pe_saved_v1')
       if(!raw)return
       const data=JSON.parse(raw)
-      if(Array.isArray(data))setSavedPlaybooks(data)
+      if(Array.isArray(data)){
+        // Backfill schemaVersion on records persisted before the field existed
+        // (PR1/PR2 records). Future schema bumps follow the same pattern.
+        const migrated=data.map(rec=>rec&&rec.schemaVersion?rec:{...rec,schemaVersion:1})
+        setSavedPlaybooks(migrated)
+      }
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
@@ -2446,6 +2459,21 @@ export default function PivotEngine(){
     if(isTest)return
     try{localStorage.setItem('pe_saved_v1',JSON.stringify(savedPlaybooks))}catch{}
   },[savedPlaybooks,isDemo,isTest])
+  // Landing logic for returning users. Fires after pe_v4 hydration AND after
+  // /api/profile/load resolves (the latter triggers a setSignedInUser/setDone
+  // burst, which re-runs this effect). Rule: if Personal Brand is done AND the
+  // user has at least one saved playbook, route to the My Playbooks dashboard.
+  // Otherwise leave the hydrated step alone. The ref guarantees one-shot per
+  // session so we never re-route the user once they navigate post-landing.
+  useEffect(()=>{
+    if(isDemo||isTest)return
+    if(landingDecidedRef.current)return
+    if(!done.includes('p3'))return
+    if(savedPlaybooks.length>0){
+      landingDecidedRef.current=true
+      setStep('mylib')
+    }
+  },[done,savedPlaybooks,signedInUser,isDemo,isTest])
   useEffect(()=>{
     const sectionName=META[step]||'Output'
     const su=signedInUser||{}
@@ -2598,7 +2626,7 @@ export default function PivotEngine(){
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
     logCorrection(correction)
   }
-  const generate=async(key,fn,opts={})=>{if(generatingSection)return;track('generation_started',{step:key});window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}if(currentSavedSlotIdRef.current&&(ROLE_SUBMODULES.includes(key)||key==='op')){const slotId=currentSavedSlotIdRef.current;setSavedPlaybooks(prev=>prev.map(rec=>{if(rec.id!==slotId)return rec;const nextOutputs={...rec.outputs,[key]:r};const nextDone=rec.done.includes(key)?rec.done:[...rec.done,key];return{...rec,outputs:nextOutputs,done:nextDone,updatedAt:new Date().toISOString()}}))}}catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput(key)}}
+  const generate=async(key,fn,opts={})=>{if(generatingSection)return;track('generation_started',{step:key});window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}if(currentSavedSlotIdRef.current===null&&selectedLane&&selectedLane!=='specific'&&ROLE_SUBMODULES.includes(key)&&key!=='p5'){saveCurrentDoor1()}if(currentSavedSlotIdRef.current&&(ROLE_SUBMODULES.includes(key)||key==='op')){const slotId=currentSavedSlotIdRef.current;setSavedPlaybooks(prev=>prev.map(rec=>{if(rec.id!==slotId)return rec;const nextOutputs={...rec.outputs,[key]:r};const nextDone=rec.done.includes(key)?rec.done:[...rec.done,key];return{...rec,outputs:nextOutputs,done:nextDone,updatedAt:new Date().toISOString()}}))}}catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput(key)}}
   // Brief 2 (KYV consolidation): chain runner for the Phase 1 collapse.
   // p1 -> p2 -> p3 run sequentially in a single user-visible wait. Outputs
   // are threaded through local variables (NOT read back from React state)
@@ -2839,7 +2867,7 @@ export default function PivotEngine(){
       alert('Could not delete your account: '+(err.message||'unknown error'))
     }
   }
-  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setSelectedLane('');setExploredRoleTitles([]);setCurrentRoleSaved(false);setRoleSwitchModal(null);setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''});setCurrentRoleInSavedSet(false);currentSavedSlotIdRef.current=null}}
+  const reset=async()=>{if(confirm('Reset all progress and start over?')){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};setStep('welcome');setProfile(IP);setOutputs(IO);setDone([]);setDeepOpts(['','','']);setChosen('');setSelectedLane('');setExploredRoleTitles([]);setCurrentRoleSaved(false);setFeedback({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''});setCurrentRoleInSavedSet(false);currentSavedSlotIdRef.current=null}}
   const exportProfile=()=>{const data={step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks};const json=JSON.stringify(data,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const date=new Date().toISOString().split('T')[0];a.href=url;a.download=`reimagine-profile-${date}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
   const downloadAllMarkdown=()=>{
     const today=new Date().toISOString().slice(0,10)
@@ -2956,11 +2984,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const roleDone=done.filter(s=>ROLE_SUBMODULES.includes(s))
     const roleFeedback={}
     for(const k of ROLE_SUBMODULES)roleFeedback[k]=feedback[k]||''
-    return{id,title,lane,source:'door1',createdAt:ts,updatedAt:ts,outputs:roleOutputs,done:roleDone,feedback:roleFeedback,upstream:buildUpstreamSnapshot()}
+    return{id,title,lane,source:'door1',createdAt:ts,updatedAt:ts,outputs:roleOutputs,done:roleDone,feedback:roleFeedback,upstream:buildUpstreamSnapshot(),schemaVersion:1}
   }
   const buildDoor2Record=(id,title,jdText)=>{
     const ts=new Date().toISOString()
-    return{id,title,lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||''},upstream:buildUpstreamSnapshot(),jd:jdText||''}
+    return{id,title,lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:1}
   }
   const saveCurrentDoor1=()=>{
     const id=newSavedId()
@@ -2968,15 +2996,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setSavedPlaybooks(prev=>[...prev,rec])
     setCurrentRoleInSavedSet(true)
     currentSavedSlotIdRef.current=id
-    setToast('Saved to Your playbooks.')
-    setTimeout(()=>setToast(t=>t==='Saved to Your playbooks.'?null:t),3000)
-  }
-  const handleSaveDoor1Click=()=>{
-    if(savedPlaybooks.length>=SAVED_PLAYBOOKS_CAP){
-      setAtCapModal({source:'door1',proceed:()=>saveCurrentDoor1()})
-      return
-    }
-    saveCurrentDoor1()
+    // No toast: implicit save is silent infrastructure. The My Playbooks
+    // dashboard is the source of truth for what is saved.
   }
   const deleteFromSavedSet=(id)=>{
     setSavedPlaybooks(prev=>prev.filter(r=>r.id!==id))
@@ -3033,6 +3054,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     recordExploredRole(newRoleTitle,lane)
     setFeedback(f=>{const u={...f};for(const k of ROLE_SUBMODULES)u[k]='';return u})
   }
+  // Fresh-start helper for the dashboard's "Start a new playbook" button.
+  // Distinct from applyRoleSwitchDoor1 because the user has not picked a role
+  // yet, so we skip recordExploredRole and skip the p5 generation. Routes the
+  // user to the Two Doors choice surface.
+  const startNewPlaybook=()=>{
+    setCurrentRoleSaved(false)
+    setCurrentRoleInSavedSet(false)
+    currentSavedSlotIdRef.current=null
+    setOutputs(o=>{const u={...o};for(const k of ROLE_SUBMODULES)u[k]='';return u})
+    setDone(d=>d.filter(s=>!ROLE_SUBMODULES.includes(s)))
+    setChosen('')
+    setSelectedLane('')
+    setFeedback(f=>{const u={...f};for(const k of ROLE_SUBMODULES)u[k]='';return u})
+    setStep('twoDoors')
+  }
   const applyRoleSwitchDoor2=(derivedTitle,jdText)=>{
     setCurrentRoleSaved(false)
     setOutputs(o=>({...o,op:''}))
@@ -3053,7 +3089,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       setCurrentRoleInSavedSet(true)
       currentSavedSlotIdRef.current=id
     }
-    if(savedPlaybooks.length>=SAVED_PLAYBOOKS_CAP){
+    if(savedPlaybooks.length>=getSavedCap()){
       setCurrentRoleInSavedSet(false)
       currentSavedSlotIdRef.current=null
       setAtCapModal({source:'door2',proceed:createRecord})
@@ -3062,36 +3098,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }
   }
   const deriveOpRoleTitle=(jd)=>{const ln=((jd||'').split(/\n/).find(l=>l.trim())||'').trim();return ln?ln.slice(0,80):'Job Description'}
-  const maybeConfirmRoleSwitch=(run)=>{
-    const postP5=POST_P5_SUBMODULES.some(k=>outputs[k]&&outputs[k].length>0)
-    // Suppress the modal if the current role is already in the saved set
-    // (either via explicit Save to Your playbooks, or via Door 2 auto-save),
-    // OR via the legacy PDF-saved flag. Either path means the work is preserved.
-    const protectedRole=currentRoleSaved||currentRoleInSavedSet
-    if(postP5&&!protectedRole)setRoleSwitchModal({run})
-    else run()
-  }
-  const switchToRole=(newRoleTitle,lane)=>maybeConfirmRoleSwitch(()=>{applyRoleSwitchDoor1(newRoleTitle,lane);advance('p4','focus');generate('p5',()=>P.p5(pc,outputs,newRoleTitle,laneLabelFor(lane)))})
-  const reExploreRole=(newRoleTitle,lane)=>maybeConfirmRoleSwitch(()=>{applyRoleSwitchDoor1(newRoleTitle,lane);nav('focus');generate('p5',()=>P.p5(pc,outputs,newRoleTitle,laneLabelFor(lane)))})
-  const switchToOpRole=(jd,onReady)=>{const title=deriveOpRoleTitle(jd);maybeConfirmRoleSwitch(()=>{applyRoleSwitchDoor2(title,jd);if(onReady)onReady(title)})}
+  // Under implicit-save semantics any post-p5 work is already auto-committed to
+  // the dashboard, so role switches never need a save-first confirmation. The
+  // three call sites that used maybeConfirmRoleSwitch now run their callback
+  // directly.
+  const switchToRole=(newRoleTitle,lane)=>{applyRoleSwitchDoor1(newRoleTitle,lane);advance('p4','focus');generate('p5',()=>P.p5(pc,outputs,newRoleTitle,laneLabelFor(lane)))}
+  const reExploreRole=(newRoleTitle,lane)=>{applyRoleSwitchDoor1(newRoleTitle,lane);nav('focus');generate('p5',()=>P.p5(pc,outputs,newRoleTitle,laneLabelFor(lane)))}
+  const switchToOpRole=(jd,onReady)=>{const title=deriveOpRoleTitle(jd);applyRoleSwitchDoor2(title,jd);if(onReady)onReady(title)}
   const savePlaybookPdf=()=>{playbookSavePendingRef.current=true;afterSaveRunRef.current=null;window.print()}
-  const roleSwitchSavePdf=()=>{const r=roleSwitchModal&&roleSwitchModal.run;afterSaveRunRef.current=r||null;playbookSavePendingRef.current=true;setRoleSwitchModal(null);setTimeout(()=>window.print(),50)}
-  // Primary action for the role-switch modal. Saves the current role to the
-  // playbooks set (via the at-cap modal if needed), then runs the queued
-  // role-switch action. If the user cancels at-cap, the role-switch is
-  // cancelled too (the queued run does not fire).
-  const roleSwitchSaveToSet=()=>{
-    const r=roleSwitchModal&&roleSwitchModal.run
-    setRoleSwitchModal(null)
-    if(savedPlaybooks.length>=SAVED_PLAYBOOKS_CAP){
-      setAtCapModal({source:'door1',proceed:()=>{saveCurrentDoor1();if(r)r()}})
-      return
-    }
-    saveCurrentDoor1()
-    if(r)r()
-  }
-  const roleSwitchContinue=()=>{const r=roleSwitchModal&&roleSwitchModal.run;setRoleSwitchModal(null);if(r)r()}
-  const roleSwitchCancel=()=>setRoleSwitchModal(null)
   const focusNumberedIds=FOCUS_GROUPS.flatMap(g=>g.sectionIds)
   const playbookSectionsBuilt=focusNumberedIds.filter(k=>{const v=outputs[k];return v&&(typeof v==='string'?v.length>0:true)}).length
   const showPlaybookFooter=!isDemo&&step==='focus'&&playbookSectionsBuilt>0
@@ -3579,9 +3593,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{L.blurb}</div>
         </button>)}
       </div>
-      {!isDemo&&savedPlaybooks.length>0&&<div style={{maxWidth:860}}>
-        <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="wideView" title="Roles you've built"/>
-      </div>}
     </div>
     case'p4':{
       if(!selectedLane)return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>Pick a direction first</h1><div style={S.row}><Btn onClick={()=>nav('laneSelect')}>Choose a direction <ChevronRight size={14}/></Btn></div></div>
@@ -3733,6 +3744,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const otherRoles=(exploredRoleTitles||[]).filter(r=>r.title&&r.title!==chosen)
       return <div>
         <div data-print="hide">
+        {savedPlaybooks.length>0&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('mylib')}><ArrowLeft size={13}/>Back to My Playbooks</Btn></div>}
         {!isDemo&&<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginBottom:14}}>
           <div style={{...S.tag('#8A9BB8'),marginBottom:0}}>Phase 2 · Explore Options</div>
           <div style={{...S.tag(C.gold),marginBottom:0}}>Focus Playbook</div>
@@ -3817,6 +3829,22 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     }
+    case'mylib':return <div>
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:18,marginBottom:8,flexWrap:'wrap'}}>
+        <div>
+          <h1 style={{...S.title,marginBottom:6}}>My playbooks</h1>
+          <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {savedPlaybooks.length} of {getSavedCap()} saved.</p>
+        </div>
+        <Btn onClick={startNewPlaybook}>Start a new playbook</Btn>
+      </div>
+      {savedPlaybooks.length>0
+        ?<SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title={null}/>
+        :<div style={{background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'32px 36px',marginTop:28,maxWidth:520}}>
+          <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>You haven't built a playbook yet</h2>
+          <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 16px'}}>Start one to get going.</p>
+          <Btn onClick={startNewPlaybook}>Start a new playbook</Btn>
+        </div>}
+    </div>
     case'complete':{
       if(!done.includes('complete'))markDone('complete')
       const completeCard=(title,key,content)=>content
@@ -3841,11 +3869,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>}
       {!isDemo&&savedPlaybooks.length>0&&<div style={{maxWidth:860,margin:'0 0 24px'}}>
         <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title="Your playbooks"/>
-      </div>}
-      {!isDemo&&savedPlaybooks.length===0&&chosen&&ROLE_SUBMODULES.some(k=>outputs[k]&&(typeof outputs[k]==='string'?outputs[k].length>0:true))&&<div style={{background:'#FFFFFF',border:`1.5px solid ${C.gold}`,borderRadius:12,padding:'22px 26px',margin:'0 0 24px',maxWidth:760}}>
-        <h3 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>Save this playbook to your collection</h3>
-        <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 14px'}}>You've built work on <strong>{chosen}</strong>. Save it to Your playbooks so you can come back to it any time.</p>
-        <Btn onClick={handleSaveDoor1Click}>Save to Your playbooks</Btn>
       </div>}
       {!isDemo&&<>
         <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,margin:'0 0 16px'}}>
@@ -4144,20 +4167,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{fontSize:18,color:'#1A2540',lineHeight:1.5}}>{invalidationBanner.message}</div>
       <button onClick={()=>setInvalidationBanner(null)} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#718096',fontSize:18,cursor:'pointer',padding:4,fontFamily:'inherit',flexShrink:0}}>×</button>
     </div>}
-    {roleSwitchModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
-      <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:520,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
-        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Save before switching?</h2>
-        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:20}}>You have work on <strong>{chosen||'this role'}</strong> that isn't saved yet. Save to Your playbooks and you can come back to it any time. Or switch without saving and lose the work.</p>
-        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          <Btn onClick={roleSwitchSaveToSet}>Save to Your playbooks</Btn>
-          <Btn secondary onClick={roleSwitchContinue}>Switch without saving</Btn>
-          <Btn secondary onClick={roleSwitchCancel}>Cancel</Btn>
-        </div>
-      </div>
-    </div>}
     {atCapModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:600,width:'100%',maxHeight:'80vh',display:'flex',flexDirection:'column',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
-        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>You're at {SAVED_PLAYBOOKS_CAP} saved playbooks</h2>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>You're at {getSavedCap()} saved playbooks</h2>
         <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:18}}>{atCapModal.source==='door2'?'To save this opportunity to Your playbooks, remove one of these.':'To save this exploration to Your playbooks, remove one of these.'}</p>
         <div style={{overflowY:'auto',marginBottom:18,border:`1px solid ${C.border}`,borderRadius:10}}>
           {savedPlaybooks.map(rec=><div key={rec.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'12px 16px',borderBottom:`1px solid ${C.border}`}}>
@@ -4179,12 +4191,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{fontSize:13,color:'#CBD5E0',marginTop:2}}>Save what you have. Come back to generate the rest.</div>
       </div>
       <div style={{display:'flex',gap:10,flexWrap:'wrap',justifyContent:'flex-end',alignItems:'center'}}>
-        {chosen&&selectedLane&&selectedLane!=='specific'&&(currentRoleInSavedSet
-          ?<div role="status" style={{display:'inline-flex',alignItems:'center',gap:8,background:`${C.gold}26`,color:'#FFFFFF',padding:'10px 16px',borderRadius:999,fontSize:15,fontWeight:600,cursor:'default'}}>
-            <Check size={14} color={C.gold} strokeWidth={2.5}/>Saved ({savedPlaybooks.length} of {SAVED_PLAYBOOKS_CAP})
-          </div>
-          :<Btn onClick={handleSaveDoor1Click}>Save to Your playbooks ({savedPlaybooks.length} of {SAVED_PLAYBOOKS_CAP})</Btn>
-        )}
         <Btn secondary onClick={savePlaybookPdf} style={{background:'transparent',border:`1.5px solid ${C.gold}`,color:'#FFFFFF'}}><Printer size={14}/>Save as PDF</Btn>
       </div>
     </div>}
