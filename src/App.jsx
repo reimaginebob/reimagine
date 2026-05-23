@@ -2459,21 +2459,33 @@ export default function PivotEngine(){
     if(isTest)return
     try{localStorage.setItem('pe_saved_v1',JSON.stringify(savedPlaybooks))}catch{}
   },[savedPlaybooks,isDemo,isTest])
+  // Returning-explorer signal. True when Personal Brand is done AND the user
+  // has either a saved playbook OR any prior role exploration recorded.
+  // exploredRoleTitles is populated by recordExploredRole from both Door 1
+  // (applyRoleSwitchDoor1) and Door 2 (applyRoleSwitchDoor2), so this captures
+  // history through either entry. The OR pattern catches users whose saved
+  // set was cleared (e.g., post-Start-Fresh, since deleteAccount blanket-clears
+  // pe_* localStorage including pe_saved_v1, and pe_saved_v1 has no server
+  // backup in v1; Neon sync is the durable fix and is deferred to V2).
+  const isReturningExplorer=done.includes('p3')&&(savedPlaybooks.length>0||exploredRoleTitles.length>0)
   // Landing logic for returning users. Fires after pe_v4 hydration AND after
   // /api/profile/load resolves (the latter triggers a setSignedInUser/setDone
-  // burst, which re-runs this effect). Rule: if Personal Brand is done AND the
-  // user has at least one saved playbook, route to the My Playbooks dashboard.
-  // Otherwise leave the hydrated step alone. The ref guarantees one-shot per
-  // session so we never re-route the user once they navigate post-landing.
+  // burst, which re-runs this effect). The ref guarantees one-shot per session
+  // (set in both branches) so we never re-route the user once they navigate
+  // post-landing. Telemetry fires once per session in each branch so we can
+  // measure whether the refined condition is hitting the right users.
   useEffect(()=>{
     if(isDemo||isTest)return
     if(landingDecidedRef.current)return
     if(!done.includes('p3'))return
-    if(savedPlaybooks.length>0){
-      landingDecidedRef.current=true
+    landingDecidedRef.current=true
+    if(isReturningExplorer){
+      track('landing_dashboard',{savedCount:savedPlaybooks.length,exploredCount:exploredRoleTitles.length})
       setStep('mylib')
+    }else{
+      track('landing_skipped',{reason:'no_explorer_signal'})
     }
-  },[done,savedPlaybooks,signedInUser,isDemo,isTest])
+  },[done,savedPlaybooks,exploredRoleTitles,signedInUser,isDemo,isTest])
   useEffect(()=>{
     const sectionName=META[step]||'Output'
     const su=signedInUser||{}
@@ -2848,7 +2860,7 @@ export default function PivotEngine(){
     setStep('welcome')
   }
   const deleteAccount=async()=>{
-    const confirmed=window.confirm('This permanently deletes your profile, outputs, and chat history.\n\nYou can sign back in with the same email to start over from scratch.\n\nContinue?')
+    const confirmed=window.confirm('This permanently deletes your profile, outputs, saved playbooks, and chat history.\n\nYou can sign back in with the same email to start over from scratch.\n\nContinue?')
     if(!confirmed)return
     // Set before the await so any pending debounced save timer (scheduled
     // before the user clicked Start Fresh) sees the flag and bails out
@@ -3744,7 +3756,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const otherRoles=(exploredRoleTitles||[]).filter(r=>r.title&&r.title!==chosen)
       return <div>
         <div data-print="hide">
-        {savedPlaybooks.length>0&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('mylib')}><ArrowLeft size={13}/>Back to My Playbooks</Btn></div>}
+        {isReturningExplorer&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('mylib')}><ArrowLeft size={13}/>Back to My Playbooks</Btn></div>}
         {!isDemo&&<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginBottom:14}}>
           <div style={{...S.tag('#8A9BB8'),marginBottom:0}}>Phase 2 · Explore Options</div>
           <div style={{...S.tag(C.gold),marginBottom:0}}>Focus Playbook</div>
@@ -3840,8 +3852,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {savedPlaybooks.length>0
         ?<SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title={null}/>
         :<div style={{background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'32px 36px',marginTop:28,maxWidth:520}}>
-          <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>You haven't built a playbook yet</h2>
-          <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 16px'}}>Start one to get going.</p>
+          <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>{exploredRoleTitles.length>0?"Your saved playbooks aren't here.":"You haven't built a playbook yet"}</h2>
+          <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 16px'}}>{exploredRoleTitles.length>0?'Start a new playbook to rebuild your collection.':'Start one to get going.'}</p>
           <Btn onClick={startNewPlaybook}>Start a new playbook</Btn>
         </div>}
     </div>
