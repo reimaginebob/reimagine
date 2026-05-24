@@ -2546,6 +2546,42 @@ export default function PivotEngine(){
       track('landing_skipped',{reason:'no_explorer_signal'})
     }
   },[hydrationStable,done,savedPlaybooks,exploredRoleTitles,signedInUser,isDemo,isTest])
+  // Re-link currentSavedSlotIdRef to a matching saved record after hydration.
+  // useRef is in-memory and resets to null on every page load, so a user who
+  // hard-refreshes mid-build on a saved role would otherwise lose the link.
+  // The next post-The-Role generation would then fire saveCurrentDoor1() again
+  // (the null check in generate's implicit-save block treats it as a fresh
+  // exploration), creating a duplicate saved record. This effect restores the
+  // link so subsequent generations write through to the existing record.
+  //
+  // Match criteria: title + lane + source='door1' for Door 1, title +
+  // source='door2' for Door 2. When multiple records match (existing
+  // duplicates from prior sessions), pick the one with the most sections done
+  // and break ties by most recent updatedAt. The orphans stay visible on My
+  // Playbooks for the user to Remove manually; auto-merge would risk silent
+  // clobber of partial outputs that differ between sessions.
+  useEffect(()=>{
+    if(!hydrationStable)return
+    if(currentSavedSlotIdRef.current!==null)return
+    if(!chosen)return
+    const isDoor2=selectedLane==='specific'
+    const matches=savedPlaybooks.filter(r=>{
+      if(r.title!==chosen)return false
+      if(isDoor2)return r.source==='door2'
+      return r.lane===selectedLane&&r.source==='door1'
+    })
+    if(matches.length===0)return
+    const match=matches.reduce((best,candidate)=>{
+      if(!best)return candidate
+      const bestDone=(best.done||[]).length
+      const candidateDone=(candidate.done||[]).length
+      if(candidateDone>bestDone)return candidate
+      if(candidateDone<bestDone)return best
+      return (candidate.updatedAt||'')>(best.updatedAt||'')?candidate:best
+    },null)
+    currentSavedSlotIdRef.current=match.id
+    setCurrentRoleInSavedSet(true)
+  },[hydrationStable,chosen,selectedLane,savedPlaybooks])
   useEffect(()=>{
     const sectionName=META[step]||'Output'
     const su=signedInUser||{}
