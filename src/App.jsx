@@ -3154,6 +3154,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setCurrentRoleInSavedSet(true)
     currentSavedSlotIdRef.current=rec.id
     setStep(rec.source==='door2'?'op':'focus')
+    // Reset scroll so the user lands at the top of the restored page
+    // (breadcrumb, orientation card, section rail) rather than wherever the
+    // browser preserved scroll from the prior page. setTimeout(0) defers to
+    // the next tick so the scrollTo targets the post-render DOM.
+    setTimeout(()=>{if(typeof window!=='undefined')window.scrollTo(0,0)},0)
     setToast(`Restored: ${rec.title}`)
     setTimeout(()=>setToast(t=>t===`Restored: ${rec.title}`?null:t),3000)
   }
