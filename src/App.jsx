@@ -3907,14 +3907,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {!isDemo&&<div data-print="hide" style={{background:'#FFFFFF',border:`0.5px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'18px 22px',margin:'4px 0 8px'}}>
               <div style={{fontSize:13,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold,marginBottom:10}}>How to use your playbook</div>
               <p style={{fontSize:18,color:'#1A2540',lineHeight:1.6,margin:'0 0 14px'}}>This page assembles a complete playbook for this role: a single working document you take into your search and update as you learn. {totalNumbered} sections across {FOCUS_GROUPS.length} groups.</p>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'14px 24px',marginBottom:14}}>
-                {FOCUS_GROUPS.map((g,gi)=><div key={g.label}>
-                  <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:4}}>Group {gi+1} · {g.label}</div>
-                  <ul style={{margin:0,paddingLeft:18,fontSize:16,color:C.gray,lineHeight:1.55}}>
-                    {g.sectionIds.map(sid=><li key={sid}>{sectionNums[sid]}. {focusById[sid].label}</li>)}
-                  </ul>
-                </div>)}
-              </div>
+              {/* The 4-group structural grid that used to live here was
+                  redundant with the PR5 section rail, which lists all
+                  sections with their numbers and completion state. The
+                  intro paragraph above and the italic guidance below
+                  stay; the rail is now the canonical structural map. */}
               <p style={{fontSize:16,color:C.gray,fontStyle:'italic',lineHeight:1.55,margin:0}}>Generate in any order, or jump ahead if you have a specific reason. When you have what you need, the Save Playbook as PDF button at the bottom builds the one-file version you can keep, share, or come back to.</p>
             </div>}
             {FOCUS_GROUPS.map((g,gi)=><div key={g.label}>
@@ -3971,7 +3968,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:'#1A2540'}}>{title}</div>
             <div style={{display:'flex',gap:7}}>
               <Btn small onClick={()=>copy(content)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn>
-              <Btn small onClick={()=>nav(key)}>View →</Btn>
+              <Btn small onClick={()=>{nav(key);setTimeout(()=>scrollToOutput(key),0)}}>View →</Btn>
             </div>
           </div>
           <div style={{fontSize:17,color:C.gray,lineHeight:1.6}}>{content.substring(0,260)}…</div>
@@ -4114,7 +4111,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </div>
               <div style={{display:'flex',gap:7,flexShrink:0}}>
                 <Btn small onClick={()=>copy(outputs.income)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn>
-                <Btn small onClick={()=>nav('income')}>View →</Btn>
+                <Btn small onClick={()=>{nav('income');setTimeout(()=>scrollToOutput('income'),0)}}>View →</Btn>
               </div>
             </div>
           </div>
