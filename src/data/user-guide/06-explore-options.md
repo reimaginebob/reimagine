@@ -71,7 +71,7 @@ You build the playbook at your own pace, in the order that fits you. The seven n
 **Group 2 · Build your story**
 
 2. **Your Bridge Story.** The 30-second answer that connects where you have been to where you are going.
-3. **The Lingo.** The vocabulary, tools, and players that signal credibility in this space.
+3. **Industry Background.** The vocabulary, tools, and players that signal credibility in this space.
 
 **Group 3 · Prepare for the conversation**
 

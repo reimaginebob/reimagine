@@ -38,7 +38,7 @@ If you skip the survey, click **No thanks** to dismiss it and continue to your r
 
 Below the survey, every output you generated is shown as its own card. Each card has:
 
-- A title. Your Personal Brand, The Role, Your Bridge Story, The Lingo, Interview Prep, Resume Refresh, LinkedIn Remix, Go-to-Market Strategy, Income Now (if you generated it).
+- A title. Your Personal Brand, The Role, Your Bridge Story, Industry Background, Interview Prep, Resume Refresh, LinkedIn Remix, Go-to-Market Strategy, Income Now (if you generated it).
 - A **Copy** button that copies the full text of that section to your clipboard.
 - A **View** button that takes you to that section's page where you can read it in full and refine it again if you want to.
 
@@ -53,7 +53,7 @@ Each output has its own purpose. A short field guide:
 - **Your Personal Brand**. Read this before any conversation where someone is going to ask "what do you do." The two-sentence personal brand and the value proposition behind it are the spine of every other answer.
 - **The Role**. Read this before any conversation about whether this role is the right fit for you. The rest of the Focus Playbook builds on it, so re-reading the read on the role grounds the harder choices that follow.
 - **Your Bridge Story**. Read this aloud before a phone screen or an interview. Not to memorize, but to put the three parts (who you are as a human, how that has played out in your career, where you are headed) back into your head.
-- **The Lingo**. Review before networking events, informational calls, and any first conversation in this space. The terms, the tools, and the people you should know to sound like someone already inside the conversation.
+- **Industry Background**. Review before networking events, informational calls, and any first conversation in this space. The terms, the tools, and the people you should know to sound like someone already inside the conversation.
 - **Interview Prep**. Review before any interview. The STAR stories inside Interview Prep are worth reading before any conversation that might surface them, and worth remixing in real time based on who is across the table. The Same Story Different Angle subsection is the practice ground for that remixing.
 - **Resume Refresh**. Open your resume document and apply the changes. The summary, the career highlights, the role expansion and compression guidance.
 - **LinkedIn Remix**. Copy the headline you chose into LinkedIn. Copy the About section. Apply the experience reframes. The output stays here for reference; the work happens in your LinkedIn profile.

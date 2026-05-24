@@ -20,7 +20,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Direction (lane).** One of the three choices on the Lane Selection screen in Phase 2: Familiar Ground, Industry Insider, or Work That Matters. You pick one direction at a time; Reimagine generates role options for that direction only.
 
-**Focus Playbook.** The single assembled page Reimagine builds for one role. It opens with an orientation card ("How to use your playbook") and holds seven numbered sections grouped into four named groups, plus Income Now as a bonus stripe. Group 1, Understand the role: The Role. Group 2, Build your story: Your Bridge Story, The Lingo. Group 3, Prepare for the conversation: Interview Prep (with STAR stories woven in). Group 4, Carry it into the market: Resume Refresh, LinkedIn Remix, Go-to-Market. The Role generates immediately; the rest generate on demand.
+**Focus Playbook.** The single assembled page Reimagine builds for one role. It opens with an orientation card ("How to use your playbook") and holds seven numbered sections grouped into four named groups, plus Income Now as a bonus stripe. Group 1, Understand the role: The Role. Group 2, Build your story: Your Bridge Story, Industry Background. Group 3, Prepare for the conversation: Interview Prep (with STAR stories woven in). Group 4, Carry it into the market: Resume Refresh, LinkedIn Remix, Go-to-Market. The Role generates immediately; the rest generate on demand.
 
 **Familiar Ground.** One of the three directions on the Lane Selection screen. Same kind of work in a new seat: a bigger scope, the same role elsewhere, or your function in a new industry. Where your existing track record speaks most directly.
 
@@ -52,11 +52,13 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Personal Brand.** The single Phase 1 output. A flowing 600-800 word prose synthesis of who you are at work: a lead sentence stating the through-line, two or three paragraphs triangulating evidence across your career, your assessment, your reputation, and your story, a transfer paragraph naming forward contexts, dimensional fit across function/industry/position/scale/pace/mission with bolded inline keywords, and a closing italic invitation to confirm or redirect the framing.
 
-**Playbook.** The Focus Playbook, the assembled page Reimagine builds for one role. Seven sections across four groups, plus Income Now as an optional bonus. The section formerly called Lingo & Playbook is now The Lingo.
+**Playbook.** The Focus Playbook, the assembled page Reimagine builds for one role. Seven sections across four groups, plus Income Now as an optional bonus. The section formerly called Lingo & Playbook is now Industry Background.
 
-**The Lingo.** The Focus Playbook section that gives you the vocabulary, the tools, and the people who shape the space you are entering. Section 3, in the Build your story group. Formerly called Lingo & Playbook.
+**Industry Background.** The Focus Playbook section that gives you the vocabulary, the frameworks, and the people who shape the space you are entering. Section 3, in the Build your story group. Formerly called Lingo & Playbook, then The Lingo.
 
-**Lingo & Playbook.** Retired 2026-05-21. See The Lingo.
+**Lingo & Playbook.** Retired 2026-05-21. See Industry Background.
+
+**The Lingo.** Renamed 2026-05-23 to Industry Background. See Industry Background.
 
 **Quick Takeaway.** A short summary at the top of some generated sections. Three to five sentences that give you the essentials without expanding the full output. Retired from the Personal Brand output in 2026-05-20; the lead sentence now carries that role.
 
