@@ -184,7 +184,7 @@ When adding a new step or renaming an existing one, all three surfaces must be u
   Output/                          (Cowork-Claude's workspace, not part of build)
     handoff/                       implementation briefs YYYY-MM-DD_short-name.md
     docs/
-      reimagine-user-guide/        canonical user guide source (workspace > repo)
+      reimagine-user-guide/        DEPRECATED. Repo src/data/user-guide/ is canonical going forward.
       reimagine-system-documentation/  internal system docs incl. Ch. 11 changelog
     audits/                        weekly audit packets
     briefs/                        broader product briefs
@@ -192,7 +192,7 @@ When adding a new step or renaming an existing one, all three surfaces must be u
 
 Two notes on drift:
 
-- The workspace user guide (`Output/docs/reimagine-user-guide/`) and the repo copy (`src/data/user-guide/`) drift. Every workspace-to-repo sync risks re-introducing voice issues. Flag in sync briefs.
+- The repo's `src/data/user-guide/` is the canonical source for user guide content. The workspace path `Output/docs/reimagine-user-guide/` is deprecated and was historically used as the canonical source before the repo had user-guide build infrastructure. Future user-guide changes go directly through the repo. The workspace path is preserved for historical reference only.
 - Two migration folders exist (`db/migrations/` and `migrations/`). Known tech debt; do not introduce more migrations to the wrong folder. Verify which folder current production reads from before adding.
 
 ---
@@ -270,7 +270,7 @@ When CTO / CPO / Consumer Insights / Marketing / Design-UX roles disagree intern
 
 - **Audit findings:** `Output/audits/YYYY-MM-DD_pm-packet.md` and the associated `_findings.json` sidecar.
 - **Implementation briefs:** `Output/handoff/`.
-- **User-facing copy authority:** `Output/docs/reimagine-user-guide/` (canonical), synced to `src/data/user-guide/`.
+- **User-facing copy authority:** `src/data/user-guide/` (canonical). The workspace path `Output/docs/reimagine-user-guide/` is deprecated; see Section 7.
 - **System architecture docs:** `Output/docs/reimagine-system-documentation/`. Chapter 11 is the changelog updated on every infrastructure-touching brief.
 - **Voice patterns:** `src/voice-patterns.mjs` (HARD_PATTERNS) and `scripts/check-voice.mjs` (the gate).
 - **Step labels & invariants:** `META` in `src/App.jsx`, `STEP_LABELS` in `src/components/Chat.jsx`, step-id table in `api/chat.js`, invariant enforced by `scripts/check-prompt-refs.mjs`.

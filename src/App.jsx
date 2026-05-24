@@ -2258,6 +2258,15 @@ export default function PivotEngine(){
   // it routes (or explicitly decides not to), the ref locks the decision so
   // subsequent state changes do not re-route the user mid-session.
   const landingDecidedRef=useRef(false)
+  // Hydration-stable signal for the landing decision. localHydrationDone fires
+  // at the end of the pe_v4 hydration useEffect. serverLoadDone fires at the
+  // tail of the /api/me + /api/profile/load chain via .finally, so it settles
+  // for both signed-in users (after /api/profile/load resolves) and anonymous
+  // users (after /api/me returns "not signed in"). The landing useEffect gates
+  // on the AND of both so the decision is made against settled state, not
+  // initial empty state pre-hydration.
+  const[localHydrationDone,setLocalHydrationDone]=useState(false)
+  const[serverLoadDone,setServerLoadDone]=useState(false)
   // Bridge Story Phase 2 state. regeneratingSlot/slotErrors drive the
   // per-slot "What did we get wrong?" affordance. lastSaveAt + saveStatus
   // drive the Saved indicator in the BridgeStoryView header. toast +
@@ -2363,7 +2372,7 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{}},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
   // Hydrate the saved playbooks set from its own localStorage key on mount.
   // Demo mode skips persistence; test mode wipes the key so test sessions
   // start clean (mirrors the pe_v4 gating one line up).
@@ -2384,7 +2393,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(x.didMigrate)setMigratedFromPreV1(true)}else{try{const blob=localStorage.getItem('pe_v4');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{})},[])
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(x.didMigrate)setMigratedFromPreV1(true)}else{try{const blob=localStorage.getItem('pe_v4');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{}).finally(()=>setServerLoadDone(true))},[])
   useEffect(()=>{if(!signedInUser)return;const needsPrivacy=signedInUser.privacy_version!=null&&signedInUser.privacy_version!==PRIVACY_VERSION_MATERIAL;const needsTerms=signedInUser.terms_version!=null&&signedInUser.terms_version!==TOS_VERSION_MATERIAL;if(needsPrivacy||needsTerms)setReaccept({needsPrivacyReaccept:needsPrivacy,needsTermsReaccept:needsTerms})},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;try{const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v4');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
   useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
@@ -2468,15 +2477,18 @@ export default function PivotEngine(){
   // pe_* localStorage including pe_saved_v1, and pe_saved_v1 has no server
   // backup in v1; Neon sync is the durable fix and is deferred to V2).
   const isReturningExplorer=done.includes('p3')&&(savedPlaybooks.length>0||exploredRoleTitles.length>0)
-  // Landing logic for returning users. Fires after pe_v4 hydration AND after
-  // /api/profile/load resolves (the latter triggers a setSignedInUser/setDone
-  // burst, which re-runs this effect). The ref guarantees one-shot per session
-  // (set in both branches) so we never re-route the user once they navigate
+  const hydrationStable=localHydrationDone&&serverLoadDone
+  // Landing logic for returning users. Waits for hydrationStable so the
+  // decision is made against settled state (pe_v4 hydration AND /api/profile
+  // /load resolution, the latter via .finally so it fires for both signed-in
+  // and anonymous users). The ref guarantees one-shot per session (set in
+  // both branches) so we never re-route the user once they navigate
   // post-landing. Telemetry fires once per session in each branch so we can
   // measure whether the refined condition is hitting the right users.
   useEffect(()=>{
     if(isDemo||isTest)return
     if(landingDecidedRef.current)return
+    if(!hydrationStable)return
     if(!done.includes('p3'))return
     landingDecidedRef.current=true
     if(isReturningExplorer){
@@ -2485,7 +2497,7 @@ export default function PivotEngine(){
     }else{
       track('landing_skipped',{reason:'no_explorer_signal'})
     }
-  },[done,savedPlaybooks,exploredRoleTitles,signedInUser,isDemo,isTest])
+  },[hydrationStable,done,savedPlaybooks,exploredRoleTitles,signedInUser,isDemo,isTest])
   useEffect(()=>{
     const sectionName=META[step]||'Output'
     const su=signedInUser||{}
