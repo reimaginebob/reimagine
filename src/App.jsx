@@ -2186,23 +2186,70 @@ function DemoUnavailable(){
     </div>
   </div>
 }
-function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,exploredRoleTitles,onReExplore}){
+function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
   const navRef=useRef(null)
   const sidebarFirstRender=useRef(true)
+  const [inputsOpen,setInputsOpen]=useState(false)
   useEffect(()=>{
     if(sidebarFirstRender.current){sidebarFirstRender.current=false;return}
     const el=navRef.current&&navRef.current.querySelector(`[data-step="${step}"]`)
     if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',behavior:'smooth'})
   },[step])
   const hasPrereq=(sid)=>sid==='p4'?!!selectedLane:sid==='focus'?!!chosen:false
-  const explored=Array.isArray(exploredRoleTitles)?[...exploredRoleTitles].sort((a,b)=>String(b.lastExplored||'').localeCompare(String(a.lastExplored||''))):[]
+  // Post-Personal-Brand dashboard mode: flat shape with Your work primary
+  // destinations + a collapsible Inputs group. Pre-Personal-Brand keeps the
+  // existing PHASES linear progression for the orientation flow. The legacy
+  // "Roles You've Explored" sidebar list does not render in either mode
+  // going forward; My Playbooks (PR3a dashboard) supersedes it.
+  const personalBrandDone=done.includes('p3')
+  if(personalBrandDone&&!isDemo){
+    const primaryItems=[
+      {id:'mylib',label:'My Playbooks',Icon:Briefcase},
+      {id:'p3',label:'Personal Brand',Icon:Fingerprint},
+      {id:'income',label:'Income Now',Icon:DollarSign},
+    ]
+    const inputsItems=[
+      {id:'resume',label:'Resume'},
+      {id:'linkedin',label:'LinkedIn'},
+      {id:'assessment',label:'Assessment'},
+      {id:'values',label:'Values'},
+      {id:'reputation',label:'Reputation'},
+      {id:'life-events',label:'Life events'},
+      {id:'skills',label:'Skills'},
+    ]
+    const primaryItemStyle=(active)=>({padding:'12px 14px 12px 22px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:17,fontWeight:active?700:500,color:active?'#FFFFFF':'#CBD5E0',transition:'all 0.15s'})
+    const inputsItemStyle=(active)=>({padding:'8px 14px 8px 22px',display:'flex',alignItems:'center',gap:8,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:16,fontWeight:active?700:400,color:active?'#FFFFFF':'#CBD5E0',transition:'all 0.15s'})
+    const sectionHeaderStyle={fontSize:13,fontWeight:800,letterSpacing:'1.2px',textTransform:'uppercase',color:'#8A9BB8',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8}
+    return <div ref={navRef} style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
+      <div style={sectionHeaderStyle}>Your work</div>
+      {primaryItems.map(({id,label,Icon})=>{
+        const active=step===id
+        return <div key={id} data-step={id} onClick={()=>onNav(id)} style={primaryItemStyle(active)}>
+          <Icon size={16}/>
+          <span style={{flex:1}}>{label}</span>
+        </div>
+      })}
+      <div style={{height:1,background:'#0F1A30',margin:'14px 0 0'}}/>
+      <button onClick={()=>setInputsOpen(o=>!o)} aria-expanded={inputsOpen} style={{...sectionHeaderStyle,width:'100%',background:'transparent',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+        <span style={{flex:1}}>Inputs</span>
+        {inputsOpen?<ChevronUp size={14}/>:<ChevronDown size={14}/>}
+      </button>
+      {inputsOpen&&<div>
+        {inputsItems.map(({id,label})=>{
+          const active=step===id
+          return <div key={id} data-step={id} onClick={()=>onNav(id)} style={inputsItemStyle(active)}>
+            <span style={{flex:1}}>{label}</span>
+          </div>
+        })}
+      </div>}
+    </div>
+  }
   return <div ref={navRef} style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
   {typeof prog==='number'&&<div style={{padding:'16px 18px 20px',borderBottom:'1px solid #0F1A30',marginBottom:8}}>
     <div style={{fontSize:18,color:'#FFFFFF',fontWeight:600,marginBottom:8}}>You're {prog}% complete</div>
     <div style={{width:'100%',height:5,background:'#0F1A30',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:3,transition:'width 0.4s'}}/></div>
   </div>}
   {PHASES.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||hasPrereq(sid),isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{META[sid]}{sid==='focus'&&chosen?<span style={{display:'block',fontSize:13,fontWeight:400,color:'#8A9BB8',marginTop:2}}>{chosen}</span>:null}</span>{active&&<span style={{fontSize:14,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
-  {explored.length>0&&<div style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid #8A9BB8`}}><div style={{width:8,height:8,borderRadius:'50%',background:'#8A9BB8'}}/>Roles You've Explored</div>{explored.map((r,i)=>{const isCur=r.title===chosen&&step==='focus';return <div key={i} onClick={()=>onReExplore&&onReExplore(r.title,r.lane)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:onReExplore?'pointer':'default',background:isCur?'rgba(200,146,74,0.18)':'transparent',borderLeft:`5px solid ${isCur?C.gold:'transparent'}`,fontSize:16,fontWeight:isCur?700:400,color:isCur?'#FFFFFF':'#CBD5E0',transition:'all 0.15s'}}><span style={{flex:1}}>{r.title}</span><span style={{fontSize:13,color:C.gold,whiteSpace:'nowrap',flexShrink:0}}>Re-explore →</span></div>})}</div>}
 </div>}
 
 const DEMO_TOUR=[
@@ -3772,7 +3819,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         }
         return <OutPanel text={outputs[id]} onCopy={copy} copied={copied}/>
       }
-      const otherRoles=(exploredRoleTitles||[]).filter(r=>r.title&&r.title!==chosen)
       return <div>
         <div data-print="hide">
         {/* Breadcrumb header. Replaces the standalone "Back to My Playbooks"
@@ -3890,12 +3936,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{marginTop:12}}>
           <button onClick={()=>nav('laneSelect')} style={{background:'none',border:'none',padding:0,fontSize:16,color:C.grayL,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline',display:'inline-flex',alignItems:'center',gap:4}}>Or explore another direction <ChevronRight size={12}/></button>
         </div>
-        {otherRoles.length>0&&<div style={{marginTop:20}}>
-          <div style={{fontSize:15,fontWeight:700,color:C.gray,textTransform:'uppercase',letterSpacing:'1px',marginBottom:10}}>Open a role you've already explored</div>
-          <div style={{display:'flex',flexDirection:'column',gap:8,maxWidth:560}}>
-            {otherRoles.map((r,i)=><button key={i} onClick={()=>reExploreRole(r.title,r.lane||selectedLane)} disabled={loading||!!generatingSection} style={{textAlign:'left',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 16px',cursor:'pointer',fontFamily:'inherit',fontSize:16,color:'#1A2540',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><span>{r.title}</span><span style={{color:C.gold,fontSize:14,fontWeight:600,whiteSpace:'nowrap'}}>Re-explore <ChevronRight size={13}/></span></button>)}
-          </div>
-        </div>}
         {err&&!generatingSection&&<ErrBox msg={err}/>}
         </div>
         <div data-print="content" className="pe-print-playbook" style={{display:'none'}}>
@@ -4325,9 +4365,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{display:'flex',flex:1,minHeight:0}}>
         <div data-print="hide" style={{width:260,background:'#1A2540',borderRight:'1px solid #0F1A30',padding:'16px 0',overflowY:'auto',flexShrink:0}}>
           {isDemo&&<div style={{pointerEvents:'none'}}>
-            <Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog} exploredRoleTitles={[]}/>
+            <Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog}/>
           </div>}
-          {!isDemo&&<Sidebar step={step} done={done} onNav={nav} prog={prog} selectedLane={selectedLane} chosen={chosen} exploredRoleTitles={exploredRoleTitles} onReExplore={reExploreRole}/>}
+          {!isDemo&&<Sidebar step={step} done={done} onNav={nav} prog={prog} selectedLane={selectedLane} chosen={chosen}/>}
         </div>
         <div data-print="content" style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
