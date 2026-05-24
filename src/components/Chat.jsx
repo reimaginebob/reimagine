@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import MD from './MD'
 
 const INTRO_MSG = { role: 'assistant', content: 'Hi. I can help you with how Reimagine works. What would you like to know?' }
 
@@ -203,11 +204,17 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
               background: m.role === 'user' ? C.gold : '#F4F6F9',
               color: m.role === 'user' ? '#fff' : '#1A2540',
               fontSize: 18, lineHeight: 1.5, textAlign: 'left',
-              whiteSpace: 'pre-wrap',
+              // User messages render as plain text (pre-wrap preserves
+              // newlines the user typed). Assistant messages route through
+              // MD, which emits its own paragraph and list structure, so
+              // pre-wrap would double-space its output.
+              whiteSpace: m.role === 'user' ? 'pre-wrap' : 'normal',
             }}>
               {m.role === 'assistant' && !m.content && loading && i === messages.length - 1
                 ? <span style={{ color: '#8A9BB8', fontStyle: 'italic' }}>Thinking…</span>
-                : m.content}
+                : m.role === 'assistant'
+                  ? <MD text={m.content} />
+                  : m.content}
             </div>
             {m.navigateTo && VALID_STEPS.has(m.navigateTo) && (
               <div style={{ marginTop: 6 }}>

@@ -8,6 +8,7 @@ import { detectVoiceViolations, detectMemorabilityViolation, detectDimensionalFi
 import Chat from "./components/Chat"
 import SavedPlaybooks from "./components/SavedPlaybooks"
 import PlaybookSectionRail from "./components/PlaybookSectionRail"
+import MD, { normalizeItalicUnderscores } from "./components/MD"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
 import QuickStart from "./QuickStart"
@@ -765,40 +766,6 @@ async function extractText(file){
   if(ext==='docx'||ext==='doc'){const ab=await file.arrayBuffer();const r=await mammoth.extractRawText({arrayBuffer:ab});return r.value}
   if(ext==='pdf'){try{const lib=await loadPDFJS();const ab=await file.arrayBuffer();const pdf=await lib.getDocument({data:ab}).promise;let t='';for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(' ')+'\n'}if(t.trim().length<100)return "[This PDF appears to be image-based or browser-printed and couldn't be read as text. Try opening it and using Save As to save as a standard PDF, or simply paste the text below.]";return t}catch{return "[This PDF couldn't be read automatically. If it was saved from a browser (like Edge or Chrome), try opening it and printing to a standard PDF, or just paste the text directly below.]"}}
   return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(file)})
-}
-
-// Italic underscore pattern: matches `_text_` only when both underscores are
-// flanked by non-alphanumeric characters (or string boundaries). This avoids
-// false-positive matches inside identifiers like `snake_case_word` or
-// `outputs.p3_version`. Min 2 chars between underscores; mockup always wraps
-// a phrase or paragraph, so single-char italic is intentionally not supported.
-// Tested in scripts/test-md-italic.mjs.
-const ITALIC_UNDERSCORE = /(?<![A-Za-z0-9_])_([^_\s][^_]*?[^_\s])_(?![A-Za-z0-9_])/g
-const normalizeItalicUnderscores = (s) => s.replace(ITALIC_UNDERSCORE, '*$1*')
-function Inline({text}){
-  // Normalize `_italic_` to `*italic*` first so the existing splitter handles
-  // both styles uniformly.
-  const parts=normalizeItalicUnderscores(text).split(/(\*\*[^*]+\*\*|\*[^*]+\*)/)
-  return <>{parts.map((p,i)=>{
-    if(p.startsWith('**')&&p.endsWith('**'))return <strong key={i} style={{color:"#1A2540",fontWeight:600}}>{p.slice(2,-2)}</strong>
-    if(p.startsWith('*')&&p.endsWith('*'))return <em key={i} style={{color:C.gold}}>{p.slice(1,-1)}</em>
-    return <span key={i}>{p}</span>
-  })}</>
-}
-
-function MD({text}){
-  if(!text)return null
-  return <div>{text.split('\n').map((line,i)=>{
-    if(line.startsWith('### '))return <h3 key={i} style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:"#A06828",margin:'18px 0 8px'}}>{line.slice(4).replace(/^OPTION:\s*/i,'')}</h3>
-    if(line.startsWith('## '))return <h2 key={i} style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:"#C8924A",margin:'22px 0 10px',borderBottom:`1px solid ${C.border}`,paddingBottom:8}}>{line.slice(3).replace(/^OPTION:\s*/i,'')}</h2>
-    if(line.startsWith('# '))return <h1 key={i} style={{fontFamily:'Georgia,serif',fontSize:26,fontWeight:700,color:"#1A2540",margin:'24px 0 10px'}}>{line.slice(2).replace(/^OPTION:\s*/i,'')}</h1>
-    if(line.trim()==='---')return <hr key={i} style={{border:'none',borderTop:`1px solid ${C.border}`,margin:'16px 0'}}/>
-    if(line.startsWith('- ')||line.startsWith('* '))return <div key={i} style={{display:'flex',gap:10,margin:'4px 0',paddingLeft:8,alignItems:'flex-start'}}><span style={{color:C.gold,flexShrink:0,marginTop:2}}>◆</span><span style={{color:"#374258",lineHeight:1.65,fontSize:20}}><Inline text={line.slice(2)}/></span></div>
-    const nm=line.match(/^(\d+)\. (.*)/)
-    if(nm)return <div key={i} style={{display:'flex',gap:10,margin:'4px 0',paddingLeft:8}}><span style={{color:C.gold,flexShrink:0,fontWeight:600,minWidth:20,fontSize:14}}>{nm[1]}.</span><span style={{color:"#374258",lineHeight:1.65,fontSize:20}}><Inline text={nm[2]}/></span></div>
-    if(line.trim()==='')return <div key={i} style={{height:9}}/>
-    return <p key={i} style={{margin:'3px 0',color:"#374258",lineHeight:1.7,fontSize:20}}><Inline text={line}/></p>
-  })}</div>
 }
 
 // voice-allow
