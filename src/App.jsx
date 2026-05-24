@@ -1979,7 +1979,7 @@ function BridgeStoryFreeformBox({freeform,assembled,onCommit,onPrint,onCopy,copi
     </div>
   </div>
 }
-function BridgeStoryView({p6,p6Legacy,isDemo,isSmallPortrait,onPick,onEdit,onRegenerate,onMigrateGenerate,onRegenerateSlot,onFreeform,onSaveAndReturn,regeneratingSlot,slotErrors,saveStatus,lastSaveAt,currentHashes,copied,onCopy}){
+function BridgeStoryView({p6,p6Legacy,isDemo,isSmallPortrait,onPick,onEdit,onRegenerate,onMigrateGenerate,onRegenerateSlot,onFreeform,onSaveAndReturn,regeneratingSlot,slotErrors,saveStatus,lastSaveAt,currentHashes,copied,onCopy,isBuilt}){
   const[dismissedStale,setDismissedStale]=useState(false)
   // Section-level print clears the body class after the print dialog closes.
   useEffect(()=>{
@@ -2004,9 +2004,9 @@ function BridgeStoryView({p6,p6Legacy,isDemo,isSmallPortrait,onPick,onEdit,onReg
     <p style={{fontSize:17,color:C.gray,lineHeight:1.65,margin:'0 0 18px'}}>Regenerate to try again. If it keeps missing, your Orientation may be thin for a strong Bridge Story. Adding more to your values, reputation, or your story can give it more to work with.</p>
     <Btn onClick={onRegenerate}><RotateCcw size={14}/>Regenerate</Btn>
   </div>
-  return <BridgeStoryViewMain p6={p6} isDemo={isDemo} isSmallPortrait={isSmallPortrait} onPick={onPick} onEdit={onEdit} onRegenerate={onRegenerate} onRegenerateSlot={onRegenerateSlot} onFreeform={onFreeform} onSaveAndReturn={onSaveAndReturn} regeneratingSlot={regeneratingSlot} slotErrors={slotErrors} saveStatus={saveStatus} lastSaveAt={lastSaveAt} currentHashes={currentHashes} copied={copied} onCopy={onCopy} printSection={printSection} dismissedStale={dismissedStale} setDismissedStale={setDismissedStale}/>
+  return <BridgeStoryViewMain p6={p6} isDemo={isDemo} isSmallPortrait={isSmallPortrait} onPick={onPick} onEdit={onEdit} onRegenerate={onRegenerate} onRegenerateSlot={onRegenerateSlot} onFreeform={onFreeform} onSaveAndReturn={onSaveAndReturn} regeneratingSlot={regeneratingSlot} slotErrors={slotErrors} saveStatus={saveStatus} lastSaveAt={lastSaveAt} currentHashes={currentHashes} copied={copied} onCopy={onCopy} printSection={printSection} dismissedStale={dismissedStale} setDismissedStale={setDismissedStale} isBuilt={isBuilt}/>
 }
-function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenerate,onRegenerateSlot,onFreeform,onSaveAndReturn,regeneratingSlot,slotErrors,saveStatus,lastSaveAt,currentHashes,copied,onCopy,printSection,dismissedStale,setDismissedStale}){
+function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenerate,onRegenerateSlot,onFreeform,onSaveAndReturn,regeneratingSlot,slotErrors,saveStatus,lastSaveAt,currentHashes,copied,onCopy,printSection,dismissedStale,setDismissedStale,isBuilt}){
   const bs=p6.bridge_story,up=p6.user_picks||{},gf=p6.generated_from||{}
   const stale=!dismissedStale&&currentHashes&&Object.keys(currentHashes).some(k=>currentHashes[k]!==gf[k])
   const resolved=(s)=>{
@@ -2030,10 +2030,23 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
     prefilledRef.current=true
     onFreeform(assembled)
   },[allPicked,assembled,p6.user_freeform,onFreeform])
+  // Built-state collapse: when isBuilt is true, the picker UI (educational
+  // callout, three slot pickers + per-slot regenerate boxes, save-and-return
+  // CTA) hides by default; the user sees the assembled story + freeform
+  // textarea as the clean summary. Clicking "Edit blocks" reveals the
+  // picker inline. Scroll on expand puts the section header back at the top
+  // of the viewport via the same anchor (section-p6) the section rail uses.
+  const [pickerExpanded,setPickerExpanded]=useState(false)
+  const showPicker=!isBuilt||pickerExpanded
+  const togglePicker=()=>{
+    if(pickerExpanded){setPickerExpanded(false);return}
+    setPickerExpanded(true)
+    setTimeout(()=>{try{if(typeof window!=='undefined'){const el=document.getElementById('section-p6');if(el&&typeof el.scrollIntoView==='function')el.scrollIntoView({block:'start',behavior:'smooth'})}}catch{}},0)
+  }
   return <div id="bsv-print-root" data-print="content">
-    <style>{".bsv-card:hover{border-color:"+C.gold+"66 !important}.bsv-card-dim:hover{opacity:0.85 !important}.bsv-card:focus-visible{box-shadow:0 0 0 3px "+C.gold+"55 !important;border-color:"+C.gold+" !important}"}</style>
+    <style>{".bsv-card:hover{border-color:"+C.gold+"66 !important}.bsv-card-dim:hover{opacity:0.85 !important}.bsv-card:focus-visible{box-shadow:0 0 0 3px "+C.gold+"55 !important;border-color:"+C.gold+" !important}@media screen{.bsv-collapse-hide{display:none !important}}"}</style>
     <div className="bsv-no-print" style={{display:'flex',justifyContent:'flex-end',marginBottom:6}}><SavedIndicator saveStatus={saveStatus} lastSaveAt={lastSaveAt}/></div>
-    {!isDemo&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'18px 22px',borderRadius:10,marginBottom:18,color:'#1A2540'}}>
+    {!isDemo&&!isBuilt&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'18px 22px',borderRadius:10,marginBottom:18,color:'#1A2540'}}>
       <div style={{fontSize:14,fontWeight:700,color:C.gray,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>Learn the structure</div>
       <p style={{fontSize:18,color:'#1A2540',lineHeight:1.6,margin:'0 0 14px'}}>"Tell me about yourself" opens most interviews and most networking conversations. The strongest answers start with the human, not the resume.</p>
       <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:12,marginBottom:14}}>
@@ -2064,6 +2077,13 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
       <span style={{fontSize:16,color:C.goldL,lineHeight:1.55,flex:1,minWidth:240}}>Your Orientation has changed since this Bridge Story was generated. Regenerate to pick up the latest, or keep your current picks.</span>
       <div style={{display:'flex',gap:8}}><Btn small onClick={onRegenerate}><RotateCcw size={12}/>Regenerate</Btn><Btn small secondary onClick={()=>setDismissedStale(true)}>Keep current</Btn></div>
     </div>}
+    {/* Slot picker rows. Wrapped so built-state collapse can hide them on
+        screen without removing them from the DOM. Keeping them in the DOM
+        preserves the section-level print path (Print this section button),
+        which relies on bsv-print-root having the full Bridge Story content.
+        The bsv-collapse-hide class hides via @media screen only; print is
+        untouched. */}
+    <div className={(isBuilt&&!pickerExpanded)?'bsv-collapse-hide':''}>
     {BSV_SLOTS.map(s=>{
       const slot=bs[s.bs],u=up[s.key]
       return <section key={s.key} id={`slot-${s.bs}`} style={{marginBottom:26}} aria-label={s.label}>
@@ -2082,6 +2102,13 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
         <SlotRegenerateBox slotKey={s.bs} onSubmit={(text)=>onRegenerateSlot(s.bs,text)} busy={regeneratingSlot===s.bs} error={slotErrors&&slotErrors[s.bs]}/>
       </section>
     })}
+    </div>
+    {isBuilt&&<div data-print="hide" style={{marginTop:8,marginBottom:8,display:'flex',justifyContent:'flex-start'}}>
+      <button onClick={togglePicker} style={{background:'transparent',border:'none',padding:'4px 0',cursor:'pointer',fontFamily:'inherit',fontSize:15,fontWeight:600,color:C.gold,display:'inline-flex',alignItems:'center',gap:6}} aria-expanded={pickerExpanded}>
+        {pickerExpanded?'Hide blocks':'Edit blocks'}
+        {pickerExpanded?<ChevronUp size={16} strokeWidth={2.5}/>:<ChevronDown size={16} strokeWidth={2.5}/>}
+      </button>
+    </div>}
     <div style={{...S.out,marginTop:8,background:`${C.gold}08`}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:8,flexWrap:'wrap'}}>
         <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:0}}>Your assembled bridge story</h3>
@@ -2096,9 +2123,9 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
       <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:14,fontStyle:'italic'}}>Here is your bridge story. Take it where it makes sense.</div>
     </div>
     <BridgeStoryFreeformBox freeform={p6.user_freeform||''} assembled={assembled} onCommit={onFreeform} onPrint={printSection} onCopy={onCopy} copied={copied}/>
-    <div data-print="hide" style={{marginTop:18,display:'flex',justifyContent:'flex-start'}}>
+    {!isBuilt&&<div data-print="hide" style={{marginTop:18,display:'flex',justifyContent:'flex-start'}}>
       <Btn onClick={onSaveAndReturn}><Check size={14}/>Save and return to playbook</Btn>
-    </div>
+    </div>}
   </div>
 }
 
@@ -3771,7 +3798,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const genSec=(id)=>id==='p6'?generateP6():generateSection(id,gp(id),go(id))
       const refineSec=(id,v)=>{recordCorrection(id,v);if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
       const renderBody=(id)=>{
-        if(id==='p6')return <BridgeStoryView p6={outputs.p6} p6Legacy={outputs.p6_legacy} isDemo={isDemo} isSmallPortrait={isSmallPortrait} currentHashes={currentP6Hashes()} copied={copied} onCopy={copy} onPick={updateP6Pick} onEdit={updateP6Edit} onRegenerate={()=>generateP6()} onMigrateGenerate={regenerateP6WithoutCascade} onRegenerateSlot={regenerateP6Slot} onFreeform={updateP6Freeform} onSaveAndReturn={saveAndReturn} regeneratingSlot={regeneratingSlot} slotErrors={slotErrors} saveStatus={saveStatus} lastSaveAt={lastSaveAt}/>
+        if(id==='p6')return <BridgeStoryView p6={outputs.p6} p6Legacy={outputs.p6_legacy} isDemo={isDemo} isSmallPortrait={isSmallPortrait} currentHashes={currentP6Hashes()} copied={copied} onCopy={copy} onPick={updateP6Pick} onEdit={updateP6Edit} onRegenerate={()=>generateP6()} onMigrateGenerate={regenerateP6WithoutCascade} onRegenerateSlot={regenerateP6Slot} onFreeform={updateP6Freeform} onSaveAndReturn={saveAndReturn} regeneratingSlot={regeneratingSlot} slotErrors={slotErrors} saveStatus={saveStatus} lastSaveAt={lastSaveAt} isBuilt={done.includes('p6')}/>
         if(id==='p9')return <>{!isDemo&&<CoachingCallout><strong style={{color:'#1A2540'}}>How to use this</strong><p style={{margin:'8px 0 0'}}>This section gives you the vocabulary, frameworks, and thought leaders that signal credibility in this space. Use it to prep for conversations and to find people to follow on LinkedIn.</p></CoachingCallout>}<OutPanel text={outputs.p9} onCopy={copy} copied={copied}/></>
         if(id==='p8')return <><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your LinkedIn profile. Open LinkedIn in another tab and apply the changes yourself.</div>}</>
         if(id==='income')return <><div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div><OutPanel text={outputs.income} onCopy={copy} copied={copied}/></>
