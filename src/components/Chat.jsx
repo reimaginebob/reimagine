@@ -39,10 +39,26 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const messagesContainerRef = useRef(null)
+  // Per-message DOM refs populated by the ref callback in the messages.map
+  // render. Indexed by position in the messages array. The scroll effect
+  // below pins the user's most recent question to the top of the visible
+  // chat area so the assistant response reads downward from a fixed eyeline.
+  const messageRefs = useRef([])
 
   useEffect(() => {
-    const el = messagesContainerRef.current
-    if (el) el.scrollTop = el.scrollHeight
+    if (!messages || messages.length === 0) return
+    // Find the most recent user message and scroll it to the top of the
+    // messages container. Replaces the prior scroll-to-bottom behavior,
+    // which pushed the start of each new answer above the visible area.
+    let lastUserIdx = -1
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') { lastUserIdx = i; break }
+    }
+    if (lastUserIdx < 0) return
+    const el = messageRefs.current[lastUserIdx]
+    if (el && el.scrollIntoView) {
+      el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    }
   }, [messages, loading])
 
   const send = async () => {
@@ -155,7 +171,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
   return (
     <div data-print="hide" style={{
       position: 'fixed', bottom: 24 + bottomOffset, right: 24, zIndex: 1000,
-      width: 380, maxWidth: 'calc(100vw - 24px)', height: 560, maxHeight: 'calc(100vh - 48px)',
+      width: 480, maxWidth: 'calc(100vw - 24px)', height: 680, maxHeight: 'calc(100vh - 48px)',
       background: '#fff',
       border: '1px solid #E2E5EA', borderRadius: 14,
       boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
@@ -180,7 +196,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
       </div>
       <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 18px' }}>
         {messages.map((m, i) => (
-          <div key={i} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
+          <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
             <div style={{
               display: 'inline-block', maxWidth: '85%',
               padding: '10px 14px', borderRadius: 12,
