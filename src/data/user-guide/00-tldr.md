@@ -27,7 +27,7 @@ A few specifics: take an assessment if you do not have one (the difference is si
 1. **Orientation**. Your inputs. The only phase where you do the work.
 2. **Know Your Value**. Reimagine translates your accomplishments and synthesizes a personal brand.
 3. **Explore Options**. Pick a direction (Familiar Ground, Industry Insider, or Work That Matters) and Reimagine shows specific roles for it. Or paste a job description for a role you already have in hand.
-4. **The Focus Playbook**. Click any role and Reimagine builds a complete playbook for that one role: The Role, Bridge Story, Lingo & Playbook, Interview Prep, STAR Stories, Resume Refresh, LinkedIn Remix, Go-to-Market, and Income Now. The Role generates immediately; the rest generate on demand, in that order. Save any playbook as a PDF, and re-explore other roles anytime.
+4. **The Focus Playbook**. Click any role and Reimagine builds a complete playbook for that one role: The Role, Bridge Story, Industry Background, Interview Prep, STAR Stories, Resume Refresh, LinkedIn Remix, Go-to-Market, and Income Now. The Role generates immediately; the rest generate on demand, in that order. Save any playbook as a PDF, and re-explore other roles anytime.
 
 ## Things worth knowing before you start
 

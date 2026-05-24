@@ -4,7 +4,7 @@ These are the sections of your Focus Playbook that get you ready for the convers
 
 **One thing to know up front:** Reimagine does not modify your actual LinkedIn profile or your resume file. It produces the copy and the recommendations. You take that copy and apply the changes yourself. By editing your LinkedIn profile in your browser, and by updating your resume in your own document. There is no integration with LinkedIn and no edit to the file you uploaded. That separation is by design: the changes go on your screen, in your own tools, where you control the final word.
 
-## The Lingo
+## Industry Background
 
 **What this section does.** Reimagine generates a short briefing on the vocabulary, the tools, and the people who shape the space you are entering. Built from your Personal Brand and the language of this specific role.
 
@@ -23,7 +23,7 @@ These are the sections of your Focus Playbook that get you ready for the convers
 - "The terms lean general business. I want terms specific to medical device commercialization."
 - "Add a tool for project management; this team uses Asana."
 
-Review The Lingo before networking events, informational calls, and any first conversation where you want to sound like someone who already speaks the language.
+Review Industry Background before networking events, informational calls, and any first conversation where you want to sound like someone who already speaks the language.
 
 ## Interview Prep
 

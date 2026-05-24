@@ -108,7 +108,7 @@ Briefs that come back at 25-80% of their original scope after pre-flight are com
 - `p6`: Bridge Story / Tell Me About Yourself
 - `p7`: Go-to-Market (target companies + outreach)
 - `p8`: LinkedIn Remix (Headline + About + Experience Reframe)
-- `p9`: The Lingo (sector vocabulary + thought leaders + credibility move)
+- `p9`: Industry Background (sector vocabulary + thought leaders + credibility move)
 - `p10`: **RETIRED** — single-line stub redirecting to p11
 - `p11`: Interview Prep (top questions with STAR breakdown + framing recommendations)
 - `p_res`: Resume Refresh

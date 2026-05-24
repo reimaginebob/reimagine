@@ -26,7 +26,7 @@ const STEP_LABELS = {
   p7: 'Go-to-Market',
   p8: 'LinkedIn Remix',
   p_res: 'Resume Refresh',
-  p9: 'The Lingo',
+  p9: 'Industry Background',
   p10: 'Interview Prep',
   complete: 'Complete',
   income: 'Income Now',
