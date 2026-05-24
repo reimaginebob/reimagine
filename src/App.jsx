@@ -2728,7 +2728,7 @@ export default function PivotEngine(){
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
     logCorrection(correction)
   }
-  const generate=async(key,fn,opts={})=>{if(generatingSection)return;track('generation_started',{step:key});window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}if(currentSavedSlotIdRef.current===null&&selectedLane&&selectedLane!=='specific'&&ROLE_SUBMODULES.includes(key)&&key!=='p5'){saveCurrentDoor1(key,r)}if(currentSavedSlotIdRef.current&&(ROLE_SUBMODULES.includes(key)||key==='op')){const slotId=currentSavedSlotIdRef.current;setSavedPlaybooks(prev=>prev.map(rec=>{if(rec.id!==slotId)return rec;const nextOutputs={...rec.outputs,[key]:r};const nextDone=rec.done.includes(key)?rec.done:[...rec.done,key];return{...rec,outputs:nextOutputs,done:nextDone,updatedAt:new Date().toISOString()}}))}}catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput(key)}}
+  const generate=async(key,fn,opts={})=>{if(generatingSection)return;track('generation_started',{step:key});window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}afterSectionGenerate(key,r)}catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput(key)}}
   // Brief 2 (KYV consolidation): chain runner for the Phase 1 collapse.
   // p1 -> p2 -> p3 run sequentially in a single user-visible wait. Outputs
   // are threaded through local variables (NOT read back from React state)
@@ -2783,7 +2783,7 @@ export default function PivotEngine(){
     finally{setLoading(false);setLoadingStage('');scrollToOutput('p3')}
   }
   const canGenSection=(id)=>!loading&&(!generatingSection||generatingSection===id)
-  const generateSection=async(sectionId,fn,opts={})=>{if(loading||(generatingSection&&generatingSection!==sectionId))return;setGeneratingSection(sectionId);setSectionErrors(e=>({...e,[sectionId]:null}));try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:sectionId,onEvent:logVoiceEvent});out(sectionId,r);markDone(sectionId);if(ROLE_SUBMODULES.includes(sectionId))setCurrentRoleSaved(false)}catch(e){setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))}finally{setGeneratingSection(null);scrollToOutput(sectionId)}}
+  const generateSection=async(sectionId,fn,opts={})=>{if(loading||(generatingSection&&generatingSection!==sectionId))return;setGeneratingSection(sectionId);setSectionErrors(e=>({...e,[sectionId]:null}));try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:sectionId,onEvent:logVoiceEvent});out(sectionId,r);markDone(sectionId);if(ROLE_SUBMODULES.includes(sectionId))setCurrentRoleSaved(false);afterSectionGenerate(sectionId,r)}catch(e){setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))}finally{setGeneratingSection(null);scrollToOutput(sectionId)}}
   const generateP4=async(extraContext='',msg='Mapping your opportunity landscape, this takes a moment…')=>{
     window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(msg)
     const opts={highTemp:true,maxTokens:5000}
@@ -2827,6 +2827,10 @@ export default function PivotEngine(){
         out('p6',wrapped);markDone('p6')
         setOutputs(o=>{if('p6_legacy'in o){const n={...o};delete n.p6_legacy;return n}return o})
         if(!suppressCascade)cascadeInvalidate('p6')
+        // Door 1 implicit save + write-through. Only fires in the parsed
+        // branch since unparsed is an error path with no valid p6 content
+        // to splice into a saved record.
+        afterSectionGenerate('p6',wrapped)
       }
       setCurrentRoleSaved(false)
     }catch(e){setSectionErrors(prev=>({...prev,p6:e.message||'Generation failed. Try again.'}))}
@@ -3102,13 +3106,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const id=newSavedId()
     const rec=buildDoor1Record(id,chosen,selectedLane)
     // buildDoor1Record reads outputs and done from React closure. When this
-    // runs inside generate() right after out(key,r) and markDone(key), those
-    // setState calls have not flushed, so the closure outputs[currentKey] is
-    // still empty and closure done has no currentKey. Splice the current
+    // runs inside a generation function right after out(key,r) and markDone(key),
+    // those setState calls have not flushed, so the closure outputs[currentKey]
+    // is still empty and closure done has no currentKey. Splice the current
     // key+r into the new record at creation so the record is complete on
-    // first save. The write-through that fires immediately after in generate()
-    // is now defensive insurance and refreshes updatedAt to post-generation.
-    if(currentKey&&typeof currentR==='string'){
+    // first save. The write-through that fires immediately after in
+    // afterSectionGenerate is defensive insurance and refreshes updatedAt to
+    // post-generation. Guard accepts string OR object so p6 (wrapped object
+    // shape) splices correctly alongside the string-shaped sections.
+    if(currentKey&&currentR!==undefined&&currentR!==null){
       rec.outputs={...rec.outputs,[currentKey]:currentR}
       if(!rec.done.includes(currentKey))rec.done=[...rec.done,currentKey]
     }
@@ -3117,6 +3123,26 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     currentSavedSlotIdRef.current=id
     // No toast: implicit save is silent infrastructure. The My Playbooks
     // dashboard is the source of truth for what is saved.
+  }
+  // Shared post-generation handler. Fires the Door 1 implicit save trigger
+  // and the Door 1/2 write-through. Every section-generation function
+  // (generate, generateSection, generateP6) calls this after out(key,r) and
+  // markDone(key). Centralizing here means a future generation path added
+  // without this call would skip the saved-set update, but at least there
+  // is one canonical implementation to copy from.
+  const afterSectionGenerate=(key,r)=>{
+    if(currentSavedSlotIdRef.current===null&&selectedLane&&selectedLane!=='specific'&&ROLE_SUBMODULES.includes(key)&&key!=='p5'){
+      saveCurrentDoor1(key,r)
+    }
+    if(currentSavedSlotIdRef.current&&(ROLE_SUBMODULES.includes(key)||key==='op')){
+      const slotId=currentSavedSlotIdRef.current
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId)return rec
+        const nextOutputs={...rec.outputs,[key]:r}
+        const nextDone=rec.done.includes(key)?rec.done:[...rec.done,key]
+        return{...rec,outputs:nextOutputs,done:nextDone,updatedAt:new Date().toISOString()}
+      }))
+    }
   }
   const deleteFromSavedSet=(id)=>{
     setSavedPlaybooks(prev=>prev.filter(r=>r.id!==id))
