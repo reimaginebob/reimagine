@@ -7,6 +7,7 @@ import { testProfile } from "./testData"
 import { detectVoiceViolations, detectMemorabilityViolation, detectDimensionalFitRegression } from "./voice-patterns.mjs"
 import Chat from "./components/Chat"
 import SavedPlaybooks from "./components/SavedPlaybooks"
+import PlaybookSectionRail from "./components/PlaybookSectionRail"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
 import QuickStart from "./QuickStart"
@@ -3774,13 +3775,37 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const otherRoles=(exploredRoleTitles||[]).filter(r=>r.title&&r.title!==chosen)
       return <div>
         <div data-print="hide">
-        {isReturningExplorer&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('mylib')}><ArrowLeft size={13}/>Back to My Playbooks</Btn></div>}
+        {/* Breadcrumb header. Replaces the standalone "Back to My Playbooks"
+            button from PR #48. Sticky at top so navigation stays visible as
+            the user scrolls through sections. Saved pill on the right
+            renders only when the playbook is committed to the dashboard. */}
+        {isReturningExplorer&&<div style={{position:'sticky',top:0,zIndex:50,background:C.bg,padding:'10px 0',marginBottom:14,borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap'}}>
+          <div style={{display:'inline-flex',alignItems:'center',gap:8,fontSize:15,minWidth:0,flex:1}}>
+            <button onClick={()=>nav('mylib')} style={{background:'transparent',border:'none',padding:0,color:C.gold,fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>My Playbooks</button>
+            <ChevronRight size={14} color={C.gray}/>
+            <span style={{color:'#1A2540',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{chosen||'Your Focus Playbook'}</span>
+          </div>
+          {currentRoleInSavedSet&&<div role="status" style={{display:'inline-flex',alignItems:'center',gap:6,background:`${C.ok}18`,color:C.ok,padding:'4px 12px',borderRadius:999,fontSize:13,fontWeight:600,flexShrink:0}}>
+            <Check size={12} color={C.ok} strokeWidth={2.5}/>Saved
+          </div>}
+        </div>}
         {!isDemo&&<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginBottom:14}}>
           <div style={{...S.tag('#8A9BB8'),marginBottom:0}}>Phase 2 · Explore Options</div>
           <div style={{...S.tag(C.gold),marginBottom:0}}>Focus Playbook</div>
         </div>}
         <h1 style={S.title}>{chosen||'Your Focus Playbook'}</h1>
         {selectedLane&&<p style={{...S.sub,marginBottom:18}}>Direction: <strong style={{color:C.gold}}>{laneLbl}</strong></p>}
+        {/* Two-column layout: sticky section rail on the left, section
+            content on the right. The rail itself owns its sticky positioning
+            and prints hidden via data-print="hide" inside the component. */}
+        <div style={{display:'flex',gap:24,alignItems:'flex-start'}}>
+          <PlaybookSectionRail
+            sections={FOCUS_ORDER.map(s=>({id:s.id,label:s.label,num:(()=>{const m={};{let n=1;FOCUS_GROUPS.forEach(g=>g.sectionIds.forEach(sid=>{m[sid]=n++}))}return m[s.id]})(),isBonus:s.id==='income'}))}
+            done={done}
+            onJump={scrollToOutput}
+            C={C}
+          />
+          <div style={{flex:1,minWidth:0}}>
         {(()=>{
           const focusById=Object.fromEntries(FOCUS_ORDER.map(s=>[s.id,s]))
           const sectionNums={};{let n=1;FOCUS_GROUPS.forEach(g=>g.sectionIds.forEach(sid=>{sectionNums[sid]=n++}))}
@@ -3791,14 +3816,35 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               ?((typeof outputs.p6==='string'&&outputs.p6.length>0)||(outputs.p6&&typeof outputs.p6==='object')||outputs.p6===null)
               :(outputs[id]&&outputs[id].length>0)
             const isGen=generatingSection===id||(id==='p5'&&loading&&!has)
+            const isDoneSec=done.includes(id)
+            // Next-section cue: find the next not-yet-built section after this
+            // one in FOCUS_ORDER. If all subsequent sections are built (and at
+            // least one section exists past this one), show the Save as PDF
+            // cue instead. The cue lives inline at the bottom of a generated
+            // section, before the visual gap to the next section card.
+            const curIdx=FOCUS_ORDER.findIndex(s=>s.id===id)
+            const nextSec=curIdx>=0?FOCUS_ORDER.slice(curIdx+1).find(s=>!done.includes(s.id)):null
+            const nextNum=nextSec?sectionNums[nextSec.id]:null
+            const allBuiltAfter=curIdx>=0&&curIdx<FOCUS_ORDER.length-1&&FOCUS_ORDER.slice(curIdx+1).every(s=>done.includes(s.id))
             return <section key={id} style={{marginTop:32}}>
-              <h2 id={`section-${id}`} style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8}}>{num?num+'. ':''}{sec.label}</h2>
+              <h2 id={`section-${id}`} style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                <span>{num?num+'. ':''}{sec.label}</span>
+                {isDoneSec&&<span data-print="hide" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:13,fontWeight:600,color:C.ok,background:`${C.ok}18`,padding:'3px 10px',borderRadius:999}}><Check size={12} color={C.ok} strokeWidth={2.5}/>Built</span>}
+              </h2>
               {SECTION_EXPLAINERS[id]&&<SectionExplainer subhead={SECTION_EXPLAINERS[id].subhead} detail={SECTION_EXPLAINERS[id].detail}/>}
               {isGen&&<Loading msg={sec.load} step={id}/>}
               {!isGen&&sectionErrors[id]&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors[id]} <Btn small secondary onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
               {!isGen&&!sectionErrors[id]&&has&&<>
                 {renderBody(id)}
                 {!isDemo&&<RefineBox value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
+                {!isDemo&&nextSec&&<div data-print="hide" style={{marginTop:18,padding:'12px 16px',background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                  <div style={{fontSize:15,color:C.grayL}}>Next: {nextNum?nextNum+'. ':''}{nextSec.label}</div>
+                  <Btn small secondary onClick={()=>scrollToOutput(nextSec.id)}>Go <ChevronRight size={11}/></Btn>
+                </div>}
+                {!isDemo&&!nextSec&&allBuiltAfter&&<div data-print="hide" style={{marginTop:18,padding:'12px 16px',background:`${C.ok}12`,border:`1px solid ${C.ok}40`,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                  <div style={{fontSize:15,color:C.ok}}>All sections built.</div>
+                  <Btn small secondary onClick={savePlaybookPdf}><Printer size={11}/>Save as PDF</Btn>
+                </div>}
               </>}
               {!isGen&&!sectionErrors[id]&&!has&&<div style={S.row}>
                 {id==='p5'
@@ -3835,6 +3881,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </div>
           </>
         })()}
+          </div>
+        </div>
         <div style={{margin:'40px 0 12px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>This is yours now. Take it where it makes sense, or look at another direction below.</div>
         <div style={S.row}>
           <Btn secondary onClick={()=>nav('p4')}>See more roles in this direction</Btn>
@@ -4215,14 +4263,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     </div>}
-    {showPlaybookFooter&&<div data-print="hide" style={{position:'fixed',left:0,right:0,bottom:0,zIndex:900,background:'#1A2540',borderTop:`2px solid ${C.gold}`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
-      <div>
-        <div style={{fontSize:15,color:'#FFFFFF',fontWeight:500}}>Your playbook so far: {playbookSectionsBuilt} of {focusNumberedIds.length} sections built.{currentRoleSaved||currentRoleInSavedSet?' Saved.':''}</div>
-        <div style={{fontSize:13,color:'#CBD5E0',marginTop:2}}>Save what you have. Come back to generate the rest.</div>
-      </div>
-      <div style={{display:'flex',gap:10,flexWrap:'wrap',justifyContent:'flex-end',alignItems:'center'}}>
-        <Btn secondary onClick={savePlaybookPdf} style={{background:'transparent',border:`1.5px solid ${C.gold}`,color:'#FFFFFF'}}><Printer size={14}/>Save as PDF</Btn>
-      </div>
+    {showPlaybookFooter&&<div data-print="hide" style={{position:'fixed',left:0,right:0,bottom:0,zIndex:900,background:'#1A2540',borderTop:`2px solid ${C.gold}`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'flex-end',gap:16}}>
+      {/* Footer simplified post-PR5: per-section completion + the section
+          rail now show progress explicitly, so the progress text is gone.
+          Save as PDF stays as the only persistent footer action. */}
+      <Btn secondary onClick={savePlaybookPdf} style={{background:'transparent',border:`1.5px solid ${C.gold}`,color:'#FFFFFF'}}><Printer size={14}/>Save as PDF</Btn>
     </div>}
     {showVoiceMigBanner&&<div data-print="hide" style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1001,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'18px 22px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',flexDirection:'column',gap:14,maxWidth:560,width:'calc(100% - 32px)'}}>
       <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
