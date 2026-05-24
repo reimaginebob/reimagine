@@ -2728,7 +2728,7 @@ export default function PivotEngine(){
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
     logCorrection(correction)
   }
-  const generate=async(key,fn,opts={})=>{if(generatingSection)return;track('generation_started',{step:key});window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}if(currentSavedSlotIdRef.current===null&&selectedLane&&selectedLane!=='specific'&&ROLE_SUBMODULES.includes(key)&&key!=='p5'){saveCurrentDoor1()}if(currentSavedSlotIdRef.current&&(ROLE_SUBMODULES.includes(key)||key==='op')){const slotId=currentSavedSlotIdRef.current;setSavedPlaybooks(prev=>prev.map(rec=>{if(rec.id!==slotId)return rec;const nextOutputs={...rec.outputs,[key]:r};const nextDone=rec.done.includes(key)?rec.done:[...rec.done,key];return{...rec,outputs:nextOutputs,done:nextDone,updatedAt:new Date().toISOString()}}))}}catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput(key)}}
+  const generate=async(key,fn,opts={})=>{if(generatingSection)return;track('generation_started',{step:key});window.scrollTo(0,0);setLoading(true);setErr(null);setLoadMsg(opts.msg||'Generating your analysis…');try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:key,onEvent:logVoiceEvent});out(key,r);if(ROLE_SUBMODULES.includes(key)){markDone(key);setCurrentRoleSaved(false)}if(currentSavedSlotIdRef.current===null&&selectedLane&&selectedLane!=='specific'&&ROLE_SUBMODULES.includes(key)&&key!=='p5'){saveCurrentDoor1(key,r)}if(currentSavedSlotIdRef.current&&(ROLE_SUBMODULES.includes(key)||key==='op')){const slotId=currentSavedSlotIdRef.current;setSavedPlaybooks(prev=>prev.map(rec=>{if(rec.id!==slotId)return rec;const nextOutputs={...rec.outputs,[key]:r};const nextDone=rec.done.includes(key)?rec.done:[...rec.done,key];return{...rec,outputs:nextOutputs,done:nextDone,updatedAt:new Date().toISOString()}}))}}catch(e){setErr(e.message)}finally{setLoading(false);scrollToOutput(key)}}
   // Brief 2 (KYV consolidation): chain runner for the Phase 1 collapse.
   // p1 -> p2 -> p3 run sequentially in a single user-visible wait. Outputs
   // are threaded through local variables (NOT read back from React state)
@@ -3098,9 +3098,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const ts=new Date().toISOString()
     return{id,title,lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:1}
   }
-  const saveCurrentDoor1=()=>{
+  const saveCurrentDoor1=(currentKey,currentR)=>{
     const id=newSavedId()
     const rec=buildDoor1Record(id,chosen,selectedLane)
+    // buildDoor1Record reads outputs and done from React closure. When this
+    // runs inside generate() right after out(key,r) and markDone(key), those
+    // setState calls have not flushed, so the closure outputs[currentKey] is
+    // still empty and closure done has no currentKey. Splice the current
+    // key+r into the new record at creation so the record is complete on
+    // first save. The write-through that fires immediately after in generate()
+    // is now defensive insurance and refreshes updatedAt to post-generation.
+    if(currentKey&&typeof currentR==='string'){
+      rec.outputs={...rec.outputs,[currentKey]:currentR}
+      if(!rec.done.includes(currentKey))rec.done=[...rec.done,currentKey]
+    }
     setSavedPlaybooks(prev=>[...prev,rec])
     setCurrentRoleInSavedSet(true)
     currentSavedSlotIdRef.current=id
