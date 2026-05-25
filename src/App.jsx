@@ -3948,7 +3948,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const nextNum=nextSec?sectionNums[nextSec.id]:null
             const allBuiltAfter=curIdx>=0&&curIdx<FOCUS_ORDER.length-1&&FOCUS_ORDER.slice(curIdx+1).every(s=>done.includes(s.id))
             return <section key={id} style={{marginTop:32}}>
-              <h2 id={`section-${id}`} style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+              <h2 id={`section-${id}`} style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',scrollMarginTop:80}}>
                 <span>{num?num+'. ':''}{sec.label}</span>
                 {isDoneSec&&<span data-print="hide" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:13,fontWeight:600,color:C.ok,background:`${C.ok}18`,padding:'3px 10px',borderRadius:999}}><Check size={12} color={C.ok} strokeWidth={2.5}/>Built</span>}
               </h2>
