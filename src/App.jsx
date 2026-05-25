@@ -3981,7 +3981,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           return <>
             {!isDemo&&<div data-print="hide" style={{background:'#FFFFFF',border:`0.5px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'18px 22px',margin:'4px 0 8px'}}>
               <div style={{fontSize:13,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold,marginBottom:10}}>How to use your playbook</div>
-              <p style={{fontSize:18,color:'#1A2540',lineHeight:1.6,margin:'0 0 14px'}}>This page assembles a complete playbook for this role: a single working document you take into your search and update as you learn. {totalNumbered} sections across {FOCUS_GROUPS.length} groups.</p>
+              <p style={{fontSize:18,color:'#1A2540',lineHeight:1.6,margin:'0 0 14px'}}>This page assembles a complete playbook for this role: a single working document you take into your search and update as you learn. {totalNumbered} sections.</p>
               {/* The 4-group structural grid that used to live here was
                   redundant with the PR5 section rail, which lists all
                   sections with their numbers and completion state. The
