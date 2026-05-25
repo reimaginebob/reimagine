@@ -28,7 +28,12 @@ const LANE_LABEL_MAP = {
   specific: 'Specific Role',
 }
 
-const ROLE_OUTPUT_KEYS = ['p5','p6','p7','p8','p9','p10','p11','p_res','income']
+// p10 is the retired Interview Prep stub per CLAUDE.md and never generates
+// content. Excluding it from the dashboard denominator so a fully-built
+// playbook reads "8 of 8" instead of "8 of 9". App.jsx ROLE_SUBMODULES
+// intentionally keeps p10 for legacy data shape; that inclusion is harmless
+// because each record's p10 is an empty string.
+const ROLE_OUTPUT_KEYS = ['p5','p6','p7','p8','p9','p11','p_res','income']
 
 function sectionsBuilt(rec) {
   if (rec.source === 'door2') {
