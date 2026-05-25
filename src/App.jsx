@@ -2322,6 +2322,11 @@ export default function PivotEngine(){
   const saveRef=useRef(null)
   const playbookSavePendingRef=useRef(false)
   const afterSaveRunRef=useRef(null)
+  // The app shell is height:100vh overflow:hidden; the actual scroll
+  // container is the inner content column rendered below. window.scrollTo
+  // is a no-op for the visible scroll position, so we thread a ref to the
+  // column and reset its scrollTop on step change.
+  const contentColumnRef=useRef(null)
   const[demoIdx,setDemoIdx]=useState(0)
   const[activeTab,setActiveTab]=useState(0)
   const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})
@@ -2476,7 +2481,7 @@ export default function PivotEngine(){
     })()
   },[step])
   useEffect(()=>{const check=()=>{const portrait=window.matchMedia('(orientation: portrait)').matches;const small=window.innerWidth<500;setIsSmallPortrait(portrait&&small)};check();window.addEventListener('resize',check);window.addEventListener('orientationchange',check);return()=>{window.removeEventListener('resize',check);window.removeEventListener('orientationchange',check)}},[])
-  useEffect(()=>{window.scrollTo({top:0,behavior:'instant'})},[step])
+  useEffect(()=>{window.scrollTo({top:0,behavior:'instant'});if(contentColumnRef.current)contentColumnRef.current.scrollTop=0},[step])
   // Brief 2: p1 and p2 are no longer user-visible steps. Normalize any
   // hydration that lands on those keys (saved localStorage, server profile,
   // imported JSON, legacy chat helper navigation) to p3 so the sidebar
@@ -3185,11 +3190,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setCurrentRoleInSavedSet(true)
     currentSavedSlotIdRef.current=rec.id
     setStep(rec.source==='door2'?'op':'focus')
-    // Reset scroll so the user lands at the top of the restored page
-    // (breadcrumb, orientation card, section rail) rather than wherever the
-    // browser preserved scroll from the prior page. setTimeout(0) defers to
-    // the next tick so the scrollTo targets the post-render DOM.
-    setTimeout(()=>{if(typeof window!=='undefined')window.scrollTo(0,0)},0)
+    // Scroll-to-top is handled by the step-change useEffect that resets
+    // contentColumnRef.current.scrollTop on every step change. No per-call
+    // scroll reset needed here.
     setToast(`Restored: ${rec.title}`)
     setTimeout(()=>setToast(t=>t===`Restored: ${rec.title}`?null:t),3000)
   }
@@ -4438,7 +4441,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>}
           {!isDemo&&<Sidebar step={step} done={done} onNav={nav} prog={prog} selectedLane={selectedLane} chosen={chosen}/>}
         </div>
-        <div data-print="content" style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
+        <div ref={contentColumnRef} data-print="content" style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
               <h2 style={{fontFamily:'Georgia,serif',fontSize:26,fontWeight:700,color:'#1A2540',margin:0}}>{demoGuide.title}</h2>
