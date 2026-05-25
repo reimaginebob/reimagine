@@ -2183,7 +2183,6 @@ function DemoUnavailable(){
 function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
   const navRef=useRef(null)
   const sidebarFirstRender=useRef(true)
-  const [inputsOpen,setInputsOpen]=useState(false)
   useEffect(()=>{
     if(sidebarFirstRender.current){sidebarFirstRender.current=false;return}
     const el=navRef.current&&navRef.current.querySelector(`[data-step="${step}"]`)
@@ -2211,9 +2210,9 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
       {id:'life-events',label:'Life events'},
       {id:'skills',label:'Skills'},
     ]
-    const primaryItemStyle=(active)=>({padding:'12px 14px 12px 22px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:17,fontWeight:active?700:500,color:active?'#FFFFFF':'#CBD5E0',transition:'all 0.15s'})
-    const inputsItemStyle=(active)=>({padding:'8px 14px 8px 22px',display:'flex',alignItems:'center',gap:8,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:16,fontWeight:active?700:400,color:active?'#FFFFFF':'#CBD5E0',transition:'all 0.15s'})
-    const sectionHeaderStyle={fontSize:13,fontWeight:800,letterSpacing:'1.2px',textTransform:'uppercase',color:'#8A9BB8',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8}
+    const primaryItemStyle=(active)=>({padding:'12px 14px 12px 22px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:17,fontWeight:active?700:500,color:active?'#FFFFFF':'#F1F5F9',transition:'all 0.15s'})
+    const inputsItemStyle=(active)=>({padding:'8px 14px 8px 22px',display:'flex',alignItems:'center',gap:8,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:16,fontWeight:active?700:400,color:active?'#FFFFFF':'#F1F5F9',transition:'all 0.15s'})
+    const sectionHeaderStyle={fontSize:13,fontWeight:800,letterSpacing:'1.2px',textTransform:'uppercase',color:'#B0BEDE',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8}
     return <div ref={navRef} style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
       <div style={sectionHeaderStyle}>Your work</div>
       {primaryItems.map(({id,label,Icon})=>{
@@ -2224,18 +2223,13 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
         </div>
       })}
       <div style={{height:1,background:'#0F1A30',margin:'14px 0 0'}}/>
-      <button onClick={()=>setInputsOpen(o=>!o)} aria-expanded={inputsOpen} style={{...sectionHeaderStyle,width:'100%',background:'transparent',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-        <span style={{flex:1}}>Inputs</span>
-        {inputsOpen?<ChevronUp size={14}/>:<ChevronDown size={14}/>}
-      </button>
-      {inputsOpen&&<div>
-        {inputsItems.map(({id,label})=>{
-          const active=step===id
-          return <div key={id} data-step={id} onClick={()=>onNav(id)} style={inputsItemStyle(active)}>
-            <span style={{flex:1}}>{label}</span>
-          </div>
-        })}
-      </div>}
+      <div style={sectionHeaderStyle}>Inputs</div>
+      {inputsItems.map(({id,label})=>{
+        const active=step===id
+        return <div key={id} data-step={id} onClick={()=>onNav(id)} style={inputsItemStyle(active)}>
+          <span style={{flex:1}}>{label}</span>
+        </div>
+      })}
     </div>
   }
   return <div ref={navRef} style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
