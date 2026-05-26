@@ -23,7 +23,7 @@
     "dev": "vite",
     "lint": "eslint \"src/**/*.{js,jsx}\" \"api/**/*.js\"",
     "test": "node scripts/test-md-italic.mjs && node scripts/test-voice-patterns.mjs",
-    "prebuild": "node scripts/build-user-guide.mjs && node scripts/check-voice.mjs && node scripts/check-prompt-refs.mjs && npm run test && npm run lint",
+    "prebuild": "node scripts/write-build-meta.mjs && node scripts/build-user-guide.mjs && node scripts/check-voice.mjs && node scripts/check-prompt-refs.mjs && npm run test && npm run lint",
     "build": "vite build",
     "preview": "vite preview"
   }
