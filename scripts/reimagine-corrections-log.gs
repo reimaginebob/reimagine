@@ -21,7 +21,7 @@ function doPost(e) {
       let vs = ss.getSheetByName(VOICE_SHEET)
       if (!vs) {
         vs = ss.insertSheet(VOICE_SHEET)
-        vs.appendRow(['Timestamp', 'User Email', 'User Name', 'Step', 'Step Display Name', 'Attempt', 'Outcome', 'Violation Names', 'Violation Excerpts', 'App Version', 'Browser'])
+        vs.appendRow(['Timestamp', 'User Email', 'User Name', 'Step', 'Step Display Name', 'Attempt', 'Outcome', 'Violation Names', 'Violation Excerpts', 'App Version', 'Browser', 'Structured Emit Status', 'Structured Emit Errors'])
       }
       vs.appendRow([
         new Date(),
@@ -35,6 +35,8 @@ function doPost(e) {
         String(body.violationExcerpts || '').slice(0, 5000),
         String(body.appVersion || '').slice(0, 50),
         String(body.browser || '').slice(0, 200),
+        String(body.structuredEmitStatus || '').slice(0, 50),
+        String(body.structuredEmitErrors || '').slice(0, 2000),
       ])
       return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON)
     }
