@@ -2715,7 +2715,32 @@ export default function PivotEngine(){
     setInvalidationBanner({message:invalidationMessage(source)})
   }
   const advance=(from,to)=>{markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
-  const nav=(to)=>{track('step_entered',{step:to});if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null);window.scrollTo(0,0)}
+  // nav() is the single chokepoint for chat-driven navigation per the
+  // chat-helper prereq gate (2026-05-26). Direct user clicks on sidebar
+  // items, advance() transitions, and other in-app callers pass no opts
+  // and skip the gate (their prereq logic lives elsewhere: Sidebar's `can`
+  // expression covers the orientation flow, and forward-flow callsites are
+  // transitively gated on done.includes('p3') for post-p3 targets).
+  // Chat-sourced calls pass opts.source='chat', and post-p3 navigation is
+  // refused when done lacks 'p3'. This is a Layer 3 safety net; the
+  // primary enforcement is in Chat.jsx where the parsed NAVIGATE target
+  // is checked before message.navigateTo is assigned. nav() catches any
+  // future entry point that bypasses Chat.jsx's parser. p11 is intentionally
+  // absent from the post-p3 set: it is not currently a NAVIGATE target.
+  const nav=(to,opts={})=>{
+    if(opts.source==='chat'&&!done.includes('p3')){
+      const POST_P3_STEPS=new Set(['twoDoors','laneSelect','p4','focus','mylib','p6','p7','p8','p_res','p9','p10','complete','income','op'])
+      if(POST_P3_STEPS.has(to)){
+        if(import.meta.env.DEV)console.warn('[nav-gate] refused chat-sourced navigation to',to,'(Personal Brand not yet built)')
+        return
+      }
+    }
+    track('step_entered',{step:to})
+    if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}
+    setStep(to)
+    setErr(null)
+    window.scrollTo(0,0)
+  }
   // Scroll new output into view AFTER generation completes. Every generate
   // path already scrolls to 0,0 on click (so the loading panel is visible);
   // none scroll after the API returns, leaving the user wherever they
@@ -4528,7 +4553,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     </div>
-    {signedInUser&&<Chat currentStep={step} onNavigate={nav} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0}/>}
+    {signedInUser&&<Chat currentStep={step} onNavigate={(to)=>nav(to,{source:'chat'})} personalBrandDone={done.includes('p3')} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {toast&&<div data-print="hide" role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'#1A2540',color:'#FFFFFF',padding:'12px 22px',borderRadius:8,fontSize:16,fontWeight:500,boxShadow:'0 4px 16px rgba(0,0,0,0.18)',zIndex:1200}}>{toast}</div>}
     {/* ?debug=1 diagnostic footer. Bottom-right corner, low-contrast text.
