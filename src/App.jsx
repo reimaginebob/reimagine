@@ -1100,10 +1100,17 @@ Begin with the lead sentence. No preamble. No "Here is your read." No section he
 }
 // voice-allow-end
 
+// Mode A (pre-Personal-Brand) sidebar phase data. After the 2026-05-26
+// progressive-disclosure restructure, the Explore Options section
+// (twoDoors / laneSelect / p4 / focus) is dropped: those steps are only
+// reachable after the sidebar flips to Mode B (the post-p3 dashboard),
+// so they were never navigable from a Mode A sidebar render. The Mode A
+// Sidebar render also filters out Know Your Value until orientation
+// completes (done.includes('skills')) so users mid-orientation see only
+// what they have earned the right to act on.
 const PHASES=[
   {id:0,label:'Orientation',color:'#8A9BB8',steps:['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills']},
   {id:1,label:'Know Your Value',color:'#C8924A',steps:['p3']},
-  {id:2,label:'Explore Options',color:'#C8924A',steps:['twoDoors','laneSelect','p4','focus']},
 ]
 const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','skills':'Your Skills','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Personal Brand',twoDoors:'Choose Your Path',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',mylib:'My Playbooks',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Industry Background',p10:'Interview Prep',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
 const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p1','p2','p3','twoDoors','laneSelect','p4','focus','mylib','op','complete']
@@ -2201,12 +2208,14 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
     const el=navRef.current&&navRef.current.querySelector(`[data-step="${step}"]`)
     if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',behavior:'smooth'})
   },[step])
-  const hasPrereq=(sid)=>sid==='p4'?!!selectedLane:sid==='focus'?!!chosen:false
   // Post-Personal-Brand dashboard mode: flat shape with Your work primary
   // destinations + a collapsible Inputs group. Pre-Personal-Brand keeps the
-  // existing PHASES linear progression for the orientation flow. The legacy
-  // "Roles You've Explored" sidebar list does not render in either mode
-  // going forward; My Playbooks (PR3a dashboard) supersedes it.
+  // PHASES linear progression for the orientation flow, but filters Know
+  // Your Value out until orientation completes (progressive disclosure,
+  // 2026-05-26). The legacy "Roles You've Explored" sidebar list does not
+  // render in either mode going forward; My Playbooks (PR3a dashboard)
+  // supersedes it. hasPrereq predicate was removed in the same change:
+  // the only steps it gated (p4, focus) no longer appear in PHASES.
   const personalBrandDone=done.includes('p3')
   if(personalBrandDone&&!isDemo){
     const primaryItems=[
@@ -2245,12 +2254,21 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
       })}
     </div>
   }
+  // Progressive disclosure: Know Your Value (PHASES id 1) is hidden until
+  // orientation completes. Predicate is done.includes('skills'): skills is
+  // the last orientation step, and the only path to orientation-done is
+  // advance('skills','orientation-done'), so skills-in-done is a reliable
+  // proxy for "user has reached the end of orientation." Demo mode bypasses
+  // the staging because demo state is pre-loaded for guided walkthrough
+  // and the demo narrative depends on full sidebar visibility.
+  const orientationComplete=done.includes('skills')
+  const phasesToRender=(orientationComplete||isDemo)?PHASES:PHASES.filter(p=>p.id!==1)
   return <div ref={navRef} style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
   {typeof prog==='number'&&<div style={{padding:'16px 18px 20px',borderBottom:'1px solid #0F1A30',marginBottom:8}}>
     <div style={{fontSize:18,color:'#FFFFFF',fontWeight:600,marginBottom:8}}>You're {prog}% complete</div>
     <div style={{width:'100%',height:5,background:'#0F1A30',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:3,transition:'width 0.4s'}}/></div>
   </div>}
-  {PHASES.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active||hasPrereq(sid),isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{META[sid]}{sid==='focus'&&chosen?<span style={{display:'block',fontSize:13,fontWeight:400,color:'#8A9BB8',marginTop:2}}>{chosen}</span>:null}</span>{active&&<span style={{fontSize:14,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
+  {phasesToRender.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active,isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{META[sid]}{sid==='focus'&&chosen?<span style={{display:'block',fontSize:13,fontWeight:400,color:'#8A9BB8',marginTop:2}}>{chosen}</span>:null}</span>{active&&<span style={{fontSize:14,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
 </div>}
 
 const DEMO_TOUR=[
