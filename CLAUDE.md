@@ -69,6 +69,7 @@ When proposing a voice fix, pair the instruction with a detection or stripping m
 
 Every implementation brief lives at `Output/handoff/YYYY-MM-DD_short-name.md` and follows this shape:
 
+- **Prompt for Code.** Standing rule across the project: every brief opens with a short, self-contained paragraph titled "Prompt for Code" that Bob copies and pastes into Claude Code to start the work. It tells Code at a high level what to do (apply the changes in this brief, premise-verify, run gates, follow the gh flow) and trusts the rest of the brief for the specifics. Code does not have to be summarized in the prompt; it just needs the launch instruction. Without this block, Bob has to re-narrate the brief into Code himself, which defeats the point of the brief format.
 - **Date / Type / Source.** What this is and where it came from.
 - **Pre-flight discovery (scope correction).** What the brief's author verified against current code before drafting. Names what was confirmed already-shipped, retired, or differently-scoped than the brief's original framing implied. Audit / sibling / carry-forward briefs are HYPOTHESES; verify before drafting.
 - **Files affected.** Table of file → change.
