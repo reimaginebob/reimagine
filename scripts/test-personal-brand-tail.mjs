@@ -20,12 +20,17 @@
 //   6. extractLeadSentence handles the common shapes: bare sentence, lead
 //      with abbreviations (no false stop on `e.g.` etc.), question /
 //      exclamation enders, empty input.
+//   7. stripPersonalBrandTail (Foundation A render-strip, 2026-05-26):
+//      removes the JSON tail from a p3 output so render sites can display
+//      prose only. Fenced and bare-brace tails both strip cleanly; output
+//      with no tail returns unchanged; in-prose {braces} are preserved.
 
 import {
   parsePersonalBrandTail,
   validatePersonalBrandTailSchema,
   extractLeadSentence,
   findPersonalBrandTailBoundary,
+  stripPersonalBrandTail,
 } from '../src/personal-brand-tail.mjs'
 
 let failed = 0
@@ -275,8 +280,65 @@ The dimension worth examining is **scale**. You have run $180M well.
   }
 }
 
+// --- Test 23: stripPersonalBrandTail — fenced tail strips cleanly ---
+{
+  const prose = `You build research practice where none exists yet. The dimensional fit is mostly confirming. **Function** is operational leadership.
+
+The dimension worth examining is **scale**. You have run $180M well.`
+  const input = prose + '\n\n' + fencedTail
+  const stripped = stripPersonalBrandTail(input)
+  if (stripped !== prose) {
+    fail('Test 23: fenced tail strip', `expected prose only; got tail-end="${stripped.slice(-60)}"`)
+  }
+}
+
+// --- Test 24: stripPersonalBrandTail — bare-brace tail strips cleanly ---
+{
+  const prose = `You build research practice where none exists yet. The dimensional fit is mostly confirming. **Function** is operational leadership.
+
+The dimension worth examining is **scale**. You have run $180M well.`
+  const input = prose + '\n\n' + validJsonString
+  const stripped = stripPersonalBrandTail(input)
+  if (stripped !== prose) {
+    fail('Test 24: bare-brace tail strip', `expected prose only; got tail-end="${stripped.slice(-60)}"`)
+  }
+}
+
+// --- Test 25: stripPersonalBrandTail — output with no tail returns unchanged ---
+{
+  const proseOnly = `You build research practice where none exists yet. A decade of work where the research question itself is ambiguous.
+
+Where this transfers: any product category still forming where the research function has to be built alongside the team.`
+  const stripped = stripPersonalBrandTail(proseOnly)
+  if (stripped !== proseOnly) {
+    fail('Test 25: no-tail input should return unchanged', `length delta=${proseOnly.length - stripped.length}`)
+  }
+}
+
+// --- Test 26: stripPersonalBrandTail — prose containing inline {braces} not at end-of-output is untouched ---
+{
+  const prose = `You build research practice where none exists yet.
+
+Here is an example object the prompt mentioned: { "this": "is in prose" }. That brace should not trigger a strip.
+
+The dimensional fit is mostly confirming. **Function** is operational leadership.
+
+The dimension worth examining is **scale**.`
+  const stripped = stripPersonalBrandTail(prose)
+  if (stripped !== prose) {
+    fail('Test 26: in-prose braces should be preserved', `length delta=${prose.length - stripped.length}, tail-end="${stripped.slice(-60)}"`)
+  }
+}
+
+// --- Test 27: stripPersonalBrandTail — empty / null / non-string ---
+{
+  if (stripPersonalBrandTail('') !== '') fail('Test 27a: empty input should return empty string unchanged')
+  if (stripPersonalBrandTail(null) !== null) fail('Test 27b: null input should return null unchanged')
+  if (stripPersonalBrandTail(undefined) !== undefined) fail('Test 27c: undefined input should return undefined unchanged')
+}
+
 if (failed > 0) {
   console.error(`\ntest-personal-brand-tail: ${failed} cases failed.`)
   process.exit(1)
 }
-console.log('test-personal-brand-tail: OK (22 test groups passed)')
+console.log('test-personal-brand-tail: OK (27 test groups passed)')

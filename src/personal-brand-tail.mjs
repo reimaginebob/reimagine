@@ -132,3 +132,31 @@ export function extractLeadSentence(prose) {
   const m = s.match(/^[\s\S]*?[.!?](?=\s|$)/)
   return m ? m[0].trim() : s.trim()
 }
+
+// Render-time strip: returns the prose region only, removing the JSON tail
+// the p3 prompt asks the model to append. Foundation A specified "UI
+// displays prose only," but outputs.p3 was left holding the full string
+// including the tail, so the fenced JSON block leaked into the user's
+// rendered Personal Brand. This helper closes that gap at every render
+// site (Personal Brand step display, MD pass-through, saved playbooks
+// view, PDF print, chat helper context, correction-context submission).
+// Storage and serialization paths (pe_v4 localStorage, /api/profile/save,
+// exportProfile JSON) keep the raw string with the tail so Foundation B
+// downstream consumers can still parse it. The strip is render-time only.
+//
+// Behavior:
+// - Uses the same tail-finding strategy as parsePersonalBrandTail so the
+//   boundary is identical (last ```json fence opener, or the bare-brace
+//   end-of-output fallback).
+// - No tail found: returns the input unchanged (preserves any whitespace
+//   the caller might rely on; this is the legacy / pre-Foundation-A case).
+// - Tail found: returns text.slice(0, boundary) with trailing whitespace
+//   trimmed so the rendered prose does not end with a chunk of blank
+//   space where the JSON used to be.
+// - Non-string or empty input: returns the input unchanged.
+export function stripPersonalBrandTail(text) {
+  if (!text || typeof text !== 'string') return text
+  const boundary = findPersonalBrandTailBoundary(text)
+  if (boundary === -1) return text
+  return text.slice(0, boundary).trimEnd()
+}
