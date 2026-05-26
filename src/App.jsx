@@ -4040,12 +4040,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         })()}
           </div>
         </div>
-        <div style={{margin:'40px 0 12px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>This is yours now. Take it where it makes sense, or look at another direction below.</div>
-        <div style={S.row}>
-          <Btn secondary onClick={()=>nav('p4')}>See more roles in this direction</Btn>
-        </div>
-        <div style={{marginTop:12}}>
-          <button onClick={()=>nav('laneSelect')} style={{background:'none',border:'none',padding:0,fontSize:16,color:C.grayL,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline',display:'inline-flex',alignItems:'center',gap:4}}>Or explore another direction <ChevronRight size={12}/></button>
+        <div style={{margin:'40px 0 16px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>This is yours now. Take it where it makes sense, or consider one of these.</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:14,maxWidth:760}}>
+          <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10}}>
+            <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>See more roles in this direction.</h3>
+            <p style={{fontSize:17,color:C.grayL,lineHeight:1.6,margin:'0 0 12px'}}>Look at the other roles within the same direction. The work you have already done carries forward; only the role-specific sections regenerate.</p>
+            <Btn small onClick={()=>nav('p4')}>See more roles <ChevronRight size={11}/></Btn>
+          </div>
+          <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10}}>
+            <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Explore another direction.</h3>
+            <p style={{fontSize:17,color:C.grayL,lineHeight:1.6,margin:'0 0 12px'}}>Step back and consider one of the other directions. Your brand and inputs stay the same; the role options reshape around the new direction.</p>
+            <Btn small onClick={()=>nav('laneSelect')}>Choose a direction <ChevronRight size={11}/></Btn>
+          </div>
         </div>
         {err&&!generatingSection&&<ErrBox msg={err}/>}
         </div>
@@ -4265,24 +4271,24 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
           <OutPanel text={outputs.op} onCopy={copy} copied={copied}/>
           {!isDemo&&<RefineBox value={feedback.op} onChange={v=>setFb('op',v)} hint="Did we read the JD or your background right? Tell us what to adjust." placeholder="e.g. 'You missed that the role explicitly requires P&L experience.' Or: 'My time at [Company] was internal strategy, not consulting.' Or: 'Emphasize the operating depth angle more, less on strategic vision.'" onRegenerate={v=>{recordCorrection('op',v);out('op','');generate('op',()=>P.op(pc,outputs,chosen,profile.jd)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:11000,msg:'Building your Opportunity Playbook…'})}}/>}
-          {!isDemo&&<details style={{marginTop:24}}>
-            <summary style={{cursor:'pointer',fontSize:18,fontWeight:600,color:C.goldL,padding:'10px 0'}}>Build for another opportunity</summary>
-            <div style={{marginTop:12}}>
-              <div style={S.card}>
-                <div style={{fontSize:18,color:C.gray,fontStyle:'italic',marginBottom:14,textAlign:'center'}}>The richer the input, the sharper the output.</div>
-                <FileUpload label="Upload a PDF of the job description" hint="PDF only. For other formats, paste the text below." fileName={profile.jdFile} onFile={async f=>{pr('jdFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('jd',t);setErr(null)}catch(e){setErr('Could not read this PDF. Try pasting the text instead.')}finally{setFileLoading(false)}}}/>
-                {fileLoading&&<div style={{fontSize:16,color:C.gray,marginTop:8}}>Reading the PDF…</div>}
-                <div style={{textAlign:'center',color:C.gray,fontSize:16,margin:'14px 0',fontStyle:'italic'}}>or</div>
-                <div style={S.field}>
-                  <label style={S.label}>Paste the job description</label>
-                  <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder="Paste the full job description here..."/>
-                </div>
-                <div style={{fontSize:18,color:C.goldL,fontStyle:'italic',marginTop:6}}>Building a new playbook will replace the one above.</div>
-              </div>
-              <Btn onClick={()=>generate('op',()=>P.op(pc,outputs,chosen,profile.jd),{maxTokens:11000,msg:'Building your Opportunity Playbook…'})} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build a new playbook</Btn>
-              {err&&<ErrBox msg={err}/>}
+          {!isDemo&&<div style={{marginTop:28}}>
+            <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,marginBottom:14}}>
+              <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Build for another opportunity.</h3>
+              <p style={{fontSize:17,color:C.grayL,lineHeight:1.6,margin:0}}>When the next role lands, bring its job description here. Reimagine combines it with everything you have already built and produces a fresh playbook for that role. Building a new playbook will replace the one above.</p>
             </div>
-          </details>}
+            <div style={S.card}>
+              <div style={{fontSize:18,color:C.gray,fontStyle:'italic',marginBottom:14,textAlign:'center'}}>The richer the input, the sharper the output.</div>
+              <FileUpload label="Upload a PDF of the job description" hint="PDF only. For other formats, paste the text below." fileName={profile.jdFile} onFile={async f=>{pr('jdFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('jd',t);setErr(null)}catch(e){setErr('Could not read this PDF. Try pasting the text instead.')}finally{setFileLoading(false)}}}/>
+              {fileLoading&&<div style={{fontSize:16,color:C.gray,marginTop:8}}>Reading the PDF…</div>}
+              <div style={{textAlign:'center',color:C.gray,fontSize:16,margin:'14px 0',fontStyle:'italic'}}>or</div>
+              <div style={S.field}>
+                <label style={S.label}>Paste the job description</label>
+                <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder="Paste the full job description here..."/>
+              </div>
+            </div>
+            <Btn onClick={()=>generate('op',()=>P.op(pc,outputs,chosen,profile.jd),{maxTokens:11000,msg:'Building your Opportunity Playbook…'})} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build a new playbook</Btn>
+            {err&&<ErrBox msg={err}/>}
+          </div>}
         </>:<>
           {!isDemo&&<p style={S.sub}>When you find a role worth pursuing, bring it here. Paste the job description or upload the PDF. Reimagine combines it with everything you've already built and produces a complete playbook for that specific opportunity.</p>}
           {!isDemo&&<p style={S.sub}>You'll know whether the role fits the path you chose and where it stretches you. You'll have STAR stories tuned to this specific opportunity, ways to get past the screening interview, questions you can ask them, and ways to show your value immediately. You'll know what the hiring manager is solving for and how to write a cover letter that sounds like you.</p>}
