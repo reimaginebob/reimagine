@@ -262,6 +262,28 @@ const DIM_MAX_RETRIES = 1
 const STRUCTURED_MAX_RETRIES = 1
 const STRUCTURED_PARSE_CORRECTIVE = `\n\nYour previous output ended with a malformed structured emit. Re-emit your output identically, but ensure the JSON block at the end is parseable. The JSON must be the LAST thing in the output, enclosed in a single triple-backtick json fence, with no commentary after. Every key must be quoted. Every string value must be quoted. No trailing commas. No comments in the JSON. Do not change your prose; only fix the JSON tail.`
 
+// Variance-instructing Phase 1 corrective callout for the Foundation A.5
+// formula-* patterns (p3 only). The standard callout names a single banned
+// construction and asks the model to refuse it; for formulaic-shape
+// violations that is necessary but not sufficient, because the model can
+// reach for a different stock phrase that satisfies the literal refusal
+// while still producing a templated shape. This callout names every formula
+// violation that fired this attempt and instructs toward shape variance:
+// opener, source order, connector language, closer. Returns null when no
+// formula-* violations are present in `violations` so the caller falls
+// through to the standard callout.
+function buildVarianceCorrective(violations) {
+  const formula = (violations || []).filter(v => typeof v?.name === 'string' && v.name.startsWith('formula-'))
+  if (formula.length === 0) return null
+  const seen = new Set()
+  const surfaces = []
+  for (const v of formula) {
+    const s = v.surface || v.match || v.name
+    if (!seen.has(s)) { seen.add(s); surfaces.push(s) }
+  }
+  return `\n\nCRITICAL: your previous output used a templated rhetorical shape. The phrases you used (${surfaces.join(', ')}) appear in other Personal Brand outputs and teach the user that the output is not written specifically for them.\n\nRegenerate. Vary the opener so it does not start with a tripartite enumeration frame. Vary the source order so it does not default to career-then-assessment-then-reputation-then-life-story. Vary the transition language so the same connector sentences do not appear. The triangulation discipline (anchoring interpretive claims in named evidence) still holds; what changes is the shape that anchoring takes.\n\nLead with whichever piece of evidence is strongest for this user, even if it is a reputation phrase or a life-shaping moment rather than career evidence. Weave evidence into prose rather than enumerating it in sequence with stock transition sentences.`
+}
+
 async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
   const isP3 = meta.step === 'p3'
 
@@ -281,12 +303,26 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
     for (let attempt = 0; attempt <= VOICE_MAX_RETRIES; attempt++) {
       let prompt = localPromptFn()
       if (attempt > 0 && lastViolations.length > 0) {
-        const v = lastViolations[0]
-        prompt += `\n\nCRITICAL: the previous generation contained a BANNED CONSTRUCTION: "${String(v.match).replace(/"/g,'\\"').slice(0,200)}" (${v.note}) Refuse this construction. Rewrite the affected passage as the positive claim on its own. Do not produce any sentence of that shape anywhere in your output.`
+        // Foundation A.5: when formula-* (templated rhetorical shape)
+        // violations are present, instruct toward variance across opener /
+        // source order / connector / closer, not just away from the literal
+        // phrase that fired. Otherwise fall through to the standard
+        // single-violation callout used by every other pattern class.
+        const varianceCallout = buildVarianceCorrective(lastViolations)
+        if (varianceCallout) {
+          prompt += varianceCallout
+        } else {
+          const v = lastViolations[0]
+          prompt += `\n\nCRITICAL: the previous generation contained a BANNED CONSTRUCTION: "${String(v.match).replace(/"/g,'\\"').slice(0,200)}" (${v.note}) Refuse this construction. Rewrite the affected passage as the positive claim on its own. Do not produce any sentence of that shape anywhere in your output.`
+        }
       }
       const runner = typeof meta.runner === 'function' ? meta.runner : callClaude
       const result = await runner(prompt, opts)
-      const violations = detectVoiceViolations(result, { includeSoft: false })
+      // Thread meta.step so step-scoped patterns (the formula-* family
+      // is p3-only) fire only on the right step. Other steps pass the
+      // same option harmlessly; patterns without a step field fire
+      // regardless.
+      const violations = detectVoiceViolations(result, { includeSoft: false, step: meta.step })
       if (violations.length === 0) {
         if (attempt > 0 && typeof meta.onEvent === 'function') {
           try { meta.onEvent({ step: meta.step, attempt, recovered: true, violations: lastViolations.slice(0,8) }) } catch {}
@@ -1185,6 +1221,33 @@ Write in second person ("you," "your") throughout. Never use third person or the
 IMPORTANT: Never use em dashes anywhere in the output. Use commas, periods, colons, or parentheses.
 
 TRIANGULATION DISCIPLINE: When multiple personal inputs are available (multiple passions, multiple values, multiple reputation phrases, multiple life-shaping experiences, multiple accomplishments), do not list them. Test each one against the user's career arc and the through-line you have identified, and pick the ONE input that creates the strongest single-frame view. The other inputs may be true and may inform your analysis silently. They do not earn space in the output unless they anchor a specific insight that would land less precisely without them. Listing dilutes. Anchoring works. If you find yourself writing "X, and Y, and Z" with three personal items in one sentence, stop and pick one.
+
+VARIED RHETORICAL SHAPE (load-bearing across this output):
+
+The triangulation discipline above tells you WHAT to do (anchor interpretive claims in named evidence). It does not tell you the SHAPE that anchoring takes. The shape must vary across sessions, because a Personal Brand that reads identically to another user's Personal Brand teaches the user that the output is templated rather than written for them.
+
+REFUSE the following stock frames. These have shipped in past Reimagine Personal Brand outputs and produce the templated feeling:
+
+- "Three sources converge on it." (the stock opening enumeration frame)
+- "Two patterns and one fact." (a likely substitute for the above)
+- "Your career shows it." (first-of-line transition sentence)
+- "Your reputation answers describe you the same way." (transition variant)
+- "Your CliftonStrengths read shows the same way of thinking." (transition variant)
+- "Your story locates the source." (transition closing the four-source walk)
+- "If the framing of [X] misses, push back." (stock closing wager)
+
+A runtime gate scans for these and forces regeneration when detected.
+
+POSITIVE GUIDANCE for varied shape:
+
+- Lead with whichever source has the strongest specific evidence for this user. For some users that is a single accomplishment with numbers; for some it is a verbatim reputation phrase; for some it is a life-shaping experience. Do not default to career-first.
+- Let the number of sources match what the inputs support. Two sources strongly anchored is better than three sources weakly anchored. If the inputs support four distinct lines of evidence, use four. If they support two, use two. No default.
+- Weave the evidence into the prose. Do not enumerate sources in sequence with transition sentences. Integrate the operational move, the reputation phrase, the life story moment into the same paragraph if that lands the read more directly.
+- The closing invitation varies session to session. Sometimes the wager is named explicitly ("the choice of X as the through-line is the wager"). Sometimes the wager is implicit and the close is a quieter question. Sometimes there is no close at all if the read does not warrant one.
+
+TEST FOR THIS SECTION (apply before finalizing your output):
+
+If an independent reader, given five different Personal Brand outputs you have generated for five different users, could identify a template by comparing them (same opener, same source order, same transition sentences, same close), then you have produced templated work. Rewrite from the strongest evidence available for this specific user.
 
 Begin with the lead sentence. No preamble. No "Here is your read." No section headers above the lead. The first words of your output are the first words the user reads.${pr.linkedin?'\n\nLINKEDIN PROFILE:\n'+pr.linkedin:''}
 
