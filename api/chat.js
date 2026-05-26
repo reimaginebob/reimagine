@@ -61,10 +61,10 @@ When you include NAVIGATE: in your reply, the value MUST be one of the step ids 
 | skills | Your Skills |
 | orientation-done | Orientation Complete |
 | p3 | Personal Brand (Phase 1, Know Your Value) |
-| twoDoors | Choose Your Path (Phase 2, Explore Options) |
-| laneSelect | Pick a Direction (Phase 2, Explore Options) |
-| p4 | Role Options (Phase 2, Explore Options) |
-| focus | Focus Playbook (Phase 2, Explore Options) |
+| twoDoors | Choose Your Path (post-Personal-Brand) |
+| laneSelect | Pick a Direction (post-Personal-Brand) |
+| p4 | Role Options (post-Personal-Brand) |
+| focus | Focus Playbook (post-Personal-Brand) |
 | mylib | My Playbooks |
 | p6 | Your Bridge Story (Phase 3, Tell Your Story) |
 | p7 | Go-to-Market (Phase 4, Find Your Market) |
