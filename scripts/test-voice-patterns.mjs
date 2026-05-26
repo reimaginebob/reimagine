@@ -142,8 +142,144 @@ if (dimClean !== null) {
   failed++
 }
 
+// --- Foundation A.5 (2026-05-26) formula-* patterns ---------------------
+//
+// Step-scoped to p3 only; appliesTo: ['runtime']. Positive cases assert the
+// formulaic surface fires; negative cases assert overlapping vocabulary in
+// non-stock prose does NOT false-positive. The combined-detection case
+// asserts multiple patterns in one output are all reported (the corrective
+// callout enumerates them). The step-filter cases assert formula-* fire
+// only when the detector is called with step: 'p3'.
+//
+// Each entry: [label, expectedName-or-null, input, step].
+const formulaCases = [
+  // formula-three-sources-converge: stock tripartite opener.
+  ['formula-three-sources-converge: stock opener fires', 'formula-three-sources-converge',
+    'Three sources converge on it. Your career shows the rest.', 'p3'],
+  ['formula-three-sources-converge: varied opener does not fire', null,
+    'Multiple sources point in the same direction, but the strongest read comes from one specific moment.', 'p3'],
+
+  // formula-two-patterns-one-fact: likely substitute frame.
+  ['formula-two-patterns-one-fact: substitute opener fires', 'formula-two-patterns-one-fact',
+    'Two patterns and one fact: you choose pre-playbook problems.', 'p3'],
+  ['formula-two-patterns-one-fact: varied counts in prose do not fire', null,
+    'There are two patterns running through your career and several facts that anchor them.', 'p3'],
+
+  // formula-career-shows-it: first-of-line transition.
+  ['formula-career-shows-it: line-start fires', 'formula-career-shows-it',
+    'You build research practice where none exists yet.\nYour career shows it.\nYour reputation describes the same move.', 'p3'],
+  ['formula-career-shows-it: not at line start does not fire', null,
+    'In several places your career shows a pattern of choosing operationally complex environments.', 'p3'],
+
+  // formula-reputation-describes-same: stock connector to reputation source.
+  ['formula-reputation-describes-same: with answers fires', 'formula-reputation-describes-same',
+    'Your reputation answers describe you the same way.', 'p3'],
+  ['formula-reputation-describes-same: without answers fires (variant)', 'formula-reputation-describes-same',
+    'Your reputation describes you the same way.', 'p3'],
+  ['formula-reputation-describes-same: varied reputation prose does not fire', null,
+    'Your reputation describes you as someone who builds research where the category is still forming.', 'p3'],
+
+  // formula-cliftonstrengths-same-way: stock connector to assessment source.
+  ['formula-cliftonstrengths-same-way: shows the same fires', 'formula-cliftonstrengths-same-way',
+    'Your CliftonStrengths read shows the same way of thinking.', 'p3'],
+  ['formula-cliftonstrengths-same-way: same way of thinking variant fires', 'formula-cliftonstrengths-same-way',
+    'Your CliftonStrengths profile names the same way of thinking.', 'p3'],
+  ['formula-cliftonstrengths-same-way: varied CS prose does not fire', null,
+    'Your CliftonStrengths places Strategic in your top 5, which maps to choosing pre-playbook problems.', 'p3'],
+
+  // formula-story-locates-source: stock close to the multi-source walk.
+  ['formula-story-locates-source: fires', 'formula-story-locates-source',
+    'Your story locates the source of the through-line.', 'p3'],
+  ['formula-story-locates-source: varied story prose does not fire', null,
+    'Your story is unusual: cross-functional jumps in a domain that punishes them.', 'p3'],
+
+  // formula-stock-closer-push-back: stock wager-naming closer.
+  ['formula-stock-closer-push-back: stock closer fires', 'formula-stock-closer-push-back',
+    'If the framing of operating depth misses, push back.', 'p3'],
+  ['formula-stock-closer-push-back: varied close does not fire', null,
+    "If something here misses, tell me and I'll rewrite the lead.", 'p3'],
+
+  // formula-converge-on-it: the broader marker for the convergence frame.
+  ['formula-converge-on-it: fires', 'formula-converge-on-it',
+    'Multiple lines converge on it: career, reputation, story.', 'p3'],
+  ['formula-converge-on-it: converges-without-on-it does not fire', null,
+    'Your career arc converges across two industries that rarely share talent.', 'p3'],
+]
+
+let formulaFailed = 0
+for (const [label, expectedName, input, step] of formulaCases) {
+  const violations = detectVoiceViolations(input, { includeSoft: false, scope: 'runtime', step })
+  if (expectedName === null) {
+    if (violations.some(v => typeof v.name === 'string' && v.name.startsWith('formula-'))) {
+      console.error(`FAIL: ${label}`)
+      console.error(`  input:    ${JSON.stringify(input)}`)
+      console.error(`  expected: no formula-* match`)
+      console.error(`  got:      ${violations.map(v => v.name).join(', ')}`)
+      failed++; formulaFailed++
+    }
+  } else {
+    const names = violations.map(v => v.name)
+    if (!names.includes(expectedName)) {
+      console.error(`FAIL: ${label}`)
+      console.error(`  input:    ${JSON.stringify(input)}`)
+      console.error(`  expected: ${expectedName}`)
+      console.error(`  got:      ${names.length === 0 ? '(no matches)' : names.join(', ')}`)
+      failed++; formulaFailed++
+    }
+  }
+}
+
+// Combined detection: four formula patterns in one output. The variance-
+// instructing corrective callout in callClaudeWithVoiceGate enumerates each
+// fired surface so the model knows the full shape it produced. This test
+// asserts the detector reports all four (not just the first match).
+{
+  const combinedFormula = 'Three sources converge on it.\nYour career shows it.\nYour reputation describes you the same way. Your story locates the source.'
+  const combinedViolations = detectVoiceViolations(combinedFormula, { includeSoft: false, scope: 'runtime', step: 'p3' })
+  const combinedNames = combinedViolations.map(v => v.name)
+  const expectedCombined = [
+    'formula-three-sources-converge',
+    'formula-converge-on-it',
+    'formula-career-shows-it',
+    'formula-reputation-describes-same',
+    'formula-story-locates-source',
+  ]
+  const missing = expectedCombined.filter(n => !combinedNames.includes(n))
+  if (missing.length > 0) {
+    console.error(`FAIL: combined formula detection missing ${missing.join(', ')}`)
+    console.error(`  got: ${combinedNames.join(', ')}`)
+    failed++; formulaFailed++
+  }
+}
+
+// Step filter: formula-* are p3-only. With step undefined or a non-p3 step,
+// the patterns must not fire on the same input. With step='p3' they must.
+{
+  const stepFilterInput = 'Three sources converge on it. Your story locates the source.'
+  const noStep = detectVoiceViolations(stepFilterInput, { includeSoft: false, scope: 'runtime' })
+  if (noStep.some(v => typeof v.name === 'string' && v.name.startsWith('formula-'))) {
+    console.error('FAIL: step filter: formula-* should not fire when step is undefined')
+    console.error(`  got: ${noStep.map(v => v.name).join(', ')}`)
+    failed++; formulaFailed++
+  }
+  const p4Step = detectVoiceViolations(stepFilterInput, { includeSoft: false, scope: 'runtime', step: 'p4' })
+  if (p4Step.some(v => typeof v.name === 'string' && v.name.startsWith('formula-'))) {
+    console.error("FAIL: step filter: formula-* should not fire when step='p4'")
+    console.error(`  got: ${p4Step.map(v => v.name).join(', ')}`)
+    failed++; formulaFailed++
+  }
+  const p3Step = detectVoiceViolations(stepFilterInput, { includeSoft: false, scope: 'runtime', step: 'p3' })
+  if (!p3Step.some(v => typeof v.name === 'string' && v.name.startsWith('formula-'))) {
+    console.error("FAIL: step filter: formula-* should fire when step='p3'")
+    console.error(`  got: ${p3Step.map(v => v.name).join(', ')}`)
+    failed++; formulaFailed++
+  }
+}
+
+const formulaTotal = formulaCases.length + 1 + 3 // formulaCases + combined-detection + 3 step-filter checks
+const total = cases.length + 2 + formulaTotal
 if (failed > 0) {
-  console.error(`\ntest-voice-patterns: ${failed} of ${cases.length + 2} cases failed.`)
+  console.error(`\ntest-voice-patterns: ${failed} of ${total} cases failed.`)
   process.exit(1)
 }
-console.log(`test-voice-patterns: OK (${cases.length + 2} cases passed)`)
+console.log(`test-voice-patterns: OK (${total} cases passed)`)

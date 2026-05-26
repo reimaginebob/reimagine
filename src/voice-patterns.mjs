@@ -255,6 +255,102 @@ export const HARD_PATTERNS = [
     appliesTo: ['build'],
     note: 'AI-meta-narration: commenting on own token/context constraints. Produce what fits or stop; do not announce truncation.',
   },
+  // --- 2026-05-26 Foundation A.5 de-formularize p3 ---
+  //
+  // Personal Brand outputs settled into a templated rhetorical shape: stock
+  // tripartite opener ("Three sources converge on it"), stock source order
+  // (career-then-assessment-then-reputation-then-life-story), stock connector
+  // sentences ("Your X shows it / Your Y describes you the same way / Your
+  // story locates the source"), stock closer ("If the framing of X misses,
+  // push back"). Two runs on app versions 9cad731 and ebd0c8a produced the
+  // same shape against different profiles. The model satisfies the existing
+  // TRIANGULATION DISCIPLINE rule the easiest path: enumerate sources in a
+  // fixed order with fixed transitions. The rule is right; the shape is wrong.
+  //
+  // All entries are:
+  //   - appliesTo: ['runtime'] — the prompt itself quotes these phrases as
+  //     "REFUSE the following stock frames" examples; a build-time scan
+  //     would fire on the prompt's own teaching material. Catch in shipped
+  //     model output only.
+  //   - step: 'p3' — these are formulaic only in the Personal Brand context.
+  //     The same phrases might land naturally in other steps. detectVoice-
+  //     Violations honors the step filter when callers pass a step option.
+  //   - surface: a short human-readable label for the variance-instructing
+  //     corrective callout in callClaudeWithVoiceGate so the model gets a
+  //     clean list of which formula shapes fired without having to parse
+  //     the raw regex matches.
+  {
+    name: 'formula-three-sources-converge',
+    re: /three sources converge/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    step: 'p3',
+    surface: 'Three sources converge',
+    note: 'Formulaic opener: tripartite enumeration frame. Vary the opener across sessions.',
+  },
+  {
+    name: 'formula-two-patterns-one-fact',
+    re: /two patterns and one fact/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    step: 'p3',
+    surface: 'Two patterns and one fact',
+    note: 'Formulaic opener: a likely substitute for the tripartite enumeration frame. Vary the opener across sessions.',
+  },
+  {
+    name: 'formula-career-shows-it',
+    re: /^[Yy]our career shows it\b/m,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    step: 'p3',
+    surface: 'Your career shows it',
+    note: 'Formulaic transition: first-of-line enumeration of evidence sources. Weave evidence into prose; do not enumerate.',
+  },
+  {
+    name: 'formula-reputation-describes-same',
+    re: /[Yy]our reputation (answers )?describes? you the same way/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    step: 'p3',
+    surface: 'Your reputation [answers] describes you the same way',
+    note: 'Formulaic transition: stock connector to a second evidence source. Vary the connector language across sessions.',
+  },
+  {
+    name: 'formula-cliftonstrengths-same-way',
+    re: /[Yy]our CliftonStrengths .{0,40}(shows the same|same way of thinking)/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    step: 'p3',
+    surface: 'Your CliftonStrengths shows the same way of thinking',
+    note: 'Formulaic transition: stock connector to an assessment source. Vary the connector language across sessions.',
+  },
+  {
+    name: 'formula-story-locates-source',
+    re: /[Yy]our story locates the source/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    step: 'p3',
+    surface: 'Your story locates the source',
+    note: 'Formulaic transition: stock close to a multi-source walk. Weave evidence into prose; do not enumerate.',
+  },
+  {
+    name: 'formula-stock-closer-push-back',
+    re: /[Ii]f the framing of .{1,80} misses,?\s+push back/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    step: 'p3',
+    surface: 'If the framing of X misses, push back',
+    note: 'Formulaic closer: stock wager-naming sentence. Vary the close across sessions or omit it when the read does not warrant one.',
+  },
+  {
+    name: 'formula-converge-on-it',
+    re: /converge on it/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    step: 'p3',
+    surface: 'converge on it',
+    note: 'Formulaic phrase pointing at a tripartite enumeration frame. Vary the opener and the connective language.',
+  },
 ]
 
 export const SOFT_PATTERNS = [
@@ -351,11 +447,21 @@ export function patternsFor(scope, { includeSoft = false } = {}) {
  * detections, so per-step violation counts in telemetry are accurate and the
  * brief's "detect on Bob's sample" gate is met). Default scope is 'runtime'
  * (model output); pass scope:'build' to get the source-safe subset.
- * Each detection: { name, match, index, severity, note }.
+ *
+ * Step filter (Foundation A.5, 2026-05-26): a pattern with a `step` field
+ * only fires when the caller passes a matching `step` option. Patterns
+ * without a `step` field fire regardless. This lets formulaic-shape
+ * detections be p3-only without false-positiving on Bridge Story slot
+ * validation or other surfaces where the same phrases might land naturally.
+ * Build-time check-voice.mjs does not pass step; step-scoped patterns are
+ * runtime-only by construction (appliesTo: ['runtime']) so the build never
+ * sees them anyway.
+ *
+ * Each detection: { name, match, index, severity, note, surface }.
  */
-export function detectVoiceViolations(text, { includeSoft = false, scope = 'runtime' } = {}) {
+export function detectVoiceViolations(text, { includeSoft = false, scope = 'runtime', step } = {}) {
   if (typeof text !== 'string' || !text) return []
-  const patterns = patternsFor(scope, { includeSoft })
+  const patterns = patternsFor(scope, { includeSoft }).filter(p => !p.step || p.step === step)
   const detections = []
   for (const p of patterns) {
     const flags = p.re.flags.includes('g') ? p.re.flags : p.re.flags + 'g'
@@ -368,6 +474,7 @@ export function detectVoiceViolations(text, { includeSoft = false, scope = 'runt
         index: m.index,
         severity: p.severity,
         note: p.note,
+        surface: p.surface,
       })
       if (m[0] === '') g.lastIndex++ // guard against zero-length-match infinite loop
     }
