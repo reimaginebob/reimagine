@@ -460,13 +460,42 @@ const voiceGuideCases = [
     'Your career shows the pattern from the very first role onward.'],
   ['transition-three-things-in-your-background: fires', 'transition-three-things-in-your-background',
     'Three things in your background point to the same conclusion.'],
+
+  // contamination-* (substance-contamination from SYS exemplars, Foundation B.1
+  // / PR #85). Universal scope; tested without a step option here. Plausible
+  // legitimate prose that uses overlapping vocabulary but does NOT reproduce
+  // the distinctive exemplar phrase is the negative case for each pattern.
+  ['contamination-pia-lopez: fires', 'contamination-pia-lopez',
+    'Then Pia Lopez walked into the meeting.'],
+  ['contamination-pia-lopez: different first name does not fire', null,
+    'Then Maria Lopez walked into the meeting.'],
+
+  ['contamination-food-bank-sacramento: fires', 'contamination-food-bank-sacramento',
+    'She ran the back office at a food bank in Sacramento for twelve years.'],
+  ['contamination-food-bank-sacramento: food bank in different city does not fire', null,
+    'She ran the back office at a food bank in Oakland for twelve years.'],
+
+  ['contamination-staff-knows-regulars: fires', 'contamination-staff-knows-regulars',
+    'It is the kind of place where the staff knows the regulars by name.'],
+  ['contamination-staff-knows-regulars: similar concept different wording does not fire', null,
+    'The staff has known many regulars by name over the years.'],
+
+  ['contamination-caregiving-years-gap: fires', 'contamination-caregiving-years-gap',
+    'Caregiving years do not appear on a resume.'],
+  ['contamination-caregiving-years-gap: paraphrase does not fire', null,
+    'The years spent caring for someone rarely make it onto a resume.'],
+
+  ['contamination-grant-cycles: fires', 'contamination-grant-cycles',
+    "The warehouse was held together with grant cycles and other people's good intentions."],
+  ['contamination-grant-cycles: similar concept different wording does not fire', null,
+    'The nonprofit ran on grant cycles and goodwill from the community.'],
 ]
 
 let voiceGuideFailed = 0
 for (const [label, expectedName, input, step] of voiceGuideCases) {
   const violations = detectVoiceViolations(input, { includeSoft: false, scope: 'runtime', step })
   if (expectedName === null) {
-    if (violations.some(v => typeof v.name === 'string' && /^(?:process|framework|drama|truth|meta|closer|transition)-/.test(v.name))) {
+    if (violations.some(v => typeof v.name === 'string' && /^(?:process|framework|drama|truth|meta|closer|transition|contamination)-/.test(v.name))) {
       console.error(`FAIL: ${label}`)
       console.error(`  input:    ${JSON.stringify(input)}`)
       console.error(`  expected: no process-/framework-/drama-/truth-/meta- match`)
@@ -565,8 +594,64 @@ for (const [label, expectedName, input, step] of voiceGuideCases) {
   }
 }
 
+// Step filter: contamination-* patterns (Foundation B.1) are universal —
+// they fire under any step because substance contamination can theoretically
+// leak into any module the voice gate wraps. Single composite input
+// exercises all five surfaces; assert they fire under undefined, 'p3', 'p4',
+// and 'p7'. Catches a future rescoping accident that quietly disables
+// contamination protection.
+{
+  const contaminationInput = [
+    'Then Pia Lopez walked into the meeting.',
+    'She ran the back office at a food bank in Sacramento.',
+    'It was the kind of place where the staff knows the regulars by name.',
+    'Caregiving years do not appear on a resume.',
+    "The warehouse was held together with grant cycles and other people's good intentions.",
+  ].join('\n\n')
+  const expectedAll = [
+    'contamination-pia-lopez',
+    'contamination-food-bank-sacramento',
+    'contamination-staff-knows-regulars',
+    'contamination-caregiving-years-gap',
+    'contamination-grant-cycles',
+  ]
+  for (const step of [undefined, 'p3', 'p4', 'p7']) {
+    const v = detectVoiceViolations(contaminationInput, { includeSoft: false, scope: 'runtime', step })
+    const names = new Set(v.map(x => x.name))
+    const missing = expectedAll.filter(n => !names.has(n))
+    if (missing.length > 0) {
+      console.error(`FAIL: step filter: contamination-* should fire under step=${JSON.stringify(step)}, missing: ${missing.join(', ')}`)
+      console.error(`  got: ${[...names].join(', ')}`)
+      failed++; voiceGuideFailed++
+    }
+  }
+}
+
+// Verbatim-SYS-exemplar regression test. The strongest validation that the
+// system catches what it is literally meant to catch. The full exemplar-1
+// paragraph from the SYS VOICE REFERENCE block is reproduced here; if the
+// SYS exemplar text changes in a future PR, this test should also change so
+// the contamination protection stays aligned with the SYS surface area.
+{
+  const sysExemplar1 = "Pia Lopez has spent twelve years in nonprofit operations. She runs the back office at a mid-sized food bank in Sacramento, the kind of place where the staff knows the regulars by name and the warehouse is held together with grant cycles and other people's good intentions."
+  const v = detectVoiceViolations(sysExemplar1, { includeSoft: false, scope: 'runtime' })
+  const names = new Set(v.map(x => x.name))
+  const expected = [
+    'contamination-pia-lopez',
+    'contamination-food-bank-sacramento',
+    'contamination-staff-knows-regulars',
+    'contamination-grant-cycles',
+  ]
+  const missing = expected.filter(n => !names.has(n))
+  if (missing.length > 0) {
+    console.error(`FAIL: verbatim SYS exemplar 1 should fire all four exemplar-1 contamination patterns, missing: ${missing.join(', ')}`)
+    console.error(`  got: ${[...names].join(', ')}`)
+    failed++; voiceGuideFailed++
+  }
+}
+
 const formulaTotal = formulaCases.length + 1 + 4 // formulaCases + combined-detection + 4 step-filter checks (formula-* now universal)
-const voiceGuideTotal = voiceGuideCases.length + 1 + 4 + 2 // voiceGuideCases + combined-detection + 4 universal step-filter checks + 2 closer step-filter checks
+const voiceGuideTotal = voiceGuideCases.length + 1 + 4 + 2 + 4 + 1 // voiceGuideCases + combined-detection + 4 universal step-filter checks + 2 closer step-filter checks + 4 contamination step-filter checks + 1 verbatim SYS regression
 const total = cases.length + 2 + formulaTotal + voiceGuideTotal
 if (failed > 0) {
   console.error(`\ntest-voice-patterns: ${failed} of ${total} cases failed.`)
