@@ -424,13 +424,50 @@ const voiceGuideCases = [
     'What I find interesting is that your reputation answers cluster around one move.'],
   ['meta-what-i-find-interesting: third-person observation does not fire', null,
     'What stands out about the evidence is one specific operational move you have repeated.'],
+
+  // closer-* (closer-template widenings from PR #83 — catch variants of
+  // "The [framing|through-line|wager] [here|of X] is Y. If that misses
+  // how you experience your work, [feedback box / name what / will
+  // adjust]" that survived PR #82's Covey voice register).
+
+  // Family A: meta-correction invitations
+  ['closer-if-that-misses-how-you-experience: fires (misses)', 'closer-if-that-misses-how-you-experience',
+    'If that misses how you experience your work, the read will adjust.'],
+  ['closer-name-what-it-misses: fires', 'closer-name-what-it-misses',
+    'If this reading does not match how you experience your own career, name what it is missing.'],
+  ['closer-the-X-will-adjust: fires (analysis)', 'closer-the-X-will-adjust',
+    'Name what it misses and the analysis will adjust.'],
+
+  // Family B: feedback-box references
+  ['closer-feedback-box-below: fires', 'closer-feedback-box-below',
+    'Use the feedback box below to push back.'],
+
+  // Family C: closer principle-announcement openers (paragraph-opening)
+  ['closer-the-through-line-here: fires', 'closer-the-through-line-here',
+    'The through-line here is stewardship of the operating function.'],
+  ['closer-the-through-line-here: mid-paragraph legit does not fire', null,
+    'For the through-line you described in your inputs, the role choice does the same work.'],
+  ['closer-the-framing-here: fires (with inserted word)', 'closer-the-framing-here',
+    'The framing wager here is that operating depth is the asset.'],
+  ['closer-the-wager-here: fires', 'closer-the-wager-here',
+    'The wager here is that the next chapter carries the same conviction.'],
+  ['closer-the-choice-of-X-as: fires', 'closer-the-choice-of-X-as',
+    'The choice of stewardship as the through-line carries forward.'],
+  ['closer-the-framing-of-X-is: fires (interpretive choice)', 'closer-the-framing-of-X-is',
+    'The framing of operating depth as the interpretive choice is the wager you are running.'],
+
+  // Family D: stock-transition variants
+  ['transition-your-career-shows-the-pattern: fires', 'transition-your-career-shows-the-pattern',
+    'Your career shows the pattern from the very first role onward.'],
+  ['transition-three-things-in-your-background: fires', 'transition-three-things-in-your-background',
+    'Three things in your background point to the same conclusion.'],
 ]
 
 let voiceGuideFailed = 0
 for (const [label, expectedName, input] of voiceGuideCases) {
   const violations = detectVoiceViolations(input, { includeSoft: false, scope: 'runtime' })
   if (expectedName === null) {
-    if (violations.some(v => typeof v.name === 'string' && /^(?:process|framework|drama|truth|meta)-/.test(v.name))) {
+    if (violations.some(v => typeof v.name === 'string' && /^(?:process|framework|drama|truth|meta|closer|transition)-/.test(v.name))) {
       console.error(`FAIL: ${label}`)
       console.error(`  input:    ${JSON.stringify(input)}`)
       console.error(`  expected: no process-/framework-/drama-/truth-/meta- match`)

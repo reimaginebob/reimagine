@@ -237,13 +237,21 @@ A runtime gate scans for closer-template constructions and forces regeneration w
 
 WORKED EXAMPLE OF THE DIFFERENCE:
 
-Failure (post-PR-#81 sampling, Run 3):
-"The through-line here is stewardship, capital deployed where it earns its keep. If that lands differently than how you experience your work, the feedback box below will let me adjust the framing."
+The shape to refuse, with examples observed in production:
 
-Success (the Covey recast):
-"Stewardship is the through-line of the work. Capital deployed where it earns its keep. Decisions made because the right answer matters more than the comfortable one. Responsibility carried for what the work produces in the world beyond the quarterly result. The next chapter, whatever it turns out to be, will be shaped by the same conviction. If this reading does not match how you experience your own career, name what it misses and the analysis will adjust."
+- "The through-line here is X. If that misses how you experience your work, the feedback box below..."
+- "The framing of X is the interpretive choice here. If that lands differently..."
+- "The choice of Y as the through-line is the wager. If that misses..."
 
-The failure announces the through-line as the analysis's framing and offers the feedback box as a mechanism. The success states the principle directly, restates it with weight, and invites correction without exposing the tool.
+Each of these announces the analytical conclusion as a framing or wager, then offers a feedback-box correction path. The reader sees the analysis describing itself rather than producing itself.
+
+The shape to use, structurally:
+
+[Principle stated directly, named with the weight the evidence has earned, not narrated as a framing.] [Three or four supporting clauses or short sentences anchoring the principle in this user's specifics, with internal building rhythm.] [Forward continuity: the next chapter, whatever it turns out to be, will carry the same conviction.] [Correction invitation, one sentence, no feedback-box reference, no "if that misses" template.]
+
+CRITICAL: the example above describes a SHAPE. Do not reproduce these specific words. Find the principle this specific user's evidence supports, in language built for this user's career and inputs. If you find yourself reaching for words like "stewardship," "capital deployed where it earns its keep," "decisions made because the right answer matters more than the comfortable one," or "responsibility carried for what the work produces in the world beyond the quarterly result," you are echoing a demonstration rather than producing the synthesis. The shape is the lesson; the words are not.
+
+A runtime gate scans for closer-template constructions and forces regeneration when detected.
 
 SELF-CHECK BEFORE OUTPUT:
 Before producing the final response, scan it once for the following. Strip or correct each instance:
