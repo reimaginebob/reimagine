@@ -272,9 +272,11 @@ export const HARD_PATTERNS = [
   //     "REFUSE the following stock frames" examples; a build-time scan
   //     would fire on the prompt's own teaching material. Catch in shipped
   //     model output only.
-  //   - step: 'p3' — these are formulaic only in the Personal Brand context.
-  //     The same phrases might land naturally in other steps. detectVoice-
-  //     Violations honors the step filter when callers pass a step option.
+  //   - no step field (universal) as of Foundation B (2026-05-27, PR #84):
+  //     the umbrella in p4 produces p3-shape analytical prose and is the
+  //     second observed surface for these AI stock-template phrasings.
+  //     The patterns are anchored to ^...m or to highly stock substrings,
+  //     so legitimate mid-paragraph uses across other steps do not fire.
   //   - surface: a short human-readable label for the variance-instructing
   //     corrective callout in callClaudeWithVoiceGate so the model gets a
   //     clean list of which formula shapes fired without having to parse
@@ -284,7 +286,6 @@ export const HARD_PATTERNS = [
     re: /three sources converge/i,
     severity: 'hard',
     appliesTo: ['runtime'],
-    step: 'p3',
     surface: 'Three sources converge',
     note: 'Formulaic opener: tripartite enumeration frame. Vary the opener across sessions.',
   },
@@ -293,7 +294,6 @@ export const HARD_PATTERNS = [
     re: /two patterns and one fact/i,
     severity: 'hard',
     appliesTo: ['runtime'],
-    step: 'p3',
     surface: 'Two patterns and one fact',
     note: 'Formulaic opener: a likely substitute for the tripartite enumeration frame. Vary the opener across sessions.',
   },
@@ -302,7 +302,6 @@ export const HARD_PATTERNS = [
     re: /^[Yy]our career shows it\b/m,
     severity: 'hard',
     appliesTo: ['runtime'],
-    step: 'p3',
     surface: 'Your career shows it',
     note: 'Formulaic transition: first-of-line enumeration of evidence sources. Weave evidence into prose; do not enumerate.',
   },
@@ -311,7 +310,6 @@ export const HARD_PATTERNS = [
     re: /[Yy]our reputation (answers )?describes? you the same way/i,
     severity: 'hard',
     appliesTo: ['runtime'],
-    step: 'p3',
     surface: 'Your reputation [answers] describes you the same way',
     note: 'Formulaic transition: stock connector to a second evidence source. Vary the connector language across sessions.',
   },
@@ -320,7 +318,6 @@ export const HARD_PATTERNS = [
     re: /[Yy]our CliftonStrengths .{0,40}(shows the same|same way of thinking)/i,
     severity: 'hard',
     appliesTo: ['runtime'],
-    step: 'p3',
     surface: 'Your CliftonStrengths shows the same way of thinking',
     note: 'Formulaic transition: stock connector to an assessment source. Vary the connector language across sessions.',
   },
@@ -329,7 +326,6 @@ export const HARD_PATTERNS = [
     re: /[Yy]our story locates the source/i,
     severity: 'hard',
     appliesTo: ['runtime'],
-    step: 'p3',
     surface: 'Your story locates the source',
     note: 'Formulaic transition: stock close to a multi-source walk. Weave evidence into prose; do not enumerate.',
   },
@@ -338,7 +334,6 @@ export const HARD_PATTERNS = [
     re: /[Ii]f the framing of .{1,80} misses,?\s+push back/i,
     severity: 'hard',
     appliesTo: ['runtime'],
-    step: 'p3',
     surface: 'If the framing of X misses, push back',
     note: 'Formulaic closer: stock wager-naming sentence. Vary the close across sessions or omit it when the read does not warrant one.',
   },
@@ -347,7 +342,6 @@ export const HARD_PATTERNS = [
     re: /converge on it/i,
     severity: 'hard',
     appliesTo: ['runtime'],
-    step: 'p3',
     surface: 'converge on it',
     note: 'Formulaic phrase pointing at a tripartite enumeration frame. Vary the opener and the connective language.',
   },
@@ -428,7 +422,7 @@ export const HARD_PATTERNS = [
     note: 'Process exposure: narrating the production instead of producing.',
   },
 
-  // --- 2026-05-27 Closer-template widenings (PR #83) ---
+  // --- 2026-05-27 Closer-template widenings (PR #83, re-scoped by PR #84) ---
   //
   // Post-PR-#82 sampling against the Covey voice register showed five-of-five
   // outputs closing with a structural variant of "The [framing/through-line/
@@ -436,12 +430,20 @@ export const HARD_PATTERNS = [
   // box / name what / the read will adjust]." The model variant-hopped past
   // the existing process-* patterns (inserting words like "wager" between
   // "framing" and "here," or restructuring as "The choice of X as the
-  // through-line is the wager"). These four families catch the survivors.
+  // through-line is the wager"). These three families (A, B, C) catch the
+  // p3 survivors. Family D (transition-*) remains universal because stock
+  // tripartite transitions are not legitimate in any analytical context.
   //
-  // All runtime-only, no step field. Anchored with ^...m where the failure
-  // surface is paragraph-opening, unanchored where the surface appears
-  // inline (the meta-correction invitations in Family A and the feedback-
-  // box reference in Family B can appear mid-paragraph).
+  // PR #84 (Foundation B) added step: 'p3' to closer-* patterns. The p4
+  // umbrella generates the Covey-register "framing wager invitation"
+  // closing language legitimately; scoping the closer-* patterns to p3
+  // lets the umbrella use that language while keeping it blocked in p3
+  // where it was contaminating outputs.
+  //
+  // All runtime-only. Anchored with ^...m where the failure surface is
+  // paragraph-opening, unanchored where the surface appears inline (the
+  // meta-correction invitations in Family A and the feedback-box reference
+  // in Family B can appear mid-paragraph).
 
   // Family A: meta-correction invitations (Part 2 of the closer template).
   // The most distinctive signal because the construction is unusual outside
@@ -451,6 +453,7 @@ export const HARD_PATTERNS = [
     re: /if (that|this|it) (misses|lands differently|reads differently)\b/i,
     severity: 'hard',
     appliesTo: ['runtime'],
+    step: 'p3',
     surface: 'If that misses / lands differently / reads differently',
     note: 'Closer template: meta-correction invitation. State the principle directly and invite correction in one direct sentence instead.',
   },
@@ -459,6 +462,7 @@ export const HARD_PATTERNS = [
     re: /name what it (is )?(missing|misses)\b/i,
     severity: 'hard',
     appliesTo: ['runtime'],
+    step: 'p3',
     surface: 'name what it is missing / misses',
     note: 'Closer template: meta-correction invitation. Same family as if-that-misses-how-you-experience.',
   },
@@ -467,6 +471,7 @@ export const HARD_PATTERNS = [
     re: /the (analysis|read|framing|reading) will adjust\b/i,
     severity: 'hard',
     appliesTo: ['runtime'],
+    step: 'p3',
     surface: 'the analysis / read / framing / reading will adjust',
     note: 'Closer template: meta-correction invitation that exposes the tool. State the principle, invite correction, do not announce the adjustment mechanism.',
   },
@@ -477,6 +482,7 @@ export const HARD_PATTERNS = [
     re: /(use )?the feedback box below\b/i,
     severity: 'hard',
     appliesTo: ['runtime'],
+    step: 'p3',
     surface: 'use the feedback box below',
     note: 'Closer template: explicit reference to the UI feedback mechanism. Invite correction without naming the tool.',
   },
@@ -490,6 +496,7 @@ export const HARD_PATTERNS = [
     re: /^the through[\s-]?line here is\b/im,
     severity: 'hard',
     appliesTo: ['runtime'],
+    step: 'p3',
     surface: 'The through-line here is',
     note: 'Closer template: announces the through-line as a framing. State the principle directly.',
   },
@@ -498,6 +505,7 @@ export const HARD_PATTERNS = [
     re: /^the framing( \w+)? here is\b/im,
     severity: 'hard',
     appliesTo: ['runtime'],
+    step: 'p3',
     surface: 'The framing [optional word] here is',
     note: 'Closer template: variant of the framing-here construction that allows an inserted word (e.g., "wager") between framing and here.',
   },
@@ -506,6 +514,7 @@ export const HARD_PATTERNS = [
     re: /^the wager (here )?is\b/im,
     severity: 'hard',
     appliesTo: ['runtime'],
+    step: 'p3',
     surface: 'The wager [here] is',
     note: 'Closer template: paragraph-opening wager-announcement, narrower than the existing process-the-interpretive-wager.',
   },
@@ -514,6 +523,7 @@ export const HARD_PATTERNS = [
     re: /^the choice of [^.]{1,80} as the through[\s-]?line\b/im,
     severity: 'hard',
     appliesTo: ['runtime'],
+    step: 'p3',
     surface: 'The choice of X as the through-line',
     note: 'Closer template: announces the analytical choice as a wager. Produce the synthesis, do not narrate the choice.',
   },
@@ -522,6 +532,7 @@ export const HARD_PATTERNS = [
     re: /^the framing of [^.]{1,80} (as|is) the (interpretive )?(choice|wager|reading)\b/im,
     severity: 'hard',
     appliesTo: ['runtime'],
+    step: 'p3',
     surface: 'The framing of X is the interpretive choice / wager',
     note: 'Closer template: variant of the framing-of-X-is-the-wager family. State the principle directly.',
   },
