@@ -14,6 +14,32 @@
 //       examples). Only model OUTPUT producing them is a violation
 //       (all logic-flip variants, comparative-standing, praise-shape).
 //
+// Step-scoping conventions (the `step` field on a pattern, honored by
+// detectVoiceViolations when the caller passes a step option):
+//   no step (universal)  - the pattern fires in any module the voice gate
+//       wraps. Default for new patterns. Post-Foundation B (PR #84) the
+//       formula-* family was rescoped to universal because the p4 umbrella
+//       generates p3-shape analytical prose. Transition-* (PR #83) and
+//       contamination-* (PR #85, Foundation B.1) are also universal.
+//   step: 'p3'           - the pattern fires only on Personal Brand
+//       generation. Closer-* family (PR #83, rescoped by #84) is p3-only
+//       because the p4 umbrella's Covey-register framing-wager invitation
+//       legitimately uses some of those phrasings.
+//
+// Pattern families currently in the file, by motivation:
+//   - logic-flip-*           (sentence cadence; universal, runtime)
+//   - comparative-standing-* (forbidden comparison to unnamed groups)
+//   - praise-shape-*         (characterization not translation)
+//   - process-*              (talk to the reader, not about the output)
+//   - framework-*            (never name Bob's internal frameworks)
+//   - drama-*                (stock attention-grabbing transitions)
+//   - truth-*                (announce-the-truth discourse markers)
+//   - meta-*                 (first-person authorial framing)
+//   - formula-*              (stock tripartite enumerations; universal as of #84)
+//   - closer-*               (closer-template variants; p3-only as of #84)
+//   - transition-*           (narrower stock-transition survivors)
+//   - contamination-*        (SYS-exemplar verbatim leak; universal, #85)
+//
 // Keep regexes Unicode-aware where it matters; use the case-insensitive flag.
 
 export const HARD_PATTERNS = [
@@ -553,6 +579,62 @@ export const HARD_PATTERNS = [
     appliesTo: ['runtime'],
     surface: 'Three things in your background point to',
     note: 'Stock transition: tripartite enumeration opener. Vary the connective and the count.',
+  },
+
+  // --- 2026-05-27 Substance-contamination patterns (Foundation B.1, PR #85) ---
+  //
+  // Catch verbatim leak of SYS exemplar phrases into user-facing output. The
+  // model has reproduced SYS demonstration text verbatim under low-temperature
+  // conditions (PR #83 lesson on the Covey worked example). The longform
+  // VOICE REFERENCE block in SYS includes four fabricated exemplars about
+  // "Pia Lopez" at a "food bank in Sacramento" plus caregiving years and a
+  // six-axis explanation; these patterns catch the distinctive signatures.
+  //
+  // Universal scope (no step field) because contamination can theoretically
+  // leak into any module that runs through the voice gate. Post-Foundation B
+  // (PR #84), p3 and p4 are the modules that route through the voice gate;
+  // other modules call callClaude directly without gate wrapping. The
+  // applyContaminationPlaceholders helper in App.jsx is the final-defense
+  // enforcement when retries exhaust on these patterns.
+  {
+    name: 'contamination-pia-lopez',
+    re: /\bPia Lopez\b/,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Pia Lopez',
+    note: 'Substance contamination: name from SYS exemplar 1. Use the actual user.',
+  },
+  {
+    name: 'contamination-food-bank-sacramento',
+    re: /\bfood bank in Sacramento\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'food bank in Sacramento',
+    note: 'Substance contamination: setting from SYS exemplar 1.',
+  },
+  {
+    name: 'contamination-staff-knows-regulars',
+    re: /\bthe staff knows the regulars by name\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'the staff knows the regulars by name',
+    note: 'Substance contamination: distinctive phrase from SYS exemplar 1. Replaces the earlier "back office at a mid-sized" pattern which was too loose (matched legitimate prose about back offices at mid-sized firms).',
+  },
+  {
+    name: 'contamination-caregiving-years-gap',
+    re: /\bcaregiving years do not appear on a resume\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'caregiving years do not appear on a resume',
+    note: 'Substance contamination: opening line from SYS exemplar 3.',
+  },
+  {
+    name: 'contamination-grant-cycles',
+    re: /\bgrant cycles and other people's good intentions\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'grant cycles and other people\'s good intentions',
+    note: 'Substance contamination: distinctive phrase from SYS exemplar 1.',
   },
 
   // Framework naming: Bob's internal frameworks are how Reimagine thinks,
