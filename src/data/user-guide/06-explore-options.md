@@ -36,11 +36,16 @@ Pick the one that fits the kind of move you want to explore first. This is not a
 
 Once you pick a direction, Reimagine generates a focused set of roles for that direction only, drawing on everything from Phase 1 plus your location and work preferences.
 
-At the top, a context line grounds the options in your own material, naming the capability or theme Reimagine worked from. Below that, the role options. Each one includes:
+At the top, a single **umbrella paragraph** carries the credibility case for the direction once: it inherits your through-line from your Personal Brand, applies the strategic question this direction asks (where does your credibility extend; where does your industry knowledge translate; where do your values point), and reads the dimensional fit between who you are and what you have been doing. The umbrella is the analytical anchor for the whole direction.
+
+Below the umbrella, the role options. Each card is minimal by design:
 
 - **A title.** A specific role you could pursue, as it would appear on a posting or business card.
+- **An organization type.** The kind of organization that hires this role.
 - **A vehicle.** How the role is structured (W-2, consulting, fractional, advisory, board, founding or buying something).
-- **A rationale** grounded in specific evidence from your profile: your wiring, your accomplishments, your passions, why this role fits.
+- **A sector.** The industry or position in the ecosystem.
+
+Some cards add a short bullet underneath when a specific role-context requirement intersects with a specific piece of your background in a way the umbrella did not already cover. Most cards do not; the umbrella did the analytical work for the direction, and the cards carry direction rather than re-stating the case six times.
 
 Click any role to build its full playbook (the Focus Playbook, below).
 

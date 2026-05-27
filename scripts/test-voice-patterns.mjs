@@ -252,27 +252,20 @@ for (const [label, expectedName, input, step] of formulaCases) {
   }
 }
 
-// Step filter: formula-* are p3-only. With step undefined or a non-p3 step,
-// the patterns must not fire on the same input. With step='p3' they must.
+// Step filter: formula-* are universal as of Foundation B (PR #84). The
+// previous p3-only scoping was relaxed because the p4 umbrella produces
+// p3-shape analytical prose and is the second observed surface for these
+// AI stock-template phrasings. Assert formula-* fire under undefined /
+// 'p3' / 'p4' / 'p7' all the same.
 {
   const stepFilterInput = 'Three sources converge on it. Your story locates the source.'
-  const noStep = detectVoiceViolations(stepFilterInput, { includeSoft: false, scope: 'runtime' })
-  if (noStep.some(v => typeof v.name === 'string' && v.name.startsWith('formula-'))) {
-    console.error('FAIL: step filter: formula-* should not fire when step is undefined')
-    console.error(`  got: ${noStep.map(v => v.name).join(', ')}`)
-    failed++; formulaFailed++
-  }
-  const p4Step = detectVoiceViolations(stepFilterInput, { includeSoft: false, scope: 'runtime', step: 'p4' })
-  if (p4Step.some(v => typeof v.name === 'string' && v.name.startsWith('formula-'))) {
-    console.error("FAIL: step filter: formula-* should not fire when step='p4'")
-    console.error(`  got: ${p4Step.map(v => v.name).join(', ')}`)
-    failed++; formulaFailed++
-  }
-  const p3Step = detectVoiceViolations(stepFilterInput, { includeSoft: false, scope: 'runtime', step: 'p3' })
-  if (!p3Step.some(v => typeof v.name === 'string' && v.name.startsWith('formula-'))) {
-    console.error("FAIL: step filter: formula-* should fire when step='p3'")
-    console.error(`  got: ${p3Step.map(v => v.name).join(', ')}`)
-    failed++; formulaFailed++
+  for (const step of [undefined, 'p3', 'p4', 'p7']) {
+    const v = detectVoiceViolations(stepFilterInput, { includeSoft: false, scope: 'runtime', step })
+    if (!v.some(x => typeof x.name === 'string' && x.name.startsWith('formula-'))) {
+      console.error(`FAIL: step filter: formula-* should fire when step=${JSON.stringify(step)}`)
+      console.error(`  got: ${v.map(x => x.name).join(', ')}`)
+      failed++; formulaFailed++
+    }
   }
 }
 
@@ -429,34 +422,40 @@ const voiceGuideCases = [
   // "The [framing|through-line|wager] [here|of X] is Y. If that misses
   // how you experience your work, [feedback box / name what / will
   // adjust]" that survived PR #82's Covey voice register).
+  //
+  // Rescoped to step:'p3' by Foundation B (PR #84): the p4 umbrella's
+  // Covey-register framing-wager invitation is the legitimate use case
+  // for these phrasings. Tests pass step:'p3' explicitly so the gate
+  // fires; a dedicated step-filter block below also asserts the
+  // closer-* patterns DO NOT fire at step:'p4'.
 
   // Family A: meta-correction invitations
   ['closer-if-that-misses-how-you-experience: fires (misses)', 'closer-if-that-misses-how-you-experience',
-    'If that misses how you experience your work, the read will adjust.'],
+    'If that misses how you experience your work, the read will adjust.', 'p3'],
   ['closer-name-what-it-misses: fires', 'closer-name-what-it-misses',
-    'If this reading does not match how you experience your own career, name what it is missing.'],
+    'If this reading does not match how you experience your own career, name what it is missing.', 'p3'],
   ['closer-the-X-will-adjust: fires (analysis)', 'closer-the-X-will-adjust',
-    'Name what it misses and the analysis will adjust.'],
+    'Name what it misses and the analysis will adjust.', 'p3'],
 
   // Family B: feedback-box references
   ['closer-feedback-box-below: fires', 'closer-feedback-box-below',
-    'Use the feedback box below to push back.'],
+    'Use the feedback box below to push back.', 'p3'],
 
   // Family C: closer principle-announcement openers (paragraph-opening)
   ['closer-the-through-line-here: fires', 'closer-the-through-line-here',
-    'The through-line here is stewardship of the operating function.'],
+    'The through-line here is stewardship of the operating function.', 'p3'],
   ['closer-the-through-line-here: mid-paragraph legit does not fire', null,
-    'For the through-line you described in your inputs, the role choice does the same work.'],
+    'For the through-line you described in your inputs, the role choice does the same work.', 'p3'],
   ['closer-the-framing-here: fires (with inserted word)', 'closer-the-framing-here',
-    'The framing wager here is that operating depth is the asset.'],
+    'The framing wager here is that operating depth is the asset.', 'p3'],
   ['closer-the-wager-here: fires', 'closer-the-wager-here',
-    'The wager here is that the next chapter carries the same conviction.'],
+    'The wager here is that the next chapter carries the same conviction.', 'p3'],
   ['closer-the-choice-of-X-as: fires', 'closer-the-choice-of-X-as',
-    'The choice of stewardship as the through-line carries forward.'],
+    'The choice of stewardship as the through-line carries forward.', 'p3'],
   ['closer-the-framing-of-X-is: fires (interpretive choice)', 'closer-the-framing-of-X-is',
-    'The framing of operating depth as the interpretive choice is the wager you are running.'],
+    'The framing of operating depth as the interpretive choice is the wager you are running.', 'p3'],
 
-  // Family D: stock-transition variants
+  // Family D: stock-transition variants (universal, no step needed)
   ['transition-your-career-shows-the-pattern: fires', 'transition-your-career-shows-the-pattern',
     'Your career shows the pattern from the very first role onward.'],
   ['transition-three-things-in-your-background: fires', 'transition-three-things-in-your-background',
@@ -464,8 +463,8 @@ const voiceGuideCases = [
 ]
 
 let voiceGuideFailed = 0
-for (const [label, expectedName, input] of voiceGuideCases) {
-  const violations = detectVoiceViolations(input, { includeSoft: false, scope: 'runtime' })
+for (const [label, expectedName, input, step] of voiceGuideCases) {
+  const violations = detectVoiceViolations(input, { includeSoft: false, scope: 'runtime', step })
   if (expectedName === null) {
     if (violations.some(v => typeof v.name === 'string' && /^(?:process|framework|drama|truth|meta|closer|transition)-/.test(v.name))) {
       console.error(`FAIL: ${label}`)
@@ -509,23 +508,65 @@ for (const [label, expectedName, input] of voiceGuideCases) {
   }
 }
 
-// Step filter: voice-guide patterns have no step field, so they fire
-// regardless of which step the caller passes. Assert one such pattern
-// fires under step:undefined, step:'p3', and step:'p7' all the same.
+// Step filter: most voice-guide patterns (process-*, framework-*, drama-*,
+// truth-*, meta-*, transition-*) have no step field, so they fire under any
+// step. Assert one process-* pattern fires under step:undefined, step:'p3',
+// step:'p4', and step:'p7' all the same.
 {
   const input = 'Let me explain how this works.'
-  for (const step of [undefined, 'p3', 'p7']) {
+  for (const step of [undefined, 'p3', 'p4', 'p7']) {
     const v = detectVoiceViolations(input, { includeSoft: false, scope: 'runtime', step })
     if (!v.some(x => x.name === 'process-let-me-explain')) {
-      console.error(`FAIL: step filter: voice-guide patterns should fire when step=${JSON.stringify(step)}`)
+      console.error(`FAIL: step filter: universal voice-guide patterns should fire when step=${JSON.stringify(step)}`)
       console.error(`  got: ${v.map(x => x.name).join(', ')}`)
       failed++; voiceGuideFailed++
     }
   }
 }
 
-const formulaTotal = formulaCases.length + 1 + 3 // formulaCases + combined-detection + 3 step-filter checks
-const voiceGuideTotal = voiceGuideCases.length + 1 + 3 // voiceGuideCases + combined-detection + 3 step-filter checks
+// Step filter: closer-* patterns are scoped to step:'p3' as of Foundation B
+// (PR #84). The p4 umbrella's Covey-register framing-wager invitation is the
+// legitimate use case for these phrasings. Single composite input exercises
+// all 9 surfaces; assert all 9 fire at step:'p3' and none fire at step:'p4'.
+{
+  const closerInput = [
+    'The through-line here is stewardship.',
+    'The framing wager here is operating depth.',
+    'The wager here is a quiet refusal of comfort.',
+    'The choice of stewardship as the through-line.',
+    'The framing of operating depth as the interpretive wager.',
+    'If that misses how you experience your work, name what it is missing and the analysis will adjust.',
+    'Use the feedback box below.',
+  ].join('\n\n')
+  const expectedAll = [
+    'closer-if-that-misses-how-you-experience',
+    'closer-name-what-it-misses',
+    'closer-the-X-will-adjust',
+    'closer-feedback-box-below',
+    'closer-the-through-line-here',
+    'closer-the-framing-here',
+    'closer-the-wager-here',
+    'closer-the-choice-of-X-as',
+    'closer-the-framing-of-X-is',
+  ]
+  const p3 = detectVoiceViolations(closerInput, { includeSoft: false, scope: 'runtime', step: 'p3' })
+  const p3names = new Set(p3.map(v => v.name))
+  const missing = expectedAll.filter(n => !p3names.has(n))
+  if (missing.length > 0) {
+    console.error(`FAIL: step filter: closer-* should fire at step='p3', missing: ${missing.join(', ')}`)
+    console.error(`  got: ${[...p3names].join(', ')}`)
+    failed++; voiceGuideFailed++
+  }
+  const p4 = detectVoiceViolations(closerInput, { includeSoft: false, scope: 'runtime', step: 'p4' })
+  if (p4.some(v => typeof v.name === 'string' && v.name.startsWith('closer-'))) {
+    console.error(`FAIL: step filter: closer-* should not fire at step='p4'`)
+    console.error(`  got: ${p4.map(v => v.name).join(', ')}`)
+    failed++; voiceGuideFailed++
+  }
+}
+
+const formulaTotal = formulaCases.length + 1 + 4 // formulaCases + combined-detection + 4 step-filter checks (formula-* now universal)
+const voiceGuideTotal = voiceGuideCases.length + 1 + 4 + 2 // voiceGuideCases + combined-detection + 4 universal step-filter checks + 2 closer step-filter checks
 const total = cases.length + 2 + formulaTotal + voiceGuideTotal
 if (failed > 0) {
   console.error(`\ntest-voice-patterns: ${failed} of ${total} cases failed.`)
