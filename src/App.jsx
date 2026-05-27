@@ -168,59 +168,26 @@ const DIM_MAX_RETRIES = 1
 const STRUCTURED_MAX_RETRIES = 1
 const STRUCTURED_PARSE_CORRECTIVE = `\n\nYour previous output ended with a malformed structured emit. Re-emit your output identically, but ensure the JSON block at the end is parseable. The JSON must be the LAST thing in the output, enclosed in a single triple-backtick json fence, with no commentary after. Every key must be quoted. Every string value must be quoted. No trailing commas. No comments in the JSON. Do not change your prose; only fix the JSON tail.`
 
-// Variance-instructing Phase 1 corrective callout. Handles two pattern
-// families that need stronger retry guidance than the standard single-
-// violation callout:
-//
-//   1. Foundation A.5 formula-* (p3 only): the standard callout names a
-//      single banned construction; for formulaic-shape violations that is
-//      necessary but not sufficient because the model can reach for a
-//      different stock phrase that satisfies the literal refusal while
-//      still producing a templated shape. The callout instructs toward
-//      variance across opener / source order / connector language / closer.
-//
-//   2. Voice guide application (2026-05-27): process-* / framework-* /
-//      drama-* / truth-* / meta-* patterns implement Bob's voice-and-style
-//      rules from the context folder. The callout names the specific
-//      principles violated and asks the model to write like Bob talking
-//      to a client, not teaching a class.
-//
-// When BOTH families fire on the same generation, the callout aggregates
-// both sets of surfaces and addresses both. When only one family fires,
-// the callout uses that family's language. When neither fires, returns
-// null and the Phase 1 loop falls through to the standard callout.
+// Variance-instructing Phase 1 corrective callout for the Foundation A.5
+// formula-* patterns (p3 only). The standard callout names a single banned
+// construction and asks the model to refuse it; for formulaic-shape
+// violations that is necessary but not sufficient, because the model can
+// reach for a different stock phrase that satisfies the literal refusal
+// while still producing a templated shape. This callout names every formula
+// violation that fired this attempt and instructs toward shape variance:
+// opener, source order, connector language, closer. Returns null when no
+// formula-* violations are present in `violations` so the caller falls
+// through to the standard callout.
 function buildVarianceCorrective(violations) {
-  const all = (violations || []).filter(v => typeof v?.name === 'string')
-  const formula = all.filter(v => v.name.startsWith('formula-'))
-  const voiceGuide = all.filter(v => /^(?:process|framework|drama|truth|meta)-/.test(v.name))
-  if (formula.length === 0 && voiceGuide.length === 0) return null
-  const dedupeSurfaces = (vs) => {
-    const seen = new Set()
-    const out = []
-    for (const v of vs) {
-      const s = v.surface || v.match || v.name
-      if (!seen.has(s)) { seen.add(s); out.push(s) }
-    }
-    return out
+  const formula = (violations || []).filter(v => typeof v?.name === 'string' && v.name.startsWith('formula-'))
+  if (formula.length === 0) return null
+  const seen = new Set()
+  const surfaces = []
+  for (const v of formula) {
+    const s = v.surface || v.match || v.name
+    if (!seen.has(s)) { seen.add(s); surfaces.push(s) }
   }
-  const parts = ['\n\nCRITICAL: your previous output broke voice rules from the prompt.']
-  if (voiceGuide.length > 0) {
-    const surfaces = dedupeSurfaces(voiceGuide)
-    parts.push(`\n\nDetected voice violations: ${surfaces.join(', ')}.`)
-    parts.push(`\n\nThe voice rules are non-negotiable:`)
-    parts.push(`\n- Write like Bob talking to a client, not teaching a class. No exposing the process.`)
-    parts.push(`\n- Never name a framework the reader has not read about (4 Cs, Five Ps, KEEL, Quota of One, Like-for-Like, Three-lane pivot, Bake a Cake, Tide). Do the thing the framework describes, in plain language.`)
-    parts.push(`\n- Every sentence carries its own weight. Cut setup sentences and qualifying sentences that do not advance the read.`)
-    parts.push(`\n- No drama punches, truth announcements, or meta-framing.`)
-    parts.push(`\n- Stay in the synthesis. The user reads the result, not the method.`)
-  }
-  if (formula.length > 0) {
-    const surfaces = dedupeSurfaces(formula)
-    parts.push(`\n\nDetected formulaic-shape violations: ${surfaces.join(', ')}. These appear in other Personal Brand outputs and teach the user that the output is not written specifically for them.`)
-    parts.push(`\n\nVary the opener so it does not start with a tripartite enumeration frame. Vary the source order so it does not default to career-then-assessment-then-reputation-then-life-story. Vary the transition language so the same connector sentences do not appear.`)
-  }
-  parts.push(`\n\nRegenerate. The triangulation discipline (anchoring interpretive claims in named evidence) still holds; what changes is the SHAPE of the prose and which scaffolding language stays out of the output. Lead with whichever piece of evidence is strongest for this user. Weave evidence into prose.`)
-  return parts.join('')
+  return `\n\nCRITICAL: your previous output used a templated rhetorical shape. The phrases you used (${surfaces.join(', ')}) appear in other Personal Brand outputs and teach the user that the output is not written specifically for them.\n\nRegenerate. Vary the opener so it does not start with a tripartite enumeration frame. Vary the source order so it does not default to career-then-assessment-then-reputation-then-life-story. Vary the transition language so the same connector sentences do not appear. The triangulation discipline (anchoring interpretive claims in named evidence) still holds; what changes is the shape that anchoring takes.\n\nLead with whichever piece of evidence is strongest for this user, even if it is a reputation phrase or a life-shaping moment rather than career evidence. Weave evidence into prose rather than enumerating it in sequence with stock transition sentences.`
 }
 
 async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
