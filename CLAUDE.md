@@ -209,6 +209,20 @@ Two notes on drift:
 - **Apps Script POST CORS pattern.** Browser→Apps Script POSTs must omit BOTH fetch mode key AND Content-Type header; either alone triggers preflight that silently drops.
 - **Resend SDK silent-error pattern.** Resend SDK returns `{data, error}` instead of throwing. Always unpack and throw on error or sends fail silently behind a fake 200.
 
+### Vercel runtime constraints
+
+**Cross-directory imports between `api/*` and `src/*`: use `.js` extension, never `.mjs`.** Vercel's serverless function bundler reliably traces `.js` imports across the `api/` and `src/` directories (proven by `api/chat.js` importing from `src/data/user-guide-content.js`). `.mjs` imports across the same boundary fail at function invocation time even when local Node, the Vite client build, and unit tests all pass.
+
+This was the cause of the 2026-05-27 production outage: PR #76 added `import { SYS } from '../src/system-prompt.mjs'` to `api/claude.js`. Local build passed, function-level tests passed, Vite client build passed. The deployed function returned `FUNCTION_INVOCATION_FAILED` on every request for 45 minutes until PR #76 was reverted (commit `940557b`).
+
+If you need to share a constant between `api/` and `src/`:
+
+- Prefer keeping the constant inline in both files. Use the byte-equality gate at `scripts/check-sys-equality.mjs` to prevent drift. The SYS prompt that consolidation PR #76 was trying to share is the worked example: lives inline in both `src/App.jsx` and `api/claude.js`, gated by `check-sys-equality.mjs` in the prebuild chain.
+- If consolidation is necessary, use `.js` extension (not `.mjs`), and verify on a Vercel preview deploy before merging to main. The verification is a curl against `/api/health` and `/api/claude` on the preview URL; if either returns `FUNCTION_INVOCATION_FAILED`, the bundler failed to load the function and the change must not merge.
+- The `.mjs` cross-directory case is not solved on this Vercel target. Do not retry it without an isolated reproducer that proves a different outcome.
+
+**Preview-deploy smoke test before merging to api/.** Every PR that touches `api/*` or its import surface gets a manual smoke test against the Vercel preview before merge: `curl /api/health` and `curl /api/claude` (minimal valid POST). Both must return 200. `api/health.js` exists specifically to mirror the import topology of `api/claude.js`; if `claude.js` cannot load at function invocation, `health.js` cannot either, and the curl returns 500 in seconds instead of waiting for users to hit the failure.
+
 ---
 
 ## 9. GitHub operations (gh flow)
