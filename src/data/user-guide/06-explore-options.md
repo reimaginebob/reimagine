@@ -1,4 +1,4 @@
-# 6. Phase 2. Explore Options
+# 6. Phase 2. Apply Your Foundation
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
@@ -6,23 +6,23 @@ This is the phase where the tool earns its name. You probably see one or two obv
 
 After Personal Brand, Reimagine asks a simple question before anything else.
 
-## The Two Doors
+## Put It to Work
 
-The first screen in Phase 2 opens with the headline **"Your Personal Brand is built. Now, the fun part."** followed by a one-line framing: *Reimagine helps you explore new paths AND optimize existing opportunities. Which would you like to do now?* The uppercase AND is intentional. Both paths are real options. Neither is the "right" one.
+The first screen in Phase 2 opens with the headline **"Put It to Work"** and a short framing: *Your foundation is set. Pick how to put it to use. You can come back to this choice anytime from the sidebar.* Both choices below are real options. Neither is the "right" one.
 
-Below the framing line, two cards sit side by side. Each carries a small eyebrow label, a question-framed title, a short body, a preview footer (what you will see and how long it takes), and a call-to-action button.
+Below the framing line, two cards sit side by side. Each carries an icon, a title, a one-line value statement, a short body, a preview footer (what you will see and how long it takes), and a call-to-action button.
 
-**Door 1: Explore new paths.** Titled **Where could my Personal Brand take me?** The body reads: *Three directions mapped to your Personal Brand: a stronger version of what you do today, a lateral move into adjacent work, and work that matters to you on a different axis.* The preview footer notes that you will see three directions with role candidates and reasoning, and that it takes about 90 seconds to generate. The primary CTA on this card is **Explore directions →** (solid gold button). Choose this door when you want the tool to widen the field for you.
+**Career Paths.** Titled **Career Paths** with a route icon in gold. The body reads: *See role options across Familiar Ground (where your credibility extends), Industry Insider (where your sector knowledge translates), and Work That Matters (where your values point).* The preview footer notes that you will see three directions with role candidates and reasoning, and that it takes about 90 seconds to generate. The primary CTA on this card is **Start Exploring →** (solid gold button). Choose this when you want the tool to widen the field for you.
 
-**Door 2: Optimize an opportunity.** Titled **How does my Personal Brand match this role?** The body reads: *Paste a job description. Get a per-role playbook: fit against your Personal Brand, gaps to close, interview prep, and outreach plan for the people who decide.* The preview footer notes that you will see a tailored playbook for one specific job, and that it takes about 2 to 3 minutes (the longer time covers live research on the company). The secondary CTA on this card is **Analyze a job description →** (outlined gold button). Choose this door when you already have a posting in hand and want Reimagine focused on it. (Door 2 is covered in Chapter 11b.)
+**Active Opportunities.** Titled **Active Opportunities** with a target icon in blue. The body reads: *Paste a job description and get a focused playbook for that exact role: how you fit, how to position yourself, what the conversation looks like. Add as many opportunities as you want.* The preview footer notes that you will see a tailored playbook for one specific job, and that it takes about 2 to 3 minutes (the longer time covers live research on the company). The CTA on this card is **Add an Opportunity →** (outlined blue button). Choose this when you already have a posting in hand and want Reimagine focused on it. (Active Opportunities is covered in Chapter 11b.)
 
-Below the two cards, a single line with a refresh icon reminds you: *Pick whichever. The other is right here when you come back.* The two paths are not mutually exclusive. Choose either one, finish what you need, and the other is available the next time you reach this screen.
+Below the two cards, a single guidance line reads: *Not sure which to pick first? Most people start with Career Paths to see the range of where their background takes them, then come back to add an Active Opportunity once they have a specific role in mind.* The two paths are not mutually exclusive. Choose either one, finish what you need, and the other is available from the sidebar entry **Put It to Work** anytime.
 
 If you are returning after a previous version of Reimagine, a short welcome-back note appears above the headline. Your story (resume, assessment, values, reputation, Personal Brand) is exactly where you left it. Roles you explored before regenerate fresh from your latest inputs. If you want to keep a prior playbook word for word, save its PDF (see "Save your playbook" below).
 
-## Door 1: Pick a direction
+## Career Paths: pick a direction
 
-Door 1 leads to **three directions to consider**. You pick one to start with, and you can come back to the others anytime.
+Career Paths leads to **three directions to consider**. You pick one to start with, and you can come back to the others anytime.
 
 **Familiar Ground.** Same kind of work, in a new seat. A bigger scope, the same role at a different company, or your function applied in a new industry. Your track record speaks immediately because the work itself is familiar territory.
 

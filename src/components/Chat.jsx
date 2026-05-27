@@ -18,7 +18,7 @@ const STEP_LABELS = {
   'skills': 'Your Skills',
   'orientation-done': 'Orientation Complete',
   p3: 'Personal Brand',
-  twoDoors: 'Choose Your Path',
+  twoDoors: 'Put It to Work',
   laneSelect: 'Pick a Direction',
   p4: 'Role Options',
   focus: 'Focus Playbook',

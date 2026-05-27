@@ -58,7 +58,7 @@ Use **Start fresh** to clear your correction and regenerate from scratch.
 
 ## When you are happy with it
 
-Click **See My Options** to advance to Phase 2: Explore Options. Personal Brand becomes the source of truth Reimagine uses to generate everything that follows. The dimensions you and Reimagine surfaced as worth examining (often scale, mission, or position in the value chain) are exactly what Phase 2's Two Doors is designed to sharpen.
+Click **Put It to Work** to advance to Phase 2: Apply Your Foundation. Personal Brand becomes the source of truth Reimagine uses to generate everything that follows. The dimensions you and Reimagine surfaced as worth examining (often scale, mission, or position in the value chain) are exactly what Phase 2's Put It to Work choice is designed to sharpen.
 
 ## Phase 1 in one paragraph
 
