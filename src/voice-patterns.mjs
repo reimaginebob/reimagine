@@ -351,6 +351,250 @@ export const HARD_PATTERNS = [
     surface: 'converge on it',
     note: 'Formulaic phrase pointing at a tripartite enumeration frame. Vary the opener and the connective language.',
   },
+  // --- 2026-05-27 Voice guide application (PR 2 of 2; replays the
+  // patterns from the reverted PR #77 in a deployment-safe shape) ---
+  //
+  // Applies the un-shipped rules from context/voice-and-style.md and
+  // context/operating_context.md that were missed because the context
+  // folder was never read at session start. Five families, all
+  // appliesTo:['runtime'] so the build-time scan does not fire on:
+  //   - the SYS REFUSE-example list (already inside voice-allow markers
+  //     in src/App.jsx; api/claude.js is not scanned by check-voice)
+  //   - src/data/user-guide/15-glossary.md where "KEEL principles" and
+  //     "the 4 C's" are legitimately documented with explicit "not
+  //     exposed in outputs" notes (the rule that motivates the patterns)
+  //   - any future prompt-source quotation of a banned construction
+  //
+  // Step omitted (universal). The five families catch model output
+  // regardless of which module produced it. If a future per-module
+  // exception is needed (e.g., income flow legitimately uses "the truth
+  // is"), add step-scoping at that point.
+  //
+  // The variance-instructing corrective callout in App.jsx
+  // (buildVarianceCorrective) is extended to aggregate these surfaces
+  // alongside the existing formula-* family so the model gets a single
+  // consolidated retry instruction.
+
+  // Process exposure: constructions that talk about the output rather
+  // than to the reader. The closer formula the Foundation A.5 patterns
+  // chased ("If the framing of X misses, push back") was a process-
+  // exposure variant; these patterns generalize the catch.
+  {
+    name: 'process-the-framing-here',
+    re: /the framing here is/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'The framing here is',
+    note: 'Process exposure: talks about the output rather than to the reader. Say the thing directly.',
+  },
+  {
+    name: 'process-the-framing-of-x-is-the-wager',
+    re: /the framing of .{1,80} is the (interpretive )?wager/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'The framing of X is the wager',
+    note: 'Process exposure: wager-naming language is internal scaffolding the user should not read.',
+  },
+  {
+    name: 'process-the-interpretive-wager',
+    re: /the (interpretive )?wager (here )?is/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'The interpretive wager is',
+    note: 'Process exposure: same wager-naming family as the framing-of-X variant.',
+  },
+  {
+    name: 'process-let-me-explain',
+    re: /\blet me explain\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Let me explain',
+    note: 'Process exposure: meta-narration that introduces content instead of producing it.',
+  },
+  {
+    name: 'process-let-me-walk-you-through',
+    re: /\blet me walk you through\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Let me walk you through',
+    note: 'Process exposure: same meta-narration family as let-me-explain.',
+  },
+  {
+    name: 'process-what-i-will-do-here',
+    re: /\bwhat i (will|am going to) (do|walk|share)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'What I will do/walk through',
+    note: 'Process exposure: narrating the production instead of producing.',
+  },
+
+  // Framework naming: Bob's internal frameworks are how Reimagine thinks,
+  // not vocabulary for the user. Production lane names (Familiar Ground,
+  // Industry Insider, Work That Matters) are intentionally retained per
+  // Bob's call; these patterns ban the framework names themselves.
+  {
+    name: 'framework-four-cs',
+    re: /\b(four|4)\s*c'?s\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: '4 Cs',
+    note: 'Framework name not exposed in user-facing outputs. Do the thing the framework describes in plain language.',
+  },
+  {
+    name: 'framework-five-ps',
+    re: /\b(five|5)\s*p'?s\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Five Ps',
+    note: 'Framework name not exposed in user-facing outputs. Do the thing the framework describes in plain language.',
+  },
+  {
+    name: 'framework-keel',
+    re: /\bKEEL\b/,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'KEEL',
+    note: 'Framework name not exposed in user-facing outputs. The KEEL principles inform tone; they are not vocabulary.',
+  },
+  {
+    name: 'framework-keel-principles',
+    re: /\bKEEL principles\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'KEEL principles',
+    note: 'Framework name not exposed in user-facing outputs.',
+  },
+  {
+    name: 'framework-quota-of-one',
+    re: /\bquota of one\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Quota of One',
+    note: 'Framework name not exposed in user-facing outputs.',
+  },
+  {
+    name: 'framework-like-for-like',
+    re: /\blike[\s-]?for[\s-]?like( fallacy)?\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Like-for-Like (Fallacy)',
+    note: 'Framework name not exposed in user-facing outputs.',
+  },
+  {
+    name: 'framework-three-lane-pivot',
+    re: /\bthree[\s-]?lane pivot( model)?\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Three-lane pivot model',
+    note: 'Framework name not exposed in user-facing outputs. Production lane names (Familiar Ground, Industry Insider, Work That Matters) are fine.',
+  },
+  {
+    name: 'framework-bake-a-cake',
+    re: /\bbake a cake\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Bake a Cake',
+    note: 'Framework name not exposed in user-facing outputs.',
+  },
+  {
+    name: 'framework-tide',
+    re: /\bTide framework\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Tide framework',
+    note: 'Framework name not exposed in user-facing outputs.',
+  },
+
+  // Drama punches: stock attention-grabbing transitions.
+  {
+    name: 'drama-heres-the-kicker',
+    re: /\bhere'?s the kicker\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: "Here's the kicker",
+    note: 'Drama punch. Let the substance carry; do not announce that something interesting is coming.',
+  },
+  {
+    name: 'drama-here-is-where-it-gets',
+    re: /\bhere'?s where it gets (interesting|good|hard|real)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: "Here's where it gets [interesting/good/hard/real]",
+    note: 'Drama punch. Same family as heres-the-kicker.',
+  },
+  {
+    name: 'drama-this-is-where',
+    re: /\bthis is where it (?:gets|starts to|really)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'This is where it gets/starts/really',
+    note: 'Drama punch. Same family as here-is-where-it-gets.',
+  },
+
+  // Truth announcements: discourse markers that announce the reveal of
+  // a truth instead of stating it. "Honestly,/Frankly,/Candidly," is
+  // matched only when followed by a comma to avoid false-positiving on
+  // legitimate adverbial use ("she spoke honestly about her doubts").
+  {
+    name: 'truth-the-truth-is',
+    re: /\bthe truth is\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'The truth is',
+    note: 'Truth announcement. State the thing directly.',
+  },
+  {
+    name: 'truth-here-is-the-thing',
+    re: /\bhere'?s the thing\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: "Here's the thing",
+    note: 'Truth announcement. State the thing directly.',
+  },
+  {
+    name: 'truth-the-real-answer-is',
+    re: /\bthe real answer is\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'The real answer is',
+    note: 'Truth announcement. State the thing directly.',
+  },
+  {
+    name: 'truth-honestly-frankly-candidly',
+    re: /\b(honestly|frankly|candidly),/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Honestly,/Frankly,/Candidly,',
+    note: 'Sincerity-qualifier truth announcement. Comma-anchored to avoid catching legitimate adverbial use.',
+  },
+
+  // Meta-framing: first-person announcements of authorial intent. The
+  // existing ai-meta-narration-* patterns catch process-style narration;
+  // these catch the conversational meta-framing variants.
+  {
+    name: 'meta-let-me-share',
+    re: /\blet me share (my perspective|a perspective|what i think)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Let me share my perspective',
+    note: 'Meta-framing: announce authorial intent instead of producing the content.',
+  },
+  {
+    name: 'meta-i-want-to',
+    re: /\bi want to (walk you through|share|explain)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'I want to walk you through',
+    note: 'Meta-framing: announce authorial intent instead of producing the content.',
+  },
+  {
+    name: 'meta-what-i-find-interesting',
+    re: /\bwhat i find (interesting|striking|notable)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'What I find interesting',
+    note: 'Meta-framing: first-person observation framing instead of stating the observation.',
+  },
 ]
 
 export const SOFT_PATTERNS = [
