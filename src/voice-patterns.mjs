@@ -428,6 +428,122 @@ export const HARD_PATTERNS = [
     note: 'Process exposure: narrating the production instead of producing.',
   },
 
+  // --- 2026-05-27 Closer-template widenings (PR #83) ---
+  //
+  // Post-PR-#82 sampling against the Covey voice register showed five-of-five
+  // outputs closing with a structural variant of "The [framing/through-line/
+  // wager] [here/of X] is Y. If that misses how you experience [W], [feedback
+  // box / name what / the read will adjust]." The model variant-hopped past
+  // the existing process-* patterns (inserting words like "wager" between
+  // "framing" and "here," or restructuring as "The choice of X as the
+  // through-line is the wager"). These four families catch the survivors.
+  //
+  // All runtime-only, no step field. Anchored with ^...m where the failure
+  // surface is paragraph-opening, unanchored where the surface appears
+  // inline (the meta-correction invitations in Family A and the feedback-
+  // box reference in Family B can appear mid-paragraph).
+
+  // Family A: meta-correction invitations (Part 2 of the closer template).
+  // The most distinctive signal because the construction is unusual outside
+  // the failure mode.
+  {
+    name: 'closer-if-that-misses-how-you-experience',
+    re: /if (that|this|it) (misses|lands differently|reads differently)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'If that misses / lands differently / reads differently',
+    note: 'Closer template: meta-correction invitation. State the principle directly and invite correction in one direct sentence instead.',
+  },
+  {
+    name: 'closer-name-what-it-misses',
+    re: /name what it (is )?(missing|misses)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'name what it is missing / misses',
+    note: 'Closer template: meta-correction invitation. Same family as if-that-misses-how-you-experience.',
+  },
+  {
+    name: 'closer-the-X-will-adjust',
+    re: /the (analysis|read|framing|reading) will adjust\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'the analysis / read / framing / reading will adjust',
+    note: 'Closer template: meta-correction invitation that exposes the tool. State the principle, invite correction, do not announce the adjustment mechanism.',
+  },
+
+  // Family B: feedback-box references (explicit meta-tool exposure).
+  {
+    name: 'closer-feedback-box-below',
+    re: /(use )?the feedback box below\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'use the feedback box below',
+    note: 'Closer template: explicit reference to the UI feedback mechanism. Invite correction without naming the tool.',
+  },
+
+  // Family C: closer principle-announcement openers (Part 1 of the closer
+  // template, paragraph-opening). Anchored ^...im so they fire on
+  // paragraph-opening surfaces but not on legitimate mid-paragraph uses
+  // like "the through-line you described in your inputs."
+  {
+    name: 'closer-the-through-line-here',
+    re: /^the through[\s-]?line here is\b/im,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'The through-line here is',
+    note: 'Closer template: announces the through-line as a framing. State the principle directly.',
+  },
+  {
+    name: 'closer-the-framing-here',
+    re: /^the framing( \w+)? here is\b/im,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'The framing [optional word] here is',
+    note: 'Closer template: variant of the framing-here construction that allows an inserted word (e.g., "wager") between framing and here.',
+  },
+  {
+    name: 'closer-the-wager-here',
+    re: /^the wager (here )?is\b/im,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'The wager [here] is',
+    note: 'Closer template: paragraph-opening wager-announcement, narrower than the existing process-the-interpretive-wager.',
+  },
+  {
+    name: 'closer-the-choice-of-X-as',
+    re: /^the choice of [^.]{1,80} as the through[\s-]?line\b/im,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'The choice of X as the through-line',
+    note: 'Closer template: announces the analytical choice as a wager. Produce the synthesis, do not narrate the choice.',
+  },
+  {
+    name: 'closer-the-framing-of-X-is',
+    re: /^the framing of [^.]{1,80} (as|is) the (interpretive )?(choice|wager|reading)\b/im,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'The framing of X is the interpretive choice / wager',
+    note: 'Closer template: variant of the framing-of-X-is-the-wager family. State the principle directly.',
+  },
+
+  // Family D: narrower stock-transition variants that survived PR #81.
+  {
+    name: 'transition-your-career-shows-the-pattern',
+    re: /^[Yy]our career shows the pattern\b/m,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Your career shows the pattern',
+    note: 'Stock transition: variant of the formula-career-shows-it family that pivots on "shows the pattern" rather than "shows it."',
+  },
+  {
+    name: 'transition-three-things-in-your-background',
+    re: /^three things in your background point to\b/im,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Three things in your background point to',
+    note: 'Stock transition: tripartite enumeration opener. Vary the connective and the count.',
+  },
+
   // Framework naming: Bob's internal frameworks are how Reimagine thinks,
   // not vocabulary for the user. Production lane names (Familiar Ground,
   // Industry Insider, Work That Matters) are intentionally retained per
