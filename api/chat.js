@@ -61,7 +61,7 @@ When you include NAVIGATE: in your reply, the value MUST be one of the step ids 
 | skills | Your Skills |
 | orientation-done | Orientation Complete |
 | p3 | Personal Brand (Phase 1, Know Your Value) |
-| twoDoors | Choose Your Path (post-Personal-Brand) |
+| twoDoors | Put It to Work (post-Personal-Brand page where users choose between exploring Career Paths and adding Active Opportunities) |
 | laneSelect | Pick a Direction (post-Personal-Brand) |
 | p4 | Role Options (post-Personal-Brand) |
 | focus | Focus Playbook (post-Personal-Brand page that holds Interview Prep, The Role, Your Bridge Story, Industry Background, Resume Refresh, LinkedIn Remix, and Go-to-Market for the selected role) |

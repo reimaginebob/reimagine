@@ -75,7 +75,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Value Proposition.** Retired as a separately-labeled section in 2026-05-20. The capability-plus-proof entries are now woven into the Personal Brand prose, with specific accomplishments and numbers cited inline as proof of the through-line.
 
-**Wide View.** Retired in v1. The old single screen showing all three paths at once is replaced by the Two Doors screen, Lane Selection, and the Lane Option view (one direction at a time).
+**Wide View.** Retired in v1. The old single screen showing all three paths at once is replaced by the Put It to Work screen, Lane Selection, and the Lane Option view (one direction at a time).
 
 **Lane Option view.** The screen that lists role options for the one direction you picked. Each option can be opened into a full Focus Playbook. Includes a "see more options" feedback box and honest handling when only a few strong options exist.
 
@@ -83,7 +83,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Save Playbook as PDF.** The button in the Focus Playbook footer that assembles every generated section for the current role into one printable document. The footer also carries a count of how many sections you have built ("Your playbook so far: N of 7 sections built. Save what you have as a PDF. Come back to generate the rest."). In v1 this is how you keep a playbook between sessions.
 
-**Two Doors.** The first screen in Phase 2. Door 1 leads to picking a direction and exploring roles; Door 2 takes a pasted job description and builds a playbook for that exact role.
+**Put It to Work.** The first screen in Phase 2. Two cards: **Career Paths** leads to picking a direction and exploring roles; **Active Opportunities** takes a pasted job description and builds a playbook for that exact role. Renamed 2026-05-27 from "Two Doors / Choose Your Path"; the sidebar entry under Phase 2 routes here from anywhere in the app.
 
 **Wiring & Compass.** Retired as a separate user-visible step in 2026-05-20. The wiring read (how you are wired, where you thrive, what lights you up, drawn from your assessment, values, and accomplishments) is now an internal analytical pass that feeds your Personal Brand.
 

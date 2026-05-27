@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import * as mammoth from "mammoth"
 import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, TabStopType } from "docx"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye, Route, Compass } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectMemorabilityViolation, detectDimensionalFitRegression } from "./voice-patterns.mjs"
@@ -1606,8 +1606,9 @@ A short bullet may appear under a card ONLY when a specific role-context interse
 const PHASES=[
   {id:0,label:'Orientation',color:'#8A9BB8',steps:['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills']},
   {id:1,label:'Know Your Value',color:'#C8924A',steps:['p3']},
+  {id:2,label:'Apply Your Foundation',color:'#4A9E72',steps:['twoDoors']},
 ]
-const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','skills':'Your Skills','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Personal Brand',twoDoors:'Choose Your Path',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',mylib:'My Playbooks',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Industry Background',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
+const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','skills':'Your Skills','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Personal Brand',twoDoors:'Put It to Work',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',mylib:'My Playbooks',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Industry Background',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
 const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p1','p2','p3','twoDoors','laneSelect','p4','focus','mylib','op','complete']
 const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p1','p2','p3'])
 // Captured at module load (before any beforeprint can change document.title) so
@@ -2014,7 +2015,7 @@ const LOADING_PREVIEWS = {
   p3: [
     'A single read on who you are at work, drawn from your resume, your wiring, and your reputation',
     'The through-line in plain language, with the specific accomplishments behind it',
-    'A read on fit across function, industry, position, scale, pace, and mission, with the dimensions to address in Two Doors named',
+    'A read on fit across function, industry, position, scale, pace, and mission, with the dimensions to address in Put It to Work named',
   ],
   p4: [
     'A focused set of roles at this level, matched to your strengths, values, and the direction you picked',
@@ -2753,7 +2754,7 @@ const DEMO_TOUR=[
   {step:'welcome',title:'Meet Sarah Chen',desc:''},
   {step:'p1',title:'Step 1: Know Your Value',desc:'This step reads your resume and translates each accomplishment into money made, money saved, or risk mitigated, with numbers attached.'},
   {step:'p2',title:'Step 2: Wiring & Compass',desc:'This step connects how you are wired to the work you do best and the environment where you thrive.'},
-  {step:'p3',title:'Step 1: Personal Brand',desc:'This step turns your resume, your wiring, and your reputation into a single flowing read of who you are at work, with the dimensions to address in Two Doors named.'},
+  {step:'p3',title:'Step 1: Personal Brand',desc:'This step turns your resume, your wiring, and your reputation into a single flowing read of who you are at work, with the dimensions to address in Put It to Work named.'},
   {step:'p4',title:'Step 4: The Wide View',desc:'This step maps a wider landscape of options to consider, organized into three deliberate paths with specific roles in each.'},
   {step:'p5',title:'Step 5: The Deep Dive',desc:'It\'s easy to get excited about an option on paper. This step shows what the role actually looks like and how your background maps to it.'},
   {step:'decision',title:'Step 6: Sarah\'s Decision',desc:'Having multiple strong options is a good problem to have. This is the moment you choose a direction and everything starts pointing the same way.'},
@@ -3745,7 +3746,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // Fresh-start helper for the dashboard's "Start a new playbook" button.
   // Distinct from applyRoleSwitchDoor1 because the user has not picked a role
   // yet, so we skip recordExploredRole and skip the p5 generation. Routes the
-  // user to the Two Doors choice surface.
+  // user to the Put It to Work choice surface.
   const startNewPlaybook=()=>{
     setCurrentRoleSaved(false)
     setCurrentRoleInSavedSet(false)
@@ -4221,7 +4222,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           stale-voice banner while showing. */}
       {!isDemo&&isP3OldStyle&&!p3MigrationDismissed&&!loading&&<div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',position:'relative'}}>
         <button type="button" onClick={dismissP3Migration} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
-        <p style={{margin:'0 24px 12px 0',fontSize:17,color:'#1A2540',lineHeight:1.65}}>We have updated how we present your Personal Brand. Click Refresh to see it in the new format. The rest of your work (Two Doors, Bridge Story, anything else you have already built) stays as it is.</p>
+        <p style={{margin:'0 24px 12px 0',fontSize:17,color:'#1A2540',lineHeight:1.65}}>We have updated how we present your Personal Brand. Click Refresh to see it in the new format. The rest of your work (Put It to Work, Bridge Story, anything else you have already built) stays as it is.</p>
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
           <Btn onClick={()=>refreshP3('')}>Refresh</Btn>
           <Btn secondary onClick={dismissP3Migration}>Keep current view</Btn>
@@ -4240,45 +4241,51 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <OutPanel text={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>
         {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{cascadeInvalidate('p3');recordCorrection('p3',v);out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Next, choose how you want to explore what's possible.</div>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');out('p1','');out('p2','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','twoDoors')}>See My Options <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');out('p1','');out('p2','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','twoDoors')}>Put It to Work <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
 
     case'twoDoors':return <div>
-      {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
+      {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Apply Your Foundation</div>}
       {showWelcomeBack&&<div data-print="hide" style={{position:'relative',background:`${C.gold}12`,border:`1px solid ${C.gold}40`,borderRadius:12,padding:'20px 50px 20px 24px',marginBottom:24,maxWidth:860}}>
         <button onClick={dismissWelcomeBack} aria-label="Dismiss" style={{position:'absolute',top:12,right:14,background:'transparent',border:'none',color:C.gray,fontSize:20,cursor:'pointer',fontFamily:'inherit',lineHeight:1}}>×</button>
-        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7}}><strong>Welcome back.</strong> Pick a direction to explore: you'll see specific roles inside it, why each one fits you, and how to land them. Your story (resume, assessment, values, reputation, brand synthesis) is right where you left it. Roles you previously explored will regenerate fresh from your latest inputs; if you want to keep any exactly as it was, save its PDF first.</div>
+        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7}}><strong>Welcome back.</strong> Pick how you want to put your foundation to use: explore Career Paths or work an Active Opportunity. Your story (resume, assessment, values, reputation, brand synthesis) is right where you left it. Roles you previously explored will regenerate fresh from your latest inputs; if you want to keep any exactly as it was, save its PDF first.</div>
       </div>}
-      <h1 style={S.title}>Your Personal Brand is built. Now, the fun part.</h1>
-      <p style={S.sub}>Reimagine helps you explore new paths AND optimize existing opportunities. Which would you like to do now?</p>
+      <h1 style={S.title}>Put It to Work</h1>
+      <p style={S.sub}>Your foundation is set. Pick how to put it to use. You can come back to this choice anytime from the sidebar.</p>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,maxWidth:920,marginTop:8}}>
         <button onClick={()=>advance('twoDoors','laneSelect')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
-          <div style={{fontSize:12,fontWeight:700,color:C.gray,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>Explore new paths</div>
-          <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:10}}>Where could my Personal Brand take me?</div>
-          <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>Three directions mapped to your Personal Brand: a stronger version of what you do today, a lateral move into adjacent work, and work that matters to you on a different axis.</div>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+            <Route size={28} color={C.gold} strokeWidth={1.75}/>
+            <div style={{fontSize:22,fontWeight:700,color:'#1A2540'}}>Career Paths</div>
+          </div>
+          <div style={{fontSize:17,color:'#1A2540',lineHeight:1.5,marginBottom:10,fontWeight:500}}>Explore multiple directions across three strategic angles.</div>
+          <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}>See role options across <strong>Familiar Ground</strong> (where your credibility extends), <strong>Industry Insider</strong> (where your sector knowledge translates), and <strong>Work That Matters</strong> (where your values point).</div>
           <div style={{borderTop:`1px solid ${C.border}`,marginTop:18,paddingTop:14,display:'flex',flexDirection:'column',gap:8}}>
-            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>You'll see three directions, each with role candidates and reasoning.</div>
+            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>Three directions, each with role candidates and reasoning.</div>
             <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Clock size={14} style={{flexShrink:0}}/>About 90 seconds to generate.</div>
           </div>
-          <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:C.gold,color:'#FFFFFF',padding:'10px 18px',borderRadius:8,fontWeight:600,fontSize:16}}>Explore directions <ChevronRight size={15}/></div>
+          <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:C.gold,color:'#FFFFFF',padding:'10px 18px',borderRadius:8,fontWeight:600,fontSize:16}}>Start Exploring <ChevronRight size={15}/></div>
         </button>
         <button onClick={()=>advance('twoDoors','op')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
-          <div style={{fontSize:12,fontWeight:700,color:C.gray,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>Optimize an opportunity</div>
-          <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:10}}>How does my Personal Brand match this role?</div>
-          <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>Paste a job description. Get a per-role playbook: fit against your Personal Brand, gaps to close, interview prep, and outreach plan for the people who decide.</div>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+            <Target size={28} color="#4F7CAC" strokeWidth={1.75}/>
+            <div style={{fontSize:22,fontWeight:700,color:'#1A2540'}}>Active Opportunities</div>
+          </div>
+          <div style={{fontSize:17,color:'#1A2540',lineHeight:1.5,marginBottom:10,fontWeight:500}}>Work on specific jobs you are considering right now.</div>
+          <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}>Paste a job description and get a focused playbook for that exact role: how you fit, how to position yourself, what the conversation looks like. Add as many opportunities as you want.</div>
           <div style={{borderTop:`1px solid ${C.border}`,marginTop:18,paddingTop:14,display:'flex',flexDirection:'column',gap:8}}>
-            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>You'll see a tailored playbook for one specific job.</div>
+            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>A tailored playbook for one specific job.</div>
             <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Clock size={14} style={{flexShrink:0}}/>About 2 to 3 minutes (includes live research on the company).</div>
           </div>
-          <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:'transparent',color:C.gold,border:`1.5px solid ${C.gold}`,padding:'8.5px 16.5px',borderRadius:8,fontWeight:600,fontSize:16}}>Analyze a job description <ChevronRight size={15}/></div>
+          <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:'transparent',color:'#4F7CAC',border:`1.5px solid #4F7CAC`,padding:'8.5px 16.5px',borderRadius:8,fontWeight:600,fontSize:16}}>Add an Opportunity <ChevronRight size={15}/></div>
         </button>
       </div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:22,fontSize:16,color:C.gray,maxWidth:920}}><RotateCcw size={14}/>Pick whichever. The other is right here when you come back.</div>
+      <div style={{marginTop:22,fontSize:15,color:C.gray,lineHeight:1.6,maxWidth:920,textAlign:'center'}}>Not sure which to pick first? Most people start with Career Paths to see the range of where their background takes them, then come back to add an Active Opportunity once they have a specific role in mind.</div>
     </div>
     case'laneSelect':return <div>
-      {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
+      {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Apply Your Foundation</div>}
       <h1 style={S.title}>Three directions to consider.</h1>
       <p style={S.sub}>Pick the one you want to start with. You can come back to the others anytime.</p>
       <div style={{display:'flex',flexDirection:'column',gap:18,maxWidth:860}}>
@@ -4290,14 +4297,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     </div>
     case'p4':{
-      if(!selectedLane)return <div>{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}<h1 style={S.title}>Pick a direction first</h1><div style={S.row}><Btn onClick={()=>nav('laneSelect')}>Choose a direction <ChevronRight size={14}/></Btn></div></div>
+      if(!selectedLane)return <div>{!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Apply Your Foundation</div>}<h1 style={S.title}>Pick a direction first</h1><div style={S.row}><Btn onClick={()=>nav('laneSelect')}>Choose a direction <ChevronRight size={14}/></Btn></div></div>
       const laneText=laneData[selectedLane]||''
       const L=LANE_CARDS.find(x=>x.id===selectedLane)||{label:laneLabelFor(selectedLane),tagline:''}
       const lo=extractLaneOptions(laneText)
       const titles=lo.options.map(laneOptionTitle).filter(Boolean)
       const otherLanes=Object.keys(laneData).filter(k=>k!==selectedLane&&laneData[k])
       return <div>
-        {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Explore Options</div>}
+        {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
+        {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Apply Your Foundation</div>}
         <h1 id="section-p4" style={S.title}>{L.label}</h1>
         {L.tagline&&<p style={{...S.sub,fontStyle:'italic',color:C.gold,marginBottom:14}}>{L.tagline}</p>}
         {loading&&<Loading msg={loadMsg||'Mapping your options for this direction…'} step="p4"/>}
@@ -4451,8 +4459,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <Check size={12} color={C.ok} strokeWidth={2.5}/>Saved
           </div>}
         </div>}
+        {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
         {!isDemo&&<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginBottom:14}}>
-          <div style={{...S.tag('#8A9BB8'),marginBottom:0}}>Phase 2 · Explore Options</div>
+          <div style={{...S.tag('#8A9BB8'),marginBottom:0}}>Phase 2 · Apply Your Foundation</div>
           <div style={{...S.tag(C.gold),marginBottom:0}}>Focus Playbook</div>
         </div>}
         <h1 style={S.title}>{chosen||'Your Focus Playbook'}</h1>
@@ -4754,6 +4763,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>}
 
     case'op':{if(outputs.op&&!done.includes('op'))markDone('op');return <div>
+      {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
       {!isDemo&&<div style={S.tag('#C8924A')}>Bonus Module</div>}
       <h1 style={S.title}>Upload a Live Opportunity Now</h1>
       {loading?<Loading msg={loadMsg||'Building your Opportunity Playbook…'} step="op"/>:<>

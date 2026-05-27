@@ -2,7 +2,7 @@
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
-This is **Door 2** on the Two Doors screen in Phase 2 (Chapter 6). Whenever you have a specific job description in hand, choose Door 2, paste it in, and Reimagine builds a complete Opportunity Playbook for that exact role. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here. You no longer have to finish the main journey first; Door 2 is available as soon as you reach the Two Doors screen.
+This is the **Active Opportunities** card on the Put It to Work screen in Phase 2 (Chapter 6). Whenever you have a specific job description in hand, choose Active Opportunities, paste it in, and Reimagine builds a complete Opportunity Playbook for that exact role. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here. You no longer have to finish the main journey first; Active Opportunities is available as soon as you reach the Put It to Work screen, and the sidebar entry under Phase 2 routes back there from anywhere in the app.
 
 ## When to use it
 
