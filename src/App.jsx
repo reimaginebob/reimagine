@@ -421,45 +421,97 @@ const DIM_MAX_RETRIES = 1
 const STRUCTURED_MAX_RETRIES = 1
 const STRUCTURED_PARSE_CORRECTIVE = `\n\nYour previous output ended with a malformed structured emit. Re-emit your output identically, but ensure the JSON block at the end is parseable. The JSON must be the LAST thing in the output, enclosed in a single triple-backtick json fence, with no commentary after. Every key must be quoted. Every string value must be quoted. No trailing commas. No comments in the JSON. Do not change your prose; only fix the JSON tail.`
 
-// Variance-instructing Phase 1 corrective callout. Handles two pattern
-// families that need stronger retry guidance than the standard single-
-// violation callout:
+// Phase 1 corrective callout. Handles four pattern families that need
+// stronger retry guidance than the standard single-violation callout:
 //
-//   1. Foundation A.5 formula-* (p3 only): the standard callout names a
-//      single banned construction; for formulaic-shape violations that is
-//      necessary but not sufficient because the model can reach for a
-//      different stock phrase that satisfies the literal refusal while
-//      still producing a templated shape. The callout instructs toward
-//      variance across opener / source order / connector language / closer.
+//   1. formula-* (Foundation A.5, p3-universal as of PR #84): stock
+//      templated transitions like "Your career shows it" / "Your story
+//      locates the source." The previous "vary across opener / source
+//      order / connector / closer" wording was interpreted by the model
+//      as "rotate to a near-variant"; PR-B replaces that with explicit
+//      refusal of the specific fired surface plus a positive substitution
+//      example so the model has a target shape, not just a refusal.
 //
-//   2. Voice guide application (PR 2 of the 2026-05-27 sequence):
-//      process-* / framework-* / drama-* / truth-* / meta-* patterns
-//      implement Bob's voice-and-style rules from the context folder.
-//      The callout names the specific principles violated and asks the
-//      model to write like Bob talking to a client, not teaching a class.
+//   2. closer-* (PR #83, p3-only as of PR #84): closer-template AI-coach
+//      invitations like "If that misses how you experience your work." Per
+//      Path A (locked in the PR-A consult), the strengthened callout
+//      instructs the model to DROP the closing correction invitation
+//      entirely, not rotate to a different way to make it. The Refine
+//      box UI handles the affordance structurally.
 //
-// When BOTH families fire on the same generation, the callout aggregates
-// both sets of surfaces and addresses both. When only one family fires,
-// the callout uses that family's language. When neither fires, returns
-// null and the Phase 1 loop falls through to the standard callout.
+//   3. logic-flip-* (universal, since the original voice guide): "X is
+//      not Y. It is Z." cadence in all its variants. Telemetry on
+//      2026-05-27 14:57-15:05 ET showed this family firing on every p3
+//      run; the existing fallback callout was insufficient. Strengthened
+//      callout names the family-level move (set up what subject is NOT,
+//      contrast with what they ARE) and refuses it specifically.
+//
+//   4. voice-guide families (process-* / framework-* / drama-* / truth-*
+//      / meta-*, PR #81): Bob's voice rules from the context folder.
+//      Wording mostly unchanged from prior version; this family was
+//      already converging adequately.
+//
+// When MULTIPLE families fire on the same generation, the callout
+// aggregates all sets of surfaces and addresses all of them. When none of
+// the four families fires, returns null and the Phase 1 loop falls
+// through to the standard single-violation callout (used for
+// transition-*, contamination-*, comparative-standing-*, praise-shape-*,
+// and any other pattern outside the four targeted families).
+//
+// Surface text is extracted from violation.surface (the human-readable
+// label from voice-patterns.mjs) with fall-back to violation.match (the
+// actual regex match text). The [FIRED_SURFACE] token in the brief
+// becomes literal interpolation of those values.
 function buildVarianceCorrective(violations) {
   const all = (violations || []).filter(v => typeof v?.name === 'string')
   const formula = all.filter(v => v.name.startsWith('formula-'))
+  const closer = all.filter(v => v.name.startsWith('closer-'))
+  const logicFlip = all.filter(v => v.name.startsWith('logic-flip-'))
   const voiceGuide = all.filter(v => /^(?:process|framework|drama|truth|meta)-/.test(v.name))
-  if (formula.length === 0 && voiceGuide.length === 0) return null
+  if (formula.length === 0 && closer.length === 0 && logicFlip.length === 0 && voiceGuide.length === 0) return null
   const dedupeSurfaces = (vs) => {
     const seen = new Set()
     const out = []
     for (const v of vs) {
       const s = v.surface || v.match || v.name
-      if (!seen.has(s)) { seen.add(s); out.push(s) }
+      if (!seen.has(s)) { seen.add(s); out.push(String(s).slice(0, 200)) }
     }
     return out
   }
-  const parts = ['\n\nCRITICAL: your previous output broke voice rules from the prompt.']
+  const fmt = (surfaces) => surfaces.map(s => `"${s}"`).join(', ')
+  const parts = ['\n\nCRITICAL: your previous output broke voice rules from the prompt. Stop and rewrite the affected passages before regenerating the rest. The patterns below are not stylistic preferences; outputs containing them do not reach the user.']
+  if (formula.length > 0) {
+    const surfaces = dedupeSurfaces(formula)
+    parts.push(`\n\nTEMPLATED TRANSITIONS DETECTED: ${fmt(surfaces)}. These phrases appear in every Reimagine Personal Brand output and signal to the user that the analysis is not specific to them. Do NOT use them, and do NOT rotate to near-variants like "Your work history shows," "Your trajectory shows," "Your background shows," "Your reputation confirms it," or "Your story locates where this came from."`)
+    parts.push(`\n\nThe underlying move is "introduce evidence with a generic naming sentence that confirms the through-line." Stop making that move. Lead each piece of evidence with the specific operational detail itself.`)
+    parts.push(`\n\nFailure shape: "Your career shows it. You took a streaming ingestion path that was bleeding latency..."`)
+    parts.push(`\nReplacement: "You took a streaming ingestion path that was bleeding latency at 4.2 seconds and rebuilt it to 380 milliseconds. The same move shows up at..."`)
+    parts.push(`\n\nThe transition IS the evidence. The phrases listed above must not appear in regenerated output.`)
+  }
+  if (closer.length > 0) {
+    const surfaces = dedupeSurfaces(closer)
+    parts.push(`\n\nAI-COACH CLOSING TEMPLATE DETECTED: ${fmt(surfaces)}. The Refine box below the synthesis is labeled "What did we get wrong?" and handles the correction affordance structurally. The prose does not need to reinforce it.`)
+    parts.push(`\n\nDo NOT close the synthesis with a correction invitation. Do NOT name the feedback box. Do NOT use "if that misses how you experience" or any near-variant ("if that framing misses," "if the framing misses," "if this misses how you read your work"). Do NOT announce the analytical wager ("The framing here is," "The wager is," "The choice of X as the through-line is").`)
+    parts.push(`\n\nEnd on the analytical conclusion itself. The final sentence states what the through-line means for the next chapter, returns to the principle the synthesis was built on, or names the forward question without inviting correction. The "Now you know who you are. Next, choose how you want to explore what's possible." navigational line that appears below the synthesis is the system-level transition; do not duplicate that work in the prose.`)
+    parts.push(`\n\nThe closing prose does not invite correction. The UI handles that.`)
+  }
+  if (logicFlip.length > 0) {
+    const surfaces = dedupeSurfaces(logicFlip)
+    parts.push(`\n\nLOGIC-FLIP CADENCE DETECTED: ${fmt(surfaces)}. This cadence is banned across all Reimagine prose. It sets up a false binary the human reader does not need and reads as AI-shaped writing.`)
+    parts.push(`\n\nSpecific shapes to refuse:`)
+    parts.push(`\n- "X is not Y. It is Z." / "These are not X. They are Y." / "It is not a Z, it is a W."`)
+    parts.push(`\n- "You do not just X, you Y." / "You build X, not Y."`)
+    parts.push(`\n- "Z was not because of W; it was because of X."`)
+    parts.push(`\n- "They are not evaluating A, they are picturing B."`)
+    parts.push(`\n- "Less about X and more about Y."`)
+    parts.push(`\n\nThe underlying move is "set up what the subject is NOT, then contrast with what they ARE." Stop making that move. Direct positive statement is the alternative.`)
+    parts.push(`\n\nFailure shape: "These are not general infrastructure problems. They are reliability problems where the failure mode is expensive."`)
+    parts.push(`\nReplacement: "These are reliability problems where the failure mode is expensive. The fix requires mapping the entire system before redesigning any part of it."`)
+    parts.push(`\n\nThe contrast is implicit in the specificity. Naming what the subject is NOT adds nothing. Regenerate without any "not X / X is not Y" cadence anywhere.`)
+  }
   if (voiceGuide.length > 0) {
     const surfaces = dedupeSurfaces(voiceGuide)
-    parts.push(`\n\nDetected voice violations: ${surfaces.join(', ')}.`)
+    parts.push(`\n\nVOICE-GUIDE VIOLATIONS DETECTED: ${fmt(surfaces)}.`)
     parts.push(`\n\nThe voice rules are non-negotiable:`)
     parts.push(`\n- Write like Bob talking to a client, not teaching a class. No exposing the process.`)
     parts.push(`\n- Never name a framework the reader has not read about (4 Cs, Five Ps, KEEL, Quota of One, Like-for-Like, Three-lane pivot, Bake a Cake, Tide). Do the thing the framework describes, in plain language.`)
@@ -467,12 +519,7 @@ function buildVarianceCorrective(violations) {
     parts.push(`\n- No drama punches, truth announcements, or meta-framing.`)
     parts.push(`\n- Stay in the synthesis. The user reads the result, not the method.`)
   }
-  if (formula.length > 0) {
-    const surfaces = dedupeSurfaces(formula)
-    parts.push(`\n\nDetected formulaic-shape violations: ${surfaces.join(', ')}. These appear in other Personal Brand outputs and teach the user that the output is not written specifically for them.`)
-    parts.push(`\n\nVary the opener so it does not start with a tripartite enumeration frame. Vary the source order so it does not default to career-then-assessment-then-reputation-then-life-story. Vary the transition language so the same connector sentences do not appear.`)
-  }
-  parts.push(`\n\nRegenerate. The triangulation discipline (anchoring interpretive claims in named evidence) still holds; what changes is the SHAPE of the prose and which scaffolding language stays out of the output. Lead with whichever piece of evidence is strongest for this user. Weave evidence into prose.`)
+  parts.push(`\n\nRegenerate the affected output. The triangulation discipline (anchoring interpretive claims in named evidence) still holds; what changes is the SHAPE of the prose and which scaffolding language stays out of the output. Lead with whichever piece of evidence is strongest for this user. Weave evidence into prose.`)
   return parts.join('')
 }
 
