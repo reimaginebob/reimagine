@@ -81,11 +81,11 @@ Edit the field. Replace the resume file. Paste new text. Add a values entry. Wha
 
 ### Step 3: Regenerate the affected steps
 
-Reimagine will not automatically wipe and regenerate everything downstream of an input change. That is intentional. Most input edits do not require redoing every later step.
+When you regenerate a step (with **Update with my correction** or **Start fresh**), Reimagine clears any later steps that were built on top of it. The cleared steps appear empty when you reach them, and a small banner tells you they were cleared because the upstream step changed. The clearing happens automatically; the regeneration does not. You click forward and re-run each later step you want to refresh.
 
-Instead, click forward through the journey to the analysis step that is most affected by the change. On that step, click **Start fresh** in the feedback box and re-run the generation. That regenerates the step with the updated inputs.
+For most input edits, that means a short cascade: change your resume, regenerate Personal Brand, click forward to Role Options and click **Show My Options** again, and so on for any later steps you want to update. Steps you do not plan to revisit can be left cleared until you need them.
 
-Continue forward, regenerating any later steps that should reflect the change.
+One special case: the migration banner that appears at the top of Personal Brand for older saved profiles uses a refresh path that also clears Role Options and everything downstream, because the new Personal Brand changes the underlying analysis that the rest of the playbook is built on.
 
 ### A practical example
 

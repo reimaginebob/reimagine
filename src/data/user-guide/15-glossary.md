@@ -60,7 +60,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **The Lingo.** Renamed 2026-05-23 to Industry Background. See Industry Background.
 
-**Quick Takeaway.** A short summary at the top of some generated sections. Three to five sentences that give you the essentials without expanding the full output. Retired from the Personal Brand output in 2026-05-20; the lead sentence now carries that role.
+**Quick Takeaway.** A short summary at the top of some generated sections. Three to five sentences that give you the essentials without expanding the full output. Retired from the Personal Brand output in 2026-05-20 (the lead sentence now carries that role) and from Role Options in 2026-05-27 (the umbrella paragraph at the top of each lane now carries that role). Still used in Go-to-Market and in The Role focus card.
 
 **Refine box.** The "Want to make changes?" box below every generated output. Where you tell Reimagine what to adjust before regenerating.
 
