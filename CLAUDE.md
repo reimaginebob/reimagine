@@ -194,6 +194,7 @@ Two notes on drift:
 
 - The repo's `src/data/user-guide/` is the canonical source for user guide content. The workspace path `Output/docs/reimagine-user-guide/` is deprecated and was historically used as the canonical source before the repo had user-guide build infrastructure. Future user-guide changes go directly through the repo. The workspace path is preserved for historical reference only.
 - Two migration folders exist (`db/migrations/` and `migrations/`). Known tech debt; do not introduce more migrations to the wrong folder. Verify which folder current production reads from before adding.
+- **`chat_messages` schema convention.** The `chat_messages` table was created out-of-band against Neon and has no `CREATE TABLE` in `db/migrations/` or `migrations/`. The live INSERT site (`api/chat.js`) and DELETE site (`api/account/delete.js`) imply columns `user_id, message, reply, current_step, navigated_to, navigation_blocked` plus `id` and `created_at`, with types unverified. When adding columns to this table, write a migration file in `db/migrations/` using `ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS ...`, and run it against Neon manually. Do not assume the table can be dropped and recreated from repo migrations; doing so will fail because there is no canonical `CREATE TABLE`. Reconstructing a definitive `CREATE TABLE` from the live schema is on the backlog.
 
 ---
 

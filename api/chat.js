@@ -48,33 +48,35 @@ NAVIGATE: <step-id>
 
 When you include NAVIGATE: in your reply, the value MUST be one of the step ids in the table below. Match the user's request against the "User-facing name" column and use the corresponding "Step id" column. Do not infer step ids from the user guide content; use this table as the only source of truth for navigation targets.
 
-| Step id | User-facing name (use these to match user intent) |
-|---|---|
-| welcome | Welcome |
-| location | Location & Work |
-| resume | Your Resume |
-| linkedin | Your LinkedIn |
-| assessment | Assessments |
-| values | Values, Passions & Causes |
-| reputation | Reputation |
-| life-events | Your Story |
-| skills | Your Skills |
-| orientation-done | Orientation Complete |
-| p3 | Personal Brand (Phase 1, Know Your Value) |
-| twoDoors | Choose Your Path (post-Personal-Brand) |
-| laneSelect | Pick a Direction (post-Personal-Brand) |
-| p4 | Role Options (post-Personal-Brand) |
-| focus | Focus Playbook (post-Personal-Brand) |
-| mylib | My Playbooks |
-| p6 | Your Bridge Story (Phase 3, Tell Your Story) |
-| p7 | Go-to-Market (Phase 4, Find Your Market) |
-| p8 | LinkedIn Remix (Phase 5, Get Ready) |
-| p_res | Resume Refresh (Phase 5, Get Ready) |
-| p9 | Industry Background (Phase 5, Get Ready) |
-| p10 | Interview Prep (Phase 5, Get Ready) |
-| complete | Complete |
-| income | Income Now (post-completion bonus) |
-| op | Upload a Live Opportunity (post-completion bonus) |
+| Step id | User-facing name (use these to match user intent) | Reachable pre-p3? |
+|---|---|---|
+| welcome | Welcome | yes |
+| location | Location & Work | yes |
+| resume | Your Resume | yes |
+| linkedin | Your LinkedIn | yes |
+| assessment | Assessments | yes |
+| values | Values, Passions & Causes | yes |
+| reputation | Reputation | yes |
+| life-events | Your Story | yes |
+| skills | Your Skills | yes |
+| orientation-done | Orientation Complete | yes |
+| p3 | Personal Brand (Phase 1, Know Your Value) | yes |
+| twoDoors | Choose Your Path (post-Personal-Brand) | no |
+| laneSelect | Pick a Direction (post-Personal-Brand) | no |
+| p4 | Role Options (post-Personal-Brand) | no |
+| focus | Focus Playbook (post-Personal-Brand) | no |
+| mylib | My Playbooks | no |
+| p6 | Your Bridge Story (Phase 3, Tell Your Story) | no |
+| p7 | Go-to-Market (Phase 4, Find Your Market) | no |
+| p8 | LinkedIn Remix (Phase 5, Get Ready) | no |
+| p_res | Resume Refresh (Phase 5, Get Ready) | no |
+| p9 | Industry Background (Phase 5, Get Ready) | no |
+| p10 | Interview Prep (Phase 5, Get Ready) | no |
+| complete | Complete | no |
+| income | Income Now (post-completion bonus) | no |
+| op | Upload a Live Opportunity (post-completion bonus) | no |
+
+When personalBrandDone is false, the only NAVIGATE targets you can use are the orientation steps (welcome, location, resume, linkedin, assessment, values, reputation, life-events, skills, orientation-done) and p3. If the user asks about a post-Personal-Brand step (Two Doors, Pick a Direction, Role Options, Focus Playbook, My Playbooks, Bridge Story, Go-to-Market, LinkedIn Remix, Resume Refresh, Industry Background, Interview Prep, Complete, Income Now, Upload a Live Opportunity), answer their question briefly from your knowledge of the product, then guide them to Personal Brand with NAVIGATE: p3. If they have not finished orientation yet, guide them to the next orientation step instead.
 
 If the user's request does not clearly map to one of the rows above, do not include NAVIGATE: in your reply. Answer the question without offering navigation.
 
@@ -91,12 +93,18 @@ export default async function handler(req, res) {
   const user = await getSessionUser(req, res)
   if (!user) return res.status(401).json({ error: 'Not signed in' })
 
-  const { message, history = [], currentStep } = req.body || {}
+  const { message, history = [], currentStep, personalBrandDone = false } = req.body || {}
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'message required' })
   }
 
-  const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".]` : ''
+  // Prepend a one-line user-context block so the LLM can decide
+  // NAVIGATE targets per the prereq gate documented in SYSTEM_PROMPT.
+  // personalBrandDone is the canonical gate signal (matches Sidebar's
+  // Mode B flip and PR #71's Mode A staging). currentStep is included
+  // so the LLM can pick between NAVIGATE: p3 (post-orientation) and
+  // NAVIGATE: <next-orientation-step> (mid-orientation) when redirecting.
+  const contextNote = `\n\n[user context: currentStep="${currentStep || 'unknown'}", personalBrandDone=${personalBrandDone === true}]`
 
   const messages = [
     ...history.slice(-10).map(m => ({ role: m.role, content: m.content })),
@@ -170,15 +178,30 @@ export default async function handler(req, res) {
   // enough for the insert to finish. Post-res.end() awaits are unreliable on
   // Vercel serverless: the instance can be torn down the moment the response
   // closes, dropping the in-flight insert.
-  const navMatch = fullText.match(/\n?NAVIGATE:\s*(\w+)\s*$/i)
-  const navigateTo = navMatch ? navMatch[1] : null
+  //
+  // Regex `[\w-]+` (not `\w+`) so hyphenated step ids like `life-events` and
+  // `orientation-done` are captured. Prior `\w+` silently dropped any NAVIGATE
+  // to those targets, which the LLM legitimately emits during orientation.
+  // Same fix applies in Chat.jsx:109 (kept in lockstep).
+  //
+  // Gate observability: when personalBrandDone is false and the LLM emitted
+  // a NAVIGATE to a post-p3 step, `navigated_to` is recorded as null (no
+  // navigation occurred from the client's perspective, since Chat.jsx applies
+  // the same gate before assigning message.navigateTo) and `navigation_blocked`
+  // records the step id the LLM tried to route to. Audit downstream by
+  // querying chat_messages WHERE navigation_blocked IS NOT NULL.
+  const POST_P3_STEPS = new Set(['twoDoors','laneSelect','p4','focus','mylib','p6','p7','p8','p_res','p9','p10','complete','income','op'])
+  const navMatch = fullText.match(/\n?NAVIGATE:\s*([\w-]+)\s*$/i)
+  const requestedNav = navMatch ? navMatch[1] : null
+  const navBlocked = (requestedNav && !personalBrandDone && POST_P3_STEPS.has(requestedNav)) ? requestedNav : null
+  const navigateTo = navBlocked ? null : requestedNav
   const cleanText = navMatch ? fullText.slice(0, navMatch.index).trim() : fullText.trim()
   try {
     await sql`
-      INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to)
-      VALUES (${user.id}, ${message}, ${cleanText}, ${currentStep || null}, ${navigateTo || null})
+      INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to, navigation_blocked)
+      VALUES (${user.id}, ${message}, ${cleanText}, ${currentStep || null}, ${navigateTo || null}, ${navBlocked || null})
     `
-    console.log('chat insert ok', { user_id: user.id, step: currentStep, navigated_to: navigateTo })
+    console.log('chat insert ok', { user_id: user.id, step: currentStep, navigated_to: navigateTo, navigation_blocked: navBlocked })
   } catch (logErr) {
     console.error('chat_messages insert failed:', logErr)
   }

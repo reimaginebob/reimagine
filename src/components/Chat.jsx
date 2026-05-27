@@ -35,7 +35,19 @@ const STEP_LABELS = {
 }
 const VALID_STEPS = new Set(Object.keys(STEP_LABELS))
 
-export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0 }) {
+// Post-Personal-Brand step ids. The chat helper refuses to set a
+// message.navigateTo for any of these when personalBrandDone is false,
+// because their pages assert "Your Personal Brand is built" or depend on
+// outputs that do not yet exist. The gate enforces deterministically at
+// the parser below (Layer 2); nav() in App.jsx is a Layer 3 safety net
+// for any future entry point that bypasses this parser. The server-side
+// check in api/chat.js is observability: it logs navigation_blocked rows
+// to chat_messages so we can audit how often the LLM violates the prompt
+// instruction documented in SYSTEM_PROMPT. p11 is intentionally absent:
+// it is not a NAVIGATE target in the current api/chat.js step-id table.
+const POST_P3_STEPS = new Set(['twoDoors','laneSelect','p4','focus','mylib','p6','p7','p8','p_res','p9','p10','complete','income','op'])
+
+export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, personalBrandDone = false }) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -78,6 +90,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
           message: userMsg.content,
           history: historyAtSend,
           currentStep,
+          personalBrandDone,
         }),
       })
       if (!res.ok || !res.body) {
@@ -97,8 +110,16 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
           const { done, value } = await reader.read()
           if (done) break
           fullText += decoder.decode(value, { stream: true })
-          // Hide any trailing NAVIGATE line from the visible bubble as it streams.
-          const navIdx = fullText.lastIndexOf('\nNAVIGATE')
+          // Hide any trailing NAVIGATE line from the visible bubble as it
+          // streams. Catches both the common case (newline before NAVIGATE)
+          // and the rare case where NAVIGATE starts the buffer with no
+          // preceding newline (the LLM occasionally drops the leading break).
+          const navIdx = (() => {
+            const withNewline = fullText.lastIndexOf('\nNAVIGATE')
+            if (withNewline >= 0) return withNewline
+            if (fullText.startsWith('NAVIGATE')) return 0
+            return -1
+          })()
           const visible = navIdx >= 0 ? fullText.slice(0, navIdx).trimEnd() : fullText
           setMessages(m => {
             const copy = [...m]
@@ -106,8 +127,20 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
             return copy
           })
         }
-        const navMatch = fullText.match(/\n?NAVIGATE:\s*(\w+)\s*$/i)
-        const navigateTo = navMatch ? navMatch[1] : null
+        // Regex [\w-]+ (not \w+) so hyphenated step ids like life-events and
+        // orientation-done are captured. Same fix lives in api/chat.js:173.
+        // Synchronous gate: when personalBrandDone is false and the LLM
+        // targets a post-p3 step, navigateTo stays null and the "Take me to
+        // X" button does not render. The gate check and the assignment are
+        // intentionally in the same synchronous block so there is no flicker
+        // window where the button briefly appears then disappears.
+        const navMatch = fullText.match(/\n?NAVIGATE:\s*([\w-]+)\s*$/i)
+        const parsedTarget = navMatch ? navMatch[1] : null
+        const blockedByGate = parsedTarget && !personalBrandDone && POST_P3_STEPS.has(parsedTarget)
+        const navigateTo = blockedByGate ? null : parsedTarget
+        if (blockedByGate && import.meta.env.DEV) {
+          console.warn('[chat-gate] blocked navigation to', parsedTarget, '(Personal Brand not yet built)')
+        }
         if (navigateTo) {
           setMessages(m => {
             const copy = [...m]
