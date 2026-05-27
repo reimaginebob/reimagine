@@ -15,14 +15,6 @@ import { patternsFor } from '../src/voice-patterns.mjs'
 
 const FILES_TO_CHECK = [
   'src/App.jsx',
-  // Single source of truth for the Reimagine module SYS (2026-05-27
-  // consolidation). The SYS body lives between the // voice-allow and
-  // // voice-allow-end markers in this file and is correctly skipped by
-  // the marker-aware scanner below. Keeping the file in this scan list
-  // preserves the scanner posture the inline App.jsx SYS had before
-  // consolidation: if anyone later removes the markers or pastes a banned
-  // construction outside them, the scan will catch it.
-  'src/system-prompt.mjs',
   'src/demoData.js',
   ...fs.readdirSync('src/data/user-guide').map(f => path.join('src/data/user-guide', f)),
 ]
