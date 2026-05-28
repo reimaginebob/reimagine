@@ -2894,6 +2894,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
     const primaryItems=[
       {id:'mylib',label:'My Playbooks',Icon:Briefcase},
       {id:'p3',label:'Personal Brand',Icon:Fingerprint},
+      {id:'twoDoors',label:'Put It to Work',Icon:Compass},
       {id:'income',label:'Income Now',Icon:DollarSign},
     ]
     const inputsItems=[
