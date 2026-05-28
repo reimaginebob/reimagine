@@ -7,8 +7,8 @@
 //
 // Two-tier model (appliesTo):
 //   ['build','runtime'] - tight constructions we author deliberately. Their
-//       presence in source code IS the failure (em dashes, banned
-//       intensifiers, AI-coaching register).
+//       presence in source code IS the failure (banned intensifiers,
+//       AI-coaching register).
 //   ['runtime']        - source can legitimately quote or document these
 //       (the Making Your Own Weather quote pool, demo fixtures, user-guide
 //       examples). Only model OUTPUT producing them is a violation
@@ -134,14 +134,6 @@ export const HARD_PATTERNS = [
     severity: 'hard',
     appliesTo: ['build', 'runtime'],
     note: 'AI-coaching register.',
-  },
-  // Em dashes in shipped copy - authored deliberately; presence in source is the failure.
-  {
-    name: 'em-dash',
-    re: /—/,
-    severity: 'hard',
-    appliesTo: ['build', 'runtime'],
-    note: 'Em dash: banned in shipped copy.',
   },
   // "Rooms where..." / "rooms in which..." used as audience or situation
   // placeholder (e.g., "make people visible in rooms where they have no

@@ -7,7 +7,7 @@ import { patternsFor } from '../src/voice-patterns.mjs'
 // Single source of truth: patterns live in src/voice-patterns.mjs and are
 // shared with the runtime validator (generate/generateSection). This file
 // enforces only the 'build' scoped subset - tight constructions we author
-// deliberately (em dashes, banned intensifiers, AI-coaching register) whose
+// deliberately (banned intensifiers, AI-coaching register) whose
 // presence in source IS the failure. Logic-flip and comparative-standing
 // patterns are 'runtime' scoped: source legitimately quotes/documents them
 // (the Making Your Own Weather quote pool, demo fixtures, user-guide

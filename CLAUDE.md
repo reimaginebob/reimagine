@@ -42,7 +42,6 @@ Reimagine's voice is the load-bearing differentiator. These rules apply to every
 
 These are refused in shipped output. The voice gate at `scripts/check-voice.mjs` catches the patterns that have shown up historically.
 
-- **Em dashes** in user-facing copy, prompts, and UI strings. Allowed in briefs' narrative prose and internal docs. Deterministic stripper `stripEmDashes` cleans LLM output at runtime.
 - **Logic-flip cadence:** "you do not just X, you Y," "X is not Y, it is Z," "it is not a Z, it is a W," "the next move is less about X and more about Y."
 - **Comparative standing:** "Most people," "many candidates," "the average professional," "most hiring managers do not see X," "where others settle for X."
 - **AI-coaching register:** "worth sitting with," "sit with this," "let that land," "lean into," "hold space for," "get curious about," "notice what comes up," "take a moment to consider," "trust the process," "honor your journey."
@@ -59,7 +58,7 @@ Voice rules need DETECTION, not just instruction. Three layers:
 
 1. **In-prompt instructions** in every Clarity-producing prompt (the P object in `src/App.jsx`). Necessary but not sufficient — the model is probabilistic.
 2. **Runtime voice gate** at `scripts/check-voice.mjs` with HARD_PATTERNS that block the build if a shipped output contains a banned construction. Voice-allow regions in App.jsx are documented exceptions; count is watched (current ~12, trending up is a warning sign).
-3. **Deterministic post-processors** like `stripEmDashes` and `stripMetaNarration` that clean output regardless of model compliance. Reach for these when a pattern is model-robust (em dashes are; the model regenerates them even when told not to).
+3. **Deterministic post-processors** like `stripRoomsPlaceholder` and `stripMetaNarration` that clean output regardless of model compliance. Reach for these when a pattern is model-robust (the model regenerates banned constructions even when told not to).
 
 When proposing a voice fix, pair the instruction with a detection or stripping mechanism. "Just add an instruction to the prompt" is a draft, not a fix.
 
@@ -73,7 +72,7 @@ Every implementation brief lives at `Output/handoff/YYYY-MM-DD_short-name.md` an
 - **Pre-flight discovery (scope correction).** What the brief's author verified against current code before drafting. Names what was confirmed already-shipped, retired, or differently-scoped than the brief's original framing implied. Audit / sibling / carry-forward briefs are HYPOTHESES; verify before drafting.
 - **Files affected.** Table of file → change.
 - **Specific changes.** Numbered changes, each with the exact text to replace or insert. Verbatim quotes of existing code so Code can locate the change unambiguously.
-- **Voice rules on inserted text.** Confirm the inserted text passes voice rules. No em dashes in inserted prompt or UI text.
+- **Voice rules on inserted text.** Confirm the inserted text passes voice rules.
 - **Static gates.** What the build must pass post-change: `npm run build` clean, `check-voice` 0/0, `check-prompt-refs` 0, App.jsx EOF integrity preserved, diff scope limited to named files.
 - **Runtime gate (post-merge, optional).** What Bob (or Cowork-Claude) verifies in production after merge.
 - **Constraints.** Single PR, no effort estimates, PR title format.
@@ -202,7 +201,6 @@ Two notes on drift:
 - **Pull before editing.** Workspace copies drift from main. Always sync before editing source files.
 - **App.jsx integrity.** Check line count and EOF closure before AND after every edit. Never ship a file that ends mid-tag.
 - **No effort estimates.** Engineer-days, weeks, hours, t-shirt sizes are not useful. Describe scope in terms of what it touches (files, surfaces, invariants).
-- **Em dash discipline.** Scrub em dashes from inserted prompt and UI text in briefs. Briefs' narrative prose can use them.
 - **Batch updates during beta.** Don't push improvements continuously. Queue and ship in batches so user feedback maps to known builds.
 - **Use user-facing names in chat with Bob.** "LinkedIn Remix" not "p8." "The Lingo" not "p9." Briefs, code prompts, and PR titles use internal IDs.
 - **Apps Script redeploy: update the EXISTING deployment.** "New deployment" mints a new URL and silently breaks the signup pipeline.
