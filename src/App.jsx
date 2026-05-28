@@ -2688,13 +2688,15 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
     prefilledRef.current=true
     onFreeform(assembled)
   },[allPicked,assembled,p6.user_freeform,onFreeform])
-  // Built-state collapse: when isBuilt is true, the picker UI (educational
-  // callout, three slot pickers + per-slot regenerate boxes, save-and-return
-  // CTA) hides by default; the user sees the assembled story + freeform
-  // textarea as the clean summary. Clicking "Edit blocks" reveals the
-  // picker inline. Scroll on expand puts the section header back at the top
-  // of the viewport via the same anchor (section-p6) the section rail uses.
-  const [pickerExpanded,setPickerExpanded]=useState(false)
+  // Built-state disclosure: even when isBuilt is true, the picker UI (three
+  // slot pickers + per-slot regenerate boxes) is EXPANDED by default. The
+  // user generated the Bridge Story specifically to see and pick the blocks;
+  // hiding them behind a disclosure defeats the purpose (Bob's call
+  // 2026-05-27). Clicking "Hide blocks" collapses to the assembled story +
+  // freeform textarea as a clean summary; clicking "Edit blocks" re-expands.
+  // Scroll on expand puts the section header back at the top of the viewport
+  // via the same anchor (section-p6) the section rail uses.
+  const [pickerExpanded,setPickerExpanded]=useState(true)
   const showPicker=!isBuilt||pickerExpanded
   const togglePicker=()=>{
     if(pickerExpanded){setPickerExpanded(false);return}
