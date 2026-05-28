@@ -499,9 +499,9 @@ function formatSkills(s){
 }
 
 async function callClaude(prompt, opts={}) {
-  const{webSearch=false,highTemp=false,maxTokens=5000}=opts
+  const{webSearch=false,highTemp=false,maxTokens=5000,temperature}=opts
   const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined
-  const body={model:"claude-sonnet-4-5",max_tokens:maxTokens,temperature:highTemp?1.0:0.7,system:[{type:"text",text:SYS,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content:prompt}],...(tools&&{tools})}
+  const body={model:"claude-sonnet-4-5",max_tokens:maxTokens,temperature:typeof temperature==='number'?temperature:(highTemp?1.0:0.7),system:[{type:"text",text:SYS,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content:prompt}],...(tools&&{tools})}
   const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
   if(!res.ok){const e=await res.json();throw new Error(e.error?.message||"API error")}
   const data=await res.json()
@@ -535,6 +535,7 @@ const STRUCTURED_PARSE_CORRECTIVE = `\n\nYour previous output ended with a malfo
 // through the voice phases; if it still fails, ship and log (never block).
 const RES_SUMMARY_MAX_RETRIES = 1
 const RES_SUMMARY_CORRECTIVE = `\n\nCRITICAL: the previous Professional Summary failed a structural check. The "summary" field must be PRONOUN-FREE resume voice (no "I," "me," "my," "we," or "our") and AT MOST 4 sentences. Rewrite ONLY the summary field, keeping every other field unchanged. Open Sentence 1 with role identity plus the distinctive frame, one job per sentence, roughly 25 words each.`
+const BRIDGE_WEAVE_PROMPT=(t1,t2,t3)=>`You are weaving three components of a 30-second Bridge Story into cohesive prose.\n\nCOMPONENT 1 (formative experience or human anchor):\n${t1}\n\nCOMPONENT 2 (career manifestation):\n${t2}\n\nCOMPONENT 3 (forward move):\n${t3}\n\nProduce cohesive prose with natural connective tissue between sections. Output the woven prose only, no preamble, no closing line, no headers.\n\nHard rules:\n- Do not invent new content. Use the components as given.\n- Do not add framing language ("Here is my story," "In short").\n- Do not introduce stock AI transition phrases like "Throughout my career," "This naturally leads to," "Looking ahead," "Building on this," or "Drawing from."\n- Do not summarize at the end.\n- One paragraph, three to five sentences total.`
 // Returns a violation object when the parsed resume summary breaks the
 // pronoun-free rule, else null. 'us' is intentionally excluded
 // from the first-person set so 'US' / 'U.S.' cannot false-positive; 'I' and
@@ -2664,12 +2665,12 @@ function SlotRegenerateBox({slotKey,onSubmit,busy,error}){
     </div>}
   </div>
 }
-function BridgeStoryFreeformBox({freeform,assembled,onCommit,onPrint,onCopy,copied}){
+function BridgeStoryFreeformBox({freeform,assembled,onCommit,onReset,onPrint,onCopy,copied}){
   const[draft,setDraft]=useState(freeform||'')
   const[focused,setFocused]=useState(false)
   useEffect(()=>{if(!focused)setDraft(freeform||'')},[freeform,focused])
   const commit=()=>{setFocused(false);const t=draft.trim();onCommit(t||'')}
-  const reset=()=>{setDraft(assembled||'');onCommit(assembled||'')}
+  const reset=()=>{if(typeof onReset==='function'){onReset();return}setDraft(assembled||'');onCommit(assembled||'')}
   return <div style={{...S.out,marginTop:14,background:'#FFFFFF'}}>
     <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>Your bridge story, in your own words</h3>
     <div style={{fontSize:15,color:C.gray,lineHeight:1.55,margin:'0 0 12px'}}>A space to write your version. Start from the assembled preview above, refine it, or write entirely from scratch. This is the version you will speak in the moment. It saves when you click away, and is what later sections of Reimagine read as your Bridge Story.</div>
@@ -2681,7 +2682,7 @@ function BridgeStoryFreeformBox({freeform,assembled,onCommit,onPrint,onCopy,copi
     </div>
   </div>
 }
-function BridgeStoryView({p6,p6Legacy,isDemo,isSmallPortrait,onPick,onEdit,onRegenerate,onMigrateGenerate,onRegenerateSlot,onFreeform,onSaveAndReturn,regeneratingSlot,slotErrors,saveStatus,lastSaveAt,currentHashes,copied,onCopy,isBuilt}){
+function BridgeStoryView({p6,p6Legacy,isDemo,isSmallPortrait,onPick,onEdit,onRegenerate,onMigrateGenerate,onRegenerateSlot,onFreeform,onWeave,onSaveAndReturn,regeneratingSlot,slotErrors,saveStatus,lastSaveAt,currentHashes,copied,onCopy,isBuilt}){
   const[dismissedStale,setDismissedStale]=useState(false)
   // Section-level print clears the body class after the print dialog closes.
   useEffect(()=>{
@@ -2706,9 +2707,9 @@ function BridgeStoryView({p6,p6Legacy,isDemo,isSmallPortrait,onPick,onEdit,onReg
     <p style={{fontSize:17,color:C.gray,lineHeight:1.65,margin:'0 0 18px'}}>Regenerate to try again. If it keeps missing, your Orientation may be thin for a strong Bridge Story. Adding more to your values, reputation, or your story can give it more to work with.</p>
     <Btn onClick={onRegenerate}><RotateCcw size={14}/>Regenerate</Btn>
   </div>
-  return <BridgeStoryViewMain p6={p6} isDemo={isDemo} isSmallPortrait={isSmallPortrait} onPick={onPick} onEdit={onEdit} onRegenerate={onRegenerate} onRegenerateSlot={onRegenerateSlot} onFreeform={onFreeform} onSaveAndReturn={onSaveAndReturn} regeneratingSlot={regeneratingSlot} slotErrors={slotErrors} saveStatus={saveStatus} lastSaveAt={lastSaveAt} currentHashes={currentHashes} copied={copied} onCopy={onCopy} printSection={printSection} dismissedStale={dismissedStale} setDismissedStale={setDismissedStale} isBuilt={isBuilt}/>
+  return <BridgeStoryViewMain p6={p6} isDemo={isDemo} isSmallPortrait={isSmallPortrait} onPick={onPick} onEdit={onEdit} onRegenerate={onRegenerate} onRegenerateSlot={onRegenerateSlot} onFreeform={onFreeform} onWeave={onWeave} onSaveAndReturn={onSaveAndReturn} regeneratingSlot={regeneratingSlot} slotErrors={slotErrors} saveStatus={saveStatus} lastSaveAt={lastSaveAt} currentHashes={currentHashes} copied={copied} onCopy={onCopy} printSection={printSection} dismissedStale={dismissedStale} setDismissedStale={setDismissedStale} isBuilt={isBuilt}/>
 }
-function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenerate,onRegenerateSlot,onFreeform,onSaveAndReturn,regeneratingSlot,slotErrors,saveStatus,lastSaveAt,currentHashes,copied,onCopy,printSection,dismissedStale,setDismissedStale,isBuilt}){
+function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenerate,onRegenerateSlot,onFreeform,onWeave,onSaveAndReturn,regeneratingSlot,slotErrors,saveStatus,lastSaveAt,currentHashes,copied,onCopy,printSection,dismissedStale,setDismissedStale,isBuilt}){
   const bs=p6.bridge_story,up=p6.user_picks||{},gf=p6.generated_from||{}
   const stale=!dismissedStale&&currentHashes&&Object.keys(currentHashes).some(k=>currentHashes[k]!==gf[k])
   const resolved=(s)=>{
@@ -2719,19 +2720,56 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
   }
   const allPicked=BSV_SLOTS.every(s=>up[s.key]&&up[s.key].picked_id)
   const assembled=BSV_SLOTS.map(resolved).filter(Boolean).join(' ')
-  // Pre-fill the freeform field the first time all three slots have picks
-  // AND user_freeform is empty. Tracked per-mount via a ref so subsequent
-  // pick changes do not re-fill. The user can re-sync via "Reset to the
-  // assembled version" link below the freeform textarea.
+  const slotTexts=BSV_SLOTS.map(resolved)
+  const picksKey=BSV_SLOTS.map(s=>{const u=up[s.key]||{};return (u.picked_id||'')+'~'+(u.edited_text||'')}).join('|')
+  // Render-time weave. The freeform box is seeded (initially at the all-picked
+  // moment, and re-seeded when a pick changes) with an LLM weave of the three
+  // picked texts, not the deterministic bones join. Guards: request-id
+  // supersede (drop out-of-order responses), do-not-clobber a value the user
+  // changed mid-flight (compare current freeform to the value expected at
+  // launch), [object Object] coercion, and fall back to the bones join on any
+  // weave failure so the box is never blank. Every write routes through
+  // onFreeform (updateP6Freeform), which carries the canonical coercion guard.
   const prefilledRef=useRef(false)
+  const lastWeaveOutputRef=useRef(null)
+  const weaveReqRef=useRef(0)
+  const currentFreeformRef=useRef('')
+  currentFreeformRef.current=p6.user_freeform||''
+  const runWeave=async(texts,expected)=>{
+    const bones=texts.filter(Boolean).join(' ')
+    const reqId=++weaveReqRef.current
+    let woven=''
+    try{woven=typeof onWeave==='function'?await onWeave(texts):''}catch{woven=''}
+    if(reqId!==weaveReqRef.current)return
+    if((currentFreeformRef.current||'').trim()!==(expected||'').trim())return
+    const finalText=(woven&&woven.trim()&&!woven.includes('[object Object]'))?woven.trim():bones
+    if(!finalText)return
+    lastWeaveOutputRef.current=finalText
+    onFreeform(finalText)
+  }
+  const handleReset=async()=>{
+    const bones=slotTexts.filter(Boolean).join(' ')
+    const reqId=++weaveReqRef.current
+    let woven=''
+    try{woven=typeof onWeave==='function'?await onWeave(slotTexts):''}catch{woven=''}
+    if(reqId!==weaveReqRef.current)return
+    const finalText=(woven&&woven.trim()&&!woven.includes('[object Object]'))?woven.trim():bones
+    if(!finalText)return
+    lastWeaveOutputRef.current=finalText
+    onFreeform(finalText)
+  }
   useEffect(()=>{
-    if(prefilledRef.current)return
     if(!allPicked)return
-    if(p6.user_freeform&&p6.user_freeform.trim())return
     if(!assembled)return
-    prefilledRef.current=true
-    onFreeform(assembled)
-  },[allPicked,assembled,p6.user_freeform,onFreeform])
+    const cur=(p6.user_freeform||'').trim()
+    if(!cur){
+      if(prefilledRef.current)return
+      prefilledRef.current=true
+      runWeave(slotTexts,'')
+      return
+    }
+    if(lastWeaveOutputRef.current&&cur===String(lastWeaveOutputRef.current).trim())runWeave(slotTexts,cur)
+  },[allPicked,picksKey])
   // Built-state disclosure: even when isBuilt is true, the picker UI (three
   // slot pickers + per-slot regenerate boxes) is EXPANDED by default. The
   // user generated the Bridge Story specifically to see and pick the blocks;
@@ -2826,7 +2864,7 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
       <p style={{fontSize:18,color:C.cream,lineHeight:1.7,margin:0}}>{assembled||'Pick an option in each block to assemble your answer.'}</p>
       <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:14,fontStyle:'italic'}}>Here is your bridge story. Take it where it makes sense.</div>
     </div>
-    <BridgeStoryFreeformBox freeform={p6.user_freeform||''} assembled={assembled} onCommit={onFreeform} onPrint={printSection} onCopy={onCopy} copied={copied}/>
+    <BridgeStoryFreeformBox freeform={p6.user_freeform||''} assembled={assembled} onCommit={onFreeform} onReset={handleReset} onPrint={printSection} onCopy={onCopy} copied={copied}/>
     {!isBuilt&&<div data-print="hide" style={{marginTop:18,display:'flex',justifyContent:'flex-start'}}>
       <Btn onClick={onSaveAndReturn}><Check size={14}/>Save and return to playbook</Btn>
     </div>}
@@ -3643,6 +3681,17 @@ export default function PivotEngine(){
   const updateP6Pick=(slotKey,picked_id)=>{setOutputs(o=>{const p=o.p6;if(!p||typeof p!=='object')return o;const up={...(p.user_picks||{})};up[slotKey]={picked_id,edited_text:(up[slotKey]&&up[slotKey].edited_text)||null};return {...o,p6:{...p,user_picks:up}}});setCurrentRoleSaved(false)}
   const updateP6Edit=(slotKey,edited_text)=>{setOutputs(o=>{const p=o.p6;if(!p||typeof p!=='object')return o;const up={...(p.user_picks||{})};up[slotKey]={picked_id:(up[slotKey]&&up[slotKey].picked_id)||null,edited_text};return {...o,p6:{...p,user_picks:up}}});setCurrentRoleSaved(false)}
   const updateP6Freeform=(text)=>{setOutputs(o=>{const p=o.p6;if(!p||typeof p!=='object')return o;const t=(typeof text==='string'?text:'').trim();const next={...p};if(t&&!t.includes('[object Object]'))next.user_freeform=t;else delete next.user_freeform;return {...o,p6:next}});setCurrentRoleSaved(false)}
+  // Render-time Bridge Story weave. Routes through callClaudeWithVoiceGate so
+  // the global stock-transition voice patterns (formula-*/transition-*/drama-*)
+  // fire on the woven prose, which otherwise sits outside the structured p6
+  // scan surface. Low temperature, short output. Returns the woven string; the
+  // caller falls back to the deterministic bones join on empty or throw.
+  const weaveBridgeStory=async(texts)=>{
+    const [t1,t2,t3]=Array.isArray(texts)?texts:[]
+    const fn=()=>BRIDGE_WEAVE_PROMPT(t1||'',t2||'',t3||'')
+    const woven=await callClaudeWithVoiceGate(fn,{maxTokens:500,temperature:0.3},{step:'p6',onEvent:logVoiceEvent})
+    return typeof woven==='string'?woven.trim():''
+  }
   // Per-slot regenerate: produces new options for one slot using user
   // correction text. Preserves the other two slots' content and clears
   // only the affected slot's pick. Does NOT call cascadeInvalidate;
@@ -4618,7 +4667,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const genSec=(id)=>id==='p6'?generateP6():generateSection(id,gp(id),go(id))
       const refineSec=(id,v)=>{recordCorrection(id,v);if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
       const renderBody=(id)=>{
-        if(id==='p6')return <BridgeStoryView p6={outputs.p6} p6Legacy={outputs.p6_legacy} isDemo={isDemo} isSmallPortrait={isSmallPortrait} currentHashes={currentP6Hashes()} copied={copied} onCopy={copy} onPick={updateP6Pick} onEdit={updateP6Edit} onRegenerate={()=>generateP6()} onMigrateGenerate={regenerateP6WithoutCascade} onRegenerateSlot={regenerateP6Slot} onFreeform={updateP6Freeform} onSaveAndReturn={saveAndReturn} regeneratingSlot={regeneratingSlot} slotErrors={slotErrors} saveStatus={saveStatus} lastSaveAt={lastSaveAt} isBuilt={done.includes('p6')}/>
+        if(id==='p6')return <BridgeStoryView p6={outputs.p6} p6Legacy={outputs.p6_legacy} isDemo={isDemo} isSmallPortrait={isSmallPortrait} currentHashes={currentP6Hashes()} copied={copied} onCopy={copy} onPick={updateP6Pick} onEdit={updateP6Edit} onRegenerate={()=>generateP6()} onMigrateGenerate={regenerateP6WithoutCascade} onRegenerateSlot={regenerateP6Slot} onFreeform={updateP6Freeform} onWeave={isDemo?undefined:weaveBridgeStory} onSaveAndReturn={saveAndReturn} regeneratingSlot={regeneratingSlot} slotErrors={slotErrors} saveStatus={saveStatus} lastSaveAt={lastSaveAt} isBuilt={done.includes('p6')}/>
         if(id==='p9')return <>{!isDemo&&<CoachingCallout><strong style={{color:'#1A2540'}}>How to use this</strong><p style={{margin:'8px 0 0'}}>This section gives you the vocabulary, frameworks, and thought leaders that signal credibility in this space. Use it to prep for conversations and to find people to follow on LinkedIn.</p></CoachingCallout>}<OutPanel text={outputs.p9} onCopy={copy} copied={copied}/></>
         if(id==='p8')return <><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your LinkedIn profile. Open LinkedIn in another tab and apply the changes yourself.</div>}</>
         if(id==='income')return <><div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div><OutPanel text={outputs.income} onCopy={copy} copied={copied}/></>
