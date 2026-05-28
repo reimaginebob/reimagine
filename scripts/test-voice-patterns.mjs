@@ -188,10 +188,44 @@ const formulaCases = [
     'Your CliftonStrengths places Strategic in your top 5, which maps to choosing pre-playbook problems.', 'p3'],
 
   // formula-story-locates-source: stock close to the multi-source walk.
-  ['formula-story-locates-source: fires', 'formula-story-locates-source',
+  // Widened 2026-05-27 (PR-C) to catch the location-target variants.
+  ['formula-story-locates-source: the source fires', 'formula-story-locates-source',
     'Your story locates the source of the through-line.', 'p3'],
+  ['formula-story-locates-source: where this came from fires', 'formula-story-locates-source',
+    'Your story locates where this came from: the grocery store counter.', 'p3'],
+  ['formula-story-locates-source: where this started fires', 'formula-story-locates-source',
+    'Your story locates where this started, back in the first turnaround.', 'p3'],
+  ['formula-story-locates-source: where it began fires', 'formula-story-locates-source',
+    'Your story locates where it began.', 'p3'],
   ['formula-story-locates-source: varied story prose does not fire', null,
     'Your story is unusual: cross-functional jumps in a domain that punishes them.', 'p3'],
+  ['formula-story-locates-source: locates a person does not fire', null,
+    'Your story locates her at the center of the family business.', 'p3'],
+
+  // formula-three-lines-of-evidence-converge: PR-C near-variant of the
+  // three-sources opener using "lines of evidence" instead of "sources".
+  ['formula-three-lines-of-evidence-converge: opener fires', 'formula-three-lines-of-evidence-converge',
+    'Three lines of evidence converge on the same read.', 'p3'],
+  ['formula-three-lines-of-evidence-converge: not at line start does not fire', null,
+    'When three lines of evidence converge, the read gets sharper, but here only two do.', 'p3'],
+
+  // formula-your-reputation-confirms-it: PR-C stock transition variant.
+  ['formula-your-reputation-confirms-it: line-start fires', 'formula-your-reputation-confirms-it',
+    'You build research practice where none exists yet.\nYour reputation confirms it.', 'p3'],
+  ['formula-your-reputation-confirms-it: not at line start does not fire', null,
+    'In several conversations your reputation confirms it without you having to say a word.', 'p3'],
+
+  // formula-your-work-history-shows: PR-C near-variant of career-shows-it.
+  ['formula-your-work-history-shows: line-start fires', 'formula-your-work-history-shows',
+    'You choose pre-playbook problems.\nYour work history shows the pattern across four roles.', 'p3'],
+  ['formula-your-work-history-shows: includes-list does not fire', null,
+    'Your work history includes Apple, Google, and Meta.', 'p3'],
+
+  // formula-your-reputation-data-names: PR-C stock transition variant.
+  ['formula-your-reputation-data-names: line-start fires', 'formula-your-reputation-data-names',
+    'You define the question before answering it.\nYour reputation data names the same move.', 'p3'],
+  ['formula-your-reputation-data-names: not at line start does not fire', null,
+    'When your reputation data names a strength, it usually shows up across several sources.', 'p3'],
 
   // formula-stock-closer-push-back: stock wager-naming closer.
   ['formula-stock-closer-push-back: stock closer fires', 'formula-stock-closer-push-back',
@@ -265,6 +299,27 @@ for (const [label, expectedName, input, step] of formulaCases) {
       console.error(`FAIL: step filter: formula-* should fire when step=${JSON.stringify(step)}`)
       console.error(`  got: ${v.map(x => x.name).join(', ')}`)
       failed++; formulaFailed++
+    }
+  }
+}
+
+// Step filter: PR-C's four new formula-* patterns are universal too (no
+// step field). Assert each fires under undefined / 'p3' / 'p4' / 'p7'.
+{
+  const prcInputs = {
+    'formula-three-lines-of-evidence-converge': 'Three lines of evidence converge on the read.',
+    'formula-your-reputation-confirms-it': 'Your reputation confirms it.',
+    'formula-your-work-history-shows': 'Your work history shows the pattern.',
+    'formula-your-reputation-data-names': 'Your reputation data names the same move.',
+  }
+  for (const [name, input] of Object.entries(prcInputs)) {
+    for (const step of [undefined, 'p3', 'p4', 'p7']) {
+      const v = detectVoiceViolations(input, { includeSoft: false, scope: 'runtime', step })
+      if (!v.some(x => x.name === name)) {
+        console.error(`FAIL: step filter: ${name} should fire when step=${JSON.stringify(step)}`)
+        console.error(`  got: ${v.map(x => x.name).join(', ')}`)
+        failed++; formulaFailed++
+      }
     }
   }
 }
