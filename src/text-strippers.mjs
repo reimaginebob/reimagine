@@ -8,17 +8,17 @@
 // chains them into the callClaude return path (stripCoachSpeak) and into
 // the voice gate recovery branch (applyContaminationPlaceholders).
 //
-// Sibling helpers stripEmDashes and stripMetaNarration remain inline in
-// App.jsx for now; if a future PR adds tests for those, they can move
-// here too. Keeping the new strippers in a separate file matches the
-// existing convention for voice-patterns.mjs and personal-brand-tail.mjs:
+// Sibling helpers stripRoomsPlaceholder and stripMetaNarration remain
+// inline in App.jsx for now; if a future PR adds tests for those, they
+// can move here too. Keeping the new strippers in a separate file matches
+// the existing convention for voice-patterns.mjs and personal-brand-tail.mjs:
 // production logic in a small testable module, App.jsx imports it.
 
 // stripCoachSpeak. Vocabulary substitutions that rewrite coach-speak surface
 // phrases the longform-feature SYS block targets but the model still emits
 // under output-budget pressure. Idempotent: running twice on the same input
 // produces the same output. Telemetry via console.warn fires when at least
-// one substitution lands, mirroring stripEmDashes / stripMetaNarration.
+// one substitution lands, mirroring stripRoomsPlaceholder / stripMetaNarration.
 //
 // Substitution choices verified safe at the 2026-05-27 consult. Dropped
 // substitutions ("at the intersection of" → "where" was grammar-breaking;
