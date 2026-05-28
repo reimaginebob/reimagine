@@ -2894,7 +2894,14 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
     const primaryItems=[
       {id:'mylib',label:'My Playbooks',Icon:Briefcase},
       {id:'p3',label:'Personal Brand',Icon:Fingerprint},
-      {id:'twoDoors',label:'Put It to Work',Icon:Compass},
+      {id:'twoDoors',label:'Put It to Work',Icon:Compass,children:[
+        // Door 1 routes to laneSelect; the Career Paths flow then runs
+        // through p4 (lane options) and focus (the assembled playbook,
+        // whose role submodules render as sections without changing step).
+        {id:'laneSelect',label:'Career Paths',activeSteps:['laneSelect','p4','focus']},
+        // Door 2 routes to op (the Opportunity Playbook).
+        {id:'op',label:'Active Opportunities',activeSteps:['op']},
+      ]},
       {id:'income',label:'Income Now',Icon:DollarSign},
     ]
     const inputsItems=[
@@ -2908,15 +2915,33 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
     ]
     const primaryItemStyle=(active)=>({padding:'12px 14px 12px 22px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:17,fontWeight:active?700:500,color:active?'#FFFFFF':'#F1F5F9',transition:'all 0.15s'})
     const inputsItemStyle=(active)=>({padding:'8px 14px 8px 22px',display:'flex',alignItems:'center',gap:8,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:16,fontWeight:active?700:400,color:active?'#FFFFFF':'#F1F5F9',transition:'all 0.15s'})
+    // Sub-items render under a primary entry (Put It to Work's two doors).
+    // Indented deeper than the parent's 22px so the hierarchy reads as
+    // child-of, not a new section. Same active-state treatment as inputs.
+    const subItemStyle=(active)=>({padding:'8px 14px 8px 44px',display:'flex',alignItems:'center',gap:8,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:15,fontWeight:active?700:400,color:active?'#FFFFFF':'#F1F5F9',transition:'all 0.15s'})
     const sectionHeaderStyle={fontSize:13,fontWeight:800,letterSpacing:'1.2px',textTransform:'uppercase',color:'#B0BEDE',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8}
     return <div ref={navRef} style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
       <div style={sectionHeaderStyle}>Your work</div>
-      {primaryItems.map(({id,label,Icon})=>{
-        const active=step===id
-        return <div key={id} data-step={id} onClick={()=>onNav(id)} style={primaryItemStyle(active)}>
-          <Icon size={16}/>
-          <span style={{flex:1}}>{label}</span>
-        </div>
+      {primaryItems.flatMap(({id,label,Icon,children})=>{
+        const childActive=Array.isArray(children)&&children.some(c=>(c.activeSteps||[c.id]).includes(step))
+        const active=step===id||childActive
+        const rows=[
+          <div key={id} data-step={id} onClick={()=>onNav(id)} style={primaryItemStyle(active)}>
+            <Icon size={16}/>
+            <span style={{flex:1}}>{label}</span>
+          </div>,
+        ]
+        if(Array.isArray(children)){
+          for(const c of children){
+            const cActive=(c.activeSteps||[c.id]).includes(step)
+            rows.push(
+              <div key={c.id} data-step={c.id} onClick={()=>onNav(c.id)} style={subItemStyle(cActive)}>
+                <span style={{flex:1}}>{c.label}</span>
+              </div>
+            )
+          }
+        }
+        return rows
       })}
       <div style={{height:1,background:'#0F1A30',margin:'14px 0 0'}}/>
       <div style={sectionHeaderStyle}>Inputs</div>
