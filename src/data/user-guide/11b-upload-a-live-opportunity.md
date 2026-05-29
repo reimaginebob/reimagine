@@ -42,6 +42,8 @@ The Opportunity Playbook above is the foundation, and you get it for every role 
 
 Each build is optional and independent. Build a deeper section when you want more than the main playbook gives you for that part. Leave it unbuilt when the main playbook is enough.
 
+A section rail on the left of the page lists the Overview plus the four deeper builds, the same way the Focus Playbook page does. Each entry shows a check once it is built, so you can see your progress at a glance; click any entry to jump to it.
+
 ## How to find it
 
 After you complete the main journey, **Add an Opportunity** appears in the sidebar below Income Now. The Complete screen also includes a callout pointing here.
