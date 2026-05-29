@@ -2299,8 +2299,8 @@ const LOADING_PREVIEWS = {
   op: [
     'How this opportunity aligns with the direction you are pursuing',
     'Your Personal Brand framed for this specific role',
-    '3 STAR stories aimed at the questions this role will ask',
-    'How to get past the screening interview, common objections, questions to ask them, and a cover letter draft',
+    'The Role, Bridge Story, Resume Refresh, and Interview Prep — each built specifically for this opportunity',
+    'How to get past the screening interview, common objections, questions to ask, and a cover letter draft',
   ],
 }
 
