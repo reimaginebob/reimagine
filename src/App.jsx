@@ -3877,18 +3877,8 @@ export default function PivotEngine(){
     const fileDate=new Date().toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'-')
     const esc=t=>(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     const md2html=t=>normalizeItalicUnderscores(t||'').split('\n').map(l=>l.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')).join('<br>')
-    const extractSection=(text,headings)=>{
-      if(!text)return ''
-      for(const h of headings){
-        const re=new RegExp('(?:^|\\n)#+\\s*'+h.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'[\\s\\S]*?\\n([\\s\\S]*?)(?=\\n#+\\s|$)','i')
-        const m=text.match(re)
-        if(m)return m[1].trim()
-      }
-      return ''
-    }
     const getSection=(text,headings)=>{if(!text)return '';for(const h of headings){const re=new RegExp('(?:^|\\n)#+\\s*'+h.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*\\n([\\s\\S]*?)(?=\\n#+\\s|$)','i');const m=text.match(re);if(m)return m[1].trim()}return ''}
     const getQuickTakeaway=(text)=>{if(!text)return '';const m=text.match(/##\s*QUICK TAKEAWAY\s*\n([\s\S]*?)(?=\n---|\n##\s)/i);return m?m[1].trim():''}
-    const getBullets=(text,max=5)=>{if(!text)return '';return text.split('\n').filter(l=>l.trim().startsWith('-')||l.trim().startsWith('•')||l.trim().match(/^\d+\./)).slice(0,max).join('\n')}
     // Brief 2: the new p3 is a single flowing prose document with no
     // section headers. Render it whole rather than slicing it into named
     // cards. The p2 and p6 extractions below still work because those
@@ -4272,7 +4262,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // three call sites that used maybeConfirmRoleSwitch now run their callback
   // directly.
   const switchToRole=(newRoleTitle,lane)=>{applyRoleSwitchDoor1(newRoleTitle,lane);advance('p4','focus');generate('p5',()=>P.p5(pc,outputs,newRoleTitle,laneLabelFor(lane)))}
-  const reExploreRole=(newRoleTitle,lane)=>{applyRoleSwitchDoor1(newRoleTitle,lane);nav('focus');generate('p5',()=>P.p5(pc,outputs,newRoleTitle,laneLabelFor(lane)))}
   const switchToOpRole=(jd,onReady)=>{const title=deriveOpRoleTitle(jd);applyRoleSwitchDoor2(title,jd);if(onReady)onReady(title)}
   const savePlaybookPdf=()=>{playbookSavePendingRef.current=true;afterSaveRunRef.current=null;window.print()}
   const focusNumberedIds=FOCUS_GROUPS.flatMap(g=>g.sectionIds)
@@ -5300,7 +5289,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder="Paste the full job description here..."/>
               </div>
             </div>
-            <Btn onClick={()=>generate('op',()=>P.op(pc,outputs,chosen,profile.jd),{maxTokens:11000,msg:'Building your Opportunity Playbook…'})} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build a new playbook</Btn>
+            <Btn onClick={()=>switchToOpRole(profile.jd,(t)=>generate('op',()=>P.op(pc,outputs,t,profile.jd),{maxTokens:11000,msg:'Building your Opportunity Playbook…'}))} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build a new playbook</Btn>
             {err&&<ErrBox msg={err}/>}
           </div>}
         </>:<>
@@ -5320,7 +5309,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder="Paste the full job description here..."/>
             </div>
           </div>}
-          {!isDemo&&<Btn onClick={()=>generate('op',()=>P.op(pc,outputs,chosen,profile.jd),{maxTokens:11000,msg:'Building your Opportunity Playbook…'})} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build My Playbook</Btn>}
+          {!isDemo&&<Btn onClick={()=>switchToOpRole(profile.jd,(t)=>generate('op',()=>P.op(pc,outputs,t,profile.jd),{maxTokens:11000,msg:'Building your Opportunity Playbook…'}))} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build My Playbook</Btn>}
           {err&&<ErrBox msg={err}/>}
         </>}
       </>}
