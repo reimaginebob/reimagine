@@ -94,7 +94,7 @@ Use **Update with my correction** to fold corrections in. The corrections you su
 
 Each opportunity is saved on its own, with its main playbook and any deeper builds you have added. You can come back to it later and find it where you left it, and you can work several opportunities at once without one replacing another.
 
-Opportunities you saved before this update keep their original shape: the main Opportunity Playbook, exactly as you built it. Nothing you did is lost. Opportunities you start from here use the new shape, with the four deeper builds available below the main playbook.
+Opportunities you saved before this update keep their original shape: the main Opportunity Playbook, exactly as you built it. Nothing you did is lost. Opportunities you start from here use the new shape, with the four deeper builds available below the main playbook. If an earlier opportunity shows only the main playbook, paste its job description again and Build to pick up the four deeper builds.
 
 ---
 
