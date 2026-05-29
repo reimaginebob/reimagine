@@ -5298,7 +5298,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </>}
     </div>}
 
-    case'op':{if(outputs.op&&!done.includes('op'))markDone('op');return <div>
+    case'op':{if(outputs.op&&!done.includes('op'))markDone('op')
+      const _opRec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)
+      const opIsV2=!!(_opRec&&_opRec.schemaVersion===2)
+      const _opSec=(opIsV2&&_opRec.sections)||{}
+      const opCardDone=(k)=>k==='p6'?!!(_opSec.p6&&_opSec.p6.bridge_story):!!(_opSec[k]&&_opSec[k].content&&_opSec[k].content.trim())
+      const opRailDone=['op',...['p5','p6','p_res','p11'].filter(opCardDone)]
+      const opSections=[{id:'op',label:'Overview',num:1},{id:'p5',label:'The Role',num:2},{id:'p6',label:'Bridge Story',num:3},{id:'p_res',label:'Resume Refresh',num:4},{id:'p11',label:'Interview Prep',num:5}]
+      return <div>
       {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
       {!isDemo&&<div style={S.tag('#C8924A')}>Bonus Module</div>}
       <h1 style={S.title}>{outputs.op?'Your Opportunity Playbook':'Add an Opportunity'}</h1>
@@ -5317,7 +5324,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:24,marginBottom:8}}>
             <Btn small onClick={()=>{const today=new Date().toISOString().slice(0,10);const rawFirstLine=(profile.resume||'').split(/\n/).find(l=>l.trim())||'';const nameParts=rawFirstLine.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ');const firstName=nameParts.length>2&&nameParts.length<50?nameParts.split(' ')[0].toLowerCase():(signupForm.firstName?signupForm.firstName.trim().toLowerCase():'reimagine');const md=`# Live Opportunity Playbook\n\n*Generated ${today}*\n\n---\n\n${outputs.op}${opSectionsMarkdown(savedPlaybooks,currentSavedSlotIdRef.current)}`;const blob=new Blob([md],{type:'text/markdown'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`reimagine_playbook_${firstName}_${today}.md`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)}}><Download size={11}/>Download as Markdown</Btn>
           </div>
-          <OutPanel text={outputs.op} onCopy={copy} copied={copied}/>
+          {(()=>{const _body=<><div id="section-op" style={{scrollMarginTop:80}}><OutPanel text={outputs.op} onCopy={copy} copied={copied}/></div>
           {!isDemo&&<RefineBox value={feedback.op} onChange={v=>setFb('op',v)} hint="Did we read the JD or your background right? Tell us what to adjust." placeholder="e.g. 'You missed that the role explicitly requires P&L experience.' Or: 'My time at [Company] was internal strategy, not consulting.' Or: 'Emphasize the operating depth angle more, less on strategic vision.'" onRegenerate={v=>{recordCorrection('op',v);out('op','');generate('op',()=>P.op(pc,outputs,chosen,profile.jd)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:11000,msg:'Building your Opportunity Playbook…'})}}/>}
           {!isDemo&&(()=>{
             const _rec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)
@@ -5335,7 +5342,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               if(key==='p11')return renderInterviewPrep(content)
               return <div style={S.out}><MD text={content}/></div>
             }
-            const _cardWrap=children=><div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px',marginBottom:14}}>{children}</div>
+            const _cardWrap=(children,id)=><div id={id} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px',marginBottom:14,scrollMarginTop:80}}>{children}</div>
             const _head=(label,sub,built,onBuild,buildLabel)=><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
               <div style={{flex:1,minWidth:220}}>
                 <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>{label}</div>
@@ -5356,7 +5363,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 {opSectionErrors[key]&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors[key]}/></div>}
                 {staleLane&&<div style={{marginTop:10,background:'#FBF3E6',border:`1px solid ${C.gold}`,borderRadius:8,padding:'8px 12px',fontSize:14,color:'#1A2540',lineHeight:1.45}}>Lane changed since this was built. Rebuild to apply the {OP_LANE_LABELS[_lane]} framing.</div>}
                 {built&&<div style={{marginTop:14}}>{_renderSection(key,_sec[key].content)}</div>}
-              </>)
+              </>,'section-'+key)
             }
             const _busyP6=opSectionBuilding==='p6'
             const _laneLink=(label,onClick)=><button onClick={onClick} style={{background:'transparent',border:'none',padding:0,margin:'0 3px',color:C.gold,fontFamily:'inherit',fontSize:15,fontWeight:600,cursor:'pointer',textDecoration:'underline'}}>{label}</button>
@@ -5390,7 +5397,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 {_head('Bridge Story for this role','A 30-second story built from this role: pick a block in each row, then refine the woven version.',_p6Built,()=>generateOpBridgeStory(),_busyP6?'Building…':_p6Built?<><RotateCcw size={11}/>Rebuild blocks</>:<><Sparkles size={12}/>Build</>)}
                 {opSectionErrors.p6&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.p6}/></div>}
                 {_p6Built&&<div style={{marginTop:14}}><BridgeStoryView key={'op-bsv-'+_rec.id} p6={_p6} p6Legacy={null} isDemo={isDemo} isSmallPortrait={isSmallPortrait} currentHashes={null} copied={copied} onCopy={copy} onPick={updateOpP6Pick} onEdit={updateOpP6Edit} onRegenerate={()=>generateOpBridgeStory()} onMigrateGenerate={()=>generateOpBridgeStory()} onRegenerateSlot={regenerateOpP6Slot} onFreeform={updateOpP6Freeform} onWeave={isDemo?undefined:weaveBridgeStory} onSaveAndReturn={()=>{}} regeneratingSlot={regeneratingSlot} slotErrors={slotErrors} saveStatus={null} lastSaveAt={null} isBuilt={true}/></div>}
-              </>)}
+              </>,'section-p6')}
               {_simpleCard('p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize this role’s competencies.')}
               {_simpleCard('p11','Interview Prep','Ten to twelve likely questions for this role, each with a STAR breakdown.')}
             </div>
@@ -5401,7 +5408,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <p style={{fontSize:17,color:C.grayL,lineHeight:1.6,margin:'0 0 14px'}}>This creates a new Opportunity Playbook. Your existing ones stay in My Playbooks.</p>
               <Btn onClick={addNewOpportunity}><Sparkles size={14}/>Add an opportunity</Btn>
             </div>
-          </div>}
+          </div>}</>;return opIsV2?<div style={{display:'flex',gap:24,alignItems:'flex-start'}}><PlaybookSectionRail sections={opSections} done={opRailDone} onJump={scrollToOutput} C={C}/><div style={{flex:1,minWidth:0}}>{_body}</div></div>:_body})()}
         </>:<>
           {!isDemo&&<p style={S.sub}>When you find a role worth pursuing, bring it here. Paste the job description or upload the PDF. Reimagine combines it with everything you've already built and produces a complete playbook for that specific opportunity.</p>}
           {!isDemo&&<p style={S.sub}>You'll know whether the role fits the path you chose and where it stretches you. You'll have STAR stories tuned to this specific opportunity, ways to get past the screening interview, questions you can ask them, and ways to show your value immediately. You'll know what the hiring manager is solving for and how to write a cover letter that sounds like you.</p>}
