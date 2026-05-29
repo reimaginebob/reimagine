@@ -80,8 +80,8 @@ For the Bridge Story, pick a different option or click **Edit in your voice** on
 **I want to explore a different direction or role after I picked one.**
 Use **Explore another direction** to return to the three directions, or pick a different role in the Lane Option view. Any role you have opened before also appears under **Roles You've Explored** in the sidebar with a Re-explore action. Switching roles regenerates that role's Focus Playbook fresh; if the current playbook has unsaved work, Reimagine offers to save it as a PDF first. Chapter 6 covers this in detail.
 
-**I want a different mix of options for a direction.**
-On the Lane Option view, open **See more options at this level** and tell Reimagine what did not fit. Examples: "Add more startups." "Remove consulting roles." "Show me more in healthtech." It generates more options for the same direction without repeating the ones you have seen.
+**I want different options, or options in a direction we missed.**
+On the Lane Option view, open **Tell us where else to look** and name a domain or direction we missed, or tell Reimagine what did not fit. Examples: "You missed affordable housing." "Consider education." "Remove consulting roles." "These skew too senior." It re-runs with your input weighted, without repeating the ones you have seen.
 
 ## Output and deliverables
 

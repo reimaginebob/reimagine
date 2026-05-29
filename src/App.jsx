@@ -1729,7 +1729,7 @@ Start with a bolded one-paragraph explanation: This path is built on the Japanes
 
 BEFORE you list any options, walk through this four-step internal method. Do NOT show this work in the output. The output contains only the umbrella and the role-option cards, or the diagnostic block described below when evidence is thin. The four-step method is your thinking process, not user-facing content.
 
-Step 1. WHAT MAKES THEM ENERGIZED: Identify 5-8 specific things that energize this person in their work or in their life. Draw on any signal in the user's inputs that points at it: passions, causes, life-shaping experiences, reputation phrases that hint at values, personality traits that suggest meaning-seeking, the kind of work they have described as energizing, the recurring choices visible in their resume narrative, a hobby that hints at a deeper interest. Use the user's actual words where possible. Use triangulation to pick the strongest anchors across all available signals; do not artificially limit to the passions or "What Lights You Up" content.
+Step 1. WHAT MAKES THEM ENERGIZED: Identify 5-8 specific things that energize this person in their work or in their life. Draw on any signal in the user's inputs that points at it: passions, causes, life-shaping experiences, reputation phrases that hint at values, personality traits that suggest meaning-seeking, the kind of work they have described as energizing, the recurring choices visible in their resume narrative, a hobby that hints at a deeper interest. Use the user's actual words where possible. Use triangulation to pick the strongest anchors across all available signals; do not artificially limit to the passions or "What Lights You Up" content. As you do this, explicitly flag any domain the person named in PASSIONS AND CAUSES or LIFE-SHAPING EXPERIENCES that sits outside their current industry or function (for example, a healthcare HR leader who names real estate investing, or a finance operator who names food systems). A domain the person named themselves but that their resume gives no reason to expect is the raw material for the lateral move this lane exists to make. Carry those domains forward as candidate anchors for the cross-domain option described below.
 
 Step 2. WHAT THEY ARE GOOD AT: Extract 5-8 transferable strengths from o1's Translated Accomplishments and o3's Capabilities. Look past the literal job. Name the underlying capability (built revenue systems from scratch, translated complex technical work for non-technical audiences, opened doors with senior executives).
 
@@ -1737,7 +1737,9 @@ Step 3. WHAT THE WORLD NEEDS: Bring external knowledge. Name 5-8 specific proble
 
 Step 4. WHAT THEY COULD BE PAID FOR: Cross-reference steps 1-3 with vehicle reality (W-2, consulting, fractional, entrepreneurship, ETA, franchising, board seats, advisory). For each overlap, ask: is there a real economic structure that pays for this work? Each WTM option must sit at the intersection of all four circles.
 
-NEVER use the words "Ikigai," "four circles," "intersection," "step 1/2/3/4," or "come alive" in user-facing output. The user sees only the umbrella and the role options. The method is your internal scaffold for finding them.
+CROSS-DOMAIN CHECK: When Step 1 surfaced a domain outside the user's current industry or function that they named in PASSIONS AND CAUSES or LIFE-SHAPING EXPERIENCES, at least one option must sit at the intersection of that domain and the Step 2 capabilities. A CPO role at a digital-health company for a healthcare talent executive whose passions name real estate investing is NOT a cross-domain leap; it is a mission-aligned version of the current function. A workforce-housing operator role for that same executive, putting her talent and operations capabilities to work in the real estate domain she named, is. Do not invent a domain the user did not name: if PASSIONS AND CAUSES and LIFE-SHAPING EXPERIENCES stay within the current industry or function, this check does not apply and the options stay close to home, with no note about cross-domain signal being absent. The standing rule holds: never fabricate options, and name the gap plainly when the evidence is not there.
+
+NEVER use the words "Ikigai," "four circles," "intersection," "step 1/2/3/4," "come alive," "cross-domain," or "lateral leap/move" in user-facing output. The user sees only the umbrella and the role options. The method is your internal scaffold for finding them.
 
 After the umbrella, list role options as cards. Each card is minimal:
 
@@ -1767,7 +1769,7 @@ When the four-step method produces zero grounded options (the raw signals were t
 
 NEVER fabricate options. If the evidence is not there, name the gap plainly. Better to surface 1 grounded option and a diagnostic than 3 mediocre options.
 
-The "See more options" affordance below the lanes will allow the user to add this missing context and regenerate.
+The "Tell us where else to look" affordance below the lanes will allow the user to add this missing context and regenerate.
 
 WTM vs. INDUSTRY INSIDER tiebreaker: An option belongs in WTM when the PRIMARY reason to consider it is meaning, alignment with values and passions, or legacy. An option belongs in Industry Insider when the PRIMARY reason is the credibility and access this person's industry experience already provides. If an option qualifies for both, place it in the path that better matches the person's actual motivation given their raw signals. Do not list the same role title in both lanes.
 `:selectedLane==='insider'?`
@@ -2936,19 +2938,19 @@ function SpeechBtn({onResult,style}){
     </button>
   </>
 }
-function SeeMoreOptions({lane,prevTitles,onSubmit,disabled}){
+function WidenCareerOptions({lane,prevTitles,onSubmit,disabled}){
   const[open,setOpen]=useState(false)
   const[text,setText]=useState('')
   return <div style={{marginTop:28,marginBottom:8,border:`2px solid ${C.gold}`,borderRadius:12,overflow:'hidden',background:`${C.gold}10`,maxWidth:820}}>
     <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-      <span style={{fontSize:17,fontWeight:700,color:C.gold}}>See more options at this level</span>
+      <span style={{fontSize:17,fontWeight:700,color:C.gold}}>Tell us where else to look</span>
       {open?<ChevronUp size={18} color={C.gold} strokeWidth={2.5}/>:<ChevronDown size={18} color={C.gold} strokeWidth={2.5}/>}
     </button>
     {open&&<div style={{background:'#FFFFFF',padding:'16px 20px',borderTop:`1px solid ${C.border}`}}>
-      <div style={{fontSize:16,color:C.gray,marginBottom:12,lineHeight:1.65}}>Optional: tell us what didn't fit and we'll factor it in. We won't repeat the options you've already seen.</div>
-      <textarea style={{...S.ta,minHeight:70}} value={text} onChange={e=>setText(e.target.value)} placeholder="e.g. 'These skew too senior.' Or: 'I want roles closer to product, not ops.'"/>
+      <div style={{fontSize:16,color:C.gray,marginBottom:12,lineHeight:1.65}}>Add a domain or direction we should consider, or tell us what didn't fit. We'll re-run with your input weighted.</div>
+      <textarea style={{...S.ta,minHeight:70}} value={text} onChange={e=>setText(e.target.value)} placeholder="Examples: 'You missed affordable housing' / 'Consider education' / 'These skew too senior'"/>
       <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
-        <Btn disabled={disabled} onClick={()=>{setOpen(false);const t=text;setText('');onSubmit(lane,t,prevTitles)}}><Sparkles size={13}/>Show more options</Btn>
+        <Btn disabled={disabled} onClick={()=>{setOpen(false);const t=text;setText('');onSubmit(lane,t,prevTitles)}}><Sparkles size={13}/>Update my options</Btn>
       </div>
     </div>}
   </div>
@@ -4871,7 +4873,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}><MD text={blk.replace(/^#{1,3}\s*OPTION:.*$/m,'').trim()}/></div>
             </button>})}
           </div>
-          <SeeMoreOptions lane={selectedLane} prevTitles={titles} onSubmit={seeMoreOptions} disabled={loading||!!generatingSection}/>
+          <WidenCareerOptions lane={selectedLane} prevTitles={titles} onSubmit={seeMoreOptions} disabled={loading||!!generatingSection}/>
           <div style={S.row}>
             <Btn secondary onClick={()=>nav('laneSelect')}>Explore another direction</Btn>
             {otherLanes.map(k=><Btn key={k} secondary onClick={()=>switchLaneTab(k)}>Back to {laneLabelFor(k)}</Btn>)}

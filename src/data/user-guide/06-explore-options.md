@@ -49,11 +49,11 @@ Some cards add a short bullet underneath when a specific role-context requiremen
 
 Click any role to build its full playbook (the Focus Playbook, below).
 
-**Fewer than expected is honest, not broken.** Reimagine will not pad a weak direction to hit a count. If only one or two strong options exist at this level for you, it says so and points you to the feedback box to generate more, or to try another direction. An honest short list is more useful than a padded one.
+**Fewer than expected is honest, not broken.** Reimagine will not pad a weak direction to hit a count. If only one or two strong options exist at this level for you, it says so and points you to the input box where you can name a direction we missed or refine the set, or to try another direction. An honest short list is more useful than a padded one.
 
 **Bottom of the screen:**
 
-- **See more options at this level.** Opens a short feedback box. Tell Reimagine what did not fit, and it generates more options for the same direction without repeating what you have already seen. This feedback shapes the options only; it does not change anything downstream.
+- **Tell us where else to look.** Opens a short input box. Name a domain or direction we should consider, or tell Reimagine what did not fit, and it re-runs with your input weighted, without repeating what you have already seen. This input shapes the options only; it does not change anything downstream.
 - **Explore another direction.** Returns to the three directions. Your current direction's options are preserved.
 - **Back to a direction you already generated.** If you have looked at more than one direction this session, you can flip straight back to a previous one without regenerating it.
 
