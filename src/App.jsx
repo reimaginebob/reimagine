@@ -1041,13 +1041,16 @@ const asText = v => (typeof v === 'string' && v.trim() && !v.includes('[object O
 function opSectionsMarkdown(records,id){
   const rec=(records||[]).find(r=>r&&r.id===id)
   if(!rec||rec.schemaVersion!==2||!rec.sections)return ''
-  const order=[['p5','The Role'],['p_res','Resume Refresh']]
+  const order=[['p5','The Role'],['p6','Bridge Story'],['p_res','Resume Refresh'],['p11','Interview Prep']]
   let acc=''
   for(const pair of order){
     const k=pair[0],t=pair[1]
-    let c=rec.sections[k]&&rec.sections[k].content
+    const sec=rec.sections[k]
+    if(!sec)continue
+    let c=k==='p6'?sec.user_freeform:sec.content
     if(!c||!c.trim())continue
     if(k==='p_res'){const j=parseResumeJSON(c);if(j)c=renderResumeText(j)}
+    if(k==='p11'){const ip=parseInterviewPrepJSON(c);if(!ip)continue;c=ip.questions.map((q,i)=>{let x=(i+1)+'. '+q.question;if(q.type==='behavioral'&&q.star_breakdown){['S','T','A','R'].forEach(kk=>{const y=q.star_breakdown[kk];if(y&&y.raw_material)x+='\n   '+kk+': '+y.raw_material})}else if(q.framing_recommendation){x+='\n   '+q.framing_recommendation}return x}).join('\n\n')}
     acc+='\n\n---\n\n## '+t+'\n\n'+c
   }
   return acc
@@ -4048,6 +4051,119 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if(reqId===opSectionReqRef.current)setOpSectionBuilding(null)
     }
   }
+  // Shared Interview Prep renderer (factored from the lane p11 render at PR-A
+  // SHA 5c0d960; verified no selectedLane / no flat-outputs.p11 coupling, only
+  // the parse input). Takes raw content so both the lane site and the op card
+  // feed their own source.
+  const renderInterviewPrep=(content)=>{
+    const ip=parseInterviewPrepJSON(content)
+    if(!ip)return <><div style={S.note}>This did not come together cleanly on this try. It happens once in a while. Regenerate this section and it usually lands the second time.</div><div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:C.cream,margin:0}}>{content}</pre></div></>
+    const fwList=Array.isArray(profile.frameworks)&&profile.frameworks.length?profile.frameworks.join(', '):''
+    const lbl={S:'Situation',T:'Thinking',A:'Action',R:'Result'}
+    const copyAll=()=>{const t='Interview Prep: '+ip.role_context.target_role+'\n\n'+ip.questions.map((q,i)=>{let x=(i+1)+'. '+q.question+'\n';if(q.framework_thread)x+='Framework: '+q.framework_thread+'\n';if(q.type==='behavioral'&&q.star_breakdown){['S','T','A','R'].forEach(k=>{const y=q.star_breakdown[k];if(!y)return;x+='\n'+k+' - '+lbl[k]+'\nFrom your inputs: '+y.raw_material+'\n';if(k==='S'&&y.relevance_bridge_draft)x+='Opening move: "'+y.relevance_bridge_draft+'"\n';x+='To strengthen: '+y.to_strengthen+'\n'})}else if(q.framing_recommendation){x+='\n'+q.framing_recommendation+'\n'}return x}).join('\n');copy(t)}
+    return <>
+      <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Interview Prep for <strong>{ip.role_context.target_role}</strong>. {ip.role_context.role_summary} Below are the questions to expect, with the raw material from your own inputs to build each answer. The strongest version is in your voice, with the specifics only you can add.</div>
+      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:4}}><Btn small onClick={copyAll}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
+      {ip.questions.map((q,qi)=><div key={q.id||qi} style={{...S.out,marginTop:14}}>
+        <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:q.framework_thread?4:8}}>{qi+1}. {q.question}</div>
+        {q.framework_thread&&<div style={{fontSize:16,color:C.goldL,margin:'4px 0 10px',lineHeight:1.55}}>{fwList?'Your '+fwList+' applies here: ':'Where your framework applies: '}{q.framework_thread}</div>}
+        {q.type==='behavioral'&&q.star_breakdown?<>
+          {['S','T','A','R'].map(k=>{const sec=q.star_breakdown[k];if(!sec)return null;return <div key={k} style={{marginTop:k==='S'?6:14}}>
+            <div style={{fontSize:16,fontWeight:700,color:C.goldL,marginBottom:4}}>{k} - {lbl[k]}</div>
+            <div style={{fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>From your inputs:</em> {sec.raw_material}</div>
+            {k==='S'&&sec.relevance_bridge_draft&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>Open with:</em> <strong>"{sec.relevance_bridge_draft}"</strong>. Names the parallel between your past and what the interviewer likely faces. Sharpen the second half with company-specific details when you have them.</div>}
+            <div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>To strengthen:</em> {sec.to_strengthen}</div>
+          </div>})}
+          <div style={{marginTop:14,fontSize:15,color:C.gray,fontStyle:'italic'}}>Drill down to develop the full story from these bones, in your voice.</div>
+        </>:<div style={{fontSize:17,color:C.cream,lineHeight:1.65,marginTop:6}}>{q.framing_recommendation}</div>}
+      </div>)}
+    </>
+  }
+  // Op-scoped Bridge Story. Mirrors generateP6's 3-attempt validation loop but
+  // writes the bones to record.sections.p6 (never flat outputs.p6) and never
+  // cascadeInvalidate. Request-id guard drops a build that resolves after an
+  // opportunity switch.
+  const generateOpBridgeStory=async()=>{
+    const slotId=currentSavedSlotIdRef.current
+    if(!slotId||opSectionBuilding)return
+    const jd=(profile.jd||'').trim()
+    if(!jd){setOpSectionErrors(e=>({...e,p6:'Add a job description for this opportunity first.'}));return}
+    setOpSectionBuilding('p6');setOpSectionErrors(e=>({...e,p6:null}))
+    const reqId=++opSectionReqRef.current
+    try{
+      let parsed=null,refusal=''
+      for(let attempt=1;attempt<=3;attempt++){
+        const prompt=correctionsBlock(profile.corrections)+P.p6(pc,outputs,chosen,profile.lifeEvents,jd)+(refusal?`\n\n${refusal}`:'')
+        const rawr=await callClaude(prompt,{maxTokens:12000})
+        const obj=parseBridgeStoryJSON(rawr)
+        if(!obj){refusal='The previous attempt did not return valid JSON for the Bridge Story schema (three slots, three options each, two or more sources per option, every option text under 30 words, diagnostics present). Return only the JSON object.';continue}
+        const memOpt=obj.bridge_story.slot1_human_anchor.options.find(o=>detectMemorabilityViolation(o.text))
+        if(memOpt){refusal='A Slot 1 option led with a role, title, company, or time-anchor framing: "'+String(memOpt.text).slice(0,80)+'". Every Slot 1 option must start with something human, never professional-first. Rewrite Slot 1 and return only the JSON object.';continue}
+        const vio=detectVoiceViolations(extractBridgeStoryStrings(obj.bridge_story),{includeSoft:false})
+        if(vio.length){refusal='A voice rule was violated in an option or diagnostic ('+vio[0].name+': "'+String(vio[0].match).slice(0,60)+'"). Rewrite to comply and return only the JSON object.';continue}
+        parsed=obj;break
+      }
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      if(!parsed){setOpSectionErrors(e=>({...e,p6:'This did not come together cleanly on this try. Try again.'}));return}
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId)return rec
+        const sections={...(rec.sections||{})}
+        sections.p6={bridge_story:parsed.bridge_story,user_picks:{slot1:null,slot2:null,slot3:null},user_freeform:'',builtAt:new Date().toISOString()}
+        return{...rec,sections,updatedAt:new Date().toISOString()}
+      }))
+      setCurrentRoleSaved(false)
+    }catch(e){
+      if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,p6:e.message||'Generation failed. Try again.'}))
+    }finally{
+      if(reqId===opSectionReqRef.current)setOpSectionBuilding(null)
+    }
+  }
+  // Op-scoped pick/edit/freeform writers: target record.sections.p6, never flat.
+  const updateOpP6=(updater)=>{const slotId=currentSavedSlotIdRef.current;if(!slotId)return;setSavedPlaybooks(prev=>prev.map(rec=>{if(rec.id!==slotId)return rec;const p6=rec.sections&&rec.sections.p6;if(!p6||typeof p6!=='object')return rec;const next=updater(p6);if(!next)return rec;return{...rec,sections:{...rec.sections,p6:next},updatedAt:new Date().toISOString()}}));setCurrentRoleSaved(false)}
+  const updateOpP6Pick=(slotKey,picked_id)=>updateOpP6(p6=>{const up={...(p6.user_picks||{})};up[slotKey]={picked_id,edited_text:(up[slotKey]&&up[slotKey].edited_text)||null};return{...p6,user_picks:up}})
+  const updateOpP6Edit=(slotKey,edited_text)=>updateOpP6(p6=>{const up={...(p6.user_picks||{})};up[slotKey]={picked_id:(up[slotKey]&&up[slotKey].picked_id)||null,edited_text};return{...p6,user_picks:up}})
+  const updateOpP6Freeform=(text)=>updateOpP6(p6=>{const t=(typeof text==='string'?text:'').trim();return{...p6,user_freeform:(t&&!t.includes('[object Object]'))?t:''}})
+  // Op-scoped per-slot regenerate. Mirrors regenerateP6Slot; writes the new
+  // slot to record.sections.p6.bridge_story and clears that slot's pick.
+  // Reuses the shared regeneratingSlot / slotErrors state (one BridgeStoryView
+  // is mounted at a time). No cascadeInvalidate.
+  const regenerateOpP6Slot=async(slotKey,correctionText)=>{
+    if(!(slotKey in SLOT_KEY_TO_PICK_KEY))return
+    if(regeneratingSlot)return
+    const slotId=currentSavedSlotIdRef.current;if(!slotId)return
+    const rec0=savedPlaybooks.find(r=>r.id===slotId)
+    const cur=rec0&&rec0.sections&&rec0.sections.p6
+    if(!cur||!cur.bridge_story)return
+    const currentSlot=cur.bridge_story[slotKey]
+    const otherSlotsContext={};for(const k of Object.keys(cur.bridge_story)){if(k!==slotKey)otherSlotsContext[k]=cur.bridge_story[k]}
+    const jd=(profile.jd||'').trim()
+    setRegeneratingSlot(slotKey);setSlotErrors(e=>({...e,[slotKey]:null}))
+    try{
+      let parsedSlot=null,refusal=''
+      for(let attempt=1;attempt<=3;attempt++){
+        const prompt=correctionsBlock(profile.corrections)+P.p6_slot_regen(pc,outputs,chosen,profile.lifeEvents,slotKey,(currentSlot&&currentSlot.options)||[],otherSlotsContext,correctionText||'')+(jd?`\n\nJD CONTEXT (scope to this specific opportunity, lane-independent):\n${jd}`:'')+(refusal?`\n\n${refusal}`:'')
+        const rawr=await callClaude(prompt,{maxTokens:6000})
+        const slot=parseP6SlotJSON(rawr,slotKey)
+        if(!slot){refusal='The previous attempt did not return valid JSON for the requested slot (three options, the matching type tag for the slot, two or more sources per option, every option text under 30 words, diagnostic present). Return only the JSON object.';continue}
+        if(slotKey==='slot1_human_anchor'){const memOpt=slot.options.find(o=>detectMemorabilityViolation(o.text));if(memOpt){refusal='A Slot 1 option led with a role, title, company, or time-anchor framing: "'+String(memOpt.text).slice(0,80)+'". Every Slot 1 option must start with something human, never professional-first. Rewrite and return only the JSON object.';continue}}
+        const vio=detectVoiceViolations(extractSlotStrings(slot),{includeSoft:false})
+        if(vio.length){refusal='A voice rule was violated in an option or diagnostic ('+vio[0].name+': "'+String(vio[0].match).slice(0,60)+'"). Rewrite to comply and return only the JSON object.';continue}
+        parsedSlot=slot;break
+      }
+      if(currentSavedSlotIdRef.current!==slotId)return
+      if(!parsedSlot){setSlotErrors(e=>({...e,[slotKey]:'We could not generate new options for this block. Try again, or refine the feedback.'}));return}
+      const pk=SLOT_KEY_TO_PICK_KEY[slotKey]
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId)return rec
+        const p6=rec.sections&&rec.sections.p6;if(!p6||!p6.bridge_story)return rec
+        const newBs={...p6.bridge_story,[slotKey]:parsedSlot}
+        const up={...(p6.user_picks||{})};up[pk]=null
+        return{...rec,sections:{...rec.sections,p6:{...p6,bridge_story:newBs,user_picks:up}},updatedAt:new Date().toISOString()}
+      }))
+      setCurrentRoleSaved(false)
+    }catch(e){setSlotErrors(prev=>({...prev,[slotKey]:e.message||'Generation failed. Try again.'}))}
+    finally{setRegeneratingSlot(null)}
+  }
   const deleteFromSavedSet=(id)=>{
     setSavedPlaybooks(prev=>prev.filter(r=>r.id!==id))
     if(currentSavedSlotIdRef.current===id){
@@ -4781,30 +4897,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {part34&&<div style={S.out}><MD text={part34}/></div>}
           </>
         }
-        if(id==='p11'){
-          const ip=parseInterviewPrepJSON(outputs.p11)
-          if(!ip)return <><div style={S.note}>This did not come together cleanly on this try. It happens once in a while. Regenerate this section and it usually lands the second time.</div><div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:C.cream,margin:0}}>{outputs.p11}</pre></div></>
-          const fwList=Array.isArray(profile.frameworks)&&profile.frameworks.length?profile.frameworks.join(', '):''
-          const lbl={S:'Situation',T:'Thinking',A:'Action',R:'Result'}
-          const copyAll=()=>{const t='Interview Prep: '+ip.role_context.target_role+'\n\n'+ip.questions.map((q,i)=>{let x=(i+1)+'. '+q.question+'\n';if(q.framework_thread)x+='Framework: '+q.framework_thread+'\n';if(q.type==='behavioral'&&q.star_breakdown){['S','T','A','R'].forEach(k=>{const y=q.star_breakdown[k];if(!y)return;x+='\n'+k+' - '+lbl[k]+'\nFrom your inputs: '+y.raw_material+'\n';if(k==='S'&&y.relevance_bridge_draft)x+='Opening move: "'+y.relevance_bridge_draft+'"\n';x+='To strengthen: '+y.to_strengthen+'\n'})}else if(q.framing_recommendation){x+='\n'+q.framing_recommendation+'\n'}return x}).join('\n');copy(t)}
-          return <>
-            <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Interview Prep for <strong>{ip.role_context.target_role}</strong>. {ip.role_context.role_summary} Below are the questions to expect, with the raw material from your own inputs to build each answer. The strongest version is in your voice, with the specifics only you can add.</div>
-            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:4}}><Btn small onClick={copyAll}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
-            {ip.questions.map((q,qi)=><div key={q.id||qi} style={{...S.out,marginTop:14}}>
-              <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:q.framework_thread?4:8}}>{qi+1}. {q.question}</div>
-              {q.framework_thread&&<div style={{fontSize:16,color:C.goldL,margin:'4px 0 10px',lineHeight:1.55}}>{fwList?'Your '+fwList+' applies here: ':'Where your framework applies: '}{q.framework_thread}</div>}
-              {q.type==='behavioral'&&q.star_breakdown?<>
-                {['S','T','A','R'].map(k=>{const sec=q.star_breakdown[k];if(!sec)return null;return <div key={k} style={{marginTop:k==='S'?6:14}}>
-                  <div style={{fontSize:16,fontWeight:700,color:C.goldL,marginBottom:4}}>{k} - {lbl[k]}</div>
-                  <div style={{fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>From your inputs:</em> {sec.raw_material}</div>
-                  {k==='S'&&sec.relevance_bridge_draft&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>Open with:</em> <strong>"{sec.relevance_bridge_draft}"</strong>. Names the parallel between your past and what the interviewer likely faces. Sharpen the second half with company-specific details when you have them.</div>}
-                  <div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>To strengthen:</em> {sec.to_strengthen}</div>
-                </div>})}
-                <div style={{marginTop:14,fontSize:15,color:C.gray,fontStyle:'italic'}}>Drill down to develop the full story from these bones, in your voice.</div>
-              </>:<div style={{fontSize:17,color:C.cream,lineHeight:1.65,marginTop:6}}>{q.framing_recommendation}</div>}
-            </div>)}
-          </>
-        }
+        if(id==='p11'){return renderInterviewPrep(outputs.p11)}
         return <OutPanel text={outputs[id]} onCopy={copy} copied={copied}/>
       }
       return <div>
@@ -5151,36 +5244,45 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const _rec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)
             if(!_rec||_rec.schemaVersion!==2)return null
             const _sec=_rec.sections||{}
-            const _cards=[
-              ['p5','The Role','A deeper read on this specific role and how your background maps to it.'],
-              ['p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize this role’s competencies.'],
-            ]
+            const _p6=_sec.p6
+            const _p6Built=!!(_p6&&_p6.bridge_story)
             const _renderSection=(key,content)=>{
               if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:16,lineHeight:1.65,color:C.cream,margin:0}}>{renderResumeText(j)}</pre><div style={S.row}><Btn small onClick={()=>downloadResumeWord(j)}><Download size={12}/>Download as Word</Btn></div></div>}
+              if(key==='p11')return renderInterviewPrep(content)
               return <div style={S.out}><MD text={content}/></div>
             }
+            const _cardWrap=children=><div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px',marginBottom:14}}>{children}</div>
+            const _head=(label,sub,built,onBuild,buildLabel)=><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+              <div style={{flex:1,minWidth:220}}>
+                <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>{label}</div>
+                <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4}}>{sub}</div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                {built&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:14,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
+                {onBuild&&<Btn small secondary={built} onClick={onBuild} disabled={!!opSectionBuilding}>{buildLabel}</Btn>}
+              </div>
+            </div>
+            const _simpleCard=(key,label,sub)=>{
+              const built=!!(_sec[key]&&_sec[key].content&&_sec[key].content.trim())
+              const busy=opSectionBuilding===key
+              return _cardWrap(<>
+                {_head(label,sub,built,()=>generateOpSection(key),busy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
+                {opSectionErrors[key]&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors[key]}/></div>}
+                {built&&<div style={{marginTop:14}}>{_renderSection(key,_sec[key].content)}</div>}
+              </>)
+            }
+            const _busyP6=opSectionBuilding==='p6'
             return <div style={{marginTop:32}} data-print="hide">
               <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>Go deeper on this opportunity</h2>
               <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 18px'}}>Build any of these standalone, each tuned to this specific role. They are independent; build the ones that help.</p>
-              {_cards.map(c=>{
-                const key=c[0],label=c[1],sub=c[2]
-                const built=!!(_sec[key]&&_sec[key].content&&_sec[key].content.trim())
-                const busy=opSectionBuilding===key
-                return <div key={key} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px',marginBottom:14}}>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-                    <div style={{flex:1,minWidth:220}}>
-                      <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>{label}</div>
-                      <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4}}>{sub}</div>
-                    </div>
-                    <div style={{display:'flex',alignItems:'center',gap:10}}>
-                      {built&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:14,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
-                      <Btn small secondary={built} onClick={()=>generateOpSection(key)} disabled={!!opSectionBuilding}>{busy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>}</Btn>
-                    </div>
-                  </div>
-                  {opSectionErrors[key]&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors[key]}/></div>}
-                  {built&&<div style={{marginTop:14}}>{_renderSection(key,_sec[key].content)}</div>}
-                </div>
-              })}
+              {_simpleCard('p5','The Role','A deeper read on this specific role and how your background maps to it.')}
+              {_cardWrap(<>
+                {_head('Bridge Story for this role','A 30-second story built from this role: pick a block in each row, then refine the woven version.',_p6Built,()=>generateOpBridgeStory(),_busyP6?'Building…':_p6Built?<><RotateCcw size={11}/>Rebuild blocks</>:<><Sparkles size={12}/>Build</>)}
+                {opSectionErrors.p6&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.p6}/></div>}
+                {_p6Built&&<div style={{marginTop:14}}><BridgeStoryView key={'op-bsv-'+_rec.id} p6={_p6} p6Legacy={null} isDemo={isDemo} isSmallPortrait={isSmallPortrait} currentHashes={null} copied={copied} onCopy={copy} onPick={updateOpP6Pick} onEdit={updateOpP6Edit} onRegenerate={()=>generateOpBridgeStory()} onMigrateGenerate={()=>generateOpBridgeStory()} onRegenerateSlot={regenerateOpP6Slot} onFreeform={updateOpP6Freeform} onWeave={isDemo?undefined:weaveBridgeStory} onSaveAndReturn={()=>{}} regeneratingSlot={regeneratingSlot} slotErrors={slotErrors} saveStatus={null} lastSaveAt={null} isBuilt={true}/></div>}
+              </>)}
+              {_simpleCard('p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize this role’s competencies.')}
+              {_simpleCard('p11','Interview Prep','Ten to twelve likely questions for this role, each with a STAR breakdown.')}
             </div>
           })()}
           {!isDemo&&<div style={{marginTop:28}}>
