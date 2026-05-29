@@ -166,7 +166,7 @@ function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDe
   if (!showAdd && records.length === 0) return null
   return (
     <div style={{ marginBottom: 28 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '0 0 14px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '0 0 14px', flexWrap: 'wrap' }}>
         <h2 style={{ fontFamily: 'Georgia,serif', fontSize: 24, fontWeight: 700, color: '#1A2540', margin: 0 }}>{heading}</h2>
         {showAdd && <AddButton label={addLabel} onClick={onAdd} C={C}/>}
       </div>
@@ -206,7 +206,7 @@ export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, C,
       <Section
         heading="Focus Playbooks"
         records={focus}
-        addLabel="Start a new direction"
+        addLabel="Explore More Roles"
         onAdd={onAddDirection}
         emptyCopy="No Focus Playbooks yet. Explore directions across Familiar Ground, Industry Insider, and Work That Matters."
         onRestore={onRestore} onDelete={onDelete} C={C}/>
