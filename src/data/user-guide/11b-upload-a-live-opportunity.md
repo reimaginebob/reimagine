@@ -31,6 +31,17 @@ You paste a job description or upload it as a PDF. Reimagine combines it with ev
 - A Bridge Story variant tuned to this opportunity
 - A draft cover letter that sounds like you
 
+## Go deeper on the role you are focused on
+
+The Opportunity Playbook above is the foundation, and you get it for every role you bring here. For any opportunity, four optional deeper builds sit below the main playbook. Each one is tuned to this specific job description and saved with this opportunity, so you can build the ones that help most for the role you care about and leave the rest:
+
+- **The Role** — a deeper read on this specific role and how your background maps to it, with more depth than the alignment summary in the main playbook.
+- **Bridge Story** — a bridge story tuned to this role. Pick a block for each part, then refine the woven version into the answer you will actually speak.
+- **Resume Refresh** — a resume refresh aimed at this JD, with a summary and accomplishments that emphasize the competencies this role asks for.
+- **Interview Prep** — interview prep tied to the questions this role is likely to ask, with structured answers (STAR) drawn from your own experience.
+
+Each build is optional and independent. Build a deeper section when you want more than the main playbook gives you for that part. Leave it unbuilt when the main playbook is enough.
+
 ## How to find it
 
 After you complete the main journey, **Upload a Live Opportunity** appears in the sidebar below Income Now. The Complete screen also includes a callout pointing here.
@@ -53,7 +64,7 @@ When you have the JD in place, click **Build My Playbook**. Generation takes two
 
 ## How the output is organized
 
-The thirteen sections in the playbook are grouped into three buckets so you can find what you need fast:
+The main playbook's sections are grouped into three buckets so you can find what you need fast:
 
 - **Understanding the role:** alignment, stretch, hiring-manager view, likely objections.
 - **Preparing for the conversation:** STAR remix, screening-interview prep, questions to ask, ways to show value.
@@ -79,9 +90,11 @@ Examples:
 
 Use **Update with my correction** to fold corrections in. The corrections you submit on this module persist on your profile and propagate to any later Focus Playbooks or Opportunity Playbooks you build for other roles, just like factual corrections elsewhere in the tool (Chapter 12 covers this in detail).
 
-## One playbook at a time
+## Saved with each opportunity
 
-V1 of this module holds one playbook at a time. If you upload a new JD, the previous playbook gets overwritten. A multi-JD library that holds every role you have analyzed is on the roadmap. For now, if you want to save a playbook before replacing it, download it as markdown first.
+Each opportunity is saved on its own, with its main playbook and any deeper builds you have added. You can come back to it later and find it where you left it, and you can work several opportunities at once without one replacing another.
+
+Opportunities you saved before this update keep their original shape: the main Opportunity Playbook, exactly as you built it. Nothing you did is lost. Opportunities you start from here use the new shape, with the four deeper builds available below the main playbook.
 
 ---
 
