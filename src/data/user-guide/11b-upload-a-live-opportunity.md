@@ -1,8 +1,8 @@
-# 11b. Bonus. Upload a Live Opportunity
+# 11b. Bonus. Add an Opportunity
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
-This is the **Active Opportunities** card on the Put It to Work screen in Phase 2 (Chapter 6). Whenever you have a specific job description in hand, choose Active Opportunities, paste it in, and Reimagine builds a complete Opportunity Playbook for that exact role. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here. You no longer have to finish the main journey first; Active Opportunities is available as soon as you reach the Put It to Work screen, and the sidebar entry under Phase 2 routes back there from anywhere in the app.
+This is the **Add an Opportunity** card on the Put It to Work screen in Phase 2 (Chapter 6). Whenever you have a specific job description in hand, choose Add an Opportunity, paste it in, and Reimagine builds a complete Opportunity Playbook for that exact role. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here. You no longer have to finish the main journey first; Add an Opportunity is available as soon as you reach the Put It to Work screen, and the sidebar entry under Phase 2 routes back there from anywhere in the app.
 
 ## When to use it
 
@@ -44,7 +44,7 @@ Each build is optional and independent. Build a deeper section when you want mor
 
 ## How to find it
 
-After you complete the main journey, **Upload a Live Opportunity** appears in the sidebar below Income Now. The Complete screen also includes a callout pointing here.
+After you complete the main journey, **Add an Opportunity** appears in the sidebar below Income Now. The Complete screen also includes a callout pointing here.
 
 Until you finish Complete, the sidebar entry is dimmed and not clickable. The module is built on everything you produce in the main flow, so it cannot be used until that foundation is in place.
 
@@ -59,6 +59,8 @@ Below the intro:
 - A textarea where you can paste the job description text instead
 
 You can use either. If you upload a PDF, Reimagine extracts the text and shows it in the textarea so you can edit before generating. If you paste, the text goes straight into the textarea.
+
+Each time you add an opportunity, the form starts empty, so you are always pasting a fresh posting rather than editing a prior one. Your existing opportunities stay saved in My Playbooks; adding a new one never replaces them.
 
 When you have the JD in place, click **Build My Playbook**. Generation takes two to three minutes because the playbook draws on multiple prior outputs and produces a detailed multi-section response.
 
@@ -92,7 +94,7 @@ Use **Update with my correction** to fold corrections in. The corrections you su
 
 ## Saved with each opportunity
 
-Each opportunity is saved on its own, with its main playbook and any deeper builds you have added. You can come back to it later and find it where you left it, and you can work several opportunities at once without one replacing another.
+Each opportunity is saved on its own, with its main playbook and any deeper builds you have added. You can come back to it later and find it where you left it, and you can work several opportunities at once without one replacing another. In My Playbooks, your opportunities appear together under **Opportunity Playbooks**, listed separately from your direction-level **Focus Playbooks**.
 
 Opportunities you saved before this update keep their original shape: the main Opportunity Playbook, exactly as you built it. Nothing you did is lost. Opportunities you start from here use the new shape, with the four deeper builds available below the main playbook. If an earlier opportunity shows only the main playbook, paste its job description again and Build to pick up the four deeper builds.
 

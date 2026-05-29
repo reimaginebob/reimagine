@@ -3015,7 +3015,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
         // whose role submodules render as sections without changing step).
         {id:'laneSelect',label:'Career Paths',activeSteps:['laneSelect','p4','focus']},
         // Door 2 routes to op (the Opportunity Playbook).
-        {id:'op',label:'Active Opportunities',activeSteps:['op']},
+        {id:'op',label:'Add an Opportunity',activeSteps:['op']},
       ]},
       {id:'income',label:'Income Now',Icon:DollarSign},
     ]
@@ -4302,7 +4302,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // Distinct from applyRoleSwitchDoor1 because the user has not picked a role
   // yet, so we skip recordExploredRole and skip the p5 generation. Routes the
   // user to the Put It to Work choice surface.
-  const startNewPlaybook=()=>{
+  const addNewOpportunity=()=>{
+    setCurrentRoleSaved(false)
+    setCurrentRoleInSavedSet(false)
+    currentSavedSlotIdRef.current=null
+    setOutputs(o=>({...o,op:''}))
+    setDone(d=>d.filter(s=>s!=='op'))
+    setChosen('')
+    setFeedback(f=>({...f,op:''}))
+    setProfile(p=>({...p,jd:'',jdFile:''}))
+    setErr(null)
+    setStep('op')
+    window.scrollTo(0,0)
+  }
+  const startNewDirection=()=>{
     setCurrentRoleSaved(false)
     setCurrentRoleInSavedSet(false)
     currentSavedSlotIdRef.current=null
@@ -4311,7 +4324,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setChosen('')
     setSelectedLane('')
     setFeedback(f=>{const u={...f};for(const k of ROLE_SUBMODULES)u[k]='';return u})
-    setStep('twoDoors')
+    setStep('laneSelect')
+    window.scrollTo(0,0)
   }
   const applyRoleSwitchDoor2=(derivedTitle,jdText)=>{
     setCurrentRoleSaved(false)
@@ -4804,7 +4818,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Apply Your Foundation</div>}
       {showWelcomeBack&&<div data-print="hide" style={{position:'relative',background:`${C.gold}12`,border:`1px solid ${C.gold}40`,borderRadius:12,padding:'20px 50px 20px 24px',marginBottom:24,maxWidth:860}}>
         <button onClick={dismissWelcomeBack} aria-label="Dismiss" style={{position:'absolute',top:12,right:14,background:'transparent',border:'none',color:C.gray,fontSize:20,cursor:'pointer',fontFamily:'inherit',lineHeight:1}}>×</button>
-        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7}}><strong>Welcome back.</strong> Pick how you want to put your foundation to use: explore Career Paths or work an Active Opportunity. Your story (resume, assessment, values, reputation, brand synthesis) is right where you left it. Roles you previously explored will regenerate fresh from your latest inputs; if you want to keep any exactly as it was, save its PDF first.</div>
+        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7}}><strong>Welcome back.</strong> Pick how you want to put your foundation to use: explore Career Paths or add an opportunity. Your story (resume, assessment, values, reputation, brand synthesis) is right where you left it. Roles you previously explored will regenerate fresh from your latest inputs; if you want to keep any exactly as it was, save its PDF first.</div>
       </div>}
       <h1 style={S.title}>Put It to Work</h1>
       <p style={S.sub}>Your foundation is set. Pick how to put it to use. You can come back to this choice anytime from the sidebar.</p>
@@ -4822,10 +4836,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
           <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:C.gold,color:'#FFFFFF',padding:'10px 18px',borderRadius:8,fontWeight:600,fontSize:16}}>Start Exploring <ChevronRight size={15}/></div>
         </button>
-        <button onClick={()=>advance('twoDoors','op')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
+        <button onClick={()=>{markDone('twoDoors');addNewOpportunity()}} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
             <Target size={28} color="#4F7CAC" strokeWidth={1.75}/>
-            <div style={{fontSize:22,fontWeight:700,color:'#1A2540'}}>Active Opportunities</div>
+            <div style={{fontSize:22,fontWeight:700,color:'#1A2540'}}>Add an Opportunity</div>
           </div>
           <div style={{fontSize:17,color:'#1A2540',lineHeight:1.5,marginBottom:10,fontWeight:500}}>Work on specific jobs you are considering right now.</div>
           <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}>Paste a job description and get a focused playbook for that exact role: how you fit, how to position yourself, what the conversation looks like. Add as many opportunities as you want.</div>
@@ -4836,7 +4850,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:'transparent',color:'#4F7CAC',border:`1.5px solid #4F7CAC`,padding:'8.5px 16.5px',borderRadius:8,fontWeight:600,fontSize:16}}>Add an Opportunity <ChevronRight size={15}/></div>
         </button>
       </div>
-      <div style={{marginTop:22,fontSize:15,color:C.gray,lineHeight:1.6,maxWidth:920,textAlign:'center'}}>Not sure which to pick first? Most people start with Career Paths to see the range of where their background takes them, then come back to add an Active Opportunity once they have a specific role in mind.</div>
+      <div style={{marginTop:22,fontSize:15,color:C.gray,lineHeight:1.6,maxWidth:920,textAlign:'center'}}>Not sure which to pick first? Most people start with Career Paths to see the range of where their background takes them, then come back to add an opportunity once they have a specific role in mind.</div>
     </div>
     case'laneSelect':return <div>
       {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Apply Your Foundation</div>}
@@ -5107,20 +5121,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     }
     case'mylib':return <div>
-      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:18,marginBottom:8,flexWrap:'wrap'}}>
-        <div>
-          <h1 style={{...S.title,marginBottom:6}}>My Playbooks</h1>
-          <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {savedPlaybooks.length} of {getSavedCap()} saved.</p>
-        </div>
-        <Btn onClick={startNewPlaybook}>Start a new playbook</Btn>
+      <div style={{marginBottom:8}}>
+        <h1 style={{...S.title,marginBottom:6}}>My Playbooks</h1>
+        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {savedPlaybooks.length} of {getSavedCap()} saved.</p>
       </div>
-      {savedPlaybooks.length>0
-        ?<SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title={null}/>
-        :<div style={{background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'32px 36px',marginTop:28,maxWidth:520}}>
-          <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>{exploredRoleTitles.length>0?"Your saved playbooks aren't here.":"You haven't built a playbook yet"}</h2>
-          <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 16px'}}>{exploredRoleTitles.length>0?'Start a new playbook to rebuild your collection.':'Start one to get going.'}</p>
-          <Btn onClick={startNewPlaybook}>Start a new playbook</Btn>
-        </div>}
+      <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity}/>
     </div>
     case'complete':{
       if(!done.includes('complete'))markDone('complete')
@@ -5145,13 +5150,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:0}}>What you've built here belongs to you. None of it depends on the company you came from or the role you're leaving. The brand, the bridge story, the playbook all go with you into whatever comes next.</p>
       </div>}
       {!isDemo&&savedPlaybooks.length>0&&<div style={{maxWidth:860,margin:'0 0 24px'}}>
-        <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title="Your playbooks"/>
+        <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title={null}/>
       </div>}
       {!isDemo&&<>
         <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,margin:'0 0 16px'}}>
           <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Pursuing a specific opportunity?</h3>
-          <p style={{fontSize:18,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Bring the job description to <strong>Upload a Live Opportunity</strong> in the sidebar. Reimagine combines the posting with everything you have just built and produces a tailored playbook for that specific role.</p>
-          <Btn small onClick={()=>nav('op')}>Upload a Live Opportunity <ChevronRight size={11}/></Btn>
+          <p style={{fontSize:18,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Bring the job description to <strong>Add an Opportunity</strong> in the sidebar. Reimagine combines the posting with everything you have just built and produces a tailored playbook for that specific role.</p>
+          <Btn small onClick={addNewOpportunity}>Add an Opportunity <ChevronRight size={11}/></Btn>
         </div>
         <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,margin:'0 0 16px'}}>
           <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Join Career Club's weekly group coaching call.</h3>
@@ -5296,7 +5301,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'op':{if(outputs.op&&!done.includes('op'))markDone('op');return <div>
       {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
       {!isDemo&&<div style={S.tag('#C8924A')}>Bonus Module</div>}
-      <h1 style={S.title}>Upload a Live Opportunity Now</h1>
+      <h1 style={S.title}>{outputs.op?'Your Opportunity Playbook':'Add an Opportunity'}</h1>
       {loading?<Loading msg={loadMsg||'Building your Opportunity Playbook…'} step="op"/>:<>
         {outputs.op?<>
           {!isDemo&&<CoachingCallout>
@@ -5391,22 +5396,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </div>
           })()}
           {!isDemo&&<div style={{marginTop:28}}>
-            <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,marginBottom:14}}>
-              <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Build for another opportunity.</h3>
-              <p style={{fontSize:17,color:C.grayL,lineHeight:1.6,margin:0}}>When the next role lands, bring its job description here. Reimagine combines it with everything you have already built and produces a fresh playbook for that role. Building a new playbook will replace the one above.</p>
+            <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10}}>
+              <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Add another opportunity</h3>
+              <p style={{fontSize:17,color:C.grayL,lineHeight:1.6,margin:'0 0 14px'}}>This creates a new Opportunity Playbook. Your existing ones stay in My Playbooks.</p>
+              <Btn onClick={addNewOpportunity}><Sparkles size={14}/>Add an opportunity</Btn>
             </div>
-            <div style={S.card}>
-              <div style={{fontSize:18,color:C.gray,fontStyle:'italic',marginBottom:14,textAlign:'center'}}>The richer the input, the sharper the output.</div>
-              <FileUpload label="Upload a PDF of the job description" hint="PDF only. For other formats, paste the text below." fileName={profile.jdFile} onFile={async f=>{pr('jdFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('jd',t);setErr(null)}catch(e){setErr('Could not read this PDF. Try pasting the text instead.')}finally{setFileLoading(false)}}}/>
-              {fileLoading&&<div style={{fontSize:16,color:C.gray,marginTop:8}}>Reading the PDF…</div>}
-              <div style={{textAlign:'center',color:C.gray,fontSize:16,margin:'14px 0',fontStyle:'italic'}}>or</div>
-              <div style={S.field}>
-                <label style={S.label}>Paste the job description</label>
-                <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder="Paste the full job description here..."/>
-              </div>
-            </div>
-            <Btn onClick={()=>switchToOpRole(profile.jd,(t)=>generate('op',()=>P.op(pc,outputs,t,profile.jd),{maxTokens:11000,msg:'Building your Opportunity Playbook…'}))} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build a new playbook</Btn>
-            {err&&<ErrBox msg={err}/>}
           </div>}
         </>:<>
           {!isDemo&&<p style={S.sub}>When you find a role worth pursuing, bring it here. Paste the job description or upload the PDF. Reimagine combines it with everything you've already built and produces a complete playbook for that specific opportunity.</p>}
@@ -5618,7 +5612,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {isDemo&&<div style={{pointerEvents:'none'}}>
             <Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog}/>
           </div>}
-          {!isDemo&&<Sidebar step={step} done={done} onNav={nav} prog={prog} selectedLane={selectedLane} chosen={chosen}/>}
+          {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>to==='op'?addNewOpportunity():nav(to)} prog={prog} selectedLane={selectedLane} chosen={chosen}/>}
         </div>
         <div ref={contentColumnRef} data-print="content" style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>

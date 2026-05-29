@@ -30,7 +30,7 @@ If something is not working the way you expect, check **Chapter 14: FAQ and Trou
 9. [Phase 5. Get Ready](09-get-ready.md)
 10. [Your Results: The Complete Screen](10-your-results.md)
 11. [Bonus. Income Now](11-income-now.md)
-11b. [Bonus. Upload a Live Opportunity](11b-upload-a-live-opportunity.md)
+11b. [Bonus. Add an Opportunity](11b-upload-a-live-opportunity.md)
 
 **Working with the tool**
 
