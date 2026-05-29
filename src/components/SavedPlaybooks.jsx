@@ -148,35 +148,75 @@ function PlaybookCard({ rec, onRestore, onDelete, C }) {
   )
 }
 
-export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, C, layout = 'wideView', title }) {
-  if (!savedPlaybooks || savedPlaybooks.length === 0) return null
-  // Heading rules: title===null suppresses the heading (used by the dashboard
-  // page which carries its own h1). Otherwise use title if provided, else
-  // fall back to 'Your playbooks'.
+function AddButton({ label, onClick, C }) {
+  return (
+    <button onClick={onClick} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 8,
+      background: C.gold, color: '#FFFFFF', border: 'none',
+      padding: '9px 16px', borderRadius: 8, cursor: 'pointer',
+      fontSize: 15, fontWeight: 600, fontFamily: 'inherit',
+    }}>{label}</button>
+  )
+}
+
+function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDelete, C }) {
+  const showAdd = typeof onAdd === 'function'
+  // Complete-page recap (no add handler) omits empty sections; the dashboard
+  // (add handler present) shows the empty state with its add affordance.
+  if (!showAdd && records.length === 0) return null
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '0 0 14px', flexWrap: 'wrap' }}>
+        <h2 style={{ fontFamily: 'Georgia,serif', fontSize: 24, fontWeight: 700, color: '#1A2540', margin: 0 }}>{heading}</h2>
+        {showAdd && <AddButton label={addLabel} onClick={onAdd} C={C}/>}
+      </div>
+      {records.length > 0
+        ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+            {records.map(rec => (
+              <PlaybookCard key={rec.id} rec={rec} onRestore={onRestore} onDelete={onDelete} C={C}/>
+            ))}
+          </div>
+        )
+        : (
+          <div style={{ background: '#FFFFFF', border: `1.5px solid ${C.border}`, borderRadius: 14, padding: '22px 26px', color: C.grayL, fontSize: 16, lineHeight: 1.6 }}>{emptyCopy}</div>
+        )}
+    </div>
+  )
+}
+
+// Two sections: Focus Playbooks (door1) and Opportunity Playbooks (door2).
+// They are conceptually different artifacts users navigate differently, so the
+// dashboard delineates them rather than mixing them in one flat grid. The add
+// affordances (onAddDirection / onAddOpportunity) render per-section only when
+// provided (the My Playbooks dashboard); the Complete-page recap omits them and
+// hides empty sections. The split is a pure render-layer filter on rec.source;
+// no schema change. The `layout` prop is retained for caller compatibility but
+// the grid is now owned per-section (the legacy wideView path is vestigial).
+export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, C, layout = 'complete', title, onAddDirection, onAddOpportunity }) {
+  const focus = (savedPlaybooks || []).filter(r => r && r.source !== 'door2')
+  const opp = (savedPlaybooks || []).filter(r => r && r.source === 'door2')
+  if (focus.length === 0 && opp.length === 0 && !onAddDirection && !onAddOpportunity) return null
   const suppressHeading = title === null
-  const heading = suppressHeading ? '' : (title || 'Your playbooks')
-  // wideView: single-column stack below the three lane cards.
-  // complete: responsive multi-column grid that fills as the user accumulates
-  // playbooks. minmax(300px, 1fr) gives two columns on standard desktop and
-  // falls back to one on narrow viewports without media queries.
-  const containerStyle = layout === 'complete'
-    ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }
-    : { display: 'flex', flexDirection: 'column', gap: 14 }
   return (
     <div style={{ marginTop: suppressHeading ? 18 : 36 }}>
-      {!suppressHeading && (
-        <h2 style={{
-          fontFamily: 'Georgia,serif',
-          fontSize: 24, fontWeight: 700,
-          color: '#1A2540',
-          margin: '0 0 14px',
-        }}>{heading}</h2>
+      {!suppressHeading && title && (
+        <h2 style={{ fontFamily: 'Georgia,serif', fontSize: 24, fontWeight: 700, color: '#1A2540', margin: '0 0 14px' }}>{title}</h2>
       )}
-      <div style={containerStyle}>
-        {savedPlaybooks.map(rec => (
-          <PlaybookCard key={rec.id} rec={rec} onRestore={onRestore} onDelete={onDelete} C={C}/>
-        ))}
-      </div>
+      <Section
+        heading="Focus Playbooks"
+        records={focus}
+        addLabel="Start a new direction"
+        onAdd={onAddDirection}
+        emptyCopy="No Focus Playbooks yet. Explore directions across Familiar Ground, Industry Insider, and Work That Matters."
+        onRestore={onRestore} onDelete={onDelete} C={C}/>
+      <Section
+        heading="Opportunity Playbooks"
+        records={opp}
+        addLabel="Add an Opportunity"
+        onAdd={onAddOpportunity}
+        emptyCopy="No Opportunity Playbooks yet. Bring a job description and Reimagine builds a playbook tuned to that exact role."
+        onRestore={onRestore} onDelete={onDelete} C={C}/>
     </div>
   )
 }

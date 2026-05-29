@@ -43,7 +43,7 @@ A few specifics: take an assessment if you do not have one (the difference is si
 
 **Reimagine generates copy. You apply it.** The LinkedIn Remix and Resume Refresh outputs are recommendations you take into your own LinkedIn profile and resume document. The tool does not modify those for you.
 
-**The destination is the Complete screen.** When you finish, every output is gathered there as a working library. Copy any section, view any of them, download the one-page PDF or the full set of outputs as markdown. From there, the Upload a Live Opportunity module is one click away for any specific role you want to pursue.
+**The destination is the Complete screen.** When you finish, every output is gathered there as a working library. Copy any section, view any of them, download the one-page PDF or the full set of outputs as markdown. From there, the Add an Opportunity module is one click away for any specific role you want to pursue.
 
 ## Where to start
 

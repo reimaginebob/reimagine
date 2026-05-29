@@ -12,7 +12,7 @@ A short acknowledgment card at the top: **"You finished the foundation."** Under
 
 Below the acknowledgment, three call-out cards in order:
 
-1. **Pursuing a specific opportunity?** Points to Upload a Live Opportunity in the sidebar for any role you want a tailored playbook for. (Detailed below.)
+1. **Pursuing a specific opportunity?** Points to Add an Opportunity in the sidebar for any role you want a tailored playbook for. (Detailed below.)
 2. **Career Club's weekly group coaching call.** Free, every Monday at 12:00 ET. Live Q&A on whatever is going on in your job search. Register link inside the card.
 3. **Go deeper on the methodology.** Reimagine is built on the framework in *Making Your Own Weather* by Bob Goodwin. Link to the book on Amazon.
 
@@ -68,7 +68,7 @@ When you finish the main flow and land on Complete, the progress bar in the head
 
 ## Pursuing a specific opportunity
 
-The first CTA card on the Complete screen invites you to bring a job description into Reimagine. When a posting catches your eye (through your network, on LinkedIn, in a posting you came across yourself), head to **Upload a Live Opportunity** in the sidebar. Paste the description or upload the PDF. Reimagine combines the posting with everything you have already built and produces a tailored playbook for that specific opportunity. Chapter 11b walks through the module in detail.
+The first CTA card on the Complete screen invites you to bring a job description into Reimagine. When a posting catches your eye (through your network, on LinkedIn, in a posting you came across yourself), head to **Add an Opportunity** in the sidebar. Paste the description or upload the PDF. Reimagine combines the posting with everything you have already built and produces a tailored playbook for that specific opportunity. Chapter 11b walks through the module in detail.
 
 This is the most natural reason to come back to Reimagine during an active search. Every specific role you consider can get its own playbook.
 
