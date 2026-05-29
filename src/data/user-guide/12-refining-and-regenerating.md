@@ -117,7 +117,7 @@ This keeps your Phase 1 work (Personal Brand, Personal Brand) and your Phase 2 p
 
 ## A reminder on what regeneration costs
 
-Each regeneration produces a fresh version. There is no cost to you in money. The only cost is time. Most steps take one to two minutes; the Go-to-Market and Income Now steps take longer because they include live web research.
+Each regeneration produces a fresh version. There is no cost to you in money. The only cost is time. Most steps take three to four minutes; the Go-to-Market and Income Now steps take longer because they include live web research.
 
 Refine and regenerate freely. The tool gets better with that feedback, and so does your output.
 
