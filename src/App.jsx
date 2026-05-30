@@ -534,6 +534,10 @@ const STRUCTURED_PARSE_CORRECTIVE = `\n\nYour previous output ended with a malfo
 // failure the corrective callout names the rule and the retry re-routes
 // through the voice phases; if it still fails, ship and log (never block).
 const RES_SUMMARY_MAX_RETRIES = 1
+// Company Read (PR-1) retry budget. One corrective regen on citation or
+// fabrication violations; if it still fails, fall open and ship the output
+// so the user is never blocked.
+const CR_MAX_RETRIES = 1
 const RES_SUMMARY_CORRECTIVE = `\n\nCRITICAL: the previous Professional Summary failed a structural check. The "summary" field must be PRONOUN-FREE resume voice (no "I," "me," "my," "we," or "our") and AT MOST 4 sentences. Rewrite ONLY the summary field, keeping every other field unchanged. Open Sentence 1 with role identity plus the distinctive frame, one job per sentence, roughly 25 words each.`
 const BRIDGE_WEAVE_PROMPT=(t1,t2,t3)=>`You are weaving three components of a 30-second Bridge Story into cohesive prose.\n\nThe structure is the Making Your Own Weather "Tell Me About Yourself" model: human anchor, then how that has played out in their career, therefore what they are looking for next. Slot 3 is a natural conclusion drawn from Slot 2, not an isolated statement of intent.\n\nCOMPONENT 1 (human anchor, the formative experience that explains the person):\n${t1}\n\nCOMPONENT 2 (career manifestation, how that anchor has played out across roles):\n${t2}\n\nCOMPONENT 3 (forward move, the natural conclusion drawn from Component 2):\n${t3}\n\nProduce cohesive prose with TWO bridges of connective tissue. The first bridge sits between Components 1 and 2 and names what the formative experience taught or produced. The second bridge sits between Components 2 and 3 and carries the "therefore" cadence: not the literal word, but the inferential move that makes the forward statement read as drawn from what came before, not bolted on. The forward move should feel like a conclusion the career has prepared the speaker for.\n\nOutput the woven prose only, no preamble, no closing line, no headers.\n\nHard rules:\n- Do not invent new content. Use the components as given. Do not add specifics not already present in the components.\n- Do not add framing language ("Here is my story," "In short").\n- Do not introduce stock AI transition phrases like "Throughout my career," "This naturally leads to," "Looking ahead," "Building on this," or "Drawing from."\n- Do not summarize at the end.\n- One paragraph, four to six sentences total.`
 // Returns a violation object when the parsed resume summary breaks the
@@ -780,6 +784,34 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
       resResult = await runVoiceAndDimPhases(() => promptFn() + RES_SUMMARY_CORRECTIVE)
     }
     return resResult
+  }
+  // Phase 4 (PR-1 Company Read): citation + fabrication detectors layered on
+  // top of the standard voice phases. Runs the voice pass first, then scans
+  // for unsourced numeric claims and fabrication templates. Retries once with
+  // a corrective callout if either detector fires; falls open on retry
+  // exhaustion so the user always sees the generated output.
+  const isCompanyRead = meta.step === 'op-company-read'
+  if (isCompanyRead) {
+    let crResult = await runVoiceAndDimPhases(promptFn)
+    for (let crAttempt = 0; crAttempt <= CR_MAX_RETRIES; crAttempt++) {
+      const citationViolations = detectMissingCitations(crResult)
+      const fabricationViolations = detectFabricationTemplates(crResult)
+      const allViolations = [...citationViolations, ...fabricationViolations]
+      if (allViolations.length === 0) {
+        if (crAttempt > 0 && typeof meta.onEvent === 'function') {
+          try { meta.onEvent({ step: meta.step, attempt: crAttempt, recovered: true, violations: [] }) } catch {}
+        }
+        return crResult
+      }
+      if (crAttempt === CR_MAX_RETRIES) {
+        if (typeof meta.onEvent === 'function') {
+          try { meta.onEvent({ step: meta.step, attempt: crAttempt, recovered: false, violations: allViolations.slice(0,8) }) } catch {}
+        }
+        return crResult
+      }
+      crResult = await runVoiceAndDimPhases(() => promptFn() + buildCompanyReadCorrective(allViolations))
+    }
+    return crResult
   }
   if (!isP3) return runVoiceAndDimPhases(promptFn)
 
@@ -1068,6 +1100,118 @@ async function inferLaneForOpportunity(jd,profileSummary,quickTakeaway){
     const conf=(obj.confidence==='high'||obj.confidence==='low')?obj.confidence:'medium'
     return {value:obj.value,confidence:conf,reasoning:typeof obj.reasoning==='string'?obj.reasoning.trim().slice(0,800):''}
   }catch(e){return null}
+}
+// === Company Read module helpers (PR-1) ===
+// Industry rubric mapping. Deterministic; the classifier returns one of these
+// keys and the rubric text below is injected verbatim into the Company Read
+// prompt. No LLM judgment at generation time on which sources apply per industry.
+const INDUSTRY_RUBRICS = {
+  healthcare: 'CMS Star Ratings (Medicare 5-star healthcare quality ratings); Leapfrog Hospital Safety Grade (A-F letter grades for patient safety); Magnet nursing designation (ANCC recognition of nursing excellence); Joint Commission survey findings (accreditation reports). Search for these specifically; include the actual ratings or scores with source URLs.',
+  tech: 'Engineering blog cadence (frequency and depth of technical posts); GitHub activity (repo count, commit cadence, star counts on public projects); open source velocity (contributions to mainstream OSS); recent product launches (release blogs, Hacker News appearances). Search for these specifically; include URLs to specific blog posts, repos, or launch announcements.',
+  financial_services: 'FINRA BrokerCheck (where applicable to the role or firm); OCC enforcement actions (consent orders, fines on regulated banks); recent earnings posture (revenue trajectory, guidance changes). Search for these specifically; include URLs to filings or press coverage.',
+  pharma: 'FDA inspection observations (483 forms, warning letters); clinical trial registry (active and recent trials on ClinicalTrials.gov); recent earnings posture (pipeline health, drug-launch outcomes). Search for these specifically; include URLs.',
+  government_contractor: 'SAM.gov registration status (active, exclusions); USAspending.gov totals (recent contract dollars by agency); recent contract wins (defense.gov press releases, GovExec coverage). Search for these specifically; include URLs.',
+  nonprofit: '990 financials via ProPublica Nonprofit Explorer (revenue, executive compensation, program ratio); charitable filings (state attorney-general databases where applicable); mission-alignment signal (recent annual reports, public-facing impact metrics). Search for these specifically; include URLs.',
+  higher_education: 'Accreditation status (regional accreditor body, recent actions); enrollment trends (IPEDS data via NCES); US News rankings (recent placement and movement). Search for these specifically; include URLs.',
+  retail_consumer: 'Same-store sales trends (recent quarterly earnings); recent earnings posture (guidance and direction); app store rating signal (Apple or Google ratings for consumer apps) and BBB rating (Better Business Bureau accreditation and complaint volume). Search for these specifically; include URLs.',
+  manufacturing: 'OSHA citations (recent serious or willful citations); recent earnings posture; plant closures or expansions (Reuters or Bloomberg coverage of capital allocation). Search for these specifically; include URLs.',
+  default: 'News from the last 90 days (acquisitions, leadership changes, funding rounds, layoffs); LinkedIn headcount trajectory (growth or contraction over recent quarters); Best Companies cross-reference (Fortune Best Workplaces, Great Place to Work certifications, Glassdoor Best Places to Work — note these where present, do not invent them). Include URLs.',
+}
+// inferIndustry: classifies the JD into one of the rubric keys via a small
+// focused LLM call. Mirror of inferLaneForOpportunity. Returns one of the
+// INDUSTRY_RUBRICS keys, defaulting to 'default' on any failure.
+const INFER_INDUSTRY_PROMPT=(jd)=>`Determine the primary industry of the company hiring for this role. Output JSON only, no preamble.
+
+Read the job description:
+${jd}
+
+Return one of these industry keys based on the company's primary industry:
+- "healthcare" — hospital systems, payors, providers, digital health, health-tech
+- "tech" — software, internet, SaaS, dev tools, infrastructure, consumer tech
+- "financial_services" — banks, asset managers, insurance, broker-dealers, lending
+- "pharma" — pharmaceutical, biotech, medical devices
+- "government_contractor" — defense, federal services, government IT contractors
+- "nonprofit" — 501(c)(3) organizations, foundations, NGOs
+- "higher_education" — universities, colleges, education-policy organizations
+- "retail_consumer" — retail, consumer brands, e-commerce, hospitality, food service
+- "manufacturing" — industrial, materials, energy, automotive, aerospace
+- "default" — none of the above, or the JD does not name the industry clearly
+
+Return exactly this JSON shape:
+{"industry":"<one of the keys above>","confidence":"high or medium or low"}
+
+Rules: choose exactly one key. Use "default" rather than guessing when the JD is ambiguous.`
+async function inferIndustry(ctx){
+  try{
+    const jd=((ctx&&ctx.jd)||'').slice(0,6000)
+    if(!jd.trim())return 'default'
+    const raw=await callClaude(INFER_INDUSTRY_PROMPT(jd),{maxTokens:500,temperature:0.2})
+    const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
+    if(a<0||b<0||b<=a)return 'default'
+    let obj;try{obj=JSON.parse(raw.slice(a,b+1))}catch(e){return 'default'}
+    if(!obj||typeof obj.industry!=='string')return 'default'
+    return Object.prototype.hasOwnProperty.call(INDUSTRY_RUBRICS,obj.industry)?obj.industry:'default'
+  }catch(e){return 'default'}
+}
+// detectMissingCitations (PR-1 Company Read). Conservative structural detector:
+// flags sentences containing specific factual claims (years, dollar amounts,
+// percentages, named role transitions) that lack an adjacent source URL OR an
+// explicit hedge. Tuned to minimize false positives — generic phrasings like
+// "30 days" or "5 stars" do not trigger; only year mentions (19xx/20xx),
+// dollar signs, percentage symbols, and named transition verbs do.
+function detectMissingCitations(text){
+  if(!text||typeof text!=='string')return []
+  const violations=[]
+  const sentences=text.split(/(?<=[.!?])\s+/)
+  for(let i=0;i<sentences.length;i++){
+    const sent=sentences[i]
+    const hasYear=/\b(?:19|20)\d{2}\b/.test(sent)
+    const hasDollar=/\$\s?\d/.test(sent)
+    const hasPercent=/\b\d+(?:\.\d+)?\s?%/.test(sent)
+    const hasNamedTransition=/\b(?:hired|promoted|appointed|joined|departed|stepped down|resigned)\s+(?:as|to|from)\b/i.test(sent)
+    if(!(hasYear||hasDollar||hasPercent||hasNamedTransition))continue
+    const window=sent+(sentences[i+1]||'').slice(0,80)
+    const hasUrl=/https?:\/\/\S+/.test(window)
+    const isHedged=/\b(?:public signal does not confirm|we could not verify|no source surfaces this|not independently verified)\b/i.test(window)
+    if(!hasUrl&&!isHedged){
+      violations.push({name:'missing-citation',match:sent.slice(0,160),note:'Numeric or named factual claim without an adjacent source URL or explicit hedge.'})
+      if(violations.length>=8)break
+    }
+  }
+  return violations
+}
+// detectFabricationTemplates (PR-1 Company Read). Conservative structural
+// detector for invented-fact patterns the model uses when it does not have a
+// real source. Each template is paired with an URL-proximity check; the
+// template fires only when no URL appears within 120 chars after the match.
+function detectFabricationTemplates(text){
+  if(!text||typeof text!=='string')return []
+  const violations=[]
+  const templates=[
+    {name:'fabrication-the-recent',re:/\bthe recent\s+[A-Z][a-z]+\b/g,note:'"The recent X" without a source URL within the same sentence is a common fabrication template. Either name the source or hedge.'},
+    {name:'fabrication-reports-indicate',re:/\b(?:reports?|sources?|analysts?)\s+(?:indicate|suggest|note|say|report)\b/gi,note:'"Reports indicate" without naming the report is a fabrication template. Name the source.'},
+    {name:'fabrication-it-has-been-reported',re:/\bit\s+has\s+been\s+reported\b/gi,note:'"It has been reported" with no named source is a fabrication template.'},
+    {name:'fabrication-according-to-sources',re:/\baccording\s+to\s+(?:sources|industry observers|insiders)\b/gi,note:'"According to sources" with no named source is a fabrication template.'},
+  ]
+  for(const t of templates){
+    const re=new RegExp(t.re.source,t.re.flags)
+    let m
+    while((m=re.exec(text))!==null){
+      const after=text.slice(m.index,m.index+m[0].length+120)
+      if(/https?:\/\/\S+/.test(after))continue
+      violations.push({name:t.name,match:m[0].slice(0,80),note:t.note})
+      if(violations.length>=8)return violations
+    }
+  }
+  return violations
+}
+// buildCompanyReadCorrective: format detector violations into a corrective
+// prompt suffix the model receives on retry. Quotes the violating fragments
+// back so the model knows what to refuse on the next pass.
+function buildCompanyReadCorrective(violations){
+  if(!violations||violations.length===0)return ''
+  const lines=violations.slice(0,3).map(v=>'- '+v.name+': "'+(v.match||'').replace(/"/g,'\\"').slice(0,140)+'" — '+v.note)
+  return '\n\nCRITICAL: the previous generation contained '+violations.length+' citation or fabrication violation(s):\n'+lines.join('\n')+'\n\nEvery numeric claim, percentage, dollar amount, year reference, or named transition MUST have an adjacent source URL (https://...) in the same sentence, or the claim must be hedged as "public signal does not confirm this directly." Do not produce sentences of those shapes anywhere in your output.'
 }
 // Maps raw source field IDs from the p6 JSON to human-readable phrases.
 // The render layer translates; the prompt still emits field IDs. Never show
@@ -1825,6 +1969,70 @@ A short bullet may appear under a card ONLY when a specific role-context interse
   income:(pr,outs,sel)=>`You are building an Income Now plan for this professional. They are pursuing: **${sel}** as their longer-term goal and need income during the transition.\n\nEPISTEMIC CALIBRATION (load-bearing across this output):\n\nEvery interpretive claim about the user is a HYPOTHESIS by default, expressed in directional language. Declarative claims are EARNED ONLY when the supporting evidence is named in the same paragraph as the claim. Hedge by default; go declarative when evidence is on the page; refuse declarative when it is not.\n\nDIRECTIONAL PHRASES to reach for (use varied vocabulary; do not repeat any single phrase across the output):\n"There is a pattern that seems to indicate," "this may suggest," "often correlates with," "tends to signal," "we see a pattern of," "this points toward," "it appears that," "you seem to," "on more than one occasion," "the pattern often involves," "this looks like."\n\nEARNED DECLARATIVE : three cases where declarative is appropriate:\n\n(a) Explicit assessment signal named in the output, INCLUDING THE ASSESSMENT NAME (CliftonStrengths, Predictive Index, Big Five, Affintus, MBTI, etc.) in the same sentence or the immediately preceding sentence. Example: "Your CliftonStrengths shows Strategic in your top 5, which means you naturally see patterns others miss." The "which means" is declarative because BOTH the assessment name AND the construct are present. Refuse: "High openness to experience means you prefer a job that requires you to create solutions" (construct named, source instrument not named). Either name the instrument or rewrite into hypothesis voice ("this looks like high openness, which often points toward...").\n\n(b) Verbatim user-input quoted in the output. Example: 'You wrote in orientation that you "want to build things that matter to people who do not have a voice." That conviction shapes the function choices below.' Declarative because the quote is right there.\n\n(c) Named triangulation across 2-3 specific inputs the output lists. Example: 'In orientation you described the work as "designing the question." Your reputation note named "methodology under ambiguity." Your Apple accomplishment built measurement protocols for a product that did not yet exist. Three sources, the same operational move: you build the research question before you answer it.' The closing declarative is earned because three sources are named in the same chunk.\n\nREFUSE these specific overclaim patterns:\n\n1. ABSOLUTISM IN INTERPRETIVE CLAIMS:\n- "Every [noun] you have [verb]" / "every major program" / "every role" / "every time"\n- "Always" / "never" / "the hardest" / "the most X" / "the only Y"\n- "You have spent your career [verb]-ing" : life-arc framing presented as fact\n\nIf the claim depends on a pattern across the career, name the specific career moments the pattern is drawn from. Do not collapse to "every".\n\n2. MIND-READING (attributing internal motivation):\n- "by [verb]-ing X" claiming internal motivation ("by refusing to," "by choosing to," "by caring about")\n- "your conviction that [X]" / "your mission is [X]" / "you believe [X]"\n\nRefuse unless the [X] is directly quoted from the user's verbatim inputs (orientation answers, reputation phrases, values text). Reading minds is not analysis.\n\n3. SLOGAN-CADENCE CLOSERS:\n- Paired declarative sentences in "The X is the Y. The Z is the W." cadence\n- "X is the engine. Y is the fuel."\n- Inspirational-poster paired sentences\n\nThese read as marketing copy, not analysis. Refuse the cadence regardless of whether the content is otherwise accurate.\n\nA runtime gate will scan shipped output for these constructions and force regeneration when detected. Output that contains them will not reach the user.\n\nTRANSLATION NOT PRAISE (load-bearing across this output):\n\nEvery interpretive claim about the user is a TRANSLATION move, not a CHARACTERIZATION. Translation tells the user where their capability transfers to a context they have not been in. Characterization tells them what trait they have, which they already know.\n\nThe user comes to Reimagine already feeling capable. Telling them "you bring rigor to applied problems" or "you are an operator" or "you handle ambiguity well" is praise-shaped: reflection without new information. They feel acknowledged but learn nothing. The value-add Reimagine provides is showing them where their capability transfers, which contexts they have not been in would reward this exact move.\n\nFor every interpretive sentence:\n- Refuse "you bring X to Y." Rewrite as "this transfers to [specific other contexts where the move is rare or valuable]."\n- Refuse "you are an X." Rewrite as "the operational move you made, [specific], works the same way in [specific other contexts]."\n- Refuse trait-noun characterizations (rigorous, operator, builder, integrator, connector, hunter, farmer, architect, fixer, closer, etc.). These also violate the existing NO TYPOLOGY LABELS rule.\n- Anchor every translation in a specific operational move the user actually made, not a trait inferred from inputs.\n\nNEVER assert relative standing against unnamed groups. "Most people," "many candidates," "the average professional," "most hiring managers do not see X," "where others settle for X" are all forbidden. The user gets compared to no one. The voice guard catches some of these; the rule is broader than the guard.\n\nFailure cases to refuse:\n- "You bring academic rigor to applied problems." (characterization, no translation)\n- "You can isolate causality in messy environments where most people settle for correlation." (characterization plus comparative standing)\n- "You are a connector." (typology trait, also covered by NO TYPOLOGY LABELS)\n- "You sustain the intensity required to get to yes." (already refused by EVIDENCE-BASED CONFIDENCE; same failure mode)\n\nSuccess cases:\n- "Where this transfers: you can design and run a multi-year protocol where measurement methodology has to hold across time and conditions. That maps to long-horizon product experiments, regulatory submissions, and longitudinal customer research."\n- "The operational move: you sequenced the rollout across thirty-eight markets while protecting the margin in each. That works the same way in any multi-region launch where local economics differ."\n- "What this signals to a hiring manager in [different domain]: someone who has run [specific operational pattern] in conditions [different domain] usually does not have."\n\nTest for every interpretive sentence: does this tell the user something they could only know if they imagined themselves in a context they have not been in? If yes, it is translation. If it tells them something about themselves they already feel, it is praise.\n\nSURFACE THE INSIGHT (load-bearing across this output):\n\nEvery interpretive chunk in this output uses visual hierarchy so a 7-second scan catches the salient insight. The user scans before they read. An insight buried mid-paragraph is a missed insight.\n\nFor every pattern, observation, capability, fit-read, story-piece, or other interpretive unit in this output:\n\n- Lead with a BOLDED HEADLINE of 5 to 12 words that names the insight in plain language. The headline carries the translation move (per TRANSLATION NOT PRAISE rule) when applicable. Plain language, no hedging language in the headline itself.\n- Follow with 1 to 3 short sentences of supporting prose that anchor the headline in the specific evidence from the user's inputs.\n- Refuse wall-of-text paragraph output where the insight is buried mid-sentence or at the end of a long prose block.\n- Use bullets, indented callouts, or numbered lists when the content is genuinely list-shaped. Refuse prose-shaped output that is actually a list pretending to be a paragraph.\n\nThe visual structure is part of the deliverable, not decoration. A correctly-shaped analytical chunk:\n\n**You define research practice where none exists yet.**\nVR consumer experiences, AI-assisted search, computational photography. A decade of work where the research question itself is ambiguous. This pattern of choosing pre-playbook problems transfers to any space where the product category is still forming and the research function has to be built alongside it.\n\nThe same content as a wall-of-text paragraph is a failure:\n\n"Your career shows a consistent pattern of choosing the hardest research problems: the products that do not exist yet, the user behaviors that are emerging in real time, the questions where there is no playbook. From VR consumer experiences to AI-assisted search to computational photography, you have spent the last decade in spaces where the research question itself is ambiguous. Patterns like this often signal intellectual restlessness and a preference for operating at the edge of what is known. You are defining what the research practice should be for a product category that is still forming."\n\nSame insight. The structured version scans; the prose version buries. Always produce the structured version.\n\nThis rule applies to every section that produces interpretive content. Sections that are inherently single-sentence (the Golden Thread of P.p3, the Personal Brand statement of P.p3) are exempt because they are themselves the headline. Sections that produce structured deliverables already (STAR stories, company lists, interview questions) follow their existing structure.\n\nPROFILE: ${asText(outs.p1)}\n${asText(outs.p2)}\n${asText(outs.p3)}\n${buildSynthesisContext(outs.p3_structured)}\nLINKEDIN REMIX: ${asText(outs.p8)}\nPASSIONS: ${pr.passions}\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\n\nRAW SIGNALS (this person's own words from orientation, do not paraphrase back to them):\nVALUES: ${pr.values||'not provided'}\nPASSIONS AND CAUSES: ${pr.passions||'not provided'}\nPRAISE THEY RECEIVE: ${pr.rep.memory||'not provided'}\nWHO CALLS THEM IN EMERGENCY: ${pr.rep.emergency||'not provided'}\nHOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${pr.rep.twoWords||'not provided'}\nOTHER REPUTATION DATA: ${pr.rep.other||'not provided'}\nLIFE-SHAPING EXPERIENCES: ${pr.lifeEvents||'not provided'}\nVALIDATED HARD SKILLS:\n${formatSkills(pr.skills)}\nASSESSMENT TYPE: ${pr.assessType||'not provided'}\nASSESSMENT NOTES: ${pr.assess||'not provided'}\n\nThese raw signals are the strongest input for Personality, Passion, and identity grounding. When you need to ground a claim about who this person is or what they care about, reach for verbatim phrases from these signals rather than paraphrasing through the synthesized profile.\n\nUSE THE STRONGEST GROUNDING SOURCE AVAILABLE. When raw signals point to a specific assessment finding, a verbatim reputation phrase, a named passion, or a specific formative life pattern, lead with that. Defaulting to the safer professional-only proof is a failure mode.\n\nSTART your response with:\n## QUICK TAKEAWAY\n4-5 sentences: the fastest path to income for this person, the single best platform to start on and why, a realistic rate range, and the one thing to do in the next 48 hours. Plain language, no headers inside this section.\n\nThen continue with the full plan:\n\nFRAMING: Income Now lives in Familiar Ground, the senior, modernized version of what this person already does well. They do not need to reinvent themselves. They need to package what they know and make it easy for buyers to find and hire them quickly.\n\nPITCH PRINCIPLE: People buy painkillers, not vitamins. They act when something is hurting. Every service description and outreach message should name a real problem the buyer is living with right now. Lead with the pain. Follow with how this person fixes it. Close with what it costs. The buyer does not care about titles or tenure. They care whether their problem goes away.\n\n**PART 1, WHERE TO SHOW UP:** Based on their specific background, identify 4-6 marketplaces and channels where this person can get in front of paying clients quickly. Think beyond the obvious. There are specialist platforms for nearly every senior function. Match these to their actual background.\n\nExamples by function: HR/talent/people leader: Catalant, Business Talent Group, Bolste, Learnerbly. Finance executive: Toptal Finance, Graphite, CFO Alliance, Paro. Tech/product executive: Toptal, Arc, Expert360, Gun.io. Marketing/brand/growth: GrowthMentor, Credo, Mayple, Expert360. Strategy/general management: Catalant, Business Talent Group, Umbrex. Sales/revenue leader: Bravado, Toptal, Sales Talent Agency. Board-ready executive: Boardlist, OnBoard, Bolste. Career/coaching/talent development: Coach.me, Clarity.fm, Maven, LinkedIn Services, direct outreach.\n\nFor each: platform name, why it fits this specific person, type of work available, realistic rate range, and the single first step to get listed or active.\n\n**PART 2, YOUR CONSULTING PRESENCE:** Write ready-to-use copy this person can use across any of the platforms above or in direct outreach. Everything should be framed around buyer pain, not seller biography.\n\n- Positioning headline (under 100 characters, names the problem, not the person's background)\n- Bio (150 words, first person, opens with the pain the buyer has, closes with a specific outcome this person has delivered)\n- 4 specific service offerings. For each: a problem-first title (e.g. "When your best people are leaving and you don't know why" not "Retention Consulting"), the specific buyer, what the engagement includes, the outcome framed as money made/saved/risk removed, and price at senior market rates ($300-$500/hour advisory, $1,000-$3,000 for a defined deliverable, $4,000-$10,000 for a strategic engagement)\n- One outreach message: sentence 1 names the pain, sentences 2-3 connect one specific result from their background to that pain, sentence 4 asks for 15 minutes as a peer conversation. Plain language. No buzzwords.\n\n**PART 3, FRACTIONAL PITCH:** One paragraph for cold LinkedIn or email. Same pain-first structure. Names the business problem, explains how they fix it, states cost and how to engage.\n\n**PART 4, GIGS AT THE PASSION INTERSECTION (TWO SLICES):**\n\n**Slice A, Income-First.** 3 specific engagements at the intersection of the candidate's current skills and stated passions that could generate income within 60 days. For each: the service, the buyer, why this person is credible to them, price, and one action to take this week.\n\nFor each Slice A engagement, name a specific buyer TYPE, not just a service category. Buyer specificity is what turns a passion-adjacent idea into something the candidate can pursue in the next 60 days.\n\nExamples of the move from category to buyer:\n\nCATEGORY ONLY (insufficient): "Advisory work for purpose-driven CPG brands."\nSPECIFIC BUYER (right): "Advisory work for emerging functional-food brands in the $5M to $25M revenue band, specifically those backed by impact-focused funds like Acumen Fund Partners or Beneficial Returns. These funds need operating advice from someone who has scaled in CPG without dilution of mission."\n\nCATEGORY ONLY (insufficient): "Consulting for nonprofit boards in healthcare."\nSPECIFIC BUYER (right): "Fractional commercial advisor to community health center networks at the $20M to $100M revenue scale, particularly FQHCs in mid-size markets that have grown beyond grant funding and need commercial discipline. The Vital Roots Network is one example; the candidate's stated passion for accessible healthcare connects directly."\n\nFor each Slice A engagement:\n- Name the buyer specifically (organization type, revenue band, geography or vertical if relevant, named examples if known).\n- Name why this person is credible to THAT buyer (which professional capability transfers and which passion connects).\n- Price and one action to take this week.\n\nIf the candidate's stated passions point to a buyer type that requires specific credentials or networks they do not have (e.g., they care about climate but have no climate experience), name what would need to be added to make this passion-adjacent path viable rather than listing it as immediately actionable.\n\n**Slice B, Evidence-First.** 2 to 3 engagements at the intersection of MISSING skills and the candidate's pr.passions. The goal of Slice B is to build the gap skills the LinkedIn Remix Skills Delta surfaced. Volunteer engagements sit on equal footing with paid gigs in this slice; for an unproven skill, volunteer is often the faster path to evidence.\n\nIf LINKEDIN REMIX (outs.p8) is present in the PROFILE block above, read the development-area skills from List 4 of the Skills Delta. If outs.p8 is absent (the candidate came to Income Now before generating LinkedIn Remix), infer gap skills from ${sel} versus outs.p1, with explicitly lower confidence in the framing.\n\nFor each Slice B engagement:\n- The org type, or two to three specific organizations aligned with the causes side of pr.passions.\n- The missing skill it builds, named explicitly.\n- The deliverable that produces real evidence (a campaign, a project, a measurable outcome).\n- Where the experience lives on LinkedIn (Experience or Volunteer Experience section).\n- Timeline to first evidence, 30 to 90 days.\n- First step to engage this week.\n\nFrame Slice B as a choice the candidate makes to close a gap by doing real work. Volunteer is one valid path, paid gig is another; both produce evidence.\n\n**PART 5, THE ONE SHEET:** Problem-first throughout. Sections: The Problem I Solve (2 sentences), How I Help (3 service bullets with prices), Who I Work With, What Happens When We Work Together (2-3 outcomes as made money/saved money/mitigated risk), How to Start (rates, availability, contact).\n\n**PART 6, FIRST 48 HOURS:** Exactly what to do in the next two days to have a profile live or an outreach message sent. Specific steps only.\n\nTone: direct and practical. Write everything as if it will be used today.`,
   skillsExtract:(pr)=>`You are extracting structured hard skills from a candidate's resume and LinkedIn profile. Output ONLY a JSON object matching the schema below. No prose. No preamble. No markdown fence.\n\nSchema:\n{\n  "technical": [string],\n  "systems": [string],\n  "certifications": [string],\n  "languages": [string],\n  "methodologies": [string]\n}\n\nCategory definitions:\n- technical: Hard tools, software, programming languages, design tools, analytics tools. Examples: Excel, Python, SQL, Tableau, Figma, Adobe Creative Suite.\n- systems: ERP, CRM, billing, HRIS, industry platforms. Examples: Salesforce, SAP, Workday, Epic, NetSuite, ServiceNow.\n- certifications: Named credentials. Examples: PMP, CFA, CPA, AWS Solutions Architect, Six Sigma Black Belt, ScrumMaster, SHRM-CP.\n- languages: Spoken or written languages with fluency level when stated. Examples: "Spanish (fluent)", "Mandarin (conversational)".\n- methodologies: Named frameworks, processes, or approaches. Examples: Agile, Lean, Design Thinking, OKRs, RICE prioritization, JTBD.\n\nRules:\n- Extract only skills the candidate explicitly demonstrates in the documents below. Do not infer.\n- Use the candidate's own terminology where it is clear; normalize obvious variants (e.g., "MS Excel" and "Microsoft Excel" both become "Excel").\n- Skip skills that are too vague to be useful as keywords ("leadership", "communication", "problem solving"). Those belong in Personality and Wiring outputs, not the hard skills inventory.\n- If a category has no entries, return an empty array for that category. Do not omit the key.\n- Maximum 12 entries per category. If more are present, prioritize the most recent and most explicitly demonstrated.\n- Certifications are PROFESSIONAL CREDENTIALS only. Examples: PMP, CFA, CPA, SHRM-SCP, Workday HCM Certified, AWS Solutions Architect, Six Sigma Black Belt, ScrumMaster, board certifications, state licenses. The following are NOT certifications and must NEVER appear in this category:\n  - Academic degrees (MBA, BA, BS, MS, MA, PhD, JD, EdD)\n  - University-issued certificates of completion or continuing education (e.g., "Certificate in Multi-Media Technologies," "Masters Certificate in Leadership")\n  - Executive education programs from named business schools (Wharton, MIT Sloan, Harvard Business School, Stanford GSB, Kellogg, etc.) regardless of how the candidate phrases them\n- Languages: extract only languages explicitly named in the documents with stated fluency or context. If no language is explicitly named, return an empty array. Do NOT add "English" by inference from the candidate's location or document language.\n- Methodologies are INDUSTRY-RECOGNIZED FRAMEWORKS with proper-noun specificity. Examples: Agile, Scrum, Lean, Six Sigma, Lean Six Sigma, OKRs, RICE prioritization, Design Thinking, JTBD (Jobs To Be Done), Toyota Kata, Kaizen, SMED, TAKT time, Stage Gate, Design of Experiments (DOE), MaxDiff, Conjoint, TURF, Segmentation, CAWI, CAPI, CATI. Quality standards (ISO 9001, NADCAP, IATF 16949, MS 13485) belong here when the candidate implements them. The following are NOT methodologies:\n  - Function or role labels ("workforce planning," "business development," "change management," "process improvement," "project management")\n  - Generic business practices ("strategic planning," "cultural transformation," "coaching/mentoring," "P&L management")\n  - Job-area descriptors ("sales methodologies," "integrated business planning")\n  - Company-internal program names (e.g., "Quick Cycle Innovation," "HIVE," "Joint Business Plan / JBP," "Joint Value Plan / JVP") unless those names are also recognized industry frameworks\n- Treat resume sections labeled "Core Competencies," "Key Skills," "Areas of Expertise," or LinkedIn "Top Skills" as suggestive context only, not as authoritative skill labels. Each item must still pass the category definitions above to be extracted. Most items in these sections are function/practice labels and should be skipped.\n- Disambiguation for analytics platforms (Tableau, Power BI, Looker, Nielsen products, YouGov products, Walmart Luminate, SAP BusinessObjects, etc.): place in technical when the user wields the tool to run analyses, place in systems when the platform is operated at enterprise scale and the user works within it. When ambiguous, default to technical.\n- Generic references (e.g., "CRM system," "ERP system," "SaaS BI tool," "analytics platform," "knowledge management system") without a named product MUST NOT be extracted. Skills require specific named tools, systems, or methodologies; category labels do not qualify.\n- Extract certifications even when they appear unrelated to the candidate's primary career (e.g., a yoga instructor cert held by a food scientist). The schema does not filter by relevance; downstream prompts decide which skills to surface.\n\nCANDIDATE RESUME:\n${pr.resume||'not provided'}\n\nCANDIDATE LINKEDIN PROFILE:\n${pr.linkedin||'not provided'}\n\nOutput the JSON object now.`,
   p6_slot_regen:(pr,outs,sel,life,slotKey,currentSlotOptions,otherSlotsContext,correctionText)=>{const slotMemBlock=slotKey==='slot1_human_anchor'?'\\nMEMORABILITY (load-bearing, Slot 1 only): every option MUST start with something human. It MUST NOT lead with a role, title, company, time-anchor, or work-artifact framing. Refuse openers like "I am a [role]", "I have spent N years", "After N years at X", "As a [role]", "With N years of experience", "My career in", "Throughout my career", "Currently I lead". A runtime gate scans Slot 1 and forces regeneration on any such opener.\\n':'';const tagName=slotKey==='slot1_human_anchor'?'anchor_type':slotKey==='slot2_career_manifestation'?'manifestation_type':'framing';const tagList=slotKey==='slot1_human_anchor'?'values, reputation, trait, passion, formative, interest':slotKey==='slot2_career_manifestation'?'star, pattern, arc':'continuation, synthesis, why_now';const firstTag=tagList.split(', ')[0];return `You are regenerating ONE slot of this person's structured Bridge Story while preserving the other two slots' content untouched. The user picked options in those other slots; the new options for ${slotKey} should harmonize with what they kept. They are pursuing: **${sel}**.\\n\\nSLOT TO REGENERATE: ${slotKey}\\n\\nUSER FEEDBACK ON CURRENT OPTIONS:\\n${(correctionText||'').trim()||'(no specific feedback; produce a fresh set distinct from the previous options below)'}\\n\\nOPTIONS YOU PRODUCED LAST TIME (do not repeat the same starters; bring genuinely new angles):\\n${JSON.stringify(currentSlotOptions,null,2)}\\n\\nTHE OTHER TWO SLOTS (for coherence; do not change these):\\n${JSON.stringify(otherSlotsContext,null,2)}\\n\\nVOICE RULES (load-bearing):\\n- Never use "room" or "rooms" as a generic synonym for situation, conversation, or audience. Use situation, conversation, interview, screen, panel, or meeting. Specific situational labels like "panel opener", "networking coffee", "recruiter screen" are fine because they name actual contexts.\\n- No logic-flip cadence ("not X, you Y" / "is not Z, it is W"). State the positive claim on its own.\\n- No comparative standing against unnamed groups ("most people", "many candidates", "where others X").\\n- No AI-coaching register ("sit with this", "lean into", "hold space for", "trust the process").\\n- No absolutism ("every", "always", "the most", "the only").\\n- No mind-reading ("your conviction that X" / "your mission is X" unless verbatim from raw signals).\\n- No slogan cadence ("X is the Y. Z is the W.").${slotMemBlock}\\nTRIANGULATION: each option lists at least two source field IDs in its sources array. Source IDs come from raw signal field names: values, passions, rep.memory, rep.emergency, rep.twoWords, rep.other, lifeEvents, lifeEvents.praise, work.pattern, work.accomplishment, work.role, work.arc, p3.golden_thread, p3.personal_brand, p3.value_prop, p3.wiring_synthesis, assess, assessType, selectedLane, exploredRoleTitles, frameworks. If only one source supports an option, name the gap in the diagnostic's what_would_strengthen_it.\\n\\nBONES, NOT FINISHED PROSE: each option text is a starter under 25 words. Options over 30 words are rejected.\\n\\nSITUATIONAL TAGS: each option carries a best_for array (for example "recruiter screen", "networking coffee", "panel opener").\\n\\nTYPE TAG for this slot: the ${tagName} field must be one of ${tagList}.\\n\\nDIAGNOSTIC: the slot includes what_your_inputs_support and what_would_strengthen_it, both plain-language sentences.\\n\\nINPUTS:\\n\\nPROFILE: ${asText(outs.p1)}\\n${asText(outs.p3)}\\n\\nWIRING & COMPASS: ${asText(outs.p2)||'not available'}\\n\\nRAW SIGNALS (verbatim; do not paraphrase back):\\nVALUES: ${pr.values||'not provided'}\\nPASSIONS AND CAUSES: ${pr.passions||'not provided'}\\nPRAISE THEY RECEIVE: ${pr.rep.memory||'not provided'}\\nWHO CALLS THEM IN EMERGENCY: ${pr.rep.emergency||'not provided'}\\nHOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${pr.rep.twoWords||'not provided'}\\nOTHER REPUTATION DATA: ${pr.rep.other||'not provided'}\\nLIFE-SHAPING EXPERIENCES: ${life||'not provided'}\\nASSESSMENT TYPE: ${pr.assessType||'not provided'}\\nASSESSMENT NOTES: ${pr.assess||'not provided'}\\n\\nOUTPUT REQUIRED: a single JSON object wrapping just the regenerated slot. Return ONLY the JSON. No preamble, no markdown code fences. Start with { and end with }.\\n\\n{\\n  "${slotKey}": {\\n    "options": [\\n      { "id": "...", "text": "short starter under 25 words", "${tagName}": "${firstTag}", "best_for": ["recruiter screen"], "sources": ["source1","source2"] },\\n      { "id": "...", "text": "...", "${tagName}": "...", "best_for": ["..."], "sources": ["...","..."] },\\n      { "id": "...", "text": "...", "${tagName}": "...", "best_for": ["..."], "sources": ["...","..."] }\\n    ],\\n    "diagnostic": { "what_your_inputs_support": "plain sentence", "what_would_strengthen_it": "plain sentence" }\\n  }\\n}`},
+  companyRead:(jd,foundation,companyName,industry,rubricText,userInput,laneLabel)=>`You are producing a Company Read for the candidate's evaluation of a specific opportunity. Five subsections, each opens with a bolded headline insight then 2-3 sentences of supporting prose with sources cited inline. Target length: 350-500 words total.
+
+THE CANDIDATE'S FOUNDATION:
+${foundation||'(not provided)'}
+
+THE COMPANY: ${companyName||'(unspecified)'}
+THE OPPORTUNITY (job description):
+${jd}
+${laneLabel?'\nOPPORTUNITY LANE: '+laneLabel+' (Familiar Ground = same function and similar industry; Industry Insider = function carries into a connected industry; Work That Matters = lateral move toward values-aligned work). Use the lane framing where it sharpens the candidate translation.\n':''}${userInput&&userInput.trim()?'\nUSER-MEDIATED INPUT (snippets the candidate found relevant):\n'+userInput.trim()+'\n\nIntegrate these explicitly into Subsection 2, marking attribution as "the candidate shared this from ...". Never invent attribution.\n':''}
+INDUSTRY-SPECIFIC SIGNAL SOURCES (use these in Subsection 3):
+${rubricText}
+
+VOICE RULES (load-bearing):
+- Translation, not praise. Every claim translates what this means for the candidate's decision, not a characterization of the company.
+- Surface the insight: each subsection opens with a bolded headline a 7-second scan catches.
+- No AI-coaching register. No comparative standing against unnamed groups. No logic-flip cadence. No typology labels. No "rooms" as a synonym for situations. No sincerity qualifiers.
+
+CITATION DISCIPLINE (load-bearing — a runtime gate enforces this):
+Every numeric claim, percentage, dollar amount, year reference, and named personal transition (hired, promoted, appointed, joined, departed, stepped down, resigned) MUST have an adjacent source URL in the same sentence. URLs go inline as plain text, for example "(source: https://...)". If a fact cannot be sourced, mark the absence explicitly with the phrase "Public signal does not confirm this directly" — never invent. The runtime gate scans every numeric claim for an adjacent URL or explicit hedge; missing citations trigger a regeneration.
+
+FABRICATION GUARD:
+- Do not use "the recent X" pattern without naming the source and providing a URL in the same sentence.
+- Do not use "Reports indicate", "Sources say", or "Analysts note" without naming the report and providing a URL.
+- Do not use "It has been reported" or "According to sources" with no named source.
+- If no public signal exists for a subsection, say so directly: for example, "No recent leadership transitions surfaced in public news in the last 90 days." Honest absence beats fabricated inclusion.
+
+NO SOFTENING ON WATCH-OUTS:
+State each watch-out plainly with its source. Do not hedge. Name the watch-out, name the source, state the implication for the candidate's decision.
+
+OUTPUT STRUCTURE (five subsections; produce exactly these headings in order):
+
+## What is the market saying right now?
+
+[Bolded one-line headline insight summarizing the last 90 days of company news.]
+
+[2-3 sentences: news, funding, layoffs, leadership changes, product launches from the last 90 days. Restrict to the last 90 days; older signal does not belong here. Each named fact carries an inline source URL.]
+
+## What does the employee voice say?
+
+[Bolded one-line headline insight summarizing the employee-voice signal.]
+
+[2-3 sentences citing public sources: Best Companies lists, news mentions of culture, Built In pages, Great Place to Work certifications, well-sourced articles about the workplace. Each named claim carries an inline source URL.${userInput&&userInput.trim()?' Integrate the candidate-mediated input above, marking attribution explicitly.':''}]
+
+## What does the industry-specific scoreboard say?
+
+[Bolded one-line headline insight summarizing where the company stands on the industry rubric.]
+
+[2-3 sentences with the actual ratings, scores, or filings from the industry sources listed above. Each named score, rating, or filing carries an inline source URL.]
+
+## Who is the leadership and what is their public footprint?
+
+[Bolded one-line headline insight summarizing the relevant leadership profile.]
+
+[2-3 sentences: hiring manager if named in the JD, function head where searchable, CEO or CHRO public footprint (podcasts, articles, conference talks, LinkedIn tenure pattern). Each named individual or asset carries an inline source URL.]
+
+## What are the watch-outs?
+
+[Bulleted list of 2-4 watch-outs, each with its source URL. If no significant watch-outs surface in public signal, write the single line "No significant watch-outs surfaced in public signal in the last 90 days." instead.]
+
+Each bullet: state the negative signal plainly. Name the source. State the implication for the candidate's decision.
+
+WHAT GOOD LOOKS LIKE:
+The output surfaces one or two findings the candidate would not have known to look for. Industry-specific signal carries weight, not hand-waved or omitted. Watch-outs are stated honestly. Every number, percentage, year reference, and named transition has an adjacent URL. The Glassdoor-reflexive read does not appear here; the candidate already checked Glassdoor before opening Reimagine.`,
+
 }
 // voice-allow-end
 
@@ -3117,7 +3325,7 @@ export default function PivotEngine(){
   // current build vs a stale one: build/live SHAs, last check time, and
   // status all render in a fixed corner element. Production users see nothing.
   const isDebug=_params.get('debug')==='1'
-  const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',linkedin:'',linkedinFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',skills:{technical:[],systems:[],certifications:[],languages:[],methodologies:[]},corrections:[],frameworks:[],jd:'',jdFile:''}
+  const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',linkedin:'',linkedinFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',skills:{technical:[],systems:[],certifications:[],languages:[],methodologies:[]},corrections:[],frameworks:[],jd:'',jdFile:'',companyReadInput:''}
   const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''}
   const initStep=isDemo?'welcome':'welcome'
   const[step,setStep]=useState(initStep)
@@ -3981,7 +4189,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   }
   const buildDoor2Record=(id,title,jdText)=>{
     const ts=new Date().toISOString()
-    return{id,title,lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:{bridge_story:null,user_picks:null,user_freeform:'',builtAt:null},p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null}}}
+    return{id,title,lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,companyReadInput:profile.companyReadInput||'',sections:{p5:{content:'',builtAt:null},p6:{bridge_story:null,user_picks:null,user_freeform:'',builtAt:null},p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}}}
   }
   const saveCurrentDoor1=(currentKey,currentR)=>{
     const id=newSavedId()
@@ -4160,6 +4368,44 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // writes the bones to record.sections.p6 (never flat outputs.p6) and never
   // cascadeInvalidate. Request-id guard drops a build that resolves after an
   // opportunity switch.
+  // Company Read (PR-1) op-surface generation. Fires inferIndustry({jd}) first,
+  // then the Company Read prompt with web search and the matching industry rubric.
+  // Output writes to rec.sections.companyRead.content (symmetric with the other
+  // four op cards). Voice gate routes through Phase 4 (citation + fabrication
+  // detectors) via meta.step==='op-company-read'.
+  const generateOpCompanyRead=async()=>{
+    const slotId=currentSavedSlotIdRef.current
+    if(!slotId||opSectionBuilding)return
+    const jd=(profile.jd||'').trim()
+    if(!jd){setOpSectionErrors(e=>({...e,companyRead:'Add a job description for this opportunity first.'}));return}
+    setOpSectionBuilding('companyRead');setOpSectionErrors(e=>({...e,companyRead:null}))
+    const reqId=++opSectionReqRef.current
+    try{
+      const rec0=savedPlaybooks.find(r=>r.id===slotId)
+      const industry=await inferIndustry({jd})
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      const rubricText=INDUSTRY_RUBRICS[industry]||INDUSTRY_RUBRICS.default
+      const foundation=buildOpProfileSummary()
+      const companyName=(jd.split('\n').find(l=>l.trim())||'').trim().slice(0,100)
+      const userInput=(rec0&&rec0.companyReadInput)||''
+      const lv=opLaneValue(rec0)
+      const laneLabel=lv?OP_LANE_LABELS[lv]:''
+      const fn=()=>correctionsBlock(profile.corrections)+P.companyRead(jd,foundation,companyName,industry,rubricText,userInput,laneLabel)
+      const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:4000},{step:'op-company-read',onEvent:logVoiceEvent})
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId)return rec
+        const sections={...(rec.sections||{})}
+        sections.companyRead={...(sections.companyRead||{}),content:r,builtAt:new Date().toISOString(),industry}
+        return{...rec,sections,updatedAt:new Date().toISOString()}
+      }))
+      setCurrentRoleSaved(false)
+    }catch(e){
+      if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,companyRead:e.message||'Generation failed. Try again.'}))
+    }finally{
+      if(reqId===opSectionReqRef.current)setOpSectionBuilding(null)
+    }
+  }
   const generateOpBridgeStory=async()=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||opSectionBuilding)return
@@ -4312,7 +4558,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setDone(d=>d.filter(s=>s!=='op'))
     setChosen('')
     setFeedback(f=>({...f,op:''}))
-    setProfile(p=>({...p,jd:'',jdFile:''}))
+    setProfile(p=>({...p,jd:'',jdFile:'',companyReadInput:''}))
     setErr(null)
     setStep('op')
     window.scrollTo(0,0)
@@ -5305,9 +5551,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const opIsV2=!!(_opRec&&_opRec.schemaVersion===2)
       const _opSec=(opIsV2&&_opRec.sections)||{}
       const opCardDone=(k)=>k==='p6'?!!(_opSec.p6&&_opSec.p6.bridge_story):!!(_opSec[k]&&_opSec[k].content&&_opSec[k].content.trim())
-      const _anyOpCardBuilt=opIsV2&&['p5','p6','p_res','p11'].some(opCardDone)
-      const opRailDone=['p5','p6','p_res','p11'].filter(opCardDone)
-      const opSections=[{id:'p5',label:'The Role',num:1},{id:'p6',label:'Bridge Story',num:2},{id:'p_res',label:'Resume Refresh',num:3},{id:'p11',label:'Interview Prep',num:4}]
+      const _anyOpCardBuilt=opIsV2&&['p5','p6','p_res','p11','companyRead'].some(opCardDone)
+      const opRailDone=['p5','p6','p_res','p11','companyRead'].filter(opCardDone)
+      const opSections=[{id:'p5',label:'The Role',num:1},{id:'p6',label:'Bridge Story',num:2},{id:'p_res',label:'Resume Refresh',num:3},{id:'p11',label:'Interview Prep',num:4},{id:'companyRead',label:'Company Read',num:5}]
       // cards-only markDone criterion: legacy v1 (outputs.op truthy) OR any v2 card built
       if((outputs.op||_anyOpCardBuilt)&&!done.includes('op'))markDone('op')
       return <div>
@@ -5412,6 +5658,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </>,'section-p6')}
               {_simpleCard('p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize this role’s competencies.')}
               {_simpleCard('p11','Interview Prep','Ten to twelve likely questions for this role, each with a STAR breakdown.')}
+              {(()=>{
+                const _crBuilt=!!(_sec.companyRead&&_sec.companyRead.content&&_sec.companyRead.content.trim())
+                const _crBusy=opSectionBuilding==='companyRead'
+                return _cardWrap(<>
+                  {_head('Company Read','A read on the company beyond Glassdoor: industry-specific signal, leadership footprint, and watch-outs from the last 90 days.',_crBuilt,()=>generateOpCompanyRead(),_crBusy?'Building…':_crBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
+                  {opSectionErrors.companyRead&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.companyRead}/></div>}
+                  {_crBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.companyRead.content}/></div></div>}
+                </>,'section-companyRead')
+              })()}
             </div>
           })()}
           {!isDemo&&<div style={{marginTop:28}}>
@@ -5436,6 +5691,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={S.field}>
               <label style={S.label}>Paste the job description</label>
               <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder="Paste the full job description here..."/>
+            </div>
+            <div style={{...S.field,marginTop:18}}>
+              <label style={S.label}>Want to fold in employee voices from Reddit, Blind, or Glassdoor? (Optional.)</label>
+              <textarea style={{...S.ta,minHeight:110}} value={profile.companyReadInput||''} onChange={e=>pr('companyReadInput',e.target.value)} placeholder="Paste any snippets you found relevant. Reimagine will integrate them into the Company Read card with attribution."/>
             </div>
           </div>}
           {!isDemo&&<Btn onClick={()=>switchToOpRole(profile.jd)} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build My Playbook</Btn>}

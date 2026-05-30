@@ -828,6 +828,54 @@ export const HARD_PATTERNS = [
     surface: 'What I find interesting',
     note: 'Meta-framing: first-person observation framing instead of stating the observation.',
   },
+  // Softening patterns added with the Company Read module (PR-1). The Watch-outs
+  // subsection must state the negative signal plainly with its source; these are
+  // the model's softening hedges that bury the watch-out and let the user skim
+  // past it. Runtime-only (source legitimately quotes them in fixtures); fires
+  // on model output. Universal scope by brief; surface and re-scope if false
+  // positives appear in non-Company-Read outputs.
+  {
+    name: 'softening-might-be-worth',
+    re: /\bmight\s+be\s+worth\s+noting\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Softening on watch-outs: state the watch-out directly with its source. Do not hedge with "might be worth noting".',
+  },
+  {
+    name: 'softening-could-potentially',
+    re: /\bcould\s+potentially\s+be\s+a\s+concern\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Softening on watch-outs: state the concern plainly with its source.',
+  },
+  {
+    name: 'softening-some-have-suggested',
+    re: /\bsome\s+have\s+suggested\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Softening on watch-outs: name the source directly. "Some have suggested" obscures who said it and when.',
+  },
+  {
+    name: 'softening-may-suggest',
+    re: /\bmay\s+suggest\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Softening: name what the source said. "May suggest" hedges away from the actual claim.',
+  },
+  {
+    name: 'softening-could-indicate',
+    re: /\bcould\s+indicate\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Softening: name what the indicator points to plainly. "Could indicate" hedges.',
+  },
+  {
+    name: 'softening-its-possible-that',
+    re: /\bit['’]s\s+possible\s+that\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Softening: state the claim if it has evidence; mark it as a hypothesis if it does not.',
+  },
 ]
 
 export const SOFT_PATTERNS = [
