@@ -4371,7 +4371,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[gtmCompanyReadBuilding,setGtmCompanyReadBuilding]=useState(null)
   const[gtmCompanyReadErrors,setGtmCompanyReadErrors]=useState({})
   const gtmCompanyReadReqRef=useRef(0)
-  const generateOpSection=async(key)=>{
+  // laneOverride (op surface cleanup brief 2026-05-29): when present, wins over
+  // opLaneValue(rec0). Lets the auto-build path (submitOpRole) pass the inferred
+  // lane directly through from runOpLaneInference's success path, sidestepping
+  // the closure-staleness window where rec0.opLane has been queued via
+  // setSavedPlaybooks but not yet committed into the savedPlaybooks closure
+  // generateOpSection captures. Empty string is a valid value (per-card prompts
+  // handle it via their lane-neutral JD-driven fallback string).
+  const generateOpSection=async(key,laneOverride)=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||opSectionBuilding)return
     const jd=(profile.jd||'').trim()
@@ -4379,7 +4386,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setOpSectionBuilding(key);setOpSectionErrors(e=>({...e,[key]:null}))
     const reqId=++opSectionReqRef.current
     try{
-      const rec0=savedPlaybooks.find(r=>r.id===slotId);const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&rec0.sections.p6.bridge_story)?rec0.sections.p6:outputs.p6;const opOuts={...outputs,p6:opP6};const lv=opLaneValue(rec0);const fn=()=>correctionsBlock(profile.corrections)+(key==='p5'?P.p5(pc,opOuts,chosen,'',jd,lv):key==='p_res'?P.p_res(pc,opOuts,chosen,jd):P.p11(pc,opOuts,chosen,jd,lv))
+      const rec0=savedPlaybooks.find(r=>r.id===slotId);const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&rec0.sections.p6.bridge_story)?rec0.sections.p6:outputs.p6;const opOuts={...outputs,p6:opP6};const lv=(typeof laneOverride==='string')?laneOverride:opLaneValue(rec0);const fn=()=>correctionsBlock(profile.corrections)+(key==='p5'?P.p5(pc,opOuts,chosen,'',jd,lv):key==='p_res'?P.p_res(pc,opOuts,chosen,jd):P.p11(pc,opOuts,chosen,jd,lv))
       const opts=key==='p11'?{maxTokens:8000}:{maxTokens:5000}
       const r=await callClaudeWithVoiceGate(fn,opts,{step:key,onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
@@ -4403,9 +4410,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // record.lane as a string); see buildDoor2Record. No cascadeInvalidate; the
   // only write is record.opLane.
   const[opLaneInferring,setOpLaneInferring]=useState(false)
-  const[opLaneWhyOpen,setOpLaneWhyOpen]=useState(false)
-  const[opLaneChangeOpen,setOpLaneChangeOpen]=useState(false)
   const opLaneInferRef=useRef({})
+  // _pendingAutoBuildRef (op surface cleanup brief 2026-05-29): stores the
+  // slotId when Build My Playbook is clicked, signaling runOpLaneInference's
+  // success path to fire generateOpSection('p5') with the inferred lane once
+  // classification completes. Cleared after firing, or naturally when the
+  // user switches op records (the slotId match in runOpLaneInference's
+  // success path acts as the freshness check).
+  const _pendingAutoBuildRef=useRef(null)
   // Compact foundation summary for the lane inference call: the synthesized
   // Personal Brand when present, plus the raw values / passions / reputation.
   const buildOpProfileSummary=()=>{
@@ -4430,27 +4442,35 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     try{
       // cards-only: classifier runs on JD + foundation alone; no artifact dependency
       const res=await inferLaneForOpportunity(jd,buildOpProfileSummary(),'')
-      if(!res)return
-      setSavedPlaybooks(prev=>prev.map(r=>{
-        if(r.id!==slotId||opLaneValue(r))return r
-        return{...r,opLane:{value:res.value,confidence:res.confidence,reasoning:res.reasoning,inferredAt:new Date().toISOString(),userOverrideAt:null},updatedAt:new Date().toISOString()}
-      }))
-      setCurrentRoleSaved(false)
-    }catch(e){/* leave opLane unset; the affordance offers a manual pick */}
+      // Op surface cleanup brief 2026-05-29: empty lane is a valid outcome on
+      // classification failure — the per-card prompts have a JD-driven generic
+      // fallback string for empty laneValue. Defaulting to FG would assert an
+      // on-thesis fit the system couldn't establish; empty is the epistemically
+      // clean move.
+      const inferredLane=res?res.value:''
+      if(res){
+        setSavedPlaybooks(prev=>prev.map(r=>{
+          if(r.id!==slotId||opLaneValue(r))return r
+          return{...r,opLane:{value:res.value,confidence:res.confidence,reasoning:res.reasoning,inferredAt:new Date().toISOString(),userOverrideAt:null},updatedAt:new Date().toISOString()}
+        }))
+        setCurrentRoleSaved(false)
+      }
+      // Auto-build hand-off: if Build My Playbook queued this slot, fire The
+      // Role generation with the inferred lane passed through as laneOverride.
+      // The slotId match guard prevents firing on a stale ref if the user
+      // switched op records between submit and classification finishing.
+      if(_pendingAutoBuildRef.current===slotId){
+        _pendingAutoBuildRef.current=null
+        generateOpSection('p5',inferredLane)
+      }
+    }catch(e){/* leave opLane unset; downstream cards still fall back to JD-only framing */}
     finally{setOpLaneInferring(false)}
   }
-  const setOpLaneOverride=(value)=>{
-    const slotId=currentSavedSlotIdRef.current
-    if(!slotId||(value!=='FG'&&value!=='II'&&value!=='WTM'))return
-    setSavedPlaybooks(prev=>prev.map(r=>{
-      if(r.id!==slotId)return r
-      const pl=(r.opLane&&typeof r.opLane==='object')?r.opLane:{}
-      return{...r,opLane:{value,confidence:pl.confidence||'',reasoning:pl.reasoning||'',inferredAt:pl.inferredAt||null,userOverrideAt:new Date().toISOString()},updatedAt:new Date().toISOString()}
-    }))
-    setCurrentRoleSaved(false)
-    setOpLaneChangeOpen(false)
-    setOpLaneWhyOpen(false)
-  }
+  // setOpLaneOverride (manual lane override handler) removed with the op
+  // surface cleanup brief 2026-05-29 — its sole caller was the lane affordance
+  // UI which is gone. The classifier still runs silently and writes
+  // record.opLane via runOpLaneInference; users adjust per-card output via the
+  // RefineBox ("What did we get wrong") rather than a lane-level override.
   // Fire inference when an op artifact is present and opLane is unset: covers
   // new records right after Build and v2 records created before this PR (backfill).
   useEffect(()=>{
@@ -4787,7 +4807,24 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // three call sites that used maybeConfirmRoleSwitch now run their callback
   // directly.
   const switchToRole=(newRoleTitle,lane)=>{applyRoleSwitchDoor1(newRoleTitle,lane);advance('p4','focus');generate('p5',()=>P.p5(pc,outputs,newRoleTitle,laneLabelFor(lane)))}
-  const switchToOpRole=(jd,onReady)=>{const title=deriveOpRoleTitle(jd);applyRoleSwitchDoor2(title,jd);if(onReady)onReady(title)}
+  // switchToOpRole removed (op surface cleanup brief 2026-05-29): its sole
+  // caller — the Build My Playbook button — is now wired to submitOpRole,
+  // which subsumes the same applyRoleSwitchDoor2 + title-derivation logic
+  // and additionally queues the auto-build via _pendingAutoBuildRef.
+  // submitOpRole (op surface cleanup brief 2026-05-29): Build My Playbook click
+  // handler. Creates the door2 record via applyRoleSwitchDoor2, then queues an
+  // auto-build of The Role by setting _pendingAutoBuildRef to the new slotId.
+  // runOpLaneInference's existing useEffect fires on next render (when the new
+  // record commits into savedPlaybooks); on success, its modified success path
+  // checks _pendingAutoBuildRef and fires generateOpSection('p5', inferredLane).
+  // Sequential pattern (classify first, then build with the inferred lane)
+  // implemented via the ref-bridge rather than a synchronous onReady because
+  // setSavedPlaybooks is queued, not synchronous — see brief consult notes.
+  const submitOpRole=(jd)=>{
+    const title=deriveOpRoleTitle(jd)
+    applyRoleSwitchDoor2(title,jd)
+    _pendingAutoBuildRef.current=currentSavedSlotIdRef.current
+  }
   const savePlaybookPdf=()=>{playbookSavePendingRef.current=true;afterSaveRunRef.current=null;window.print()}
   const focusNumberedIds=FOCUS_GROUPS.flatMap(g=>g.sectionIds)
   const playbookSectionsBuilt=focusNumberedIds.filter(k=>{const v=outputs[k];return v&&(typeof v==='string'?v.length>0:true)}).length
@@ -5795,11 +5832,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const _rec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)
             if(!_rec||_rec.schemaVersion!==2)return null
             const _sec=_rec.sections||{}
-            const _lane=opLaneValue(_rec)
-            const _ol=(_rec.opLane&&typeof _rec.opLane==='object')?_rec.opLane:null
-            const _isOverride=!!(_ol&&_ol.userOverrideAt)
-            const _laneLabel=_lane?OP_LANE_LABELS[_lane]:''
-            const _reasoning=(_ol&&_ol.reasoning)||''
+            // IIFE-local lane reads (_lane / _ol / _isOverride / _laneLabel /
+            // _reasoning) removed with the lane affordance UI (op surface
+            // cleanup brief 2026-05-29). The classifier still runs silently
+            // and per-card prompts read opLane via opLaneValue(rec) inside
+            // generateOpSection, not from this IIFE's closure.
             const _p6=_sec.p6
             const _p6Built=!!(_p6&&_p6.bridge_story)
             const _anyBuilt=_opAnyBuiltFor(_rec)
@@ -5819,47 +5856,32 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 {onBuild&&<Btn small secondary={built} onClick={onBuild} disabled={!!opSectionBuilding}>{buildLabel}</Btn>}
               </div>
             </div>
+            // _simpleCard: staleLane rebuild banner removed (op surface cleanup
+            // brief 2026-05-29). The banner named OP_LANE_LABELS[_lane] in
+            // user-facing copy, but the lane affordance is now gone and the
+            // user has no referent for the lane label. Users still adjust
+            // per-card output via the RefineBox; the Rebuild button on each
+            // card works without a freshness banner.
             const _simpleCard=(key,label,sub)=>{
               const built=!!(_sec[key]&&_sec[key].content&&_sec[key].content.trim())
               const busy=opSectionBuilding===key
-              const laneAware=key==='p5'||key==='p11'
-              const staleLane=laneAware&&built&&!!_lane&&((_sec[key].builtLane||'')!==_lane)
               return _cardWrap(<>
                 {_head(label,sub,built,()=>generateOpSection(key),busy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                 {opSectionErrors[key]&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors[key]}/></div>}
-                {staleLane&&<div style={{marginTop:10,background:'#FBF3E6',border:`1px solid ${C.gold}`,borderRadius:8,padding:'8px 12px',fontSize:14,color:'#1A2540',lineHeight:1.45}}>Lane changed since this was built. Rebuild to apply the {OP_LANE_LABELS[_lane]} framing.</div>}
                 {built&&<div style={{marginTop:14}}>{_renderSection(key,_sec[key].content)}</div>}
               </>,'section-'+key)
             }
             const _busyP6=opSectionBuilding==='p6'
-            const _laneLink=(label,onClick)=><button onClick={onClick} style={{background:'transparent',border:'none',padding:0,margin:'0 3px',color:C.gold,fontFamily:'inherit',fontSize:15,fontWeight:600,cursor:'pointer',textDecoration:'underline'}}>{label}</button>
-            const _laneOpts=[['FG','Familiar Ground','Continues your trajectory: same function, similar industry. You step in and add value from day one.'],['II','Industry Insider','Carries your function into a different industry. You bring credibility and an outside view.'],['WTM','Work That Matters','A deliberate move toward something you care about more. Motivation and transferable capability lead the case.']]
-            const _laneSelector=opLaneChangeOpen?<div style={{marginTop:12,display:'flex',flexDirection:'column',gap:8}}>
-              {_laneOpts.map(o=><button key={o[0]} onClick={()=>setOpLaneOverride(o[0])} style={{textAlign:'left',background:_lane===o[0]?'#FBF3E6':'#FFFFFF',border:`1px solid ${_lane===o[0]?C.gold:C.border}`,borderRadius:8,padding:'10px 14px',cursor:'pointer',fontFamily:'inherit'}}>
-                <div style={{fontSize:15,fontWeight:700,color:'#1A2540'}}>{o[1]}</div>
-                <div style={{fontSize:14,color:C.gray,lineHeight:1.45,marginTop:2}}>{o[2]}</div>
-              </button>)}
-            </div>:null
-            const _laneAffordance=<div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'14px 18px',marginBottom:18}}>
-              {opLaneInferring&&!_lane?<div style={{fontSize:15,color:C.gray}}>Reading the lane for this opportunity…</div>:_lane?<>
-                <div style={{fontSize:16,color:'#1A2540',lineHeight:1.5}}>
-                  {_isOverride?<>You set this as a <strong>{_laneLabel}</strong> role.</>:<>We read this as a <strong>{_laneLabel}</strong> role for you.</>}
-                  {!_isOverride&&_reasoning?_laneLink(opLaneWhyOpen?'Hide':'Why?',()=>setOpLaneWhyOpen(v=>!v)):null}
-                  {_laneLink(opLaneChangeOpen?'Close':'Change',()=>setOpLaneChangeOpen(v=>!v))}
-                </div>
-                {opLaneWhyOpen&&_reasoning?<div style={{marginTop:8,fontSize:15,color:C.gray,lineHeight:1.55}}>{_reasoning}</div>:null}
-                {_laneSelector}
-              </>:<>
-                <div style={{fontSize:16,color:'#1A2540',lineHeight:1.5}}>We could not read a lane here. Tell us the lane to get guidance tuned to this kind of move.{_laneLink(opLaneChangeOpen?'Close':'Pick a lane',()=>setOpLaneChangeOpen(v=>!v))}</div>
-                {_laneSelector}
-              </>}
-            </div>
+            // Lane affordance UI (_laneLink / _laneOpts / _laneSelector /
+            // _laneAffordance) removed (op surface cleanup brief 2026-05-29).
+            // The classifier still runs silently via runOpLaneInference; the
+            // inferred lane feeds per-card prompts through opLaneValue(rec).
+            // Users adjust output via per-card RefineBox if framing is off.
             return <div style={{marginTop:32}} data-print="hide">
               {_anyBuilt&&<>
                 <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>Your Opportunity Playbook</h2>
                 <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 18px'}}>Build each section when you're ready. They are independent; build the ones that help most.</p>
               </>}
-              {_laneAffordance}
               {_simpleCard('p5','The Role','A deeper read on this specific role and how your background maps to it.')}
               {_cardWrap(<>
                 {_head('Bridge Story for this role','A 30-second story built from this role: pick a block in each row, then refine the woven version.',_p6Built,()=>generateOpBridgeStory(),_busyP6?'Building…':_p6Built?<><RotateCcw size={11}/>Rebuild blocks</>:<><Sparkles size={12}/>Build</>)}
@@ -5888,13 +5910,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </div>}
             </div>
           })()}
-          {!isDemo&&<div style={{marginTop:28}}>
-            <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10}}>
-              <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>Add another opportunity</h3>
-              <p style={{fontSize:17,color:C.grayL,lineHeight:1.6,margin:'0 0 14px'}}>This creates a new Opportunity Playbook. Your existing ones stay in My Playbooks.</p>
-              <Btn onClick={addNewOpportunity}><Sparkles size={14}/>Add an opportunity</Btn>
-            </div>
-          </div>}
+          {/* "Add another opportunity" footer callout removed (op surface cleanup
+              brief 2026-05-29): redundant with the sidebar Add an Opportunity
+              entry, the Two Doors tile, and the My Playbooks header button.
+              addNewOpportunity retains four other callers. */}
           {/* Hidden assembled-document block for Save as PDF. Always in the DOM
               when opIsV2 + at least one card is built, hidden on screen via
               inline display:none, revealed only on paper by .pe-print-opportunity
@@ -5935,7 +5954,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder="Paste the full job description here..."/>
             </div>
           </div>}
-          {!isDemo&&<Btn onClick={()=>switchToOpRole(profile.jd)} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build My Playbook</Btn>}
+          {!isDemo&&<Btn onClick={()=>submitOpRole(profile.jd)} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build My Playbook</Btn>}
           {err&&<ErrBox msg={err}/>}
         </>}
       </>}
