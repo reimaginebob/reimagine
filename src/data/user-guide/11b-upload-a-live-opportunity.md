@@ -25,7 +25,7 @@ You paste a job description or upload it as a PDF. Reimagine creates an Opportun
 - **Bridge Story** — a 30-second tell-me-about-yourself answer tuned to this role. Pick a block for each part, then refine the woven version into the answer you will actually speak.
 - **Resume Refresh** — a repositioned summary and key accomplishments that emphasize the competencies this role asks for.
 - **Interview Prep** — the questions this role's interview cycle is most likely to ask, each with a structured answer (STAR) drawn from your own experience.
-- **Company Read** — a read on the company beyond what you would find on Glassdoor: news from the last 90 days, the employee voice, industry-specific signal (CMS Star Ratings for hospital systems, GitHub cadence for tech, FINRA filings for financial services, and similar), the leadership's public footprint, and watch-outs named honestly. Every numeric or named factual claim cites its source URL inline; the card uses live web search.
+- **About This Company** — a read on the company beyond what you would find on Glassdoor: news from the last 90 days, the employee voice, industry-specific signal (CMS Star Ratings for hospital systems, GitHub cadence for tech, FINRA filings for financial services, and similar), the leadership's public footprint, and watch-outs named honestly. Every numeric or named factual claim cites its source URL inline; the card uses live web search.
 
 Each section is independent. Build the ones that help most for the role you care about and leave the rest. A section rail on the left of the page lists the five sections; each entry shows a check once it is built, so you can see your progress at a glance. Click any entry to jump to it.
 
@@ -49,9 +49,7 @@ You can use either. If you upload a PDF, Reimagine extracts the text and shows i
 
 Each time you add an opportunity, the form starts empty, so you are always pasting a fresh posting rather than editing a prior one. Your existing opportunities stay saved in My Playbooks; adding a new one never replaces them.
 
-Below the JD field, an optional second textarea invites you to paste employee-voice snippets you found on Reddit, Blind, or Glassdoor. These are integrated into the Company Read card with attribution. The textarea is optional; leave it empty if you do not have anything to paste.
-
-When you have the JD in place, click **Build My Playbook**. Reimagine creates the opportunity record and lands you on the four-section page within about a second. From there, click Build on the section you want first; each section takes about 30 seconds to generate.
+When you have the JD in place, click **Build My Playbook**. Reimagine creates the opportunity record and lands you on the five-section page within about a second. From there, click Build on the section you want first; each section takes about 30 seconds to generate.
 
 ## What good looks like
 
@@ -59,7 +57,7 @@ When you have the JD in place, click **Build My Playbook**. Reimagine creates th
 - **The Bridge Story should sound like you saying it out loud.** Each block is a draft you tune; the goal is a 30-second answer you can deliver in a screening call without sounding like you memorized it.
 - **The Resume Refresh should foreground the competencies this role asks for.** The repositioned summary and the strongest accomplishments shift; the rest of your resume can stay as it is.
 - **Interview Prep should give you the actual questions this role's interview cycle will ask**, with the raw material from your own inputs to build each answer. The strongest version is in your voice, with the specifics only you can add.
-- **Company Read should surface one or two findings you would not have thought to look for.** The industry-specific scoreboard is the load-bearing subsection: for a hospital system, the CMS Star Rating and the Leapfrog Safety Grade carry decision-weight; for a tech company, the engineering blog cadence and GitHub activity do. Every numeric claim cites a source URL inline. Watch-outs are named honestly, not softened.
+- **About This Company should surface one or two findings you would not have thought to look for.** The industry-specific scoreboard is the load-bearing subsection: for a hospital system, the CMS Star Rating and the Leapfrog Safety Grade carry decision-weight; for a tech company, the engineering blog cadence and GitHub activity do. Every numeric claim cites a source URL inline. Watch-outs are named honestly, not softened.
 
 ## How to refine
 
