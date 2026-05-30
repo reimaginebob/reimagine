@@ -54,7 +54,7 @@ Not directly. Reimagine holds one active session per account. To explore two dif
 ## Inside the journey
 
 **A generation is taking a long time. Is something wrong?**
-Most steps take three to four minutes. The Go-to-Market step (Phase 4) and the Income Now step include live web research and can take four to five minutes. If a step is taking longer than five minutes, refresh the page and try again.
+Most steps take three to four minutes. The Go-to-Market step (Phase 4) and the Income Now step include live web research and can take four to five minutes. Add an Opportunity is the exception: the page loads instantly and each of the four sections takes about 30 seconds to build on demand. If a step is taking longer than five minutes, refresh the page and try again.
 
 **The output looks like it cut off.**
 Refresh the page and regenerate the step. If it happens again on the same step, use the refine box to ask for a shorter response and try again.
