@@ -1070,22 +1070,49 @@ function bridgeStoryToProse(v){
 // embed corrupted foundation content. Pairs with the normalizeProfileState
 // heal that clears corruption on load.
 const asText = v => (typeof v === 'string' && v.trim() && !v.includes('[object Object]')) ? v : ''
-function opSectionsMarkdown(records,id){
-  const rec=(records||[]).find(r=>r&&r.id===id)
-  if(!rec||rec.schemaVersion!==2||!rec.sections)return ''
-  const order=[['p5','The Role'],['p6','Bridge Story'],['p_res','Resume Refresh'],['p11','Interview Prep']]
-  let acc=''
-  for(const pair of order){
-    const k=pair[0],t=pair[1]
-    const sec=rec.sections[k]
-    if(!sec)continue
-    let c=k==='p6'?sec.user_freeform:sec.content
-    if(!c||!c.trim())continue
-    if(k==='p_res'){const j=parseResumeJSON(c);if(j)c=renderResumeText(j)}
-    if(k==='p11'){const ip=parseInterviewPrepJSON(c);if(!ip)continue;c=ip.questions.map((q,i)=>{let x=(i+1)+'. '+q.question;if(q.type==='behavioral'&&q.star_breakdown){['S','T','A','R'].forEach(kk=>{const y=q.star_breakdown[kk];if(y&&y.raw_material)x+='\n   '+kk+': '+y.raw_material})}else if(q.framing_recommendation){x+='\n   '+q.framing_recommendation}return x}).join('\n\n')}
-    acc+='\n\n---\n\n## '+t+'\n\n'+c
-  }
-  return acc
+// _opAnyBuiltFor / _opAllBuiltFor (PR — op PDF export): top-level predicates
+// for the Save as PDF affordances. Hoisted from the inline opCardDone helper
+// inside the op case body so the footer gate (showPlaybookFooter) and the
+// inline "All five sections built" cue can share the same five-card definition.
+// Keys mirror the PR #114 / PR #115 op surface: p5, p6, p_res, p11, companyRead.
+function _opAnyBuiltFor(record){
+  if(!record||record.schemaVersion!==2||!record.sections)return false
+  const sec=record.sections
+  return ['p5','p6','p_res','p11','companyRead'].some(k=>{
+    const v=sec[k]
+    if(k==='p6')return !!(v&&v.bridge_story)
+    return !!(v&&v.content&&v.content.trim())
+  })
+}
+function _opAllBuiltFor(record){
+  if(!record||record.schemaVersion!==2||!record.sections)return false
+  const sec=record.sections
+  return ['p5','p6','p_res','p11','companyRead'].every(k=>{
+    const v=sec[k]
+    if(k==='p6')return !!(v&&v.bridge_story)
+    return !!(v&&v.content&&v.content.trim())
+  })
+}
+// interviewPrepToProse (PR — op PDF export): markdown-flattens the p11
+// structured JSON for the hidden PDF assembled-doc block. Lifted from the p11
+// branch of the (now removed) opSectionsMarkdown function. The op surface's
+// live renderInterviewPrep component uses cream-on-dark inline styles unsuitable
+// for print; this helper produces print-clean text consumable by <MD/>.
+function interviewPrepToProse(content){
+  const ip=parseInterviewPrepJSON(content)
+  if(!ip)return ''
+  return ip.questions.map((q,i)=>{
+    let x=(i+1)+'. '+q.question
+    if(q.type==='behavioral'&&q.star_breakdown){
+      ['S','T','A','R'].forEach(kk=>{
+        const y=q.star_breakdown[kk]
+        if(y&&y.raw_material)x+='\n   '+kk+': '+y.raw_material
+      })
+    }else if(q.framing_recommendation){
+      x+='\n   '+q.framing_recommendation
+    }
+    return x
+  }).join('\n\n')
 }
 const OP_LANE_LABELS={FG:'Familiar Ground',II:'Industry Insider',WTM:'Work That Matters'}
 function opLaneValue(rec){const l=rec&&rec.opLane;if(l&&typeof l==='object'&&(l.value==='FG'||l.value==='II'||l.value==='WTM'))return l.value;return ''}
@@ -4714,7 +4741,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const savePlaybookPdf=()=>{playbookSavePendingRef.current=true;afterSaveRunRef.current=null;window.print()}
   const focusNumberedIds=FOCUS_GROUPS.flatMap(g=>g.sectionIds)
   const playbookSectionsBuilt=focusNumberedIds.filter(k=>{const v=outputs[k];return v&&(typeof v==='string'?v.length>0:true)}).length
-  const showPlaybookFooter=!isDemo&&step==='focus'&&playbookSectionsBuilt>0
+  // showPlaybookFooter (op extension): the persistent gold Save as PDF footer
+  // fires on focus when at least one section is built, AND on op when at least
+  // one of the active opportunity's five cards is built. The op-side lookup is
+  // gated on step==='op' so it's a no-op on every other surface. _opAnyBuiltFor
+  // is the module-scope helper shared with the inline "all five built" cue.
+  const _opRecGlobal=step==='op'&&currentSavedSlotIdRef.current?savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current):null
+  const _opAnyBuiltGlobal=step==='op'?_opAnyBuiltFor(_opRecGlobal):false
+  const showPlaybookFooter=!isDemo&&((step==='focus'&&playbookSectionsBuilt>0)||(step==='op'&&_opAnyBuiltGlobal))
   const laneData=(outputs.p4&&typeof outputs.p4==='object')?outputs.p4:{}
   const generateLane=async(lane,opts={})=>{
     if(loading||generatingSection)return
@@ -5673,7 +5707,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const opIsV2=!!(_opRec&&_opRec.schemaVersion===2)
       const _opSec=(opIsV2&&_opRec.sections)||{}
       const opCardDone=(k)=>k==='p6'?!!(_opSec.p6&&_opSec.p6.bridge_story):!!(_opSec[k]&&_opSec[k].content&&_opSec[k].content.trim())
-      const _anyOpCardBuilt=opIsV2&&['p5','p6','p_res','p11','companyRead'].some(opCardDone)
+      const _anyOpCardBuilt=opIsV2&&_opAnyBuiltFor(_opRec)
       const opRailDone=['p5','p6','p_res','p11','companyRead'].filter(opCardDone)
       const opSections=[{id:'p5',label:'The Role',num:1},{id:'p6',label:'Bridge Story',num:2},{id:'p_res',label:'Resume Refresh',num:3},{id:'p11',label:'Interview Prep',num:4},{id:'companyRead',label:'Company Read',num:5}]
       // cards-only markDone criterion: legacy v1 (outputs.op truthy) OR any v2 card built
@@ -5694,9 +5728,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </ul>
             <p style={{margin:0}}>If something is off about how Reimagine read the JD or your background, the "What did we get wrong?" box below sharpens it. Corrections you submit here also carry forward to your next playbook.</p>
           </CoachingCallout>}
-          <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:24,marginBottom:8}}>
-            <Btn small onClick={()=>{const today=new Date().toISOString().slice(0,10);const rawFirstLine=(profile.resume||'').split(/\n/).find(l=>l.trim())||'';const nameParts=rawFirstLine.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ');const firstName=nameParts.length>2&&nameParts.length<50?nameParts.split(' ')[0].toLowerCase():(signupForm.firstName?signupForm.firstName.trim().toLowerCase():'reimagine');const md=opIsV2?`# Live Opportunity Playbook\n\n*Generated ${today}*${opSectionsMarkdown(savedPlaybooks,currentSavedSlotIdRef.current)}`:`# Live Opportunity Playbook\n\n*Generated ${today}*\n\n---\n\n${outputs.op}${opSectionsMarkdown(savedPlaybooks,currentSavedSlotIdRef.current)}`;const blob=new Blob([md],{type:'text/markdown'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`reimagine_playbook_${firstName}_${today}.md`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)}}><Download size={11}/>Download as Markdown</Btn>
-          </div>
           {(()=>{const _body=<>{!opIsV2&&<div id="section-op" style={{scrollMarginTop:80}}><OutPanel text={outputs.op} onCopy={copy} copied={copied}/></div>}
           {!isDemo&&!opIsV2&&<RefineBox value={feedback.op} onChange={v=>setFb('op',v)} hint="Did we read the JD or your background right? Tell us what to adjust." placeholder="e.g. 'You missed that the role explicitly requires P&L experience.' Or: 'My time at [Company] was internal strategy, not consulting.' Or: 'Emphasize the operating depth angle more, less on strategic vision.'" onRegenerate={v=>{recordCorrection('op',v);out('op','');generate('op',()=>P.op(pc,outputs,chosen,profile.jd)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:11000,msg:'Building your Opportunity Playbook…'})}}/>}
           {opIsV2&&!_anyOpCardBuilt&&<>
@@ -5714,7 +5745,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const _reasoning=(_ol&&_ol.reasoning)||''
             const _p6=_sec.p6
             const _p6Built=!!(_p6&&_p6.bridge_story)
-            const _anyBuilt=['p5','p6','p_res','p11'].some(opCardDone)
+            const _anyBuilt=_opAnyBuiltFor(_rec)
             const _renderSection=(key,content)=>{
               if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:16,lineHeight:1.65,color:C.cream,margin:0}}>{renderResumeText(j)}</pre><div style={S.row}><Btn small onClick={()=>downloadResumeWord(j)}><Download size={12}/>Download as Word</Btn></div></div>}
               if(key==='p11')return renderInterviewPrep(content)
@@ -5789,6 +5820,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {_crBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.companyRead.content}/></div></div>}
                 </>,'section-companyRead')
               })()}
+              {/* Inline "All five sections built → Save as PDF" cue. Parallel to
+                  Focus's line ~5430 cue. Fires once every one of p5/p6/p_res/p11/
+                  companyRead has been built; complements the persistent gold
+                  footer with an in-context affordance at the bottom of the
+                  cards block. */}
+              {!isDemo&&_opAllBuiltFor(_rec)&&<div data-print="hide" style={{marginTop:18,padding:'12px 16px',background:`${C.ok}12`,border:`1px solid ${C.ok}40`,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                <div style={{fontSize:15,color:C.ok}}>All five sections built.</div>
+                <Btn small secondary onClick={savePlaybookPdf}><Printer size={11}/>Save as PDF</Btn>
+              </div>}
             </div>
           })()}
           {!isDemo&&<div style={{marginTop:28}}>
@@ -5797,7 +5837,30 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <p style={{fontSize:17,color:C.grayL,lineHeight:1.6,margin:'0 0 14px'}}>This creates a new Opportunity Playbook. Your existing ones stay in My Playbooks.</p>
               <Btn onClick={addNewOpportunity}><Sparkles size={14}/>Add an opportunity</Btn>
             </div>
-          </div>}</>;return opIsV2?<div style={{display:'flex',gap:24,alignItems:'flex-start'}}><PlaybookSectionRail sections={opSections} done={opRailDone} onJump={scrollToOutput} C={C}/><div style={{flex:1,minWidth:0}}>{_body}</div></div>:_body})()}
+          </div>}
+          {/* Hidden assembled-document block for Save as PDF. Always in the DOM
+              when opIsV2 + at least one card is built, hidden on screen via
+              inline display:none, revealed only on paper by .pe-print-opportunity
+              in print.css. Mirrors Focus's .pe-print-playbook (line ~5484) with
+              shared-selector print CSS. Iterates the five op cards in rail
+              order; each card renders via its print-safe transform. */}
+          {opIsV2&&_anyOpCardBuilt&&<div data-print="content" className="pe-print-opportunity" style={{display:'none'}}>
+            <div className="pe-print-head"><div style={{fontSize:13,fontWeight:700,letterSpacing:'1px',color:'#C8924A',textTransform:'uppercase'}}>Reimagine · career.club</div><div style={{fontSize:26,fontWeight:700,fontFamily:'Georgia,serif',color:'#1A2540',marginTop:4}}>{(()=>{const t=(profile.jd||'').split('\n').find(l=>l.trim())||'Your Opportunity Playbook';return t.length>80?t.slice(0,80)+'…':t})()}</div></div>
+            {[{id:'p5',label:'The Role'},{id:'p6',label:'Bridge Story'},{id:'p_res',label:'Resume Refresh'},{id:'p11',label:'Interview Prep'},{id:'companyRead',label:'Company Read'}].filter(c=>opCardDone(c.id)).map(c=>{
+              const card=_opSec[c.id]
+              let body=null
+              if(c.id==='p5')body=<MD text={card.content}/>
+              else if(c.id==='p6')body=<p style={{fontSize:14,lineHeight:1.6,margin:0,whiteSpace:'pre-wrap'}}>{bridgeStoryToProse(card)}</p>
+              else if(c.id==='p_res')body=<pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',margin:0}}>{(()=>{const j=parseResumeJSON(card.content);return j?renderResumeText(j):card.content})()}</pre>
+              else if(c.id==='p11')body=<MD text={interviewPrepToProse(card.content)}/>
+              else if(c.id==='companyRead')body=<MD text={card.content}/>
+              return <section key={c.id} className="pe-print-section">
+                <h2 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>{c.label}</h2>
+                {body}
+              </section>
+            })}
+          </div>}
+          </>;return opIsV2?<div style={{display:'flex',gap:24,alignItems:'flex-start'}}><PlaybookSectionRail sections={opSections} done={opRailDone} onJump={scrollToOutput} C={C}/><div style={{flex:1,minWidth:0}}>{_body}</div></div>:_body})()}
         </>:<>
           {!isDemo&&<p style={S.sub}>When you find a role worth pursuing, bring it here. Paste the job description or upload the PDF. Reimagine creates an Opportunity Playbook scoped to that role with four sections you can build on demand.</p>}
           {!isDemo&&<p style={S.sub}>You'll know whether the role fits the path you chose and where it stretches you. You'll have a Bridge Story tuned to this role, a Resume Refresh aimed at this JD, and Interview Prep with the questions this role is likely to ask and structured answers drawn from your own experience.</p>}

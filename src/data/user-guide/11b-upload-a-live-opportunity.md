@@ -78,6 +78,10 @@ Each opportunity is saved on its own, with whichever sections you have built. Yo
 
 Opportunities you saved before this update keep their original shape: the full ten-section playbook, exactly as you built it, with its own Refine box. Nothing you did is lost. New opportunities you start from here use the four-section shape described above. If you want the four-section shape for an older opportunity, paste its job description again through Add an Opportunity and build the sections you need.
 
+## Save as PDF
+
+When the playbook is complete, Save as PDF builds a polished single-document version you can keep, share, or come back to. The persistent gold footer button appears as soon as one card is built, and an inline cue appears at the bottom of the cards once all five are done. The output is a clean, paged PDF with each section on its own page.
+
 ---
 
 *Next: [Refining and Regenerating Your Results →](12-refining-and-regenerating.md)*
