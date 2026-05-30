@@ -37,6 +37,17 @@ const ROLE_OUTPUT_KEYS = ['p5','p6','p7','p8','p9','p11','p_res','income']
 
 function sectionsBuilt(rec) {
   if (rec.source === 'door2') {
+    // v2 records (cards-only architecture): count built per-card sections out of four.
+    if (rec.schemaVersion === 2 && rec.sections) {
+      const sec = rec.sections
+      const p5  = !!(sec.p5  && sec.p5.content  && sec.p5.content.trim())
+      const p6  = !!(sec.p6  && sec.p6.bridge_story)
+      const pr2 = !!(sec.p_res && sec.p_res.content && sec.p_res.content.trim())
+      const p11 = !!(sec.p11 && sec.p11.content && sec.p11.content.trim())
+      return { built: [p5, p6, pr2, p11].filter(Boolean).length, total: 4 }
+    }
+    // Legacy v1 fallback: preserve the original 1-of-1 formula so older records
+    // (created before the cards-only architecture) read sensibly in the dashboard.
     const op = rec.outputs && rec.outputs.op
     return { built: op && op.length > 0 ? 1 : 0, total: 1 }
   }
