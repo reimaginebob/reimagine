@@ -97,6 +97,16 @@ This is one of the most useful features in the whole tool. Open it in Excel, Goo
 
 A few people keep a "live" version of the CSV that they update as the search progresses, and a separate copy of the original Reimagine output for reference. That works well.
 
+## Company Read
+
+Each company in the list carries a **Company Read** button. Click it for a focused read on that company beyond what you would find on Glassdoor: news from the last 90 days, the employee voice, industry-specific signal (CMS Star Ratings for hospital systems, GitHub cadence for tech, FINRA filings for financial services, and similar by sector), the leadership's public footprint, and watch-outs named honestly. Every numeric or named factual claim cites its source URL inline. The card uses live web search, so it takes roughly 30 to 60 seconds per click.
+
+Company Read is opt-in per company. Reimagine does not bulk-fire it across the list. Click only on the companies you are seriously considering; each Company Read is saved with your Focus Playbook and you can return to it later from My Playbooks. Click **Rebuild Company Read** to refresh against newer signal if the original is more than a few weeks old.
+
+The Company Read complements the company card above it (the What they do / Industry / Size / HQ / Why it fits / Growth signal block), deepening rather than restating that signal. It does not replace your own judgment; it surfaces signal you would not otherwise know to look for, with sources cited so you can verify before you act.
+
+If the Go-to-Market step is still building, the Company Read buttons are disabled until that finishes. Two simultaneous web-search calls against the same backend would slow both. Wait for the company list to finish loading, then click Company Read on the companies that matter.
+
 ## Working with the company list
 
 A few practical notes for using what Reimagine gives you:
