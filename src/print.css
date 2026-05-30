@@ -141,13 +141,18 @@
   }
 
   /* Save Playbook as PDF: the assembled single-role document. Always in the
-     DOM on the focus screen (no mount/print race), hidden on screen via an
-     inline display:none, revealed only on paper here. */
-  .pe-print-playbook {
+     DOM on the focus screen and on the op screen (no mount/print race),
+     hidden on screen via an inline display:none, revealed only on paper here.
+     Shared selector covers both .pe-print-playbook (focus) and
+     .pe-print-opportunity (op); the inner .pe-print-section rules below are
+     already unscoped and apply to descendants of either block. */
+  .pe-print-playbook,
+  .pe-print-opportunity {
     display: block !important;
   }
 
-  .pe-print-playbook .pe-print-head {
+  .pe-print-playbook .pe-print-head,
+  .pe-print-opportunity .pe-print-head {
     border-bottom: 2pt solid #c8924a !important;
     padding-bottom: 8pt !important;
     margin-bottom: 16pt !important;
@@ -188,5 +193,13 @@
   body.printing-bridge-story #bsv-print-root .bsv-no-print {
     display: none !important;
     visibility: hidden !important;
+  }
+
+  /* Defensive: when printing a Bridge Story section, hide the assembled-doc
+     blocks for both focus and op. Without this, visibility:hidden on #root *
+     preserves their layout space, leaking blank pages into the section print. */
+  body.printing-bridge-story .pe-print-playbook,
+  body.printing-bridge-story .pe-print-opportunity {
+    display: none !important;
   }
 }

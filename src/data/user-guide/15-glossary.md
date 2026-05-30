@@ -44,7 +44,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Making Your Own Weather (MYOW).** The book by Bob Goodwin that the Reimagine methodology is built on.
 
-**One-Pager.** A short downloadable PDF summary produced from legacy completed journeys. In v1 the primary takeaway artifact is the Focus Playbook PDF (see Save Playbook as PDF).
+**One-Pager.** A short downloadable PDF summary produced from legacy completed journeys. In v1 the primary takeaway artifacts are the Focus Playbook PDF and the Opportunity Playbook PDF (see Save Playbook as PDF).
 
 **Orientation.** Phase 0 of the journey. The intake phase where you provide your inputs: location, resume, assessment, values, passions, and reputation.
 
