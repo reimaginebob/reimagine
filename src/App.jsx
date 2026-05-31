@@ -3098,15 +3098,15 @@ function SubsectionRefineBox({scopeKey,onSubmit,busy,error,label,placeholder,sub
     </div>}
   </div>
 }
-// Per-question Interview Prep card with chip row + per-question
-// SubsectionRefineBox affordance (PR-B 2026-05-30). Behavioral questions only;
-// non_behavioral questions get neither the chips nor the box. Each chip pre-
-// fills the textarea with that STAR sub-section's to_strengthen text; clicking
-// the same chip twice re-applies via presetNonce. onRegenerateQuestion is wired
-// to regenerateP11Question (Focus) or regenerateOpP11Question (op).
+// Per-question Interview Prep card with per-question SubsectionRefineBox
+// affordance (PR-B 2026-05-30; chip row removed 2026-05-30). Behavioral
+// questions only; non_behavioral questions get the framing_recommendation but
+// no refine box. The inline to_strengthen advice already renders under each
+// S/T/A/R sub-section above, so the box stands on its own — the user reads
+// the advice in plain prose and types whatever correction they want.
+// onRegenerateQuestion is wired to regenerateP11Question (Focus) or
+// regenerateOpP11Question (op).
 function InterviewPrepQuestion({q,qi,lbl,fwList,onRegenerateQuestion,regeneratingQuestionIdx,questionErrors}){
-  const[preset,setPreset]=useState({text:'',nonce:0})
-  const applyChip=(text)=>{if(typeof text==='string'&&text.trim())setPreset({text:text.trim(),nonce:Date.now()})}
   const isBehavioral=q.type==='behavioral'&&q.star_breakdown
   const busy=regeneratingQuestionIdx===qi
   const err=questionErrors&&questionErrors[qi]
@@ -3122,13 +3122,7 @@ function InterviewPrepQuestion({q,qi,lbl,fwList,onRegenerateQuestion,regeneratin
         <div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>To strengthen:</em> {sec.to_strengthen}</div>
       </div>})}
       <div style={{marginTop:14,fontSize:15,color:C.gray,fontStyle:'italic'}}>Drill down to develop the full story from these bones, in your voice.</div>
-      {canRefine&&<div data-print="hide" style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
-        <div style={{fontSize:13,color:C.gray,marginBottom:8,letterSpacing:'0.3px'}}>Click a STAR sub-section below to pre-fill your refinement note, or write your own:</div>
-        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:6}}>
-          {['S','T','A','R'].map(k=>{const sec=q.star_breakdown[k];if(!sec||typeof sec.to_strengthen!=='string'||!sec.to_strengthen.trim())return null;const preview=sec.to_strengthen.length>72?sec.to_strengthen.slice(0,72).trim()+'…':sec.to_strengthen;return <button key={k} onClick={()=>applyChip(k+' - '+lbl[k]+': '+sec.to_strengthen)} style={{background:'transparent',border:`1px solid ${C.border}`,borderRadius:999,padding:'4px 10px',fontFamily:'inherit',fontSize:13,color:C.cream,cursor:'pointer',maxWidth:'100%',textAlign:'left',lineHeight:1.4}} title={'Pre-fill from '+lbl[k]+' suggestion'}><span style={{fontWeight:700,color:C.goldL,marginRight:6}}>{k}</span><span style={{color:C.gray}}>{preview}</span></button>})}
-        </div>
-        <SubsectionRefineBox scopeKey={q.id||qi} onSubmit={(text)=>onRegenerateQuestion(qi,text)} busy={busy} error={err} label="Tell us what to refine here." placeholder="For example: Lead the Action with the specific framework you used, not the outcome." submitLabel="Regenerate this answer" helperText="Only this answer changes. The other questions stay." presetText={preset.text} presetNonce={preset.nonce}/>
-      </div>}
+      {canRefine&&<SubsectionRefineBox scopeKey={q.id||qi} onSubmit={(text)=>onRegenerateQuestion(qi,text)} busy={busy} error={err} label="Tell us what to refine here." placeholder="For example: Lead the Action with the specific framework you used, not the outcome." submitLabel="Regenerate this answer" helperText="Only this answer changes. The other questions stay."/>}
     </>:<div style={{fontSize:17,color:C.cream,lineHeight:1.65,marginTop:6}}>{q.framing_recommendation}</div>}
   </div>
 }
