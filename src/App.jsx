@@ -2530,6 +2530,11 @@ const STEP_DISPLAY_NAMES = {
   p10: 'Interview Prep',
   p11: 'Interview Prep',
   income: 'Income Now',
+  // companyRead added with PR-A op-card-refinebox brief 2026-05-30: the new
+  // refineOpCard('companyRead', ...) path writes corrections via
+  // recordCorrection, and correctionsBlock renders the step name to the model.
+  // Without this mapping the model would see the literal "companyRead".
+  companyRead: 'About This Company',
 }
 
 // Apps Script web app deployment URL for corrections logging.
@@ -3281,7 +3286,14 @@ function WidenCareerOptions({lane,prevTitles,onSubmit,disabled}){
     </div>}
   </div>
 }
-function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel}){
+// RefineBox: whole-output refinement affordance, gold-bordered banner. The
+// onlyUpdateButton prop (PR-A op-card-refinebox brief 2026-05-30) suppresses
+// the "Start fresh (no correction)" button on consumers where a separate
+// head-row Rebuild affordance already covers the clean-slate regen path —
+// specifically the four op v2 cards (Role, Resume Refresh, Interview Prep,
+// About This Company). Default false preserves existing behavior for the
+// Focus per-section, Personal Brand, and op v1 consumers.
+function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel,onlyUpdateButton}){
   const[open,setOpen]=useState(false)
   return <div data-print="hide" style={{marginTop:28,marginBottom:28,border:`2px solid ${C.gold}`,borderRadius:12,overflow:'hidden',background:`${C.gold}10`}}>
     <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
@@ -3300,7 +3312,7 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
       <div style={S.helperText}>{hasSpeech?'Tip: Tap the microphone to speak, or type. ':''}This is for factual corrections too. If we got something wrong about your experience, your role, or how we read it, tell us. Corrections will apply to future regenerations of other sections as well.</div>
       <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
         <Btn onClick={()=>{setOpen(false);onRegenerate(value)}}><RotateCcw size={13}/>{updateLabel||'Update with my correction'}</Btn>
-        <Btn secondary onClick={()=>{onChange('');setOpen(false);onRegenerate('')}}><RotateCcw size={13}/>{freshLabel||'Start fresh (no correction)'}</Btn>
+        {!onlyUpdateButton&&<Btn secondary onClick={()=>{onChange('');setOpen(false);onRegenerate('')}}><RotateCcw size={13}/>{freshLabel||'Start fresh (no correction)'}</Btn>}
       </div>
     </div>}
   </div>
@@ -3499,7 +3511,7 @@ export default function PivotEngine(){
   const contentColumnRef=useRef(null)
   const[demoIdx,setDemoIdx]=useState(0)
   const[activeTab,setActiveTab]=useState(0)
-  const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''})
+  const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:'',companyRead:''})
   const setFb=(k,v)=>setFeedback(f=>({...f,[k]:v}))
   const[loading,setLoading]=useState(false)
   const[loadMsg,setLoadMsg]=useState('')
@@ -4311,7 +4323,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // already carry a value keep it (no migration); new records simply do
     // not populate it. The Company Read module pulls employee-voice signal
     // automatically via web search + the industry rubric.
-    return{id,title,lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:{bridge_story:null,user_picks:null,user_freeform:'',builtAt:null},p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}}}
+    // feedback per-card extension (PR-A op-card-refinebox brief 2026-05-30):
+    // each per-card RefineBox writes the user's last correction text into
+    // record.feedback[cardKey] so a restored door2 record rehydrates the
+    // textarea contents. p6 carries the slot's correction context separately;
+    // the p6 slot is included here for symmetry but the per-slot regen path
+    // (SlotRegenerateBox + regenerateOpP6Slot) does not read from it.
+    return{id,title,lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||'',p5:feedback.p5||'',p6:feedback.p6||'',p_res:feedback.p_res||'',p11:feedback.p11||'',companyRead:feedback.companyRead||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:{bridge_story:null,user_picks:null,user_freeform:'',builtAt:null},p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}}}
   }
   const saveCurrentDoor1=(currentKey,currentR)=>{
     const id=newSavedId()
@@ -4378,7 +4396,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // setSavedPlaybooks but not yet committed into the savedPlaybooks closure
   // generateOpSection captures. Empty string is a valid value (per-card prompts
   // handle it via their lane-neutral JD-driven fallback string).
-  const generateOpSection=async(key,laneOverride)=>{
+  // correctionText (PR-A op-card-refinebox brief 2026-05-30): when present and
+  // non-empty, append the Focus-verbatim "NEW CORRECTION FROM THIS SECTION"
+  // tail to the per-card prompt. Build and Rebuild paths pass undefined; only
+  // refineOpCard passes a correction. Existing call sites at App.jsx:5869
+  // (Rebuild) and App.jsx:4464 (auto-build) pass two or fewer args and are
+  // backward-compatible without modification.
+  const generateOpSection=async(key,laneOverride,correctionText)=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||opSectionBuilding)return
     const jd=(profile.jd||'').trim()
@@ -4386,7 +4410,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setOpSectionBuilding(key);setOpSectionErrors(e=>({...e,[key]:null}))
     const reqId=++opSectionReqRef.current
     try{
-      const rec0=savedPlaybooks.find(r=>r.id===slotId);const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&rec0.sections.p6.bridge_story)?rec0.sections.p6:outputs.p6;const opOuts={...outputs,p6:opP6};const lv=(typeof laneOverride==='string')?laneOverride:opLaneValue(rec0);const fn=()=>correctionsBlock(profile.corrections)+(key==='p5'?P.p5(pc,opOuts,chosen,'',jd,lv):key==='p_res'?P.p_res(pc,opOuts,chosen,jd):P.p11(pc,opOuts,chosen,jd,lv))
+      const rec0=savedPlaybooks.find(r=>r.id===slotId);const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&rec0.sections.p6.bridge_story)?rec0.sections.p6:outputs.p6;const opOuts={...outputs,p6:opP6};const lv=(typeof laneOverride==='string')?laneOverride:opLaneValue(rec0);const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:'';const fn=()=>correctionsBlock(profile.corrections)+(key==='p5'?P.p5(pc,opOuts,chosen,'',jd,lv):key==='p_res'?P.p_res(pc,opOuts,chosen,jd):P.p11(pc,opOuts,chosen,jd,lv))+corrTail
       const opts=key==='p11'?{maxTokens:8000}:{maxTokens:5000}
       const r=await callClaudeWithVoiceGate(fn,opts,{step:key,onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
@@ -4521,7 +4545,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // Output writes to rec.sections.companyRead.content (symmetric with the other
   // four op cards). Voice gate routes through Phase 4 (citation + fabrication
   // detectors) via meta.step==='op-company-read'.
-  const generateOpCompanyRead=async()=>{
+  // correctionText (PR-A op-card-refinebox brief 2026-05-30): when present and
+  // non-empty, append the Focus-verbatim "NEW CORRECTION FROM THIS SECTION"
+  // tail to the prompt. Only refineOpCard passes a value; the Build/Rebuild
+  // call sites (App.jsx:5897 in the About This Company card head) pass nothing.
+  const generateOpCompanyRead=async(correctionText)=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||opSectionBuilding)return
     const jd=(profile.jd||'').trim()
@@ -4537,10 +4565,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const companyName=(jd.split('\n').find(l=>l.trim())||'').trim().slice(0,100)
       const lv=opLaneValue(rec0)
       const laneLabel=lv?OP_LANE_LABELS[lv]:''
+      const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
       // userInput / companyReadInput is gone post-rename-and-prominence PR; the
       // module pulls employee-voice signal automatically via web search + the
       // industry rubric. P.companyRead's signature dropped the userInput param.
-      const fn=()=>correctionsBlock(profile.corrections)+P.companyRead(jd,foundation,companyName,industry,rubricText,laneLabel)
+      const fn=()=>correctionsBlock(profile.corrections)+P.companyRead(jd,foundation,companyName,industry,rubricText,laneLabel)+corrTail
       const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:4000},{step:'op-company-read',onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       setSavedPlaybooks(prev=>prev.map(rec=>{
@@ -4554,6 +4583,23 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,companyRead:e.message||'Generation failed. Try again.'}))
     }finally{
       if(reqId===opSectionReqRef.current)setOpSectionBuilding(null)
+    }
+  }
+  // refineOpCard (PR-A op-card-refinebox brief 2026-05-30): op-side mirror of
+  // refineSec (defined in the Focus render IIFE). Routes p5 / p_res / p11
+  // through generateOpSection (with the new correctionText param) and
+  // companyRead through generateOpCompanyRead. p6 is out of scope — the
+  // per-slot SlotRegenerateBox + regenerateOpP6Slot path already covers Bridge
+  // Story refinement at a finer scope. recordCorrection writes to the global
+  // profile.corrections store; matches Focus per-section refine behavior
+  // (corrections carry forward across all future generations).
+  const refineOpCard=(cardKey,correctionText)=>{
+    if(cardKey==='p6')return
+    recordCorrection(cardKey,correctionText)
+    if(cardKey==='companyRead'){
+      generateOpCompanyRead(correctionText)
+    }else{
+      generateOpSection(cardKey,undefined,correctionText)
     }
   }
   // Company Read on the Focus -> Go-to-Market surface (PR-2). Fires
@@ -4718,6 +4764,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const u={...f}
       for(const k of ROLE_SUBMODULES)u[k]=(rec.feedback&&rec.feedback[k])||''
       if(rec.source==='door2')u.op=(rec.feedback&&rec.feedback.op)||''
+      // companyRead is door2-only and intentionally outside ROLE_SUBMODULES
+      // (which is read at four other sites with cross-cutting effects). Explicit
+      // per-card hydration here keeps the op About This Company card's RefineBox
+      // textarea repopulated after a restore. PR-A op-card-refinebox brief 2026-05-30.
+      if(rec.source==='door2')u.companyRead=(rec.feedback&&rec.feedback.companyRead)||''
       return u
     })
     setChosen(rec.title)
@@ -5869,6 +5920,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 {_head(label,sub,built,()=>generateOpSection(key),busy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                 {opSectionErrors[key]&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors[key]}/></div>}
                 {built&&<div style={{marginTop:14}}>{_renderSection(key,_sec[key].content)}</div>}
+                {/* PR-A op-card-refinebox brief 2026-05-30: per-card RefineBox
+                    mounts inside _cardWrap after the rendered content. Gated on
+                    built && !isDemo. onlyUpdateButton suppresses "Start fresh"
+                    because the head-row Rebuild button already covers that path. */}
+                {built&&!isDemo&&<RefineBox value={feedback[key]||''} onChange={v=>setFb(key,v)} hint="Tell us what to refine on this card. Your existing card stays as-is until you submit." onRegenerate={v=>refineOpCard(key,v)} onlyUpdateButton={true}/>}
               </>,'section-'+key)
             }
             const _busyP6=opSectionBuilding==='p6'
@@ -5897,6 +5953,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {_head('About This Company','A read on the company beyond Glassdoor: industry-specific signal, leadership footprint, and watch-outs from the last 90 days.',_crBuilt,()=>generateOpCompanyRead(),_crBusy?'Building…':_crBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                   {opSectionErrors.companyRead&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.companyRead}/></div>}
                   {_crBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.companyRead.content}/></div></div>}
+                  {/* PR-A op-card-refinebox brief 2026-05-30: per-card RefineBox.
+                      onlyUpdateButton suppresses "Start fresh" — the head-row
+                      Rebuild button already covers the clean-slate regen path. */}
+                  {_crBuilt&&!isDemo&&<RefineBox value={feedback.companyRead||''} onChange={v=>setFb('companyRead',v)} hint="Tell us what to refine on this card. Your existing card stays as-is until you submit." onRegenerate={v=>refineOpCard('companyRead',v)} onlyUpdateButton={true}/>}
                 </>,'section-companyRead')
               })()}
               {/* Inline "All five sections built → Save as PDF" cue. Parallel to
