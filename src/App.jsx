@@ -1033,6 +1033,60 @@ function extractSlotStrings(slot){
   if(slot.diagnostic){if(slot.diagnostic.what_your_inputs_support)acc.push(slot.diagnostic.what_your_inputs_support);if(slot.diagnostic.what_would_strengthen_it)acc.push(slot.diagnostic.what_would_strengthen_it)}
   return acc.join(String.fromCharCode(10))
 }
+// Mirrors parseP6SlotJSON: tolerates raw, fenced, or { question: {...} }-wrapped
+// JSON; returns the validated single-question object on success, null on
+// failure. expectedType (optional) enforces the regenerated question keeps the
+// same type as the original — a behavioral question must come back behavioral
+// with a full STAR breakdown; a non_behavioral question must come back with a
+// framing_recommendation. Same null-on-failure contract as parseP6SlotJSON.
+function parseP11QuestionJSON(raw,expectedType){
+  if(!raw||typeof raw!=='string')return null
+  let s=raw.trim()
+  const fence=s.match(/^```(?:json)?\s*([\s\S]*?)```\s*$/);if(fence)s=fence[1].trim()
+  const first=s.indexOf('{'),last=s.lastIndexOf('}')
+  if(first===-1||last===-1||last<first)return null
+  let obj;try{obj=JSON.parse(s.slice(first,last+1))}catch{return null}
+  let q=null
+  if(obj&&typeof obj.question==='object'&&obj.question!==null)q=obj.question
+  else if(obj&&typeof obj.id==='string'&&typeof obj.question==='string')q=obj
+  if(!q||typeof q!=='object')return null
+  const okStr=v=>typeof v==='string'&&v.trim().length>0
+  if(!okStr(q.id)||!okStr(q.question))return null
+  if(q.type!=='behavioral'&&q.type!=='non_behavioral')return null
+  if(expectedType&&q.type!==expectedType)return null
+  if(!(q.framework_thread===null||typeof q.framework_thread==='string'))return null
+  if(q.type==='behavioral'){
+    const sb=q.star_breakdown
+    if(!sb||typeof sb!=='object')return null
+    const okStarSec=x=>x&&typeof x==='object'&&okStr(x.raw_material)&&okStr(x.to_strengthen)
+    if(!sb.S||typeof sb.S!=='object'||!okStr(sb.S.raw_material)||!okStr(sb.S.relevance_bridge_draft)||!okStr(sb.S.to_strengthen))return null
+    if(!okStarSec(sb.T)||!okStarSec(sb.A)||!okStarSec(sb.R))return null
+  }else{
+    if(!okStr(q.framing_recommendation))return null
+  }
+  return q
+}
+// Strings the per-question regen voice gate scans: question prompt + framework
+// thread + STAR breakdown sub-fields (raw_material, relevance_bridge_draft,
+// to_strengthen) or framing_recommendation for non_behavioral.
+function extractP11QuestionStrings(q){
+  if(!q||typeof q!=='object')return ''
+  const acc=[]
+  if(typeof q.question==='string')acc.push(q.question)
+  if(typeof q.framework_thread==='string'&&q.framework_thread.trim())acc.push(q.framework_thread)
+  if(q.type==='behavioral'&&q.star_breakdown){
+    const sb=q.star_breakdown
+    ;['S','T','A','R'].forEach(k=>{
+      const sec=sb[k];if(!sec)return
+      if(typeof sec.raw_material==='string')acc.push(sec.raw_material)
+      if(typeof sec.relevance_bridge_draft==='string')acc.push(sec.relevance_bridge_draft)
+      if(typeof sec.to_strengthen==='string')acc.push(sec.to_strengthen)
+    })
+  }else if(q.type==='non_behavioral'&&typeof q.framing_recommendation==='string'){
+    acc.push(q.framing_recommendation)
+  }
+  return acc.join(String.fromCharCode(10))
+}
 // Strings the runtime voice gate scans for p6: 9 option texts + 6 diagnostic strings.
 function extractBridgeStoryStrings(bs){
   if(!bs||typeof bs!=='object')return ''
@@ -2044,6 +2098,7 @@ A short bullet may appear under a card ONLY when a specific role-context interse
   income:(pr,outs,sel)=>`You are building an Income Now plan for this professional. They are pursuing: **${sel}** as their longer-term goal and need income during the transition.\n\nEPISTEMIC CALIBRATION (load-bearing across this output):\n\nEvery interpretive claim about the user is a HYPOTHESIS by default, expressed in directional language. Declarative claims are EARNED ONLY when the supporting evidence is named in the same paragraph as the claim. Hedge by default; go declarative when evidence is on the page; refuse declarative when it is not.\n\nDIRECTIONAL PHRASES to reach for (use varied vocabulary; do not repeat any single phrase across the output):\n"There is a pattern that seems to indicate," "this may suggest," "often correlates with," "tends to signal," "we see a pattern of," "this points toward," "it appears that," "you seem to," "on more than one occasion," "the pattern often involves," "this looks like."\n\nEARNED DECLARATIVE : three cases where declarative is appropriate:\n\n(a) Explicit assessment signal named in the output, INCLUDING THE ASSESSMENT NAME (CliftonStrengths, Predictive Index, Big Five, Affintus, MBTI, etc.) in the same sentence or the immediately preceding sentence. Example: "Your CliftonStrengths shows Strategic in your top 5, which means you naturally see patterns others miss." The "which means" is declarative because BOTH the assessment name AND the construct are present. Refuse: "High openness to experience means you prefer a job that requires you to create solutions" (construct named, source instrument not named). Either name the instrument or rewrite into hypothesis voice ("this looks like high openness, which often points toward...").\n\n(b) Verbatim user-input quoted in the output. Example: 'You wrote in orientation that you "want to build things that matter to people who do not have a voice." That conviction shapes the function choices below.' Declarative because the quote is right there.\n\n(c) Named triangulation across 2-3 specific inputs the output lists. Example: 'In orientation you described the work as "designing the question." Your reputation note named "methodology under ambiguity." Your Apple accomplishment built measurement protocols for a product that did not yet exist. Three sources, the same operational move: you build the research question before you answer it.' The closing declarative is earned because three sources are named in the same chunk.\n\nREFUSE these specific overclaim patterns:\n\n1. ABSOLUTISM IN INTERPRETIVE CLAIMS:\n- "Every [noun] you have [verb]" / "every major program" / "every role" / "every time"\n- "Always" / "never" / "the hardest" / "the most X" / "the only Y"\n- "You have spent your career [verb]-ing" : life-arc framing presented as fact\n\nIf the claim depends on a pattern across the career, name the specific career moments the pattern is drawn from. Do not collapse to "every".\n\n2. MIND-READING (attributing internal motivation):\n- "by [verb]-ing X" claiming internal motivation ("by refusing to," "by choosing to," "by caring about")\n- "your conviction that [X]" / "your mission is [X]" / "you believe [X]"\n\nRefuse unless the [X] is directly quoted from the user's verbatim inputs (orientation answers, reputation phrases, values text). Reading minds is not analysis.\n\n3. SLOGAN-CADENCE CLOSERS:\n- Paired declarative sentences in "The X is the Y. The Z is the W." cadence\n- "X is the engine. Y is the fuel."\n- Inspirational-poster paired sentences\n\nThese read as marketing copy, not analysis. Refuse the cadence regardless of whether the content is otherwise accurate.\n\nA runtime gate will scan shipped output for these constructions and force regeneration when detected. Output that contains them will not reach the user.\n\nTRANSLATION NOT PRAISE (load-bearing across this output):\n\nEvery interpretive claim about the user is a TRANSLATION move, not a CHARACTERIZATION. Translation tells the user where their capability transfers to a context they have not been in. Characterization tells them what trait they have, which they already know.\n\nThe user comes to Reimagine already feeling capable. Telling them "you bring rigor to applied problems" or "you are an operator" or "you handle ambiguity well" is praise-shaped: reflection without new information. They feel acknowledged but learn nothing. The value-add Reimagine provides is showing them where their capability transfers, which contexts they have not been in would reward this exact move.\n\nFor every interpretive sentence:\n- Refuse "you bring X to Y." Rewrite as "this transfers to [specific other contexts where the move is rare or valuable]."\n- Refuse "you are an X." Rewrite as "the operational move you made, [specific], works the same way in [specific other contexts]."\n- Refuse trait-noun characterizations (rigorous, operator, builder, integrator, connector, hunter, farmer, architect, fixer, closer, etc.). These also violate the existing NO TYPOLOGY LABELS rule.\n- Anchor every translation in a specific operational move the user actually made, not a trait inferred from inputs.\n\nNEVER assert relative standing against unnamed groups. "Most people," "many candidates," "the average professional," "most hiring managers do not see X," "where others settle for X" are all forbidden. The user gets compared to no one. The voice guard catches some of these; the rule is broader than the guard.\n\nFailure cases to refuse:\n- "You bring academic rigor to applied problems." (characterization, no translation)\n- "You can isolate causality in messy environments where most people settle for correlation." (characterization plus comparative standing)\n- "You are a connector." (typology trait, also covered by NO TYPOLOGY LABELS)\n- "You sustain the intensity required to get to yes." (already refused by EVIDENCE-BASED CONFIDENCE; same failure mode)\n\nSuccess cases:\n- "Where this transfers: you can design and run a multi-year protocol where measurement methodology has to hold across time and conditions. That maps to long-horizon product experiments, regulatory submissions, and longitudinal customer research."\n- "The operational move: you sequenced the rollout across thirty-eight markets while protecting the margin in each. That works the same way in any multi-region launch where local economics differ."\n- "What this signals to a hiring manager in [different domain]: someone who has run [specific operational pattern] in conditions [different domain] usually does not have."\n\nTest for every interpretive sentence: does this tell the user something they could only know if they imagined themselves in a context they have not been in? If yes, it is translation. If it tells them something about themselves they already feel, it is praise.\n\nSURFACE THE INSIGHT (load-bearing across this output):\n\nEvery interpretive chunk in this output uses visual hierarchy so a 7-second scan catches the salient insight. The user scans before they read. An insight buried mid-paragraph is a missed insight.\n\nFor every pattern, observation, capability, fit-read, story-piece, or other interpretive unit in this output:\n\n- Lead with a BOLDED HEADLINE of 5 to 12 words that names the insight in plain language. The headline carries the translation move (per TRANSLATION NOT PRAISE rule) when applicable. Plain language, no hedging language in the headline itself.\n- Follow with 1 to 3 short sentences of supporting prose that anchor the headline in the specific evidence from the user's inputs.\n- Refuse wall-of-text paragraph output where the insight is buried mid-sentence or at the end of a long prose block.\n- Use bullets, indented callouts, or numbered lists when the content is genuinely list-shaped. Refuse prose-shaped output that is actually a list pretending to be a paragraph.\n\nThe visual structure is part of the deliverable, not decoration. A correctly-shaped analytical chunk:\n\n**You define research practice where none exists yet.**\nVR consumer experiences, AI-assisted search, computational photography. A decade of work where the research question itself is ambiguous. This pattern of choosing pre-playbook problems transfers to any space where the product category is still forming and the research function has to be built alongside it.\n\nThe same content as a wall-of-text paragraph is a failure:\n\n"Your career shows a consistent pattern of choosing the hardest research problems: the products that do not exist yet, the user behaviors that are emerging in real time, the questions where there is no playbook. From VR consumer experiences to AI-assisted search to computational photography, you have spent the last decade in spaces where the research question itself is ambiguous. Patterns like this often signal intellectual restlessness and a preference for operating at the edge of what is known. You are defining what the research practice should be for a product category that is still forming."\n\nSame insight. The structured version scans; the prose version buries. Always produce the structured version.\n\nThis rule applies to every section that produces interpretive content. Sections that are inherently single-sentence (the Golden Thread of P.p3, the Personal Brand statement of P.p3) are exempt because they are themselves the headline. Sections that produce structured deliverables already (STAR stories, company lists, interview questions) follow their existing structure.\n\nPROFILE: ${asText(outs.p1)}\n${asText(outs.p2)}\n${asText(outs.p3)}\n${buildSynthesisContext(outs.p3_structured)}\nLINKEDIN REMIX: ${asText(outs.p8)}\nPASSIONS: ${pr.passions}\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\n\nRAW SIGNALS (this person's own words from orientation, do not paraphrase back to them):\nVALUES: ${pr.values||'not provided'}\nPASSIONS AND CAUSES: ${pr.passions||'not provided'}\nPRAISE THEY RECEIVE: ${pr.rep.memory||'not provided'}\nWHO CALLS THEM IN EMERGENCY: ${pr.rep.emergency||'not provided'}\nHOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${pr.rep.twoWords||'not provided'}\nOTHER REPUTATION DATA: ${pr.rep.other||'not provided'}\nLIFE-SHAPING EXPERIENCES: ${pr.lifeEvents||'not provided'}\nVALIDATED HARD SKILLS:\n${formatSkills(pr.skills)}\nASSESSMENT TYPE: ${pr.assessType||'not provided'}\nASSESSMENT NOTES: ${pr.assess||'not provided'}\n\nThese raw signals are the strongest input for Personality, Passion, and identity grounding. When you need to ground a claim about who this person is or what they care about, reach for verbatim phrases from these signals rather than paraphrasing through the synthesized profile.\n\nUSE THE STRONGEST GROUNDING SOURCE AVAILABLE. When raw signals point to a specific assessment finding, a verbatim reputation phrase, a named passion, or a specific formative life pattern, lead with that. Defaulting to the safer professional-only proof is a failure mode.\n\nSTART your response with:\n## QUICK TAKEAWAY\n4-5 sentences: the fastest path to income for this person, the single best platform to start on and why, a realistic rate range, and the one thing to do in the next 48 hours. Plain language, no headers inside this section.\n\nThen continue with the full plan:\n\nFRAMING: Income Now lives in Familiar Ground, the senior, modernized version of what this person already does well. They do not need to reinvent themselves. They need to package what they know and make it easy for buyers to find and hire them quickly.\n\nPITCH PRINCIPLE: People buy painkillers, not vitamins. They act when something is hurting. Every service description and outreach message should name a real problem the buyer is living with right now. Lead with the pain. Follow with how this person fixes it. Close with what it costs. The buyer does not care about titles or tenure. They care whether their problem goes away.\n\n**PART 1, WHERE TO SHOW UP:** Based on their specific background, identify 4-6 marketplaces and channels where this person can get in front of paying clients quickly. Think beyond the obvious. There are specialist platforms for nearly every senior function. Match these to their actual background.\n\nExamples by function: HR/talent/people leader: Catalant, Business Talent Group, Bolste, Learnerbly. Finance executive: Toptal Finance, Graphite, CFO Alliance, Paro. Tech/product executive: Toptal, Arc, Expert360, Gun.io. Marketing/brand/growth: GrowthMentor, Credo, Mayple, Expert360. Strategy/general management: Catalant, Business Talent Group, Umbrex. Sales/revenue leader: Bravado, Toptal, Sales Talent Agency. Board-ready executive: Boardlist, OnBoard, Bolste. Career/coaching/talent development: Coach.me, Clarity.fm, Maven, LinkedIn Services, direct outreach.\n\nFor each: platform name, why it fits this specific person, type of work available, realistic rate range, and the single first step to get listed or active.\n\n**PART 2, YOUR CONSULTING PRESENCE:** Write ready-to-use copy this person can use across any of the platforms above or in direct outreach. Everything should be framed around buyer pain, not seller biography.\n\n- Positioning headline (under 100 characters, names the problem, not the person's background)\n- Bio (150 words, first person, opens with the pain the buyer has, closes with a specific outcome this person has delivered)\n- 4 specific service offerings. For each: a problem-first title (e.g. "When your best people are leaving and you don't know why" not "Retention Consulting"), the specific buyer, what the engagement includes, the outcome framed as money made/saved/risk removed, and price at senior market rates ($300-$500/hour advisory, $1,000-$3,000 for a defined deliverable, $4,000-$10,000 for a strategic engagement)\n- One outreach message: sentence 1 names the pain, sentences 2-3 connect one specific result from their background to that pain, sentence 4 asks for 15 minutes as a peer conversation. Plain language. No buzzwords.\n\n**PART 3, FRACTIONAL PITCH:** One paragraph for cold LinkedIn or email. Same pain-first structure. Names the business problem, explains how they fix it, states cost and how to engage.\n\n**PART 4, GIGS AT THE PASSION INTERSECTION (TWO SLICES):**\n\n**Slice A, Income-First.** 3 specific engagements at the intersection of the candidate's current skills and stated passions that could generate income within 60 days. For each: the service, the buyer, why this person is credible to them, price, and one action to take this week.\n\nFor each Slice A engagement, name a specific buyer TYPE, not just a service category. Buyer specificity is what turns a passion-adjacent idea into something the candidate can pursue in the next 60 days.\n\nExamples of the move from category to buyer:\n\nCATEGORY ONLY (insufficient): "Advisory work for purpose-driven CPG brands."\nSPECIFIC BUYER (right): "Advisory work for emerging functional-food brands in the $5M to $25M revenue band, specifically those backed by impact-focused funds like Acumen Fund Partners or Beneficial Returns. These funds need operating advice from someone who has scaled in CPG without dilution of mission."\n\nCATEGORY ONLY (insufficient): "Consulting for nonprofit boards in healthcare."\nSPECIFIC BUYER (right): "Fractional commercial advisor to community health center networks at the $20M to $100M revenue scale, particularly FQHCs in mid-size markets that have grown beyond grant funding and need commercial discipline. The Vital Roots Network is one example; the candidate's stated passion for accessible healthcare connects directly."\n\nFor each Slice A engagement:\n- Name the buyer specifically (organization type, revenue band, geography or vertical if relevant, named examples if known).\n- Name why this person is credible to THAT buyer (which professional capability transfers and which passion connects).\n- Price and one action to take this week.\n\nIf the candidate's stated passions point to a buyer type that requires specific credentials or networks they do not have (e.g., they care about climate but have no climate experience), name what would need to be added to make this passion-adjacent path viable rather than listing it as immediately actionable.\n\n**Slice B, Evidence-First.** 2 to 3 engagements at the intersection of MISSING skills and the candidate's pr.passions. The goal of Slice B is to build the gap skills the LinkedIn Remix Skills Delta surfaced. Volunteer engagements sit on equal footing with paid gigs in this slice; for an unproven skill, volunteer is often the faster path to evidence.\n\nIf LINKEDIN REMIX (outs.p8) is present in the PROFILE block above, read the development-area skills from List 4 of the Skills Delta. If outs.p8 is absent (the candidate came to Income Now before generating LinkedIn Remix), infer gap skills from ${sel} versus outs.p1, with explicitly lower confidence in the framing.\n\nFor each Slice B engagement:\n- The org type, or two to three specific organizations aligned with the causes side of pr.passions.\n- The missing skill it builds, named explicitly.\n- The deliverable that produces real evidence (a campaign, a project, a measurable outcome).\n- Where the experience lives on LinkedIn (Experience or Volunteer Experience section).\n- Timeline to first evidence, 30 to 90 days.\n- First step to engage this week.\n\nFrame Slice B as a choice the candidate makes to close a gap by doing real work. Volunteer is one valid path, paid gig is another; both produce evidence.\n\n**PART 5, THE ONE SHEET:** Problem-first throughout. Sections: The Problem I Solve (2 sentences), How I Help (3 service bullets with prices), Who I Work With, What Happens When We Work Together (2-3 outcomes as made money/saved money/mitigated risk), How to Start (rates, availability, contact).\n\n**PART 6, FIRST 48 HOURS:** Exactly what to do in the next two days to have a profile live or an outreach message sent. Specific steps only.\n\nTone: direct and practical. Write everything as if it will be used today.`,
   skillsExtract:(pr)=>`You are extracting structured hard skills from a candidate's resume and LinkedIn profile. Output ONLY a JSON object matching the schema below. No prose. No preamble. No markdown fence.\n\nSchema:\n{\n  "technical": [string],\n  "systems": [string],\n  "certifications": [string],\n  "languages": [string],\n  "methodologies": [string]\n}\n\nCategory definitions:\n- technical: Hard tools, software, programming languages, design tools, analytics tools. Examples: Excel, Python, SQL, Tableau, Figma, Adobe Creative Suite.\n- systems: ERP, CRM, billing, HRIS, industry platforms. Examples: Salesforce, SAP, Workday, Epic, NetSuite, ServiceNow.\n- certifications: Named credentials. Examples: PMP, CFA, CPA, AWS Solutions Architect, Six Sigma Black Belt, ScrumMaster, SHRM-CP.\n- languages: Spoken or written languages with fluency level when stated. Examples: "Spanish (fluent)", "Mandarin (conversational)".\n- methodologies: Named frameworks, processes, or approaches. Examples: Agile, Lean, Design Thinking, OKRs, RICE prioritization, JTBD.\n\nRules:\n- Extract only skills the candidate explicitly demonstrates in the documents below. Do not infer.\n- Use the candidate's own terminology where it is clear; normalize obvious variants (e.g., "MS Excel" and "Microsoft Excel" both become "Excel").\n- Skip skills that are too vague to be useful as keywords ("leadership", "communication", "problem solving"). Those belong in Personality and Wiring outputs, not the hard skills inventory.\n- If a category has no entries, return an empty array for that category. Do not omit the key.\n- Maximum 12 entries per category. If more are present, prioritize the most recent and most explicitly demonstrated.\n- Certifications are PROFESSIONAL CREDENTIALS only. Examples: PMP, CFA, CPA, SHRM-SCP, Workday HCM Certified, AWS Solutions Architect, Six Sigma Black Belt, ScrumMaster, board certifications, state licenses. The following are NOT certifications and must NEVER appear in this category:\n  - Academic degrees (MBA, BA, BS, MS, MA, PhD, JD, EdD)\n  - University-issued certificates of completion or continuing education (e.g., "Certificate in Multi-Media Technologies," "Masters Certificate in Leadership")\n  - Executive education programs from named business schools (Wharton, MIT Sloan, Harvard Business School, Stanford GSB, Kellogg, etc.) regardless of how the candidate phrases them\n- Languages: extract only languages explicitly named in the documents with stated fluency or context. If no language is explicitly named, return an empty array. Do NOT add "English" by inference from the candidate's location or document language.\n- Methodologies are INDUSTRY-RECOGNIZED FRAMEWORKS with proper-noun specificity. Examples: Agile, Scrum, Lean, Six Sigma, Lean Six Sigma, OKRs, RICE prioritization, Design Thinking, JTBD (Jobs To Be Done), Toyota Kata, Kaizen, SMED, TAKT time, Stage Gate, Design of Experiments (DOE), MaxDiff, Conjoint, TURF, Segmentation, CAWI, CAPI, CATI. Quality standards (ISO 9001, NADCAP, IATF 16949, MS 13485) belong here when the candidate implements them. The following are NOT methodologies:\n  - Function or role labels ("workforce planning," "business development," "change management," "process improvement," "project management")\n  - Generic business practices ("strategic planning," "cultural transformation," "coaching/mentoring," "P&L management")\n  - Job-area descriptors ("sales methodologies," "integrated business planning")\n  - Company-internal program names (e.g., "Quick Cycle Innovation," "HIVE," "Joint Business Plan / JBP," "Joint Value Plan / JVP") unless those names are also recognized industry frameworks\n- Treat resume sections labeled "Core Competencies," "Key Skills," "Areas of Expertise," or LinkedIn "Top Skills" as suggestive context only, not as authoritative skill labels. Each item must still pass the category definitions above to be extracted. Most items in these sections are function/practice labels and should be skipped.\n- Disambiguation for analytics platforms (Tableau, Power BI, Looker, Nielsen products, YouGov products, Walmart Luminate, SAP BusinessObjects, etc.): place in technical when the user wields the tool to run analyses, place in systems when the platform is operated at enterprise scale and the user works within it. When ambiguous, default to technical.\n- Generic references (e.g., "CRM system," "ERP system," "SaaS BI tool," "analytics platform," "knowledge management system") without a named product MUST NOT be extracted. Skills require specific named tools, systems, or methodologies; category labels do not qualify.\n- Extract certifications even when they appear unrelated to the candidate's primary career (e.g., a yoga instructor cert held by a food scientist). The schema does not filter by relevance; downstream prompts decide which skills to surface.\n\nCANDIDATE RESUME:\n${pr.resume||'not provided'}\n\nCANDIDATE LINKEDIN PROFILE:\n${pr.linkedin||'not provided'}\n\nOutput the JSON object now.`,
   p6_slot_regen:(pr,outs,sel,life,slotKey,currentSlotOptions,otherSlotsContext,correctionText)=>{const slotMemBlock=slotKey==='slot1_human_anchor'?'\\nMEMORABILITY (load-bearing, Slot 1 only): every option MUST start with something human. It MUST NOT lead with a role, title, company, time-anchor, or work-artifact framing. Refuse openers like "I am a [role]", "I have spent N years", "After N years at X", "As a [role]", "With N years of experience", "My career in", "Throughout my career", "Currently I lead". A runtime gate scans Slot 1 and forces regeneration on any such opener.\\n':'';const tagName=slotKey==='slot1_human_anchor'?'anchor_type':slotKey==='slot2_career_manifestation'?'manifestation_type':'framing';const tagList=slotKey==='slot1_human_anchor'?'values, reputation, trait, passion, formative, interest':slotKey==='slot2_career_manifestation'?'star, pattern, arc':'continuation, synthesis, why_now';const firstTag=tagList.split(', ')[0];return `You are regenerating ONE slot of this person's structured Bridge Story while preserving the other two slots' content untouched. The user picked options in those other slots; the new options for ${slotKey} should harmonize with what they kept. They are pursuing: **${sel}**.\\n\\nSLOT TO REGENERATE: ${slotKey}\\n\\nUSER FEEDBACK ON CURRENT OPTIONS:\\n${(correctionText||'').trim()||'(no specific feedback; produce a fresh set distinct from the previous options below)'}\\n\\nOPTIONS YOU PRODUCED LAST TIME (do not repeat the same starters; bring genuinely new angles):\\n${JSON.stringify(currentSlotOptions,null,2)}\\n\\nTHE OTHER TWO SLOTS (for coherence; do not change these):\\n${JSON.stringify(otherSlotsContext,null,2)}\\n\\nVOICE RULES (load-bearing):\\n- Never use "room" or "rooms" as a generic synonym for situation, conversation, or audience. Use situation, conversation, interview, screen, panel, or meeting. Specific situational labels like "panel opener", "networking coffee", "recruiter screen" are fine because they name actual contexts.\\n- No logic-flip cadence ("not X, you Y" / "is not Z, it is W"). State the positive claim on its own.\\n- No comparative standing against unnamed groups ("most people", "many candidates", "where others X").\\n- No AI-coaching register ("sit with this", "lean into", "hold space for", "trust the process").\\n- No absolutism ("every", "always", "the most", "the only").\\n- No mind-reading ("your conviction that X" / "your mission is X" unless verbatim from raw signals).\\n- No slogan cadence ("X is the Y. Z is the W.").${slotMemBlock}\\nTRIANGULATION: each option lists at least two source field IDs in its sources array. Source IDs come from raw signal field names: values, passions, rep.memory, rep.emergency, rep.twoWords, rep.other, lifeEvents, lifeEvents.praise, work.pattern, work.accomplishment, work.role, work.arc, p3.golden_thread, p3.personal_brand, p3.value_prop, p3.wiring_synthesis, assess, assessType, selectedLane, exploredRoleTitles, frameworks. If only one source supports an option, name the gap in the diagnostic's what_would_strengthen_it.\\n\\nBONES, NOT FINISHED PROSE: each option text is a starter under 25 words. Options over 30 words are rejected.\\n\\nSITUATIONAL TAGS: each option carries a best_for array (for example "recruiter screen", "networking coffee", "panel opener").\\n\\nTYPE TAG for this slot: the ${tagName} field must be one of ${tagList}.\\n\\nDIAGNOSTIC: the slot includes what_your_inputs_support and what_would_strengthen_it, both plain-language sentences.\\n\\nINPUTS:\\n\\nPROFILE: ${asText(outs.p1)}\\n${asText(outs.p3)}\\n\\nWIRING & COMPASS: ${asText(outs.p2)||'not available'}\\n\\nRAW SIGNALS (verbatim; do not paraphrase back):\\nVALUES: ${pr.values||'not provided'}\\nPASSIONS AND CAUSES: ${pr.passions||'not provided'}\\nPRAISE THEY RECEIVE: ${pr.rep.memory||'not provided'}\\nWHO CALLS THEM IN EMERGENCY: ${pr.rep.emergency||'not provided'}\\nHOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${pr.rep.twoWords||'not provided'}\\nOTHER REPUTATION DATA: ${pr.rep.other||'not provided'}\\nLIFE-SHAPING EXPERIENCES: ${life||'not provided'}\\nASSESSMENT TYPE: ${pr.assessType||'not provided'}\\nASSESSMENT NOTES: ${pr.assess||'not provided'}\\n\\nOUTPUT REQUIRED: a single JSON object wrapping just the regenerated slot. Return ONLY the JSON. No preamble, no markdown code fences. Start with { and end with }.\\n\\n{\\n  "${slotKey}": {\\n    "options": [\\n      { "id": "...", "text": "short starter under 25 words", "${tagName}": "${firstTag}", "best_for": ["recruiter screen"], "sources": ["source1","source2"] },\\n      { "id": "...", "text": "...", "${tagName}": "...", "best_for": ["..."], "sources": ["...","..."] },\\n      { "id": "...", "text": "...", "${tagName}": "...", "best_for": ["..."], "sources": ["...","..."] }\\n    ],\\n    "diagnostic": { "what_your_inputs_support": "plain sentence", "what_would_strengthen_it": "plain sentence" }\\n  }\\n}`},
+  p11_question_regen:(pr,outs,sel,life,questionIdx,currentQuestion,otherQuestionTexts,correctionText,jdContext='')=>{const qType=(currentQuestion&&currentQuestion.type)||'behavioral';const qId=(currentQuestion&&currentQuestion.id)||('q'+(questionIdx+1));const behavioralShape='SHAPE: this question is behavioral. The regenerated version MUST include a complete star_breakdown with S, T, A, R sub-sections. S carries raw_material, relevance_bridge_draft, and to_strengthen, each a non-empty string. T, A, R each carry raw_material and to_strengthen, each a non-empty string. raw_material draws from the verbatim inputs below; do not invent specifics not in the inputs. to_strengthen names what specific addition would sharpen this STAR sub-section.';const nonBehavioralShape='SHAPE: this question is non_behavioral. Produce a non_behavioral question with a non-empty framing_recommendation only (no star_breakdown).';const starOutput='"star_breakdown": { "S": { "raw_material": "specific moment from inputs", "relevance_bridge_draft": "short opener bridging to the role", "to_strengthen": "what to add" }, "T": { "raw_material": "...", "to_strengthen": "..." }, "A": { "raw_material": "...", "to_strengthen": "..." }, "R": { "raw_material": "...", "to_strengthen": "..." } }';const nonBehavioralOutput='"framing_recommendation": "plain-language framing this person can use to answer"';return `You are regenerating ONE Interview Prep question for this person while preserving every OTHER question in the set untouched. They are pursuing: **${sel}**.\\n\\nQUESTION INDEX TO REGENERATE: ${questionIdx+1} (1-based)\\n\\nUSER FEEDBACK ON THIS QUESTION:\\n${(correctionText||'').trim()||'(no specific feedback; produce a sharper version that addresses obvious weaknesses)'}\\n\\nTHE CURRENT VERSION OF THIS QUESTION (do not repeat the same prompt; do not pull the same raw_material verbatim; bring a sharper angle that responds to the feedback above):\\n${JSON.stringify(currentQuestion,null,2)}\\n\\nTHE OTHER QUESTIONS IN THIS SET (do NOT duplicate the prompt of any of these; do NOT pull source material another question already uses):\\n${(otherQuestionTexts||[]).map((q,i)=>(i+1)+'. '+q).join('\\n')}\\n\\n${jdContext?'JD CONTEXT (scope this question to the specific opportunity, lane-independent):\\n'+jdContext+'\\n\\n':''}VOICE RULES (load-bearing):\\n- Never use "room" or "rooms" as a generic synonym for situation, conversation, or audience. Use situation, conversation, interview, screen, panel, or meeting.\\n- No logic-flip cadence ("not X, you Y" / "is not Z, it is W"). State the positive claim on its own.\\n- No comparative standing against unnamed groups ("most people", "many candidates", "where others X").\\n- No AI-coaching register ("sit with this", "lean into", "hold space for", "trust the process").\\n- No absolutism ("every", "always", "the most", "the only").\\n- No mind-reading ("your conviction that X" / "your mission is X" unless verbatim from raw signals).\\n- No slogan cadence ("X is the Y. Z is the W.").\\n\\n${qType==='behavioral'?behavioralShape:nonBehavioralShape}\\n\\nframework_thread: if a framework the candidate uses applies cleanly to this question, name it (one or two words). Otherwise null.\\n\\nINPUTS:\\n\\nPROFILE: ${asText(outs.p1)}\\n${asText(outs.p3)}\\n\\nWIRING & COMPASS: ${asText(outs.p2)||'not available'}\\n\\nRAW SIGNALS (verbatim; do not paraphrase back):\\nVALUES: ${pr.values||'not provided'}\\nPASSIONS AND CAUSES: ${pr.passions||'not provided'}\\nPRAISE THEY RECEIVE: ${pr.rep.memory||'not provided'}\\nWHO CALLS THEM IN EMERGENCY: ${pr.rep.emergency||'not provided'}\\nHOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${pr.rep.twoWords||'not provided'}\\nOTHER REPUTATION DATA: ${pr.rep.other||'not provided'}\\nLIFE-SHAPING EXPERIENCES: ${life||'not provided'}\\nASSESSMENT TYPE: ${pr.assessType||'not provided'}\\nASSESSMENT NOTES: ${pr.assess||'not provided'}\\nFRAMEWORKS THEY USE: ${Array.isArray(pr.frameworks)&&pr.frameworks.length?pr.frameworks.join(', '):'not provided'}\\n\\nOUTPUT REQUIRED: a single JSON object wrapping just the regenerated question under the key "question". Return ONLY the JSON. No preamble, no markdown code fences. Start with { and end with }.\\n\\n{\\n  "question": {\\n    "id": "${qId}",\\n    "question": "the new question prompt",\\n    "type": "${qType}",\\n    "framework_thread": null,\\n    ${qType==='behavioral'?starOutput:nonBehavioralOutput}\\n  }\\n}`},
   companyRead:(jd,foundation,companyName,industry,rubricText,laneLabel,mode='op',gtmContext='')=>`You are producing a Company Read for the candidate's evaluation of a specific opportunity. Five subsections, each opens with a bolded headline insight then 2-3 sentences of supporting prose with sources cited inline. Target length: 350-500 words total.
 
 THE CANDIDATE'S FOUNDATION:
@@ -3011,22 +3066,70 @@ function SavedIndicator({saveStatus,lastSaveAt}){
   const isErr=saveStatus==='error'
   return <span style={{fontSize:13,color:isErr?C.err:C.gray,fontWeight:500,letterSpacing:'0.2px'}} aria-live="polite">{label}</span>
 }
-function SlotRegenerateBox({slotKey,onSubmit,busy,error}){
+// SubsectionRefineBox: quiet per-subsection refinement affordance. Lifted from
+// the Bridge-Story-specific SlotRegenerateBox (rename + parameterization per
+// PR-B Interview Prep STAR refine brief 2026-05-30). Bridge Story is one
+// consumer; Interview Prep per-question is the second. Copy is parameterized so
+// each surface can phrase its closed-state label, placeholder example, submit
+// button, and "only this scope changes" helper text in terms that fit the
+// scope. scopeKey is opaque to this component — Bridge Story passes its slot
+// key, Interview Prep passes the question id. presetText optionally seeds the
+// textarea from outside (Interview Prep uses it for the per-STAR chip pre-fill).
+function SubsectionRefineBox({scopeKey,onSubmit,busy,error,label,placeholder,submitLabel,helperText,presetText,presetNonce}){
   const[open,setOpen]=useState(false)
   const[text,setText]=useState('')
+  // presetText + presetNonce: external pre-fill hook (Interview Prep's per-STAR
+  // chips use this — clicking the same chip twice should re-apply, so callers
+  // bump presetNonce on every click). useEffect deps on BOTH so identical-text
+  // re-clicks still fire.
+  useEffect(()=>{if(typeof presetText==='string'&&presetText.length>0){setText(presetText);if(!open)setOpen(true)}},[presetText,presetNonce])
   return <div data-print="hide" style={{marginTop:12,border:`1px solid ${C.border}`,borderRadius:8,background:C.input}}>
     <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',background:'transparent',border:'none',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-      <span style={{fontSize:14,color:C.gray}}>{open?'Hide feedback':'None of these feel right? Tell us what to fix.'}</span>
+      <span style={{fontSize:14,color:C.gray}}>{open?'Hide feedback':(label||'None of these feel right? Tell us what to fix.')}</span>
       {open?<ChevronUp size={14} color={C.gray}/>:<ChevronDown size={14} color={C.gray}/>}
     </button>
     {open&&<div style={{padding:'10px 14px 14px',borderTop:`1px solid ${C.border}`}}>
-      <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="For example: The options lean too hard on the volunteer work. I want options that lead with the assessment finding." style={{...S.ta,minHeight:84,fontSize:15,marginBottom:8}} aria-label="What to fix in this block"/>
+      <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={placeholder||''} style={{...S.ta,minHeight:84,fontSize:15,marginBottom:8}} aria-label="What to refine in this block"/>
       <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
-        <Btn small disabled={busy} onClick={()=>{onSubmit(text)}}><RotateCcw size={12}/>{busy?'Regenerating…':'Regenerate this block'}</Btn>
-        <span style={{fontSize:13,color:C.gray,fontStyle:'italic'}}>Only this block changes. Your picks in the other two blocks stay.</span>
+        <Btn small disabled={busy} onClick={()=>{onSubmit(text)}}><RotateCcw size={12}/>{busy?'Regenerating…':(submitLabel||'Regenerate this block')}</Btn>
+        <span style={{fontSize:13,color:C.gray,fontStyle:'italic'}}>{helperText||'Only this block changes.'}</span>
       </div>
       {error&&<div style={{...S.err,marginTop:8}}>{error}</div>}
     </div>}
+  </div>
+}
+// Per-question Interview Prep card with chip row + per-question
+// SubsectionRefineBox affordance (PR-B 2026-05-30). Behavioral questions only;
+// non_behavioral questions get neither the chips nor the box. Each chip pre-
+// fills the textarea with that STAR sub-section's to_strengthen text; clicking
+// the same chip twice re-applies via presetNonce. onRegenerateQuestion is wired
+// to regenerateP11Question (Focus) or regenerateOpP11Question (op).
+function InterviewPrepQuestion({q,qi,lbl,fwList,onRegenerateQuestion,regeneratingQuestionIdx,questionErrors}){
+  const[preset,setPreset]=useState({text:'',nonce:0})
+  const applyChip=(text)=>{if(typeof text==='string'&&text.trim())setPreset({text:text.trim(),nonce:Date.now()})}
+  const isBehavioral=q.type==='behavioral'&&q.star_breakdown
+  const busy=regeneratingQuestionIdx===qi
+  const err=questionErrors&&questionErrors[qi]
+  const canRefine=isBehavioral&&typeof onRegenerateQuestion==='function'
+  return <div style={{...S.out,marginTop:14}}>
+    <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:q.framework_thread?4:8}}>{qi+1}. {q.question}</div>
+    {q.framework_thread&&<div style={{fontSize:16,color:C.goldL,margin:'4px 0 10px',lineHeight:1.55}}>{fwList?'Your '+fwList+' applies here: ':'Where your framework applies: '}{q.framework_thread}</div>}
+    {isBehavioral?<>
+      {['S','T','A','R'].map(k=>{const sec=q.star_breakdown[k];if(!sec)return null;return <div key={k} style={{marginTop:k==='S'?6:14}}>
+        <div style={{fontSize:16,fontWeight:700,color:C.goldL,marginBottom:4}}>{k} - {lbl[k]}</div>
+        <div style={{fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>From your inputs:</em> {sec.raw_material}</div>
+        {k==='S'&&sec.relevance_bridge_draft&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>Open with:</em> <strong>"{sec.relevance_bridge_draft}"</strong>. Names the parallel between your past and what the interviewer likely faces. Sharpen the second half with company-specific details when you have them.</div>}
+        <div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>To strengthen:</em> {sec.to_strengthen}</div>
+      </div>})}
+      <div style={{marginTop:14,fontSize:15,color:C.gray,fontStyle:'italic'}}>Drill down to develop the full story from these bones, in your voice.</div>
+      {canRefine&&<div data-print="hide" style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
+        <div style={{fontSize:13,color:C.gray,marginBottom:8,letterSpacing:'0.3px'}}>Click a STAR sub-section below to pre-fill your refinement note, or write your own:</div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:6}}>
+          {['S','T','A','R'].map(k=>{const sec=q.star_breakdown[k];if(!sec||typeof sec.to_strengthen!=='string'||!sec.to_strengthen.trim())return null;const preview=sec.to_strengthen.length>72?sec.to_strengthen.slice(0,72).trim()+'…':sec.to_strengthen;return <button key={k} onClick={()=>applyChip(k+' - '+lbl[k]+': '+sec.to_strengthen)} style={{background:'transparent',border:`1px solid ${C.border}`,borderRadius:999,padding:'4px 10px',fontFamily:'inherit',fontSize:13,color:C.cream,cursor:'pointer',maxWidth:'100%',textAlign:'left',lineHeight:1.4}} title={'Pre-fill from '+lbl[k]+' suggestion'}><span style={{fontWeight:700,color:C.goldL,marginRight:6}}>{k}</span><span style={{color:C.gray}}>{preview}</span></button>})}
+        </div>
+        <SubsectionRefineBox scopeKey={q.id||qi} onSubmit={(text)=>onRegenerateQuestion(qi,text)} busy={busy} error={err} label="Tell us what to refine here." placeholder="For example: Lead the Action with the specific framework you used, not the outcome." submitLabel="Regenerate this answer" helperText="Only this answer changes. The other questions stay." presetText={preset.text} presetNonce={preset.nonce}/>
+      </div>}
+    </>:<div style={{fontSize:17,color:C.cream,lineHeight:1.65,marginTop:6}}>{q.framing_recommendation}</div>}
   </div>
 }
 function BridgeStoryFreeformBox({freeform,assembled,onCommit,onReset,onPrint,onCopy,copied}){
@@ -3205,7 +3308,7 @@ function BridgeStoryViewMain({p6,isDemo,isSmallPortrait,onPick,onEdit,onRegenera
             onPick={onPick} onEdit={onEdit}/>)})()}
         </div>
         {slot.diagnostic&&<BridgeStoryDiagnostic d={slot.diagnostic}/>}
-        <SlotRegenerateBox slotKey={s.bs} onSubmit={(text)=>onRegenerateSlot(s.bs,text)} busy={regeneratingSlot===s.bs} error={slotErrors&&slotErrors[s.bs]}/>
+        <SubsectionRefineBox scopeKey={s.bs} onSubmit={(text)=>onRegenerateSlot(s.bs,text)} busy={regeneratingSlot===s.bs} error={slotErrors&&slotErrors[s.bs]} label="None of these feel right? Tell us what to fix." placeholder="For example: The options lean too hard on the volunteer work. I want options that lead with the assessment finding." submitLabel="Regenerate this block" helperText="Only this block changes. Your picks in the other two blocks stay."/>
       </section>
     })}
     </div>
@@ -3498,6 +3601,14 @@ export default function PivotEngine(){
   // scopes section-level Print to just the Bridge Story content.
   const[regeneratingSlot,setRegeneratingSlot]=useState(null)
   const[slotErrors,setSlotErrors]=useState({})
+  // Per-question regen state for Interview Prep (PR-B 2026-05-30). Shared
+  // across Focus and op surfaces because renderInterviewPrep is the single
+  // shared renderer and only one section mounts at a time, matching the
+  // regeneratingSlot/slotErrors precedent above. Focus and op wire DIFFERENT
+  // regen functions (regenerateP11Question vs regenerateOpP11Question); the
+  // state itself is shared.
+  const[regeneratingP11QuestionIdx,setRegeneratingP11QuestionIdx]=useState(null)
+  const[p11QuestionErrors,setP11QuestionErrors]=useState({})
   const[lastSaveAt,setLastSaveAt]=useState(0)
   const[saveStatus,setSaveStatus]=useState('idle')
   const[toast,setToast]=useState(null)
@@ -4109,6 +4220,49 @@ export default function PivotEngine(){
     }catch(e){setSlotErrors(prev=>({...prev,[slotKey]:e.message||'Generation failed. Try again.'}))}
     finally{setRegeneratingSlot(null);scrollToSlot(slotKey)}
   }
+  // Focus-scoped per-question regen for Interview Prep (PR-B 2026-05-30).
+  // Mirrors regenerateP6Slot. outputs.p11 is a raw JSON string; parse it on
+  // entry, splice the regenerated question into questions[qi], re-stringify
+  // with 2-space indent, write back. Storage shape unchanged (still a string).
+  // 3-attempt retry budget. Standard voice gate; the Bridge Story slot-1
+  // memorability detector deliberately does NOT run — STAR sub-sections are
+  // supposed to lead with role/situation context. No cascadeInvalidate.
+  const regenerateP11Question=async(questionIdx,correctionText)=>{
+    if(typeof questionIdx!=='number'||questionIdx<0)return
+    if(regeneratingP11QuestionIdx!==null)return
+    const cur=outputs.p11
+    const ip=parseInterviewPrepJSON(cur)
+    if(!ip||!Array.isArray(ip.questions)||questionIdx>=ip.questions.length)return
+    const currentQuestion=ip.questions[questionIdx]
+    if(!currentQuestion||currentQuestion.type!=='behavioral')return
+    const otherQuestionTexts=ip.questions.map((q,i)=>i===questionIdx?null:(q&&q.question)||null).filter(Boolean)
+    setRegeneratingP11QuestionIdx(questionIdx)
+    setP11QuestionErrors(e=>({...e,[questionIdx]:null}))
+    try{
+      let parsedQuestion=null,refusal=''
+      for(let attempt=1;attempt<=3;attempt++){
+        const prompt=correctionsBlock(profile.corrections)+P.p11_question_regen(pc,outputs,chosen,profile.lifeEvents,questionIdx,currentQuestion,otherQuestionTexts,correctionText||'','')+(refusal?`\n\n${refusal}`:'')
+        const rawr=await callClaude(prompt,{maxTokens:6000})
+        const q=parseP11QuestionJSON(rawr,currentQuestion.type)
+        if(!q){refusal='The previous attempt did not return valid JSON for the requested question (id, question, type matching the original, star_breakdown with non-empty S/T/A/R sub-fields). Return only the JSON object.';continue}
+        const vio=detectVoiceViolations(extractP11QuestionStrings(q),{includeSoft:false})
+        if(vio.length){refusal='A voice rule was violated in the regenerated question ('+vio[0].name+': "'+String(vio[0].match).slice(0,60)+'"). Rewrite to comply and return only the JSON object.';continue}
+        parsedQuestion=q;break
+      }
+      if(!parsedQuestion){setP11QuestionErrors(e=>({...e,[questionIdx]:'We could not regenerate this question. Try again, or refine the feedback.'}));return}
+      setOutputs(o=>{
+        const raw=o.p11
+        const parsed=parseInterviewPrepJSON(raw)
+        if(!parsed||!Array.isArray(parsed.questions)||questionIdx>=parsed.questions.length)return o
+        const newQuestions=parsed.questions.slice()
+        newQuestions[questionIdx]=parsedQuestion
+        const next={...parsed,questions:newQuestions}
+        return {...o,p11:JSON.stringify(next,null,2)}
+      })
+      setCurrentRoleSaved(false)
+    }catch(e){setP11QuestionErrors(prev=>({...prev,[questionIdx]:e.message||'Generation failed. Try again.'}))}
+    finally{setRegeneratingP11QuestionIdx(null)}
+  }
   // Force-flush the debounced save, show a brief toast, scroll to the top
   // of the playbook so the user lands on the next pending section.
   const saveAndReturn=()=>{
@@ -4328,7 +4482,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // record.feedback[cardKey] so a restored door2 record rehydrates the
     // textarea contents. p6 carries the slot's correction context separately;
     // the p6 slot is included here for symmetry but the per-slot regen path
-    // (SlotRegenerateBox + regenerateOpP6Slot) does not read from it.
+    // (SubsectionRefineBox + regenerateOpP6Slot) does not read from it.
     return{id,title,lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||'',p5:feedback.p5||'',p6:feedback.p6||'',p_res:feedback.p_res||'',p11:feedback.p11||'',companyRead:feedback.companyRead||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:{bridge_story:null,user_picks:null,user_freeform:'',builtAt:null},p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}}}
   }
   const saveCurrentDoor1=(currentKey,currentR)=>{
@@ -4511,8 +4665,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // Shared Interview Prep renderer (factored from the lane p11 render at PR-A
   // SHA 5c0d960; verified no selectedLane / no flat-outputs.p11 coupling, only
   // the parse input). Takes raw content so both the lane site and the op card
-  // feed their own source.
-  const renderInterviewPrep=(content)=>{
+  // feed their own source. PR-B 2026-05-30: now also takes the per-question
+  // regen wiring (callback + busy idx + error map) so each surface can mount
+  // the per-question affordance with its own surface-scoped generator. Pass
+  // omit to suppress the affordance (e.g., demo mode).
+  const renderInterviewPrep=(content,onRegenerateQuestion,regeneratingQuestionIdx,questionErrors)=>{
     const ip=parseInterviewPrepJSON(content)
     if(!ip)return <><div style={S.note}>This did not come together cleanly on this try. It happens once in a while. Regenerate this section and it usually lands the second time.</div><div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:C.cream,margin:0}}>{content}</pre></div></>
     const fwList=Array.isArray(profile.frameworks)&&profile.frameworks.length?profile.frameworks.join(', '):''
@@ -4521,19 +4678,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     return <>
       <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Interview Prep for <strong>{ip.role_context.target_role}</strong>. {ip.role_context.role_summary} Below are the questions to expect, with the raw material from your own inputs to build each answer. The strongest version is in your voice, with the specifics only you can add.</div>
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:4}}><Btn small onClick={copyAll}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
-      {ip.questions.map((q,qi)=><div key={q.id||qi} style={{...S.out,marginTop:14}}>
-        <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:q.framework_thread?4:8}}>{qi+1}. {q.question}</div>
-        {q.framework_thread&&<div style={{fontSize:16,color:C.goldL,margin:'4px 0 10px',lineHeight:1.55}}>{fwList?'Your '+fwList+' applies here: ':'Where your framework applies: '}{q.framework_thread}</div>}
-        {q.type==='behavioral'&&q.star_breakdown?<>
-          {['S','T','A','R'].map(k=>{const sec=q.star_breakdown[k];if(!sec)return null;return <div key={k} style={{marginTop:k==='S'?6:14}}>
-            <div style={{fontSize:16,fontWeight:700,color:C.goldL,marginBottom:4}}>{k} - {lbl[k]}</div>
-            <div style={{fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>From your inputs:</em> {sec.raw_material}</div>
-            {k==='S'&&sec.relevance_bridge_draft&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>Open with:</em> <strong>"{sec.relevance_bridge_draft}"</strong>. Names the parallel between your past and what the interviewer likely faces. Sharpen the second half with company-specific details when you have them.</div>}
-            <div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>To strengthen:</em> {sec.to_strengthen}</div>
-          </div>})}
-          <div style={{marginTop:14,fontSize:15,color:C.gray,fontStyle:'italic'}}>Drill down to develop the full story from these bones, in your voice.</div>
-        </>:<div style={{fontSize:17,color:C.cream,lineHeight:1.65,marginTop:6}}>{q.framing_recommendation}</div>}
-      </div>)}
+      {ip.questions.map((q,qi)=><InterviewPrepQuestion key={q.id||qi} q={q} qi={qi} lbl={lbl} fwList={fwList} onRegenerateQuestion={onRegenerateQuestion} regeneratingQuestionIdx={regeneratingQuestionIdx} questionErrors={questionErrors}/>)}
     </>
   }
   // Op-scoped Bridge Story. Mirrors generateP6's 3-attempt validation loop but
@@ -4589,7 +4734,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // refineSec (defined in the Focus render IIFE). Routes p5 / p_res / p11
   // through generateOpSection (with the new correctionText param) and
   // companyRead through generateOpCompanyRead. p6 is out of scope — the
-  // per-slot SlotRegenerateBox + regenerateOpP6Slot path already covers Bridge
+  // per-slot SubsectionRefineBox + regenerateOpP6Slot path already covers Bridge
   // Story refinement at a finer scope. recordCorrection writes to the global
   // profile.corrections store; matches Focus per-section refine behavior
   // (corrections carry forward across all future generations).
@@ -4730,6 +4875,54 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       setCurrentRoleSaved(false)
     }catch(e){setSlotErrors(prev=>({...prev,[slotKey]:e.message||'Generation failed. Try again.'}))}
     finally{setRegeneratingSlot(null)}
+  }
+  // Op-scoped per-question regen for Interview Prep (PR-B 2026-05-30). Mirrors
+  // regenerateP11Question but reads/writes rec.sections.p11.content on the
+  // saved Opportunity Playbook record instead of flat outputs.p11. Reuses the
+  // shared regeneratingP11QuestionIdx / p11QuestionErrors state (one
+  // renderInterviewPrep is mounted at a time). JD context is folded into the
+  // prompt because op p11 was originally generated against this JD; the
+  // regenerated question should stay scoped to the same opportunity.
+  const regenerateOpP11Question=async(questionIdx,correctionText)=>{
+    if(typeof questionIdx!=='number'||questionIdx<0)return
+    if(regeneratingP11QuestionIdx!==null)return
+    const slotId=currentSavedSlotIdRef.current;if(!slotId)return
+    const rec0=savedPlaybooks.find(r=>r.id===slotId)
+    const cur=rec0&&rec0.sections&&rec0.sections.p11&&rec0.sections.p11.content
+    const ip=parseInterviewPrepJSON(cur)
+    if(!ip||!Array.isArray(ip.questions)||questionIdx>=ip.questions.length)return
+    const currentQuestion=ip.questions[questionIdx]
+    if(!currentQuestion||currentQuestion.type!=='behavioral')return
+    const otherQuestionTexts=ip.questions.map((q,i)=>i===questionIdx?null:(q&&q.question)||null).filter(Boolean)
+    const jd=(profile.jd||'').trim()
+    setRegeneratingP11QuestionIdx(questionIdx);setP11QuestionErrors(e=>({...e,[questionIdx]:null}))
+    try{
+      let parsedQuestion=null,refusal=''
+      for(let attempt=1;attempt<=3;attempt++){
+        const prompt=correctionsBlock(profile.corrections)+P.p11_question_regen(pc,outputs,chosen,profile.lifeEvents,questionIdx,currentQuestion,otherQuestionTexts,correctionText||'',jd)+(refusal?`\n\n${refusal}`:'')
+        const rawr=await callClaude(prompt,{maxTokens:6000})
+        const q=parseP11QuestionJSON(rawr,currentQuestion.type)
+        if(!q){refusal='The previous attempt did not return valid JSON for the requested question (id, question, type matching the original, star_breakdown with non-empty S/T/A/R sub-fields). Return only the JSON object.';continue}
+        const vio=detectVoiceViolations(extractP11QuestionStrings(q),{includeSoft:false})
+        if(vio.length){refusal='A voice rule was violated in the regenerated question ('+vio[0].name+': "'+String(vio[0].match).slice(0,60)+'"). Rewrite to comply and return only the JSON object.';continue}
+        parsedQuestion=q;break
+      }
+      if(currentSavedSlotIdRef.current!==slotId)return
+      if(!parsedQuestion){setP11QuestionErrors(e=>({...e,[questionIdx]:'We could not regenerate this question. Try again, or refine the feedback.'}));return}
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId)return rec
+        const p11=rec.sections&&rec.sections.p11
+        if(!p11||typeof p11.content!=='string')return rec
+        const parsed=parseInterviewPrepJSON(p11.content)
+        if(!parsed||!Array.isArray(parsed.questions)||questionIdx>=parsed.questions.length)return rec
+        const newQuestions=parsed.questions.slice()
+        newQuestions[questionIdx]=parsedQuestion
+        const next={...parsed,questions:newQuestions}
+        return {...rec,sections:{...rec.sections,p11:{...p11,content:JSON.stringify(next,null,2)}},updatedAt:new Date().toISOString()}
+      }))
+      setCurrentRoleSaved(false)
+    }catch(e){setP11QuestionErrors(prev=>({...prev,[questionIdx]:e.message||'Generation failed. Try again.'}))}
+    finally{setRegeneratingP11QuestionIdx(null)}
   }
   const deleteFromSavedSet=(id)=>{
     setSavedPlaybooks(prev=>prev.filter(r=>r.id!==id))
@@ -5534,7 +5727,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {part34&&<div style={S.out}><MD text={part34}/></div>}
           </>
         }
-                if(id==='p11'){return renderInterviewPrep(outputs.p11)}
+                if(id==='p11'){return renderInterviewPrep(outputs.p11,isDemo?undefined:regenerateP11Question,regeneratingP11QuestionIdx,p11QuestionErrors)}
         return <OutPanel text={outputs[id]} onCopy={copy} copied={copied}/>
       }
       return <div>
@@ -5893,7 +6086,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const _anyBuilt=_opAnyBuiltFor(_rec)
             const _renderSection=(key,content)=>{
               if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:16,lineHeight:1.65,color:C.cream,margin:0}}>{renderResumeText(j)}</pre><div style={S.row}><Btn small onClick={()=>downloadResumeWord(j)}><Download size={12}/>Download as Word</Btn></div></div>}
-              if(key==='p11')return renderInterviewPrep(content)
+              if(key==='p11')return renderInterviewPrep(content,isDemo?undefined:regenerateOpP11Question,regeneratingP11QuestionIdx,p11QuestionErrors)
               return <div style={S.out}><MD text={content}/></div>
             }
             const _cardWrap=(children,id)=><div id={id} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px',marginBottom:14,scrollMarginTop:80}}>{children}</div>
