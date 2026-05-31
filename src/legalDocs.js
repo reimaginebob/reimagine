@@ -6,7 +6,7 @@
 export const PRIVACY_MD = `# Reimagine Data Privacy and Usage Agreement
 
 **Effective date:** May 15, 2026
-**Last updated:** May 15, 2026
+**Last updated:** May 31, 2026
 
 This agreement explains what information Reimagine collects when you use the product, how we use it, who we share it with, and the choices you have. Reimagine is a career strategy tool operated by Decima LLC, doing business as Career Club. When this document says "we," "us," or "Reimagine," it refers to Decima LLC (dba Career Club) as the operator of the product. When it says "you" or "your," it refers to you as a person using Reimagine.
 
@@ -36,6 +36,8 @@ We collect three categories of information.
 - Basic device and browser information, such as browser type and operating system.
 - IP address, used for security and to detect unusual sign-in activity.
 - General usage metrics, such as which pages or steps were viewed and how long sessions lasted.
+
+We also collect anonymous behavioral analytics (which sections of the product you visit, how long generations take, which options you pick during the Bridge Story step) that we use to monitor product health and improve the experience. These events do not include your name, email, or content. We forward this anonymous data to a private analytics store that we control.
 
 We do not knowingly collect government identifiers, financial account numbers, health information, or precise location data. If any of these appear in content you type into the product, you do so voluntarily and we treat that content the same way we treat the rest of your narrative inputs.
 

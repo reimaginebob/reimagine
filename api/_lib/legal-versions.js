@@ -4,7 +4,7 @@
 // bumped. Used by api/account/reaccept.js to write the authoritative latest
 // material version on re-acceptance.
 
-export const PRIVACY_VERSION = '2026-05-15'
+export const PRIVACY_VERSION = '2026-05-31'
 export const TOS_VERSION = '2026-05-15'
 export const PRIVACY_VERSION_MATERIAL = '2026-05-15'
 export const TOS_VERSION_MATERIAL = '2026-05-15'

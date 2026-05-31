@@ -1,5 +1,5 @@
 // Current published versions. Bump these when the agreement text is updated.
-export const PRIVACY_VERSION = "2026-05-15";
+export const PRIVACY_VERSION = "2026-05-31";
 export const TOS_VERSION = "2026-05-15";
 
 // Latest MATERIAL version. Set this equal to the current version only when
