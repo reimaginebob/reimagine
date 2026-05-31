@@ -28,7 +28,7 @@ const FILE = path.join(__dirname, '..', 'src', 'App.jsx')
 const src = fs.readFileSync(FILE, 'utf8')
 
 const ALLOWLIST = new Set([
-  // (empty) -- add "name" /* reason */ here only for true dynamic-dispatch cases
+  'updateOpP6Freeform', // v3 brief 2026-05-31: kept for forward optionality (a direct-edit affordance on the op Bridge Story card); brief explicitly retains it.
 ])
 
 const defs = new Set()
