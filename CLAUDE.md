@@ -221,6 +221,8 @@ If you need to share a constant between `api/` and `src/`:
 
 **Preview-deploy smoke test before merging to api/.** Every PR that touches `api/*` or its import surface gets a manual smoke test against the Vercel preview before merge: `curl /api/health` and `curl /api/claude` (minimal valid POST). Both must return 200. `api/health.js` exists specifically to mirror the import topology of `api/claude.js`; if `claude.js` cannot load at function invocation, `health.js` cannot either, and the curl returns 500 in seconds instead of waiting for users to hit the failure.
 
+Run the smoke automatically with `npm run smoke:preview -- <preview-url>`. The script hits `/api/health` (GET) and `/api/claude` (POST `{}`), treating 4xx as a load-proof success and any 5xx as the merge-blocking condition. Vercel preview deployments require auth; the script attaches `VERCEL_PROTECTION_BYPASS` as the `x-vercel-protection-bypass` header on every request. Generate the token once at the `career-club / reimagine2` project's Settings → Deployment Protection → Protection Bypass for Automation (the existing bypass note is `claude-code-smoke`). The same secret is exposed inside functions at deploy time as `VERCEL_AUTOMATION_BYPASS_SECRET`. Store the value locally as the Windows user env var `VERCEL_PROTECTION_BYPASS`; see `.env.local.example`. Note: Claude Code inherits its env block at process launch, so a Windows user env var added mid-session won't reach Code until the harness is fully closed and reopened (a `/restart` inside the session is not enough).
+
 ---
 
 ## 9. GitHub operations (gh flow)
