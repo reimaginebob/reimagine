@@ -1474,11 +1474,15 @@ async function downloadResumeWord(r){
   URL.revokeObjectURL(url)
 }
 
+// Strip U+0000 — Postgres jsonb rejects NUL bytes; mammoth/pdf.js sometimes
+// emit them from malformed sources and contaminate profile state.
+const stripNulText=s=>typeof s==='string'?s.replace(/\x00/g,''):s
+
 async function extractText(file){
   const ext=file.name.toLowerCase().split('.').pop()
-  if(ext==='docx'||ext==='doc'){const ab=await file.arrayBuffer();const r=await mammoth.extractRawText({arrayBuffer:ab});return r.value}
-  if(ext==='pdf'){try{const lib=await loadPDFJS();const ab=await file.arrayBuffer();const pdf=await lib.getDocument({data:ab}).promise;let t='';for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(' ')+'\n'}if(t.trim().length<100)return "[This PDF appears to be image-based or browser-printed and couldn't be read as text. Try opening it and using Save As to save as a standard PDF, or simply paste the text below.]";return t}catch{return "[This PDF couldn't be read automatically. If it was saved from a browser (like Edge or Chrome), try opening it and printing to a standard PDF, or just paste the text directly below.]"}}
-  return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(file)})
+  if(ext==='docx'||ext==='doc'){const ab=await file.arrayBuffer();const r=await mammoth.extractRawText({arrayBuffer:ab});return stripNulText(r.value)}
+  if(ext==='pdf'){try{const lib=await loadPDFJS();const ab=await file.arrayBuffer();const pdf=await lib.getDocument({data:ab}).promise;let t='';for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(' ')+'\n'}if(t.trim().length<100)return "[This PDF appears to be image-based or browser-printed and couldn't be read as text. Try opening it and using Save As to save as a standard PDF, or simply paste the text below.]";return stripNulText(t)}catch{return "[This PDF couldn't be read automatically. If it was saved from a browser (like Edge or Chrome), try opening it and printing to a standard PDF, or just paste the text directly below.]"}}
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(stripNulText(e.target.result));r.onerror=rej;r.readAsText(file)})
 }
 
 // voice-allow
