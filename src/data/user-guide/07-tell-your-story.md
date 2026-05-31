@@ -1,8 +1,8 @@
 # 7. Phase 3. Tell Your Story
 
-> **Where this lives now.** Your Bridge Story is generated inside the Focus Playbook for a specific role (Chapter 6), as the second section after The Role. It is no longer a separate phase you walk to in order. This chapter explains what the Bridge Story is, how the building-blocks model works, and what good looks like; the Focus Playbook is where you generate, pick, and edit it.
+> **Where this lives now.** Your Bridge Story is generated inside the Focus Playbook for a specific role (Chapter 6), as the second section after The Role. It is no longer a separate phase you walk to in order. This chapter explains what the Bridge Story is and what good looks like; the Focus Playbook is where you generate and refine it.
 
-> **What changed (2026-05-19).** Reimagine used to write you one finished 30-second paragraph. It now gives you the bones instead: three building blocks, three starter options for each, tagged for the situation, so you pick what fits and put it in your own words. The reason for the change is below.
+> **What changed (2026-05-31).** Reimagine used to give you the bones of an answer: three building blocks, three starter options for each, that you assembled and edited into a finished story. It now writes a single cohesive answer in your voice, calibrated to the direction you picked, and offers a coaching note when a second strong opening is also visible in your profile. The reason for the change is below.
 
 This phase has one step, and it carries more weight than its size suggests: your **Bridge Story**.
 
@@ -14,85 +14,57 @@ The Bridge Story uses a different formula. It connects who you are *as a person*
 
 This phase is short. Get it right.
 
-## Why this is a menu now, not a finished paragraph
+## Why it is a written answer again
 
-Earlier versions of Reimagine wrote your whole answer in your voice and handed it to you. That sounds helpful, and it tested badly for the same reason Interview Prep did before its own rewrite. When the tool writes the finished sentence, it gets the words almost right, and "almost right" is the hardest thing to fix. You are left to accept a paragraph that is not quite you, or rewrite it from scratch. Either way the answer is the tool's, not yours.
+An earlier version gave you the bones and asked you to assemble the finished story yourself. That worked for some people and slowed others down. The discipline of the three-part shape was right; the picker UI got in the way of the read-and-refine flow you use everywhere else in Reimagine.
 
-The Bridge Story is the thing you *use* in a conversation, not the thing you read to recognize yourself (that is Personal Brand, Chapter 5). Different purpose, different format. So Reimagine now gives you the structure and the raw material, and you do the part only you can do: choose what is true and say it the way you talk.
-
-This also makes the Bridge Story a persistent asset. Your picks and edits are saved with your profile and feed the later steps that need a "tell me about yourself," so the work you do here once carries forward.
+So the model now writes a single cohesive answer in your voice, and the standard refine box is how you adjust it: open it, say what is off, regenerate. The three-part formula is still the spine of the prompt, but you no longer see the seams.
 
 ## What this step does
 
-Reimagine builds three **building blocks** for your answer, tailored to the focus you chose at the end of Phase 2. It draws from your Orientation inputs and your Personal Brand (the golden thread, your personal brand). For each block it gives you **three starter options**, each one a short opener you finish in your own words, not a polished sentence to recite.
+Reimagine writes a single tell-me-about-yourself answer for the direction you picked at the end of Phase 2. It draws from your Orientation inputs and your Personal Brand. The structure underneath is the *Making Your Own Weather* formula:
 
-The three blocks come from the *Making Your Own Weather* formula for "tell me about yourself":
-
-1. **Something human about you.** Before career, function, or resume. A value, a trait, a passion, a lifelong interest, or a formative experience. Not a job title. This block is what makes you the one person in the conversation they remember.
+1. **Something human about you.** Before career, function, or resume. A value, a trait, a passion, a lifelong interest, or a formative experience. Not a job title. This is what makes you the one person in the conversation they remember.
 2. **Your career in action.** How that human thing has shown up in your work: a specific accomplishment framed as money made, money saved, or risk mitigated with a number; a pattern that recurs across roles; or the shape of your career arc.
-3. **Where you are going next.** Why your chosen direction is the natural next step, as the outcome of the first two blocks, not a change of subject.
+3. **Where you are going next.** Why your chosen direction is the natural next step, as the outcome of the first two parts, not a change of subject.
 
-The through-line that ties the three together is already set upstream by your Personal Brand golden thread. There is no separate fourth block. When the three connect, the listener hears one story, not a list.
+You will not see those three labels on the page. You see one flowing answer. The shape is invisible.
 
-## The memorability principle (why Block 1 never leads with a title)
+## Lane-aware: same person, different opening
 
-The single biggest reason most "tell me about yourself" answers are forgettable is that they open with a role. "I am a senior product leader with 15 years of experience." Everyone in the running can say a version of that. *Making Your Own Weather* is firm on this: starting with the human is what makes the answer stick.
+The same person has more than one true opening. Which one resonates depends on who is across the table. So the lane you picked in Phase 2 shapes which human anchor the model foregrounds:
 
-So Block 1 has a hard rule. Every option in it must start with something human, never with a role, a title, a company, a span of years, or a work artifact. Reimagine checks each Block 1 option against that rule before it reaches you and regenerates any option that breaks it. You will never see a Block 1 starter that opens "I am a [title]" or "After 15 years in [field]." If your inputs only support a title-first opener, the block's diagnostic tells you so, and tells you what to add.
+- **Familiar Ground** foregrounds the anchor most tied to your professional craft or operating instinct: what makes you effective at this kind of work, as a person, not just a credential.
+- **Industry Insider** foregrounds the anchor most tied to your domain curiosity: why this world has always fascinated you, what you see from the inside that others miss.
+- **Work That Matters** foregrounds the anchor most tied to your values, passion, or cause: what you care about in the world, with your career as proof you can deliver on it.
+
+If you change direction later, regenerate the Bridge Story and the opening adjusts.
+
+## The optional coaching note
+
+After the story, if your profile clearly carries a second distinct opening (different anchor, not a variation of the same one) and that second opening would be more resonant in a specific kind of conversation, Reimagine surfaces it as a short italic coaching note below the story.
+
+The coaching note is one or two sentences. It names what the story led with and when the alternative would serve you better. There is no button to switch. If you want to act on it, open the refine box and ask for the alternative as the opening.
+
+When your profile has one dominant through-line, no coaching note appears. The omission is the signal: there is one strong way to open, not two.
+
+## The memorability principle (why the opening never leads with a title)
+
+The single biggest reason most tell-me-about-yourself answers are forgettable is that they open with a role. "I am a senior product leader with 15 years of experience." Everyone in the running can say a version of that. *Making Your Own Weather* is firm on this: starting with the human is what makes the answer stick.
+
+The prompt forbids title-first, time-anchor, and credential-first openings. If your story ever lands with one anyway, open the refine box, say "lead with [specific human anchor] instead," and regenerate.
 
 ## On the screen
 
-The Bridge Story section opens with a **Learn the structure** panel: an eyebrow label, a headline, a one-sentence lead-in, and a row of three cards (one per block) that each carry an icon, the block name, a one-line description, and a `3 options to pick from` badge. A `See a sample of what one block looks like` link expands three sample starter options when you want a worked example. Below the panel, click **Generate** (or **Generate Bridge Story** if it has not run yet). About a minute to generate.
-
-## What you will get back
-
-Three blocks, stacked. For each block:
-
-- **Three option cards.** Each card shows a starter opener, a small **Best for:** line naming the situations it suits (recruiter screen, networking coffee, panel opener), and a **Why this option?** link you can open to see, in plain language, which of your Orientation inputs the option was drawn from. Every option triangulates at least two of your inputs; an option built on a single source is rejected before you see it.
-- **Pick and edit.** Click a card to pick it. The picked card highlights, the other two dim, and a text box opens immediately on the picked card with the starter text pre-filled and the cursor focused. Edit in your voice. Your edit saves when you click away. You can pick a different card any time; the previous edit stays attached to the option you edited, and the new card opens its own text box.
-- **A diagnostic, collapsed by default.** Below the three cards is a **Why these options?** toggle. Open it for two plain-language lines: **what your inputs support** (which of your inputs triangulate to make this block strong) and **what would strengthen it** (what is thin, and the specific Orientation field to flesh out).
-
-Below all three blocks: **Your assembled bridge story**, a live preview that strings your picks (with your edits) into one flowing answer, with a Copy button and a **Print this section** button. Until you have picked in every block, the preview shows the first option of any block you have not chosen yet, so you always see a complete answer. Once you have picked in all three blocks, a short line above the preview confirms you have a framework you can use with confidence.
-
-Below the assembled preview: **Your bridge story, in your own words**, a freeform textarea where you write the version you will speak. The first time all three slots have picks, Reimagine pre-fills this textarea with the assembled preview so you start from a working draft. After that the field is yours; pick changes do not silently overwrite what you have written. A **Reset to the assembled version** link lets you re-sync to the latest picks when you want a fresh start. Saves when you click away. Later sections that need a "tell me about yourself" read this freeform version when it is non-empty and fall back to the assembled picks when it is not.
-
-At the top of the section a small **Saved** indicator shows the auto-save state: *Saved · just now* / *Saved · a moment ago* / *Saving…* / *Save failed · retrying*. At the bottom a **Save and return to playbook** button force-saves and scrolls you back to the top of the playbook so you can move on to the next section.
-
-## If a block does not feel right
-
-Under each block's diagnostic toggle is a small **None of these feel right? Tell us what to fix.** disclosure. Open it, write what is off (for example, "the options lean too hard on the volunteer work; I want options that lead with the assessment finding"), and click **Regenerate this block**. Only that block changes. Your picks in the other two blocks stay, along with the freeform textarea. The new options can take up to three attempts to clear the voice rules and (for Block 1) the human-first rule; if all three attempts miss, the section shows an inline note and you can try again with a different framing.
-
-## When your Orientation changes later
-
-The Bridge Story is generated from a snapshot of your Orientation. If you go back and change your reputation, values, passions, assessment, frameworks, or Your Story after generating, the next time you open the Bridge Story you will see a banner at the top: your Orientation has changed since this was generated. The banner gives you two choices. **Regenerate** rebuilds the blocks from your current inputs (and refreshes the steps that depend on it, the same as any regenerate). **Keep current** dismisses the banner and leaves your picks and edits exactly as they are.
-
-Reimagine marks the story stale and asks rather than regenerating on its own, because you may have picked and edited options you do not want silently overwritten. The banner comes back on your next visit if the inputs still differ, so you do not lose the prompt by dismissing it once.
-
-## When the blocks come back thin
-
-If your Orientation does not have enough to triangulate strong options, Reimagine does not fabricate them. It tries up to three times to produce options that clear the bar (two or more sources each, Block 1 human-first, every opener short). If it still cannot, the section shows a regenerate prompt and the diagnostics tell you exactly what to add: a side project or weekend pursuit, an assessment finding, a formative experience in Your Story. Add what is true, regenerate, and the new options will have more to work from.
-
-Honest thin beats fabricated full. A short menu with a clear "what would strengthen it" note is more useful than nine options that make claims you cannot trace to anything.
-
-## Do not try to memorize it
-
-This is the most important point in the whole chapter, and the new format is built around it. The starter options are *illustrations of the structure*, not scripts. People who memorize their "tell me about yourself" almost always sound stiff, and the rhythm of a real conversation rarely lets you deliver 30 memorized seconds anyway. The other person nods or interrupts or asks a question, and the script falls apart.
-
-What you are internalizing is the three-block formula:
-
-1. **What is true about you as a human.** A value, a curiosity, a pattern that has been there since well before this career chapter.
-2. **How that has played out in your career.** An accomplishment or pattern that exists *because* of who you are, framed as money made, money saved, or risk mitigated.
-3. **Therefore, what you are looking for.** Why your next chapter is the natural extension of the first two.
-
-Picking and editing the blocks is the practice. Once the three are alive in your head, you can land them in your own words, in any order the moment allows, in 30 seconds or 90. That is how a Bridge Story works in the wild: not a recital, three ideas you are comfortable enough with to assemble on the fly.
+The Bridge Story section opens with a short section header and a generate button. Click **Generate**. About a minute to a minute and a half. You get the story and, when one is warranted, the coaching note. Below them, the standard refine box ("What did we get wrong?") and the navigation to **Find My Market**.
 
 ## What good looks like
 
-This is a story you will say to real humans, so the test is whether it sounds like you saying it. Use these checks on your assembled preview:
+This is a story you will say to real humans, so the test is whether it sounds like you saying it.
 
-**Read it out loud.** Not in your head. Out loud, at a conversational pace. If you stumble over a phrase, edit that block. If a sentence is too long for spoken delivery, edit it. If you would not use a word that appears, edit it out.
+**Read it out loud.** Not in your head. Out loud, at a conversational pace. If you stumble over a phrase, that phrase needs to come out. If you would not use a word in conversation, that word does not belong.
 
-**Check the opening.** Block 1 should be something true about you as a person, not a credential. A strong opening sounds like:
+**Check the opening.** It should be something true about you as a person, not a credential. A strong opening sounds like:
 
 > I have always been the person who figures out why something is not selling and then fixes it.
 
@@ -100,44 +72,74 @@ A weak opening sounds like:
 
 > I am a results-driven leader with 20 years of experience in enterprise sales.
 
-The first starts with the human and pivots into the career. The second starts with the credential. Reimagine will not generate the second as a Block 1 option, but if you edit one into that shape, you have edited the memorability out of your own answer. Pick or write the human opener.
+The first starts with the human and pivots into the career. The second starts with the credential. The model will not lead with the second, but if your refinement nudges it that direction, you have edited the memorability out of your own answer.
 
-**Check the middle.** Block 2 should connect back to Block 1. *Because* you are the person who figures out what is broken, you walked into companies where the sales engine was broken and built it. The "because" is the connective tissue. If the assembled preview reads as two unrelated halves, pick a different Block 2 option or edit it to land on the same idea Block 1 opened.
+**Check the middle.** The career section should connect back to the opening. *Because* you are the person who figures out what is broken, you walked into companies where the sales engine was broken and built it. The "because" is the connective tissue. If the story reads as two unrelated halves, ask the refine box to reconnect them to the opening.
 
-**Check the close.** Block 3 should make the next move feel inevitable, not aspirational. "I am looking for a CRO role at a mission-driven career services platform because I have already built this from scratch once, and I want to do it at a scale where it reaches thousands instead of hundreds" lands. "I am exploring opportunities where I can apply my experience" does not.
+**Check the close.** The forward move should make your next chapter feel inevitable, not aspirational. "I am looking for a CRO role at a mission-driven career services platform because I have already built this from scratch once, and I want to do it at a scale where it reaches thousands instead of hundreds" lands. "I am exploring opportunities where I can apply my experience" does not.
 
-**Time it.** A good "tell me about yourself" runs 30 to 45 seconds spoken. If your assembled preview is longer than 60 seconds at conversational pace, pick shorter options or trim your edits. If it is under 20, your edits may have cut too far.
+**Time it.** A good tell-me-about-yourself runs 30 to 45 seconds spoken. If yours runs longer than 60 seconds at conversational pace, ask the refine box to tighten. If it runs under 20, you have probably cut too far and should regenerate.
 
 ## How to refine
 
-You have two tools here, and they do different jobs.
+The refine box ("What did we get wrong?" below the story) is your tool. Open it, write what is off, and regenerate. The microphone in the box lets you talk through what feels off; that is often easier than typing it.
 
-**Pick and edit** is the everyday tool. Different option fits better for a recruiter screen than a panel opener? Pick the one tagged for the situation you are walking into. A starter is close but not your words? Edit it. This costs nothing and does not regenerate anything.
+Useful patterns:
 
-**The refine box** (the "What did we get wrong?" box below the section) is for when the whole set is off: the options misread your background, the diagnostics point at the wrong gap, the tone is wrong across the board. Describe what is off and Reimagine regenerates the blocks. The microphone button is in the refine box; talking through what feels off is often easier than typing it.
-
-Refinement patterns for the refine box:
-
-- "The Block 1 options all lean on my volunteer work. I want options grounded in the assessment finding instead."
-- "Block 2 keeps using the divestiture story. Use the migration project. It is more transferable."
-- "The close options are too big. 'I want to change the industry.' I want something more measured."
+- "The opening leans on my volunteer work. Lead with the assessment finding instead."
+- "Keep using the divestiture story. The migration project is more transferable for this role."
+- "The close is too big. Pull it back to something more measured."
 - "Translate the accomplishments out of my old industry's language. A healthcare CEO would not follow these."
+- "I want to lead with my sustainability work for mission-driven conversations. Use that as the opening."
 
 Use **Update with my correction** to fold the change in. Use **Start fresh** to clear and regenerate from a different angle.
 
+If you ever want a completely different opening because the conversation in front of you calls for it, the refine box is also where you do that. Tell the model which anchor to lead with and it will rewrite around that choice.
+
+## The op-card adaptation
+
+Each Live Opportunity Playbook (Chapter 11b) you build also has a Bridge Story card. That card is a 2 to 3 sentence sharpening of your role-level story, tuned to the specific company and job description for that opportunity.
+
+It does two things your base Bridge Story cannot: it names *why this company specifically*, and (when the company's mission calls for it) it shifts the human anchor to the angle most resonant for that role. The result is a 30-second opener you can take into that conversation without rewriting from scratch.
+
+The op card uses your role-level Bridge Story as its starting point, so build that first. If you click **Build** on the op Bridge Story card before the role-level one exists, it will tell you what to do. The op card has its own refine box; refinements there stay scoped to that opportunity and never overwrite your base Bridge Story.
+
+## Do not try to memorize it
+
+The story is an *illustration of the structure*, not a script. People who memorize their tell-me-about-yourself almost always sound stiff, and the rhythm of a real conversation rarely lets you deliver 30 memorized seconds anyway. The other person nods or interrupts or asks a question, and the script falls apart.
+
+What you are internalizing is the three-part formula:
+
+1. **What is true about you as a human.** A value, a curiosity, a pattern that has been there since well before this career chapter.
+2. **How that has played out in your career.** An accomplishment or pattern that exists *because* of who you are, framed as money made, money saved, or risk mitigated.
+3. **Therefore, what you are looking for.** Why your next chapter is the natural extension of the first two.
+
+Once the three are alive in your head, you can land them in your own words, in any order the moment allows, in 30 seconds or 90. That is how a Bridge Story works in the wild: not a recital, three ideas you are comfortable enough with to assemble on the fly.
+
+## When your Orientation changes later
+
+The Bridge Story is generated from a snapshot of your Orientation. If you change your reputation, values, passions, assessment, frameworks, or Your Story after generating, regenerate the Bridge Story so the opening reflects what is now true. The Focus Playbook will prompt you when an earlier section needs a refresh.
+
+## When the inputs are thin
+
+If your Orientation does not carry enough material for a specific, evidence-anchored story, the story you get back will name only what your inputs actually support. Reimagine does not fabricate. Add what is true (a side project, an assessment finding, a formative experience in Your Story), regenerate, and the new story will have more to work from.
+
+Honest thin beats fabricated full. A short, specific story is more useful than a long story that makes claims you cannot trace to anything.
+
 ## Why this output flows into so many later steps
 
-The picks and edits you make here become the input to:
+Your Bridge Story becomes the input to:
 
-- The opening of your **LinkedIn About section** in Phase 5. The first three lines are what shows above the "see more" cutoff, and most readers see only those. Reimagine uses your assembled Bridge Story as the anchor for them.
-- Your **answer to "tell me about yourself"** in Interview Prep. Interview Prep reads your assembled Bridge Story directly, so the work you did picking and editing carries straight in.
-- The voice template for your **outreach** in Phase 4. The way you talk in your Bridge Story sets the tone for how Reimagine drafts your peer-to-peer outreach.
+- The opening of your **LinkedIn About section** in Phase 5. The first three lines are what shows above the "see more" cutoff, and most readers see only those. Reimagine uses your Bridge Story as the anchor for them.
+- Your **answer to "tell me about yourself"** in Interview Prep. It reads your Bridge Story directly, so the work you do refining here carries straight in.
+- The voice template for your **outreach** in Phase 4. The way you sound in your Bridge Story sets the tone for how Reimagine drafts your peer-to-peer outreach.
+- The **Bridge Story card** in any Live Opportunity Playbook you build, as described above.
 
-Because the Bridge Story is now a saved asset rather than a one-time paragraph, the time you spend picking and editing until it sounds like you is time you do not spend re-fixing every downstream output that inherits its voice.
+Because the Bridge Story is a saved asset, the time you spend refining it until it sounds like you is time you do not spend re-fixing every downstream output that inherits its voice.
 
 ## When you are happy with it
 
-Click **Find My Market** to advance to Phase 4. If something feels off later, say you read your LinkedIn copy in Phase 5 and the opening line does not sound right, you can come back here, pick a different option or edit, and let the LinkedIn step regenerate. Chapter 12 covers how.
+Click **Find My Market** to advance to Phase 4. If something feels off later, say you read your LinkedIn copy in Phase 5 and the opening line does not sound right, you can come back here, refine, and let the LinkedIn step regenerate. Chapter 12 covers how.
 
 ---
 
