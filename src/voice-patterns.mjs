@@ -162,10 +162,23 @@ export const HARD_PATTERNS = [
   },
   {
     name: 'absolutism-the-hardest',
-    re: /\bthe\s+(?:hardest|most\s+\w+|only)\s+\w+/i,
+    // Tightened 2026-06-01 (rev4 pre-pilot): require the user as the acting
+    // subject directly after the superlative noun, modeled on
+    // absolutism-every-major's personal-claim-referent requirement. The
+    // earlier bare /the (hardest|most X|only) \w+/ false-fired on generic
+    // documentation prose ("the most important idea," "the only phase where
+    // you do the work") at a 35:8 FP ratio against the user guide; the model
+    // imitating that guide register would have tripped the gate on benign
+    // output. Now fires only on "the hardest/most/only [noun] [you|she|he|they]
+    // [verb]" presented as fact. The modal negative-lookahead excludes
+    // capability statements ("the most useful things you can give") that are
+    // not absolutist claims. Known false negatives (acceptable, same class as
+    // every-major): no pronoun subject ("the only person who could"), or the
+    // claim subject is possessive/relative ("the most of your work that...").
+    re: /\bthe\s+(?:hardest|most\s+\w+|only)\s+\w+\s+(?:you|she|he|they)\s+(?!can\b|could\b|will\b|would\b|may\b|might\b)\w+/i,
     severity: 'hard',
     appliesTo: ['runtime'],
-    note: 'Absolutism: "the hardest X" / "the most X" / "the only Y" without referent.',
+    note: 'Absolutism: "the hardest/most/only [noun] you|she|he|they [verb]" presented as fact about the user. Name the specific instances instead of collapsing to an absolute.',
   },
   {
     name: 'absolutism-career-arc',
@@ -659,6 +672,32 @@ export const HARD_PATTERNS = [
     appliesTo: ['runtime'],
     surface: 'grant cycles and other people\'s good intentions',
     note: 'Substance contamination: distinctive phrase from SYS exemplar 1.',
+  },
+  // --- 2026-06-01 guide-injection contamination (PR 1) ---
+  // The user guide is injected as the register reference for prose-mode
+  // generation. These two distinctive guide phrases echoed verbatim into a
+  // pilot Personal Brand output (the first as the throughLine, which would
+  // have shipped as the user's own brand statement and propagated to every
+  // downstream surface). Catch them in model output.
+  {
+    name: 'contamination-will-to-stay-breaking',
+    re: /\bthe will to stay inside something while it is breaking\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'the will to stay inside something while it is breaking',
+    note: 'Substance contamination: worked-example lead phrase from user guide chapter 5. Write the lead from THIS user\'s inputs.',
+  },
+  {
+    name: 'contamination-4-2m-spend',
+    // Keys on the distinctive fabricated fragment "mapping the entire spend",
+    // NOT the dollar figure: a real user's cost-reduction number (e.g. the
+    // Sarah Chen demo's genuine $4.2M) must not false-fire. The echo signature
+    // is the exemplar's phrasing, which a real user's inputs do not contain.
+    re: /\bmapping the entire spend\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'mapping the entire spend',
+    note: 'Substance contamination: fabricated accomplishment phrasing from the SYS/guide cost-reduction exemplar. Cite the user\'s actual results, not the exemplar.',
   },
 
   // Framework naming: Bob's internal frameworks are how Reimagine thinks,

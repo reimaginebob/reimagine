@@ -75,6 +75,16 @@ const cases = [
     'Crisis counseling shaped your drive to stay inside complexity rather than abstract from it.'],
   ['mind-reading-shaped-your: built your sense', 'mind-reading-shaped-your',
     'Years of operating in turnarounds built your sense for which signal to trust.'],
+
+  // absolutism-the-hardest, tightened 2026-06-01 (rev4 pre-pilot). Fires on a
+  // real personal-absolutism claim (user as the acting subject directly after
+  // the superlative noun); does NOT fire on a generic superlative with no
+  // user referent (the 35:8 false-positive shape against the user guide that
+  // motivated the tightening).
+  ['absolutism-the-hardest: personal claim fires', 'absolutism-the-hardest',
+    'The hardest call you ever made was walking away from the deal.'],
+  ['absolutism-the-hardest: generic superlative does NOT fire', null,
+    'The most important idea in the guide is that conviction precedes clarity.'],
 ]
 
 let failed = 0
@@ -544,6 +554,16 @@ const voiceGuideCases = [
     "The warehouse was held together with grant cycles and other people's good intentions."],
   ['contamination-grant-cycles: similar concept different wording does not fire', null,
     'The nonprofit ran on grant cycles and goodwill from the community.'],
+
+  // 2026-06-01 (PR 1): guide-injection contamination patterns.
+  ['contamination-will-to-stay-breaking: fires', 'contamination-will-to-stay-breaking',
+    'What runs through your work is the will to stay inside something while it is breaking.'],
+  ['contamination-will-to-stay-breaking: different phrasing does not fire', null,
+    'You have the resolve to stay with a hard problem until it is solved.'],
+  ['contamination-4-2m-spend: fires on the exemplar phrase', 'contamination-4-2m-spend',
+    'The savings came from mapping the entire spend, finding the leaks, and redesigning the system.'],
+  ['contamination-4-2m-spend: real $4.2M number with different phrasing does not fire', null,
+    'She reduced clinical hiring costs by $4.2M through agency consolidation and process redesign.'],
 ]
 
 let voiceGuideFailed = 0

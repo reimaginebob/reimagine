@@ -166,7 +166,7 @@ The final orientation step is the most personal one. Reimagine asks for a life e
 
 The field is optional. Some users have rich material here; some do not. If you do, it becomes one of the strongest grounding sources Reimagine has for your Bridge Story and brand work, often the most distinctive thing the listener walks away remembering.
 
-A canonical example: a first-generation American who grew up translating between immigrant parents and the new country develops a literal and cultural bilinguality that becomes a transferable strength for client-technical translation work. Nobody puts this on LinkedIn; everything in their career flows from it. Other shapes the field can take: a season of caregiving that built your tolerance for ambiguity, an athletic or artistic discipline carried since childhood, a defining loss, a community role that runs across decades.
+A canonical example: a first-generation American who grew up translating between immigrant parents and the new country develops a literal and cultural bilinguality that becomes a transferable strength for client-technical translation work. Nobody puts this on LinkedIn; everything in their career flows from it. Other shapes the field can take: a stretch of caregiving that built your tolerance for ambiguity, an athletic or artistic discipline carried since childhood, a defining loss, a community role that runs across decades.
 
 A few prompts if you are stuck:
 

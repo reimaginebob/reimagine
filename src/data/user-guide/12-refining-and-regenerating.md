@@ -59,7 +59,7 @@ Start fresh does not delete previously submitted corrections from your profile; 
 
 ## How to update an earlier input and regenerate
 
-Sometimes the issue is not with the current step. It is with an input you gave earlier. Some examples:
+Sometimes the issue lives in an earlier input, not the current step. Some examples:
 
 - You forgot to mention a major project on your resume.
 - Your assessment did not capture something important and you want to add a note.

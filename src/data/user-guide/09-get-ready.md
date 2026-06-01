@@ -87,7 +87,7 @@ The tool does not edit the file you uploaded. It produces a new Word document an
 
 **If you skipped the LinkedIn upload,** Reimagine generates recommendations from scratch based on your Personal Brand, Bridge Story, and target direction. The output is still useful; you just have to map it onto your current profile yourself.
 
-LinkedIn is not an online resume. It is your personal brand on the web, and how it shows up to recruiters and hiring managers depends almost entirely on the headline and the first three lines of your About section. This section gives you new versions of both, plus a few other recommendations that work together.
+LinkedIn is your personal brand on the web, more than an online resume, and how it shows up to recruiters and hiring managers depends almost entirely on the headline and the first three lines of your About section. This section gives you new versions of both, plus a few other recommendations that work together.
 
 **What you will get back.**
 
