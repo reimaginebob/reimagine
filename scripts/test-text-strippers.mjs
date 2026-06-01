@@ -196,10 +196,19 @@ assertEq('applyContaminationPlaceholders: two contaminations in one input',
   applyContaminationPlaceholders('Pia Lopez runs a food bank in Sacramento.'),
   '[the user] runs a [their work setting].')
 
+// ---- applyContaminationPlaceholders: guide-injection echoes (PR 1) -----
+
+assertEq('applyContaminationPlaceholders: will-to-stay-breaking',
+  applyContaminationPlaceholders('What runs through your work is the will to stay inside something while it is breaking.'),
+  "What runs through your work is [the through-line in the user's own terms].")
+assertEq('applyContaminationPlaceholders: mapping-the-entire-spend',
+  applyContaminationPlaceholders('The savings came from mapping the entire spend.'),
+  'The savings came from [what the user actually did].')
+
 // ---- applyContaminationPlaceholders: export sanity --------------------
 
-assertTruthy('CONTAMINATION_PLACEHOLDERS is an array of 5 entries',
-  Array.isArray(CONTAMINATION_PLACEHOLDERS) && CONTAMINATION_PLACEHOLDERS.length === 5,
+assertTruthy('CONTAMINATION_PLACEHOLDERS is an array of 7 entries',
+  Array.isArray(CONTAMINATION_PLACEHOLDERS) && CONTAMINATION_PLACEHOLDERS.length === 7,
   `got length=${Array.isArray(CONTAMINATION_PLACEHOLDERS) ? CONTAMINATION_PLACEHOLDERS.length : typeof CONTAMINATION_PLACEHOLDERS}`)
 
 // ---- Report ----------------------------------------------------------

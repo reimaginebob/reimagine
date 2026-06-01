@@ -28,7 +28,7 @@ Reimagine writes a single tell-me-about-yourself answer for the direction you pi
 2. **Your career in action.** How that human thing has shown up in your work: a specific accomplishment framed as money made, money saved, or risk mitigated with a number; a pattern that recurs across roles; or the shape of your career arc.
 3. **Where you are going next.** Why your chosen direction is the natural next step, as the outcome of the first two parts, not a change of subject.
 
-You will not see those three labels on the page. You see one flowing answer. The shape is invisible.
+Those three labels never appear on the page. You see one flowing answer. The shape is invisible.
 
 ## Lane-aware: same person, different opening
 
@@ -72,7 +72,7 @@ A weak opening sounds like:
 
 > I am a results-driven leader with 20 years of experience in enterprise sales.
 
-The first starts with the human and pivots into the career. The second starts with the credential. The model will not lead with the second, but if your refinement nudges it that direction, you have edited the memorability out of your own answer.
+The first starts with the human and pivots into the career. The second starts with the credential. The model leads with the first by default. If your refinement nudges it toward the second, you have edited the memorability out of your own answer.
 
 **Check the middle.** The career section should connect back to the opening. *Because* you are the person who figures out what is broken, you walked into companies where the sales engine was broken and built it. The "because" is the connective tissue. If the story reads as two unrelated halves, ask the refine box to reconnect them to the opening.
 
@@ -139,7 +139,7 @@ Because the Bridge Story is a saved asset, the time you spend refining it until 
 
 ## When you are happy with it
 
-Click **Find My Market** to advance to Phase 4. If something feels off later, say you read your LinkedIn copy in Phase 5 and the opening line does not sound right, you can come back here, refine, and let the LinkedIn step regenerate. Chapter 12 covers how.
+Click **Find My Market** to advance to Phase 4. If something feels off later, say you read your LinkedIn copy in Phase 5 and the opening line sounds off. You can come back here, refine, and let the LinkedIn step regenerate. Chapter 12 covers how.
 
 ---
 

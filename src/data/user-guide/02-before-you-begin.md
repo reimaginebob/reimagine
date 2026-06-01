@@ -82,7 +82,7 @@ If you want your account deleted, email [bob@career.club](mailto:bob@career.club
 
 **This is iterative, not linear.** After every result, you have the option to say "this is not quite right, here is what to adjust" and regenerate. Use it. Reimagine gets better with that feedback.
 
-**There are no wrong answers in the intake.** When the tool asks about your values, your passions, or your reputation, it is not testing you. Answer honestly, not strategically. Strategic answers produce strategic-sounding output that does not feel like you.
+**There are no wrong answers in the intake.** When the tool asks about your values, your passions, or your reputation, it is not testing you. Give honest answers, not strategic ones. Strategic answers produce strategic-sounding output that does not feel like you.
 
 **You only need one new job. But you can explore as many options as you want.** The journey eventually asks you to commit to one direction so the rest of the tool can build a focused plan around it. That does not mean you have to throw the other options away. Once you have walked through with one role in mind, you can come back and explore another in the same depth. Reimagine is designed to open your eyes to what is possible, not to corner you into one answer. The point is to choose the right next chapter with confidence, knowing you saw the field clearly.
 

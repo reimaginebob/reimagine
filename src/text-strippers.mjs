@@ -92,6 +92,10 @@ export const CONTAMINATION_PLACEHOLDERS = [
   [/\bthe staff knows the regulars by name\b/gi, '[a specific detail from their work]'],
   [/\bcaregiving years do not appear on a resume\b/gi, '[whatever years are missing from the resume]'],
   [/\bgrant cycles and other people's good intentions\b/gi, '[the constraints of their work]'],
+  // 2026-06-01 (PR 1): guide-injection echo phrases. Final-defense placeholders
+  // for the two distinctive user-guide phrases the contamination-* gate catches.
+  [/\bthe will to stay inside something while it is breaking\b/gi, '[the through-line in the user\'s own terms]'],
+  [/\bmapping the entire spend\b/gi, '[what the user actually did]'],
 ]
 
 export function applyContaminationPlaceholders(text) {

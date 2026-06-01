@@ -57,7 +57,7 @@ When you have the JD in place, click **Build My Playbook**. Reimagine creates th
 - **The Bridge Story should sound like you saying it out loud.** Each block is a draft you tune; the goal is a 30-second answer you can deliver in a screening call without sounding like you memorized it.
 - **The Resume Refresh should foreground the competencies this role asks for.** The repositioned summary and the strongest accomplishments shift; the rest of your resume can stay as it is.
 - **Interview Prep should give you the actual questions this role's interview cycle will ask**, with the raw material from your own inputs to build each answer. The strongest version is in your voice, with the specifics only you can add.
-- **About This Company should surface one or two findings you would not have thought to look for.** The industry-specific scoreboard is the load-bearing subsection: for a hospital system, the CMS Star Rating and the Leapfrog Safety Grade carry decision-weight; for a tech company, the engineering blog cadence and GitHub activity do. Every numeric claim cites a source URL inline. Watch-outs are named honestly, not softened.
+- **About This Company should surface one or two findings you would not have thought to look for.** The industry-specific scoreboard is the load-bearing subsection: for a hospital system, the CMS Star Rating and the Leapfrog Safety Grade carry decision-weight; for a tech company, the engineering blog cadence and GitHub activity do. Every numeric claim cites a source URL inline. Watch-outs are named plainly, not softened.
 
 ## How to refine
 
