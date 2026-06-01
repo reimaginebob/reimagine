@@ -347,6 +347,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid request format' })
   }
 
+  // voiceMode is a Reimagine-internal request field, read above to select
+  // SYS_BASE vs SYS_PROSE. It must NOT be forwarded to the Anthropic API: the
+  // legacy branch spreads ...reqBody, and Anthropic rejects unknown body fields
+  // with a 400 ("voiceMode: Extra inputs are not permitted").
+  delete anthropicBody.voiceMode
+
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
