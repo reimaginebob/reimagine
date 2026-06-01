@@ -109,3 +109,77 @@ export function applyContaminationPlaceholders(text) {
   }
   return out
 }
+
+// stripLogicFlipCadence. Deterministic rewrite for the "X is not Y. It is Z."
+// logic-flip cadence (2026-06-01, PR after #133). This pattern is model-robust:
+// the runtime voice gate detects it (logic-flip-is-not in voice-patterns.mjs),
+// retries, the model regenerates the same construction, and the gate falls
+// open — the violation ships. PR 133's production smoke confirmed it live
+// ("The answer to that question is not a feeling. It is architecture."), so
+// the standing voice-rule memory's "logic-flips are model-robust and must be
+// strip, not retry" applies. Same enforcement shape as stripMetaNarration /
+// stripRoomsPlaceholder.
+//
+// Match: "[Subject1] is/are not [phrase1]. [Subject2] is/are [phrase2]." where
+// Subject1 is a sentence-initial (capitalized) noun phrase, the auxiliary
+// matches between the two sentences (\3 backref), and Subject2 is either a
+// pointer pronoun (It/They/These/Those/This/That) or a verbatim repeat of
+// Subject1 (\2 backref). Rewrite: "[Subject1] is/are [phrase2]." — drop the
+// negation sentence, keep the substantive positive claim with the original
+// subject. Anchored to a sentence boundary so embedded mid-sentence "is not"
+// (no pivot pair) and pivots into a different subject or a non-assertion
+// second clause are left untouched. Idempotent: the rewritten output no
+// longer contains "is/are not", so a second pass is a no-op.
+//
+// voice-allow
+const LOGIC_FLIP_CADENCE_RE = /(^|[.!?]\s+|\n+)([A-Z][^.!?\n]*?)\s+(is|are)\s+not\s+[^.!?\n]+?[.!?]\s+(?:It|They|These|Those|This|That|\2)\s+\3\s+([^.!?\n]+?[.!?])/g
+export function stripLogicFlipCadence(text) {
+  if (typeof text !== 'string' || !text) return text
+  let count = 0
+  const out = text.replace(LOGIC_FLIP_CADENCE_RE, (_match, lead, subject1, aux, phrase2) => {
+    count++
+    return `${lead}${subject1} ${aux} ${phrase2}`
+  })
+  if (count > 0) {
+    console.warn(`[stripLogicFlipCadence] rewrote ${count} logic-flip cadence${count === 1 ? '' : 's'} from LLM output`)
+  }
+  return out
+}
+// voice-allow-end
+
+// stripSincerityQualifiers. Deterministic strip for the noun-phrase and
+// adverbial sincerity-qualifier prefixes (2026-06-01, PR after #133). Same
+// model-robust failure mode as the logic-flip cadence: PR 133 added the
+// detection patterns (truth-the-honest-noun, truth-honestly-frankly-candidly)
+// and its production smoke confirmed the construction still ships after the
+// gate falls open ("The honest read: the conviction is general."). Strip, do
+// not retry.
+//
+// Six variants, each anchored to a sentence boundary so mid-sentence
+// descriptive uses of "honest" ("an honest review," "honest dialogue,"
+// predicate "was honest") and "Honesty" as a noun are never touched:
+//   "The honest [noun]: [claim]"        -> "[Claim]"
+//   "The honest [noun] is that [claim]"  -> "[Claim]"
+//   "To be honest, [claim]"              -> "[Claim]"
+//   "Honestly, [claim]" / "Frankly," / "Candidly," -> "[Claim]"
+// [noun] is the same whitelist as truth-the-honest-noun: read, reading,
+// answer, truth, take, view, assessment, appraisal. The surviving claim's
+// first letter is re-capitalized (the prefix removal leaves it lowercase).
+// Idempotent: the rewritten claim no longer carries the qualifier prefix.
+//
+// voice-allow
+const HONEST_NOUN_RE = /(^|[.!?]\s+|\n+)the honest (?:read|reading|answer|truth|take|view|assessment|appraisal)(?::\s+|\s+is\s+that\s+)([^\n]+)/gi
+const SINCERITY_ADVERB_RE = /(^|[.!?]\s+|\n+)(?:to be honest|honestly|frankly|candidly),\s+([^\n]+)/gi
+export function stripSincerityQualifiers(text) {
+  if (typeof text !== 'string' || !text) return text
+  let count = 0
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1)
+  let out = text
+  out = out.replace(HONEST_NOUN_RE, (_match, lead, claim) => { count++; return `${lead}${cap(claim)}` })
+  out = out.replace(SINCERITY_ADVERB_RE, (_match, lead, claim) => { count++; return `${lead}${cap(claim)}` })
+  if (count > 0) {
+    console.warn(`[stripSincerityQualifiers] stripped ${count} sincerity qualifier${count === 1 ? '' : 's'} from LLM output`)
+  }
+  return out
+}
+// voice-allow-end

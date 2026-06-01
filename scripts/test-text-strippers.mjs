@@ -11,7 +11,7 @@
 //   2. applyContaminationPlaceholders: each of the 5 placeholders applies
 //      on its target phrase; clean input passes through unchanged.
 
-import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS } from '../src/text-strippers.mjs'
+import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers } from '../src/text-strippers.mjs'
 
 let failed = 0
 let total = 0
@@ -210,6 +210,135 @@ assertEq('applyContaminationPlaceholders: mapping-the-entire-spend',
 assertTruthy('CONTAMINATION_PLACEHOLDERS is an array of 7 entries',
   Array.isArray(CONTAMINATION_PLACEHOLDERS) && CONTAMINATION_PLACEHOLDERS.length === 7,
   `got length=${Array.isArray(CONTAMINATION_PLACEHOLDERS) ? CONTAMINATION_PLACEHOLDERS.length : typeof CONTAMINATION_PLACEHOLDERS}`)
+
+// ---- stripLogicFlipCadence: positive cases (must rewrite) -------------
+// 2026-06-01 (PR after #133): deterministic strip for the model-robust
+// "X is not Y. It is Z." logic-flip cadence. Drops the negation sentence,
+// keeps the positive claim with the original subject restored.
+
+assertEq('stripLogicFlipCadence: plural ("These are not ... They are ...")',
+  stripLogicFlipCadence('These are not optimizations. They are architectures.'),
+  'These are architectures.')
+
+assertEq('stripLogicFlipCadence: abstract noun-phrase subject (post-PR-132 smoke)',
+  stripLogicFlipCadence('The answer to that question is not a feeling. It is architecture.'),
+  'The answer to that question is architecture.')
+
+assertEq('stripLogicFlipCadence: possessive singular subject',
+  stripLogicFlipCadence('Your career is not about building products. It is about understanding how people experience reality.'),
+  'Your career is about understanding how people experience reality.')
+
+assertEq('stripLogicFlipCadence: demonstrative subject',
+  stripLogicFlipCadence('This is not a coincidence. It is a pattern.'),
+  'This is a pattern.')
+
+assertEq('stripLogicFlipCadence: repeated (non-pronoun) subject',
+  stripLogicFlipCadence('The plan is not a forecast. The plan is a commitment.'),
+  'The plan is a commitment.')
+
+// ---- stripLogicFlipCadence: negative cases (must stay unchanged) ------
+
+assertEq('stripLogicFlipCadence: no positive counter-assertion stays unchanged',
+  stripLogicFlipCadence('The plan is not finalized. It requires more input.'),
+  'The plan is not finalized. It requires more input.')
+
+assertEq('stripLogicFlipCadence: different subjects (no pivot) stays unchanged',
+  stripLogicFlipCadence('She is not here. He is in the office.'),
+  'She is not here. He is in the office.')
+
+assertEq('stripLogicFlipCadence: single sentence stays unchanged',
+  stripLogicFlipCadence('Healthcare is not consumer tech.'),
+  'Healthcare is not consumer tech.')
+
+assertEq('stripLogicFlipCadence: embedded "is not" without pivot pair stays unchanged',
+  stripLogicFlipCadence('She knows the work is not easy and chooses it anyway.'),
+  'She knows the work is not easy and chooses it anyway.')
+
+assertEq('stripLogicFlipCadence: negation then unrelated statement stays unchanged',
+  stripLogicFlipCadence('The vendor is not ready. We will reschedule the launch.'),
+  'The vendor is not ready. We will reschedule the launch.')
+
+// ---- stripLogicFlipCadence: edge cases --------------------------------
+
+assertEq('stripLogicFlipCadence: empty string unchanged', stripLogicFlipCadence(''), '')
+assertEq('stripLogicFlipCadence: null unchanged', stripLogicFlipCadence(null), null)
+assertEq('stripLogicFlipCadence: non-string unchanged', stripLogicFlipCadence(42), 42)
+assertEq('stripLogicFlipCadence: clean prose unchanged',
+  stripLogicFlipCadence('You build talent infrastructure at scale. The institutions need it.'),
+  'You build talent infrastructure at scale. The institutions need it.')
+
+{
+  const once = stripLogicFlipCadence('This is not a coincidence. It is a pattern.')
+  assertEq('stripLogicFlipCadence: idempotent on rewritten output', stripLogicFlipCadence(once), once)
+}
+
+// Mid-paragraph pivot (sentence boundary inside a larger block) still fires.
+assertEq('stripLogicFlipCadence: pivot mid-paragraph fires, leading sentence preserved',
+  stripLogicFlipCadence('You have compounded for fourteen years. These are not optimizations. They are architectures.'),
+  'You have compounded for fourteen years. These are architectures.')
+
+// ---- stripSincerityQualifiers: positive cases (must rewrite) ----------
+// 2026-06-01 (PR after #133): deterministic strip for the noun-phrase and
+// adverbial sincerity-qualifier prefixes. Removes the qualifier, restores
+// the surviving claim's capital first letter.
+
+assertEq('stripSincerityQualifiers: "The honest read:" colon form',
+  stripSincerityQualifiers('The honest read: the conviction is general.'),
+  'The conviction is general.')
+
+assertEq('stripSincerityQualifiers: "The honest read is that" form',
+  stripSincerityQualifiers('The honest read is that the conviction is general.'),
+  'The conviction is general.')
+
+assertEq('stripSincerityQualifiers: "The honest answer is that" form',
+  stripSincerityQualifiers("The honest answer is that we don't know yet."),
+  "We don't know yet.")
+
+assertEq('stripSincerityQualifiers: "To be honest," lead-in',
+  stripSincerityQualifiers('To be honest, the offer was thin.'),
+  'The offer was thin.')
+
+assertEq('stripSincerityQualifiers: "Honestly," lead-in',
+  stripSincerityQualifiers("Honestly, the data doesn't support that."),
+  "The data doesn't support that.")
+
+assertEq('stripSincerityQualifiers: "Frankly," lead-in',
+  stripSincerityQualifiers('Frankly, this is the right call.'),
+  'This is the right call.')
+
+// ---- stripSincerityQualifiers: negative cases (must stay unchanged) ---
+
+assertEq('stripSincerityQualifiers: descriptive "an honest review" unchanged',
+  stripSincerityQualifiers('She gave him an honest review of his presentation.'),
+  'She gave him an honest review of his presentation.')
+
+assertEq('stripSincerityQualifiers: predicate adjective "was honest" unchanged',
+  stripSincerityQualifiers('His feedback was honest and useful.'),
+  'His feedback was honest and useful.')
+
+assertEq('stripSincerityQualifiers: "Honesty" as a noun unchanged',
+  stripSincerityQualifiers('Honesty is one of her values.'),
+  'Honesty is one of her values.')
+
+assertEq('stripSincerityQualifiers: mid-sentence "honest dialogue" unchanged',
+  stripSincerityQualifiers('They valued honest dialogue over politeness.'),
+  'They valued honest dialogue over politeness.')
+
+// ---- stripSincerityQualifiers: edge cases -----------------------------
+
+assertEq('stripSincerityQualifiers: empty string unchanged', stripSincerityQualifiers(''), '')
+assertEq('stripSincerityQualifiers: null unchanged', stripSincerityQualifiers(null), null)
+assertEq('stripSincerityQualifiers: non-string unchanged', stripSincerityQualifiers(42), 42)
+
+{
+  const once = stripSincerityQualifiers('The honest read: the conviction is general.')
+  assertEq('stripSincerityQualifiers: idempotent on stripped output', stripSincerityQualifiers(once), once)
+}
+
+// Qualifier after a sentence boundary mid-paragraph still fires.
+assertEq('stripSincerityQualifiers: qualifier mid-paragraph fires, leading sentence preserved',
+  stripSincerityQualifiers('The venue is specific. To be honest, the offer was thin.'),
+  'The venue is specific. The offer was thin.')
 
 // ---- Report ----------------------------------------------------------
 
