@@ -18,6 +18,17 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Demo mode.** A guided walkthrough using a fictional executive (Sarah Chen). It is being rebuilt for the new flow and is temporarily unavailable; `?demo=true` shows a short notice rather than the old tour.
 
+**Dimensional read (how Reimagine reads career fit).** When Reimagine writes your Personal Brand, it assesses your fit across six dimensions internally and emits a reading on each. The prose does not name these dimensions as labels (that is internal scaffolding), but if you are curious how the analysis is structured, here it is:
+
+- **Function.** Your core skill or expertise. What you do for a living.
+- **Industry.** The sector you work in or know well: healthcare, tech, finance, nonprofit, and so on. Industries have their own language, problems, and operating rhythms.
+- **Position in the value chain.** Where you sit relative to the customer or end user: inside the operating company, on the vendor or supplier side, in consulting or advisory work, on the regulator side. The same industry looks different from different positions.
+- **Scale.** The size of the organization or the P&L you have managed. Scale changes the day-to-day experience of the work.
+- **Pace.** How fast the work moves: startup chaos, steady enterprise rhythm, regulated-industry cycles. People differ in which pace they thrive in.
+- **Mission.** What the organization exists to do in the world: profit maximization, social impact, public health, education, innovation. Mission is the "why" that energizes or drains people over time.
+
+The Personal Brand prose names what is settled about your fit and what is open. Settled means your track record points clearly; open means the next move has real choices. The dimensions are how Reimagine thinks; the settled / open framing is what the prose writes.
+
 **Direction (lane).** One of the three choices on the Lane Selection screen in Phase 2: Familiar Ground, Industry Insider, or Work That Matters. You pick one direction at a time; Reimagine generates role options for that direction only.
 
 **Focus Playbook.** The single assembled page Reimagine builds for one role. It opens with an orientation card ("How to use your playbook") and holds seven numbered sections grouped into four named groups, plus Income Now as a bonus stripe. Group 1, Understand the role: The Role. Group 2, Build your story: Your Bridge Story, Industry Background. Group 3, Prepare for the conversation: Interview Prep (with STAR stories woven in). Group 4, Carry it into the market: Resume Refresh, LinkedIn Remix, Go-to-Market. The Role generates immediately; the rest generate on demand.
