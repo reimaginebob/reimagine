@@ -833,11 +833,31 @@ export const HARD_PATTERNS = [
   },
   {
     name: 'truth-honestly-frankly-candidly',
-    re: /\b(honestly|frankly|candidly),/i,
+    re: /\b(?:honestly|frankly|candidly|to\s+be\s+honest),/i,
     severity: 'hard',
     appliesTo: ['runtime'],
-    surface: 'Honestly,/Frankly,/Candidly,',
-    note: 'Sincerity-qualifier truth announcement. Comma-anchored to avoid catching legitimate adverbial use.',
+    surface: 'Honestly,/Frankly,/Candidly,/To be honest,',
+    note: 'Sincerity-qualifier truth announcement. Comma-anchored to avoid catching legitimate adverbial use. Widened 2026-06-01 to add the "to be honest," lead-in (same sincerity-qualifier class; the comma anchor keeps it off non-discourse uses).',
+  },
+  // 2026-06-01 voice-gate widening: noun-phrase sincerity qualifier.
+  // "The honest read / answer / truth" is the same class as the adverbial
+  // "honestly," / "frankly," — a phrase that sets up a hierarchy where the
+  // writer's default is not honest. The adverbial pattern above missed the
+  // noun-phrase variant, which shipped twice in production Personal Brand
+  // output ("The honest read: the conviction is general." / "The honest read
+  // is that the conviction is general."). Whitelisted to the sincerity-marker
+  // nouns so descriptive uses of "honest" as an adjective characterizing a
+  // person or work product ("an honest review," "honest dialogue") do not
+  // fire; the "the" article anchor further excludes the "an honest X" /
+  // "valued honest X" descriptive shapes. Runtime-only (source legitimately
+  // documents the banned construction in fixtures and this brief's refs).
+  {
+    name: 'truth-the-honest-noun',
+    re: /\bthe\s+honest\s+(?:read|reading|answer|truth|take|view|assessment|appraisal)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'The honest [read/answer/truth/...]',
+    note: 'Noun-phrase sincerity qualifier ("the honest read/answer/truth") that sets up a hierarchy where the default is not honest. State the claim directly.',
   },
 
   // Meta-framing: first-person announcements of authorial intent. The

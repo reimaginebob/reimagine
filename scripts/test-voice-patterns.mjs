@@ -85,6 +85,39 @@ const cases = [
     'The hardest call you ever made was walking away from the deal.'],
   ['absolutism-the-hardest: generic superlative does NOT fire', null,
     'The most important idea in the guide is that conviction precedes clarity.'],
+
+  // 2026-06-01 voice-gate widening (Change 1): regression lock-in for
+  // logic-flip-is-not. The 2026-06-01 brief proposed widening this pattern
+  // for plural auxiliaries and abstract-subject forms, but verification
+  // against HEAD showed the regex has matched both singular AND plural
+  // auxiliaries (`is|are|was|were`) and a broad second-sentence subject set
+  // (`It|That|They|You|We`) since its first commit (3fbdda6, 2026-05-18) —
+  // the sentence-1 subject never participated in the match. The two
+  // production leaks the brief cited were retry-exhaustion gate fall-opens,
+  // not detection gaps (the detector fires on both). These fixtures are NOT
+  // a behavior change; they lock the current coverage in so a future regex
+  // edit cannot silently regress the plural / abstract-subject / demonstrative
+  // forms or start firing on the benign "is not" shapes that must stay clean.
+  // The deterministic logic-flip stripper (the actual fix for the fall-open)
+  // is a separate queued brief.
+  ['logic-flip-is-not: plural auxiliary fires (PR-2 eyeball)', 'logic-flip-is-not',
+    'These are not optimizations. They are architectures.'],
+  ['logic-flip-is-not: abstract noun-phrase subject fires (post-PR-132 smoke)', 'logic-flip-is-not',
+    'The answer to that question is not a feeling. It is architecture.'],
+  ['logic-flip-is-not: canonical singular still fires', 'logic-flip-is-not',
+    'Your career is not about building products. It is about understanding how people experience reality.'],
+  ['logic-flip-is-not: demonstrative fires', 'logic-flip-is-not',
+    'This is not a coincidence. It is a pattern.'],
+  ['logic-flip-is-not: no positive counter-assertion does NOT fire', null,
+    'The plan is not finalized. It requires more input.'],
+  ['logic-flip-is-not: different subjects (no pivot) does NOT fire', null,
+    'She is not here. He is in the office.'],
+  ['logic-flip-is-not: single sentence, no follow-up does NOT fire', null,
+    'Healthcare is not consumer tech.'],
+  ['logic-flip-is-not: embedded "is not" without pivot pair does NOT fire', null,
+    'She knows the work is not easy and chooses it anyway.'],
+  ['logic-flip-is-not: negation without [subject] is [positive] follow does NOT fire', null,
+    'The vendor is not ready. We will reschedule the launch.'],
 ]
 
 let failed = 0
@@ -466,6 +499,30 @@ const voiceGuideCases = [
     'Frankly, the role does not match the brand.'],
   ['truth-honestly-frankly-candidly: adverbial use does not fire', null,
     'She spoke honestly about her doubts and walked away from the offer.'],
+  ['truth-honestly-frankly-candidly: fires (To be honest,)', 'truth-honestly-frankly-candidly',
+    "To be honest, the data doesn't support that."],
+
+  // 2026-06-01 voice-gate widening (Change 2): noun-phrase sincerity
+  // qualifier "the honest [noun]". Two production-confirmed shapes (colon
+  // form and "is that" form), plus the adjacent canonical noun forms. The
+  // negative cases assert descriptive uses of "honest" as an adjective
+  // characterizing a person or work product do NOT fire.
+  ['truth-the-honest-noun: fires (read, colon form — PR-2 eyeball)', 'truth-the-honest-noun',
+    'The honest read: the conviction is general.'],
+  ['truth-the-honest-noun: fires (read, is-that form — post-PR-132 smoke)', 'truth-the-honest-noun',
+    'The honest read is that the conviction is general.'],
+  ['truth-the-honest-noun: fires (answer)', 'truth-the-honest-noun',
+    "The honest answer is that we don't know yet."],
+  ['truth-the-honest-noun: fires (truth)', 'truth-the-honest-noun',
+    'The honest truth is harder to say.'],
+  ['truth-the-honest-noun: descriptive "an honest review" does not fire', null,
+    'She gave him an honest review of his presentation.'],
+  ['truth-the-honest-noun: predicate adjective does not fire', null,
+    'His feedback was honest and useful.'],
+  ['truth-the-honest-noun: "honest dialogue" does not fire', null,
+    'The team valued honest dialogue over politeness.'],
+  ['truth-the-honest-noun: "Honesty" as a noun does not fire', null,
+    'Honesty is one of her values.'],
 
   // meta-* (first-person authorial framing instead of content)
   ['meta-let-me-share: fires', 'meta-let-me-share',
