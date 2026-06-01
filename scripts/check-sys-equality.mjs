@@ -31,7 +31,7 @@ const REPO_ROOT = path.resolve(__dirname, '..')
 
 function extractSysBody(filePath) {
   const text = fs.readFileSync(filePath, 'utf8')
-  const m = text.match(/const SYS = `([\s\S]*?)`\s*$/m)
+  const m = text.match(/const SYS_BASE = `([\s\S]*?)`\s*$/m)
   if (!m) throw new Error(`Could not locate SYS template literal in ${filePath}`)
   return m[1].replace(/\r\n/g, '\n')
 }
