@@ -277,6 +277,78 @@ assertEq('stripLogicFlipCadence: pivot mid-paragraph fires, leading sentence pre
   stripLogicFlipCadence('You have compounded for fourteen years. These are not optimizations. They are architectures.'),
   'You have compounded for fourteen years. These are architectures.')
 
+// ---- stripLogicFlipCadence: past-tense (was/were) widening -------------
+// 2026-06-01: extend the two-sentence pivot to was/were. The present-tense
+// fixtures above must still pass (no regression).
+
+assertEq('stripLogicFlipCadence: past-tense pivot (shipped Sarah p6 round 2/3)',
+  stripLogicFlipCadence('What stayed with me was not just the layoff. It was how badly they handled the goodbye.'),
+  'What stayed with me was how badly they handled the goodbye.')
+
+assertEq('stripLogicFlipCadence: canonical singular past',
+  stripLogicFlipCadence('Your career was not about building products. It was about understanding how people experience reality.'),
+  'Your career was about understanding how people experience reality.')
+
+assertEq('stripLogicFlipCadence: plural past (were)',
+  stripLogicFlipCadence('Those decisions were not coincidences. They were a pattern.'),
+  'Those decisions were a pattern.')
+
+assertEq('stripLogicFlipCadence: demonstrative past',
+  stripLogicFlipCadence('That was not a setback. It was the moment everything changed.'),
+  'That was the moment everything changed.')
+
+assertEq('stripLogicFlipCadence: past no positive counter-assertion stays unchanged',
+  stripLogicFlipCadence('The launch was not ready. It needed more testing.'),
+  'The launch was not ready. It needed more testing.')
+
+assertEq('stripLogicFlipCadence: past different subjects (no pivot) stays unchanged',
+  stripLogicFlipCadence('She was not in the office. He was at the client site.'),
+  'She was not in the office. He was at the client site.')
+
+assertEq('stripLogicFlipCadence: past single sentence stays unchanged',
+  stripLogicFlipCadence('The migration was not finished by Friday.'),
+  'The migration was not finished by Friday.')
+
+assertEq('stripLogicFlipCadence: past embedded "was not" without pivot pair stays unchanged',
+  stripLogicFlipCadence('He knew the work was not easy and did it anyway.'),
+  'He knew the work was not easy and did it anyway.')
+
+// ---- stripLogicFlipCadence: less-about/more-about family --------------
+// 2026-06-01: single-sentence comparison shape. Rewrites
+// "[aux] less about X (and|,) more about Y" -> "[aux] about Y".
+
+assertEq('stripLogicFlipCadence: less-about/more-about (shipped musician-ops p6 round 3)',
+  stripLogicFlipCadence('the job is less about playing my own part and more about making the entire room play in time.'),
+  'the job is about making the entire room play in time.')
+
+assertEq('stripLogicFlipCadence: less-about possessive subject',
+  stripLogicFlipCadence('Your career is less about titles and more about impact.'),
+  'Your career is about impact.')
+
+assertEq('stripLogicFlipCadence: less-about past tense',
+  stripLogicFlipCadence('The work was less about the headcount and more about the rhythm.'),
+  'The work was about the rhythm.')
+
+assertEq('stripLogicFlipCadence: less-about comma form',
+  stripLogicFlipCadence('Bridge Story is less about your career, more about your conviction.'),
+  'Bridge Story is about your conviction.')
+
+assertEq('stripLogicFlipCadence: "knows less about" (no aux, no more-about) stays unchanged',
+  stripLogicFlipCadence('She knows less about pricing than the analysts do.'),
+  'She knows less about pricing than the analysts do.')
+
+assertEq('stripLogicFlipCadence: "less about X than Y" (sibling shape, out of scope) stays unchanged',
+  stripLogicFlipCadence('I care less about the title than the work.'),
+  'I care less about the title than the work.')
+
+assertEq('stripLogicFlipCadence: standalone "more about" stays unchanged',
+  stripLogicFlipCadence('Tell me more about your last role.'),
+  'Tell me more about your last role.')
+
+assertEq('stripLogicFlipCadence: "less about ... more toward" (not both "about") stays unchanged',
+  stripLogicFlipCadence('The conversation drifted less about strategy and more toward execution details, which is when the meeting went sideways.'),
+  'The conversation drifted less about strategy and more toward execution details, which is when the meeting went sideways.')
+
 // ---- stripSincerityQualifiers: positive cases (must rewrite) ----------
 // 2026-06-01 (PR after #133): deterministic strip for the noun-phrase and
 // adverbial sincerity-qualifier prefixes. Removes the qualifier, restores
