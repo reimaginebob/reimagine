@@ -120,25 +120,51 @@ export function applyContaminationPlaceholders(text) {
 // strip, not retry" applies. Same enforcement shape as stripMetaNarration /
 // stripRoomsPlaceholder.
 //
-// Match: "[Subject1] is/are not [phrase1]. [Subject2] is/are [phrase2]." where
-// Subject1 is a sentence-initial (capitalized) noun phrase, the auxiliary
-// matches between the two sentences (\3 backref), and Subject2 is either a
-// pointer pronoun (It/They/These/Those/This/That) or a verbatim repeat of
-// Subject1 (\2 backref). Rewrite: "[Subject1] is/are [phrase2]." — drop the
-// negation sentence, keep the substantive positive claim with the original
-// subject. Anchored to a sentence boundary so embedded mid-sentence "is not"
-// (no pivot pair) and pivots into a different subject or a non-assertion
-// second clause are left untouched. Idempotent: the rewritten output no
-// longer contains "is/are not", so a second pass is a no-op.
+// Two logic-flip shapes, both handled here so the existing callClaude chain
+// (which already calls stripLogicFlipCadence) picks them up without an App.jsx
+// change:
+//
+// (A) Two-sentence pivot: "[Subject1] is/are/was/were not [phrase1].
+//     [Subject2] is/are/was/were [phrase2]." Subject1 is a sentence-initial
+//     (capitalized) noun phrase; the auxiliary matches between the two
+//     sentences (\3 backref) so present and past tense both work; Subject2 is
+//     either a pointer pronoun (It/They/These/Those/This/That) or a verbatim
+//     repeat of Subject1 (\2 backref). Rewrite: "[Subject1] aux [phrase2]." —
+//     drop the negation sentence, keep the positive claim with the original
+//     subject. Anchored to a sentence boundary so embedded mid-sentence
+//     "is/was not" (no pivot pair) and pivots into a different subject or a
+//     non-assertion second clause are left untouched. (was/were added
+//     2026-06-01: the past-tense form leaked in shipped Bridge Story output,
+//     "What stayed with me was not just the layoff. It was how badly...".)
+//
+// (B) Single-sentence comparison: "[aux] less about [X] (and|,) more about
+//     [Y]" -> "[aux] about [Y]". Drops the "less about X and more" segment,
+//     keeps the positive assertion about Y. Requires BOTH halves to use
+//     "about" (so "less about X ... more toward Y" does not fire) and an
+//     auxiliary (is/are/was/were) immediately before "less about" (so
+//     "knows less about", "care less about X than Y" do not fire). Added
+//     2026-06-01: this family ("less about X and more about Y") is the same
+//     banned logic-flip cadence per operating_context.md; it was detected by
+//     the runtime gate (logic-flip-less-about-more-about) but not stripped,
+//     and leaked in shipped musician-ops Bridge Story output.
+//
+// Both rewrites are idempotent: the output no longer contains "not" between
+// the auxiliary pair, nor "less about ... more about", so a second pass is a
+// no-op.
 //
 // voice-allow
-const LOGIC_FLIP_CADENCE_RE = /(^|[.!?]\s+|\n+)([A-Z][^.!?\n]*?)\s+(is|are)\s+not\s+[^.!?\n]+?[.!?]\s+(?:It|They|These|Those|This|That|\2)\s+\3\s+([^.!?\n]+?[.!?])/g
+const LOGIC_FLIP_CADENCE_RE = /(^|[.!?]\s+|\n+)([A-Z][^.!?\n]*?)\s+(is|are|was|were)\s+not\s+[^.!?\n]+?[.!?]\s+(?:It|They|These|Those|This|That|\2)\s+\3\s+([^.!?\n]+?[.!?])/g
+const LOGIC_FLIP_LESS_MORE_RE = /\b(is|are|was|were)\s+less\s+about\s+[^.,;!?\n]+?(?:,\s*|\s+and\s+)more\s+about\s+/gi
 export function stripLogicFlipCadence(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
-  const out = text.replace(LOGIC_FLIP_CADENCE_RE, (_match, lead, subject1, aux, phrase2) => {
+  let out = text.replace(LOGIC_FLIP_CADENCE_RE, (_match, lead, subject1, aux, phrase2) => {
     count++
     return `${lead}${subject1} ${aux} ${phrase2}`
+  })
+  out = out.replace(LOGIC_FLIP_LESS_MORE_RE, (_match, aux) => {
+    count++
+    return `${aux} about `
   })
   if (count > 0) {
     console.warn(`[stripLogicFlipCadence] rewrote ${count} logic-flip cadence${count === 1 ? '' : 's'} from LLM output`)
