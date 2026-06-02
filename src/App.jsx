@@ -4309,11 +4309,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </a>
         */}
       </div>
-      <p style={{fontSize:20,fontWeight:500,color:'#1A2540',lineHeight:1.75,margin:'0 0 28px'}}><span style={{fontWeight:700,color:'#e4572e'}}>Reimagine</span> maps what you've done, how you operate, and what you care about to roles you can pursue, and gives you a clear story, a target list of companies, and a playbook for every conversation ahead. Start where the work is worth doing.</p>
+      <p style={{fontSize:20,fontWeight:500,color:'#1A2540',lineHeight:1.75,margin:'0 0 28px'}}><span style={{fontWeight:700,color:'#e4572e'}}>Reimagine</span> is a career strategy tool for senior professionals in transition. You bring your resume, an assessment, what matters to you, and your sense of what you want next. Reimagine turns that into a personal brand, a map of options, a story you can tell, a target company list, and the materials you need to walk into conversations ready.</p>
 
       <CoachingCallout>
         <strong style={{color:'#1A2540'}}>Take your time.</strong>
-        <p style={{margin:'8px 0 0'}}>Reimagine works best in chunks rather than one sitting. The orientation alone takes 20 to 30 minutes; reading and refining each section takes longer. Your progress saves automatically once you sign in, and you can pick it up on any device. Come back later if you need to.</p>
+        <p style={{margin:'8px 0 0'}}>The 20 minutes of intake is where the leverage is. What you put in shapes what comes out, so put your best foot forward and Reimagine does the same for you in everything that follows. The full journey runs longer than one sitting; pace yourself across multiple sessions. Your progress saves automatically once you sign in, and you can pick it up on any device.</p>
       </CoachingCallout>
 
       <div style={{...S.card,marginBottom:20}}>
@@ -4321,7 +4321,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {[
           ['Your resume','Any format. It doesn\'t need to be polished. We\'ll help you get the most out of it.'],
           ['An assessment (recommended)','If you have CliftonStrengths, Myers-Briggs, DiSC, Hogan, or any other assessment from the last three years, bring it. If yours is older or you haven\'t taken one, Affintus is free and takes 15 minutes.'],
-          ['About 20–30 minutes','That covers the intake questions and your first set of results. You can save and return at any point. Your progress is stored automatically in this browser on this device, so come back the same way you started.'],
+          ['About 20–30 minutes','That covers the intake questions and your first set of results. Once you sign in, your progress syncs to your account, so you can save and return on any device.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
           <div style={{width:7,height:7,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}/>
           <div><span style={{fontWeight:700,fontSize:18,color:'#1A2540'}}>{t}. </span><span style={{fontSize:18,color:'#2D3748',lineHeight:1.7}}>{d}</span></div>
@@ -4337,10 +4337,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:18,color:'#2D3748',lineHeight:1.7}}>The first step gathers your information: resume, assessment, values, and reputation. <strong style={{color:'#1A2540'}}>That's the only part where you need to do work.</strong> Everything after that is generated for you. You'll review each section and tell us if it feels right before we move on.</div>
         </div>
         {[
-          ['1','Know Your Value','We read your resume and translate each accomplishment into money made, money saved, or risk mitigated, with numbers attached.'],
-          ['2','Explore Options','We show you specific roles to consider, then build a full playbook for any that resonate.'],
-          ['3','Tell Your Story','A great answer to "tell me about yourself" sets the tone for the conversation that follows. We write your bridge story.'],
-          ['4','Find Your Market','We search for companies that fit and draft your outreach to the right people.'],
+          ['1','Know Your Value','Reimagine reads your resume and translates each accomplishment into money made, money saved, or risk mitigated, with numbers attached.'],
+          ['2','Explore Options','Reimagine shows you specific roles to consider, then builds a full playbook for any that resonate.'],
+          ['3','Tell Your Story','A great answer to "tell me about yourself" sets the tone for the conversation that follows. Reimagine writes your bridge story.'],
+          ['4','Find Your Market','Reimagine searches for companies that fit and drafts your outreach to the right people.'],
           ['5','Get Ready','LinkedIn, resume, industry briefing, and interview prep. You walk in ready.'],
         ].map(([num,phase,desc])=><div key={num} style={{display:'flex',gap:16,marginBottom:20,alignItems:'flex-start'}}>
           <div style={{width:34,height:34,borderRadius:'50%',background:`${C.gold}25`,border:`2px solid ${C.gold}60`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:17,fontWeight:700,color:C.gold}}>
@@ -4359,7 +4359,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {[
           ['Convictions','What is actually, demonstrably true about you: your values, your durable qualities, your track record, and what people consistently say about you.'],
           ['Clarity','When your convictions are solid, the right opportunities become visible, and you can make better choices about where to focus.'],
-          ['Confidence','Evidence-based self-belief. When you can point to real evidence of who you are and what you\'ve done, you carry that into every conversation.'],
+          ['Confidence','Evidence-based self-belief. When you can point to evidence of who you are and what you\'ve done, you carry that into every conversation.'],
           ['Contagious','When you believe, others believe too. That\'s the natural result of Convictions, Clarity, and Confidence.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
           <div style={{width:7,height:7,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:10}}/>
@@ -4372,8 +4372,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>A Few Things Worth Knowing</div>
         {[
           ['You can adjust as you go.','Every output has a "Does this feel right?" option. If something is off, tell us and we\'ll adjust before moving on.'],
-          ['There are no wrong answers in the intake.','The questions about your passions and values are not trick questions. Answer them honestly, not strategically.'],
-          ['You only need one new job.','Reimagine is designed to open more doors than you might have imagined, so you can find the right one with confidence.'],
+          ['There are no wrong answers in the intake.','The questions about your passions and values are not trick questions. Honest answers produce better output; strategic ones distort the work.'],
+          ['Reimagine generates copy; you apply it.','The LinkedIn Remix and Resume Refresh produce recommendations you take into your own profile and document. The tool does not modify those for you.'],
+          ['Reimagine Help is on every screen.','The button in the bottom-right opens a chat that knows the tool and the methodology, so it can answer specific questions as they come up.'],
+          ['You only need one new job, but you can explore as many directions as you want.','Reimagine is designed to open more doors than you might have imagined, so you can find the right one with confidence. Once you walk through with one role in mind, you can come back and run another the same way.'],
         ].map(([t,d])=><div key={t} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
           <div style={{width:7,height:7,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}/>
           <div><span style={{fontWeight:700,fontSize:18,color:'#1A2540'}}>{t} </span><span style={{fontSize:18,color:'#2D3748',lineHeight:1.7}}>{d}</span></div>
@@ -4418,7 +4420,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'resume':return <div>
       <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
       <h1 style={S.title} >Your Resume<InfoTooltip label="Why your resume matters here">Your resume is the single largest input. Reimagine reads it for accomplishments, scope, industry context, and trajectory. A thin or unquantified resume produces thin output. If you need to update it before continuing, do that first.</InfoTooltip></h1>
-      <p style={S.sub}>Upload your most recent resume. It doesn't need to be perfect, finding the value you may have undersold is part of what we do here.</p>
+      <p style={S.sub}>Upload your most recent resume. It does not need to be perfect. Reimagine will read it carefully and flag where adding a number or two would help.</p>
       <CoachingCallout>
         <strong style={{color:'#1A2540'}}>What good looks like.</strong> The strongest resumes for this work attach numbers to outcomes: revenue produced, money saved, headcount managed, percentages improved. If yours is light on numbers, upload it anyway and add specifics later in the refinement step. Reimagine will flag where to add them.
       </CoachingCallout>
@@ -4477,7 +4479,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </CoachingCallout>
       <div style={S.card}>
         <div style={{background:`${C.gold}08`,border:`1.5px solid ${C.gold}30`,borderRadius:10,padding:'16px 20px',marginBottom:16}}>
-          <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:6}}>Our recommendation: take the free Affintus assessment</div>
+          <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:6}}>If you don't have an assessment yet, start here</div>
           <div style={{fontSize:18,color:'#2D3748',lineHeight:1.65,marginBottom:12}}>15 minutes, no cost, and it gives us the richest data to work with. If you already have CliftonStrengths, DiSC, MBTI, Hogan, or any other assessment from the last few years, that works too.</div>
           <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 22px',background:C.gold,borderRadius:8,color:'white',fontSize:17,fontWeight:700,textDecoration:'none'}}>Take the Free Affintus Assessment →</a>
         </div>
@@ -4506,7 +4508,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       {skipAssessWarn&&!profile.assess&&<div style={{background:'#FFF8F0',border:`2px solid ${C.gold}`,borderRadius:12,padding:'24px 28px',marginTop:16}}>
         <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:10}}>Are you sure?</div>
-        <div style={{fontSize:18,color:'#2D3748',lineHeight:1.7,marginBottom:16}}>Without assessment data, your results will be based only on your resume and what you tell us about your values and reputation. We can still generate useful output, but we won't be able to connect your results to the qualities that produced them, which is what makes the recommendations personal. The free Affintus assessment takes about 15 minutes and makes a real difference in what we can do for you.</div>
+        <div style={{fontSize:18,color:'#2D3748',lineHeight:1.7,marginBottom:16}}>Without assessment data, your results will be based on your resume and what you tell us about your values and reputation. Reimagine can still generate useful output. What it cannot do without an assessment is connect your accomplishments to the qualities that produced them, which is where the recommendations become personal. The free Affintus assessment takes about 15 minutes.</div>
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
           <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 22px',background:C.gold,borderRadius:8,color:'white',fontSize:17,fontWeight:700,textDecoration:'none'}}>Take Affintus Now (Free, 15 min) →</a>
           <Btn secondary onClick={()=>{setSkipAssessWarn(false);advance('assessment','values')}}>Continue Without Assessment</Btn>
@@ -4519,7 +4521,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'values':return <div>
       <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
       <h1 style={S.title}>Values, Passions & Causes</h1>
-      <p style={S.sub}>These two inputs separate a list of plausible options from a list of right options. Don't filter for professional relevance, that's our job.</p>
+      <p style={S.sub}>These two inputs are how Reimagine finds combinations between your professional life and the rest of you that you might not see yourself. Don't filter for professional relevance, that is our job.</p>
       <CoachingCallout>
         <strong style={{color:'#1A2540'}}>Do not filter for what sounds professional.</strong> Include things you actually care about, even if they feel off-topic. Reimagine connects values to career direction in ways that are not obvious upfront. The personal items, the side projects, the causes you give time to are often where the most useful patterns surface. Values are your non-negotiables. Passions are anything you would choose to do on a Saturday for free.
       </CoachingCallout>
@@ -4534,14 +4536,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'reputation':return <div>
       <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
       <h1 style={S.title}>Your Reputation</h1>
-      <p style={S.sub}>Oftentimes, others see qualities in us that aren't apparent to ourselves.</p>
       <CoachingCallout>
         <p style={{margin:0}}>Reimagine reads other people's words about you for patterns you cannot easily see in yourself. The more specific the source material, the sharper the output.</p>
         <p style={{margin:'12px 0 4px',fontWeight:600}}>Good example, The Memory:</p>
         <p style={{margin:'0 0 8px',fontStyle:'italic'}}>"My boss said I was a really good leader during a tough quarter."</p>
         <p style={{margin:'0 0 4px',fontWeight:600}}>Better example, The Memory:</p>
         <p style={{margin:'0 0 8px',fontStyle:'italic'}}>"After the acquisition closed, the CFO emailed me at 11pm and said: 'I do not know how you held that team together through this. You were the only one who kept everyone focused on what mattered. The whole quarter was you.'"</p>
-        <p style={{margin:'0 0 0'}}>Both describe a moment of praise. The "good" version gives Reimagine something to work with. The "better" version gives it a real quote, a specific situation, and the qualities the speaker actually named. Aim for the better version where you can.</p>
+        <p style={{margin:'0 0 0'}}>Both describe a moment of praise. The "good" version gives Reimagine something to work with. The "better" version gives it a quote, a specific situation, and the qualities the speaker named. Aim for the better version where you can.</p>
       </CoachingCallout>
       <details style={{background:'#FFFFFF',border:`1px solid ${C.border}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:C.grayL,lineHeight:1.65}}>
         <summary style={{cursor:'pointer',fontWeight:600,color:'#1A2540'}}>Where to find this</summary>
