@@ -1,6 +1,6 @@
 # 12. Refining and Regenerating Your Results
 
-> *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
+> *(Bridge Story is now lane-aware prose; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
 This chapter explains how to use Reimagine the way it was designed to be used: iteratively, not perfectly the first time. If you only read one chapter from the second half of this guide, this is the one.
 
@@ -104,16 +104,13 @@ You can stop regenerating wherever the changes no longer matter. If your edit on
 
 ## Exploring a different direction after choosing your focus
 
-You chose one direction at Your Focus in Phase 2 and walked through Phases 3, 4, and 5 with it. Now you are curious what the journey would look like for a different option.
+You built a Focus Playbook for one role in Phase 2. Now you are curious what the journey would look like for a different option. Each direction you explore becomes its own Focus Playbook, saved alongside the others, so you keep everything you have already built.
 
-The light way: change the chosen direction and regenerate from Phase 3.
+1. Use **Explore another direction** from the role options, or click **Pick a Direction** (Phase 2) in the sidebar.
+2. Choose a different role, or name a new direction in the input box. Reimagine builds a fresh **Focus Playbook** for it.
+3. Inside that playbook, build the sections you want (The Role, your Bridge Story, and the rest), and refine or regenerate any of them with its feedback box.
 
-1. Click **Your Focus** in the sidebar.
-2. Pick a different option, or type a new one in the text field.
-3. Click forward to **Your Bridge Story** and regenerate.
-4. Continue forward through Phases 4 and 5 regenerating each step.
-
-This keeps your Phase 1 work (Personal Brand, Personal Brand) and your Phase 2 picks (the direction you chose and the role options you saw) intact. Only the parts that depend on your chosen role get rewritten.
+**My Playbooks** holds every Focus Playbook you build, and you can flip between directions without regenerating them. Your Phase 1 work (your Personal Brand) stays intact throughout, since only the per-role sections depend on the direction you picked.
 
 ## A reminder on what regeneration costs
 
