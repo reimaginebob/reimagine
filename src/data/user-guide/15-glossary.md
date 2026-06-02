@@ -6,7 +6,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Affintus.** A free 15-minute professional assessment Reimagine recommends if you do not already have one. It produces results you can paste into the Assessment input screen.
 
-**Bridge Story.** Your answer to "tell me about yourself," structured as three building blocks: something human about you, your career in action, and where you are going next. Reimagine gives you three starter options for each block, tagged for the situation and drawn from your Orientation. You pick what fits and edit it in your own words. Your picks and edits are saved as a persistent asset and feed the later steps that need a "tell me about yourself." Section 2 of the Focus Playbook, in the Build your story group. See Chapter 7 for the model and how to use it.
+**Bridge Story.** Your answer to "tell me about yourself": a single flowing answer in your voice, calibrated to the direction you picked. It opens with the strongest human anchor in your inputs, connects that to one accomplishment that carries the theme, and closes on why your next move is the natural next step. When your profile holds a second strong opening, Reimagine adds a short coaching note below it. Saved as a persistent asset that feeds the later steps needing a "tell me about yourself." It is the section after The Role in the Focus Playbook. See Chapter 7 for the model and how to use it.
 
 **Brand Synthesis.** Retired in 2026-05-20. The Phase 1 output is now Personal Brand, a single flowing prose synthesis that includes the through-line, evidence triangulation, a transfer reading, and dimensional fit across function, industry, position, scale, pace, and mission.
 
@@ -82,7 +82,7 @@ The Personal Brand prose names what is settled about your fit and what is open. 
 **Sarah Chen.** The fictional executive used in Reimagine's demo mode. A VP of Talent Acquisition in healthcare with 15 years of experience.
 
 **STAR (Situation, Thinking, Action, Result).** The interview story framework Reimagine uses inside Interview Prep, where each story sits next to the question it best answers. The T stands for *Thinking*, not Tasks. Because the most important part of any interview story is how you thought through the problem.
-**TMAY.** "Tell me about yourself." The interview question the Bridge Story is built to answer, in three building blocks you pick and edit rather than one paragraph recited.
+**TMAY.** "Tell me about yourself." The interview question the Bridge Story is built to answer, as a single answer in your voice you can say in about 30 seconds.
 
 **Value Proposition.** Retired as a separately-labeled section in 2026-05-20. The capability-plus-proof entries are now woven into the Personal Brand prose, with specific accomplishments and numbers cited inline as proof of the through-line.
 

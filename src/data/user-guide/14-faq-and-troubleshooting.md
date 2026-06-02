@@ -68,14 +68,14 @@ Use the feedback box. Describe how you want it to sound. Example: "I'm more rese
 **Reimagine read my background wrong.**
 Tell it in the feedback box. Example: "My time at MoneyGram was internal strategy work, not consulting." Click **Update with my correction**. Factual corrections persist across the whole session, so the correction propagates to every later section that depends on it.
 
-**Why does the Bridge Story look different from what I expected?**
-As of 2026-05-19, the Bridge Story is no longer one finished paragraph Reimagine writes for you. It is three building blocks (something human about you, your career in action, where you are going next), with three starter options each, tagged for the situation. You pick the option that fits and edit it in your own words. The assembled preview at the bottom shows your picks strung together. The reason for the change: when the tool wrote the whole answer, it landed almost-right, and almost-right is the hardest thing to fix. Picking and editing keeps the answer yours. Chapter 7 covers the model in full.
+**What does the Bridge Story look like?**
+It is a single tell-me-about-yourself answer written in your voice and calibrated to the direction you picked. It opens with the strongest human anchor in your inputs (a passion, a craft you trained in, a formative experience, or an assessment finding), connects that to one accomplishment that carries the theme, and closes on why your next move is the natural next step. When your profile holds a second strong opening, Reimagine adds a short italic coaching note below the story. Chapter 7 covers the model in full.
 
-**My Bridge Story still shows my old version, or a banner says my Orientation changed.**
-If you generated a Bridge Story before 2026-05-19, you will see a one-time prompt to generate the new building-blocks version. Click Generate. If you changed your Orientation after generating, a banner offers to Regenerate (rebuild from your current inputs) or Keep current (leave your picks and edits as they are). Reimagine asks rather than overwriting, so your edits are never lost without your say-so.
+**My Bridge Story is out of date after I changed my Orientation.**
+If you change your reputation, values, passions, assessment, or Your Story after generating, regenerate the Bridge Story so it reflects what is now true. Open the feedback box below the story and click **Start fresh** (or **Update with my correction** if you also have a specific note). Reimagine rebuilds from your current inputs; your saved story is replaced only when you regenerate it.
 
 **The Bridge Story or LinkedIn copy uses words I would never say.**
-For the Bridge Story, pick a different option or click **Edit in your voice** on the picked card and rewrite it in your own words. That edit saves with your profile. For LinkedIn copy and other sections, use the refine box. Examples: "Don't use the word 'unlock.' Don't use 'leverage.' Don't use phrases like 'not just X but Y.' I would not say any of those." Reimagine will adjust.
+Open the feedback box below the section and tell Reimagine what to change, then regenerate. Examples: "Lead with my sustainability work instead," or "Don't use the word 'leverage,' I would not say that." The same feedback box works for the Bridge Story, LinkedIn copy, and every other section. Factual corrections save to your profile and carry into later sections; wording requests apply to the section you make them on.
 
 **I want to explore a different direction or role after I picked one.**
 Use **Explore another direction** to return to the three directions, or pick a different role in the Lane Option view. Any role you have opened before also appears under **Roles You've Explored** in the sidebar with a Re-explore action. Switching roles regenerates that role's Focus Playbook fresh; if the current playbook has unsaved work, Reimagine offers to save it as a PDF first. Chapter 6 covers this in detail.
