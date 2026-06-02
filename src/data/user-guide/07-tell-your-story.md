@@ -24,9 +24,9 @@ So the model now writes a single cohesive answer in your voice, and the standard
 
 Reimagine writes a single tell-me-about-yourself answer for the direction you picked at the end of Phase 2. It draws from your Orientation inputs and your Personal Brand. The structure underneath is the *Making Your Own Weather* formula:
 
-1. **Something human about you.** Before career, function, or resume. A value, a trait, a passion, a lifelong interest, or a formative experience. Not a job title. This is what makes you the one person in the conversation they remember.
-2. **Your career in action.** How that human thing has shown up in your work: a specific accomplishment framed as money made, money saved, or risk mitigated with a number; a pattern that recurs across roles; or the shape of your career arc.
-3. **Where you are going next.** Why your chosen direction is the natural next step, as the outcome of the first two parts, not a change of subject.
+1. **Something human about you.** Before career, function, or resume. The strongest, most distinctive human anchor your inputs offer: a hobby, an interest, a passion, a formative training or skill, a relationship, or an early-life experience. Not a job title. Reimagine picks the anchor that gives a listener the quickest signal of who you are; it does not default to a childhood story when a passion or a craft you trained in says more about how you work. This is what makes you the one person in the conversation they remember.
+2. **Your career in action.** Lead with the theme, not a list of wins. The theme is the through-line your Personal Brand already named: the one force that runs through your work. Reimagine states that force in plain language, then grounds it with a single illustrative example, one accomplishment framed as money made, money saved, or risk mitigated with a number, chosen because it shows the force best. One well-chosen example lands harder than three stacked together.
+3. **Where you are going next.** Why your chosen direction is the natural next step, falling out of the same force that runs through the first two parts, not a change of subject and not a role description.
 
 Those three labels never appear on the page. You see one flowing answer. The shape is invisible.
 
@@ -54,6 +54,19 @@ The single biggest reason most tell-me-about-yourself answers are forgettable is
 
 The prompt forbids title-first, time-anchor, and credential-first openings. If your story ever lands with one anyway, open the refine box, say "lead with [specific human anchor] instead," and regenerate.
 
+## What makes an anchor land: the evidence test
+
+Every trait Reimagine surfaces in your Bridge Story comes with three things: an anchor the listener can verify, your own words explaining what it means, and a recognition move that locates it in your work. A claim without those three reads as performance. With them, it reads as something you have lived. That is the difference between "I am a strategic thinker," which the listener has heard a hundred times and cannot check, and an opening they actually believe.
+
+The anchor can come from any of four places. One example of each:
+
+- **A formative experience.** "I was sixteen when my dad was laid off after twenty-two years, and I watched how badly the company handled the goodbye. Every system I have built since starts from one question: would this hold up on the worst day?"
+- **A passion or hobby.** "I have raced bikes for fifteen years. It taught me when to sit in and when to spend everything I have, and that is exactly how I read a product roadmap."
+- **A training or craft.** "I trained as a classical violinist before I ever ran an operation. Conservatory teaches you two things at once: master your own part, then tune it to everyone else in the ensemble. That is how I run a launch."
+- **An assessment result.** "I am not sure if you know CliftonStrengths, but my top theme is Restorative. The way I understand it is that I am wired to fix what is broken. I never had a name for it before, but it describes exactly what I have done for eighteen years." An assessment anchor needs all three beats: the graceful intro that does not assume the listener knows the framework, your own plain-language definition, and the recognition that it named something you already saw in yourself. Without them, it sounds like reading a test score out loud.
+
+> **Coming later: value-anchored stories.** A real, deeply held value, the kind whose opposite a reasonable person could also choose, can make a strong opening. Reimagine will support value-anchored bridge stories in a future release, once the assessment integration deepens enough to source values reliably. For now, if your own inputs already carry a clear value, it can still surface in your story; Reimagine just does not go looking for one yet.
+
 ## On the screen
 
 The Bridge Story section opens with a short section header and a generate button. Click **Generate**. About a minute to a minute and a half. You get the story and, when one is warranted, the coaching note. Below them, the standard refine box ("What did we get wrong?") and the navigation to **Find My Market**.
@@ -64,7 +77,7 @@ This is a story you will say to real humans, so the test is whether it sounds li
 
 **Read it out loud.** Not in your head. Out loud, at a conversational pace. If you stumble over a phrase, that phrase needs to come out. If you would not use a word in conversation, that word does not belong.
 
-**Check the opening.** It should be something true about you as a person, not a credential. A strong opening sounds like:
+**Check the opening.** It should be something true about you as a person, not a credential, and it should be the strongest anchor you have, whether that is a passion, a craft you trained in, an interest, a relationship, or an early experience. A strong opening sounds like:
 
 > I have always been the person who figures out why something is not selling and then fixes it.
 
@@ -74,9 +87,11 @@ A weak opening sounds like:
 
 The first starts with the human and pivots into the career. The second starts with the credential. The model leads with the first by default. If your refinement nudges it toward the second, you have edited the memorability out of your own answer.
 
-**Check the middle.** The career section should connect back to the opening. *Because* you are the person who figures out what is broken, you walked into companies where the sales engine was broken and built it. The "because" is the connective tissue. If the story reads as two unrelated halves, ask the refine box to reconnect them to the opening.
+**Check the middle.** The career section should lead with the theme, not a list of accomplishments. It names the one force that runs through your work and grounds it in a single, well-chosen example. *Because* you are the person who figures out what is broken, you walked into the company where the sales engine was broken and rebuilt it: one story, told because it carries the theme, not three stacked to prove range. The "because" is the connective tissue. If the middle reads as a résumé in sentences, or as two unrelated halves, ask the refine box to lead with the theme and pick the single best example.
 
 **Check the close.** The forward move should make your next chapter feel inevitable, not aspirational. "I am looking for a CRO role at a mission-driven career services platform because I have already built this from scratch once, and I want to do it at a scale where it reaches thousands instead of hundreds" lands. "I am exploring opportunities where I can apply my experience" does not.
+
+**Watch the metaphor.** If a metaphor opens the story (music, cycling, fishing, taking things apart), it should establish the frame and then recede. Look for one callback in the work paragraph and one light touch at the close, not the metaphor running through every sentence. If the same image returns three times in one paragraph, the medicine is over-applied; ask the refine box to carry the work in plain language and save the frame for the open and the close. The listener should feel the frame without watching for it.
 
 **Time it.** A good tell-me-about-yourself runs 30 to 45 seconds spoken. If yours runs longer than 60 seconds at conversational pace, ask the refine box to tighten. If it runs under 20, you have probably cut too far and should regenerate.
 
@@ -110,9 +125,9 @@ The story is an *illustration of the structure*, not a script. People who memori
 
 What you are internalizing is the three-part formula:
 
-1. **What is true about you as a human.** A value, a curiosity, a pattern that has been there since well before this career chapter.
-2. **How that has played out in your career.** An accomplishment or pattern that exists *because* of who you are, framed as money made, money saved, or risk mitigated.
-3. **Therefore, what you are looking for.** Why your next chapter is the natural extension of the first two.
+1. **What is true about you as a human.** The strongest anchor you have: a passion, a craft you trained in, an interest, a relationship, or an early experience, whichever signals most about who you are.
+2. **How that has played out in your career.** The one force that runs through your work, grounded in a single example that shows it, framed as money made, money saved, or risk mitigated. Not a list.
+3. **Therefore, what you are looking for.** Why your next chapter is the natural extension of that same force.
 
 Once the three are alive in your head, you can land them in your own words, in any order the moment allows, in 30 seconds or 90. That is how a Bridge Story works in the wild: not a recital, three ideas you are comfortable enough with to assemble on the fly.
 
