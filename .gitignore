@@ -18,5 +18,8 @@ public/version.json
 src/build-meta.js
 
 # Corpus fixtures used for prompt testing. Even anonymized, profile content
-# is shaped from real beta users; keep local-only.
-scripts/fixtures/
+# is shaped from real beta users; keep local-only. Exception: mockup-profiles.mjs
+# is fully constructed (no real-user data) and is tracked for the --p6 / --ab-mockup
+# voice harness.
+scripts/fixtures/*
+!scripts/fixtures/mockup-profiles.mjs
