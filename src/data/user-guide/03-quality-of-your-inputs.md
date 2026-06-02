@@ -4,23 +4,26 @@ This is the most important chapter in the guide. If you read only one chapter be
 
 ## The principle
 
-Reimagine builds your career strategy on top of what you tell it about yourself. Five inputs go in, and everything that comes out. Your personal brand, your options, your story, your target list, your outreach, your playbook. Is built on those five. The first phase of the journey, **Orientation**, is where you provide them.
+Reimagine builds your career strategy on top of what you tell it about yourself during **Orientation**, the first phase of the journey. Everything that comes out, your personal brand, your options, your story, your target list, your outreach, your playbook, is built on what you provide there.
 
 If your inputs are thin, the output will be thin in the same places. If your inputs are rich and honest, the output is sharp and personal. There is no shortcut around this. The rest of the tool is downstream of what you do in the first 20 minutes.
 
 Put your best foot forward in the intake, and Reimagine will do the same for you in everything that follows.
 
-## The five inputs
+## The inputs
 
 In the order Reimagine asks for them:
 
 1. **Location and work preference**. Where you live and how you want to work
 2. **Resume**. Your professional track record
-3. **Assessment**. How you are wired
-4. **Values, passions, and causes**. What you actually care about
-5. **Reputation**. What others say about you
+3. **LinkedIn**. How you present yourself publicly (optional)
+4. **Assessment**. How you are wired
+5. **Values, passions, and causes**. What you actually care about
+6. **Reputation**. What others say about you
+7. **Your Story**. The things that shaped you that a resume does not show (optional)
+8. **Skills**. The capabilities Reimagine pulls from your resume and LinkedIn for you to confirm
 
-Each one feeds something specific later in the journey. Understanding that connection is the fastest way to know what good input looks like.
+Each one feeds something specific later in the journey. Understanding that connection is the fastest way to know what good input looks like. Two of them, LinkedIn and Your Story, are optional, and Skills is drafted for you; the rest are where your time is best spent.
 
 ## Why each input matters
 
@@ -41,6 +44,14 @@ The resume is the source of every accomplishment Reimagine will translate into y
 **Watch out for:** a resume that lists job titles and responsibilities but not outcomes. Reimagine can work with that, but the resulting Value Proposition will be more abstract than you want. If you have time, spend a few minutes adding the numbers you remember before you upload.
 
 **You can always update it later.** If you remember a major project after the fact, go back to the Resume step, replace the file or paste in updated text, and regenerate from Phase 1. Chapter 12 explains how.
+
+### LinkedIn
+
+Optional, and worth a couple of minutes. Your LinkedIn holds material your resume does not: your About section (how you position yourself in public), recommendations from colleagues, skills others have endorsed, and what you engage with publicly. Adding it sharpens how Reimagine reads the way you present yourself and what others say about you.
+
+It also lets Reimagine produce a true *refresh* of your LinkedIn later in the journey, pointed at your actual profile and what to change, instead of copy written from scratch.
+
+**Good input:** export your profile as a PDF (the LinkedIn step shows you exactly how) or paste your About section and recommendations into the field. If you do not have a profile, skip it; the rest of the journey still works.
 
 ### Assessment
 
@@ -102,9 +113,23 @@ Reimagine asks four short questions. You can answer any combination of them, or 
 
 If you do not have anything in writing, sit with the four questions for a few minutes. A moment of professional praise usually surfaces when you give yourself the space. The more specific the moment, the more useful it is.
 
+### Your Story
+
+The things that shape who you are often do not show up on a resume: where you grew up, the role you played in your family, an identity you carry, a person who shaped you, a long-running commitment, or a season that changed you. This step is optional, and you share only what you are comfortable sharing. One thing or several.
+
+It is also one of the quietly powerful inputs. A formative experience is often the most distinctive way to open your Bridge Story later, the thing that makes a listener remember you. When your inputs carry it, Reimagine builds from it; when they do not, it works from the rest.
+
+**Good input:** a specific moment or thread, in your own words. Rough is fine. The microphone helps here; talking it through is usually easier than typing.
+
+### Skills
+
+Reimagine reads your resume and LinkedIn and drafts your skills for you, across five groups: technical and tools, systems and platforms, certifications, languages, and methodologies and frameworks. Your job is to check the list, add what is missing, and clear out anything that does not belong. A button lets you re-extract if you update your resume or LinkedIn.
+
+This list shapes how the rest of Reimagine reads you: which options fit, which keywords land, which company targets feel right. A minute of cleanup here pays off downstream.
+
 ## You can speak instead of type
 
-Every text field that asks you to describe yourself. Values, passions, reputation, and the refine boxes you will see later. Has a small microphone button next to it that looks like this:
+Every text field that asks you to describe yourself. Values, passions, reputation, Your Story, and the refine boxes you will see later. Has a small microphone button next to it that looks like this:
 
 ![Microphone button. A small white square with rounded corners and a gray microphone icon inside](assets/microphone-button.svg)
 
@@ -133,8 +158,9 @@ Use this as a quick gut check before you click "Let's get started."
 - [ ] I have at least one assessment from the last three years, or I am going to take Affintus before I begin.
 - [ ] I am ready to share my real values and passions, including the ones that feel "off-topic."
 - [ ] I have at least one specific moment of professional praise or feedback in mind for the Reputation step.
+- [ ] Optional, worth it: my LinkedIn exported as a PDF, and a formative experience or two I am open to sharing in Your Story.
 
-If you can check four out of five, you are in good shape. Start.
+You do not need every line checked to start; the more you can, the sharper the result. Your Skills are drafted from your resume and LinkedIn automatically, so there is nothing to prepare there. Start when you are ready.
 
 ---
 
