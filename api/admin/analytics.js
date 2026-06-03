@@ -51,7 +51,23 @@ function rangeToInterval(range) {
   }
 }
 
-async function loadAggregate(rangeInterval) {
+// Parse the ADMIN_EMAILS env var into a normalized string[]. Split on comma,
+// trim, lowercase, drop empties. Unset / empty / all-whitespace -> []. An
+// empty array makes every `LOWER(email) <> ALL(${adminEmails}::text[])` clause
+// a no-op (a `<> ALL` against an empty array is TRUE for every row), so the
+// unset-env-var path preserves current behavior. The `::text[]` cast on the
+// parameter is required: Neon's HTTP transport sends an empty JS array as an
+// untyped parameter, and without the cast Postgres raises "could not determine
+// data type" when the array is empty.
+function parseAdminEmails(envValue) {
+  if (typeof envValue !== 'string') return []
+  return envValue
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(e => e.length > 0)
+}
+
+async function loadAggregate(rangeInterval, adminEmails) {
   // One Promise.all wave so panel queries fan out in parallel. Each entry
   // returns an array of rows from the Neon HTTP fetch transport.
   const [
@@ -74,23 +90,32 @@ async function loadAggregate(rangeInterval) {
     // Panel 1: top-line counts (users + Focus / Op proxy counts).
     sql`
       SELECT
-        (SELECT COUNT(*)::int FROM users)                                                                 AS total_users,
-        (SELECT COUNT(*)::int FROM users WHERE created_at >= NOW() - (${rangeInterval})::interval)        AS users_in_range,
         (SELECT COUNT(*)::int FROM users
-           WHERE profile_state->'done' ?& array['p5','p6','p7','p8','p9','p11','p_res'])                  AS focus_complete_users,
+           WHERE LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS total_users,
         (SELECT COUNT(*)::int FROM users
-           WHERE (profile_state->'done') ? 'op'
-              OR (profile_state->'outputs'->>'op') IS NOT NULL)                                            AS op_started_users
+           WHERE created_at >= NOW() - (${rangeInterval})::interval
+             AND LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS users_in_range,
+        (SELECT COUNT(*)::int FROM users
+           WHERE profile_state->'done' ?& array['p5','p6','p7','p8','p9','p11','p_res']
+             AND LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS focus_complete_users,
+        (SELECT COUNT(*)::int FROM users
+           WHERE ((profile_state->'done') ? 'op'
+                   OR (profile_state->'outputs'->>'op') IS NOT NULL)
+             AND LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS op_started_users
     `,
     sql`
       SELECT COUNT(*)::int AS session_count
-      FROM sessions
-      WHERE created_at >= NOW() - (${rangeInterval})::interval
+      FROM sessions s
+      JOIN users u ON u.id = s.user_id
+      WHERE s.created_at >= NOW() - (${rangeInterval})::interval
+        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
     `,
     sql`
-      SELECT COUNT(DISTINCT user_id)::int AS active_users
-      FROM sessions
-      WHERE last_used_at >= NOW() - (${rangeInterval})::interval
+      SELECT COUNT(DISTINCT s.user_id)::int AS active_users
+      FROM sessions s
+      JOIN users u ON u.id = s.user_id
+      WHERE s.last_used_at >= NOW() - (${rangeInterval})::interval
+        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
     `,
     sql`
       SELECT
@@ -98,6 +123,7 @@ async function loadAggregate(rangeInterval) {
         COUNT(*) FILTER (WHERE used_at IS NOT NULL
                            AND used_at >= NOW() - (${rangeInterval})::interval)::int   AS used
       FROM magic_link_tokens
+      WHERE LOWER(email) <> ALL(${adminEmails}::text[])
     `,
     // Panel 2: funnel per step. Counts of unique session_id that fired each
     // tracked event for each Focus step. session_id NULL is excluded so we
@@ -144,52 +170,69 @@ async function loadAggregate(rangeInterval) {
     // Panel 3: NPS trend (daily count + average).
     sql`
       SELECT
-        DATE_TRUNC('day', created_at) AS day,
+        DATE_TRUNC('day', sr.created_at) AS day,
         COUNT(*)::int                  AS responses,
-        ROUND(AVG(nps_score)::numeric, 2) AS avg_nps
-      FROM survey_responses
-      WHERE created_at >= NOW() - (${rangeInterval})::interval
-      GROUP BY DATE_TRUNC('day', created_at)
+        ROUND(AVG(sr.nps_score)::numeric, 2) AS avg_nps
+      FROM survey_responses sr
+      JOIN users u ON u.id = sr.user_id
+      WHERE sr.created_at >= NOW() - (${rangeInterval})::interval
+        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
+      GROUP BY DATE_TRUNC('day', sr.created_at)
       ORDER BY day
     `,
     sql`
-      SELECT nps_score, COUNT(*)::int AS count
-      FROM survey_responses
-      WHERE created_at >= NOW() - (${rangeInterval})::interval
-      GROUP BY nps_score
-      ORDER BY nps_score
+      SELECT sr.nps_score, COUNT(*)::int AS count
+      FROM survey_responses sr
+      JOIN users u ON u.id = sr.user_id
+      WHERE sr.created_at >= NOW() - (${rangeInterval})::interval
+        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
+      GROUP BY sr.nps_score
+      ORDER BY sr.nps_score
     `,
     sql`
-      SELECT chosen_role, COUNT(*)::int AS responses,
-        ROUND(AVG(nps_score)::numeric, 2) AS avg_nps
-      FROM survey_responses
-      WHERE created_at >= NOW() - (${rangeInterval})::interval
-        AND chosen_role IS NOT NULL
-      GROUP BY chosen_role
+      SELECT sr.chosen_role, COUNT(*)::int AS responses,
+        ROUND(AVG(sr.nps_score)::numeric, 2) AS avg_nps
+      FROM survey_responses sr
+      JOIN users u ON u.id = sr.user_id
+      WHERE sr.created_at >= NOW() - (${rangeInterval})::interval
+        AND sr.chosen_role IS NOT NULL
+        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
+      GROUP BY sr.chosen_role
       ORDER BY responses DESC
     `,
     sql`
-      SELECT user_id, nps_score, chosen_role, open_text, created_at
-      FROM survey_responses
-      WHERE open_text IS NOT NULL AND open_text <> ''
-      ORDER BY created_at DESC
+      SELECT sr.user_id, sr.nps_score, sr.chosen_role, sr.open_text, sr.created_at
+      FROM survey_responses sr
+      JOIN users u ON u.id = sr.user_id
+      WHERE sr.open_text IS NOT NULL AND sr.open_text <> ''
+        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
+      ORDER BY sr.created_at DESC
       LIMIT 25
     `,
     sql`
       SELECT
-        SUM(CASE WHEN nps_score >= 9 THEN 1 ELSE 0 END)::int AS promoters,
-        SUM(CASE WHEN nps_score BETWEEN 7 AND 8 THEN 1 ELSE 0 END)::int AS passives,
-        SUM(CASE WHEN nps_score <= 6 THEN 1 ELSE 0 END)::int AS detractors,
+        SUM(CASE WHEN sr.nps_score >= 9 THEN 1 ELSE 0 END)::int AS promoters,
+        SUM(CASE WHEN sr.nps_score BETWEEN 7 AND 8 THEN 1 ELSE 0 END)::int AS passives,
+        SUM(CASE WHEN sr.nps_score <= 6 THEN 1 ELSE 0 END)::int AS detractors,
         COUNT(*)::int AS total
-      FROM survey_responses
-      WHERE created_at >= NOW() - (${rangeInterval})::interval
+      FROM survey_responses sr
+      JOIN users u ON u.id = sr.user_id
+      WHERE sr.created_at >= NOW() - (${rangeInterval})::interval
+        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
     `,
     // Panel 5: system health.
-    sql`SELECT MAX(created_at) AS last_survey_at FROM survey_responses`,
+    sql`
+      SELECT MAX(sr.created_at) AS last_survey_at
+      FROM survey_responses sr
+      JOIN users u ON u.id = sr.user_id
+      WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
+    `,
     sql`
       SELECT COUNT(*)::int AS count
-      FROM survey_responses
-      WHERE created_at >= NOW() - (${rangeInterval})::interval
+      FROM survey_responses sr
+      JOIN users u ON u.id = sr.user_id
+      WHERE sr.created_at >= NOW() - (${rangeInterval})::interval
+        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
     `,
     // Panel 6: Income Now usage. Both proxies (output present, OR step
     // marked done) because users can mark income done without leaving
@@ -200,6 +243,7 @@ async function loadAggregate(rangeInterval) {
                            AND (profile_state->'outputs'->>'income') <> '')::int AS users_with_income_output,
         COUNT(*) FILTER (WHERE (profile_state->'done') ? 'income')::int          AS users_with_income_done
       FROM users
+      WHERE LOWER(email) <> ALL(${adminEmails}::text[])
     `,
   ])
 
@@ -400,8 +444,10 @@ export default async function handler(req, res) {
     }
   }
 
+  const adminEmails = parseAdminEmails(process.env.ADMIN_EMAILS)
+
   try {
-    const payload = await loadAggregate(rangeInterval)
+    const payload = await loadAggregate(rangeInterval, adminEmails)
     return res.status(200).json({ ok: true, range, ...payload })
   } catch (err) {
     console.error('admin/analytics: aggregate query failed', err && err.message)
