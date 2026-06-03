@@ -2476,7 +2476,8 @@ const SECTION_EXPLAINERS = {
     detail: 'Pulled from your Personal Brand and the public signal on this kind of role. Tells you what the work actually looks like, where you fit cleanly, and where it would stretch you. Read this first; the rest of the playbook builds on it.',
   },
   p6: {
-    subhead: 'A lane-calibrated tell-me-about-yourself answer in your voice, with a coaching note if a second strong angle exists in your profile.',
+    subhead: 'A 30-second tell-me-about-yourself answer in your voice, tuned to the direction you picked.',
+    detail: 'Built from your Personal Brand, your Orientation inputs, and the direction you picked. A Bridge Story is what makes you memorable in conversations where a chronological recap of the resume would not. The opening leads with the human anchor most resonant for your lane: professional craft for Familiar Ground, domain curiosity for Industry Insider, or values and passion for Work That Matters. When a second strong angle is visible in your profile, an italic coaching note appears below the story naming when that alternative would serve better. Use it as your opening move in screening calls, interviews, and networking conversations — and the structure also feeds your LinkedIn About, your Interview Prep, and the voice template for your outreach further down the playbook.',
   },
   p9: {
     subhead: 'The vocabulary and frameworks for the conversations ahead.',
