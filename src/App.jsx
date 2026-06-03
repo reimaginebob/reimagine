@@ -4639,7 +4639,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
       {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
       <h1 id="section-p3" style={S.title}>Your Personal Brand</h1>
-      {!isDemo&&<p style={S.sub}>A single synthesis of your resume, your wiring, and your reputation: the through-line that runs through your work, with a forward read into the choice coming next.</p>}
+      {!isDemo&&<p style={S.sub}>Personal Brand answers the question every job conversation circles back to: who are you at work, and what do you bring? The answer is the through-line that runs through your accomplishments, your wiring, and what others say about you, and it is what makes you distinctive. Everything that comes later — your answer to "tell me about yourself," the companies and people you target, the resume and LinkedIn that match where you are headed, the prep for every conversation ahead — is built on it.</p>}
 
       {/* Migration banner. Shown only when a v1 p3 exists. Refresh runs p3
           only; downstream content is preserved. The banner suppresses the
@@ -4653,18 +4653,33 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>}
 
-      {!isDemo&&!outputs.p3&&!loading&&<><Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn><div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:14,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>About 4 to 5 minutes (your resume analysis, your wiring, and the synthesis run end to end).</div></>}
+      {!isDemo&&!outputs.p3&&!loading&&<><Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn><div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:14,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>A single prose synthesis of who you are at work, roughly 600 to 800 words. About 4 to 5 minutes to generate.</div></>}
       {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3"/>}
       {outputs.p3&&!loading&&<>
         {!isDemo&&!hasSeenCorrectionsIntro&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:'#1A2540',lineHeight:1.65,position:'relative'}}>
           <button type="button" onClick={dismissCorrectionsIntro} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
-          <strong>One thing to know about Reimagine.</strong>
-          <p style={{margin:'8px 0 0'}}>The "What did we get wrong?" box below accepts both factual corrections and style tweaks. Your correction stays in your profile and applies to every later section automatically. Small corrections compound across the journey.</p>
-          <p style={{margin:'8px 0 0',fontSize:16,color:C.gray}}>You can also ask in the chat in the corner if you want a worked example.</p>
+          <strong>Before you refine, three things to look for.</strong>
+          <ul style={{margin:'10px 0 4px 0',padding:0,listStyle:'none'}}>
+            <li style={{display:'flex',gap:12,marginBottom:10,alignItems:'flex-start',fontSize:16,color:C.creamD,lineHeight:1.65}}><span style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}></span><div><strong>The lead sentence should be specific enough to be wrong.</strong> If it could describe anyone in your role, it is too generic — tell Reimagine to push harder.</div></li>
+            <li style={{display:'flex',gap:12,marginBottom:10,alignItems:'flex-start',fontSize:16,color:C.creamD,lineHeight:1.65}}><span style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}></span><div><strong>Your strongest accomplishments should appear inline, with their numbers.</strong> If the prose talks about your career in generalities, ask for the specifics.</div></li>
+            <li style={{display:'flex',gap:12,marginBottom:0,alignItems:'flex-start',fontSize:16,color:C.creamD,lineHeight:1.65}}><span style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}></span><div><strong>The "Where this transfers" paragraph should name forward contexts you have not been in.</strong> If it restates your current trajectory, ask Reimagine to push further.</div></li>
+          </ul>
+          <p style={{margin:'14px 0 0',fontSize:16,color:C.gray}}>The "What did we get wrong?" box below accepts factual corrections and style tweaks. Your correction stays in your profile and applies to every later section automatically. Small corrections compound across the journey. You can also ask in the chat in the corner if you want a worked example.</p>
         </div>}
         <OutPanel text={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>
+        {!isDemo&&<div style={{background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,padding:'24px 28px',margin:'0 0 22px'}}>
+          <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 12px'}}>What this gives you</h3>
+          <p style={{fontSize:16,color:C.gray,margin:'0 0 16px',lineHeight:1.6}}>Your Personal Brand is the foundation everything downstream is built on. Here is what having a sharp one unlocks.</p>
+          <ul style={{listStyle:'none',margin:0,padding:0}}>
+            <li style={{marginBottom:16,fontSize:16,lineHeight:1.65,color:'#2D3748'}}><span style={{display:'block',fontWeight:700,color:'#1A2540',marginBottom:3,fontSize:17}}>Your North Star.</span>Everything downstream — your answer to "tell me about yourself," the companies and people you target, your interview prep, your resume refresh, your LinkedIn remix — anchors to this. A sharp foundation makes the rest land sharper.</li>
+            <li style={{marginBottom:16,fontSize:16,lineHeight:1.65,color:'#2D3748'}}><span style={{display:'block',fontWeight:700,color:'#1A2540',marginBottom:3,fontSize:17}}>What is portable about you.</span>Job titles and company names do not travel. The through-line — how you solve problems, the impact you create, the environments where you thrive — does.</li>
+            <li style={{marginBottom:16,fontSize:16,lineHeight:1.65,color:'#2D3748'}}><span style={{display:'block',fontWeight:700,color:'#1A2540',marginBottom:3,fontSize:17}}>Where you have real options.</span>The dimensional read shows which aspects of your career are wide open and which need careful matching. That clarity keeps you from landing in the wrong seat again.</li>
+            <li style={{marginBottom:16,fontSize:16,lineHeight:1.65,color:'#2D3748'}}><span style={{display:'block',fontWeight:700,color:'#1A2540',marginBottom:3,fontSize:17}}>Language for the conversations ahead.</span>"Tell me about yourself" and "why this role" both land sharper when your Personal Brand is the spine you hang your answers on.</li>
+            <li style={{marginBottom:0,fontSize:16,lineHeight:1.65,color:'#2D3748'}}><span style={{display:'block',fontWeight:700,color:'#1A2540',marginBottom:3,fontSize:17}}>A confidence tool.</span>A clear read of who you are, with your accomplishments cited as proof, changes how you walk into the next conversation.</li>
+          </ul>
+        </div>}
         {!isDemo&&<RefineBox value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{cascadeInvalidate('p3');recordCorrection('p3',v);out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
-        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>Now you know who you are. Next, choose how you want to explore what's possible.</div>}
+        {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>The dimensions you and Reimagine surfaced as worth examining — often scale, mission, or position in the value chain — are what Phase 2 is designed to sharpen. Choose how you want to explore.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');out('p1','');out('p2','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','twoDoors')}>Put It to Work <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
