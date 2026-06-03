@@ -5025,6 +5025,38 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity}/>
     </div>
+    case'income':{
+      // Standalone Income Now surface. Two states gated strictly on `chosen`
+      // (the income prompt is predicated on the picked direction): a friendly
+      // gated screen that routes back to Put It to Work when no direction is
+      // picked, and the ready surface (same callout / OutPanel / RefineBox as
+      // the in-focus render) when a direction exists. Fixes the sidebar
+      // Income Now click AND the Complete-screen View → button, both of which
+      // hit the step-switch fall-through today. The in-focus income render
+      // inside case'focus': is untouched and stays canonical for users in the
+      // playbook. Income content generated here is keyed on `chosen`; the
+      // orphan state (chosen cleared via addNewOpportunity while outputs.income
+      // survives) intentionally renders the gated screen, never stale content.
+      const refineIncome=(v)=>{recordCorrection('income',v);generateSection('income',()=>P.income(pc,outputs,chosen)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:7000})}
+      if(!(chosen&&chosen.length>0))return <div>
+        <h1 style={S.title}>Income Now</h1>
+        <p style={S.sub}>Income Now builds gig and bridge-income options tailored to the direction you're exploring. Pick a direction in Career Paths first, then come back here and we'll build a plan you can act on this week.</p>
+        <div style={S.row}><Btn onClick={()=>nav('twoDoors')}>Go to Career Paths <ChevronRight size={14}/></Btn></div>
+      </div>
+      const isGen=generatingSection==='income'
+      return <div>
+        <h1 id="section-income" style={{...S.title,scrollMarginTop:80}}>Income Now</h1>
+        <p style={S.sub}>A bonus section, available anytime you have a direction picked.</p>
+        <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div>
+        {isGen&&<Loading msg="Building your Income Now plan…" step="income"/>}
+        {!isGen&&sectionErrors.income&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors.income} <Btn small secondary onClick={()=>generateSection('income',()=>P.income(pc,outputs,chosen),{maxTokens:7000})} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
+        {!isGen&&!sectionErrors.income&&!outputs.income&&<div style={S.row}><Btn disabled={!canGenSection('income')} onClick={()=>generateSection('income',()=>P.income(pc,outputs,chosen),{maxTokens:7000})}><Sparkles size={14}/>Generate Income Now</Btn></div>}
+        {!isGen&&!sectionErrors.income&&outputs.income&&<>
+          <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
+          <RefineBox value={feedback.income} onChange={v=>setFb('income',v)} hint="Tell us what to refine here." placeholder="" onRegenerate={v=>refineIncome(v)}/>
+        </>}
+      </div>
+    }
     case'complete':{
       if(!done.includes('complete'))markDone('complete')
       const completeCard=(title,key,content)=>content
