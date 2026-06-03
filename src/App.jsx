@@ -2322,9 +2322,9 @@ const buildSynthesisContext = (s) => {
 }
 
 const LANE_CARDS = [
-  { id:'familiar', label:'Familiar Ground', tagline:'Same kind of work, in a new seat.', blurb:'Could be a bigger scope, the same role at a different company, or your function applied in a new industry. Your track record speaks immediately because the work itself is familiar territory.' },
-  { id:'insider', label:'Industry Insider', tagline:'Your industry expertise, in more places than you might think.', blurb:'Employers consistently prefer candidates who already understand their industry, which means the ecosystem around your current role holds more options than you may realize: clients, vendors, consultants, regulators, adjacent players. Same insider knowledge, broader spectrum of seats.' },
-  { id:'wtm', label:'Work That Matters', tagline:'A real pivot toward meaning.', blurb:"Built on the intersection of what you love, what you're good at, what the world needs, and what you can be paid for. The biggest move of the three paths, and the one that most often stretches beyond your current title." },
+  { id:'familiar', label:'Familiar Ground', tagline:'Same kind of work, in a new seat.', blurb:"You'd be doing what you already do well — maybe at a bigger company, in a different industry, or with more scope. Your track record speaks immediately because the work itself is familiar." },
+  { id:'insider', label:'Industry Insider', tagline:'Your industry expertise, in more places than you might think.', blurb:'You stay in your industry but expand where you can work within it. The ecosystem around your current role holds more options than you may realize — clients, vendors, consultants, regulators, adjacent companies. Same insider knowledge, broader range of roles.' },
+  { id:'wtm', label:'Work That Matters', tagline:'A real pivot toward meaning.', blurb:"Built on the intersection of what you love, what you are good at, what the world needs, and what you can be paid for. The biggest move of the three, and often the one that feels most energizing if it's the right move." },
 ]
 const OPTION_SPLIT_RE = /(?=^#{1,3}\s*OPTION:\s*)/m
 const OPTION_COUNT_RE = /^#{1,3}\s*OPTION:/mg
@@ -4723,9 +4723,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{marginTop:22,fontSize:15,color:C.gray,lineHeight:1.6,maxWidth:920,textAlign:'center'}}>Not sure which to pick first? Career Paths is a good place to start: it shows the range of where your background takes you. Come back to add an opportunity once you have a specific role in mind.</div>
     </div>
     case'laneSelect':return <div>
-      {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Apply Your Foundation</div>}
+      {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
       <h1 style={S.title}>Three directions to consider.</h1>
-      <p style={S.sub}>Pick the one you want to start with. You can come back to the others anytime.</p>
+      <p style={S.sub}>Pick the one you want to start with. You can come back to the others anytime — your Personal Brand stays the same regardless of which direction you pursue first.</p>
       <div style={{display:'flex',flexDirection:'column',gap:18,maxWidth:860}}>
         {LANE_CARDS.map(L=><button key={L.id} onClick={()=>pickLane(L.id)} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'26px 30px',cursor:'pointer',fontFamily:'inherit'}}>
           <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:6}}>{L.label}</div>
