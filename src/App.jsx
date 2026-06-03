@@ -4687,20 +4687,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>
 
     case'twoDoors':return <div>
-      {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Apply Your Foundation</div>}
+      {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
       {showWelcomeBack&&<div data-print="hide" style={{position:'relative',background:`${C.gold}12`,border:`1px solid ${C.gold}40`,borderRadius:12,padding:'20px 50px 20px 24px',marginBottom:24,maxWidth:860}}>
         <button onClick={dismissWelcomeBack} aria-label="Dismiss" style={{position:'absolute',top:12,right:14,background:'transparent',border:'none',color:C.gray,fontSize:20,cursor:'pointer',fontFamily:'inherit',lineHeight:1}}>×</button>
-        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7}}><strong>Welcome back.</strong> Pick how you want to put your foundation to use: explore Career Paths or add an opportunity. Your story (resume, assessment, values, reputation, brand synthesis) is right where you left it. Roles you previously explored will regenerate fresh from your latest inputs; if you want to keep any exactly as it was, save its PDF first.</div>
+        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7}}><strong>Welcome back.</strong> Pick how you want to put your foundation to use: explore Career Paths or add an opportunity. Your story (resume, assessment, values, reputation, Personal Brand) is right where you left it. Roles you previously explored will regenerate fresh from your latest inputs; if you want to keep any exactly as it was, save its PDF first.</div>
       </div>}
       <h1 style={S.title}>Put It to Work</h1>
-      <p style={S.sub}>Your foundation is set. Pick how to put it to use. You can come back to this choice anytime from the sidebar.</p>
+      <p style={S.sub}>Your foundation is set. In this section, you decide how to explore your options: a wider look at the directions your background opens up, or a focused playbook for a job description you already have in hand. You can come back to this choice anytime from the sidebar.</p>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,maxWidth:920,marginTop:8}}>
         <button onClick={()=>advance('twoDoors','laneSelect')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
             <Route size={28} color={C.gold} strokeWidth={1.75}/>
             <div style={{fontSize:22,fontWeight:700,color:'#1A2540'}}>Career Paths</div>
           </div>
-          <div style={{fontSize:17,color:'#1A2540',lineHeight:1.5,marginBottom:10,fontWeight:500}}>Explore multiple directions across three strategic angles.</div>
           <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}>See role options across <strong>Familiar Ground</strong> (where your credibility extends), <strong>Industry Insider</strong> (where your sector knowledge translates), and <strong>Work That Matters</strong> (where your values point).</div>
           <div style={{borderTop:`1px solid ${C.border}`,marginTop:18,paddingTop:14,display:'flex',flexDirection:'column',gap:8}}>
             <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>Three directions, each with role candidates and reasoning.</div>
@@ -4713,7 +4712,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <Target size={28} color="#4F7CAC" strokeWidth={1.75}/>
             <div style={{fontSize:22,fontWeight:700,color:'#1A2540'}}>Add an Opportunity</div>
           </div>
-          <div style={{fontSize:17,color:'#1A2540',lineHeight:1.5,marginBottom:10,fontWeight:500}}>Work on specific jobs you are considering right now.</div>
           <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}>Paste a job description and get a focused playbook for that exact role: how you fit, how to position yourself, what the conversation looks like. Add as many opportunities as you want.</div>
           <div style={{borderTop:`1px solid ${C.border}`,marginTop:18,paddingTop:14,display:'flex',flexDirection:'column',gap:8}}>
             <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>A tailored playbook for one specific job.</div>
