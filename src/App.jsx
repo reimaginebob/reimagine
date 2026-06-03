@@ -3216,23 +3216,39 @@ export default function PivotEngine(){
       if(extra&&'structured'in extra&&extra.structured)u.p3_structured=extra.structured
       else delete u.p3_structured
     }
+    // Write timestamps on non-empty writes only (empty clears, e.g. out('p3','')
+    // before a regeneration, must NOT stamp so they don't create false-stale
+    // signals before the new value arrives).
+    const isNonEmpty=v&&(typeof v==='string'?v.trim().length>0:true)
+    if(isNonEmpty){
+      const now=Date.now()
+      u[`${k}_built_at`]=now
+      // p3 and p6 also get an _updated_at stamp so Stage 2 can compare
+      // downstream _built_at values against the upstream's last change.
+      if(k==='p3'||k==='p6')u[`${k}_updated_at`]=now
+    }
     return u
   })
   const markDone=(sid)=>{track('section_completed',{step:sid});setDone(d=>d.includes(sid)?d:[...d,sid])}
   // Forward dependency map for state invalidation. Listed in pipeline order.
   const DEPENDENCY_ORDER=['p1','p2','p3','p4','deepOpts','p5','chosen','p6','p7','p8','p_res','p9','p10','p11','income']
   const downstreamOf=(source)=>{const idx=DEPENDENCY_ORDER.indexOf(source);if(idx<0)return[];return DEPENDENCY_ORDER.slice(idx+1)}
+  // invalidateDownstream is retained for the refreshP3 migration path
+  // (line ~3385) which calls it directly. After Stage 1 it is a thin wrapper
+  // around the p4-or-later clearing logic; prose outputs are no longer wiped.
   const invalidateDownstream=(source)=>{
     const downstream=downstreamOf(source)
     if(downstream.length===0)return
-    setOutputs(o=>{const updated={...o};for(const k of downstream){if(k!=='deepOpts'&&k!=='chosen')updated[k]=''}if(downstream.includes('p3'))delete updated.p3_structured;return updated})
-    if(downstream.includes('deepOpts'))setDeepOpts(['','',''])
-    if(downstream.includes('chosen'))setChosen('')
-    setDone(d=>d.filter(s=>!downstream.includes(s)))
-    // If any role-level submodule (or op) is in the cleared downstream, the
-    // current role's saved-slot write-through is no longer valid against the
-    // new upstream snapshot. Clear the ref so further generations create fresh
-    // state rather than overwriting a stale saved slot.
+    // p4 / deepOpts and later sources: legitimately invalidate direction state.
+    // p1 / p2 / p3 sources: user's direction is still valid; don't clear it.
+    if(!(['p1','p2','p3'].includes(source))){
+      if(downstream.includes('deepOpts'))setDeepOpts(['','',''])
+      if(downstream.includes('chosen'))setChosen('')
+      setDone(d=>d.filter(s=>!downstream.includes(s)))
+    }
+    // Clear saved-slot write-through when any role-level section is downstream,
+    // so further generations create fresh state rather than overwriting a stale
+    // saved slot.
     if(downstream.some(k=>ROLE_SUBMODULES.includes(k)||k==='op')){
       currentSavedSlotIdRef.current=null
       setCurrentRoleInSavedSet(false)
@@ -3256,8 +3272,17 @@ export default function PivotEngine(){
   const cascadeInvalidate=(source)=>{
     const downstream=downstreamOf(source)
     if(downstream.length===0)return
+    // Advance the upstream timestamp so Stage 2's staleness comparison can
+    // detect that downstream sections are now based on an older version.
+    // Only meaningful for the user-refinable upstreams (p3 and p6).
+    if(source==='p3'||source==='p6'){
+      setOutputs(o=>({...o,[`${source}_updated_at`]:Date.now()}))
+    }
+    // Delegate direction-state clearing and saved-slot ref management to
+    // invalidateDownstream. Prose outputs are NO LONGER WIPED (Stage 1 fix).
     invalidateDownstream(source)
-    setInvalidationBanner({message:invalidationMessage(source)})
+    // setInvalidationBanner intentionally removed: nothing was destroyed so
+    // nothing to announce. Stage 2 will add the per-section staleness banner.
   }
   const advance=(from,to)=>{markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
   const nav=(to)=>{track('step_entered',{step:to});if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null);window.scrollTo(0,0)}
@@ -3382,7 +3407,7 @@ export default function PivotEngine(){
       let structuredP3=null
       const o3=await callClaudeWithVoiceGate(fn,{voiceMode:'prose'},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
       out('p3',o3,{structured:structuredP3})
-      invalidateDownstream('p3')
+      cascadeInvalidate('p3')
     }catch(e){setErr(e.message)}
     finally{setLoading(false);setLoadingStage('');scrollToOutput('p3')}
   }
