@@ -185,6 +185,34 @@ if (dimClean !== null) {
   failed++
 }
 
+// Plain-prose failure-shape fixture (2026-06-03 widening). The model evolved
+// past the bolded **Dimension** header shape into plain-prose dimension
+// openers ("Scale is open.", "The industry is also settled."). Modeled on the
+// Sara Chen regression output captured at
+// Output/handoff/audit/fixtures/2026-06-03_sara-chen-regression-output.md.
+// Five of six paragraphs open with the dimension word as the plain-prose
+// subject (the "The work itself" paragraph disguises function and is not
+// caught, matching the real output), so the count lands at exactly 5 and
+// crosses the >= 5 threshold.
+const plainProseFailureShape = [
+  'The work itself is settled. You are an operations leader, and the depth you have built in that function is a competitive advantage. Long-form sentence to round out the paragraph for the test fixture.',
+  'The industry is also settled, though the frame needs widening. You have spent your career in healthcare delivery, and your inputs name digital health as the focus going forward.',
+  'Position in the value chain is worth examining. You have operated inside one organization for the last decade, which means you sit on the operating-company side.',
+  'Scale is open. You have operated at 14,000 employees, which is large enough to require systems thinking and small enough that you can still see the whole organization.',
+  'Pace is aligned. Your default is faster than the people around you, and you have noted that yourself.',
+  'Mission is the dimension where the real estate portfolio matters most. You wrote in your orientation that the portfolio now covers your living expenses.',
+].join('\n\n')
+
+const dimPlainFailure = detectDimensionalFitRegression(plainProseFailureShape)
+if (!dimPlainFailure || dimPlainFailure.name !== 'dimensional-fit-regression') {
+  console.error('FAIL: detectDimensionalFitRegression should fire on plain-prose failure-shape fixture')
+  console.error(`  got: ${JSON.stringify(dimPlainFailure)}`)
+  failed++
+} else if (dimPlainFailure.count < 5) {
+  console.error(`FAIL: detectDimensionalFitRegression counted ${dimPlainFailure.count} plain-prose dimension paragraphs (expected >= 5)`)
+  failed++
+}
+
 // --- Foundation A.5 (2026-05-26) formula-* patterns ---------------------
 //
 // Step-scoped to p3 only; appliesTo: ['runtime']. Positive cases assert the

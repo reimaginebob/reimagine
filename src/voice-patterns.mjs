@@ -984,7 +984,7 @@ export const SOFT_PATTERNS = [
 // or null when the output is clean.
 export function detectDimensionalFitRegression(text) {
   if (typeof text !== 'string') return null
-  const dimRe = /^\*\*(Function|Industry|Position(?:\s+in\s+the\s+value\s+chain)?|Scale|Pace|Mission)\*\*/im
+  const dimRe = /^(?:\*\*)?(?:(?:The|Your)\s+)?(Function|Industry|Position(?:\s+in\s+the\s+value\s+chain)?|Scale|Pace|Mission)(?:\*\*)?[\s,]/im
   const paragraphs = text.split(/\n\n+/)
   const dedicated = paragraphs.filter(p => dimRe.test(p.trim().slice(0, 100)))
   return dedicated.length >= 5
