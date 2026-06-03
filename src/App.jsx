@@ -4720,7 +4720,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:'transparent',color:'#4F7CAC',border:`1.5px solid #4F7CAC`,padding:'8.5px 16.5px',borderRadius:8,fontWeight:600,fontSize:16}}>Add an Opportunity <ChevronRight size={15}/></div>
         </button>
       </div>
-      <div style={{marginTop:22,fontSize:15,color:C.gray,lineHeight:1.6,maxWidth:920,textAlign:'center'}}>Not sure which to pick first? Career Paths is a good place to start: it shows the range of where your background takes you. Come back to add an opportunity once you have a specific role in mind.</div>
+      <div style={{marginTop:22,fontSize:15,color:C.gray,lineHeight:1.6,maxWidth:920,textAlign:'center'}}>Not sure which to pick first? Most people find Career Paths the strongest starting point — it shows the range of where your background takes you and builds your Go-to-Market pipeline. If you already have specific roles in flight, Add an Opportunity puts you straight into prep for those roles, and you can come back to Career Paths anytime to build the wider pipeline. The two paths are not mutually exclusive.</div>
     </div>
     case'laneSelect':return <div>
       {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
