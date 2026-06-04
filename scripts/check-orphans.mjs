@@ -29,7 +29,6 @@ const src = fs.readFileSync(FILE, 'utf8')
 
 const ALLOWLIST = new Set([
   'updateOpP6Freeform', // v3 brief 2026-05-31: kept for forward optionality (a direct-edit affordance on the op Bridge Story card); brief explicitly retains it.
-  'invalidationMessage', // Stage-1 hotfix 2026-06-03: cascadeInvalidate no longer calls setInvalidationBanner; this helper is dead code until Stage-3 cleanup removes it and INVALIDATION_MESSAGES together.
 ])
 
 const defs = new Set()
