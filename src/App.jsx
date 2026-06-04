@@ -3006,7 +3006,14 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(x.didMigrate)setMigratedFromPreV1(true)}else{try{const blob=localStorage.getItem('pe_v4');if(blob)fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob}).catch(()=>{})}catch{}}}).catch(()=>{}).finally(()=>setServerLoadDone(true))},[])
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+// profile is empty. That branch was written for the pre-May-11 era when
+// the app worked without accounts and a user could have built work in
+// localStorage before signing up. The current flow requires sign-up
+// before any profile work, so the branch only contaminated new accounts
+// with prior-account data from the same browser. See brief
+// 2026-06-04_localstorage-account-scoping.md.
+}).catch(()=>{}).finally(()=>setServerLoadDone(true))},[])
   useEffect(()=>{if(!signedInUser)return;const needsPrivacy=signedInUser.privacy_version!=null&&signedInUser.privacy_version!==PRIVACY_VERSION_MATERIAL;const needsTerms=signedInUser.terms_version!=null&&signedInUser.terms_version!==TOS_VERSION_MATERIAL;if(needsPrivacy||needsTerms)setReaccept({needsPrivacyReaccept:needsPrivacy,needsTermsReaccept:needsTerms})},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;try{if(localStorage.getItem('pe_has_signed_in_before')==='true')return;const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v4');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
   useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
@@ -3540,14 +3547,14 @@ export default function PivotEngine(){
   }
   const signOut=async()=>{
     try{await fetch('/api/auth/logout',{method:'POST',credentials:'include'})}catch{}
-    setSignedInUser(null)
-    // Belt-and-suspenders: clear any queued migration modal so the "Save your
-    // work across devices" CTA does not appear during the sign-out flow.
-    // The pe_has_signed_in_before flag set by /api/me already gates the
-    // mount-time useEffect; this guards against a timing edge case where the
-    // modal was queued before the flag was read.
-    setMigrationOpen(false)
-    setStep('welcome')
+    try{Object.keys(localStorage).forEach(k=>{if(k.startsWith('reimagine_')||k.startsWith('pe_'))localStorage.removeItem(k)})}catch{}
+    // location.replace forces a synchronous navigation that does not leave
+    // a history entry pointing back at the live React tree. Same pattern as
+    // deleteAccount above. Reload re-runs all hydration useEffects against
+    // the now-cleared localStorage, which resets every state slice without
+    // having to enumerate them, eliminates the debounced-autosave race
+    // window, and closes the cross-tab inconsistency implicitly.
+    window.location.replace('/')
   }
   const deleteAccount=async()=>{
     const confirmed=window.confirm('This permanently deletes your profile, outputs, saved playbooks, and chat history.\n\nYou can sign back in with the same email to start over from scratch.\n\nContinue?')
