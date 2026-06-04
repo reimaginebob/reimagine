@@ -96,19 +96,13 @@ Each section has a "What did we get wrong?" box. Refining a section regenerates 
 
 ## Save your playbook
 
-A footer bar appears at the bottom of the Focus Playbook once you have generated any section. It carries a count of how many sections you have built ("Your playbook so far: N of 7 sections built. Save what you have as a PDF. Come back to generate the rest.") and a **Save Playbook as PDF** button. The button assembles every section you have generated for this role into a single clean document and opens your browser's print-to-PDF dialog.
+A footer bar appears at the bottom of the Focus Playbook once you have generated any section. It carries a **Save Playbook as PDF** button that stays in view as you scroll.
 
-In v1, the PDF is how you keep a specific playbook between sessions. Reimagine holds one active role's playbook at a time. The PDF lives on your device, so it survives any role switch, any input change, and any future product update. Save the ones you want to keep.
+Your playbook is saved to your account and you can switch between roles in My Playbooks without losing work. The PDF is for moments when you want a portable copy: sending to a coach or mentor, reading on a device where you're not signed in, or keeping an annotated reference alongside your offline notes.
 
-**The save-first prompt.** If you switch roles while a playbook has unsaved work past The Role, Reimagine asks first: save it as a PDF, continue without saving, or cancel. This protects the "where did my work go" moment. Switching roles clears the prior role's sections so the new role does not show stale content.
+## My Playbooks
 
-## Roles You've Explored
-
-Every role you open a Focus Playbook for is recorded in a **Roles You've Explored** section in the sidebar. Each entry shows the role title and a **Re-explore** action.
-
-"Re-explore" is the honest word. Clicking a prior role regenerates its playbook fresh against your current inputs. It does not restore a saved copy. In v1, only the title is remembered, not the generated content. If you saved that role's PDF earlier, you have the prior version on your device for reference; re-exploring produces a new run against your latest material. (Uploading a saved playbook to restore it without regenerating is planned for a future release. It is not available yet.)
-
-The list is sorted by what you touched most recently and holds up to twenty roles.
+Every role you build a Focus Playbook for is saved to your account and appears in **My Playbooks** in the sidebar. Open any of them to pick up where you left off; your sections, your inputs, and your refinements are all there.
 
 ## A reminder you can come back to
 

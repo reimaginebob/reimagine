@@ -90,9 +90,9 @@ The Personal Brand prose names what is settled about your fit and what is open. 
 
 **Lane Option view.** The screen that lists role options for the one direction you picked. Each option can be opened into a full Focus Playbook. Includes a "see more options" feedback box and honest handling when only a few strong options exist.
 
-**Roles You've Explored.** A sidebar section listing every role you opened a Focus Playbook for, most recent first. Each has a Re-explore action that regenerates that role's playbook fresh from your current inputs. Titles only are remembered, not generated content.
+**My Playbooks.** The sidebar section listing every Focus Playbook you have built. Open any of them to pick up where you left off; your sections, your inputs, and your refinements are all there.
 
-**Save Playbook as PDF.** The button in the Focus Playbook footer that assembles every generated section for the current role into one printable document. The footer also carries a count of how many sections you have built ("Your playbook so far: N of 7 sections built. Save what you have as a PDF. Come back to generate the rest."). In v1 this is how you keep a playbook between sessions.
+**Save Playbook as PDF.** The button in the Focus Playbook footer that assembles every generated section for the current role into one printable document. Useful for sharing with a coach or mentor, reading on a device where you're not signed in, or keeping an annotated reference alongside your offline notes.
 
 **Put It to Work.** The first screen in Phase 2. Two cards: **Career Paths** leads to picking a direction and exploring roles; **Add an Opportunity** takes a pasted job description and builds a playbook for that exact role. Renamed 2026-05-27 from "Two Doors / Choose Your Path"; the sidebar entry under Phase 2 routes here from anywhere in the app.
 
