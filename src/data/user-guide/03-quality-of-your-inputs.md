@@ -137,11 +137,15 @@ Tap it and talk. Reimagine listens and writes what you say into the field. Tap i
 
 This matters most for the inputs that benefit from specific stories. The Reputation step in particular. Talking through a specific moment is usually easier than typing it, and the result tends to be richer.
 
-## Your data stays on your device
+## How your data is handled
 
-What you enter into Reimagine stays on your device. It is not shared with Career Club. There is no account, no central profile we hold. Your inputs travel only to Anthropic's Claude service to generate each section of your strategy.
+Reimagine uses passwordless accounts. When you sign in, your email is used to send a magic-link sign-in code; we do not store passwords. Your inputs, the outputs Reimagine generates, and your profile data are saved to your Reimagine account so you can pick up where you left off on any device you sign in from. This information is stored on cloud infrastructure in the United States and encrypted at rest.
 
-This may change in the future. For now, your work is yours, on your machine, and you control it.
+Reimagine sends your inputs to Anthropic's Claude service to generate each section of your strategy. Anthropic processes these requests under their own terms; Reimagine does not use your inputs to train any AI model.
+
+You control your data. You can delete your account at any time using the Start Fresh option in the product or by writing to us at info@career.club. Reimagine also collects anonymous behavioral analytics (which sections you visit, how long generations take) used to improve the product.
+
+For the full details, see the [Privacy Policy](/privacy) and the [Terms of Service](/terms).
 
 ## You can always go back and update
 
