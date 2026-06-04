@@ -368,14 +368,54 @@ function formatSkills(s){
   return lines.length?lines.join('\n'):'not provided'
 }
 
-async function callClaude(prompt, opts={}) {
+// callClaude: async generator that yields text chunks as they arrive from
+// the Anthropic API via SSE. Each call opens a streaming connection; the
+// caller assembles chunks and applies post-processing on the full string.
+async function* callClaude(prompt, opts={}) {
   const{webSearch=false,highTemp=false,maxTokens=5000,temperature,voiceMode}=opts
   const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined
-  const body={model:"claude-sonnet-4-5",max_tokens:maxTokens,temperature:typeof temperature==='number'?temperature:(highTemp?1.0:0.7),system:[{type:"text",text:SYS_BASE,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content:prompt}],...(voiceMode&&{voiceMode}),...(tools&&{tools})}
+  const body={model:"claude-sonnet-4-5",max_tokens:maxTokens,temperature:typeof temperature==='number'?temperature:(highTemp?1.0:0.7),system:[{type:"text",text:SYS_BASE,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content:prompt}],stream:true,...(voiceMode&&{voiceMode}),...(tools&&{tools})}
   const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
-  if(!res.ok){const e=await res.json();throw new Error(e.error?.message||"API error")}
-  const data=await res.json()
-  const raw=data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n")
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||"API error")}
+  const reader=res.body.getReader()
+  const decoder=new TextDecoder()
+  let buffer=''
+  try{
+    while(true){
+      const{done,value}=await reader.read()
+      if(done)break
+      buffer+=decoder.decode(value,{stream:true})
+      let idx
+      while((idx=buffer.indexOf('\n\n'))!==-1){
+        const evt=buffer.slice(0,idx)
+        buffer=buffer.slice(idx+2)
+        const dataLine=evt.split('\n').find(l=>l.startsWith('data: '))
+        if(!dataLine)continue
+        try{
+          const obj=JSON.parse(dataLine.slice(6))
+          if(obj.type==='content_block_delta'&&obj.delta?.type==='text_delta'){
+            yield obj.delta.text
+          }
+        }catch{}
+      }
+    }
+  }finally{
+    try{reader.cancel()}catch{}
+  }
+}
+
+// callClaudeFull: collects the callClaude generator into a complete string
+// and applies the deterministic post-processing strippers. Used by every
+// call site that needs a full response synchronously (voice gate retries,
+// JSON-output callers, non-streaming surfaces).
+//
+// IMPORTANT: the strippers run here on the fully assembled response string,
+// NOT on individual chunks. This is load-bearing — the strippers use regex
+// patterns that match across token boundaries and must see the complete
+// output to fire correctly. Do not apply strippers inside the generator.
+async function callClaudeFull(prompt, opts={}) {
+  let raw=''
+  for await(const chunk of callClaude(prompt,opts)){raw+=chunk}
   return stripSincerityQualifiers(stripLogicFlipCadence(stripCoachSpeak(stripMetaNarration(stripRoomsPlaceholder(raw)))))
 }
 
@@ -558,8 +598,21 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
           prompt += `\n\nCRITICAL: the previous generation contained a BANNED CONSTRUCTION: "${String(v.match).replace(/"/g,'\\"').slice(0,200)}" (${v.note}) Refuse this construction. Rewrite the affected passage as the positive claim on its own. Do not produce any sentence of that shape anywhere in your output.`
         }
       }
-      const runner = typeof meta.runner === 'function' ? meta.runner : callClaude
-      const result = await runner(prompt, opts)
+      let result
+      if(attempt===0&&typeof meta.onChunk==='function'){
+        // Streaming attempt: pipe chunks to meta.onChunk for progressive UI,
+        // then assemble the full raw string and apply strippers.
+        let raw=''
+        for await(const chunk of callClaude(prompt,opts)){
+          raw+=chunk
+          meta.onChunk(raw)  // cumulative content so far (pre-stripped)
+        }
+        // Strippers run on the fully assembled response after streaming completes.
+        result=stripSincerityQualifiers(stripLogicFlipCadence(stripCoachSpeak(stripMetaNarration(stripRoomsPlaceholder(raw)))))
+      }else{
+        const runner=typeof meta.runner==='function'?meta.runner:callClaudeFull
+        result=await runner(prompt,opts)
+      }
       // Thread meta.step so step-scoped patterns (the formula-* family
       // is p3-only) fire only on the right step. Other steps pass the
       // same option harmlessly; patterns without a step field fire
@@ -571,6 +624,11 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
         }
         voiceCleanResult = result
         break
+      }
+      // Fire restart event so streaming-aware UI can clear in-progress content
+      // and show a 'Reimagine is refining the voice...' indicator during retry.
+      if(typeof meta.onEvent==='function'){
+        try{meta.onEvent({type:'restart',step:meta.step,attempt,violations:lastViolations.slice(0,8)})}catch{}
       }
       lastResult = result
       lastViolations = violations
@@ -624,7 +682,7 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
         return dimResult
       }
       const correctivePrompt = localPromptFn() + `\n\nCRITICAL: the previous generation produced ${dimViolation.count} dedicated dimension paragraphs in the dimensional fit section. That is the old Wiring & Compass output shape this output explicitly does not produce. Rewrite the dimensional fit section as 2 or 3 short paragraphs total, with multiple dimensions named per paragraph via bolded inline keywords, and only the decisional dimensions getting fuller treatment. Match the worked example shown in the prompt above.`
-      const runner = typeof meta.runner === 'function' ? meta.runner : callClaude
+      const runner = typeof meta.runner === 'function' ? meta.runner : callClaudeFull
       dimResult = await runner(correctivePrompt, opts)
     }
     return dimResult
@@ -945,7 +1003,7 @@ function opLaneValue(rec){const l=rec&&rec.opLane;if(l&&typeof l==='object'&&(l.
 const OP_LANE_INFER_PROMPT=(jd,profileSummary,quickTakeaway)=>`Determine which of the user's three career lanes best fits a specific opportunity FOR THIS USER. Output JSON only, no preamble.\n\nThe lanes:\n- FAMILIAR GROUND (FG): continues the user's trajectory. Same function, similar industry and altitude. The user can step in and add value from day one.\n- INDUSTRY INSIDER (II): translates the user's expertise across an industry or sector shift. Function carries; context changes. The user brings credibility and an outside perspective.\n- WORK THAT MATTERS (WTM): a deliberate pivot toward something the user cares about more, away from prior trajectory. Hiring requires explaining motivation, learning velocity, and transferable capability beyond resume fit.\n\nTHIS OPPORTUNITY (job description):\n${jd}\n\nTHE USER'S FOUNDATION:\n${profileSummary}\n\nWHAT WE HAVE ALREADY SAID ABOUT ROLE-FIT:\n${quickTakeaway}\n\nReturn exactly this JSON shape:\n{"value":"FG or II or WTM","confidence":"high or medium or low","reasoning":"2 to 4 sentences. Reference at least one specific JD fact and at least one specific user-profile fact. Plain language."}\n\nRules: choose exactly one lane, no between-lanes answers. Confidence is high only when the signal is unambiguous; medium is the common case. Generic reasoning is wrong.`
 async function inferLaneForOpportunity(jd,profileSummary,quickTakeaway){
   try{
-    const raw=await callClaude(OP_LANE_INFER_PROMPT((jd||'').slice(0,8000),(profileSummary||'').slice(0,4000),(quickTakeaway||'').slice(0,2000)),{maxTokens:500,temperature:0.2})
+    const raw=await callClaudeFull(OP_LANE_INFER_PROMPT((jd||'').slice(0,8000),(profileSummary||'').slice(0,4000),(quickTakeaway||'').slice(0,2000)),{maxTokens:500,temperature:0.2})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<0||b<=a)return null
     let obj;try{obj=JSON.parse(raw.slice(a,b+1))}catch(e){return null}
@@ -998,7 +1056,7 @@ async function inferIndustry(ctx){
   try{
     const jd=((ctx&&ctx.jd)||'').slice(0,6000)
     if(!jd.trim())return 'default'
-    const raw=await callClaude(INFER_INDUSTRY_PROMPT(jd),{maxTokens:500,temperature:0.2})
+    const raw=await callClaudeFull(INFER_INDUSTRY_PROMPT(jd),{maxTokens:500,temperature:0.2})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<0||b<=a)return 'default'
     let obj;try{obj=JSON.parse(raw.slice(a,b+1))}catch(e){return 'default'}
@@ -2843,6 +2901,13 @@ export default function PivotEngine(){
   const[migratedFromPreV1,setMigratedFromPreV1]=useState(false)
   const[generatingSection,setGeneratingSection]=useState(null)
   const[sectionErrors,setSectionErrors]=useState({})
+  // Streaming state for sections that support progressive rendering.
+  // streamingContent[sectionId] holds text accumulated so far during an
+  // active streaming generation. Cleared on completion or error.
+  const[streamingContent,setStreamingContent]=useState({})
+  // regeneratingSection is set when a voice-gate retry fires mid-stream;
+  // the UI shows a "refining..." indicator until the retry completes.
+  const[regeneratingSection,setRegeneratingSection]=useState(null)
   const[currentRoleSaved,setCurrentRoleSaved]=useState(false)
   // Saved playbooks set. Top-level state, hydrated from pe_saved_v1 (separate
   // from the live-state pe_v4 key so reset() does not clear saved work).
@@ -3034,7 +3099,7 @@ export default function PivotEngine(){
     setLoading(true);setLoadMsg('Reading your resume and LinkedIn for your skills…')
     ;(async()=>{
       try{
-        const raw=await callClaude(P.skillsExtract(profile),{maxTokens:2000})
+        const raw=await callClaudeFull(P.skillsExtract(profile),{maxTokens:2000})
         const cleaned=raw.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim()
         const parsed=JSON.parse(cleaned)
         const normalized={
@@ -3421,7 +3486,44 @@ export default function PivotEngine(){
     finally{setLoading(false);setLoadingStage('');scrollToOutput('p3')}
   }
   const canGenSection=(id)=>!loading&&(!generatingSection||generatingSection===id)
-  const generateSection=async(sectionId,fn,opts={})=>{if(loading||(generatingSection&&generatingSection!==sectionId))return;setGeneratingSection(sectionId);setSectionErrors(e=>({...e,[sectionId]:null}));try{const r=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+fn(),opts,{step:sectionId,onEvent:logVoiceEvent});out(sectionId,r);markDone(sectionId);if(ROLE_SUBMODULES.includes(sectionId))setCurrentRoleSaved(false);afterSectionGenerate(sectionId,r)}catch(e){setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))}finally{setGeneratingSection(null);scrollToOutput(sectionId)}}
+  // generateSection: generates a single Focus Playbook section.
+  // opts may include onChunk(cumulativeText) to enable streaming display.
+  // When onChunk is provided, progressive content is piped to the UI while
+  // the voice gate runs on the full assembled response after completion.
+  const generateSection=async(sectionId,fn,opts={})=>{
+    const{onChunk,...claudeOpts}=opts
+    if(loading||(generatingSection&&generatingSection!==sectionId))return
+    setGeneratingSection(sectionId)
+    setSectionErrors(e=>({...e,[sectionId]:null}))
+    if(onChunk)setStreamingContent(c=>({...c,[sectionId]:''}))
+    try{
+      const onEvent=(evt)=>{
+        logVoiceEvent(evt)
+        if(evt.type==='restart'){
+          // Voice violation during streaming: clear in-progress content and
+          // show a refinement indicator while the retry runs silently.
+          setStreamingContent(c=>({...c,[sectionId]:''}))
+          setRegeneratingSection(sectionId)
+        }
+      }
+      const r=await callClaudeWithVoiceGate(
+        ()=>correctionsBlock(profile.corrections)+fn(),
+        claudeOpts,
+        {step:sectionId,onEvent,...(onChunk?{onChunk}:{})}
+      )
+      out(sectionId,r)
+      markDone(sectionId)
+      if(ROLE_SUBMODULES.includes(sectionId))setCurrentRoleSaved(false)
+      afterSectionGenerate(sectionId,r)
+    }catch(e){
+      setSectionErrors(prev=>({...prev,[sectionId]:e.message||'Generation failed. Try again.'}))
+    }finally{
+      setGeneratingSection(null)
+      setRegeneratingSection(null)
+      if(onChunk)setStreamingContent(c=>({...c,[sectionId]:''}))
+      scrollToOutput(sectionId)
+    }
+  }
   // Live p4 generation is generateLane (per-lane on-demand); see below. The
   // dead generateP4 + laneRunner + validateP4Lanes path (which generated all
   // three lanes in one call) was deleted by Foundation B (PR #84).
@@ -3470,7 +3572,7 @@ export default function PivotEngine(){
       let parsedQuestion=null,refusal=''
       for(let attempt=1;attempt<=3;attempt++){
         const prompt=correctionsBlock(profile.corrections)+P.p11_question_regen(pc,outputs,chosen,profile.lifeEvents,questionIdx,currentQuestion,otherQuestionTexts,correctionText||'','')+(refusal?`\n\n${refusal}`:'')
-        const rawr=await callClaude(prompt,{maxTokens:6000})
+        const rawr=await callClaudeFull(prompt,{maxTokens:6000})
         const q=parseP11QuestionJSON(rawr,currentQuestion.type)
         if(!q){refusal='The previous attempt did not return valid JSON for the requested question (id, question, type matching the original, star_breakdown with non-empty S/T/A/R sub-fields). Return only the JSON object.';continue}
         const vio=detectVoiceViolations(extractP11QuestionStrings(q),{includeSoft:false})
@@ -4076,7 +4178,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       let parsedQuestion=null,refusal=''
       for(let attempt=1;attempt<=3;attempt++){
         const prompt=correctionsBlock(profile.corrections)+P.p11_question_regen(pc,outputs,chosen,profile.lifeEvents,questionIdx,currentQuestion,otherQuestionTexts,correctionText||'',jd)+(refusal?`\n\n${refusal}`:'')
-        const rawr=await callClaude(prompt,{maxTokens:6000})
+        const rawr=await callClaudeFull(prompt,{maxTokens:6000})
         const q=parseP11QuestionJSON(rawr,currentQuestion.type)
         if(!q){refusal='The previous attempt did not return valid JSON for the requested question (id, question, type matching the original, star_breakdown with non-empty S/T/A/R sub-fields). Return only the JSON object.';continue}
         const vio=detectVoiceViolations(extractP11QuestionStrings(q),{includeSoft:false})
@@ -4827,7 +4929,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         income:()=>P.income(pc,outputs,chosen),
       }[id])
       const go=(id)=>({p5:{maxTokens:4000},p6:{maxTokens:7000},p7:{webSearch:true,maxTokens:12000},p8:{maxTokens:4000},p_res:{maxTokens:5000},p9:{maxTokens:4000},p11:{maxTokens:8000},income:{maxTokens:7000}}[id]||{})
-      const genSec=(id)=>id==='p6'?generateP6():generateSection(id,gp(id),go(id))
+      const genSec=(id)=>id==='p6'?generateP6():id==='p9'?generateSection('p9',gp('p9'),{...go('p9'),onChunk:(text)=>setStreamingContent(c=>({...c,p9:text}))}):generateSection(id,gp(id),go(id))
       const refineSec=(id,v)=>{recordCorrection(id,v);if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
       const renderBody=(id)=>{
         if(id==='p6'){const rawP6=typeof outputs.p6==='string'?outputs.p6:(outputs.p6?bridgeStoryToProse(outputs.p6):'');const hasCoaching=typeof rawP6==='string'&&rawP6.includes('---COACHING NOTE---');const parts=hasCoaching?rawP6.split('---COACHING NOTE---').map(s=>s.trim()):[rawP6,''];const storyPart=parts[0]||'';const coachingPart=parts[1]||'';return <><OutPanel text={storyPart} onCopy={copy} copied={copied}/>{hasCoaching&&coachingPart&&<div data-print="content" style={{margin:'16px 0 24px',padding:'18px 22px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,fontStyle:'italic',color:C.cream,lineHeight:1.65,fontSize:16}}><MD text={coachingPart}/></div>}{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? Tell us what to adjust: the opening, the tone, which part of your background to lead with, or how you want to close." placeholder="e.g. The opening does not feel personal enough… I want to lead with my sustainability work instead… the ending needs to connect more directly to the role…" onRegenerate={v=>refineSec('p6',v)}/>}</>}
@@ -4984,7 +5086,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 {isDoneSec&&<span data-print="hide" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:13,fontWeight:600,color:C.ok,background:`${C.ok}18`,padding:'3px 10px',borderRadius:999}}><Check size={12} color={C.ok} strokeWidth={2.5}/>Built</span>}
               </h2>
               {SECTION_EXPLAINERS[id]&&<SectionExplainer subhead={SECTION_EXPLAINERS[id].subhead} detail={SECTION_EXPLAINERS[id].detail}/>}
-              {isGen&&<Loading msg={sec.load} step={id}/>}
+              {isGen&&(streamingContent[id]?<>
+                {regeneratingSection===id&&<div data-print="hide" style={{marginBottom:12,padding:'10px 14px',background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:8,fontSize:14,color:'#8A5E1C',lineHeight:1.55}}>Reimagine is refining the output to match Reimagine's voice… Continuing in a moment.</div>}
+                <OutPanel text={streamingContent[id]} onCopy={()=>{}} copied={false}/>
+              </>:<Loading msg={sec.load} step={id}/>)}
               {!isGen&&sectionErrors[id]&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors[id]} <Btn small secondary onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
               {!isGen&&!sectionErrors[id]&&has&&<>
                 {!isDemo&&(()=>{const stale=sectionStaleUpstreams(id);if(stale.length===0)return null;const who=stale.length===2?'your Personal Brand and Bridge Story':stale[0]==='p3'?'your Personal Brand':'your Bridge Story';return <div data-print="hide" style={{display:'flex',alignItems:'center',gap:10,background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:8,padding:'10px 14px',margin:'0 0 12px',fontSize:14,color:'#8A5E1C',lineHeight:1.55}}><div style={{width:8,height:8,borderRadius:'50%',background:'#F0B856',flexShrink:0}}/><div style={{flex:1}}><strong style={{color:'#8A5E1C'}}>Built from an earlier version of {who}.</strong> Update if you want this section to reflect your latest changes.</div><button type="button" onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{background:'transparent',color:'#8A5E1C',border:'1px solid #F0B856',borderRadius:6,padding:'5px 12px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit',flexShrink:0,whiteSpace:'nowrap'}}>Update this section</button></div>})()}
