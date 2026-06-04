@@ -1,6 +1,6 @@
 # 11. Bonus. Income Now
 
-> **Where this lives now.** Income Now is the bonus section that lives below the seven main sections inside the Focus Playbook for a specific role (Chapter 6). It generates separately and renders with bonus-stripe treatment on both the Focus Playbook page and the Complete page. It is reached by generating it from inside the Focus Playbook, not as a separate top-level step. Everything below still describes what it produces and how to use it.
+> **Where this lives now.** Income Now is the bonus section that lives below the seven main sections inside the Focus Playbook for a specific role (Chapter 6). It generates separately and renders with bonus-stripe treatment on both the Focus Playbook page and the Complete page. You can reach it from inside the Focus Playbook, and from the Income Now item in the left sidebar. If you open it from the sidebar before picking a direction, you'll see a short screen that points you to Career Paths first, since the plan is built around the direction you choose. Everything below still describes what it produces and how to use it.
 
 When money gets tight, the temptation is to take whatever pays the bills. Reimagine has a different idea.
 
