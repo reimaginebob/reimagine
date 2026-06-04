@@ -2937,7 +2937,6 @@ export default function PivotEngine(){
   // Dismiss state survives generation but not a full reload. Tab-session
   // local; intentionally NOT persisted so a fresh load re-prompts.
   const[updateBannerDismissed,setUpdateBannerDismissed]=useState(false)
-  const[invalidationBanner,setInvalidationBanner]=useState(null)
   const[voiceMigBanner,setVoiceMigBanner]=useState(false)
   const[voiceBannerDismissed,setVoiceBannerDismissed]=useState(false)
   const voiceMigCheckedRef=useRef(false)
@@ -3056,7 +3055,6 @@ export default function PivotEngine(){
   // through 'p1'/'p2' to the p3 view, so the user never sees a blank
   // screen during this resolution.
   useEffect(()=>{if(step==='p1'||step==='p2')setStep('p3')},[step])
-  useEffect(()=>{if(!invalidationBanner)return;const t=setTimeout(()=>setInvalidationBanner(null),10000);return()=>clearTimeout(t)},[invalidationBanner])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);deleteAccount()},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{
@@ -3254,21 +3252,6 @@ export default function PivotEngine(){
       setCurrentRoleInSavedSet(false)
     }
   }
-  const INVALIDATION_MESSAGES={
-    p1:'Cleared your Personal Brand, role options, and any playbook work so they match the new resume analysis.',
-    p2:'Cleared your Personal Brand, role options, and any playbook work so they match the new wiring read.',
-    p3:'Cleared your role options and any playbook work so they match the new Personal Brand.',
-    p4:'Cleared your downstream playbook so it matches the new options.',
-    deepOpts:'Cleared your downstream playbook so it matches the new selections.',
-    p5:'Cleared your downstream playbook so it matches the new role.',
-    chosen:'Cleared your downstream playbook so it matches the new chosen focus.',
-    p6:'Cleared your LinkedIn Remix, Resume Refresh, Playbook, and Income Now so they match the new Bridge Story.',
-    p7:'Cleared your LinkedIn Remix, Resume Refresh, Playbook, and Income Now so they match the new Go-to-Market.',
-    p8:'Cleared your Resume Refresh, Playbook, and Income Now so they match the new LinkedIn Remix.',
-    p_res:'Cleared your Playbook and Income Now so they match the new Resume Refresh.',
-    p9:'Cleared your Income Now so it matches the refreshed Playbook.',
-  }
-  const invalidationMessage=(source)=>INVALIDATION_MESSAGES[source]||'Cleared downstream work so it matches your changes.'
   const cascadeInvalidate=(source)=>{
     const downstream=downstreamOf(source)
     if(downstream.length===0)return
@@ -3282,7 +3265,26 @@ export default function PivotEngine(){
     // invalidateDownstream. Prose outputs are NO LONGER WIPED (Stage 1 fix).
     invalidateDownstream(source)
     // setInvalidationBanner intentionally removed: nothing was destroyed so
-    // nothing to announce. Stage 2 will add the per-section staleness banner.
+    // nothing to announce. Stage 2 adds the per-section staleness banner.
+  }
+  // Staleness helpers (Stage 2). A section is stale against an upstream when
+  // the section was last built before the upstream last changed.
+  // Only p3 and p6 are live upstreams that cascadeInvalidate actually stamps
+  // (confirmed: all other cascadeInvalidate callsites use p1/p3/p6 only, and
+  // p1 cascades wipe p3 before the downstream sections exist).
+  // POST_P6_FOCUS: Focus Playbook sections that depend on both p3 AND p6.
+  // Derived from DEPENDENCY_ORDER: everything after p6 that is a Focus section.
+  const POST_P6_FOCUS=new Set(DEPENDENCY_ORDER.slice(DEPENDENCY_ORDER.indexOf('p6')+1).filter(k=>['p5','p6','p7','p8','p_res','p9','p11','income'].includes(k)))
+  const isSectionStaleAgainst=(sectionId,upstream)=>{
+    const sectionAt=outputs[`${sectionId}_built_at`]
+    const upstreamAt=outputs[`${upstream}_updated_at`]
+    if(!sectionAt||!upstreamAt)return false
+    return sectionAt<upstreamAt
+  }
+  const sectionStaleUpstreams=(sectionId)=>{
+    const ups=['p3']
+    if(POST_P6_FOCUS.has(sectionId))ups.push('p6')
+    return ups.filter(u=>isSectionStaleAgainst(sectionId,u))
   }
   const advance=(from,to)=>{markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
   const nav=(to)=>{track('step_entered',{step:to});if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null);window.scrollTo(0,0)}
@@ -4974,6 +4976,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {isGen&&<Loading msg={sec.load} step={id}/>}
               {!isGen&&sectionErrors[id]&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors[id]} <Btn small secondary onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
               {!isGen&&!sectionErrors[id]&&has&&<>
+                {!isDemo&&(()=>{const stale=sectionStaleUpstreams(id);if(stale.length===0)return null;const who=stale.length===2?'your Personal Brand and Bridge Story':stale[0]==='p3'?'your Personal Brand':'your Bridge Story';return <div data-print="hide" style={{display:'flex',alignItems:'center',gap:10,background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:8,padding:'10px 14px',margin:'0 0 12px',fontSize:14,color:'#8A5E1C',lineHeight:1.55}}><div style={{width:8,height:8,borderRadius:'50%',background:'#F0B856',flexShrink:0}}/><div style={{flex:1}}><strong style={{color:'#8A5E1C'}}>Built from an earlier version of {who}.</strong> Update if you want this section to reflect your latest changes.</div><button type="button" onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{background:'transparent',color:'#8A5E1C',border:'1px solid #F0B856',borderRadius:6,padding:'5px 12px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit',flexShrink:0,whiteSpace:'nowrap'}}>Update this section</button></div>})()}
                 {renderBody(id)}
                 {!isDemo&&id!=='p6'&&<RefineBox value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
                 {!isDemo&&nextSec&&<div data-print="hide" style={{marginTop:18,padding:'12px 16px',background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
@@ -5512,10 +5515,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     <Analytics/>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
-    {invalidationBanner&&<div data-print="hide" style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1000,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'14px 20px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',alignItems:'center',gap:16,maxWidth:720}}>
-      <div style={{fontSize:18,color:'#1A2540',lineHeight:1.5}}>{invalidationBanner.message}</div>
-      <button onClick={()=>setInvalidationBanner(null)} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#718096',fontSize:18,cursor:'pointer',padding:4,fontFamily:'inherit',flexShrink:0}}>×</button>
-    </div>}
     {atCapModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:600,width:'100%',maxHeight:'80vh',display:'flex',flexDirection:'column',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>You're at {getSavedCap()} saved playbooks</h2>
