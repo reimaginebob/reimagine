@@ -4760,9 +4760,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{L.blurb}</div>
         </button>)}
       </div>
+      <div style={{marginTop:22,fontSize:15,color:C.gray,lineHeight:1.6,maxWidth:860,textAlign:'center'}}><strong>Not sure where to start?</strong> Familiar Ground is the lowest-risk exploration — your track record speaks immediately, so you can move through these roles quickly, see what is out there, and get a real sense of your market. Start there if you are unsure; come back to Industry Insider or Work That Matters knowing what you are choosing toward, not just away from.</div>
     </div>
     case'p4':{
-      if(!selectedLane)return <div>{!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}{!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Apply Your Foundation</div>}<h1 style={S.title}>Pick a direction first</h1><div style={S.row}><Btn onClick={()=>nav('laneSelect')}>Choose a direction <ChevronRight size={14}/></Btn></div></div>
+      if(!selectedLane)return <div>{!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}{!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}<h1 style={S.title}>Pick a direction first</h1><div style={S.row}><Btn onClick={()=>nav('laneSelect')}>Choose a direction <ChevronRight size={14}/></Btn></div></div>
       const laneText=laneData[selectedLane]||''
       const L=LANE_CARDS.find(x=>x.id===selectedLane)||{label:laneLabelFor(selectedLane),tagline:''}
       const lo=extractLaneOptions(laneText)
@@ -4770,9 +4771,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const otherLanes=Object.keys(laneData).filter(k=>k!==selectedLane&&laneData[k])
       return <div>
         {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
-        {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 2 · Apply Your Foundation</div>}
+        {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
         <h1 id="section-p4" style={S.title}>{L.label}</h1>
         {L.tagline&&<p style={{...S.sub,fontStyle:'italic',color:C.gold,marginBottom:14}}>{L.tagline}</p>}
+        {selectedLane==='familiar'&&<p style={{...S.sub,marginBottom:14}}>Below, an umbrella paragraph names where your existing credibility extends — same kind of work, in a new seat. Specific role options follow, each showing the title, the kind of organization that hires for it, how the role is structured (W-2, consulting, fractional), and the sector. Click any role to open its full playbook. Fewer than expected is honest; Reimagine does not pad weak directions.</p>}
+        {selectedLane==='insider'&&<p style={{...S.sub,marginBottom:14}}>Below, an umbrella paragraph names where your industry expertise transfers — clients, vendors, consultants, regulators, and adjacent players who value someone already inside the conversation. Specific role options follow, each showing the title, the kind of organization that hires for it, how the role is structured, and the sector. Click any role to open its full playbook. Fewer than expected is honest; Reimagine does not pad weak directions.</p>}
+        {selectedLane==='wtm'&&<p style={{...S.sub,marginBottom:14}}>Below, an umbrella paragraph names where your background meets the work that energizes you — the Ikigai intersection of what you love, what you are good at, what the world needs, and what you can be paid for. Specific role options follow, each showing the title, the kind of organization that hires for it, how the role is structured, and the sector. Click any role to open its full playbook. Fewer than expected is honest; Reimagine does not pad weak directions.</p>}
         {loading&&<Loading msg={loadMsg||'Mapping your options for this direction…'} step="p4"/>}
         {!loading&&!laneText&&<div style={S.row}><Btn onClick={()=>generateLane(selectedLane)}><Sparkles size={14}/>Show My Options</Btn></div>}
         {!loading&&laneText&&<>
