@@ -5351,19 +5351,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>Your Opportunity Playbook</h2>
                 <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 18px'}}>Build each section when you're ready. They are independent; build the ones that help most.</p>
               </>}
-              {_simpleCard('p5','The Role','A deeper read on this specific role and how your background maps to it.')}
+              {_simpleCard('p5','The Role','An honest read on how well the role aligns with the direction you chose, where it stretches you, and the watch-outs you should know going in.')}
               {_cardWrap(<>
                 {_head('Bridge Story for this role','A 2-3 sentence adaptation of your Bridge Story that sharpens the opening for this specific company and role.',_p6Built,()=>generateOpBridgeStory(),_busyP6?'Building…':_p6Built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                 {opSectionErrors.p6&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.p6}/></div>}
                 {_p6Built&&<div style={{marginTop:14}}><OutPanel text={bridgeStoryToProse(_p6)} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.opP6||''} onChange={v=>setFb('opP6',v)} hint="Does this feel right for this specific role? Tell us what to adjust: the opening, how you connect to the company, or the forward move." placeholder="e.g. Lead with my mission alignment instead… name the specific product line… the close needs to reference their recent funding…" onRegenerate={v=>{recordCorrection('p6',v);generateOpBridgeStory({refine:v})}}/>}</div>}
               </>,'section-p6')}
-              {_simpleCard('p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize this role’s competencies.')}
-              {_simpleCard('p11','Interview Prep','Ten to twelve likely questions for this role, each with a STAR breakdown.')}
+              {_simpleCard('p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize the competencies this role asks for. The rest of your resume can stay as it is.')}
+              {_simpleCard('p11','Interview Prep','Ten to twelve questions this role\'s interview cycle is most likely to ask, each with a STAR story drawn from your own background.')}
               {(()=>{
                 const _crBuilt=!!(_sec.companyRead&&_sec.companyRead.content&&_sec.companyRead.content.trim())
                 const _crBusy=opSectionBuilding==='companyRead'
                 return _cardWrap(<>
-                  {_head('About This Company','A read on the company beyond Glassdoor: industry-specific signal, leadership footprint, and watch-outs from the last 90 days.',_crBuilt,()=>generateOpCompanyRead(),_crBusy?'Building…':_crBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
+                  {_head('About This Company','A read beyond Glassdoor: recent news, the employee voice, industry-specific metrics with sources cited inline, the leadership\'s public footprint, and watch-outs named honestly.',_crBuilt,()=>generateOpCompanyRead(),_crBusy?'Building…':_crBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                   {opSectionErrors.companyRead&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.companyRead}/></div>}
                   {_crBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.companyRead.content}/></div></div>}
                   {/* PR-A op-card-refinebox brief 2026-05-30: per-card RefineBox.
@@ -5411,11 +5411,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>}
           </>;return opIsV2?<div style={{display:'flex',gap:24,alignItems:'flex-start'}}><PlaybookSectionRail sections={opSections} done={opRailDone} onJump={scrollToOutput} C={C}/><div style={{flex:1,minWidth:0}}>{_body}</div></div>:_body})()}
         </>:<>
-          {!isDemo&&<p style={S.sub}>When you find a role worth pursuing, bring it here. Paste the job description or upload the PDF. Reimagine creates an Opportunity Playbook scoped to that role with four sections you can build on demand.</p>}
-          {!isDemo&&<p style={S.sub}>You'll know whether the role fits the path you chose and where it stretches you. You'll have a Bridge Story tuned to this role, a Resume Refresh aimed at this JD, and Interview Prep with the questions this role is likely to ask and structured answers drawn from your own experience.</p>}
+          {!isDemo&&<p style={S.sub}>When you find a role worth pursuing, bring it here. Paste the job description or upload the PDF. Reimagine creates an Opportunity Playbook scoped to that role with five sections you can build on demand, each taking about 30 seconds to generate.</p>}
+          {!isDemo&&<p style={S.sub}>You'll know whether the role aligns with the path you chose and where it stretches you. You'll have a Bridge Story tuned to this specific opportunity, a Resume Refresh aimed at this JD, Interview Prep with the questions this role's interview cycle is likely to ask and STAR stories drawn from your background, and an honest About This Company read with industry-specific signal and sources cited.</p>}
           {!isDemo&&<CoachingCallout>
             <strong style={{color:'#1A2540'}}>What to bring.</strong>
             <p style={{margin:'8px 0 0'}}>Paste the full job description or upload the PDF. Reimagine works best with the actual posting text. If you have your own context about the role (who told you about it, what they said about the team, why you are interested), add it to the text field below the JD. The richer the context, the sharper the playbook.</p>
+          </CoachingCallout>}
+          {!isDemo&&<CoachingCallout>
+            <strong style={{color:'#1A2540'}}>One thing to know.</strong>
+            <p style={{margin:'8px 0 0'}}>Each opportunity is saved separately. You can work several opportunities at once without one replacing another. Your Personal Brand stays the same across all of them; only the opportunity-specific sections change.</p>
           </CoachingCallout>}
           {!isDemo&&<div style={S.card}>
             <div style={{fontSize:18,color:C.gray,fontStyle:'italic',marginBottom:14,textAlign:'center'}}>The richer the input, the sharper the output.</div>
@@ -5428,6 +5432,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </div>
           </div>}
           {!isDemo&&<Btn onClick={()=>submitOpRole(profile.jd)} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build My Playbook</Btn>}
+          {!isDemo&&<p style={{marginTop:28,fontSize:15,color:C.gray,lineHeight:1.65,maxWidth:820,textAlign:'center',fontStyle:'italic'}}>The whole thing takes you from "I found this posting" to "I'm ready to have this conversation" in one focused place.</p>}
           {err&&<ErrBox msg={err}/>}
         </>}
       </>}
