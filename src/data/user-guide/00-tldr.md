@@ -8,8 +8,6 @@ A short summary of the full guide.
 
 A web-based career strategy tool for professionals navigating a transition. You bring your inputs. Reimagine produces a clear professional identity, a wider view of options, a story you can tell, a target company list with personalized outreach, refreshed LinkedIn and resume copy, and a playbook for every conversation ahead. Built on Bob Goodwin's *Making Your Own Weather* methodology.
 
-Try the demo at **reimagine2-two.vercel.app/?demo=true** to see what it produces before starting your own session.
-
 ## What you need
 
 - Your resume (any format)
@@ -18,9 +16,9 @@ Try the demo at **reimagine2-two.vercel.app/?demo=true** to see what it produces
 
 ## The single most important idea
 
-The quality of your inputs determines how much Reimagine can help you. The first 20 minutes of the journey are where the leverage is: your resume, your assessment, your values, your passions, and four short reputation prompts. Put your best foot forward at the intake and Reimagine will do the same for you in everything that follows.
+The quality of your inputs determines how much Reimagine can help you. The first 20 minutes of the journey are where the leverage is: your resume, your assessment, your values, your passions, four short reputation prompts, and a few formative experiences from Your Story. Put your best foot forward at the intake and Reimagine will do the same for you in everything that follows.
 
-A few specifics: take an assessment if you do not have one (the difference is significant). When you describe your passions, do not filter for what feels professionally relevant. The unexpected combinations are what Reimagine looks for. For the reputation step, dig up old performance reviews, LinkedIn recommendations, and 360 feedback before you start.
+A few specifics: take an assessment if you do not have one (the difference is significant). When you describe your passions, do not filter for what feels professionally relevant. The unexpected combinations are what Reimagine looks for. For Your Story, the formative experiences that shaped how you work often surface anchors no other input captures, so share what feels relevant even if it does not read like resume material. For the reputation step, dig up old performance reviews, LinkedIn recommendations, and 360 feedback before you start.
 
 ## The journey, at a glance
 
