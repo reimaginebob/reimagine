@@ -2954,6 +2954,11 @@ export default function PivotEngine(){
   const[activeTab,setActiveTab]=useState(0)
   const[feedback,setFeedback]=useState({p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:'',companyRead:'',opP6:''})
   const setFb=(k,v)=>setFeedback(f=>({...f,[k]:v}))
+  // Op-side streaming state: key is `${slotId}:${cardKey}` so multiple
+  // opportunity slots can stream independently without collision.
+  const[opStreamingContent,setOpStreamingContent]=useState({})
+  // GTM company read streaming state: key is companyName.
+  const[gtmStreamingContent,setGtmStreamingContent]=useState({})
   const[loading,setLoading]=useState(false)
   const[loadMsg,setLoadMsg]=useState('')
   // Stage line for the generateChain progress narration. Updated by
@@ -3539,7 +3544,7 @@ export default function PivotEngine(){
     try{
       const laneLabel=laneLabelFor(selectedLane)
       const buildPrompt=()=>correctionsBlock(profile.corrections)+P.p6(pc,outputs,chosen,laneLabel)+(refine?`\n\nNEW CORRECTION FROM THIS SECTION: ${refine}`:'')
-      const raw=await callClaudeWithVoiceGate(buildPrompt,{maxTokens:2000,voiceMode:'prose'},{step:'p6',onEvent:logVoiceEvent})
+      const raw=await callClaudeWithVoiceGate(buildPrompt,{maxTokens:2000,voiceMode:'prose'},{step:'p6',onEvent:logVoiceEvent,onChunk:(text)=>setStreamingContent(c=>({...c,p6:text}))})
       const prose=typeof raw==='string'?raw.trim():''
       if(!prose){out('p6',null);markDone('p6')}
       else{
@@ -3881,7 +3886,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     try{
       const rec0=savedPlaybooks.find(r=>r.id===slotId);const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&rec0.sections.p6.bridge_story)?rec0.sections.p6:outputs.p6;const opOuts={...outputs,p6:opP6};const lv=(typeof laneOverride==='string')?laneOverride:opLaneValue(rec0);const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:'';const fn=()=>correctionsBlock(profile.corrections)+(key==='p5'?P.p5(pc,opOuts,chosen,'',jd,lv):key==='p_res'?P.p_res(pc,opOuts,chosen,jd):P.p11(pc,opOuts,chosen,jd,lv))+corrTail
       const opts=key==='p11'?{maxTokens:8000}:{maxTokens:5000}
-      const r=await callClaudeWithVoiceGate(fn,opts,{step:key,onEvent:logVoiceEvent})
+      // Streaming is enabled for prose op cards; JSON outputs stay on callClaudeFull.
+      const STREAMING_OP_KEYS=new Set(['p5','companyRead'])
+      const opMeta={step:key,onEvent:logVoiceEvent}
+      if(STREAMING_OP_KEYS.has(key)){opMeta.onChunk=(text)=>setOpStreamingContent(c=>({...c,[`${slotId}:${key}`]:text}))}
+      const r=await callClaudeWithVoiceGate(fn,opts,opMeta)
+      setOpStreamingContent(c=>{const n={...c};delete n[`${slotId}:${key}`];return n})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       setSavedPlaybooks(prev=>prev.map(rec=>{
         if(rec.id!==slotId)return rec
@@ -4030,7 +4040,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // module pulls employee-voice signal automatically via web search + the
       // industry rubric. P.companyRead's signature dropped the userInput param.
       const fn=()=>correctionsBlock(profile.corrections)+P.companyRead(jd,foundation,companyName,industry,rubricText,laneLabel)+corrTail
-      const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:4000},{step:'op-company-read',onEvent:logVoiceEvent})
+      const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:4000},{step:'op-company-read',onEvent:logVoiceEvent,onChunk:(text)=>setOpStreamingContent(c=>({...c,[`${slotId}:companyRead`]:text}))})
+      setOpStreamingContent(c=>{const n={...c};delete n[`${slotId}:companyRead`];return n})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       setSavedPlaybooks(prev=>prev.map(rec=>{
         if(rec.id!==slotId)return rec
@@ -4094,7 +4105,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       }
       const gtmContext=ctxLines.join('\n')
       const fn=()=>correctionsBlock(profile.corrections)+P.companyRead('',foundation,companyName,industry,rubricText,laneLabel,'gtm',gtmContext)
-      const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:4000},{step:'gtm-company-read',onEvent:logVoiceEvent})
+      const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:4000},{step:'gtm-company-read',onEvent:logVoiceEvent,onChunk:(text)=>setGtmStreamingContent(c=>({...c,[companyName]:text}))})
+      setGtmStreamingContent(c=>{const n={...c};delete n[companyName];return n})
       if(reqId!==gtmCompanyReadReqRef.current)return
       setSavedPlaybooks(prev=>prev.map(rec=>{
         if(rec.id!==slotId)return rec
@@ -4125,7 +4137,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     try{
       const laneLabel=laneLabelFor(selectedLane)
       const buildPrompt=()=>correctionsBlock(profile.corrections)+P.p6_op(bridgeProse,chosen,laneLabel,jd)+(refine?`\n\nNEW CORRECTION FROM THIS SECTION: ${refine}`:'')
-      const raw=await callClaudeWithVoiceGate(buildPrompt,{maxTokens:1500,temperature:0.3,voiceMode:'prose'},{step:'p6',onEvent:logVoiceEvent})
+      const raw=await callClaudeWithVoiceGate(buildPrompt,{maxTokens:1500,temperature:0.3,voiceMode:'prose'},{step:'p6',onEvent:logVoiceEvent,onChunk:(text)=>setOpStreamingContent(c=>({...c,[`${slotId}:p6`]:text}))})
+      setOpStreamingContent(c=>{const n={...c};delete n[`${slotId}:p6`];return n})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       const adapted=typeof raw==='string'?raw.trim():''
       const finalText=adapted||bridgeProse
@@ -4929,7 +4942,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         income:()=>P.income(pc,outputs,chosen),
       }[id])
       const go=(id)=>({p5:{maxTokens:4000},p6:{maxTokens:7000},p7:{webSearch:true,maxTokens:12000},p8:{maxTokens:4000},p_res:{maxTokens:5000},p9:{maxTokens:4000},p11:{maxTokens:8000},income:{maxTokens:7000}}[id]||{})
-      const genSec=(id)=>id==='p6'?generateP6():id==='p9'?generateSection('p9',gp('p9'),{...go('p9'),onChunk:(text)=>setStreamingContent(c=>({...c,p9:text}))}):generateSection(id,gp(id),go(id))
+      // STREAMING_FOCUS_KEYS: prose Focus sections that stream. p9 was the PR 1
+      // pilot and is included for consistency. p_res and p11 stay on callClaudeFull
+      // (JSON outputs). Career Options (p4/generateLane) is deferred to PR 3.
+      const STREAMING_FOCUS_KEYS=new Set(['p5','p7','p8','p9','income'])
+      const genSec=(id)=>{
+        if(id==='p6')return generateP6()
+        const opts=STREAMING_FOCUS_KEYS.has(id)
+          ?{...go(id),onChunk:(text)=>setStreamingContent(c=>({...c,[id]:text}))}
+          :go(id)
+        return generateSection(id,gp(id),opts)
+      }
       const refineSec=(id,v)=>{recordCorrection(id,v);if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
       const renderBody=(id)=>{
         if(id==='p6'){const rawP6=typeof outputs.p6==='string'?outputs.p6:(outputs.p6?bridgeStoryToProse(outputs.p6):'');const hasCoaching=typeof rawP6==='string'&&rawP6.includes('---COACHING NOTE---');const parts=hasCoaching?rawP6.split('---COACHING NOTE---').map(s=>s.trim()):[rawP6,''];const storyPart=parts[0]||'';const coachingPart=parts[1]||'';return <><OutPanel text={storyPart} onCopy={copy} copied={copied}/>{hasCoaching&&coachingPart&&<div data-print="content" style={{margin:'16px 0 24px',padding:'18px 22px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,fontStyle:'italic',color:C.cream,lineHeight:1.65,fontSize:16}}><MD text={coachingPart}/></div>}{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? Tell us what to adjust: the opening, the tone, which part of your background to lead with, or how you want to close." placeholder="e.g. The opening does not feel personal enough… I want to lead with my sustainability work instead… the ending needs to connect more directly to the role…" onRegenerate={v=>refineSec('p6',v)}/>}</>}
@@ -4991,14 +5014,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 </div>
                 {crError&&<div style={{marginTop:14}}><ErrBox msg={crError}/></div>}
               </div>
-              {crBuilt
-                ? <div style={{padding:'18px 22px',borderTop:`1px solid ${C.border}`}}>
-                    <MD text={cached.content}/>
-                    <div style={{marginTop:14,display:'flex',justifyContent:'flex-end'}}>
-                      <Btn small secondary disabled={_p7Busy||crBusy} onClick={()=>generateGtmCompanyRead(company.name,company)}>{crBusy?'Building…':<><RotateCcw size={11}/>Rebuild</>}</Btn>
+              {(()=>{const _gtmStream=gtmStreamingContent[company.name]||'';return <>
+                {crBusy&&!_gtmStream&&<div style={{padding:'14px 22px',color:C.gray,fontSize:15,borderTop:`1px solid ${C.border}`}}>Building…</div>}
+                {_gtmStream&&<div style={{padding:'18px 22px',borderTop:`1px solid ${C.border}`}}><OutPanel text={_gtmStream} onCopy={()=>{}} copied={false}/></div>}
+                {crBuilt&&!_gtmStream
+                  ? <div style={{padding:'18px 22px',borderTop:`1px solid ${C.border}`}}>
+                      <MD text={cached.content}/>
+                      <div style={{marginTop:14,display:'flex',justifyContent:'flex-end'}}>
+                        <Btn small secondary disabled={_p7Busy||crBusy} onClick={()=>generateGtmCompanyRead(company.name,company)}>{crBusy?'Building…':<><RotateCcw size={11}/>Rebuild</>}</Btn>
+                      </div>
                     </div>
-                  </div>
-                : <GtmLearnMoreButton companyName={company.name} busy={crBusy} waiting={_p7Busy} onClick={()=>generateGtmCompanyRead(company.name,company)}/>}
+                  : (!crBuilt&&!crBusy&&!_gtmStream)&&<GtmLearnMoreButton companyName={company.name} busy={crBusy} waiting={_p7Busy} onClick={()=>generateGtmCompanyRead(company.name,company)}/>}
+              </>})()}
             </div>
           }
           return <>
@@ -5088,7 +5115,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {SECTION_EXPLAINERS[id]&&<SectionExplainer subhead={SECTION_EXPLAINERS[id].subhead} detail={SECTION_EXPLAINERS[id].detail}/>}
               {isGen&&(streamingContent[id]?<>
                 {regeneratingSection===id&&<div data-print="hide" style={{marginBottom:12,padding:'10px 14px',background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:8,fontSize:14,color:'#8A5E1C',lineHeight:1.55}}>Reimagine is refining the output to match Reimagine's voice… Continuing in a moment.</div>}
-                <OutPanel text={streamingContent[id]} onCopy={()=>{}} copied={false}/>
+                {/* For p6, strip the coaching-note delimiter during streaming so
+                    the marker and alternate anchor never flash in the OutPanel. */}
+                <OutPanel text={id==='p6'?streamingContent[id].split('---COACHING NOTE---')[0]:streamingContent[id]} onCopy={()=>{}} copied={false}/>
               </>:<Loading msg={sec.load} step={id}/>)}
               {!isGen&&sectionErrors[id]&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors[id]} <Btn small secondary onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
               {!isGen&&!sectionErrors[id]&&has&&<>
@@ -5441,10 +5470,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const _simpleCard=(key,label,sub)=>{
               const built=!!(_sec[key]&&_sec[key].content&&_sec[key].content.trim())
               const busy=opSectionBuilding===key
+              const _slotId=_rec.id
+              const _opStream=opStreamingContent[`${_slotId}:${key}`]||''
               return _cardWrap(<>
                 {_head(label,sub,built,()=>generateOpSection(key),busy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                 {opSectionErrors[key]&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors[key]}/></div>}
-                {built&&<div style={{marginTop:14}}>{_renderSection(key,_sec[key].content)}</div>}
+                {/* Interim loading state when busy but no streaming chunk has arrived yet.
+                    Polish batch #22 will replace this with a full Loading panel; until then
+                    the one-line placeholder prevents an empty card body during the wait. */}
+                {busy&&!_opStream&&<div style={{padding:'14px 0',color:C.gray,fontSize:15}}>Building…</div>}
+                {/* Streaming display: show accumulated chunks until generation completes. */}
+                {_opStream&&<div style={{marginTop:14}}><OutPanel text={_opStream} onCopy={()=>{}} copied={false}/></div>}
+                {built&&!_opStream&&<div style={{marginTop:14}}>{_renderSection(key,_sec[key].content)}</div>}
                 {/* PR-A op-card-refinebox brief 2026-05-30: per-card RefineBox
                     mounts inside _cardWrap after the rendered content. Gated on
                     built && !isDemo. onlyUpdateButton suppresses "Start fresh"
@@ -5467,7 +5504,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {_cardWrap(<>
                 {_head('Bridge Story for this role','A 30-second tell-me-about-yourself answer written for this specific opportunity, shorter and sharper than your general Bridge Story.',_p6Built,()=>generateOpBridgeStory(),_busyP6?'Building…':_p6Built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                 {opSectionErrors.p6&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.p6}/></div>}
-                {_p6Built&&<div style={{marginTop:14}}><OutPanel text={bridgeStoryToProse(_p6)} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.opP6||''} onChange={v=>setFb('opP6',v)} hint="Does this feel right for this specific role? Tell us what to adjust: the opening, how you connect to the company, or the forward move." placeholder="e.g. Lead with my mission alignment instead… name the specific product line… the close needs to reference their recent funding…" onRegenerate={v=>{recordCorrection('p6',v);generateOpBridgeStory({refine:v})}}/>}</div>}
+                {(()=>{const _slotId2=_rec.id;const _opP6Stream=opStreamingContent[`${_slotId2}:p6`]||'';return <>
+                  {_busyP6&&!_opP6Stream&&<div style={{padding:'14px 0',color:C.gray,fontSize:15}}>Building…</div>}
+                  {_opP6Stream&&<div style={{marginTop:14}}><OutPanel text={_opP6Stream} onCopy={()=>{}} copied={false}/></div>}
+                  {_p6Built&&!_opP6Stream&&<div style={{marginTop:14}}><OutPanel text={bridgeStoryToProse(_p6)} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.opP6||''} onChange={v=>setFb('opP6',v)} hint="Does this feel right for this specific role? Tell us what to adjust: the opening, how you connect to the company, or the forward move." placeholder="e.g. Lead with my mission alignment instead… name the specific product line… the close needs to reference their recent funding…" onRegenerate={v=>{recordCorrection('p6',v);generateOpBridgeStory({refine:v})}}/>}</div>}
+                </>})()}
               </>,'section-p6')}
               {_simpleCard('p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize the competencies this role asks for. The rest of your resume can stay as it is.')}
               {_simpleCard('p11','Interview Prep','Ten to twelve questions this role\'s interview cycle is most likely to ask, each with a STAR story drawn from your own background.')}
@@ -5477,7 +5518,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 return _cardWrap(<>
                   {_head('About This Company','A read beyond Glassdoor: recent news, the employee voice, industry-specific metrics with sources cited inline, the leadership\'s public footprint, and watch-outs named honestly.',_crBuilt,()=>generateOpCompanyRead(),_crBusy?'Building…':_crBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                   {opSectionErrors.companyRead&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.companyRead}/></div>}
-                  {_crBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.companyRead.content}/></div></div>}
+                  {(()=>{const _slotId3=_rec.id;const _crStream=opStreamingContent[`${_slotId3}:companyRead`]||'';return <>
+                    {_crBusy&&!_crStream&&<div style={{padding:'14px 0',color:C.gray,fontSize:15}}>Building…</div>}
+                    {_crStream&&<div style={{marginTop:14}}><OutPanel text={_crStream} onCopy={()=>{}} copied={false}/></div>}
+                    {_crBuilt&&!_crStream&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.companyRead.content}/></div></div>}
+                  </>})()}
                   {/* PR-A op-card-refinebox brief 2026-05-30: per-card RefineBox.
                       onlyUpdateButton suppresses "Start fresh" — the head-row
                       Rebuild button already covers the clean-slate regen path. */}
