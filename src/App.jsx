@@ -421,11 +421,16 @@ async function callClaudeFull(prompt, opts={}) {
 
 // Runtime voice gate. Wraps callClaude: scan the model's output with the
 // shared voice-patterns library; on a hard violation, retry with a tightened
-// prompt that quotes the violation back. Cap at 2 retries (3 attempts), then
-// fall open (return the last output) and log the persistent failure. Retries
-// are invisible to the user (the loading state stays on the whole time).
+// prompt that quotes the violation back. Cap at 1 retry (2 attempts). On
+// cap-hit the gate accepts the FIRST attempt's content (the one that tripped
+// the violation) cleaned by the deterministic strippers, rather than the
+// corrective retry — which can return empty or degraded content and leave the
+// user with nothing. See the cap-hit branch in runVoiceAndDimPhases.
+// Hotfix 2026-06-05: lowered from 2 retries; the old code returned lastResult
+// (the final retry) on exhaustion, dropping good attempt-0 content.
+// Retries are invisible to the user (the loading state stays on the whole time).
 // API errors from callClaude propagate unchanged so existing error UI works.
-const VOICE_MAX_RETRIES = 2
+const VOICE_MAX_RETRIES = 1
 
 // Second-pass dimensional-fit regression detector for p3 (Personal Brand).
 // The detector itself lives in src/voice-patterns.mjs alongside the other
@@ -582,6 +587,10 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
     let lastResult = ''
     let lastViolations = []
     let voiceCleanResult = null
+    // Preserve the first attempt's content. It is real, complete output that
+    // only tripped a voice pattern; on cap-hit we ship it (stripped) rather
+    // than the corrective retry, which can be empty or degraded.
+    let firstResult = ''
     for (let attempt = 0; attempt <= VOICE_MAX_RETRIES; attempt++) {
       let prompt = localPromptFn()
       if (attempt > 0 && lastViolations.length > 0) {
@@ -613,12 +622,17 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
         const runner=typeof meta.runner==='function'?meta.runner:callClaudeFull
         result=await runner(prompt,opts)
       }
+      if (attempt === 0) firstResult = result
       // Thread meta.step so step-scoped patterns (the formula-* family
       // is p3-only) fire only on the right step. Other steps pass the
       // same option harmlessly; patterns without a step field fire
       // regardless.
       const violations = detectVoiceViolations(result, { includeSoft: false, step: meta.step })
-      if (violations.length === 0) {
+      // Only accept a result as clean if it is non-empty. An empty/whitespace
+      // retry trips no patterns and would otherwise masquerade as clean,
+      // shipping nothing to the user; treat it as a non-recovery so the
+      // cap-hit branch falls back to the first attempt's real content.
+      if (violations.length === 0 && result && result.trim()) {
         if (attempt > 0 && typeof meta.onEvent === 'function') {
           try { meta.onEvent({ step: meta.step, attempt, recovered: true, violations: lastViolations.slice(0,8) }) } catch {}
         }
@@ -634,21 +648,32 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
       lastViolations = violations
     }
     if (voiceCleanResult === null) {
-      // Foundation B.1 (PR #85): final-defense substance-contamination
-      // enforcement. When the retry budget exhausts and the unrecovered
-      // violations include contamination-* hits, run the placeholder
-      // helper on the output so foreign exemplar names cannot leak.
-      // The placeholders are visibly bracketed; the user reads "[the user]"
-      // and regenerates. Logged separately so telemetry distinguishes the
-      // retry-exhausted-but-contained case from the clean-retry-exhausted
-      // case (which still surfaces unclean prose).
-      const hasContamination = lastViolations.some(v => typeof v.name === 'string' && v.name.startsWith('contamination-'))
-      let finalResult = lastResult
+      // Cap-hit: accept the FIRST attempt's content. It is real, complete
+      // output that only tripped a voice pattern. Earlier this returned
+      // lastResult (the final corrective retry), which can be empty or
+      // degraded — the production failure that left users with no Personal
+      // Brand despite a good attempt 0. Fall back to lastResult only if the
+      // first attempt was itself empty.
+      const accepted = (firstResult && firstResult.trim()) ? firstResult : lastResult
+      // Apply the deterministic strippers to the accepted content. These clean
+      // the violation patterns that survive prompt-level guidance (sincerity
+      // qualifiers, logic-flip cadence, coach-speak, meta-narration, rooms).
+      let finalResult = stripSincerityQualifiers(stripLogicFlipCadence(stripCoachSpeak(stripMetaNarration(stripRoomsPlaceholder(accepted)))))
+      // Re-detect on the content we are actually shipping so the diagnostic and
+      // the contamination net reflect the accepted (first) attempt, not the
+      // discarded retry's violations.
+      const acceptedViolations = detectVoiceViolations(finalResult, { includeSoft: false, step: meta.step })
+      const patternName = (acceptedViolations[0] && acceptedViolations[0].name) || (lastViolations[0] && lastViolations[0].name) || 'none'
+      console.warn('[voice-gate] restart cap hit on attempt', VOICE_MAX_RETRIES, 'pattern:', patternName, 'first 200 chars:', finalResult.slice(0,200))
+      // Foundation B.1 (PR #85): final-defense substance-contamination net.
+      // When the shipped content still carries contamination-* hits, bracket
+      // foreign exemplar names so they cannot leak.
+      const hasContamination = acceptedViolations.some(v => typeof v.name === 'string' && v.name.startsWith('contamination-'))
       if (hasContamination) {
-        finalResult = applyContaminationPlaceholders(lastResult)
+        finalResult = applyContaminationPlaceholders(finalResult)
       }
       if (typeof meta.onEvent === 'function') {
-        const eventPayload = { step: meta.step, attempt: VOICE_MAX_RETRIES, recovered: false, violations: lastViolations.slice(0,8) }
+        const eventPayload = { step: meta.step, attempt: VOICE_MAX_RETRIES, recovered: false, violations: (acceptedViolations.length ? acceptedViolations : lastViolations).slice(0,8) }
         if (hasContamination) eventPayload.contaminationPlaceholdersApplied = true
         try { meta.onEvent(eventPayload) } catch {}
       }
