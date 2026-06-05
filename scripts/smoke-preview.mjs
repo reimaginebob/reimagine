@@ -105,7 +105,7 @@ async function main() {
   const probes = [
     probe('GET /api/health', `${url}/api/health`, { method: 'GET' }, token),
     probe(
-      'POST /api/claude (non-streaming 400-check)',
+      'POST /api/claude',
       `${url}/api/claude`,
       {
         method: 'POST',
@@ -116,51 +116,7 @@ async function main() {
     ),
   ]
 
-  // Streaming smoke: verify the streaming path loads and returns data.
-  // Uses a minimal valid prompt; expects a text/plain streaming response.
-  // A 5xx here means the streaming path is broken (distinct from the
-  // 403/400 the non-streaming check accepts as "function loaded").
-  async function smokeStreaming(baseUrl, bypassToken) {
-    const headers = {
-      'content-type': 'application/json',
-      'x-vercel-protection-bypass': bypassToken,
-    }
-    const started = Date.now()
-    let res
-    try {
-      res = await fetch(`${baseUrl}/api/claude`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ prompt: 'Say "ok".', maxTokens: 10, stream: true }),
-      })
-    } catch (err) {
-      return { label: 'POST /api/claude (streaming)', ok: false, status: 0, ms: Date.now() - started, error: err.message }
-    }
-    const ms = Date.now() - started
-    // 200 with text/plain = streaming path loaded and returned data.
-    // 403 = origin check fired (expected when bypass token doesn't spoof origin).
-    // Any 5xx = streaming path broken.
-    const ok = res.status < 500
-    const ct = res.headers.get('content-type') || ''
-    let body = ''
-    try { body = await res.text() } catch {}
-    // Check the critical streaming header only on success
-    const xAccel = res.headers.get('x-accel-buffering') || ''
-    const headerNote = res.status === 200 && xAccel !== 'no'
-      ? ' ⚠️  X-Accel-Buffering header missing — streaming may be buffered in production'
-      : ''
-    return {
-      label: `POST /api/claude (streaming)${headerNote}`,
-      url: `${baseUrl}/api/claude`,
-      ok,
-      status: res.status,
-      ms,
-      body: snippet(body),
-    }
-  }
-
-  const streamingResult = await smokeStreaming(url, token)
-  const results = [...(await Promise.all(probes)), streamingResult]
+  const results = await Promise.all(probes)
 
   let failed = 0
   for (const r of results) {

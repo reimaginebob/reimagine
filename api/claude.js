@@ -7,10 +7,15 @@
 //   a simplified format ({prompt, webSearch, highTemp, maxTokens}). Either way,
 //   the server forces SYS and model. Existing clients keep working without changes.
 
-// Vercel Pro ceiling. The handler now supports SSE streaming (when the client
-// sends stream:true) which is the proper fix for long generation times. The
-// maxDuration:300 ceiling is still needed for the non-streaming path (p_res,
-// p11) which buffers the full response server-side.
+// Vercel Pro ceiling. The handler is non-streaming (await fetch + await
+// response.json), so it holds the connection open for the full Anthropic
+// generation. Heaviest prompts (p8 LinkedIn Remix, the Phase 1 chain p1-p2-p3,
+// p11 Interview Prep, p_res Resume Refresh) regularly run 90-150 seconds
+// against the larger profile shapes; without an explicit cap the function
+// was hitting the platform default and returning a `---` status (Vercel's
+// tell for a function that never returned). Streaming is the proper fix
+// and lives in its own follow-up brief; this raises the ceiling so heavy
+// generations have headroom in the meantime.
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 
 export const config = {
@@ -348,16 +353,8 @@ export default async function handler(req, res) {
   // with a 400 ("voiceMode: Extra inputs are not permitted").
   delete anthropicBody.voiceMode
 
-  // Client opts in to streaming by sending stream:true in the request body.
-  // The flag is read here; it must NOT be forwarded to Anthropic (delete below).
-  const wantsStream = reqBody.stream === true
-  delete anthropicBody.stream  // Anthropic receives stream via the body we build, not reqBody
-  if (wantsStream) {
-    anthropicBody.stream = true
-  }
-
   try {
-    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -367,58 +364,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify(anthropicBody)
     })
-
-    if (wantsStream) {
-      if (!upstream.ok || !upstream.body) {
-        const errBody = await upstream.text().catch(() => '')
-        console.error('claude stream upstream non-200', upstream.status, errBody)
-        return res.status(500).json({ error: 'Upstream error' })
-      }
-      // Three headers are load-bearing for Vercel streaming:
-      // Content-Type: text/plain tells the client to read as a byte stream.
-      // Cache-Control: no-cache prevents edge buffering.
-      // X-Accel-Buffering: no is the critical one — without it Vercel's edge
-      // network silently buffers the entire response before forwarding, making
-      // streaming appear to work in dev but break in production.
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8')
-      res.setHeader('Cache-Control', 'no-cache')
-      res.setHeader('X-Accel-Buffering', 'no')
-      res.status(200)
-
-      const reader = upstream.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buffer += decoder.decode(value, { stream: true })
-          let idx
-          while ((idx = buffer.indexOf('\n\n')) !== -1) {
-            const evt = buffer.slice(0, idx)
-            buffer = buffer.slice(idx + 2)
-            const dataLine = evt.split('\n').find(l => l.startsWith('data: '))
-            if (!dataLine) continue
-            try {
-              const obj = JSON.parse(dataLine.slice(6))
-              if (obj.type === 'content_block_delta' && obj.delta?.type === 'text_delta') {
-                res.write(obj.delta.text)
-              }
-            } catch {}
-          }
-        }
-      } catch (err) {
-        console.error('claude stream read error:', err)
-      }
-
-      res.end()
-      return
-    }
-
-    // Non-streaming path (default, and for JSON-output callers that set noStream).
-    const data = await upstream.json()
-    return res.status(upstream.status).json(data)
+    const data = await response.json()
+    return res.status(response.status).json(data)
   } catch (error) {
     return res.status(500).json({ error: error.message })
   }
