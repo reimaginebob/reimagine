@@ -416,6 +416,14 @@ async function* callClaude(prompt, opts={}) {
 async function callClaudeFull(prompt, opts={}) {
   let raw=''
   for await(const chunk of callClaude(prompt,opts)){raw+=chunk}
+  // Stopgap (2026-06-05 incident): the upstream streaming path can return
+  // HTTP 200 with no text when Anthropic streams an error event that
+  // api/claude.js currently forwards as nothing. Without this guard the empty
+  // string flows downstream as a silent blank section (e.g. an empty Personal
+  // Brand). Throw so the existing catch sites surface the retryable
+  // "Generation failed. Try again." UI instead. The durable fix lives in
+  // api/claude.js (surfacing the upstream error as a non-200).
+  if(!raw||!raw.trim())throw new Error('Generation returned empty content. Please try again.')
   return stripSincerityQualifiers(stripLogicFlipCadence(stripCoachSpeak(stripMetaNarration(stripRoomsPlaceholder(raw)))))
 }
 
