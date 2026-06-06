@@ -28,6 +28,7 @@ import MD, { normalizeItalicUnderscores } from "./components/MD"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
 import QuickStart from "./QuickStart"
+import AdminDashboard from "./AdminDashboard"
 import CookieBanner from "./CookieBanner"
 import { Analytics, track } from "@vercel/analytics/react"
 import LegalReacceptanceModal from "./LegalReacceptanceModal"
@@ -2821,6 +2822,7 @@ export default function PivotEngine(){
   if(_path==='/privacy')return <Privacy/>
   if(_path==='/terms')return <Terms/>
   if(_path==='/quick-start')return <QuickStart/>
+  if(_path==='/admin/dashboard')return <AdminDashboard/>
   const isDemo=_params.get('demo')==='true'
   if(isDemo)return <DemoUnavailable/>
   const isTest=_params.get('test')==='true'
