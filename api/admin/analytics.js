@@ -412,6 +412,19 @@ async function loadDetail(userId) {
 }
 
 export default async function handler(req, res) {
+  // CORS: the Reimagine Daily Cowork desktop artifact calls this endpoint
+  // cross-origin from a browser context. Set the headers before any auth or
+  // method check so they ride on every response path (204 preflight, 200,
+  // 403, 405, 500). '*' is safe here: the ADMIN_TOKEN bearer gate below is
+  // unchanged, and a wildcard origin cannot be combined with credentialed
+  // (cookie) requests, so this exposes no ambient authority: an unauthorized
+  // caller still gets 403, just with the CORS headers attached.
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end()
+  }
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
