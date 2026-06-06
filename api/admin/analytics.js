@@ -434,8 +434,21 @@ export default async function handler(req, res) {
     console.error('admin/analytics: ADMIN_TOKEN not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
+  // Two accepted credentials, either suffices:
+  //  (1) Authorization: Bearer <token> header - unchanged; the path curl,
+  //      scheduled tasks, and backward-compat callers use.
+  //  (2) ?t=<token> query param - added for browser callers that cannot send
+  //      an Authorization header without triggering a CORS preflight (a
+  //      query-param GET is a "simple request"). Compared against the trimmed
+  //      env value so a stray newline in ADMIN_TOKEN cannot break it.
+  // Tradeoff: query-string tokens can surface in access logs / browser history
+  // / referrers, so the header remains the preferred path; the query param is
+  // a convenience for the browser artifact only. Neither match -> 403 (as before).
   const auth = req.headers.authorization || ''
-  if (auth !== `Bearer ${expected}`) {
+  const headerOk = auth === `Bearer ${expected}`
+  const queryToken = (req.query && typeof req.query.t === 'string') ? req.query.t : ''
+  const queryOk = queryToken !== '' && queryToken === expected.trim()
+  if (!headerOk && !queryOk) {
     return res.status(403).json({ error: 'Forbidden' })
   }
 
