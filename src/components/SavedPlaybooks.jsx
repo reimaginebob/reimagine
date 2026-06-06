@@ -41,7 +41,7 @@ function sectionsBuilt(rec) {
     if (rec.schemaVersion === 2 && rec.sections) {
       const sec = rec.sections
       const p5  = !!(sec.p5  && sec.p5.content  && sec.p5.content.trim())
-      const p6  = !!(sec.p6  && sec.p6.bridge_story)
+      const p6  = !!(sec.p6  && (typeof sec.p6 === 'string' ? sec.p6.trim() : (sec.p6.content?.trim() || sec.p6.bridge_story)))
       const pr2 = !!(sec.p_res && sec.p_res.content && sec.p_res.content.trim())
       const p11 = !!(sec.p11 && sec.p11.content && sec.p11.content.trim())
       return { built: [p5, p6, pr2, p11].filter(Boolean).length, total: 4 }

@@ -875,6 +875,7 @@ function bridgeStoryToProse(v){
     const i=v.indexOf('---COACHING NOTE---')
     return i>=0?v.slice(0,i).trim():v.trim()
   }
+  // Legacy decoder: pre-2026-05-31 records carry outputs.p6 as object; normalizeProfileState preserves it without migration. Do not delete this branch.
   if(!v||typeof v!=='object'||!v.bridge_story)return ''
   // Prefer the user's freeform version when they have written one. This is
   // the version they will actually speak; downstream consumers (LinkedIn
@@ -907,7 +908,7 @@ function _opAnyBuiltFor(record){
   const sec=record.sections
   return ['p5','p6','p_res','p11','companyRead'].some(k=>{
     const v=sec[k]
-    if(k==='p6')return !!(v&&v.bridge_story)
+    if(k==='p6')return !!(v&&bridgeStoryToProse(v).trim())
     return !!(v&&v.content&&v.content.trim())
   })
 }
@@ -916,7 +917,7 @@ function _opAllBuiltFor(record){
   const sec=record.sections
   return ['p5','p6','p_res','p11','companyRead'].every(k=>{
     const v=sec[k]
-    if(k==='p6')return !!(v&&v.bridge_story)
+    if(k==='p6')return !!(v&&bridgeStoryToProse(v).trim())
     return !!(v&&v.content&&v.content.trim())
   })
 }
@@ -2457,12 +2458,6 @@ function OutPanel({text,onCopy,copied,expandLabel}){
   </div>
 }
 
-const BSV_SLOTS=[
-  {key:'slot1',bs:'slot1_human_anchor',tag:'anchor_type',label:'Something human about you',desc:'A trait, value, passion, or formative experience. Personal first, not your title.'},
-  {key:'slot2',bs:'slot2_career_manifestation',tag:'manifestation_type',label:'Your career in action',desc:'How that shows up in your work: an accomplishment, a recurring pattern, or your arc.'},
-  {key:'slot3',bs:'slot3_forward_move',tag:'framing',label:'Where you are going next',desc:'What you are looking for, as the natural next step.'},
-]
-
 // Per-section expectation-setting under each Generate button on the Focus
 // Playbook. Two layers: always-visible subhead (sets the basic expectation
 // in one line) and an expandable "What you'll get" disclosure (2-3 sentences
@@ -3785,7 +3780,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setOpSectionBuilding(key);setOpSectionErrors(e=>({...e,[key]:null}))
     const reqId=++opSectionReqRef.current
     try{
-      const rec0=savedPlaybooks.find(r=>r.id===slotId);const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&rec0.sections.p6.bridge_story)?rec0.sections.p6:outputs.p6;const opOuts={...outputs,p6:opP6};const lv=(typeof laneOverride==='string')?laneOverride:opLaneValue(rec0);const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:'';const fn=()=>correctionsBlock(profile.corrections)+(key==='p5'?P.p5(pc,opOuts,chosen,'',jd,lv):key==='p_res'?P.p_res(pc,opOuts,chosen,jd):P.p11(pc,opOuts,chosen,jd,lv))+corrTail
+      const rec0=savedPlaybooks.find(r=>r.id===slotId);const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&bridgeStoryToProse(rec0.sections.p6).trim())?rec0.sections.p6:outputs.p6;const opOuts={...outputs,p6:opP6};const lv=(typeof laneOverride==='string')?laneOverride:opLaneValue(rec0);const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:'';const fn=()=>correctionsBlock(profile.corrections)+(key==='p5'?P.p5(pc,opOuts,chosen,'',jd,lv):key==='p_res'?P.p_res(pc,opOuts,chosen,jd):P.p11(pc,opOuts,chosen,jd,lv))+corrTail
       const opts=key==='p11'?{maxTokens:8000}:{maxTokens:5000}
       const r=await callClaudeWithVoiceGate(fn,opts,{step:key,onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
@@ -3903,7 +3898,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </>
   }
   // Op-scoped Bridge Story. Mirrors generateP6's 3-attempt validation loop but
-  // writes the bones to record.sections.p6 (never flat outputs.p6) and never
+  // writes the prose-string Bridge Story to record.sections.p6 (never flat outputs.p6) and never
   // cascadeInvalidate. Request-id guard drops a build that resolves after an
   // opportunity switch.
   // Company Read (PR-1) op-surface generation. Fires inferIndustry({jd}) first,
@@ -4838,6 +4833,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const genSec=(id)=>id==='p6'?generateP6():generateSection(id,gp(id),go(id))
       const refineSec=(id,v)=>{recordCorrection(id,v);if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
       const renderBody=(id)=>{
+        // Legacy tolerance: object-shape outputs.p6 from pre-2026-05-31 records is preserved by normalizeProfileState (no migration). Do not delete this branch.
         if(id==='p6'){const rawP6=typeof outputs.p6==='string'?outputs.p6:(outputs.p6?bridgeStoryToProse(outputs.p6):'');const hasCoaching=typeof rawP6==='string'&&rawP6.includes('---COACHING NOTE---');const parts=hasCoaching?rawP6.split('---COACHING NOTE---').map(s=>s.trim()):[rawP6,''];const storyPart=parts[0]||'';const coachingPart=parts[1]||'';return <><OutPanel text={storyPart} onCopy={copy} copied={copied}/>{hasCoaching&&coachingPart&&<div data-print="content" style={{margin:'16px 0 24px',padding:'18px 22px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,fontStyle:'italic',color:C.cream,lineHeight:1.65,fontSize:16}}><MD text={coachingPart}/></div>}{!isDemo&&<RefineBox value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? Tell us what to adjust: the opening, the tone, which part of your background to lead with, or how you want to close." placeholder="e.g. The opening does not feel personal enough… I want to lead with my sustainability work instead… the ending needs to connect more directly to the role…" onRegenerate={v=>refineSec('p6',v)}/>}</>}
         if(id==='p9')return <>{!isDemo&&<CoachingCallout><strong style={{color:'#1A2540'}}>How to use this</strong><p style={{margin:'8px 0 0'}}>This section gives you the vocabulary, frameworks, and thought leaders that signal credibility in this space. Use it to prep for conversations and to find people to follow on LinkedIn.</p></CoachingCallout>}<OutPanel text={outputs.p9} onCopy={copy} copied={copied}/></>
         if(id==='p8')return <><OutPanel text={outputs.p8} onCopy={copy} copied={copied}/>{!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your LinkedIn profile. Open LinkedIn in another tab and apply the changes yourself.</div>}</>
@@ -5279,7 +5275,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const _opRec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)
       const opIsV2=!!(_opRec&&_opRec.schemaVersion===2)
       const _opSec=(opIsV2&&_opRec.sections)||{}
-      const opCardDone=(k)=>k==='p6'?!!(_opSec.p6&&_opSec.p6.bridge_story):!!(_opSec[k]&&_opSec[k].content&&_opSec[k].content.trim())
+      const opCardDone=(k)=>k==='p6'?!!(_opSec.p6&&bridgeStoryToProse(_opSec.p6).trim()):!!(_opSec[k]&&_opSec[k].content&&_opSec[k].content.trim())
       const _anyOpCardBuilt=opIsV2&&_opAnyBuiltFor(_opRec)
       const opRailDone=['p5','p6','p_res','p11','companyRead'].filter(opCardDone)
       const opSections=[{id:'p5',label:'The Role',num:1},{id:'p6',label:'Bridge Story',num:2},{id:'p_res',label:'Resume Refresh',num:3},{id:'p11',label:'Interview Prep',num:4},{id:'companyRead',label:'About This Company',num:5}]
