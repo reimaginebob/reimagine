@@ -15,16 +15,19 @@
 //   detail  - optional user UUID. When present, the response shape is the
 //             per-user drill-in payload instead of the six-panel aggregate.
 //
-// Why no savedPlaybooks-derived counts:
-//   src/App.jsx persists savedPlaybooks to localStorage (pe_saved_v1) only;
-//   the autosave payload sent to /api/profile/save deliberately omits the
-//   savedPlaybooks array (see App.jsx ~3801). The "Total Focus playbooks" /
-//   "Total Opportunity playbooks" tiles in the original brief are therefore
-//   not derivable from Neon. Server-side persistence of savedPlaybooks is a
-//   V2 item (see comment near App.jsx ~3826). The Panel 1 substitutes here
-//   use `profile_state->'done'` membership as a per-user proxy: how many
-//   users have completed the Focus Playbook section set, how many have
-//   started an Opportunity build. Per-playbook counts wait for V2 sync.
+// savedPlaybooks-derived counts:
+//   As of PR A (#164, 2026-06-05) src/App.jsx persists the savedPlaybooks
+//   array to users.profile_state via the autosave PUT to /api/profile/save,
+//   so per-playbook data is now queryable server-side. Panel 1 surfaces real
+//   per-playbook counts (focus_playbooks_built / op_playbooks_built, summed
+//   across each user's savedPlaybooks array filtered by record source), and
+//   panel_1b_playbook_drill_in returns per-playbook records (title, lane,
+//   source, schema version, sections built, timestamps).
+//   The legacy per-user boolean proxies (focus_complete_users /
+//   op_started_users) stay alongside during the transition: a legacy user who
+//   has not triggered a state change since PR A landed has no server-side
+//   savedPlaybooks yet, so the proxies remain the fallback until the data
+//   backfills. Drop the proxies in a follow-up after ~2 weeks of bake.
 
 import { sql } from '../_lib/db.js'
 
@@ -86,6 +89,7 @@ async function loadAggregate(rangeInterval, adminEmails) {
     surveyHeartbeat,
     surveyInRange,
     incomeUsage,
+    drillInRows,
   ] = await Promise.all([
     // Panel 1: top-line counts (users + Focus / Op proxy counts).
     sql`
@@ -101,7 +105,17 @@ async function loadAggregate(rangeInterval, adminEmails) {
         (SELECT COUNT(*)::int FROM users
            WHERE ((profile_state->'done') ? 'op'
                    OR (profile_state->'outputs'->>'op') IS NOT NULL)
-             AND LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS op_started_users
+             AND LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS op_started_users,
+        (SELECT COALESCE(SUM(
+           (SELECT COUNT(*)::int FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks','[]'::jsonb)) AS pb
+            WHERE pb->>'source' = 'door1')
+        ), 0)::int FROM users
+           WHERE LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS focus_playbooks_built,
+        (SELECT COALESCE(SUM(
+           (SELECT COUNT(*)::int FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks','[]'::jsonb)) AS pb
+            WHERE pb->>'source' = 'door2')
+        ), 0)::int FROM users
+           WHERE LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS op_playbooks_built
     `,
     sql`
       SELECT COUNT(*)::int AS session_count
@@ -245,6 +259,38 @@ async function loadAggregate(rangeInterval, adminEmails) {
       FROM users
       WHERE LOWER(email) <> ALL(${adminEmails}::text[])
     `,
+    // Panel 1b: per-playbook drill-in. CROSS JOIN LATERAL unrolls each user's
+    // savedPlaybooks array into one row per playbook. sections_built is
+    // door1 = length of the `done` array; door2 = count of non-empty section
+    // entries, handling both the {content,builtAt} object shape and the plain-
+    // string p6 shape (post-PR #154 reshape) via the second OR clause. The
+    // range filter keeps playbooks created in the window even for users created
+    // outside it. LIMIT 500 is conservative; bump if volume needs it.
+    sql`
+      SELECT
+        u.email,
+        pb.value->>'title' AS title,
+        pb.value->>'lane' AS lane,
+        pb.value->>'source' AS source,
+        (pb.value->>'schemaVersion')::int AS schema_version,
+        pb.value->>'createdAt' AS created_at,
+        pb.value->>'updatedAt' AS updated_at,
+        CASE
+          WHEN pb.value->>'source' = 'door1' THEN COALESCE(jsonb_array_length(pb.value->'done'), 0)
+          WHEN pb.value->>'source' = 'door2' THEN (
+            SELECT COUNT(*)::int FROM jsonb_each(COALESCE(pb.value->'sections', '{}'::jsonb)) AS s
+            WHERE (s.value->>'content' IS NOT NULL AND s.value->>'content' <> '')
+               OR (jsonb_typeof(s.value) = 'string' AND s.value::text <> '""')
+          )
+          ELSE 0
+        END AS sections_built
+      FROM users u
+      CROSS JOIN LATERAL jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) AS pb
+      WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
+        AND (u.created_at >= NOW() - (${rangeInterval})::interval OR (pb.value->>'createdAt')::timestamptz >= NOW() - (${rangeInterval})::interval)
+      ORDER BY (pb.value->>'createdAt') DESC NULLS LAST
+      LIMIT 500
+    `,
   ])
 
   // Database connectivity check is implicit; if we got here, every query
@@ -294,12 +340,24 @@ async function loadAggregate(rangeInterval, adminEmails) {
       users_in_range:               top.users_in_range       || 0,
       focus_complete_users:         top.focus_complete_users || 0,
       op_started_users:             top.op_started_users     || 0,
+      focus_playbooks_built:        top.focus_playbooks_built || 0,
+      op_playbooks_built:           top.op_playbooks_built    || 0,
       sessions_in_range:            (sessionsInRange[0] && sessionsInRange[0].session_count) || 0,
       active_users_in_range:        (activeUsers[0]      && activeUsers[0].active_users)     || 0,
       magic_links_issued_in_range:  ml.issued || 0,
       magic_links_used_in_range:    ml.used   || 0,
       magic_link_conversion_rate:   (ml.issued > 0) ? Number((ml.used / ml.issued).toFixed(3)) : null,
     },
+    panel_1b_playbook_drill_in: drillInRows.map(r => ({
+      email:          r.email,
+      title:          r.title,
+      lane:           r.lane,
+      source:         r.source,
+      schema_version: r.schema_version,
+      created_at:     r.created_at,
+      updated_at:     r.updated_at,
+      sections_built: r.sections_built,
+    })),
     panel_2_funnel: funnel,
     panel_3_nps: {
       trend:        npsTrend,
