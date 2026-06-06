@@ -238,6 +238,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
       <div style={{ padding: 12, borderTop: '1px solid #E2E5EA', display: 'flex', gap: 8 }}>
         <input
           type="text"
+          autoFocus
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && send()}

@@ -1735,7 +1735,7 @@ The output surfaces one or two findings the candidate would not have known to lo
 // what they have earned the right to act on.
 const PHASES=[
   {id:0,label:'Orientation',color:'#8A9BB8',steps:['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills']},
-  {id:1,label:'Know Your Value',color:'#C8924A',steps:['p3']},
+  {id:1,label:'Personal Brand',color:'#C8924A',steps:['p3']},
   {id:2,label:'Apply Your Foundation',color:'#4A9E72',steps:['twoDoors']},
 ]
 const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','skills':'Your Skills','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Personal Brand',twoDoors:'Put It to Work',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',mylib:'My Playbooks',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Industry Background',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity'}
@@ -2190,9 +2190,9 @@ const COUNTRY_OPTIONS = [
 
 const LOADING_PREVIEWS = {
   p3: [
-    'A single read on who you are at work, drawn from your resume, your wiring, and your reputation',
-    'The through-line in plain language, with the specific accomplishments behind it',
-    'A read on fit across function, industry, position, scale, pace, and mission, with the dimensions to address in Put It to Work named',
+    'Words for who you are at work that you can use in any conversation',
+    'A career story that hangs together',
+    'A clearer sense of where you fit best and where to point your energy next',
   ],
   p4: [
     'A focused set of roles at this level, matched to your strengths, values, and the direction you picked',
@@ -2391,6 +2391,7 @@ function Loading({ msg = 'Generating your analysis…', step = '' }) {
     <div style={{fontSize:22,color:C.grayL,marginBottom:24}}>{msg}</div>
     {previews && <div style={{borderLeft:`3px solid ${C.gold}30`,paddingLeft:18,textAlign:'left',marginBottom:24,fontSize:17,color:C.gray,lineHeight:1.7}}>
       <div style={{fontWeight:600,marginBottom:6,color:C.grayL,fontSize:16,letterSpacing:'0.5px',textTransform:'uppercase'}}>While you wait: what's coming</div>
+      {step==='p3'&&<div style={{fontSize:14,fontWeight:400,color:C.grayL,marginBottom:10,fontStyle:'italic'}}>This usually takes 3 to 5 minutes.</div>}
       {previews.map((p,i) => {
         const colonIdx = p.indexOf(':')
         if(colonIdx>0 && colonIdx<40){
@@ -2606,7 +2607,6 @@ function InterviewPrepQuestion({q,qi,lbl,fwList,onRegenerateQuestion,regeneratin
         {k==='S'&&sec.relevance_bridge_draft&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>Open with:</em> <strong>"{sec.relevance_bridge_draft}"</strong>. Names the parallel between your past and what the interviewer likely faces. Sharpen the second half with company-specific details when you have them.</div>}
         <div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>To strengthen:</em> {sec.to_strengthen}</div>
       </div>})}
-      <div style={{marginTop:14,fontSize:15,color:C.gray,fontStyle:'italic'}}>Drill down to develop the full story from these bones, in your voice.</div>
       {canRefine&&<SubsectionRefineBox scopeKey={q.id||qi} onSubmit={(text)=>onRegenerateQuestion(qi,text)} busy={busy} error={err} label="Tell us what to refine here." placeholder="For example: Lead the Action with the specific framework you used, not the outcome." submitLabel="Regenerate this answer" helperText="Only this answer changes. The other questions stay."/>}
     </>:<div style={{fontSize:17,color:C.cream,lineHeight:1.65,marginTop:6}}>{q.framing_recommendation}</div>}
   </div>
@@ -2802,7 +2802,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
 
 const DEMO_TOUR=[
   {step:'welcome',title:'Meet Sarah Chen',desc:''},
-  {step:'p1',title:'Step 1: Know Your Value',desc:'This step reads your resume and translates each accomplishment into money made, money saved, or risk mitigated, with numbers attached.'},
+  {step:'p1',title:'Step 1: Personal Brand',desc:'This step reads your resume and translates each accomplishment into money made, money saved, or risk mitigated, with numbers attached.'},
   {step:'p2',title:'Step 2: Wiring & Compass',desc:'This step connects how you are wired to the work you do best and the environment where you thrive.'},
   {step:'p3',title:'Step 1: Personal Brand',desc:'This step turns your resume, your wiring, and your reputation into a single flowing read of who you are at work, with the dimensions to address in Put It to Work named.'},
   {step:'p4',title:'Step 4: The Wide View',desc:'This step maps a wider landscape of options to consider, organized into three deliberate paths with specific roles in each.'},
@@ -4380,7 +4380,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:18,color:'#2D3748',lineHeight:1.7}}>The first step gathers your information: resume, assessment, values, and reputation. <strong style={{color:'#1A2540'}}>That's the only part where you need to do work.</strong> Everything after that is generated for you. You'll review each section and tell us if it feels right before we move on.</div>
         </div>
         {[
-          ['1','Know Your Value','Reimagine reads your resume and translates each accomplishment into money made, money saved, or risk mitigated, with numbers attached.'],
+          ['1','Personal Brand','Reimagine reads your resume and translates each accomplishment into money made, money saved, or risk mitigated, with numbers attached.'],
           ['2','Explore Options','Reimagine shows you specific roles to consider, then builds a full playbook for any that resonate.'],
           ['3','Tell Your Story','A great answer to "tell me about yourself" sets the tone for the conversation that follows. Reimagine writes your bridge story.'],
           ['4','Find Your Market','Reimagine searches for companies that fit and drafts your outreach to the right people.'],
@@ -4665,7 +4665,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.gray,lineHeight:1.7,maxWidth:540,margin:'0 auto'}}>You've shared the foundation: where you are, what you've done, how you're wired, what matters to you, and what others say about you. That's the input. Everything that follows is the output: your story, your strategy, your next chapter. Take a breath. Then keep going.</p>
         <p style={{margin:'12px auto 0',fontSize:18,color:C.gray,fontStyle:'italic',maxWidth:540}}>Good stopping point. Phase 1 is where the analysis begins; come back to it with fresh eyes if you have been at this a while.</p>
       </div>
-      <div style={S.row}><Btn secondary onClick={()=>nav('skills')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{advance('orientation-done','p3');generateChain()}}>Begin Know Your Value <ChevronRight size={14}/></Btn></div>
+      <div style={S.row}><Btn secondary onClick={()=>nav('skills')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{advance('orientation-done','p3');generateChain()}}>Build My Personal Brand <ChevronRight size={14}/></Btn></div>
       <div style={{display:'flex',alignItems:'center',gap:8,marginTop:14,fontSize:14,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>About 4 to 5 minutes (your resume analysis, your wiring, and the synthesis run end to end).</div>
     </div>
 
@@ -4680,7 +4680,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'p3':return <div>
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
 
-      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Know Your Value</div>}
+      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Personal Brand</div>}
       <h1 id="section-p3" style={S.title}>Your Personal Brand</h1>
       {!isDemo&&<p style={S.sub}>Personal Brand answers the question every job conversation circles back to: who are you at work, and what do you bring? The answer is the through-line that runs through your accomplishments, your wiring, and what others say about you, and it is what makes you distinctive. Everything that comes later — your answer to "tell me about yourself," the companies and people you target, the resume and LinkedIn that match where you are headed, the prep for every conversation ahead — is built on it.</p>}
 
@@ -4736,6 +4736,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>}
       <h1 style={S.title}>Put It to Work</h1>
       <p style={S.sub}>Your foundation is set. In this section, you decide how to explore your options: a wider look at the directions your background opens up, or a focused playbook for a job description you already have in hand. You can come back to this choice anytime from the sidebar.</p>
+      <div style={{margin:'4px 0 18px',fontSize:17,color:'#4A5568',lineHeight:1.65,maxWidth:920}}>Not sure which to pick first? Most people find Career Paths the strongest starting point — it shows the range of where your background takes you and builds your Go-to-Market pipeline. If you already have specific roles in flight, Add an Opportunity puts you straight into prep for those roles, and you can come back to Career Paths anytime to build the wider pipeline. The two paths are not mutually exclusive.</div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,maxWidth:920,marginTop:8}}>
         <button onClick={()=>advance('twoDoors','laneSelect')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
@@ -4762,7 +4763,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:'transparent',color:'#4F7CAC',border:`1.5px solid #4F7CAC`,padding:'8.5px 16.5px',borderRadius:8,fontWeight:600,fontSize:16}}>Add an Opportunity <ChevronRight size={15}/></div>
         </button>
       </div>
-      <div style={{marginTop:22,fontSize:15,color:C.gray,lineHeight:1.6,maxWidth:920,textAlign:'center'}}>Not sure which to pick first? Most people find Career Paths the strongest starting point — it shows the range of where your background takes you and builds your Go-to-Market pipeline. If you already have specific roles in flight, Add an Opportunity puts you straight into prep for those roles, and you can come back to Career Paths anytime to build the wider pipeline. The two paths are not mutually exclusive.</div>
     </div>
     case'laneSelect':return <div>
       {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
@@ -4815,7 +4815,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'focus':{
       const FOCUS_ORDER=[
         {id:'p5',label:'The Role',load:'Reading this role against your background…'},
-        {id:'p6',label:'Your Bridge Story',load:'Building three blocks for your tell-me-about-yourself answer, with three starter options each…'},
+        {id:'p6',label:'Your Bridge Story',load:'Writing your bridge story for this direction…'},
         {id:'p9',label:'Industry Background',load:'Building the Industry Background for this role…'},
         {id:'p11',label:'Interview Prep',load:'Preparing you for the questions ahead…'},
         {id:'p_res',label:'Resume Refresh',load:'Rewriting your resume for this direction…'},
@@ -5164,7 +5164,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={S.field}>
             <label style={S.label}>Which part of the process was most valuable to you?</label>
             <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:4}}>
-              {['Know Your Value','Choosing a direction','Role Options','Bridge Story','Interview Prep','LinkedIn Remix','Resume Refresh','Go-to-Market','It all came together'].map(o=><button key={o} onClick={()=>setSv('valuable',o)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${survey.valuable===o?C.gold:C.border}`,background:survey.valuable===o?`${C.gold}20`:'transparent',color:survey.valuable===o?C.goldL:C.grayL,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}
+              {['Personal Brand','Choosing a direction','Role Options','Bridge Story','Interview Prep','LinkedIn Remix','Resume Refresh','Go-to-Market','It all came together'].map(o=><button key={o} onClick={()=>setSv('valuable',o)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${survey.valuable===o?C.gold:C.border}`,background:survey.valuable===o?`${C.gold}20`:'transparent',color:survey.valuable===o?C.goldL:C.grayL,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}
             </div>
           </div>
 
@@ -5287,7 +5287,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if((outputs.op||_anyOpCardBuilt)&&!done.includes('op'))markDone('op')
       return <div>
       {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
-      {!isDemo&&<div style={S.tag('#C8924A')}>Bonus Module</div>}
       <h1 style={S.title}>{(opIsV2||outputs.op)?'Your Opportunity Playbook':'Add an Opportunity'}</h1>
       {loading?<Loading msg={loadMsg||'Building your Opportunity Playbook…'} step="op"/>:<>
         {(opIsV2||outputs.op)?<>
@@ -5347,6 +5346,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               return _cardWrap(<>
                 {_head(label,sub,built,()=>generateOpSection(key),busy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                 {opSectionErrors[key]&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors[key]}/></div>}
+                {busy&&<div style={{marginTop:14}}><Loading msg={`Building ${label}…`} step={key}/></div>}
                 {built&&<div style={{marginTop:14}}>{_renderSection(key,_sec[key].content)}</div>}
                 {/* PR-A op-card-refinebox brief 2026-05-30: per-card RefineBox
                     mounts inside _cardWrap after the rendered content. Gated on
@@ -5370,6 +5370,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {_cardWrap(<>
                 {_head('Bridge Story for this role','A 30-second tell-me-about-yourself answer written for this specific opportunity, shorter and sharper than your general Bridge Story.',_p6Built,()=>generateOpBridgeStory(),_busyP6?'Building…':_p6Built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                 {opSectionErrors.p6&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.p6}/></div>}
+                {_busyP6&&<div style={{marginTop:14}}><Loading msg="Building Bridge Story…" step="p6"/></div>}
                 {_p6Built&&<div style={{marginTop:14}}><OutPanel text={bridgeStoryToProse(_p6)} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.opP6||''} onChange={v=>setFb('opP6',v)} hint="Does this feel right for this specific role? Tell us what to adjust: the opening, how you connect to the company, or the forward move." placeholder="e.g. Lead with my mission alignment instead… name the specific product line… the close needs to reference their recent funding…" onRegenerate={v=>{recordCorrection('p6',v);generateOpBridgeStory({refine:v})}}/>}</div>}
               </>,'section-p6')}
               {_simpleCard('p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize the competencies this role asks for. The rest of your resume can stay as it is.')}
@@ -5380,6 +5381,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 return _cardWrap(<>
                   {_head('About This Company','A read beyond Glassdoor: recent news, the employee voice, industry-specific metrics with sources cited inline, the leadership\'s public footprint, and watch-outs named honestly.',_crBuilt,()=>generateOpCompanyRead(),_crBusy?'Building…':_crBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                   {opSectionErrors.companyRead&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.companyRead}/></div>}
+                  {_crBusy&&<div style={{marginTop:14}}><Loading msg="Building About This Company…" step="companyRead"/></div>}
                   {_crBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.companyRead.content}/></div></div>}
                   {/* PR-A op-card-refinebox brief 2026-05-30: per-card RefineBox.
                       onlyUpdateButton suppresses "Start fresh" — the head-row
@@ -5400,7 +5402,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           })()}
           {/* "Add another opportunity" footer callout removed (op surface cleanup
               brief 2026-05-29): redundant with the sidebar Add an Opportunity
-              entry, the Two Doors tile, and the My Playbooks header button.
+              entry, the Put It to Work tile, and the My Playbooks header button.
               addNewOpportunity retains four other callers. */}
           {/* Hidden assembled-document block for Save as PDF. Always in the DOM
               when opIsV2 + at least one card is built, hidden on screen via
