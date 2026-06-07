@@ -26,6 +26,7 @@
     "test": "node scripts/test-md-italic.mjs && node scripts/test-voice-patterns.mjs && node scripts/test-personal-brand-tail.mjs && node scripts/test-text-strippers.mjs && node scripts/test-strip-nul.mjs && node scripts/test-profile-block.mjs",
     "prebuild": "node scripts/write-build-meta.mjs && node scripts/build-user-guide.mjs && node scripts/check-voice.mjs && node scripts/check-sys-equality.mjs && node scripts/check-prompt-refs.mjs && node scripts/check-orphans.mjs && npm run test && npm run lint",
     "build": "vite build",
+    "build:user-guide-pdf": "python3 scripts/build-user-guide-pdf.py",
     "preview": "vite preview",
     "smoke:preview": "node scripts/smoke-preview.mjs"
   }

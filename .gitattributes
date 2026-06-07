@@ -1,0 +1,4 @@
+# Treat PDFs as binary so autocrlf does not corrupt them (CR-byte injection
+# was inflating public/reimagine-user-guide.pdf on checkout and stripping CR
+# bytes on commit). Binary = no EOL conversion, no textual diff.
+*.pdf binary
