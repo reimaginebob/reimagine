@@ -762,7 +762,23 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
   return result
 }
 
-function loadPDFJS(){return new Promise(resolve=>{if(window.pdfjsLib){resolve(window.pdfjsLib);return}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=()=>{window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';resolve(window.pdfjsLib)};document.head.appendChild(s)})}
+function loadPDFJS(){return new Promise(resolve=>{
+  if(window.pdfjsLib){resolve(window.pdfjsLib);return}
+  const s=document.createElement('script')
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+  // Subresource Integrity: pin the SHA-384 of the exact bytes we expect so a
+  // compromised CDN or MITM cannot execute swapped code. crossOrigin is
+  // required or the browser silently skips the integrity check on a
+  // cross-origin script. The worker is self-hosted under /public (SRI does
+  // not apply to Worker URLs the same way), removing third-party trust there.
+  s.integrity='sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e'
+  s.crossOrigin='anonymous'
+  s.onload=()=>{
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc='/pdf-worker/3.11.174/pdf.worker.min.js'
+    resolve(window.pdfjsLib)
+  }
+  document.head.appendChild(s)
+})}
 
 function parseResumeJSON(raw){
   if(!raw||typeof raw!=='string')return null
