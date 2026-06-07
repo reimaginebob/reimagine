@@ -3299,6 +3299,10 @@ export default function PivotEngine(){
   },[step])
   useEffect(()=>{const check=()=>{const portrait=window.matchMedia('(orientation: portrait)').matches;const small=window.innerWidth<500;setIsSmallPortrait(portrait&&small)};check();window.addEventListener('resize',check);window.addEventListener('orientationchange',check);return()=>{window.removeEventListener('resize',check);window.removeEventListener('orientationchange',check)}},[])
   useEffect(()=>{window.scrollTo({top:0,behavior:'instant'});if(contentColumnRef.current)contentColumnRef.current.scrollTop=0},[step])
+  // Record the current step so the top-level ErrorBoundary can stamp its
+  // diagnostic record with where the crash happened. sessionStorage so it
+  // resets per tab; wrapped in try/catch for private-mode browsers.
+  useEffect(()=>{try{sessionStorage.setItem('reimagine_last_step',String(step))}catch{}},[step])
   // Brief 2: p1 and p2 are no longer user-visible steps. Normalize any
   // hydration that lands on those keys (saved localStorage, server profile,
   // imported JSON, legacy chat helper navigation) to p3 so the sidebar
