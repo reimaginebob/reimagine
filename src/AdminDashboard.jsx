@@ -147,6 +147,23 @@ export default function AdminDashboard() {
   // ---- Authenticated dashboard ----
   const p1 = (payload && payload.panel_1_top_line) || {}
   const drillIn = (payload && payload.panel_1b_playbook_drill_in) || []
+  // Pivot the per-playbook drill-in rows into a per-user rollup, ranked by total
+  // playbooks for the selected period (heaviest builders on top).
+  const userRollup = (() => {
+    const m = new Map()
+    for (const d of drillIn) {
+      const email = d.email || "(unknown)"
+      let u = m.get(email)
+      if (!u) { u = { email, total: 0, focus: 0, op: 0, sections: 0, last: "" }; m.set(email, u) }
+      u.total += 1
+      if (d.source === "door1") u.focus += 1
+      else if (d.source === "door2") u.op += 1
+      u.sections += d.sections_built || 0
+      const ts = d.updated_at || d.created_at || ""
+      if (ts > u.last) u.last = ts
+    }
+    return [...m.values()].sort((a, b) => b.total - a.total || b.sections - a.sections)
+  })()
   const funnel = (payload && payload.panel_2_funnel) || []
   const nps = (payload && payload.panel_3_nps) || {}
   const quality = (payload && payload.panel_4_quality_signals) || {}
@@ -289,26 +306,26 @@ export default function AdminDashboard() {
             </div>
           </Panel>
 
-          {/* Panel 1b: playbook drill-in (from PR B). Full-width. */}
-          <Panel title={`Playbooks drill-in (${drillIn.length})`} wide>
+          {/* Panel 1b: playbooks pivoted by user, ranked by total built this period. */}
+          <Panel title={`Power users — by playbooks (${userRollup.length} users, ${drillIn.length} playbooks)`} wide>
             <div style={{ overflowX: "auto" }}>
               <table style={S.table}>
                 <thead><tr>
-                  <Th>Email</Th><Th>Title</Th><Th>Lane</Th><Th>Source</Th><Th right>v</Th><Th right>Sections</Th><Th>Created</Th>
+                  <Th right>#</Th><Th>User</Th><Th right>Playbooks</Th><Th right>Focus</Th><Th right>Op</Th><Th right>Sections</Th><Th>Last active</Th>
                 </tr></thead>
                 <tbody>
-                  {drillIn.map((d, i) => (
-                    <tr key={i}>
-                      <Td>{d.email}</Td>
-                      <Td>{d.title || "—"}</Td>
-                      <Td>{d.lane || "—"}</Td>
-                      <Td>{d.source}</Td>
-                      <Td right>{d.schema_version}</Td>
-                      <Td right>{d.sections_built}</Td>
-                      <Td>{d.created_at ? new Date(d.created_at).toISOString().slice(0, 10) : "—"}</Td>
+                  {userRollup.map((u, i) => (
+                    <tr key={u.email}>
+                      <Td right muted>{i + 1}</Td>
+                      <Td>{u.email}</Td>
+                      <Td right><strong style={{ color: NAVY }}>{u.total}</strong></Td>
+                      <Td right>{u.focus || "—"}</Td>
+                      <Td right>{u.op || "—"}</Td>
+                      <Td right>{u.sections}</Td>
+                      <Td>{u.last ? new Date(u.last).toISOString().slice(0, 10) : "—"}</Td>
                     </tr>
                   ))}
-                  {drillIn.length === 0 && <tr><Td colSpan={7} muted>No playbooks saved server-side in range yet.</Td></tr>}
+                  {userRollup.length === 0 && <tr><Td colSpan={7} muted>No playbooks saved server-side in range yet.</Td></tr>}
                 </tbody>
               </table>
             </div>
