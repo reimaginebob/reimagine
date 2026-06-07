@@ -5802,6 +5802,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const _p6=_sec.p6
             const _p6Built=!!(_p6&&bridgeStoryToProse(_p6).trim())
             const _anyBuilt=_opAnyBuiltFor(_rec)
+            // Auto-build spinner bracket: The Role's busy state should cover the
+            // lane-inference callClaude that runs BEFORE generateOpSection sets
+            // opSectionBuilding (the visible dead window on a fresh submit). Keyed
+            // on flags that already exist and already clear unconditionally
+            // (opLaneInferring's finally at runOpLaneInference; opSectionBuilding's
+            // own finally), so there is no stuck-spinner risk. Render-only.
+            const _opAutoBuildPending=opLaneInferring&&_pendingAutoBuildRef.current&&_pendingAutoBuildRef.current===currentSavedSlotIdRef.current
             const _renderSection=(key,content)=>{
               if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:16,lineHeight:1.65,color:C.cream,margin:0}}>{renderResumeText(j)}</pre><div style={S.row}><Btn small onClick={()=>downloadResumeWord(j)}><Download size={12}/>Download as Word</Btn></div></div>}
               if(key==='p11')return renderInterviewPrep(content,isDemo?undefined:regenerateOpP11Question,regeneratingP11QuestionIdx,p11QuestionErrors)
@@ -5815,7 +5822,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </div>
               <div style={{display:'flex',alignItems:'center',gap:10}}>
                 {built&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:14,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
-                {onBuild&&<Btn small secondary={built} onClick={onBuild} disabled={!!opSectionBuilding}>{buildLabel}</Btn>}
+                {onBuild&&<Btn small secondary={built} onClick={onBuild} disabled={!!opSectionBuilding||_opAutoBuildPending}>{buildLabel}</Btn>}
               </div>
             </div>
             // _simpleCard: staleLane rebuild banner removed (op surface cleanup
@@ -5826,7 +5833,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             // card works without a freshness banner.
             const _simpleCard=(key,label,sub)=>{
               const built=!!(_sec[key]&&_sec[key].content&&_sec[key].content.trim())
-              const busy=opSectionBuilding===key
+              const busy=opSectionBuilding===key||(key==='p5'&&_opAutoBuildPending)
               return _cardWrap(<>
                 {_head(label,sub,built,()=>generateOpSection(key),busy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                 {opSectionErrors[key]&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors[key]}/></div>}
