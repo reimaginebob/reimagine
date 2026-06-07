@@ -10,8 +10,8 @@
 // Method: GET only.
 //
 // Query parameters:
-//   range   - one of "24h" | "7d" | "30d". Default "7d". Anything else falls
-//             back to 7d.
+//   range   - one of "24h" | "7d" | "30d" | "all". Default "7d". Anything else
+//             falls back to 7d. "all" is all-time (100-year window).
 //   detail  - optional user UUID. When present, the response shape is the
 //             per-user drill-in payload instead of the six-panel aggregate.
 //
@@ -49,6 +49,9 @@ function rangeToInterval(range) {
   switch (range) {
     case '24h': return '24 hours'
     case '30d': return '30 days'
+    // "all" = all-time. A 100-year window predates every record, so every
+    // NOW() - interval cutoff includes the full table with no query rework.
+    case 'all': return '100 years'
     case '7d':
     default:    return '7 days'
   }
