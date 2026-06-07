@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef } from "react"
-import * as mammoth from "mammoth"
-import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, TabStopType } from "docx"
 import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye, Route, Compass } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
@@ -1292,7 +1290,19 @@ function resumeFilename(r){
   return `${slug||'resume'}_resume_${d}.docx`
 }
 
-function buildResumeDoc(r){
+// Lazy-load the docx writer on first use so it is split into its own chunk
+// (Vite emits a separate chunk for the string-literal dynamic import) instead
+// of riding in the main bundle. Memoized so buildResumeDoc and
+// downloadResumeWord share a single module load per session.
+let _docxModule = null
+async function getDocx(){
+  if(_docxModule) return _docxModule
+  _docxModule = await import('docx')
+  return _docxModule
+}
+
+async function buildResumeDoc(r){
+  const { Document, Paragraph, TextRun, AlignmentType, BorderStyle, TabStopType } = await getDocx()
   const h = r.header || {}
   const contact = [h.city, h.email, h.phone, h.linkedin].filter(Boolean).join(' | ')
   const FONT = 'Garamond'
@@ -1457,7 +1467,8 @@ function buildResumeDoc(r){
 }
 
 async function downloadResumeWord(r){
-  const doc=buildResumeDoc(r)
+  const { Packer }=await getDocx()
+  const doc=await buildResumeDoc(r)
   const blob=await Packer.toBlob(doc)
   const url=URL.createObjectURL(blob)
   const a=document.createElement('a')
@@ -1475,7 +1486,7 @@ const stripNulText=s=>typeof s==='string'?s.replace(/\x00/g,''):s
 
 async function extractText(file){
   const ext=file.name.toLowerCase().split('.').pop()
-  if(ext==='docx'||ext==='doc'){const ab=await file.arrayBuffer();const r=await mammoth.extractRawText({arrayBuffer:ab});return stripNulText(r.value)}
+  if(ext==='docx'||ext==='doc'){const mammoth=await import('mammoth');const ab=await file.arrayBuffer();const r=await mammoth.extractRawText({arrayBuffer:ab});return stripNulText(r.value)}
   if(ext==='pdf'){try{const lib=await loadPDFJS();const ab=await file.arrayBuffer();const pdf=await lib.getDocument({data:ab}).promise;let t='';for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(' ')+'\n'}if(t.trim().length<100)return "[This PDF appears to be image-based or browser-printed and couldn't be read as text. Try opening it and using Save As to save as a standard PDF, or simply paste the text below.]";return stripNulText(t)}catch{return "[This PDF couldn't be read automatically. If it was saved from a browser (like Edge or Chrome), try opening it and printing to a standard PDF, or just paste the text directly below.]"}}
   return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(stripNulText(e.target.result));r.onerror=rej;r.readAsText(file)})
 }
@@ -4168,6 +4179,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // that resolves after the user switched opportunities. Build of p6 (Bridge
   // Story) lands in a follow-up; this covers the three prose sections.
   const[opSectionBuilding,setOpSectionBuilding]=useState(null)
+  // Record id the in-flight op build belongs to. Scopes the spinner/busy reads so a
+  // record switched to mid-build does not show the building record's spinner. Set/cleared
+  // alongside opSectionBuilding; the guards and the Build-button disabled stay global.
+  const[opBuildingSlot,setOpBuildingSlot]=useState(null)
   const[opSectionErrors,setOpSectionErrors]=useState({})
   const opSectionReqRef=useRef(0)
   // GTM Company Read (PR-2). Per-company building state keyed by company name;
@@ -4194,7 +4209,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(!slotId||opSectionBuilding)return
     const jd=(profile.jd||'').trim()
     if(!jd){setOpSectionErrors(e=>({...e,[key]:'Add a job description for this opportunity first.'}));return}
-    setOpSectionBuilding(key);setOpSectionErrors(e=>({...e,[key]:null}))
+    setOpSectionBuilding(key);setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,[key]:null}))
     const reqId=++opSectionReqRef.current
     try{
       const rec0=savedPlaybooks.find(r=>r.id===slotId);const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&bridgeStoryToProse(rec0.sections.p6).trim())?rec0.sections.p6:outputs.p6;const opOuts={...outputs,p6:opP6};const lv=(typeof laneOverride==='string')?laneOverride:opLaneValue(rec0);const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:'';const fn=()=>correctionsBlock(profile.corrections)+(key==='p5'?P.p5(pc,opOuts,chosen,'',jd,lv):key==='p_res'?P.p_res(pc,opOuts,chosen,jd):P.p11(pc,opOuts,chosen,jd,lv))+corrTail
@@ -4211,7 +4226,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }catch(e){
       if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,[key]:e.message||'Generation failed. Try again.'}))
     }finally{
-      if(reqId===opSectionReqRef.current)setOpSectionBuilding(null)
+      if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
     }
   }
   // --- Op lane inference (PR2). Infers FG/II/WTM for a door2 opportunity from
@@ -4454,7 +4469,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(!slotId||opSectionBuilding)return
     const jd=(profile.jd||'').trim()
     if(!jd){setOpSectionErrors(e=>({...e,companyRead:'Add a job description for this opportunity first.'}));return}
-    setOpSectionBuilding('companyRead');setOpSectionErrors(e=>({...e,companyRead:null}))
+    setOpSectionBuilding('companyRead');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,companyRead:null}))
     const reqId=++opSectionReqRef.current
     try{
       const rec0=savedPlaybooks.find(r=>r.id===slotId)
@@ -4482,7 +4497,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }catch(e){
       if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,companyRead:e.message||'Generation failed. Try again.'}))
     }finally{
-      if(reqId===opSectionReqRef.current)setOpSectionBuilding(null)
+      if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
     }
   }
   // refineOpCard (PR-A op-card-refinebox brief 2026-05-30): op-side mirror of
@@ -4565,7 +4580,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // legacy object-shape records fall back to the decoded prose. baseStripped still feeds
     // the empty-guard above and the finalText fallback below.
     const baseFull=typeof outputs.p6==='string'?outputs.p6:baseStripped
-    setOpSectionBuilding('p6');setOpSectionErrors(e=>({...e,p6:null}))
+    setOpSectionBuilding('p6');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,p6:null}))
     const reqId=++opSectionReqRef.current
     try{
       const laneLabel=laneLabelFor(selectedLane)
@@ -4583,7 +4598,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }catch(e){
       if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,p6:e.message||'Generation failed. Try again.'}))
     }finally{
-      if(reqId===opSectionReqRef.current)setOpSectionBuilding(null)
+      if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
     }
   }
   // Simplified op p6 writer: writes a prose string directly to rec.sections.p6.
@@ -5895,7 +5910,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             // card works without a freshness banner.
             const _simpleCard=(key,label,sub)=>{
               const built=!!(_sec[key]&&_sec[key].content&&_sec[key].content.trim())
-              const busy=opSectionBuilding===key||(key==='p5'&&_opAutoBuildPending)
+              const busy=(opSectionBuilding===key&&opBuildingSlot===currentSavedSlotIdRef.current)||(key==='p5'&&_opAutoBuildPending)
               return _cardWrap(<>
                 {_head(label,sub,built,()=>generateOpSection(key),busy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                 {opSectionErrors[key]&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors[key]}/></div>}
@@ -5908,7 +5923,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 {built&&!isDemo&&<RefineBox value={feedback[key]||''} onChange={v=>setFb(key,v)} hint="Tell us what to refine on this card. Your existing card stays as-is until you submit." onRegenerate={v=>refineOpCard(key,v)} onlyUpdateButton={true}/>}
               </>,'section-'+key)
             }
-            const _busyP6=opSectionBuilding==='p6'
+            const _busyP6=opSectionBuilding==='p6'&&opBuildingSlot===currentSavedSlotIdRef.current
             // Lane affordance UI (_laneLink / _laneOpts / _laneSelector /
             // _laneAffordance) removed (op surface cleanup brief 2026-05-29).
             // The classifier still runs silently via runOpLaneInference; the
@@ -5930,7 +5945,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {_simpleCard('p11','Interview Prep','Ten to twelve questions this role\'s interview cycle is most likely to ask, each with a STAR story drawn from your own background.')}
               {(()=>{
                 const _crBuilt=!!(_sec.companyRead&&_sec.companyRead.content&&_sec.companyRead.content.trim())
-                const _crBusy=opSectionBuilding==='companyRead'
+                const _crBusy=opSectionBuilding==='companyRead'&&opBuildingSlot===currentSavedSlotIdRef.current
                 return _cardWrap(<>
                   {_head('About This Company','A read beyond Glassdoor: recent news, the employee voice, industry-specific metrics with sources cited inline, the leadership\'s public footprint, and watch-outs named honestly.',_crBuilt,()=>generateOpCompanyRead(),_crBusy?'Building…':_crBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                   {opSectionErrors.companyRead&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.companyRead}/></div>}
