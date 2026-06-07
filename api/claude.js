@@ -352,6 +352,10 @@ export default async function handler(req, res) {
   // legacy branch spreads ...reqBody, and Anthropic rejects unknown body fields
   // with a 400 ("voiceMode: Extra inputs are not permitted").
   delete anthropicBody.voiceMode
+  // step is a Reimagine-internal field (per-surface telemetry tag, read below).
+  // Same as voiceMode: the legacy branch spreads ...reqBody, so it must be
+  // removed or Anthropic 400s ("step: Extra inputs are not permitted").
+  delete anthropicBody.step
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -365,6 +369,10 @@ export default async function handler(req, res) {
       body: JSON.stringify(anthropicBody)
     })
     const data = await response.json()
+    // Cache hit-rate telemetry: log usage (cache_creation_input_tokens /
+    // cache_read_input_tokens) per surface. Serverless cannot count "first N
+    // calls"; log every call (low volume at beta scale) and read manually.
+    console.log(JSON.stringify({ evt: 'claude_usage', step: reqBody.step, usage: data.usage }))
     return res.status(response.status).json(data)
   } catch (error) {
     return res.status(500).json({ error: error.message })
