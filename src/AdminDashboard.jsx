@@ -10,7 +10,7 @@
 // Style: self-contained inline styles in the app's cream / navy / amber
 // palette, Georgia for the title. No new dependencies; no Tailwind (the app
 // uses inline styles).
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Fragment } from "react"
 
 const NAVY = "#1A2540"
 const GOLD = "#C8924A"
@@ -24,7 +24,7 @@ const ERR = "#C0432F"
 
 const TOKEN_KEY = "reimagine-admin-token"
 const RANGE_KEY = "reimagine-admin-range"
-const RANGES = ["24h", "7d", "30d"]
+const RANGES = ["24h", "7d", "30d", "all"]
 
 const STEP_LABELS = {
   p5: "The Role", p6: "Bridge Story", p7: "Go-to-Market", p8: "LinkedIn Remix",
@@ -65,6 +65,7 @@ export default function AdminDashboard() {
   const [authError, setAuthError] = useState(null) // invalid-token message for the form
   const [liveAsOf, setLiveAsOf] = useState(null)
   const [tokenInput, setTokenInput] = useState("")
+  const [expandedUser, setExpandedUser] = useState(null) // email of the expanded power-user row
 
   // Single call doubles as the auth probe and the data fetch: a 200 means the
   // token is valid AND we have data; a 403 means the token is wrong.
@@ -314,17 +315,46 @@ export default function AdminDashboard() {
                   <Th right>#</Th><Th>User</Th><Th right>Playbooks</Th><Th right>Focus</Th><Th right>Op</Th><Th right>Sections</Th><Th>Last active</Th>
                 </tr></thead>
                 <tbody>
-                  {userRollup.map((u, i) => (
-                    <tr key={u.email}>
-                      <Td right muted>{i + 1}</Td>
-                      <Td>{u.email}</Td>
-                      <Td right><strong style={{ color: NAVY }}>{u.total}</strong></Td>
-                      <Td right>{u.focus || "—"}</Td>
-                      <Td right>{u.op || "—"}</Td>
-                      <Td right>{u.sections}</Td>
-                      <Td>{u.last ? new Date(u.last).toISOString().slice(0, 10) : "—"}</Td>
-                    </tr>
-                  ))}
+                  {userRollup.map((u, i) => {
+                    const open = expandedUser === u.email
+                    const rows = drillIn.filter((d) => (d.email || "(unknown)") === u.email)
+                    return (
+                      <Fragment key={u.email}>
+                        <tr onClick={() => setExpandedUser(open ? null : u.email)} style={{ cursor: "pointer", background: open ? CREAM : "transparent" }}>
+                          <Td right muted>{i + 1}</Td>
+                          <Td>{(open ? "▾ " : "▸ ") + u.email}</Td>
+                          <Td right><strong style={{ color: NAVY }}>{u.total}</strong></Td>
+                          <Td right>{u.focus || "—"}</Td>
+                          <Td right>{u.op || "—"}</Td>
+                          <Td right>{u.sections}</Td>
+                          <Td>{u.last ? new Date(u.last).toISOString().slice(0, 10) : "—"}</Td>
+                        </tr>
+                        {open && (
+                          <tr>
+                            <Td colSpan={7}>
+                              <table style={{ ...S.table, margin: "4px 0 8px", background: CREAM }}>
+                                <thead><tr>
+                                  <Th>Title</Th><Th>Lane</Th><Th>Source</Th><Th right>v</Th><Th right>Sections</Th><Th>Created</Th>
+                                </tr></thead>
+                                <tbody>
+                                  {rows.map((d, j) => (
+                                    <tr key={j}>
+                                      <Td>{d.title || "—"}</Td>
+                                      <Td>{d.lane || "—"}</Td>
+                                      <Td>{d.source}</Td>
+                                      <Td right>{d.schema_version}</Td>
+                                      <Td right>{d.sections_built}</Td>
+                                      <Td>{d.created_at ? new Date(d.created_at).toISOString().slice(0, 10) : "—"}</Td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </Td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
                   {userRollup.length === 0 && <tr><Td colSpan={7} muted>No playbooks saved server-side in range yet.</Td></tr>}
                 </tbody>
               </table>
