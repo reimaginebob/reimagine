@@ -177,8 +177,10 @@ When adding a new step or renaming an existing one, all three surfaces must be u
     reimagine-corrections-log.gs   Apps Script for corrections logging
     ... other build scripts
   
-  migrations/                      Postgres schema (Neon)
-  db/migrations/                   alternate migrations folder (known tech debt)
+  migrations/                      Postgres schema (Neon). Single canonical
+                                   folder. New files: YYYY-MM-DD_description.sql.
+                                   Apply via npm run migrate; never edit a
+                                   file after it has been applied.
   
   Output/                          (Cowork-Claude's workspace, not part of build)
     handoff/                       implementation briefs YYYY-MM-DD_short-name.md
@@ -192,7 +194,7 @@ When adding a new step or renaming an existing one, all three surfaces must be u
 Two notes on drift:
 
 - The repo's `src/data/user-guide/` is the canonical source for user guide content. The workspace path `Output/docs/reimagine-user-guide/` is deprecated and was historically used as the canonical source before the repo had user-guide build infrastructure. Future user-guide changes go directly through the repo. The workspace path is preserved for historical reference only.
-- Two migration folders exist (`db/migrations/` and `migrations/`). Known tech debt; do not introduce more migrations to the wrong folder. Verify which folder current production reads from before adding.
+- Database changes go in `migrations/` with the dated naming convention (`YYYY-MM-DD_description.sql`). New migrations are applied via `npm run migrate` (runner at `scripts/migrate.mjs`, tracked in the `schema_migrations` table). The `db/migrations/` folder no longer exists; any reference to it is stale.
 
 ---
 

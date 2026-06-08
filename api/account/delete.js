@@ -2,7 +2,7 @@
 // Deletes the authenticated user's row and associated data, then clears the
 // session cookie. Lets the same email sign back in as a brand-new user.
 //
-// Tables affected (verified against live schema in db/migrations/001_init.sql
+// Tables affected (verified against live schema in migrations/001_init.sql
 // and api/chat.js):
 //   - chat_messages WHERE user_id = ${user.id}  (explicit DELETE; the
 //     migration for this table is not in repo but api/chat.js confirms the
