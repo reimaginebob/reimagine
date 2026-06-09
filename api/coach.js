@@ -1,0 +1,289 @@
+// Vercel serverless function: "My Coach" — a profile-aware career coaching
+// chat grounded in the full text of Making Your Own Weather and in the user's
+// stored Reimagine profile.
+//
+// Sibling to api/chat.js (the help bot). It reuses that function's transport
+// shape — allowed-origin check, signed-in session requirement, chat_messages
+// logging, NAVIGATE contract — but inverts the three constraints the help bot
+// was built with: it gets the book, it gets the user's profile (read
+// server-side, never written), and its output runs through the deterministic
+// voice strippers the structured-generation path uses.
+//
+// Cross-boundary imports use the `.js` extension only (never `.mjs`); the
+// Vercel function bundler does not reliably trace `.mjs` from api/* into
+// src/* (the 2026-05-27 FUNCTION_INVOCATION_FAILED outage, PR #76).
+
+import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
+import { MYOW_CONTENT } from '../src/data/myow-content.js'
+import { applyOutputStrippers } from '../src/text-strippers.js'
+import { getSessionUser } from './_lib/session.js'
+import { sql } from './_lib/db.js'
+
+const ALLOWED_HOSTS = new Set([
+  'reimagine2-two.vercel.app',
+  'reimagine.career.club',
+  'localhost:5173',
+  'localhost:3000'
+])
+
+function isAllowedOrigin(rawOrigin) {
+  if (!rawOrigin) return false
+  try {
+    const u = new URL(rawOrigin)
+    const hostWithPort = u.port ? `${u.hostname}:${u.port}` : u.hostname
+    if (ALLOWED_HOSTS.has(u.hostname) || ALLOWED_HOSTS.has(hostWithPort)) return true
+    if (u.hostname.endsWith('.vercel.app') && u.hostname.includes('reimagine')) return true
+    return false
+  } catch {
+    return false
+  }
+}
+
+const LANE_LABELS = { FG: 'Familiar Ground', II: 'Industry Insider', WTM: 'Work That Matters' }
+
+// Build the per-user profile slice fed to the coach each turn. This is the
+// "index + two anchors" selection layer the brief calls for: the Personal
+// Brand and the resume are carried in full (the two anchors); the user's other
+// saved work is listed as a lightweight index (titles only), not poured in
+// whole. Keeping the slice small is what keeps the cached book + guide prefix
+// affordable. When a conversation turns to one specific saved item, a future
+// build can pull that item in full; the PoC lists it.
+//
+// `state` is the profile_state JSONB blob the client autosaves
+// ({ profile, outputs, selectedLane, exploredRoleTitles, savedPlaybooks,
+// chosen, ... }). Returns a human-readable block; never throws on sparse data.
+function buildCoachProfileSlice(state) {
+  if (!state || typeof state !== 'object') {
+    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.`
+  }
+  const pr = state.profile && typeof state.profile === 'object' ? state.profile : {}
+  const outs = state.outputs && typeof state.outputs === 'object' ? state.outputs : {}
+  const txt = v => (typeof v === 'string' && v.trim() && !v.includes('[object Object]')) ? v.trim() : ''
+
+  const rep = pr.rep && typeof pr.rep === 'object' ? pr.rep : {}
+  const skills = pr.skills && typeof pr.skills === 'object' ? pr.skills : {}
+  const skillLines = []
+  if (Array.isArray(skills.technical) && skills.technical.length) skillLines.push(`Technical: ${skills.technical.join(', ')}`)
+  if (Array.isArray(skills.systems) && skills.systems.length) skillLines.push(`Systems and platforms: ${skills.systems.join(', ')}`)
+  if (Array.isArray(skills.certifications) && skills.certifications.length) skillLines.push(`Certifications: ${skills.certifications.join(', ')}`)
+  if (Array.isArray(skills.languages) && skills.languages.length) skillLines.push(`Languages: ${skills.languages.join(', ')}`)
+  if (Array.isArray(skills.methodologies) && skills.methodologies.length) skillLines.push(`Methodologies: ${skills.methodologies.join(', ')}`)
+
+  // Anchor 1: the Personal Brand synthesis (the integrated read of values,
+  // passions, reputation, resume, and assessments) plus the user's own raw
+  // signals. Field labels mirror src/profile-block.mjs buildUserProfileBlock.
+  const personalBrand = txt(outs.p3)
+  const anchor1 = [
+    'ANCHOR 1 — PERSONAL BRAND AND RAW SIGNALS (who this person is):',
+    personalBrand ? `PERSONAL BRAND SYNTHESIS:\n${personalBrand}` : 'PERSONAL BRAND SYNTHESIS: not generated yet.',
+    '',
+    "RAW SIGNALS (this person's own words from orientation; do not paraphrase back to them as if they were your idea):",
+    `VALUES: ${txt(pr.values) || 'not provided'}`,
+    `PASSIONS AND CAUSES: ${txt(pr.passions) || 'not provided'}`,
+    `PRAISE THEY RECEIVE: ${txt(rep.memory) || 'not provided'}`,
+    `WHO CALLS THEM IN EMERGENCY: ${txt(rep.emergency) || 'not provided'}`,
+    `HOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${txt(rep.twoWords) || 'not provided'}`,
+    `OTHER REPUTATION DATA: ${txt(rep.other) || 'not provided'}`,
+    `LIFE-SHAPING EXPERIENCES: ${txt(pr.lifeEvents) || 'not provided'}`,
+    `VALIDATED HARD SKILLS:\n${skillLines.length ? skillLines.join('\n') : 'not provided'}`,
+    `ASSESSMENT TYPE: ${txt(pr.assessType) || 'not provided'}`,
+    `ASSESSMENT NOTES: ${txt(pr.assess) || 'not provided'}`,
+  ].join('\n')
+
+  // Anchor 2: the resume itself.
+  const resume = txt(pr.resume)
+  const anchor2 = `ANCHOR 2 — RESUME (what they have done):\n${resume || 'not provided'}`
+
+  // Index: lightweight list of the rest of their saved work. Titles only.
+  const idx = []
+  const lane = txt(state.selectedLane)
+  if (lane) idx.push(`Chosen direction (lane): ${LANE_LABELS[lane] || lane}`)
+  if (txt(state.chosen)) idx.push(`Currently focused role: ${txt(state.chosen)}`)
+  if (Array.isArray(state.exploredRoleTitles) && state.exploredRoleTitles.length) {
+    idx.push(`Roles they have explored: ${state.exploredRoleTitles.filter(Boolean).join('; ')}`)
+  }
+  if (Array.isArray(state.savedPlaybooks) && state.savedPlaybooks.length) {
+    const titles = state.savedPlaybooks.map(r => r && r.title).filter(Boolean)
+    if (titles.length) idx.push(`Saved playbooks: ${titles.join('; ')}`)
+  }
+  const indexBlock = `INDEX — OTHER SAVED WORK (titles only; ask to pull one up in full if the conversation turns to it):\n${idx.length ? idx.map(s => `- ${s}`).join('\n') : '- nothing saved yet'}`
+
+  const sparse = !personalBrand && !resume
+  const sparseNote = sparse
+    ? '\n\nNOTE: this profile is thin. Lean on whatever signals are present, say plainly what you do not yet know, and answer lightly rather than faking familiarity. Do not run a cold-start interview.'
+    : ''
+
+  return `THIS USER'S REIMAGINE PROFILE (read-only; you can reference and reason about it, but you never change it):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${sparseNote}`
+}
+
+// Stable across users and turns -> belongs in the cached prefix. Covers the
+// coach's dual mandate (coach the search AND answer product-help questions),
+// the voice rules carried verbatim from the help bot, the posture rules, the
+// NAVIGATE contract, and the two grounding corpora (user guide + the book).
+const SYSTEM_PROMPT_STABLE = `You are My Coach, the career coach inside Reimagine, a career-strategy tool by Career Club. Reimagine is built on Bob Goodwin's book Making Your Own Weather, whose full text is included below.
+
+Your job has two doors that open onto one engine. You coach the person through their real job-search questions — strategy, positioning, interviews, outreach, momentum, morale — grounded in the book and in what Reimagine already knows about them. And you answer "how do I use this feature" product questions about Reimagine itself, from the user guide below. Treat both as your job; the user should never feel handed off between a coach and a help bot.
+
+Ground your coaching in two sources: Making Your Own Weather (the methodology) and the user's own profile (provided in the per-user block that follows this one). Use the profile to make your advice specific to this person — reflect real detail from their Personal Brand, resume, and saved work rather than generic coaching. When their profile is thin, say plainly what you do not yet know and answer lightly; do not fake familiarity.
+
+Posture rules, hold these firmly:
+- Off-topic questions get a warm redirect back toward the search. The book bounds your territory; if a question sits outside a career and job search, gently bring it back.
+- Never invent labor-market or hire-ability data — salary figures, demand statistics, hiring odds, "companies are looking for X right now." You do not have that data. If asked, say so plainly and work from what you do know about the person and the work.
+- Meet genuine discouragement with warmth and a reframe grounded in the book (the attitude principles, the idea that you only need one yes), then steer toward one concrete next action. Do not play therapist. If discouragement reads as real distress rather than ordinary job-search frustration, point the person toward a real human — a friend, a counselor, or Bob at bob@career.club — rather than holding it in this chat.
+
+Voice rules, enforce strictly:
+- No AI filler words: leverage, unlock, genuinely, truly, honestly, navigate, journey, lean in, double down.
+- No logic-flip cadence: "not just X, you Y" or "this is not Z, it is W". Rewrite from the positive side.
+- No comparison framing. Never write "Most people do X, you do Y" or "Most professionals do X, but you do Y" or similar. This is a flattery pattern dressed as observation. Rewrite either from the second person addressed directly to the reader ("You probably see one or two obvious next steps"), or from the positive side without a comparison ("This step maps a wider landscape of options"), or from factual evidence with a source. Banned examples: "Most people take assessments and file them away." "Most people see one or two obvious next steps." "When someone asks what do you do, most people default to a job title." Good rewrites: "This step puts your assessment to work." "This step maps a wider landscape of options." "When someone asks what do you do, you want a better answer than your job title."
+- Second person.
+- When describing the step where the user picks one of their three options (named "Your Focus" in the sidebar), use words like "pick," "choose," "focus on." Do not use "commit," "commit to," or "committing" because those words frame the choice as binding when it is not. The user can always come back and choose differently; everything updates around the new choice. The framing of this step is "focus, not commit," and that distinction matters.
+- Plain, direct, warm. Short paragraphs. No headers in your replies unless the user explicitly asks for a structured answer.
+
+If the user's question can be answered by going to a specific step in Reimagine, end your reply with a single line in this exact format on its own line, with no other text after it:
+
+NAVIGATE: <step-id>
+
+When you include NAVIGATE: in your reply, the value MUST be one of the step ids in the table below. Match the user's request against the "User-facing name" column and use the corresponding "Step id" column. Do not infer step ids from the guide content; use this table as the only source of truth for navigation targets.
+
+| Step id | User-facing name (use these to match user intent) |
+|---|---|
+| welcome | Welcome |
+| location | Location & Work |
+| resume | Your Resume |
+| linkedin | Your LinkedIn |
+| assessment | Assessments |
+| values | Values, Passions & Causes |
+| reputation | Reputation |
+| life-events | Your Story |
+| skills | Your Skills |
+| orientation-done | Orientation Complete |
+| p3 | Personal Brand (Phase 1, Know Your Value) |
+| twoDoors | Put It to Work (post-Personal-Brand page where users choose between exploring Career Paths and adding Active Opportunities) |
+| laneSelect | Pick a Direction (post-Personal-Brand) |
+| p4 | Role Options (post-Personal-Brand) |
+| focus | Focus Playbook (post-Personal-Brand page that holds Interview Prep, The Role, Your Bridge Story, Industry Background, Resume Refresh, LinkedIn Remix, and Go-to-Market for the selected role) |
+| mylib | My Playbooks |
+| p6 | Your Bridge Story (Phase 3, Tell Your Story) |
+| p7 | Go-to-Market (Phase 4, Find Your Market) |
+| p8 | LinkedIn Remix (Phase 5, Get Ready) |
+| p_res | Resume Refresh (Phase 5, Get Ready) |
+| p9 | Industry Background (Phase 5, Get Ready) |
+| complete | Complete |
+| income | Income Now (post-completion bonus) |
+| op | Upload a Live Opportunity (post-completion bonus) |
+
+If the user's request does not clearly map to one of the rows above, do not include NAVIGATE: in your reply. Answer the question without offering navigation.
+
+USER GUIDE BELOW. This is the source of truth for how Reimagine works:
+
+${USER_GUIDE_CONTENT}
+
+MAKING YOUR OWN WEATHER — FULL TEXT BELOW. This is the methodology behind your coaching. Draw on it; do not quote it at length unless asked.
+
+${MYOW_CONTENT}`
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  const origin = req.headers.origin || req.headers.referer || ''
+  if (!isAllowedOrigin(origin)) return res.status(403).json({ error: 'Forbidden' })
+
+  const user = await getSessionUser(req, res)
+  if (!user) return res.status(401).json({ error: 'Not signed in' })
+
+  const { message, history = [], currentStep } = req.body || {}
+  if (!message || typeof message !== 'string') {
+    return res.status(400).json({ error: 'message required' })
+  }
+
+  // Read the user's profile server-side (never sent from the client). Same
+  // row cross-device profile sync reads and writes. Read-only here.
+  let profileState = null
+  try {
+    const rows = await sql`SELECT profile_state FROM users WHERE id = ${user.id} LIMIT 1`
+    profileState = rows.length ? rows[0].profile_state : null
+  } catch (err) {
+    console.error('coach profile read failed:', err)
+    // Fall through with a null profile rather than failing the turn.
+  }
+  const profileBlock = buildCoachProfileSlice(profileState)
+
+  const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".]` : ''
+
+  const messages = [
+    ...history.slice(-10).map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: message + contextNote },
+  ]
+
+  // The stable block (persona + voice + NAVIGATE + guide + book) is the cached
+  // prefix; the per-user profile slice is a second, uncached system block so it
+  // can vary per user without forking the cache.
+  let upstream
+  try {
+    upstream = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1200,
+        system: [
+          { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: profileBlock },
+        ],
+        messages,
+      }),
+    })
+  } catch (err) {
+    console.error('Coach upstream connect error:', err)
+    return res.status(500).json({ error: 'Coach failed' })
+  }
+
+  if (!upstream.ok) {
+    const errBody = await upstream.text().catch(() => '')
+    console.error('Coach upstream non-200', upstream.status, errBody)
+    return res.status(500).json({ error: 'Coach failed' })
+  }
+
+  let raw = ''
+  try {
+    const data = await upstream.json()
+    raw = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n')
+  } catch (err) {
+    console.error('Coach upstream parse error:', err)
+    return res.status(500).json({ error: 'Coach failed' })
+  }
+
+  // Deterministic voice cleanup must run on the complete text, so the upstream
+  // call is buffered (non-streaming) rather than piped token-by-token: the
+  // append-only client cannot un-render text already shown, so streaming then
+  // stripping would let banned constructions reach the user.
+  const cleaned = applyOutputStrippers(raw)
+
+  const navMatch = cleaned.match(/\n?NAVIGATE:\s*([\w-]+)\s*$/i)
+  const navigateTo = navMatch ? navMatch[1] : null
+  const visibleText = navMatch ? cleaned.slice(0, navMatch.index).trim() : cleaned.trim()
+  // Re-attach the NAVIGATE trailer (on its own line) so the client's existing
+  // parser can read and strip it exactly as it does for the help chat.
+  const wireText = navigateTo ? `${visibleText}\nNAVIGATE: ${navigateTo}` : visibleText
+
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.status(200)
+  res.write(wireText)
+
+  try {
+    await sql`
+      INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to)
+      VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${navigateTo || null})
+    `
+    console.log('coach insert ok', { user_id: user.id, step: currentStep, navigated_to: navigateTo })
+  } catch (logErr) {
+    console.error('coach chat_messages insert failed:', logErr)
+  }
+
+  res.end()
+}
