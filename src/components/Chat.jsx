@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import MD from './MD'
 
-const INTRO_MSG = { role: 'assistant', content: 'Hi. I can help you with how Reimagine works. What would you like to know?' }
+const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
 
 // Mirror of META in src/App.jsx. The build-time invariant in
 // scripts/check-prompt-refs.mjs verifies every key here exists in META
@@ -34,7 +34,12 @@ const STEP_LABELS = {
 }
 const VALID_STEPS = new Set(Object.keys(STEP_LABELS))
 
-export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0 }) {
+// My Coach. Two doors, one engine: the floating bubble (default) and the
+// embedded sidebar view (embedded=true) are the same component talking to
+// /api/coach and sharing one conversation via the messages/setMessages props
+// lifted to App.jsx. The embedded variant drops the fixed positioning and the
+// open/close affordance and fills its container instead.
+export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false }) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -69,7 +74,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
     setInput('')
     setLoading(true)
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch('/api/coach', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -81,7 +86,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
       })
       if (!res.ok || !res.body) {
         const fallback = res.status === 401
-          ? 'Sign in first to use Reimagine Help.'
+          ? 'Sign in first to talk with your coach.'
           : 'Sorry, something went wrong. Try again in a moment.'
         setMessages(m => {
           const copy = [...m]
@@ -105,7 +110,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
             return copy
           })
         }
-        const navMatch = fullText.match(/\n?NAVIGATE:\s*(\w+)\s*$/i)
+        const navMatch = fullText.match(/\n?NAVIGATE:\s*([\w-]+)\s*$/i)
         const navigateTo = navMatch ? navMatch[1] : null
         if (navigateTo) {
           setMessages(m => {
@@ -118,12 +123,118 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
     } catch {
       setMessages(m => {
         const copy = [...m]
-        copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach Reimagine Help just now. Try again in a moment.' }
+        copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach your coach just now. Try again in a moment.' }
         return copy
       })
     } finally {
       setLoading(false)
     }
+  }
+
+  // Shared inner content: the scrolling transcript, the user-guide footer, and
+  // the input row. Rendered into either the floating shell or the embedded one.
+  const transcript = (
+    <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 18px' }}>
+      {messages.map((m, i) => (
+        <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
+          <div style={{
+            display: 'inline-block', maxWidth: '85%',
+            padding: '10px 14px', borderRadius: 12,
+            background: m.role === 'user' ? C.gold : '#F4F6F9',
+            color: m.role === 'user' ? '#fff' : '#1A2540',
+            fontSize: 18, lineHeight: 1.5, textAlign: 'left',
+            // User messages render as plain text (pre-wrap preserves
+            // newlines the user typed). Assistant messages route through
+            // MD, which emits its own paragraph and list structure, so
+            // pre-wrap would double-space its output.
+            whiteSpace: m.role === 'user' ? 'pre-wrap' : 'normal',
+          }}>
+            {m.role === 'assistant' && !m.content && loading && i === messages.length - 1
+              ? <span style={{ color: '#8A9BB8', fontStyle: 'italic' }}>Thinking…</span>
+              : m.role === 'assistant'
+                ? <MD text={m.content} />
+                : m.content}
+          </div>
+          {m.navigateTo && VALID_STEPS.has(m.navigateTo) && (
+            <div style={{ marginTop: 6 }}>
+              <button
+                onClick={() => { onNavigate(m.navigateTo); if (!embedded) setOpen(false) }}
+                style={{
+                  background: '#fff', color: C.gold,
+                  border: `1px solid ${C.gold}`, borderRadius: 8,
+                  padding: '8px 14px', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Take me to {STEP_LABELS[m.navigateTo]} →
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+
+  const guideFooter = (
+    <div style={{ padding: '8px 18px', borderTop: '1px solid #E2E5EA', background: '#FAFBFC', fontSize: 15, color: '#718096', textAlign: 'center', lineHeight: 1.5 }}>
+      Need more depth? <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{ color: C.gold, fontWeight: 600, textDecoration: 'none' }}>Download the full User Guide (PDF)</a>
+    </div>
+  )
+
+  const inputRow = (
+    <div style={{ padding: 12, borderTop: '1px solid #E2E5EA', display: 'flex', gap: 8 }}>
+      <input
+        type="text"
+        autoFocus
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && send()}
+        placeholder="Ask your coach anything about your search"
+        disabled={loading}
+        style={{
+          flex: 1, padding: '8px 12px', border: '1px solid #E2E5EA',
+          borderRadius: 8, fontSize: 18, fontFamily: 'inherit', color: '#1A2540',
+        }}
+      />
+      <button
+        onClick={send}
+        disabled={loading || !input.trim()}
+        style={{
+          background: C.gold, color: '#fff', border: 'none',
+          borderRadius: 8, padding: '8px 14px', cursor: loading || !input.trim() ? 'default' : 'pointer',
+          fontFamily: 'inherit', fontSize: 17, fontWeight: 600,
+          opacity: loading || !input.trim() ? 0.6 : 1,
+        }}
+      >
+        Send
+      </button>
+    </div>
+  )
+
+  // Embedded variant: full-width panel inside the content column (the My Coach
+  // sidebar view). No fixed positioning, no bubble, no close button.
+  if (embedded) {
+    return (
+      <div data-print="hide" style={{
+        display: 'flex', flexDirection: 'column',
+        height: 'min(72vh, 720px)', maxWidth: 820,
+        background: '#fff', border: '1px solid #E2E5EA', borderRadius: 14,
+        boxShadow: '0 2px 10px rgba(0,0,0,0.06)', overflow: 'hidden',
+        fontFamily: 'inherit',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '10px 18px 0' }}>
+          <button
+            onClick={() => setMessages([INTRO_MSG])}
+            style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
+            aria-label="Clear conversation"
+          >
+            Clear
+          </button>
+        </div>
+        {transcript}
+        {guideFooter}
+        {inputRow}
+      </div>
+    )
   }
 
   if (!open) {
@@ -147,7 +258,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
               animation: 'pe-chat-pulse-fade 2s ease-in-out infinite',
               fontFamily: 'inherit',
             }}>
-              Need help?
+              Talk to your coach
             </div>
           )}
           <button
@@ -159,7 +270,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
               fontSize: 22, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
               animation: showPulse ? 'pe-chat-pulse-scale 2s ease-in-out infinite' : 'none',
             }}
-            aria-label={showPulse ? 'Need help? Open Reimagine Help' : 'Open Reimagine Help'}
+            aria-label={showPulse ? 'Talk to your coach. Open My Coach' : 'Open My Coach'}
           >
             ?
           </button>
@@ -182,7 +293,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
         padding: '14px 18px', borderBottom: '1px solid #E2E5EA',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <div style={{ fontFamily: 'Georgia,serif', fontSize: 19, fontWeight: 600, color: C.gold }}>Reimagine Help</div>
+        <div style={{ fontFamily: 'Georgia,serif', fontSize: 19, fontWeight: 600, color: C.gold }}>My Coach</div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button
             onClick={() => setMessages([INTRO_MSG])}
@@ -194,74 +305,9 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
           <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#4A5568', fontFamily: 'inherit' }} aria-label="Close">×</button>
         </div>
       </div>
-      <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 18px' }}>
-        {messages.map((m, i) => (
-          <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
-            <div style={{
-              display: 'inline-block', maxWidth: '85%',
-              padding: '10px 14px', borderRadius: 12,
-              background: m.role === 'user' ? C.gold : '#F4F6F9',
-              color: m.role === 'user' ? '#fff' : '#1A2540',
-              fontSize: 18, lineHeight: 1.5, textAlign: 'left',
-              // User messages render as plain text (pre-wrap preserves
-              // newlines the user typed). Assistant messages route through
-              // MD, which emits its own paragraph and list structure, so
-              // pre-wrap would double-space its output.
-              whiteSpace: m.role === 'user' ? 'pre-wrap' : 'normal',
-            }}>
-              {m.role === 'assistant' && !m.content && loading && i === messages.length - 1
-                ? <span style={{ color: '#8A9BB8', fontStyle: 'italic' }}>Thinking…</span>
-                : m.role === 'assistant'
-                  ? <MD text={m.content} />
-                  : m.content}
-            </div>
-            {m.navigateTo && VALID_STEPS.has(m.navigateTo) && (
-              <div style={{ marginTop: 6 }}>
-                <button
-                  onClick={() => { onNavigate(m.navigateTo); setOpen(false) }}
-                  style={{
-                    background: '#fff', color: C.gold,
-                    border: `1px solid ${C.gold}`, borderRadius: 8,
-                    padding: '8px 14px', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  Take me to {STEP_LABELS[m.navigateTo]} →
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-      <div style={{ padding: '8px 18px', borderTop: '1px solid #E2E5EA', background: '#FAFBFC', fontSize: 15, color: '#718096', textAlign: 'center', lineHeight: 1.5 }}>
-        Need more depth? <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{ color: C.gold, fontWeight: 600, textDecoration: 'none' }}>Download the full User Guide (PDF)</a>
-      </div>
-      <div style={{ padding: 12, borderTop: '1px solid #E2E5EA', display: 'flex', gap: 8 }}>
-        <input
-          type="text"
-          autoFocus
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && send()}
-          placeholder="Ask anything about Reimagine"
-          disabled={loading}
-          style={{
-            flex: 1, padding: '8px 12px', border: '1px solid #E2E5EA',
-            borderRadius: 8, fontSize: 18, fontFamily: 'inherit', color: '#1A2540',
-          }}
-        />
-        <button
-          onClick={send}
-          disabled={loading || !input.trim()}
-          style={{
-            background: C.gold, color: '#fff', border: 'none',
-            borderRadius: 8, padding: '8px 14px', cursor: loading || !input.trim() ? 'default' : 'pointer',
-            fontFamily: 'inherit', fontSize: 17, fontWeight: 600,
-            opacity: loading || !input.trim() ? 0.6 : 1,
-          }}
-        >
-          Send
-        </button>
-      </div>
+      {transcript}
+      {guideFooter}
+      {inputRow}
     </div>
   )
 }
