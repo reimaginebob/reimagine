@@ -108,18 +108,63 @@ export function applyContaminationPlaceholders(text) {
 //     [Y]" -> "[aux] about [Y]".
 //
 // voice-allow
+// (A) Full-word two-sentence pivot: "Subject is/are/was/were not X. Pointer is Y."
 const LOGIC_FLIP_CADENCE_RE = /(^|[.!?]\s+|\n+)([A-Z][^.!?\n]*?)\s+(is|are|was|were)\s+not\s+[^.!?\n]+?[.!?]\s+(?:It|They|These|Those|This|That|\2)\s+\3\s+([^.!?\n]+?[.!?])/g
+// (B) Single-sentence "less about X ... more about Y".
 const LOGIC_FLIP_LESS_MORE_RE = /\b(is|are|was|were)\s+less\s+about\s+[^.,;!?\n]+?(?:,\s*|\s+and\s+)more\s+about\s+/gi
+// (C) Contracted-auxiliary two-sentence pivot (battery 2026-06-09: the full-word
+// form above missed every contracted one that shipped). "That's not weakness.
+// It's being human." / "These aren't icebreakers. They're active gathering." ->
+// drop the negation sentence, keep the affirmative pointer sentence.
+// Apostrophe class: the model emits both straight (') and typographic (’).
+const AP = "['’]"
+const LOGIC_FLIP_PTR = "(?:It" + AP + "?s|That" + AP + "?s|They" + AP + "?re|These are|Those are|This is|It is|That is|They are)"
+const LOGIC_FLIP_CONTRACTED_RE = new RegExp(
+  "(^|[.!?]\\s+|\\n+)([A-Z][^.!?\\n]*?)\\s*(?:(?:is|are|was|were)n" + AP + "t|(?:" + AP + "s|" + AP + "re)\\s+not)\\s+[^.!?\\n]+?[.!?]\\s+(" + LOGIC_FLIP_PTR + "\\s+[^.!?\\n]+?[.!?])",
+  'g'
+)
+// (D) Negated lexical verb, same subject repeated: "You didn't come to X via an
+// MBA. You came to it through Y." -> keep the affirmative second sentence.
+const LOGIC_FLIP_LEXICAL_RE = new RegExp(
+  "(^|[.!?]\\s+|\\n+)(You|I|We|They|He|She)\\s+(?:did|do|does)(?:n" + AP + "t|\\s+not)\\s+[^.!?\\n]+?[.!?]\\s+(\\2\\s+[^.!?\\n]+?[.!?])",
+  'g'
+)
+// (E) Appositive single clause after a copula: "is an exchange, not a transaction"
+// -> "is an exchange". Requires a copula before the kept phrase so "to help, not
+// hover" (no copula) is left alone.
+const LOGIC_FLIP_APPOSITIVE_RE = new RegExp(
+  "\\b(is|are|was|were|" + AP + "s|" + AP + "re|feels?\\s+like|becomes?)\\s+([^.,;:!?\\n]+?),\\s+not\\s+[^.,;:!?\\n]+",
+  'gi'
+)
+// (F) "not because X, but because Y" -> "because Y".
+const LOGIC_FLIP_NOT_BECAUSE_RE = /\bnot because\s+[^.,;:!?\n]+?,?\s+but because\s+/gi
 export function stripLogicFlipCadence(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1)
   let out = text.replace(LOGIC_FLIP_CADENCE_RE, (_match, lead, subject1, aux, phrase2) => {
     count++
     return `${lead}${subject1} ${aux} ${phrase2}`
   })
+  out = out.replace(LOGIC_FLIP_CONTRACTED_RE, (_match, lead, _s1, secondSentence) => {
+    count++
+    return `${lead}${cap(secondSentence)}`
+  })
+  out = out.replace(LOGIC_FLIP_LEXICAL_RE, (_match, lead, _subj, secondSentence) => {
+    count++
+    return `${lead}${cap(secondSentence)}`
+  })
   out = out.replace(LOGIC_FLIP_LESS_MORE_RE, (_match, aux) => {
     count++
     return `${aux} about `
+  })
+  out = out.replace(LOGIC_FLIP_APPOSITIVE_RE, (_match, aux, kept) => {
+    count++
+    return `${aux} ${kept}`
+  })
+  out = out.replace(LOGIC_FLIP_NOT_BECAUSE_RE, () => {
+    count++
+    return 'because '
   })
   if (count > 0) {
     console.warn(`[stripLogicFlipCadence] rewrote ${count} logic-flip cadence${count === 1 ? '' : 's'} from LLM output`)
@@ -137,6 +182,14 @@ export function stripLogicFlipCadence(text) {
 // voice-allow
 const HONEST_NOUN_RE = /(^|[.!?]\s+|\n+)the honest (?:read|reading|answer|truth|take|view|assessment|appraisal)(?::\s+|\s+is\s+that\s+)([^\n]+)/gi
 const SINCERITY_ADVERB_RE = /(^|[.!?]\s+|\n+)(?:to be honest|honestly|frankly|candidly),\s+([^\n]+)/gi
+// Battery 2026-06-09: the prefix forms above missed the mid-sentence ones that
+// shipped. Three new shapes:
+//   "I need to be honest with you - I don't have X yet." -> "I don't have X yet."
+//   "And this is where brutal honesty comes in." -> dropped
+//   "So here's the honest answer: X" -> "X"
+const SINCERITY_MID_RE = /\b(?:I need to be honest with you|I['’]?ll be honest with you|I have to be honest with you|I want to be honest with you|let me be honest with you|I['’]?m going to be honest with you|to be honest with you)\b[\s,:.—–-]*/gi
+const BRUTAL_HONESTY_RE = /(^|[.!?]\s+|\n+)(?:and\s+)?(?:this|here) is where (?:brutal|radical|real|total|complete) honesty comes in[.:]?\s*/gi
+const HERES_HONEST_RE = /(^|[.!?]\s+|\n+)(?:so,?\s+)?here(?:['’]s| is) the honest (?:answer|read|reading|truth|take|view)\b(?::\s*|\s+is\s+that\s+|\s*[—–-]\s*)?/gi
 export function stripSincerityQualifiers(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
@@ -144,6 +197,13 @@ export function stripSincerityQualifiers(text) {
   let out = text
   out = out.replace(HONEST_NOUN_RE, (_match, lead, claim) => { count++; return `${lead}${cap(claim)}` })
   out = out.replace(SINCERITY_ADVERB_RE, (_match, lead, claim) => { count++; return `${lead}${cap(claim)}` })
+  out = out.replace(BRUTAL_HONESTY_RE, (_match, lead) => { count++; return lead })
+  out = out.replace(HERES_HONEST_RE, (_match, lead) => { count++; return lead })
+  out = out.replace(SINCERITY_MID_RE, (m) => {
+    count++
+    // Re-capitalize the next character if the removal lands at a clause start.
+    return ''
+  })
   if (count > 0) {
     console.warn(`[stripSincerityQualifiers] stripped ${count} sincerity qualifier${count === 1 ? '' : 's'} from LLM output`)
   }
@@ -209,15 +269,81 @@ export function stripMetaNarration(text) {
 }
 // voice-allow-end
 
+// --- stripComparativeStanding ----------------------------------------------
+// Battery 2026-06-09 (zero-tolerance, leaked 4x). Remove the unearned
+// "rank the user against a group" shape: "Most <group> ... . You ..." Drop the
+// group sentence, keep the affirmative "You" sentence (same move as the
+// logic-flip cleanup keeping the positive half). Also a conservative inline
+// rule for "... most people <...> cannot match" trailing qualifiers.
+//
+// Does NOT fire on comparisons the voice rules permit: a sourced quote of real
+// feedback, or comparing the user's own options. The looksSourced guard skips
+// any group clause carrying a quote mark or an attribution verb.
+//
+// voice-allow
+const COMPARATIVE_TWO_SENTENCE_RE = /(^|[.!?]\s+|\n+)((?:Most|Many|Almost every|Almost everyone|Plenty of|A lot of|Other|Fewer|The average|The typical)\b[^.!?\n]*?)[.!?]\s+(You(?:['’]re|r)?\b[^.!?\n]*?[.!?])/g
+const COMPARATIVE_INLINE_RE = /\s*\b(?:most|many|few|fewer)\s+(?:people|professionals|candidates|leaders|others|peers|executives)\b[^.,;:!?\n]*?\b(?:cannot|can't|can not|rarely|never|don't|do not|won't|will not|couldn't|could not|seldom)\b[^.,;:!?\n]*/gi
+function looksSourced(s) {
+  return /["'“”‘’]/.test(s) || /\b(said|says|saying|told|tells|wrote|writes|quote[ds]?|according to|noted|notes|call[s]?\s+you|called you)\b/i.test(s)
+}
+export function stripComparativeStanding(text) {
+  if (typeof text !== 'string' || !text) return text
+  let count = 0
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1)
+  let out = text.replace(COMPARATIVE_TWO_SENTENCE_RE, (match, lead, groupClause, youSentence) => {
+    if (looksSourced(groupClause)) return match
+    count++
+    return `${lead}${cap(youSentence)}`
+  })
+  out = out.replace(COMPARATIVE_INLINE_RE, (match) => {
+    if (looksSourced(match)) return match
+    count++
+    return ''
+  })
+  if (count > 0) {
+    console.warn(`[stripComparativeStanding] removed ${count} comparative-standing construction${count === 1 ? '' : 's'} from LLM output`)
+  }
+  return out
+}
+// voice-allow-end
+
+// --- stripIntensifiers -----------------------------------------------------
+// Battery 2026-06-09 (soft, leaked 12x, mostly "actually"). Remove
+// emphasis-only intensifiers. Sentence-initial occurrences re-capitalize the
+// following word; mid-sentence occurrences drop the word and the space before
+// it. Idempotent.
+//
+// voice-allow
+const INTENSIFIER_WORDS = 'actually|really|genuinely|honestly|truly|literally|absolutely|incredibly|deeply'
+const INTENSIFIER_LEAD_RE = new RegExp('(^|[.!?]\\s+|\\n+)(?:' + INTENSIFIER_WORDS + '),?\\s+([A-Za-z])', 'gi')
+const INTENSIFIER_MID_RE = new RegExp('\\s+\\b(?:' + INTENSIFIER_WORDS + ')\\b', 'gi')
+export function stripIntensifiers(text) {
+  if (typeof text !== 'string' || !text) return text
+  let count = 0
+  let out = text.replace(INTENSIFIER_LEAD_RE, (_m, lead, ch) => { count++; return `${lead}${ch.toUpperCase()}` })
+  out = out.replace(INTENSIFIER_MID_RE, () => { count++; return '' })
+  if (count > 0) {
+    console.warn(`[stripIntensifiers] removed ${count} emphasis intensifier${count === 1 ? '' : 's'} from LLM output`)
+  }
+  return out
+}
+// voice-allow-end
+
 // --- applyOutputStrippers --------------------------------------------------
-// The canonical cleanup chain, in the same order src/App.jsx callClaude
-// applies it. Shared so api/coach.js runs identical cleanup on its output.
+// The canonical cleanup chain. src/App.jsx callClaude applies the original
+// subset; api/coach.js applies this full chain (it includes the 2026-06-09
+// voice-gate-fix strippers: comparative-standing, broadened logic-flip,
+// sincerity, and intensifiers).
 export function applyOutputStrippers(text) {
-  return stripSincerityQualifiers(
-    stripLogicFlipCadence(
-      stripCoachSpeak(
-        stripMetaNarration(
-          stripRoomsPlaceholder(text)
+  return stripIntensifiers(
+    stripSincerityQualifiers(
+      stripLogicFlipCadence(
+        stripComparativeStanding(
+          stripCoachSpeak(
+            stripMetaNarration(
+              stripRoomsPlaceholder(text)
+            )
+          )
         )
       )
     )

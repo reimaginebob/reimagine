@@ -11,7 +11,7 @@
 //   2. applyContaminationPlaceholders: each of the 5 placeholders applies
 //      on its target phrase; clean input passes through unchanged.
 
-import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers } from '../src/text-strippers.mjs'
+import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers, stripComparativeStanding, stripIntensifiers, applyOutputStrippers } from '../src/text-strippers.mjs'
 
 let failed = 0
 let total = 0
@@ -411,6 +411,71 @@ assertEq('stripSincerityQualifiers: non-string unchanged', stripSincerityQualifi
 assertEq('stripSincerityQualifiers: qualifier mid-paragraph fires, leading sentence preserved',
   stripSincerityQualifiers('The venue is specific. To be honest, the offer was thin.'),
   'The venue is specific. The offer was thin.')
+
+// ---- Voice-gate fix (2026-06-09): comparative-standing -----------------
+
+assertEq('stripComparativeStanding: "Most X ... . You ..." drops group sentence',
+  stripComparativeStanding('Most senior HR people optimize existing systems. You build them.'),
+  'You build them.')
+assertEq('stripComparativeStanding: second group/you pair',
+  stripComparativeStanding('Most HR leaders live in the people silo. You translate decisions into outcomes.'),
+  'You translate decisions into outcomes.')
+assertEq('stripComparativeStanding: inline "most people ... cannot match" removed',
+  stripComparativeStanding('gives you a human opening most people in your space cannot match:'),
+  'gives you a human opening:')
+assertEq('stripComparativeStanding: KEEP sourced quote (attribution verb)',
+  stripComparativeStanding('Most leaders miss this. She said you read a P&L fast.'),
+  'Most leaders miss this. She said you read a P&L fast.')
+assertEq('stripComparativeStanding: KEEP option comparison (no group/you flattery)',
+  stripComparativeStanding('This offer closes the gap more than the other.'),
+  'This offer closes the gap more than the other.')
+
+// ---- Voice-gate fix: broadened logic-flip ------------------------------
+
+assertEq('stripLogicFlipCadence: contracted "That\'s not X. It\'s Y." keeps affirmative',
+  stripLogicFlipCadence('That’s not weakness. It’s being human.'),
+  'It’s being human.')
+assertEq('stripLogicFlipCadence: "aren\'t ... they\'re" pair',
+  stripLogicFlipCadence('These aren’t icebreakers. They’re active gathering.'),
+  'They’re active gathering.')
+assertEq('stripLogicFlipCadence: negated lexical verb, same subject',
+  stripLogicFlipCadence('You didn’t come through an MBA. You came through experience.'),
+  'You came through experience.')
+assertEq('stripLogicFlipCadence: appositive "X, not Y" after copula',
+  stripLogicFlipCadence('A conversation is an exchange, not a transaction.'),
+  'A conversation is an exchange.')
+assertEq('stripLogicFlipCadence: "not because X, but because Y"',
+  stripLogicFlipCadence('It works not because you perform, but because you have something real.'),
+  'It works because you have something real.')
+assertTruthy('stripLogicFlipCadence: idempotent on contracted form',
+  stripLogicFlipCadence(stripLogicFlipCadence('That’s not weakness. It’s being human.')) === stripLogicFlipCadence('That’s not weakness. It’s being human.'))
+
+// ---- Voice-gate fix: mid-sentence sincerity ----------------------------
+
+assertEq('stripSincerityQualifiers: "I need to be honest with you - X" -> X',
+  stripSincerityQualifiers('I need to be honest with you — I don’t have it yet.'),
+  'I don’t have it yet.')
+assertEq('stripSincerityQualifiers: "here\'s the honest answer:" prefix removed',
+  stripSincerityQualifiers('So here’s the honest answer: you are strong.'),
+  'you are strong.')
+assertEq('stripSincerityQualifiers: "this is where brutal honesty comes in" dropped',
+  stripSincerityQualifiers('And this is where brutal honesty comes in. None of it shows.'),
+  'None of it shows.')
+
+// ---- Voice-gate fix: intensifiers --------------------------------------
+
+assertEq('stripIntensifiers: mid-sentence "actually" removed',
+  stripIntensifiers('You actually have something real.'),
+  'You have something real.')
+assertEq('stripIntensifiers: sentence-initial "Honestly," recapitalizes',
+  stripIntensifiers('Honestly, you are ready.'),
+  'You are ready.')
+assertTruthy('stripIntensifiers: idempotent',
+  stripIntensifiers(stripIntensifiers('You really actually have it.')) === stripIntensifiers('You really actually have it.'))
+
+// applyOutputStrippers runs the full chain.
+assertTruthy('applyOutputStrippers: comparative + intensifier in one pass',
+  applyOutputStrippers('Most leaders stall. You actually move.').trim() === 'You move.')
 
 // ---- Report ----------------------------------------------------------
 
