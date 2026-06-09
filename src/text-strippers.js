@@ -187,23 +187,24 @@ const SINCERITY_ADVERB_RE = /(^|[.!?]\s+|\n+)(?:to be honest|honestly|frankly|ca
 //   "I need to be honest with you - I don't have X yet." -> "I don't have X yet."
 //   "And this is where brutal honesty comes in." -> dropped
 //   "So here's the honest answer: X" -> "X"
-const SINCERITY_MID_RE = /\b(?:I need to be honest with you|I['’]?ll be honest with you|I have to be honest with you|I want to be honest with you|let me be honest with you|I['’]?m going to be honest with you|to be honest with you)\b[\s,:.—–-]*/gi
+// Re-run additions: "be straight with you" is the same announce-your-honesty move
+// as "be honest with you"; and the model emitted "## The honest read" as a markdown
+// header (no colon), which the noun form below did not catch.
+const SINCERITY_MID_RE = /\b(?:I need to be (?:honest|straight) with you|I['’]?ll be (?:honest|straight) with you|I have to be (?:honest|straight) with you|I want to be (?:honest|straight) with you|let me be (?:honest|straight) with you|I['’]?m going to be (?:honest|straight) with you|to be (?:honest|straight) with you)\b[\s,:.—–-]*/gi
 const BRUTAL_HONESTY_RE = /(^|[.!?]\s+|\n+)(?:and\s+)?(?:this|here) is where (?:brutal|radical|real|total|complete) honesty comes in[.:]?\s*/gi
 const HERES_HONEST_RE = /(^|[.!?]\s+|\n+)(?:so,?\s+)?here(?:['’]s| is) the honest (?:answer|read|reading|truth|take|view)\b(?::\s*|\s+is\s+that\s+|\s*[—–-]\s*)?/gi
+const HONEST_HEADER_RE = /(^|\n)#{1,6}\s*the honest (?:read|reading|answer|truth|take|view)[^\n]*(?=\n|$)/gi
 export function stripSincerityQualifiers(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1)
   let out = text
+  out = out.replace(HONEST_HEADER_RE, (_match, lead) => { count++; return lead })
   out = out.replace(HONEST_NOUN_RE, (_match, lead, claim) => { count++; return `${lead}${cap(claim)}` })
   out = out.replace(SINCERITY_ADVERB_RE, (_match, lead, claim) => { count++; return `${lead}${cap(claim)}` })
   out = out.replace(BRUTAL_HONESTY_RE, (_match, lead) => { count++; return lead })
   out = out.replace(HERES_HONEST_RE, (_match, lead) => { count++; return lead })
-  out = out.replace(SINCERITY_MID_RE, (m) => {
-    count++
-    // Re-capitalize the next character if the removal lands at a clause start.
-    return ''
-  })
+  out = out.replace(SINCERITY_MID_RE, () => { count++; return '' })
   if (count > 0) {
     console.warn(`[stripSincerityQualifiers] stripped ${count} sincerity qualifier${count === 1 ? '' : 's'} from LLM output`)
   }
@@ -270,32 +271,82 @@ export function stripMetaNarration(text) {
 // voice-allow-end
 
 // --- stripComparativeStanding ----------------------------------------------
-// Battery 2026-06-09 (zero-tolerance, leaked 4x). Remove the unearned
-// "rank the user against a group" shape: "Most <group> ... . You ..." Drop the
-// group sentence, keep the affirmative "You" sentence (same move as the
-// logic-flip cleanup keeping the positive half). Also a conservative inline
-// rule for "... most people <...> cannot match" trailing qualifiers.
+// Battery 2026-06-09 + voice-gate-fix re-run. Remove the unearned "rank the user
+// against a group" shape. Two-sentence forms (drop the group sentence, keep the
+// affirmative "You" sentence) in BOTH orders, plus a conservative trailing inline
+// clause.
 //
-// Does NOT fire on comparisons the voice rules permit: a sourced quote of real
-// feedback, or comparing the user's own options. The looksSourced guard skips
-// any group clause carrying a quote mark or an attribution verb.
+// The re-run showed the first version's plain-text anchors were defeated by the
+// model's heavy markdown: "**Your combination is rare.** Most senior..." put
+// `.** ` between the sentence boundary and "Most", so the anchor never fired.
+// The anchors here see through emphasis runs (** * _ ~) via EMPH, and the
+// apostrophe class AP matches straight and typographic so "can't" / "don't" /
+// "aren't" are all caught.
+//
+// Skips comparisons the voice rules permit: sourced quotes of real feedback
+// (looksSourced), the user's own option comparisons, and where/when/in-which
+// clauses (the inline rule's lookbehind) so those are not grammar-mangled.
 //
 // voice-allow
-const COMPARATIVE_TWO_SENTENCE_RE = /(^|[.!?]\s+|\n+)((?:Most|Many|Almost every|Almost everyone|Plenty of|A lot of|Other|Fewer|The average|The typical)\b[^.!?\n]*?)[.!?]\s+(You(?:['’]re|r)?\b[^.!?\n]*?[.!?])/g
-const COMPARATIVE_INLINE_RE = /\s*\b(?:most|many|few|fewer)\s+(?:people|professionals|candidates|leaders|others|peers|executives)\b[^.,;:!?\n]*?\b(?:cannot|can't|can not|rarely|never|don't|do not|won't|will not|couldn't|could not|seldom)\b[^.,;:!?\n]*/gi
+const EMPH = '[*_~]*'
+const CMP_GROUP = '(?:Most|Many|Almost every(?:one|body)?|Plenty of|A lot of|Other|Fewer|The average|The typical)'
+// The "lesser" trigger that ends a comparative clause. Contractions are matched
+// by their suffix n't (don't / can't / won't / aren't / couldn't) which is robust
+// where a full \bword\b match is not (an apostrophe is itself a word boundary in
+// JS regex). Requiring the apostrophe means "important" (ends in "nt") is not a
+// false trigger. The spelled-out negations and the scope words (just/only/etc.)
+// are listed explicitly.
+const CMP_TRIGGER = "(?:n['’]t\\b|\\bcannot\\b|\\bdo not\\b|\\bdoes not\\b|\\bwill not\\b|\\brarely\\b|\\bnever\\b|\\bseldom\\b|\\bjust\\b|\\bonly\\b|\\bmerely\\b|\\bsimply\\b|\\bstruggles?\\b|\\bmiss(?:es|ed)?\\b|\\bfalls? short\\b|\\bfails?\\b|\\bclaims?\\b|\\boptimizes?\\b|\\bmanages?\\b)"
+// Group-first: "Most <group> ... . You ... ." -> keep the You sentence.
+const CMP_GROUP_FIRST_RE = new RegExp(
+  '(^|[.!?]' + EMPH + '\\s+|\\n+)' + EMPH +
+  '(' + CMP_GROUP + '\\b[^.!?\\n]*?[.!?])' +
+  EMPH + '\\s+' +
+  '(' + EMPH + "You(?:['’]re|r)?\\b[^.!?\\n]*?[.!?])",
+  'g'
+)
+// You-first (reversed): "You ... . Most <group> ... <lesser> ... ." -> keep You.
+const CMP_YOU_FIRST_RE = new RegExp(
+  '(^|[.!?]' + EMPH + '\\s+|\\n+)' +
+  '(' + EMPH + "You(?:['’]re|r)?\\b[^.!?\\n]*?[.!?])" +
+  EMPH + '\\s+' + EMPH +
+  CMP_GROUP + '\\b[^.!?\\n]*?' + CMP_TRIGGER + '[^.!?\\n]*?[.!?]',
+  'g'
+)
+// Trailing inline comparative clause: "... most people <...> cannot match." Drop
+// the clause, keep the head. Lookbehind skips where/when/in-which antecedents
+// (no trailing \s -- the clause's own \s+ is consumed by the match, so the
+// lookbehind asserts on the bare antecedent word), where dropping the clause
+// would break the sentence.
+const CMP_INLINE_RE = new RegExp(
+  '(?<!\\bwhere)(?<!\\bwhen)(?<!\\bin which)' +
+  '\\s+(?:that |which )?(?:most|many|few|fewer)\\s+(?:people|professionals|candidates|leaders|others|peers|executives)\\b' +
+  '[^.,;:!?\\n]*?' + CMP_TRIGGER +
+  '[^.,;:!?\\n]*?(?=[.,;:!?\\n]|$)',
+  'gi'
+)
 function looksSourced(s) {
-  return /["'“”‘’]/.test(s) || /\b(said|says|saying|told|tells|wrote|writes|quote[ds]?|according to|noted|notes|call[s]?\s+you|called you)\b/i.test(s)
+  // Double quotes (straight or typographic) or an attribution verb signal a
+  // sourced quote that the voice rules permit. Single quotes / apostrophes are
+  // NOT a signal -- they appear in every contraction ("can't", "don't"), and
+  // treating them as quotes made the guard skip exactly the comparatives we want
+  // to strip. Real single-quoted speech is still caught by the attribution verb.
+  return /["“”]/.test(s) || /\b(said|says|saying|told|tells|wrote|writes|quote[ds]?|according to|noted|notes|call[s]?\s+you|called you)\b/i.test(s)
 }
 export function stripComparativeStanding(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1)
-  let out = text.replace(COMPARATIVE_TWO_SENTENCE_RE, (match, lead, groupClause, youSentence) => {
+  let out = text.replace(CMP_GROUP_FIRST_RE, (match, lead, groupClause, youSentence) => {
     if (looksSourced(groupClause)) return match
     count++
     return `${lead}${cap(youSentence)}`
   })
-  out = out.replace(COMPARATIVE_INLINE_RE, (match) => {
+  out = out.replace(CMP_YOU_FIRST_RE, (_match, lead, youSentence) => {
+    count++
+    return `${lead}${youSentence}`
+  })
+  out = out.replace(CMP_INLINE_RE, (match) => {
     if (looksSourced(match)) return match
     count++
     return ''
@@ -313,10 +364,18 @@ export function stripComparativeStanding(text) {
 // following word; mid-sentence occurrences drop the word and the space before
 // it. Idempotent.
 //
+// Markdown-aware: the re-run leaked "**actually care**" because the asterisks sat
+// between the space and the word, so the plain `\s+\bword\b` adjacency missed it.
+// MID captures the leading "space + optional emphasis" and restores it, so the
+// emphasis run stays attached to the next word ("You **care**").
 // voice-allow
 const INTENSIFIER_WORDS = 'actually|really|genuinely|honestly|truly|literally|absolutely|incredibly|deeply'
-const INTENSIFIER_LEAD_RE = new RegExp('(^|[.!?]\\s+|\\n+)(?:' + INTENSIFIER_WORDS + '),?\\s+([A-Za-z])', 'gi')
-const INTENSIFIER_MID_RE = new RegExp('\\s+\\b(?:' + INTENSIFIER_WORDS + ')\\b', 'gi')
+const INTENSIFIER_LEAD_RE = new RegExp('(^|[.!?]' + EMPH + '\\s+|\\n+)' + EMPH + '(?:' + INTENSIFIER_WORDS + ')' + EMPH + ',?\\s+' + EMPH + '([A-Za-z])', 'gi')
+// Mid-sentence: drop the word and ONE following horizontal space. Removing the
+// trailing space (not the leading one) keeps it markdown-clean ("**actually
+// care**" -> "**care**") and makes adjacent intensifiers ("really actually X")
+// collapse in a single pass, so the function stays idempotent.
+const INTENSIFIER_MID_RE = new RegExp('\\b(?:' + INTENSIFIER_WORDS + ')\\b[^\\S\\n]?', 'gi')
 export function stripIntensifiers(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
@@ -329,23 +388,112 @@ export function stripIntensifiers(text) {
 }
 // voice-allow-end
 
+// --- stripHireabilityVerdict -----------------------------------------------
+// Voice-gate-fix re-run (approved scope change): the prompt-only odds posture
+// held ~2 of 4 times. Promote it to a deterministic guard. Removes:
+//   - copular odds verdicts: "your odds [are] excellent / very strong"
+//   - Q&A verdicts: "your odds in healthcare broadly? Very strong."
+//   - sentence-initial candidate verdicts: "You are a strong candidate."
+// Requires a copula before the qualifier so "your odds from 'strong candidate'..."
+// and the conditional "Whether you're a strong candidate depends..." are left
+// alone. Drops the offending sentence/header, keeps the surrounding redirect.
+//
+// voice-allow
+const VERDICT_QUAL = '(?:excellent|very strong|strong|good|great|high|solid|favorable|exceptional|in your favor)'
+const ODDS_QA_RE = new RegExp(
+  '(^|\\n+|[.!?]' + EMPH + '\\s+)' + EMPH + '[^.?\\n]*?\\byour (?:odds|chances)\\b[^.?\\n]*?\\?\\s+' + EMPH + VERDICT_QUAL + '\\b[^.!?\\n]*?[.!?]',
+  'gi'
+)
+const ODDS_VERDICT_RE = new RegExp(
+  '(^|\\n+|[.!?]' + EMPH + '\\s+)#{0,6}\\s*' + EMPH + '[^.!?\\n]*?\\byour (?:odds|chances)\\b[^.!?\\n]*?\\b(?:are|is|look[s]?|seem[s]?|remain[s]?|stay[s]?)\\s+' + EMPH + VERDICT_QUAL + '\\b[^.!?\\n]*?(?=[.!?\\n]|$)[.!?]?',
+  'gi'
+)
+const CANDIDATE_VERDICT_RE = new RegExp(
+  '(^|[.!?]' + EMPH + '\\s+|\\n+)' + EMPH + "You(?:['’]re| are)\\s+(?:a\\s+)?(?:strong|solid|great|competitive|weak|excellent|good|exceptional)\\s+candidate\\b[^.!?\\n]*?[.!?]",
+  'gi'
+)
+export function stripHireabilityVerdict(text) {
+  if (typeof text !== 'string' || !text) return text
+  let count = 0
+  let out = text.replace(ODDS_QA_RE, (_m, lead) => { count++; return lead })
+  out = out.replace(ODDS_VERDICT_RE, (_m, lead) => { count++; return lead })
+  out = out.replace(CANDIDATE_VERDICT_RE, (_m, lead) => { count++; return lead })
+  if (count > 0) {
+    console.warn(`[stripHireabilityVerdict] removed ${count} hire-ability verdict${count === 1 ? '' : 's'} from LLM output`)
+  }
+  return out
+}
+// voice-allow-end
+
+// --- stripFrameworkNames ---------------------------------------------------
+// Voice-gate-fix re-run: framework/chapter naming held poorly on instruction
+// alone. Neutralize the recurring named items, doing what the framework
+// describes in plain language. The book title itself ("Making Your Own Weather")
+// is left intact -- it names a real resource the coach legitimately points to.
+//
+// voice-allow
+const FRAMEWORK_SUBS = [
+  [/\bRock['’]s Fab Five\b/gi, 'a few opening questions'],
+  [/\bthe Perspiration P\b/gi, 'the work-ethic point'],
+  [/\b(?:one of the )?bonus Ps from the book\b/gi, 'an additional point worth making'],
+  [/\bChapter\s+\d+(?:\s+of the book)?\s*\(([^)]+)\)/gi, '$1'],
+  [/\s*\(\s*(?:Chapter|Lesson)\s+\d+\w*(?:\s+(?:in|of)\s+the book)?\s*\)/gi, ''],
+  [/\b(?:Chapter|Lesson)\s+\d+\w*\s+(?:in|of)\s+the book\b/gi, 'the book'],
+  [/\b(?:Chapter|Lesson)\s+\d+\w*\b/gi, 'the book'],
+  [/\bthe KEEL principles?\b/gi, 'these attitude principles'],
+  [/\bthe (?:Four|4) Cs\b/gi, 'this approach'],
+  [/\bthe Five Ps\b/gi, 'these points'],
+  [/\bQuota of One\b/gi, 'the one-yes idea'],
+  [/\bLike-for-Like Fallacy\b/gi, 'that trap'],
+]
+export function stripFrameworkNames(text) {
+  if (typeof text !== 'string' || !text) return text
+  let out = text
+  let count = 0
+  for (const [re, repl] of FRAMEWORK_SUBS) {
+    const before = out
+    out = out.replace(re, repl)
+    if (out !== before) count++
+  }
+  if (count > 0) {
+    console.warn(`[stripFrameworkNames] neutralized ${count} framework name${count === 1 ? '' : 's'} from LLM output`)
+  }
+  return out
+}
+// voice-allow-end
+
+// --- tidyOutput ------------------------------------------------------------
+// Final pass over coach output only. Repairs the small artifacts the rewrite
+// rules leave: doubled spaces, a stray space before punctuation, a doubled
+// period from a dropped clause, and a lowercase letter that now starts a
+// sentence (e.g. the "not because X, but because Y" rewrite leaving "this.
+// because"). Runs last so it cleans up after every other stripper.
+function tidyOutput(text) {
+  if (typeof text !== 'string' || !text) return text
+  let out = text
+  out = out.replace(/[^\S\n]{2,}/g, ' ')                 // collapse runs of spaces/tabs (not newlines)
+  out = out.replace(/[^\S\n]+([.,;:!?])/g, '$1')         // drop space before punctuation
+  out = out.replace(/(?<!\.)\.\.(?!\.)/g, '.')           // collapse a doubled period (keep ellipsis)
+  out = out.replace(/([.!?]\s+|\n{2,})([a-z])/g, (_m, b, c) => b + c.toUpperCase()) // recapitalize sentence starts
+  out = out.replace(/^\s+/, '')                          // trim leading whitespace from a removed opening sentence
+  return out
+}
+
 // --- applyOutputStrippers --------------------------------------------------
 // The canonical cleanup chain. src/App.jsx callClaude applies the original
-// subset; api/coach.js applies this full chain (it includes the 2026-06-09
-// voice-gate-fix strippers: comparative-standing, broadened logic-flip,
-// sincerity, and intensifiers).
+// subset (rooms, meta, coach-speak, logic-flip, sincerity); api/coach.js applies
+// this full chain, which adds the voice-gate-fix strippers (comparative-standing,
+// hire-ability verdict, framework names, intensifiers) and a final tidy pass.
 export function applyOutputStrippers(text) {
-  return stripIntensifiers(
-    stripSincerityQualifiers(
-      stripLogicFlipCadence(
-        stripComparativeStanding(
-          stripCoachSpeak(
-            stripMetaNarration(
-              stripRoomsPlaceholder(text)
-            )
-          )
-        )
-      )
-    )
-  )
+  let out = stripRoomsPlaceholder(text)
+  out = stripMetaNarration(out)
+  out = stripCoachSpeak(out)
+  out = stripComparativeStanding(out)
+  out = stripHireabilityVerdict(out)
+  out = stripFrameworkNames(out)
+  out = stripLogicFlipCadence(out)
+  out = stripSincerityQualifiers(out)
+  out = stripIntensifiers(out)
+  out = tidyOutput(out)
+  return out
 }

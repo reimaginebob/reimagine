@@ -11,7 +11,9 @@
 //   2. applyContaminationPlaceholders: each of the 5 placeholders applies
 //      on its target phrase; clean input passes through unchanged.
 
-import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers, stripComparativeStanding, stripIntensifiers, applyOutputStrippers } from '../src/text-strippers.mjs'
+import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers, stripComparativeStanding, stripIntensifiers, stripHireabilityVerdict, stripFrameworkNames, applyOutputStrippers } from '../src/text-strippers.mjs'
+
+const AP19 = String.fromCharCode(0x2019) // typographic apostrophe the model emits
 
 let failed = 0
 let total = 0
@@ -476,6 +478,59 @@ assertTruthy('stripIntensifiers: idempotent',
 // applyOutputStrippers runs the full chain.
 assertTruthy('applyOutputStrippers: comparative + intensifier in one pass',
   applyOutputStrippers('Most leaders stall. You actually move.').trim() === 'You move.')
+
+// ---- Voice-gate-fix re-run (2026-06-09b): markdown-aware comparative -------
+
+assertEq('stripComparativeStanding: markdown bold breaks boundary -> still strips',
+  stripComparativeStanding('**Your combination is rare.** Most senior leaders struggle. You do both.'),
+  '**Your combination is rare.** You do both.')
+assertEq('stripComparativeStanding: reversed you-first with curly contraction',
+  stripComparativeStanding(`You clear that screen immediately. Many strong candidates don${AP19}t.`),
+  'You clear that screen immediately.')
+assertEq('stripComparativeStanding: inline curly contraction (apostrophe is NOT a quote)',
+  stripComparativeStanding(`evidence of something most candidates claim but can${AP19}t point to.`),
+  'evidence of something.')
+assertEq('stripComparativeStanding: inline most-X-just-verb',
+  stripComparativeStanding('you do it in environments most people just manage process for.'),
+  'you do it in environments.')
+assertTruthy('stripComparativeStanding: KEEP sourced (attribution verb) even with single quotes',
+  stripComparativeStanding(`Most leaders miss this. ${AP19}You read fast,${AP19} she said.`).includes('she said'))
+assertTruthy('stripComparativeStanding: KEEP where-clause (no grammar mangle)',
+  stripComparativeStanding('environments where most people just manage process.').includes('where most people just manage'))
+assertTruthy('stripComparativeStanding: idempotent',
+  stripComparativeStanding(stripComparativeStanding('Most leaders stall. You move.')) === stripComparativeStanding('Most leaders stall. You move.'))
+
+// ---- Voice-gate-fix re-run: markdown-aware intensifier --------------------
+
+assertEq('stripIntensifiers: removes intensifier inside markdown bold',
+  stripIntensifiers('You **actually care** about this.'),
+  'You **care** about this.')
+assertTruthy('stripIntensifiers: adjacent intensifiers collapse in one pass (idempotent)',
+  stripIntensifiers('You really actually have it.') === stripIntensifiers(stripIntensifiers('You really actually have it.')))
+
+// ---- Voice-gate-fix re-run: hire-ability verdict guard --------------------
+
+assertTruthy('stripHireabilityVerdict: removes odds verdict header',
+  !stripHireabilityVerdict('## Your odds in healthcare are excellent — but precise.\n\nYou have 14 years.').includes('are excellent'))
+assertTruthy('stripHireabilityVerdict: removes Q&A verdict',
+  !stripHireabilityVerdict('Your odds in healthcare broadly? Very strong. The role exists.').includes('Very strong'))
+assertTruthy('stripHireabilityVerdict: removes sentence-initial candidate verdict',
+  !stripHireabilityVerdict('You are a strong candidate. But that is not the question.').includes('a strong candidate. But'))
+assertTruthy('stripHireabilityVerdict: KEEP conditional candidate framing',
+  stripHireabilityVerdict('Whether you are a strong candidate depends on how you deploy them.').includes('Whether you are a strong candidate depends'))
+assertTruthy('stripHireabilityVerdict: KEEP odds refusal (no positive qualifier)',
+  stripHireabilityVerdict('Your odds are not a number I can give you.').includes('not a number'))
+
+// ---- Voice-gate-fix re-run: framework names + tidy ------------------------
+
+assertEq('stripFrameworkNames: Chapter N (descriptor) -> descriptor',
+  stripFrameworkNames('Chapter 7 of the book (Tell Your Story) is where it happens.'),
+  'Tell Your Story is where it happens.')
+assertTruthy('stripFrameworkNames: Rock’s Fab Five neutralized',
+  !stripFrameworkNames(`what I call Rock${AP19}s Fab Five:`).includes('Fab Five'))
+assertEq('applyOutputStrippers: tidy recapitalizes the not-because artifact',
+  applyOutputStrippers('You can keep doing this not because it is easy, but because you have before.'),
+  'You can keep doing this because you have before.')
 
 // ---- Report ----------------------------------------------------------
 
