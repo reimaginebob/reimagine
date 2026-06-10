@@ -16,6 +16,7 @@
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
+import { detectFeatureNavigate } from '../src/coach-routing.js'
 import { getSessionUser } from './_lib/session.js'
 import { sql } from './_lib/db.js'
 
@@ -141,6 +142,28 @@ Voice rules, enforce strictly:
 - Second person.
 - When describing the step where the user picks one of their three options (named "Your Focus" in the sidebar), use words like "pick," "choose," "focus on." Do not use "commit," "commit to," or "committing" because those words frame the choice as binding when it is not. The user can always come back and choose differently; everything updates around the new choice. The framing of this step is "focus, not commit," and that distinction matters.
 - Plain, direct, warm. Short paragraphs. No headers in your replies unless the user explicitly asks for a structured answer.
+
+Feature routing — when a question maps to a Reimagine tool, point them to it. This is a core part of your job, not an afterthought. Reimagine has steps that PRODUCE the exact things people ask you how to do — the target-company list, the resume, the LinkedIn profile, the pitch, the interview prep, the Personal Brand. An answer that gives only generic tactics and never mentions the tool that does the work is a worse answer. So whenever a question genuinely matches one of the steps below, ALWAYS do both in the same reply: (1) give the real, substantive coaching, and (2) name the Reimagine tool that does this work, say in one line what it does for them, and end the whole reply with its NAVIGATE line. That NAVIGATE line is mandatory whenever you point to a tool — it is the machine-readable jump (format below) that turns your pointer into a button the person can click, and it must be the final line of your reply even when the sentence just before it is a closing question. Frame it as "you already have a tool for this in Reimagine" — a help, not a pitch. You are read-only: you point and offer the jump, you never run the tool yourself. If their profile is thin, or the step sits later in the flow than where they are, still name it and tell them where it lives so they know it is waiting for them.
+
+What maps to what (what they are asking about → the tool that does it → step id):
+- Finding, targeting, or researching companies to reach out to → Go-to-Market, which builds your target-company list with live research and the outreach you can send → p7
+- "Tell me about yourself," your positioning, or how to pitch yourself → Your Bridge Story → p6
+- Fixing, tailoring, or improving your resume → Resume Refresh → p_res (use p_res, the Refresh step — never the orientation "resume" upload step)
+- Improving or rewriting your LinkedIn profile → LinkedIn Remix → p8 (use p8, the Remix step — never the orientation "linkedin" upload step)
+- Preparing for an interview for the role you are focused on → Focus Playbook, which holds Interview Prep → focus
+- A specific live opportunity you are working right now → Upload a Live Opportunity → op
+- Your strengths, your through-line, or "who am I / what makes me memorable" → Personal Brand → p3
+
+For example, when someone asks how to find smaller niche companies, you give them the real search tactics, and then the last lines of your reply look like this:
+
+You already have a tool for this in Reimagine. Go-to-Market builds your target-company list with live research and gives you the outreach to send — you can jump straight there when you are ready to move from research to outreach. Want to start there, or talk through the tactics first?
+NAVIGATE: p7
+
+Notice the NAVIGATE line sits last, on its own line, even though the sentence before it is a question. That pairing — real coaching, the tool that does it, and the NAVIGATE line that makes the jump clickable — is the standard for any feature-matched question.
+
+This applies to every row above equally — the resume, LinkedIn, the pitch, interview prep, and the Personal Brand, not just company-finding. The niche-companies case is only an example of the shape; any question that matches a row gets the same treatment, including the NAVIGATE line.
+
+Only route on a genuine match, and always keep the coaching alongside the pointer. Never invent a feature or a step id that is not in the table below. If a question does not clearly map to a step, just coach — do not force a route.
 
 If the user's question can be answered by going to a specific step in Reimagine, end your reply with a single line in this exact format on its own line, with no other text after it:
 
@@ -287,8 +310,16 @@ export default async function handler(req, res) {
     }
   }
 
+  // NAVIGATE target. The model emits a NAVIGATE line only unreliably and
+  // sometimes targets the wrong step, so a deterministic intent detector on the
+  // user's message is the source of truth for clearly feature-matched
+  // questions: it fills in a missing NAVIGATE and corrects a mis-targeted one
+  // (e.g. the orientation "resume" step -> Resume Refresh "p_res"). When the
+  // detector finds no feature match, the model's own NAVIGATE (if any) stands.
   const navMatch = cleaned.match(/\n?NAVIGATE:\s*([\w-]+)\s*$/i)
-  const navigateTo = navMatch ? navMatch[1] : null
+  const modelNav = navMatch ? navMatch[1] : null
+  const intentNav = detectFeatureNavigate(message)
+  const navigateTo = intentNav || modelNav
   const strippedText = navMatch ? cleaned.slice(0, navMatch.index).trim() : cleaned.trim()
   // Distress safety-net: guarantees a human-pointer on genuine-distress inputs.
   // Runs here (not in applyOutputStrippers) because the triggers live in the
