@@ -11,7 +11,9 @@
 //   2. applyContaminationPlaceholders: each of the 5 placeholders applies
 //      on its target phrase; clean input passes through unchanged.
 
-import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers } from '../src/text-strippers.mjs'
+import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers, stripComparativeStanding, stripIntensifiers, stripHireabilityVerdict, stripFrameworkNames, stripFabricatedMarketData, ensureDistressSupport, detectResidualVoice, applyOutputStrippers } from '../src/text-strippers.mjs'
+
+const AP19 = String.fromCharCode(0x2019) // typographic apostrophe the model emits
 
 let failed = 0
 let total = 0
@@ -411,6 +413,199 @@ assertEq('stripSincerityQualifiers: non-string unchanged', stripSincerityQualifi
 assertEq('stripSincerityQualifiers: qualifier mid-paragraph fires, leading sentence preserved',
   stripSincerityQualifiers('The venue is specific. To be honest, the offer was thin.'),
   'The venue is specific. The offer was thin.')
+
+// ---- Voice-gate fix (2026-06-09): comparative-standing -----------------
+
+assertEq('stripComparativeStanding: "Most X ... . You ..." drops group sentence',
+  stripComparativeStanding('Most senior HR people optimize existing systems. You build them.'),
+  'You build them.')
+assertEq('stripComparativeStanding: second group/you pair',
+  stripComparativeStanding('Most HR leaders live in the people silo. You translate decisions into outcomes.'),
+  'You translate decisions into outcomes.')
+assertEq('stripComparativeStanding: inline "most people ... cannot match" removed',
+  stripComparativeStanding('gives you a human opening most people in your space cannot match:'),
+  'gives you a human opening:')
+assertEq('stripComparativeStanding: KEEP sourced quote (attribution verb)',
+  stripComparativeStanding('Most leaders miss this. She said you read a P&L fast.'),
+  'Most leaders miss this. She said you read a P&L fast.')
+assertEq('stripComparativeStanding: KEEP option comparison (no group/you flattery)',
+  stripComparativeStanding('This offer closes the gap more than the other.'),
+  'This offer closes the gap more than the other.')
+
+// ---- Voice-gate fix: broadened logic-flip ------------------------------
+
+assertEq('stripLogicFlipCadence: contracted "That\'s not X. It\'s Y." keeps affirmative',
+  stripLogicFlipCadence('That’s not weakness. It’s being human.'),
+  'It’s being human.')
+assertEq('stripLogicFlipCadence: "aren\'t ... they\'re" pair',
+  stripLogicFlipCadence('These aren’t icebreakers. They’re active gathering.'),
+  'They’re active gathering.')
+assertEq('stripLogicFlipCadence: negated lexical verb, same subject',
+  stripLogicFlipCadence('You didn’t come through an MBA. You came through experience.'),
+  'You came through experience.')
+assertEq('stripLogicFlipCadence: appositive "X, not Y" after copula',
+  stripLogicFlipCadence('A conversation is an exchange, not a transaction.'),
+  'A conversation is an exchange.')
+assertEq('stripLogicFlipCadence: "not because X, but because Y"',
+  stripLogicFlipCadence('It works not because you perform, but because you have something real.'),
+  'It works because you have something real.')
+assertTruthy('stripLogicFlipCadence: idempotent on contracted form',
+  stripLogicFlipCadence(stripLogicFlipCadence('That’s not weakness. It’s being human.')) === stripLogicFlipCadence('That’s not weakness. It’s being human.'))
+
+// ---- Voice-gate fix: mid-sentence sincerity ----------------------------
+
+assertEq('stripSincerityQualifiers: "I need to be honest with you - X" -> X',
+  stripSincerityQualifiers('I need to be honest with you — I don’t have it yet.'),
+  'I don’t have it yet.')
+assertEq('stripSincerityQualifiers: "here\'s the honest answer:" prefix removed',
+  stripSincerityQualifiers('So here’s the honest answer: you are strong.'),
+  'you are strong.')
+assertEq('stripSincerityQualifiers: "this is where brutal honesty comes in" dropped',
+  stripSincerityQualifiers('And this is where brutal honesty comes in. None of it shows.'),
+  'None of it shows.')
+
+// ---- Voice-gate fix: intensifiers --------------------------------------
+
+assertEq('stripIntensifiers: mid-sentence "actually" removed',
+  stripIntensifiers('You actually have something real.'),
+  'You have something real.')
+assertEq('stripIntensifiers: sentence-initial "Honestly," recapitalizes',
+  stripIntensifiers('Honestly, you are ready.'),
+  'You are ready.')
+assertTruthy('stripIntensifiers: idempotent',
+  stripIntensifiers(stripIntensifiers('You really actually have it.')) === stripIntensifiers('You really actually have it.'))
+
+// applyOutputStrippers runs the full chain.
+assertTruthy('applyOutputStrippers: comparative + intensifier in one pass',
+  applyOutputStrippers('Most leaders stall. You actually move.').trim() === 'You move.')
+
+// ---- Voice-gate-fix re-run (2026-06-09b): markdown-aware comparative -------
+
+assertEq('stripComparativeStanding: markdown bold breaks boundary -> still strips',
+  stripComparativeStanding('**Your combination is rare.** Most senior leaders struggle. You do both.'),
+  '**Your combination is rare.** You do both.')
+assertEq('stripComparativeStanding: reversed you-first with curly contraction',
+  stripComparativeStanding(`You clear that screen immediately. Many strong candidates don${AP19}t.`),
+  'You clear that screen immediately.')
+assertEq('stripComparativeStanding: inline curly contraction (apostrophe is NOT a quote)',
+  stripComparativeStanding(`evidence of something most candidates claim but can${AP19}t point to.`),
+  'evidence of something.')
+assertEq('stripComparativeStanding: inline most-X-just-verb',
+  stripComparativeStanding('you do it in environments most people just manage process for.'),
+  'you do it in environments.')
+assertTruthy('stripComparativeStanding: KEEP sourced (attribution verb) even with single quotes',
+  stripComparativeStanding(`Most leaders miss this. ${AP19}You read fast,${AP19} she said.`).includes('she said'))
+assertTruthy('stripComparativeStanding: KEEP where-clause (no grammar mangle)',
+  stripComparativeStanding('environments where most people just manage process.').includes('where most people just manage'))
+assertTruthy('stripComparativeStanding: idempotent',
+  stripComparativeStanding(stripComparativeStanding('Most leaders stall. You move.')) === stripComparativeStanding('Most leaders stall. You move.'))
+
+// ---- Voice-gate-fix re-run: markdown-aware intensifier --------------------
+
+assertEq('stripIntensifiers: removes intensifier inside markdown bold',
+  stripIntensifiers('You **actually care** about this.'),
+  'You **care** about this.')
+assertTruthy('stripIntensifiers: adjacent intensifiers collapse in one pass (idempotent)',
+  stripIntensifiers('You really actually have it.') === stripIntensifiers(stripIntensifiers('You really actually have it.')))
+
+// ---- Voice-gate-fix re-run: hire-ability verdict guard --------------------
+
+assertTruthy('stripHireabilityVerdict: removes odds verdict header',
+  !stripHireabilityVerdict('## Your odds in healthcare are excellent — but precise.\n\nYou have 14 years.').includes('are excellent'))
+assertTruthy('stripHireabilityVerdict: removes Q&A verdict',
+  !stripHireabilityVerdict('Your odds in healthcare broadly? Very strong. The role exists.').includes('Very strong'))
+assertTruthy('stripHireabilityVerdict: removes sentence-initial candidate verdict',
+  !stripHireabilityVerdict('You are a strong candidate. But that is not the question.').includes('a strong candidate. But'))
+assertTruthy('stripHireabilityVerdict: KEEP conditional candidate framing',
+  stripHireabilityVerdict('Whether you are a strong candidate depends on how you deploy them.').includes('Whether you are a strong candidate depends'))
+assertTruthy('stripHireabilityVerdict: KEEP odds refusal (no positive qualifier)',
+  stripHireabilityVerdict('Your odds are not a number I can give you.').includes('not a number'))
+
+// ---- Voice-gate-fix re-run: framework names + tidy ------------------------
+
+assertEq('stripFrameworkNames: Chapter N (descriptor) -> descriptor',
+  stripFrameworkNames('Chapter 7 of the book (Tell Your Story) is where it happens.'),
+  'Tell Your Story is where it happens.')
+assertTruthy('stripFrameworkNames: Rock’s Fab Five neutralized',
+  !stripFrameworkNames(`what I call Rock${AP19}s Fab Five:`).includes('Fab Five'))
+assertEq('applyOutputStrippers: tidy recapitalizes the not-because artifact',
+  applyOutputStrippers('You can keep doing this not because it is easy, but because you have before.'),
+  'You can keep doing this because you have before.')
+
+// ---- Voice-gate-fix re-run #2 (2026-06-09c) -------------------------------
+
+// Fragment-free + markdown-aware logic-flip.
+assertEq('stripLogicFlipCadence: cleft "What they are not is X. They are Y." -> keep Y whole (no fragment)',
+  stripLogicFlipCadence('What they are not is a verdict on your worth. They are a signal about fit.'),
+  'They are a signal about fit.')
+assertEq('stripLogicFlipCadence: markdown-wrapped not ("is **not** X. It is Y.") reconstructs subject',
+  stripLogicFlipCadence('What you feel is **not** evidence. It is the silence talking.'),
+  'What you feel is the silence talking.')
+assertTruthy('stripLogicFlipCadence: contracted still works after the rework',
+  stripLogicFlipCadence(`That${AP19}s not weakness. It${AP19}s being human.`).trim() === `It${AP19}s being human.`)
+
+// Verdict adverb + odds breadth.
+assertTruthy('stripHireabilityVerdict: "a very strong candidate" (adverb)',
+  !stripHireabilityVerdict(`You${AP19}re a very strong candidate for VP TA roles.`).includes('very strong candidate'))
+assertTruthy('stripHireabilityVerdict: "the odds are as high as they get"',
+  !stripHireabilityVerdict('The odds here are as high as they get. You are the profile.').includes('as high as they get'))
+assertTruthy('stripHireabilityVerdict: KEEP conditional with adverb',
+  stripHireabilityVerdict(`Whether you${AP19}re a very strong candidate depends on the role.`).includes('Whether you'))
+
+// Market-data floor.
+assertTruthy('stripFabricatedMarketData: drops asserted salary figure',
+  !stripFabricatedMarketData('The average salary for that role is $185,000. Here is more.').includes('$185,000'))
+assertTruthy('stripFabricatedMarketData: drops hiring-odds percentage',
+  !stripFabricatedMarketData('You have a 70% chance of landing a role this quarter.').includes('70% chance'))
+assertTruthy('stripFabricatedMarketData: KEEPS profile numbers ($4.2M, 22% to 9%)',
+  stripFabricatedMarketData('You saved $4.2M and cut declines from 22% to 9%.') === 'You saved $4.2M and cut declines from 22% to 9%.')
+
+// KEEL section + than/would comparatives.
+assertTruthy('stripFrameworkNames: "the KEEL section" neutralized',
+  !stripFrameworkNames('Re-read the KEEL section now.').includes('KEEL'))
+assertTruthy('stripComparativeStanding: trailing "than most people show" dropped',
+  !stripComparativeStanding(`you${AP19}ve communicated more care than most people show.`).includes('most people'))
+assertTruthy('stripComparativeStanding: trailing "most people would ..." dropped',
+  !stripComparativeStanding('execution under conditions most people would use as an excuse.').includes('most people'))
+assertTruthy('stripComparativeStanding: KEEP where-clause',
+  stripComparativeStanding('environments where most people just manage process.').includes('where most people just manage'))
+
+// Distress safety-net.
+assertTruthy('ensureDistressSupport: appends a human-pointer when trigger fires and none present',
+  ensureDistressSupport(`Some days I don${AP19}t really see the point of any of it anymore.`, 'I hear you. One small step?').includes('bob@career.club'))
+assertTruthy('ensureDistressSupport: does NOT double up when a pointer is already present',
+  !ensureDistressSupport(`I don${AP19}t see the point anymore.`, 'Reach out to a counselor or someone you trust.').includes('bob@career.club'))
+assertTruthy('ensureDistressSupport: no-op on a non-distress message',
+  ensureDistressSupport('How do I write my resume?', 'Here is how.') === 'Here is how.')
+
+// ---- Voice-gate-fix re-run #3: contrast-subject comparatives + give-honest ----
+
+assertEq('stripComparativeStanding: "Most X have Y. Yours run deeper." -> keep "Yours ..."',
+  stripComparativeStanding('Most senior HR people have relationships. Yours run deeper than that.'),
+  'Yours run deeper than that.')
+assertEq('stripComparativeStanding: "Most X do Y. When you ..." -> keep "When you ..."',
+  stripComparativeStanding('Most people show up in receive mode. When you show up trying to help, it transforms.'),
+  'When you show up trying to help, it transforms.')
+assertTruthy('stripComparativeStanding: KEEP "Your resume should be ready" (not a contrast)',
+  stripComparativeStanding('Your resume should be ready before you apply.') === 'Your resume should be ready before you apply.')
+assertTruthy('stripSincerityQualifiers: "I\'ll give you the honest read." sentence dropped',
+  !stripSincerityQualifiers(`I${AP19}ll give you the honest read. What makes you different is the build.`).includes('honest read'))
+
+// ---- detectResidualVoice (retry-loop detector) ----------------------------
+
+assertTruthy('detectResidualVoice: flags "frankly," (sincerity)',
+  detectResidualVoice('and frankly, it puts the focus on the wrong variable.').sincerity)
+assertTruthy('detectResidualVoice: flags "Most senior TA leaders ..." (comparative)',
+  detectResidualVoice('Most senior TA leaders have either tenure or impact.').comparative)
+assertTruthy('detectResidualVoice: flags "before most people have named" (comparative)',
+  detectResidualVoice('before most people have named the problem.').comparative)
+assertTruthy('detectResidualVoice: clean coaching does NOT flag',
+  !detectResidualVoice('You built a referral program that saved $4.2M. Lead with that.').comparative &&
+  !detectResidualVoice('You built a referral program that saved $4.2M. Lead with that.').sincerity)
+assertTruthy('detectResidualVoice: a refusal does NOT flag',
+  !detectResidualVoice('I cannot render a verdict. The variables in your control are what matter.').comparative)
+assertTruthy('detectResidualVoice: the distress pointer does NOT flag',
+  !detectResidualVoice('Reach out to a friend, a counselor, or Bob at bob@career.club.').sincerity)
 
 // ---- Report ----------------------------------------------------------
 
