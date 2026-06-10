@@ -11,7 +11,7 @@
 //   2. applyContaminationPlaceholders: each of the 5 placeholders applies
 //      on its target phrase; clean input passes through unchanged.
 
-import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers, stripComparativeStanding, stripIntensifiers, stripHireabilityVerdict, stripFrameworkNames, stripFabricatedMarketData, ensureDistressSupport, applyOutputStrippers } from '../src/text-strippers.mjs'
+import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers, stripComparativeStanding, stripIntensifiers, stripHireabilityVerdict, stripFrameworkNames, stripFabricatedMarketData, ensureDistressSupport, detectResidualVoice, applyOutputStrippers } from '../src/text-strippers.mjs'
 
 const AP19 = String.fromCharCode(0x2019) // typographic apostrophe the model emits
 
@@ -590,6 +590,22 @@ assertTruthy('stripComparativeStanding: KEEP "Your resume should be ready" (not 
   stripComparativeStanding('Your resume should be ready before you apply.') === 'Your resume should be ready before you apply.')
 assertTruthy('stripSincerityQualifiers: "I\'ll give you the honest read." sentence dropped',
   !stripSincerityQualifiers(`I${AP19}ll give you the honest read. What makes you different is the build.`).includes('honest read'))
+
+// ---- detectResidualVoice (retry-loop detector) ----------------------------
+
+assertTruthy('detectResidualVoice: flags "frankly," (sincerity)',
+  detectResidualVoice('and frankly, it puts the focus on the wrong variable.').sincerity)
+assertTruthy('detectResidualVoice: flags "Most senior TA leaders ..." (comparative)',
+  detectResidualVoice('Most senior TA leaders have either tenure or impact.').comparative)
+assertTruthy('detectResidualVoice: flags "before most people have named" (comparative)',
+  detectResidualVoice('before most people have named the problem.').comparative)
+assertTruthy('detectResidualVoice: clean coaching does NOT flag',
+  !detectResidualVoice('You built a referral program that saved $4.2M. Lead with that.').comparative &&
+  !detectResidualVoice('You built a referral program that saved $4.2M. Lead with that.').sincerity)
+assertTruthy('detectResidualVoice: a refusal does NOT flag',
+  !detectResidualVoice('I cannot render a verdict. The variables in your control are what matter.').comparative)
+assertTruthy('detectResidualVoice: the distress pointer does NOT flag',
+  !detectResidualVoice('Reach out to a friend, a counselor, or Bob at bob@career.club.').sincerity)
 
 // ---- Report ----------------------------------------------------------
 

@@ -593,6 +593,32 @@ export function ensureDistressSupport(userMessage, output) {
 }
 // voice-allow-end
 
+// --- detectResidualVoice ---------------------------------------------------
+// Independent DETECTOR (not a rewriter) for the regenerate-on-violation retry
+// loop in api/coach.js. The deterministic strippers catch the common/egregious
+// forms but face an infinite grammatical tail on comparative-standing and
+// sincerity; runs 3 and 4 each surfaced new mild variants. This detector flags
+// those two categories broadly (detection can be looser than rewriting because
+// it does not have to produce clean output), so the coach can regenerate the
+// flagged response once. Used in api/coach.js (NOT in applyOutputStrippers).
+//
+// It lives here, in the .js module the api function already imports, because
+// api/* cannot safely import the .mjs voice-patterns detector across the api/src
+// boundary (the FUNCTION_INVOCATION_FAILED bundler-trace issue). The two
+// categories below are exactly the ones the retry targets.
+//
+// voice-allow
+const RESIDUAL_COMPARATIVE_RE = /\b(?:most|many)\s+(?:people|persons|professionals|candidates|leaders|peers|executives|of them|others)\b|\bmost\s+(?:senior|hr|talent|hiring)\b|\bthan most\b|\bunlike (?:most )?(?:other|the average|the typical)\b|\bwhere most\b|\bfewer than most\b/i
+const RESIDUAL_SINCERITY_RE = /\bfrankly\b|\bcandidly\b|\bthe honest (?:answer|read|reading|truth|take|view|assessment)\b|\bbrutal honesty\b|\bto be honest\b|\b(?:be|being|am being|'?m being) (?:honest|straight) with you\b|\bgive you the honest\b|\bhonest with you\b/i
+export function detectResidualVoice(text) {
+  if (typeof text !== 'string' || !text) return { comparative: false, sincerity: false }
+  return {
+    comparative: RESIDUAL_COMPARATIVE_RE.test(text),
+    sincerity: RESIDUAL_SINCERITY_RE.test(text),
+  }
+}
+// voice-allow-end
+
 // --- applyOutputStrippers --------------------------------------------------
 // The canonical cleanup chain. src/App.jsx callClaude applies the original
 // subset (rooms, meta, coach-speak, logic-flip, sincerity); api/coach.js applies

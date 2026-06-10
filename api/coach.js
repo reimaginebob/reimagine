@@ -15,7 +15,7 @@
 
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
-import { applyOutputStrippers, ensureDistressSupport } from '../src/text-strippers.js'
+import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
 import { getSessionUser } from './_lib/session.js'
 import { sql } from './_lib/db.js'
 
@@ -218,12 +218,12 @@ export default async function handler(req, res) {
     { role: 'user', content: message + contextNote },
   ]
 
-  // The stable block (persona + voice + NAVIGATE + guide + book) is the cached
-  // prefix; the per-user profile slice is a second, uncached system block so it
-  // can vary per user without forking the cache.
-  let upstream
-  try {
-    upstream = await fetch('https://api.anthropic.com/v1/messages', {
+  // One bounded generation call. The stable block (persona + voice + NAVIGATE +
+  // guide + book) is the cached prefix; the per-user profile slice is a second,
+  // uncached system block. Reused by the voice-retry below (same cached prefix,
+  // so the retry is a cache hit on the big blocks).
+  async function generate(msgs) {
+    const up = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -237,34 +237,55 @@ export default async function handler(req, res) {
           { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
           { type: 'text', text: profileBlock },
         ],
-        messages,
+        messages: msgs,
       }),
     })
-  } catch (err) {
-    console.error('Coach upstream connect error:', err)
-    return res.status(500).json({ error: 'Coach failed' })
+    if (!up.ok) {
+      const errBody = await up.text().catch(() => '')
+      throw new Error(`upstream ${up.status} ${errBody.slice(0, 200)}`)
+    }
+    const data = await up.json()
+    return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n')
   }
 
-  if (!upstream.ok) {
-    const errBody = await upstream.text().catch(() => '')
-    console.error('Coach upstream non-200', upstream.status, errBody)
-    return res.status(500).json({ error: 'Coach failed' })
-  }
-
-  let raw = ''
+  let raw
   try {
-    const data = await upstream.json()
-    raw = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n')
+    raw = await generate(messages)
   } catch (err) {
-    console.error('Coach upstream parse error:', err)
+    console.error('Coach upstream error:', err)
     return res.status(500).json({ error: 'Coach failed' })
   }
 
   // Deterministic voice cleanup must run on the complete text, so the upstream
   // call is buffered (non-streaming) rather than piped token-by-token: the
-  // append-only client cannot un-render text already shown, so streaming then
-  // stripping would let banned constructions reach the user.
-  const cleaned = applyOutputStrippers(raw)
+  // append-only client cannot un-render text already shown.
+  let cleaned = applyOutputStrippers(raw)
+
+  // Regenerate-on-violation retry (the brief's deferred-optional item), BOUNDED to
+  // flagged responses. The deterministic strippers catch the common/egregious
+  // comparative-standing and sincerity forms, but the model invents new
+  // grammatical variants run-to-run (whack-a-mole). If a flag survives the
+  // strippers, revise ONCE with a corrective, re-strip, and keep whichever is
+  // cleaner. Typical (unflagged) replies skip this entirely, so only flagged
+  // responses pay one extra generation on this already-buffered surface.
+  const flags = detectResidualVoice(cleaned)
+  if (flags.comparative || flags.sincerity) {
+    const wants = []
+    if (flags.comparative) wants.push('do not compare me to "most people" or "most"/"many" of any group or to anyone else — drop the comparison and state what is true about me directly')
+    if (flags.sincerity) wants.push('do not announce your own honesty ("frankly", "candidly", "the honest answer", "to be honest", "being straight with you") — just say the thing')
+    const corrective = `Rewrite your previous reply for me. Keep all of the substance, the warmth, and roughly the same length, but ${wants.join('; and ')}.`
+    try {
+      const raw2 = await generate([...messages, { role: 'assistant', content: raw }, { role: 'user', content: corrective }])
+      const cleaned2 = applyOutputStrippers(raw2)
+      const flags2 = detectResidualVoice(cleaned2)
+      const score = f => (f.comparative ? 1 : 0) + (f.sincerity ? 1 : 0)
+      const useRetry = score(flags2) < score(flags)
+      console.log('coach voice-retry', { user_id: user.id, before: flags, after: flags2, used: useRetry ? 'retry' : 'original' })
+      if (useRetry) cleaned = cleaned2
+    } catch (err) {
+      console.error('coach voice-retry failed (keeping original):', err)
+    }
+  }
 
   const navMatch = cleaned.match(/\n?NAVIGATE:\s*([\w-]+)\s*$/i)
   const navigateTo = navMatch ? navMatch[1] : null
