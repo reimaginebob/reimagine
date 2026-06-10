@@ -255,7 +255,13 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
-        max_tokens: 1200,
+        // 2000, not 1200: long profile-rich replies (a fully worked resume
+        // markup, a multi-company outreach plan) ran past the 1200-token cap and
+        // were cut off mid-sentence in the baseline battery. 2000 (~8k chars)
+        // clears the longest answers observed (~4.6k chars) with headroom. Cost
+        // and latency rise only for replies that actually use the extra room;
+        // short answers are unaffected.
+        max_tokens: 2000,
         system: [
           { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
           { type: 'text', text: profileBlock },
