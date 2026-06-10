@@ -56,10 +56,16 @@ eq('markdown-decorated trailer line tolerated',
   { feature: 'resume-refresh', text: 'Reply.' })
 eq('non-string input safe', parseSelfcheck(null), { feature: null, text: '' })
 
+// --- community resources: recognized slugs, but prose-only (no button) ---
+eq('career-club-corner -> null (prose-only, no in-app screen)', resolveSelfcheckNavigate('career-club-corner', withLane), null)
+eq('accountability-partner -> null (prose-only)', resolveSelfcheckNavigate('accountability-partner', withLane), null)
+ok('community slugs are in the canonical set',
+  CANONICAL_FEATURE_SLUGS.includes('career-club-corner') && CANONICAL_FEATURE_SLUGS.includes('accountability-partner'))
+
 // --- BUTTON_TARGETS sanity: only the reachable set ---
 ok('BUTTON_TARGETS = the reachable set',
   JSON.stringify([...BUTTON_TARGETS].sort()) === JSON.stringify(['focus', 'income', 'laneSelect', 'op', 'p3']))
-ok('CANONICAL_FEATURE_SLUGS has 10 entries', CANONICAL_FEATURE_SLUGS.length === 10)
+ok('CANONICAL_FEATURE_SLUGS has 12 entries', CANONICAL_FEATURE_SLUGS.length === 12)
 
 console.log(`coach-routing tests: ${pass} passed, ${fail} failed`)
 if (fail > 0) process.exit(1)

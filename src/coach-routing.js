@@ -26,6 +26,11 @@ export const CANONICAL_FEATURE_SLUGS = [
   'personal-brand', 'role-options', 'bridge-story', 'go-to-market',
   'resume-refresh', 'linkedin-remix', 'interview-prep', 'industry-background',
   'income-now', 'opportunity-playbook',
+  // Community resources (not in-app tools): surfaced in prose only, especially
+  // on discouragement turns. They are intentionally absent from STANDALONE_TARGET
+  // and FOCUS_SECTION_SLUGS, so resolveSelfcheckNavigate returns null (no button)
+  // — the Corner pointer is always "register at career.club", never an in-app screen.
+  'career-club-corner', 'accountability-partner',
 ]
 
 // Features that ARE a standalone, always-rendering step. Button always safe.
