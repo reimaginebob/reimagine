@@ -526,10 +526,20 @@ export function stripFrameworkNames(text) {
 function tidyOutput(text) {
   if (typeof text !== 'string' || !text) return text
   let out = text
+  out = out.replace(/\*{4,}/g, '')                       // empty bold left when an intensifier inside **word** was stripped ("**really**" -> "****")
   out = out.replace(/[^\S\n]{2,}/g, ' ')                 // collapse runs of spaces/tabs (not newlines)
+  out = out.replace(/[,;:](\s*)([.!?])/g, '$2')          // drop a comma/semicolon/colon left dangling before a sentence-ender ("Yes,." -> "Yes.")
   out = out.replace(/[^\S\n]+([.,;:!?])/g, '$1')         // drop space before punctuation
   out = out.replace(/(?<!\.)\.\.(?!\.)/g, '.')           // collapse a doubled period (keep ellipsis)
   out = out.replace(/([.!?]\s+|\n{2,})([a-z])/g, (_m, b, c) => b + c.toUpperCase()) // recapitalize sentence starts
+  // Balance an orphaned bold marker: a strip can drop one half of a **bold** span
+  // ("You are a rare one.**"). If the count of ** is odd, remove the last one so
+  // the markdown renders cleanly instead of showing literal asterisks.
+  const boldCount = (out.match(/\*\*/g) || []).length
+  if (boldCount % 2 === 1) {
+    const last = out.lastIndexOf('**')
+    out = out.slice(0, last) + out.slice(last + 2)
+  }
   out = out.replace(/^\s+/, '')                          // trim leading whitespace from a removed opening sentence
   return out
 }
