@@ -59,9 +59,11 @@ assertEq('stripCoachSpeak: "shows up as" -> "looks like"',
   stripCoachSpeak('That capability shows up as cross-functional fluency.'),
   'That capability looks like cross-functional fluency.')
 
-assertEq('stripCoachSpeak: "leverage" -> "use"',
+// "leverage" is deliberately PRESERVED (Bob is fine with it; the swap broke a
+// sentence in the fix-cycle re-run). These assert it passes through untouched.
+assertEq('stripCoachSpeak: "leverage" is preserved (not swapped)',
   stripCoachSpeak('You can leverage your network here.'),
-  'You can use your network here.')
+  'You can leverage your network here.')
 
 assertEq('stripCoachSpeak: "utilize" -> "use"',
   stripCoachSpeak('You can utilize your existing relationships.'),
@@ -73,9 +75,9 @@ assertEq('stripCoachSpeak: "facilitate" -> "support"',
 
 // ---- stripCoachSpeak: case-insensitive matching ------------------------
 
-assertEq('stripCoachSpeak: case-insensitive ("Leverage" capitalized)',
+assertEq('stripCoachSpeak: "Leverage" capitalized is also preserved',
   stripCoachSpeak('Leverage the work you have already done.'),
-  'use the work you have already done.')
+  'Leverage the work you have already done.')
 
 assertEq('stripCoachSpeak: case-insensitive ("Speaks To" mixed case)',
   stripCoachSpeak('That Speaks To something deeper.'),
@@ -99,17 +101,17 @@ assertEq('stripCoachSpeak: "facilitating" -> "supporting" (ing preserved)',
   stripCoachSpeak('She is facilitating the meeting now.'),
   'She is supporting the meeting now.')
 
-assertEq('stripCoachSpeak: "leverages" -> "uses" (s preserved)',
+assertEq('stripCoachSpeak: "leverages" preserved (no inflection swap)',
   stripCoachSpeak('She leverages her network often.'),
-  'She uses her network often.')
+  'She leverages her network often.')
 
-assertEq('stripCoachSpeak: "leveraged" -> "used" (d preserved)',
+assertEq('stripCoachSpeak: "leveraged" preserved',
   stripCoachSpeak('She leveraged her network to land the meeting.'),
-  'She used her network to land the meeting.')
+  'She leveraged her network to land the meeting.')
 
-assertEq('stripCoachSpeak: "leveraging" -> "using" (ing preserved)',
+assertEq('stripCoachSpeak: "leveraging" preserved',
   stripCoachSpeak('She has been leveraging her network for years.'),
-  'She has been using her network for years.')
+  'She has been leveraging her network for years.')
 
 assertEq('stripCoachSpeak: "utilizing" -> "using" (ing preserved)',
   stripCoachSpeak('She has been utilizing her network for years.'),
@@ -147,14 +149,15 @@ assertEq('stripCoachSpeak: non-string unchanged', stripCoachSpeak(42), 42)
 
 // ---- stripCoachSpeak: multi-substitution in one input -----------------
 
-assertEq('stripCoachSpeak: four substitutions in one input',
+assertEq('stripCoachSpeak: multiple substitutions in one input (leverage preserved)',
   stripCoachSpeak('We leverage facilitation in service of utilizing growth.'),
-  'We use facilitation for using growth.')
-// Note: "facilitation" the noun is NOT touched by \bfacilitate\b (correct).
+  'We leverage facilitation for using growth.')
+// Note: "leverage" is preserved; "facilitation" the noun is NOT touched by
+// \bfacilitate\b (correct); "in service of" -> "for"; "utilizing" -> "using".
 
-assertEq('stripCoachSpeak: substitutions across multiple sentences (inflection preserved)',
+assertEq('stripCoachSpeak: substitutions across multiple sentences (leverage preserved)',
   stripCoachSpeak('She leverages her network. The work comes alive in nonprofit settings. That speaks to her conviction.'),
-  'She uses her network. The work thrives in nonprofit settings. That points to her conviction.')
+  'She leverages her network. The work thrives in nonprofit settings. That points to her conviction.')
 
 // ---- applyContaminationPlaceholders: per-substitution positive cases --
 
@@ -645,6 +648,62 @@ assertEq('tidyOutput: adjacent bolds preserved',
 assertEq('tidyOutput: plain bold preserved',
   applyOutputStrippers('This is **important** work.'),
   'This is **important** work.')
+
+// ---- Voice polish bundle (2026-06-10): broadened comparatives -------------
+
+assertEq('stripComparativeStanding: "wider-than-average" keeps the adjective',
+  stripComparativeStanding('You probably have a wider-than-average view of how organizations work.'),
+  'You probably have a wider view of how organizations work.')
+assertEq('stripComparativeStanding: spaced "than average" drops the two words',
+  stripComparativeStanding('You have a broader than average understanding of systems.'),
+  'You have a broader understanding of systems.')
+assertTruthy('stripComparativeStanding: "better than 90% of candidates" dropped',
+  !stripComparativeStanding('Your grandmother notebook is better material than 90% of what candidates lead with.').includes('90%'))
+assertEq('stripComparativeStanding: "people who [Y] simply do not" ranking dropped',
+  stripComparativeStanding('Someone who did all three knows things that people who stayed in one lane for twenty years simply do not.'),
+  'Someone who did all three knows things.')
+assertTruthy('stripComparativeStanding: "than the average candidate" (singular) dropped',
+  !stripComparativeStanding('You bring more polish than the average candidate shows up with.').includes('average candidate'))
+// Markdown-aware: emphasis around the percentage clause still strips.
+assertTruthy('stripComparativeStanding: markdown-wrapped "than 90% of candidates" dropped',
+  !stripComparativeStanding('That is **better material than 90% of candidates** bring.').includes('90%'))
+// Guards: must NOT touch legit constructions.
+assertTruthy('stripComparativeStanding: KEEP "rather than average" construction',
+  stripComparativeStanding('Aim higher rather than average results.').includes('rather than average'))
+assertTruthy('stripComparativeStanding: KEEP a real metric ("more than 30% of plan")',
+  stripComparativeStanding('You grew revenue by more than 30% of plan that year.').includes('more than 30% of plan'))
+assertTruthy('stripComparativeStanding: KEEP object clause "people who do not have a network"',
+  stripComparativeStanding('This is advice that helps people who do not have a network yet.').includes('people who do not have a network'))
+// detectResidualVoice picks up the new forms for the retry loop.
+assertTruthy('detectResidualVoice: flags "wider-than-average"',
+  detectResidualVoice('a wider-than-average view').comparative)
+assertTruthy('detectResidualVoice: flags "than 90% of candidates"',
+  detectResidualVoice('better than 90% of candidates').comparative)
+
+// ---- Voice polish bundle (2026-06-10): source / framework names -----------
+
+assertEq('stripFrameworkNames: "the five P’s" (apostrophe) neutralized',
+  stripFrameworkNames(`The Potential dimension of the five P${AP19}s matters here.`),
+  'The Potential dimension of these points matters here.')
+assertEq('stripFrameworkNames: "the book — STAR" section label neutralized',
+  stripFrameworkNames('The full model is in the book — STAR.'),
+  'The full model is in the methodology.')
+assertEq('stripFrameworkNames: "from the book" dropped',
+  stripFrameworkNames('These attitude principles from the book apply here.'),
+  'These attitude principles apply here.')
+assertEq('stripFrameworkNames: "Phase 1" -> user-facing step name',
+  stripFrameworkNames('If you have not run Phase 1 yet, start there.'),
+  'If you have not run the Personal Brand step yet, start there.')
+assertEq('stripFrameworkNames: "the Making Your Own Weather approach" -> "this approach"',
+  stripFrameworkNames('Use the Making Your Own Weather approach to outreach.'),
+  'Use this approach to outreach.')
+assertEq('stripFrameworkNames: bare "the book" -> "this work"',
+  stripFrameworkNames('The direct outreach model the book describes works.'),
+  'The direct outreach model this work describes works.')
+assertTruthy('stripFrameworkNames: standalone "Making Your Own Weather" neutralized',
+  !stripFrameworkNames('This idea comes from Making Your Own Weather.').includes('Making Your Own Weather'))
+assertTruthy('stripFrameworkNames: "the four C’s" neutralized',
+  !stripFrameworkNames(`Think about the four C${AP19}s here.`).includes('four C'))
 
 // ---- Report ----------------------------------------------------------
 

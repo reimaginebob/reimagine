@@ -24,7 +24,7 @@
 //
 // Inflection-preserving replacer factory. \bword\b in JavaScript regex only
 // matches the bare root because the trailing s/d/ing keeps the word boundary
-// inside the word. To catch "leverages" / "facilitating" / "utilized" while
+// inside the word. To catch "utilizes" / "facilitating" / "utilized" while
 // preserving subject-verb agreement on the replacement, we match the verb
 // stem (silent-e dropped: "utiliz" not "utilize") plus the conjugation
 // suffix, and pick the matching form of the replacement verb.
@@ -51,7 +51,9 @@ export function stripCoachSpeak(text) {
     // silent e so the regex matches "utilize" / "utilizes" / "utilized" /
     // "utilizing" alike; the replacer picks the matching form of the
     // substitute verb so subject-verb agreement and tense survive.
-    inflectionReplacer('leverag', { e: 'use', es: 'uses', ed: 'used', ing: 'using' }),
+    // NOTE: "leverage" is deliberately NOT substituted — Bob is fine with it,
+    // and the earlier "leverage"->"use" swap broke a sentence ("Use the use you
+    // have") in the fix-cycle re-run. Do not re-add it without his sign-off.
     inflectionReplacer('utiliz', { e: 'use', es: 'uses', ed: 'used', ing: 'using' }),
     inflectionReplacer('facilitat', { e: 'support', es: 'supports', ed: 'supported', ing: 'supporting' }),
   ]
@@ -356,11 +358,29 @@ const CMP_INLINE_RE = new RegExp(
   '[^.,;:!?\\n]*?(?=[.,;:!?\\n]|$)',
   'gi'
 )
-const CMP_GROUP_NOUN = '(?:people|professionals|candidates|leaders|others|peers|executives)'
+const CMP_GROUP_NOUN = '(?:people|professionals?|candidates?|leaders?|others?|peers?|executives?)'
 // Trailing "...-er than most people <...>" comparison. "communicated more care
 // than most people show." -> "communicated more care." (?<=\w) keeps it to a
 // trailing clause so it never fires at a sentence start.
-const CMP_THAN_RE = new RegExp('(?<=\\w)\\s+than (?:most|many) ' + CMP_GROUP_NOUN + '\\b[^.,;:!?\\n]*?(?=[.,;:!?\\n]|$)', 'gi')
+const CMP_THAN_RE = new RegExp('(?<=\\w)\\s+than (?:most|many|the average|the typical) ' + CMP_GROUP_NOUN + '\\b[^.,;:!?\\n]*?(?=[.,;:!?\\n]|$)', 'gi')
+// "wider-than-average" / "broader than average" — the bare "than average"
+// ranking with no group noun. Hyphenated form keeps the adjective ("a
+// wider-than-average view" -> "a wider view"); the spaced form drops the two
+// words ("a broader than average understanding" -> "a broader understanding").
+// The rather/other lookbehinds protect the "rather than"/"other than"
+// constructions, where "than average X" is not a comparison.
+const CMP_HYPHEN_AVG_RE = /-than-average\b/gi
+const CMP_THAN_AVG_RE = /(?<!\brather)(?<!\bother)(?<!\bless)\s+than average\b/gi
+// "...better/sharper/more X than 70% of <people-group> ..." — ranking the user
+// against a percentage of a crowd. Scoped to a PERSON group so it never touches
+// a real metric ("grew more than 30% of capacity", "than 50% of customers").
+const CMP_THAN_PCT_RE = /(?<=\w)\s+than\s+\d{1,3}\s?(?:%|percent)\s+of\s+(?:what\s+)?(?:people|persons|professionals|candidates|leaders|peers|executives|others|them|applicants|job\s?seekers)\b[^.,;:!?\n]*?(?=[.,;:!?\n]|$)/gi
+// "...[that] people who [did Y] ... simply do not / cannot / never" — the
+// ranking form where the user does something the named group does not. Requires
+// the negation to sit at the clause end (the verb is elided: "...simply do
+// not."), which is what separates the ranking form from a legitimate clause
+// about a group ("advice that helps people who don't have a network").
+const CMP_PEOPLE_WHO_RE = /(?<=\w)\s+(?:that |which )?(?:the )?people who\b[^.,;:!?\n]*?\b(?:simply\s+|just\s+)?(?:do not|don['’]t|cannot|can['’]t|will not|won['’]t|never)\b(?:\s+either)?\s*(?=[.,;:!?\n]|$)/gi
 // Trailing "...most people would <...>" comparison (the trigger-less "would"
 // excuse shape). "under conditions most people would use as an excuse." ->
 // "under conditions." (?<=\w) and the where/when guards keep it grammar-safe.
@@ -401,6 +421,21 @@ export function stripComparativeStanding(text) {
     count++
     return ''
   })
+  out = out.replace(CMP_THAN_PCT_RE, (match) => {
+    if (looksSourced(match)) return match
+    count++
+    return ''
+  })
+  out = out.replace(CMP_PEOPLE_WHO_RE, (match) => {
+    if (looksSourced(match)) return match
+    count++
+    return ''
+  })
+  // "than average" forms run last and are simple word-level fixes: the
+  // hyphenated form keeps the comparative adjective, the spaced form drops the
+  // two ranking words. tidyOutput collapses any double space they leave.
+  out = out.replace(CMP_HYPHEN_AVG_RE, () => { count++; return '' })
+  out = out.replace(CMP_THAN_AVG_RE, () => { count++; return '' })
   if (count > 0) {
     console.warn(`[stripComparativeStanding] removed ${count} comparative-standing construction${count === 1 ? '' : 's'} from LLM output`)
   }
@@ -480,10 +515,21 @@ export function stripHireabilityVerdict(text) {
 // voice-allow-end
 
 // --- stripFrameworkNames ---------------------------------------------------
-// Voice-gate-fix re-run: framework/chapter naming held poorly on instruction
-// alone. Neutralize the recurring named items, doing what the framework
-// describes in plain language. The book title itself ("Making Your Own Weather")
-// is left intact -- it names a real resource the coach legitimately points to.
+// Voice-gate-fix re-run + voice-polish bundle (2026-06-10): framework/chapter
+// naming and book-pointing held poorly on instruction alone. Neutralize the
+// recurring named items, doing what the framework describes in plain language.
+//
+// Reversal from the prior version: the book itself ("the book" / "Making Your
+// Own Weather") is now neutralized too. Per Bob, the Coach should never point at
+// the book or name it — most users have not read it, and the Coach is not a
+// selling occasion for it. So "Phase N" becomes the user-facing step name,
+// chapter/lesson/section references become "the methodology," and bare "the
+// book" becomes "this work." The book title still lives in the system prompt
+// (the Coach's grounding); this only scrubs it from what the user sees.
+//
+// Order matters: the section-label form ("the book — STAR") is caught before the
+// generic "the book" rules so the label is consumed as a unit, and the specific
+// "the Making Your Own Weather <approach>" form before the bare-title rule.
 //
 // voice-allow
 const FRAMEWORK_SUBS = [
@@ -492,14 +538,31 @@ const FRAMEWORK_SUBS = [
   [/\b(?:one of the )?bonus Ps from the book\b/gi, 'an additional point worth making'],
   [/\bChapter\s+\d+(?:\s+of the book)?\s*\(([^)]+)\)/gi, '$1'],
   [/\s*\(\s*(?:Chapter|Lesson)\s+\d+\w*(?:\s+(?:in|of)\s+the book)?\s*\)/gi, ''],
-  [/\b(?:Chapter|Lesson)\s+\d+\w*\s+(?:in|of)\s+the book\b/gi, 'the book'],
-  [/\b(?:Chapter|Lesson)\s+\d+\w*\b/gi, 'the book'],
+  [/\b(?:Chapter|Lesson)\s+\d+\w*\s+(?:in|of)\s+the book\b/gi, 'the methodology'],
+  [/\b(?:Chapter|Lesson)\s+\d+\w*\b/gi, 'the methodology'],
   [/\bthe KEEL (?:principles?|section|framework|model|idea)\b/gi, 'these attitude principles'],
   [/\bthe KEEL\b/gi, 'the attitude'],
-  [/\bthe (?:Four|4) Cs\b/gi, 'this approach'],
-  [/\bthe Five Ps\b/gi, 'these points'],
+  [/\b(?:the\s+)?(?:Four|4)\s+C['’]?s\b/gi, 'this approach'],
+  [/\b(?:the\s+)?(?:Five|5)\s+P['’]?s\b/gi, 'these points'],
   [/\bQuota of One\b/gi, 'the one-yes idea'],
   [/\bLike-for-Like Fallacy\b/gi, 'that trap'],
+  // Section-label form: "the book — STAR", "the book — People Hire People".
+  // Match the label as 1–4 Title-Case/ALLCAPS words so it stops at the next
+  // lowercase word ("STAR and ..." keeps "and ...").
+  [/\bthe book\s*[—–:-]\s*[A-Z][A-Za-z]*(?:\s+[A-Z][A-Za-z]*){0,3}/g, 'the methodology'],
+  // Phase N -> the user-facing step name (the NAVIGATE table's phase labels).
+  [/\bPhase\s+1\b/gi, 'the Personal Brand step'],
+  [/\bPhase\s+3\b/gi, 'the Bridge Story step'],
+  [/\bPhase\s+4\b/gi, 'the Go-to-Market step'],
+  [/\bPhase\s+5\b/gi, 'the Get Ready steps'],
+  [/\bPhase\s+\d+\b/gi, 'that step'],
+  // "the Making Your Own Weather approach/model/method" -> "this approach" etc.
+  [/\bthe Making Your Own Weather\s+(approach|model|method|methodology|framework|playbook|way)\b/gi, 'this $1'],
+  // Don't point at the book. "from/in the book" drops cleanly; the bare title
+  // and bare "the book" become neutral nouns.
+  [/\s*\b(?:from|in)\s+the book\b/gi, ''],
+  [/\bMaking Your Own Weather\b/g, 'the methodology'],
+  [/\bthe book\b/gi, 'this work'],
 ]
 export function stripFrameworkNames(text) {
   if (typeof text !== 'string' || !text) return text
@@ -629,7 +692,7 @@ export function ensureDistressSupport(userMessage, output) {
 // categories below are exactly the ones the retry targets.
 //
 // voice-allow
-const RESIDUAL_COMPARATIVE_RE = /\b(?:most|many)\s+(?:people|persons|professionals|candidates|leaders|peers|executives|of them|others)\b|\bmost\s+(?:senior|hr|talent|hiring)\b|\bthan most\b|\bunlike (?:most )?(?:other|the average|the typical)\b|\bwhere most\b|\bfewer than most\b/i
+const RESIDUAL_COMPARATIVE_RE = /\b(?:most|many)\s+(?:people|persons|professionals|candidates|leaders|peers|executives|of them|others)\b|\bmost\s+(?:senior|hr|talent|hiring)\b|\bthan most\b|\bunlike (?:most )?(?:other|the average|the typical)\b|\bwhere most\b|\bfewer than most\b|\bthan average\b|-than-average\b|\bthan the (?:average|typical)\b|\bthan\s+\d{1,3}\s?(?:%|percent)\s+of\b|\bpeople who\b[^.\n]{0,60}?\b(?:do not|don['’]t|cannot|can['’]t|never)\b/i
 const RESIDUAL_SINCERITY_RE = /\bfrankly\b|\bcandidly\b|\bthe honest (?:answer|read|reading|truth|take|view|assessment)\b|\bbrutal honesty\b|\bto be honest\b|\b(?:be|being|am being|'?m being) (?:honest|straight) with you\b|\bgive you the honest\b|\bhonest with you\b/i
 export function detectResidualVoice(text) {
   if (typeof text !== 'string' || !text) return { comparative: false, sincerity: false }
