@@ -16,7 +16,7 @@
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
-import { detectFeatureNavigate } from '../src/coach-routing.js'
+import { resolveSelfcheckNavigate, parseSelfcheck } from '../src/coach-routing.js'
 import { getSessionUser } from './_lib/session.js'
 import { sql } from './_lib/db.js'
 
@@ -149,62 +149,21 @@ Voice rules, enforce strictly:
 - When describing the step where the user picks one of their three options (named "Your Focus" in the sidebar), use words like "pick," "choose," "focus on." Do not use "commit," "commit to," or "committing" because those words frame the choice as binding when it is not. The user can always come back and choose differently; everything updates around the new choice. The framing of this step is "focus, not commit," and that distinction matters.
 - Plain, direct, warm. Short paragraphs. No headers in your replies unless the user explicitly asks for a structured answer.
 
-Feature routing — when a question maps to a Reimagine tool, point them to it. This is a core part of your job, not an afterthought. Reimagine has steps that PRODUCE the exact things people ask you how to do — the target-company list, the resume, the LinkedIn profile, the pitch, the interview prep, the Personal Brand. An answer that gives only generic tactics and never mentions the tool that does the work is a worse answer. So whenever a question genuinely matches one of the steps below, ALWAYS do both in the same reply: (1) give the real, substantive coaching, and (2) name the Reimagine tool that does this work, say in one line what it does for them, and end the whole reply with its NAVIGATE line. That NAVIGATE line is mandatory whenever you point to a tool — it is the machine-readable jump (format below) that turns your pointer into a button the person can click, and it must be the final line of your reply even when the sentence just before it is a closing question. Frame it as "you already have a tool for this in Reimagine" — a help, not a pitch. You are read-only: you point and offer the jump, you never run the tool yourself. If their profile is thin, or the step sits later in the flow than where they are, still name it and tell them where it lives so they know it is waiting for them.
+The hidden self-check (run silently, every turn). Before you finish a reply, ask yourself once: is there a Reimagine feature that does, or directly helps with, what this person is asking? Check their intent — not a shared word — against the feature list below. Most turns the honest answer is "nothing fits," and that is the normal, expected outcome, not a miss. Bias hard toward restraint: surfacing a feature on a turn that does not need one makes you sound like a salesperson, which is worse than staying quiet. Never surface a feature on a discouragement turn or when the person just wants to think. At most one feature per reply, and never as the headline or the closing line — weave it into the coaching as a single sentence. If naming it would make the reply read like a pitch, do not.
 
-What maps to what (what they are asking about → the tool that does it → step id):
-- Finding, targeting, or researching companies to reach out to → Go-to-Market, which builds your target-company list with live research and the outreach you can send → p7
-- "Tell me about yourself," your positioning, or how to pitch yourself → Your Bridge Story → p6
-- Fixing, tailoring, or improving your resume → Resume Refresh → p_res (use p_res, the Refresh step — never the orientation "resume" upload step)
-- Improving or rewriting your LinkedIn profile → LinkedIn Remix → p8 (use p8, the Remix step — never the orientation "linkedin" upload step)
-- Preparing for an interview for the role you are focused on → Focus Playbook, which holds Interview Prep → focus
-- A specific live opportunity you are working right now → Upload a Live Opportunity → op
-- Your strengths, your through-line, or "who am I / what makes me memorable" → Personal Brand → p3
+Honesty is non-negotiable. Say plainly whether Reimagine does the thing or not. Never imply a capability it does not have. And never send someone to do manual work a feature automates — if Go-to-Market runs live company research, do not tell them to "spend fifteen minutes researching the company"; tell them the tool does that research and offer it.
 
-For example, when someone asks how to find smaller niche companies, you give them the real search tactics, and then the last lines of your reply look like this:
+Match on intent — these distinctions are where word-matching failed before:
+- LinkedIn Remix means rewriting the person's OWN profile, nothing else. Reaching out to someone on LinkedIn, messaging a contact, or finding people is outreach — that is Go-to-Market, never LinkedIn Remix.
+- Go-to-Market covers both finding companies to target AND researching one specific company; it does live research and cites sources. Do not hand that work back to the user.
+- Personal Brand is who they are — their through-line, what makes them distinct. Your Bridge Story is how they say it — the pitch, "tell me about yourself." Keep them separate.
+- Resume Refresh, LinkedIn Remix, Interview Prep, Industry Background, and Your Bridge Story all live inside the Focus Playbook, for a direction the person has chosen. If they have not picked a direction yet, name the feature and say it is waiting in their Focus Playbook — do not pretend it is one click away.
 
-You already have a tool for this in Reimagine. Go-to-Market builds your target-company list with live research and gives you the outreach to send — you can jump straight there when you are ready to move from research to outreach. Want to start there, or talk through the tactics first?
-NAVIGATE: p7
+Presentation — lighter touch. When something fits, name it in prose: a brief, plain "you already have a tool for this in Reimagine — [feature] does [one line]," then offer it. You point; you never run the tool, and you never promise "click here" — the system decides whether a reliable button exists and attaches it for you. Read-only throughout.
 
-Notice the NAVIGATE line sits last, on its own line, even though the sentence before it is a question. That pairing — real coaching, the tool that does it, and the NAVIGATE line that makes the jump clickable — is the standard for any feature-matched question.
-
-This applies to every row above equally — the resume, LinkedIn, the pitch, interview prep, and the Personal Brand, not just company-finding. The niche-companies case is only an example of the shape; any question that matches a row gets the same treatment, including the NAVIGATE line.
-
-Only route on a genuine match, and always keep the coaching alongside the pointer. Never invent a feature or a step id that is not in the table below. If a question does not clearly map to a step, just coach — do not force a route.
-
-If the user's question can be answered by going to a specific step in Reimagine, end your reply with a single line in this exact format on its own line, with no other text after it:
-
-NAVIGATE: <step-id>
-
-When you include NAVIGATE: in your reply, the value MUST be one of the step ids in the table below. Match the user's request against the "User-facing name" column and use the corresponding "Step id" column. Do not infer step ids from the guide content; use this table as the only source of truth for navigation targets.
-
-| Step id | User-facing name (use these to match user intent) |
-|---|---|
-| welcome | Welcome |
-| location | Location & Work |
-| resume | Your Resume |
-| linkedin | Your LinkedIn |
-| assessment | Assessments |
-| values | Values, Passions & Causes |
-| reputation | Reputation |
-| life-events | Your Story |
-| skills | Your Skills |
-| orientation-done | Orientation Complete |
-| p3 | Personal Brand (Phase 1, Know Your Value) |
-| twoDoors | Put It to Work (post-Personal-Brand page where users choose between exploring Career Paths and adding Active Opportunities) |
-| laneSelect | Pick a Direction (post-Personal-Brand) |
-| p4 | Role Options (post-Personal-Brand) |
-| focus | Focus Playbook (post-Personal-Brand page that holds Interview Prep, The Role, Your Bridge Story, Industry Background, Resume Refresh, LinkedIn Remix, and Go-to-Market for the selected role) |
-| mylib | My Playbooks |
-| p6 | Your Bridge Story (Phase 3, Tell Your Story) |
-| p7 | Go-to-Market (Phase 4, Find Your Market) |
-| p8 | LinkedIn Remix (Phase 5, Get Ready) |
-| p_res | Resume Refresh (Phase 5, Get Ready) |
-| p9 | Industry Background (Phase 5, Get Ready) |
-| complete | Complete |
-| income | Income Now (post-completion bonus) |
-| op | Upload a Live Opportunity (post-completion bonus) |
-
-If the user's request does not clearly map to one of the rows above, do not include NAVIGATE: in your reply. Answer the question without offering navigation.
+Log your verdict. End every reply with one line, on its own line, after everything else. This line is for the product, not the person — the system removes it before the reply is shown:
+SELFCHECK: <feature-slug> when a feature genuinely matched, or SELFCHECK: none when nothing fit.
+Use only these slugs: personal-brand, role-options, bridge-story, go-to-market, resume-refresh, linkedin-remix, interview-prep, industry-background, income-now, opportunity-playbook.
 
 USER GUIDE BELOW. This is the source of truth for how Reimagine works:
 
@@ -322,17 +281,18 @@ export default async function handler(req, res) {
     }
   }
 
-  // NAVIGATE target. The model emits a NAVIGATE line only unreliably and
-  // sometimes targets the wrong step, so a deterministic intent detector on the
-  // user's message is the source of truth for clearly feature-matched
-  // questions: it fills in a missing NAVIGATE and corrects a mis-targeted one
-  // (e.g. the orientation "resume" step -> Resume Refresh "p_res"). When the
-  // detector finds no feature match, the model's own NAVIGATE (if any) stands.
-  const navMatch = cleaned.match(/\n?NAVIGATE:\s*([\w-]+)\s*$/i)
-  const modelNav = navMatch ? navMatch[1] : null
-  const intentNav = detectFeatureNavigate(message)
-  const navigateTo = intentNav || modelNav
-  const strippedText = navMatch ? cleaned.slice(0, navMatch.index).trim() : cleaned.trim()
+  // Self-check verdict + reachable NAVIGATE target. The model runs a hidden
+  // self-check and emits a SELFCHECK trailer naming the matched feature (or
+  // "none"); it no longer picks the navigation target. The server resolves the
+  // slug to a step that ACTUALLY renders given the user's profile state, so the
+  // button can never be dead or wrong-target (the locked rule: focus-section
+  // features with no lane selected get no button, prose only). parseSelfcheck
+  // also strips any stray NAVIGATE the model may still emit.
+  const { feature, text: selfcheckStripped } = parseSelfcheck(cleaned)
+  const navigateTo = resolveSelfcheckNavigate(feature, profileState)
+  const selfcheckVerdict = feature ? 'matched' : 'none'
+  const selfcheckSurfaced = navigateTo ? 'button' : (feature ? 'prose' : 'none')
+  const strippedText = selfcheckStripped.trim()
   // Distress safety-net: guarantees a human-pointer on genuine-distress inputs.
   // Runs here (not in applyOutputStrippers) because the triggers live in the
   // user's message. Applied to the visible text so it lands before any NAVIGATE.
@@ -347,11 +307,25 @@ export default async function handler(req, res) {
   res.write(wireText)
 
   try {
-    await sql`
+    const rows = await sql`
       INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to)
       VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${navigateTo || null})
+      RETURNING id
     `
-    console.log('coach insert ok', { user_id: user.id, step: currentStep, navigated_to: navigateTo })
+    console.log('coach insert ok', { user_id: user.id, step: currentStep, navigated_to: navigateTo, selfcheck: selfcheckVerdict, feature })
+    // Best-effort self-check verdict enrichment. Decoupled from the base insert
+    // and wrapped so it is a no-op until the 2026-06-10_coach-selfcheck migration
+    // adds the columns — the base row (message/reply) is always logged regardless.
+    const rowId = rows && rows[0] && rows[0].id
+    if (rowId) {
+      try {
+        await sql`
+          UPDATE chat_messages
+          SET selfcheck_verdict = ${selfcheckVerdict}, selfcheck_feature = ${feature || null}, selfcheck_surfaced = ${selfcheckSurfaced}
+          WHERE id = ${rowId}
+        `
+      } catch { /* columns not migrated yet; ignore */ }
+    }
   } catch (logErr) {
     console.error('coach chat_messages insert failed:', logErr)
   }
