@@ -328,7 +328,7 @@ const CMP_TRIGGER = "(?:n['’]t\\b|\\bcannot\\b|\\bdo not\\b|\\bdoes not\\b|\\b
 // Yours, optionally led by "When/Where/Now/But/And/So/Yet you", since the model
 // phrases the user-side contrast that way ("...have relationships. Yours run
 // deeper." / "...in receive mode. When you show up trying to help, ...").
-const CMP_YOU_START = "(?:(?:When|Where|Now|But|And|So|Yet)\\s+)?You(?:['’]re|rs|r)?\\b"
+const CMP_YOU_START = "(?:(?:When|Where|Now|But|And|So|Yet)\\s+[Yy]ou(?:['’]re|rs|r)?\\b|You(?:['’]re|rs|r)?\\b)"
 const CMP_GROUP_FIRST_RE = new RegExp(
   '(^|[.!?]' + EMPH + '\\s+|\\n+)' + EMPH +
   '(' + CMP_GROUP + '\\b[^.!?\\n]*?[.!?])' +
