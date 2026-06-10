@@ -6182,7 +6182,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     </div>
-    {signedInUser&&<Chat currentStep={step} onNavigate={nav} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0}/>}
+    {/* The floating bubble and the My Coach sidebar view (the embedded Chat in
+        rStep) share one conversation (chatMessages). Both were mounting on the
+        'myCoach' step, so the same transcript rendered in both surfaces at once.
+        Suppress the bubble on that step: the embedded panel is the single surface
+        there, the bubble is the single surface everywhere else, and the shared
+        state keeps it one continuous conversation across both doors. */}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} onNavigate={nav} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {toast&&<div data-print="hide" role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'#1A2540',color:'#FFFFFF',padding:'12px 22px',borderRadius:8,fontSize:16,fontWeight:500,boxShadow:'0 4px 16px rgba(0,0,0,0.18)',zIndex:1200}}>{toast}</div>}
     {/* ?debug=1 diagnostic footer. Bottom-right corner, low-contrast text.

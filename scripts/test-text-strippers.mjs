@@ -607,6 +607,24 @@ assertTruthy('detectResidualVoice: a refusal does NOT flag',
 assertTruthy('detectResidualVoice: the distress pointer does NOT flag',
   !detectResidualVoice('Reach out to a friend, a counselor, or Bob at bob@career.club.').sincerity)
 
+// ---- tidyOutput cosmetic nits (run-5 battery) -----------------------------
+
+assertEq('tidyOutput: stray ",." collapses to "."',
+  applyOutputStrippers('Health system? Yes,. You would walk in credible.'),
+  'Health system? Yes. You would walk in credible.')
+assertEq('tidyOutput: orphaned ** removed',
+  applyOutputStrippers('You are a rare one.**\n\nHere is what I mean.'),
+  'You are a rare one.\n\nHere is what I mean.')
+assertEq('tidyOutput: empty bold from stripped intensifier removed',
+  applyOutputStrippers('This is **really** important.'),
+  'This is important.')
+assertEq('tidyOutput: adjacent bolds preserved',
+  applyOutputStrippers('**Strategy** and **Culture** matter.'),
+  '**Strategy** and **Culture** matter.')
+assertEq('tidyOutput: plain bold preserved',
+  applyOutputStrippers('This is **important** work.'),
+  'This is **important** work.')
+
 // ---- Report ----------------------------------------------------------
 
 if (failed > 0) {
