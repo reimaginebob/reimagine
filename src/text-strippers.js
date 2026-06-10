@@ -591,13 +591,24 @@ export function stripFabricatedMarketData(text) {
 // disclaimer). The wording is permission-giving and matches the coach's register.
 //
 // voice-allow
-const DISTRESS_TRIGGER_RE = /\b(?:don['’]?t|do not|can['’]?t)\s+(?:really\s+|even\s+|quite\s+|always\s+|honestly\s+)?see\s+(?:the|any|a|much)\s+point\b|\bwhat['’]?s\s+the\s+point\b|\bno\s+point\s+(?:in|to|anymore|any\s?more|doing)\b|\bcan['’]?t\s+(?:go on|keep going|keep doing this|do this anymore|take (?:it|this) anymore|keep going on|keep doing this)\b|\bgiving up\b|\bwant to give up\b|\bhopeless\b|\bwhat['’]?s the use\b|\bdon['’]?t want to (?:go on|be here|do this anymore|keep going)\b|\bnothing matters\b|\blosing the will\b|\bfalling apart\b|\bbreaking down\b|\bat the end of my rope\b|\bcan['’]?t keep doing this\b|\bcan['’]?t keep going\b/i
-const HUMAN_POINTER_RE = /\b(?:counselor|therapist|therapy|a friend|your friend|a partner|your partner|loved one|someone you trust|a real human|talk to someone|reach out to someone|professional(?: help| support)|bob@career\.club|lean on someone|a human in your corner|a trusted)\b/i
+const DISTRESS_TRIGGER_RE = /\b(?:don['’]?t|do not|can['’]?t)\s+(?:really\s+|even\s+|quite\s+|always\s+|honestly\s+)?see\s+(?:the|any|a|much)\s+point\b|\bwhat['’]?s\s+the\s+point\b|\bno\s+point\s+(?:in|to|anymore|any\s?more|doing)\b|\bcan['’]?t\s+(?:go on|keep going|keep doing this|do this anymore|take (?:it|this) anymore|keep going on|keep doing this)\b|\bgiving up\b|\bwant to give up\b|\bhopeless\b|\bwhat['’]?s the use\b|\bdon['’]?t want to (?:go on|be here|do this anymore|keep going)\b|\bnothing matters\b|\blosing the will\b|\bfalling apart\b|\bbreaking down\b|\bat the end of my rope\b|\bcan['’]?t keep doing this\b|\bcan['’]?t keep going\b|\bworth\s+(?:continuing|going on|carrying on|keeping going|keeping on)\b/i
+// SUPPORT_POINTER_RE is the idempotence guard: it must match ONLY a genuine
+// SUPPORT pointer (a friend, a counselor/therapist, a loved one, professional
+// help, or Bob), so the floor does not stand down on a reply that merely
+// mentions a person or a networking contact. The prior version counted generic
+// human references ("talk to someone", "reach out to someone", "someone you
+// trust", "a real human", "a trusted ...", "a/your partner") as satisfied
+// pointers; on richer replies that suggested networking ("coffee with someone
+// in your network") that false-positive skipped the real support pointer
+// (read-only production battery, 2026-06-10). Kept narrow on purpose: the
+// DISTRESS_POINTER below names "a friend" and "a counselor", so appending it
+// once is still idempotent under this tighter guard.
+const SUPPORT_POINTER_RE = /\b(?:counselor|therapist|therapy|a friend|your friend|loved one|professional(?: help| support)|bob@career\.club|a human in your corner)\b/i
 const DISTRESS_POINTER = " And one more thing, because it matters more than any of the tactics: if this is heavier than ordinary job-search frustration, please reach out to someone you trust today — a friend, a partner, or a counselor. You can also reach Bob directly at bob@career.club. You don't have to carry this alone."
 export function ensureDistressSupport(userMessage, output) {
   if (typeof output !== 'string') return output
   if (typeof userMessage !== 'string' || !DISTRESS_TRIGGER_RE.test(userMessage)) return output
-  if (HUMAN_POINTER_RE.test(output)) return output
+  if (SUPPORT_POINTER_RE.test(output)) return output
   console.warn('[ensureDistressSupport] distress trigger matched and reply lacked a human-pointer; appended one')
   return output.replace(/\s*$/, '') + '\n\n' + DISTRESS_POINTER.trim()
 }
