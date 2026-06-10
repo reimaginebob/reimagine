@@ -51,13 +51,15 @@ assertEq('stripCoachSpeak: "comes alive in" -> "thrives in"',
   stripCoachSpeak('She comes alive in mission-driven work.'),
   'She thrives in mission-driven work.')
 
-assertEq('stripCoachSpeak: "speaks to" -> "points to"',
+// "speaks to" / "shows up as" / "facilitate" swaps removed (ordinary English,
+// meaning-drift risk) — these assert the phrases now pass through untouched.
+assertEq('stripCoachSpeak: "speaks to" is preserved (swap removed)',
   stripCoachSpeak('This speaks to the broader pattern.'),
-  'This points to the broader pattern.')
+  'This speaks to the broader pattern.')
 
-assertEq('stripCoachSpeak: "shows up as" -> "looks like"',
+assertEq('stripCoachSpeak: "shows up as" is preserved (swap removed)',
   stripCoachSpeak('That capability shows up as cross-functional fluency.'),
-  'That capability looks like cross-functional fluency.')
+  'That capability shows up as cross-functional fluency.')
 
 // "leverage" is deliberately PRESERVED (Bob is fine with it; the swap broke a
 // sentence in the fix-cycle re-run). These assert it passes through untouched.
@@ -69,9 +71,9 @@ assertEq('stripCoachSpeak: "utilize" -> "use"',
   stripCoachSpeak('You can utilize your existing relationships.'),
   'You can use your existing relationships.')
 
-assertEq('stripCoachSpeak: "facilitate" -> "support"',
+assertEq('stripCoachSpeak: "facilitate" is preserved (swap removed)',
   stripCoachSpeak('A program manager facilitate the cross-team work.'),
-  'A program manager support the cross-team work.')
+  'A program manager facilitate the cross-team work.')
 
 // ---- stripCoachSpeak: case-insensitive matching ------------------------
 
@@ -79,27 +81,28 @@ assertEq('stripCoachSpeak: "Leverage" capitalized is also preserved',
   stripCoachSpeak('Leverage the work you have already done.'),
   'Leverage the work you have already done.')
 
-assertEq('stripCoachSpeak: case-insensitive ("Speaks To" mixed case)',
+assertEq('stripCoachSpeak: case-insensitive "Speaks To" also preserved',
   stripCoachSpeak('That Speaks To something deeper.'),
-  'That points to something deeper.')
+  'That Speaks To something deeper.')
 
 // ---- stripCoachSpeak: word boundaries + inflection preservation -------
 
-assertEq('stripCoachSpeak: "facilitator" is NOT touched (word boundary blocks)',
+assertEq('stripCoachSpeak: "facilitator" untouched',
   stripCoachSpeak('A facilitator runs the workshop.'),
   'A facilitator runs the workshop.')
 
-assertEq('stripCoachSpeak: "facilitates" -> "supports" (s preserved)',
+// "facilitate" swap removed — all inflections now pass through untouched.
+assertEq('stripCoachSpeak: "facilitates" preserved (swap removed)',
   stripCoachSpeak('She facilitates the meeting weekly.'),
-  'She supports the meeting weekly.')
+  'She facilitates the meeting weekly.')
 
-assertEq('stripCoachSpeak: "facilitated" -> "supported" (d preserved)',
+assertEq('stripCoachSpeak: "facilitated" preserved (swap removed)',
   stripCoachSpeak('She facilitated the meeting last week.'),
-  'She supported the meeting last week.')
+  'She facilitated the meeting last week.')
 
-assertEq('stripCoachSpeak: "facilitating" -> "supporting" (ing preserved)',
+assertEq('stripCoachSpeak: "facilitating" preserved (swap removed)',
   stripCoachSpeak('She is facilitating the meeting now.'),
-  'She is supporting the meeting now.')
+  'She is facilitating the meeting now.')
 
 assertEq('stripCoachSpeak: "leverages" preserved (no inflection swap)',
   stripCoachSpeak('She leverages her network often.'),
@@ -157,7 +160,7 @@ assertEq('stripCoachSpeak: multiple substitutions in one input (leverage preserv
 
 assertEq('stripCoachSpeak: substitutions across multiple sentences (leverage preserved)',
   stripCoachSpeak('She leverages her network. The work comes alive in nonprofit settings. That speaks to her conviction.'),
-  'She leverages her network. The work thrives in nonprofit settings. That points to her conviction.')
+  'She leverages her network. The work thrives in nonprofit settings. That speaks to her conviction.')
 
 // ---- applyContaminationPlaceholders: per-substitution positive cases --
 

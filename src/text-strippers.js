@@ -24,7 +24,7 @@
 //
 // Inflection-preserving replacer factory. \bword\b in JavaScript regex only
 // matches the bare root because the trailing s/d/ing keeps the word boundary
-// inside the word. To catch "utilizes" / "facilitating" / "utilized" while
+// inside the word. To catch "utilizes" / "utilized" / "utilizing" while
 // preserving subject-verb agreement on the replacement, we match the verb
 // stem (silent-e dropped: "utiliz" not "utilize") plus the conjugation
 // suffix, and pick the matching form of the replacement verb.
@@ -45,17 +45,15 @@ export function stripCoachSpeak(text) {
     [/\bin service of\b/gi, 'for'],
     [/\btrace that line\b/gi, 'follow that'],
     [/\bcomes alive in\b/gi, 'thrives in'],
-    [/\bspeaks to\b/gi, 'points to'],
-    [/\bshows up as\b/gi, 'looks like'],
-    // Inflection-preserving substitutions for -e verbs. The stem omits the
+    // Inflection-preserving substitution for the -ize verb. The stem omits the
     // silent e so the regex matches "utilize" / "utilizes" / "utilized" /
     // "utilizing" alike; the replacer picks the matching form of the
     // substitute verb so subject-verb agreement and tense survive.
-    // NOTE: "leverage" is deliberately NOT substituted — Bob is fine with it,
-    // and the earlier "leverage"->"use" swap broke a sentence ("Use the use you
-    // have") in the fix-cycle re-run. Do not re-add it without his sign-off.
+    // NOTE: several swaps were deliberately removed because they target ordinary
+    // English and risk meaning drift: "leverage"->"use" (broke "Use the use you
+    // have"), and "speaks to"->"points to" / "shows up as"->"looks like" /
+    // "facilitate"->"support". Do not re-add any of these without Bob's sign-off.
     inflectionReplacer('utiliz', { e: 'use', es: 'uses', ed: 'used', ing: 'using' }),
-    inflectionReplacer('facilitat', { e: 'support', es: 'supports', ed: 'supported', ing: 'supporting' }),
   ]
   for (const [re, repl] of subs) {
     const before = out
