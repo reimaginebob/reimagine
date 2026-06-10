@@ -16,6 +16,7 @@
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
+import { detectFeatureNavigate } from '../src/coach-routing.js'
 import { getSessionUser } from './_lib/session.js'
 import { sql } from './_lib/db.js'
 
@@ -309,8 +310,16 @@ export default async function handler(req, res) {
     }
   }
 
+  // NAVIGATE target. The model emits a NAVIGATE line only unreliably and
+  // sometimes targets the wrong step, so a deterministic intent detector on the
+  // user's message is the source of truth for clearly feature-matched
+  // questions: it fills in a missing NAVIGATE and corrects a mis-targeted one
+  // (e.g. the orientation "resume" step -> Resume Refresh "p_res"). When the
+  // detector finds no feature match, the model's own NAVIGATE (if any) stands.
   const navMatch = cleaned.match(/\n?NAVIGATE:\s*([\w-]+)\s*$/i)
-  const navigateTo = navMatch ? navMatch[1] : null
+  const modelNav = navMatch ? navMatch[1] : null
+  const intentNav = detectFeatureNavigate(message)
+  const navigateTo = intentNav || modelNav
   const strippedText = navMatch ? cleaned.slice(0, navMatch.index).trim() : cleaned.trim()
   // Distress safety-net: guarantees a human-pointer on genuine-distress inputs.
   // Runs here (not in applyOutputStrippers) because the triggers live in the
