@@ -576,34 +576,40 @@ assertTruthy('stripComparativeStanding: trailing "most people would ..." dropped
 assertTruthy('stripComparativeStanding: KEEP where-clause',
   stripComparativeStanding('environments where most people just manage process.').includes('where most people just manage'))
 
-// Distress safety-net.
-assertTruthy('ensureDistressSupport: appends a human-pointer when trigger fires and none present',
-  ensureDistressSupport(`Some days I don${AP19}t really see the point of any of it anymore.`, 'I hear you. One small step?').includes('bob@career.club'))
-assertTruthy('ensureDistressSupport: does NOT double up when a pointer is already present',
-  !ensureDistressSupport(`I don${AP19}t see the point anymore.`, 'Reach out to a counselor or someone you trust.').includes('bob@career.club'))
+// Distress safety-net — calibrated 2026-06-10. Fires ONLY on explicit,
+// unambiguous beyond-job-search language (self-harm / not wanting to be alive).
+// Ordinary search fatigue is discouragement and is coached by the prompt, NOT
+// handed off here. The appended pointer contains the stable phrase "carry that
+// alone".
+const DP = 'carry that alone'
+// Fires on explicit signals, appends the (single) pointer when none present:
+assertTruthy('ensureDistressSupport: fires on explicit "want to die"',
+  ensureDistressSupport('Honestly some days I just want to die.', 'I hear you.').includes(DP))
+assertTruthy('ensureDistressSupport: fires on "better off dead"',
+  ensureDistressSupport('I feel like everyone would be better off dead at this point.', 'I hear you.').includes(DP))
+assertTruthy('ensureDistressSupport: fires on "don\'t want to be alive"',
+  ensureDistressSupport(`Some mornings I don${AP19}t want to be alive.`, 'I hear you.').includes(DP))
+
+// Does NOT fire on ordinary search fatigue — these get coached, not handed off:
+assertTruthy('ensureDistressSupport: "can\'t keep doing this" is fatigue, NOT distress',
+  !ensureDistressSupport(`I don${AP19}t know if I can keep doing this.`, 'A hard week. One small step?').includes(DP))
+assertTruthy('ensureDistressSupport: "wonder if it is even worth continuing" is fatigue, NOT distress',
+  !ensureDistressSupport(`Some days I wonder if it${AP19}s even worth continuing.`, 'A hard week. One small step?').includes(DP))
+assertTruthy('ensureDistressSupport: "I am exhausted / not sure it is worth it" is fatigue',
+  !ensureDistressSupport(`I am exhausted and I don${AP19}t know if it is worth it.`, 'A hard week. One small step?').includes(DP))
+assertTruthy('ensureDistressSupport: "don\'t see the point anymore" is fatigue, NOT distress',
+  !ensureDistressSupport(`I don${AP19}t see the point anymore.`, 'A hard week. One small step?').includes(DP))
+
+// Guard: "don't want to die" affirms life — must NOT fire.
+assertTruthy('ensureDistressSupport: "don\'t want to die" does NOT fire (affirming)',
+  !ensureDistressSupport(`I don${AP19}t want to die wondering what if, so I keep going.`, 'Good. One small step?').includes(DP))
+
+// Idempotence: a reply that already names a genuine support pointer is not duplicated.
+assertTruthy('ensureDistressSupport: genuine "a friend or a counselor" pointer is NOT duplicated',
+  !ensureDistressSupport('Some days I just want to die.', 'Please talk to a friend or a counselor about how heavy this feels.').includes(DP))
+// No-op on a plain question.
 assertTruthy('ensureDistressSupport: no-op on a non-distress message',
   ensureDistressSupport('How do I write my resume?', 'Here is how.') === 'Here is how.')
-
-// 2026-06-10: "worth continuing" style phrasing must trigger the floor. The
-// read-only production battery sent "Some days I wonder if it's even worth
-// continuing." and the deterministic floor never engaged because the trigger
-// list lacked this phrasing.
-assertTruthy('ensureDistressSupport: "wonder if it is even worth continuing" triggers the floor',
-  ensureDistressSupport(`Some days I wonder if it${AP19}s even worth continuing.`, 'Here is one small step for today.').includes('bob@career.club'))
-
-// 2026-06-10: a reply that suggests NETWORKING people ("someone in your
-// network", "coffee with someone") must NOT count as a satisfied support
-// pointer — the real support pointer still gets appended. This is the rich-
-// profile regression from the production battery.
-assertTruthy('ensureDistressSupport: networking "someone in your network" does NOT satisfy the floor',
-  ensureDistressSupport(`Some days I wonder if it${AP19}s even worth continuing.`, 'Have one coffee with someone in your network this week, and give yourself that grace.').includes('bob@career.club'))
-assertTruthy('ensureDistressSupport: generic "reach out to someone" (networking) does NOT satisfy the floor',
-  ensureDistressSupport(`Some days I wonder if it${AP19}s even worth continuing.`, 'Reach out to someone in your network and ask for one introduction.').includes('bob@career.club'))
-
-// 2026-06-10: a reply that ALREADY names a genuine support pointer ("a friend
-// or a counselor") must NOT get a duplicate.
-assertTruthy('ensureDistressSupport: genuine "a friend or a counselor" pointer is NOT duplicated',
-  !ensureDistressSupport(`Some days I wonder if it${AP19}s even worth continuing.`, 'Please talk to a friend or a counselor about how heavy this feels.').includes('bob@career.club'))
 
 // ---- Voice-gate-fix re-run #3: contrast-subject comparatives + give-honest ----
 

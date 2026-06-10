@@ -641,18 +641,20 @@ export function stripFabricatedMarketData(text) {
 // voice-allow-end
 
 // --- ensureDistressSupport -------------------------------------------------
-// Deterministic floor for the distress boundary. Instruction alone regressed:
-// on "some days I don't see the point anymore" the coach stayed warm but did not
-// point the person to a human. This guarantees the pointer. It needs the USER's
-// message (the triggers live in the input), so it runs in api/coach.js after the
-// output strippers, NOT inside applyOutputStrippers.
-//
-// If the user's message matches a genuine-distress trigger AND the reply does not
-// already name a human to reach out to, append one warm sentence (not a bolted-on
-// disclaimer). The wording is permission-giving and matches the coach's register.
+// Deterministic floor for the distress boundary — a minimal common-sense touch,
+// NOT a prominent system (calibration 2026-06-10). This is a job-search coaching
+// tool, not a crisis line, so ordinary search fatigue ("I don't know if I can
+// keep doing this," "I'm exhausted," "I don't know if it's even worth it") is
+// DISCOURAGEMENT and gets coached by the prompt's discouragement response — it
+// must NOT trip this net. The trigger now fires ONLY on explicit, unambiguous
+// language that goes beyond a job search (self-harm / not wanting to be alive).
+// On that rare case, append one natural line pointing toward a person they trust;
+// the coach then returns to coaching. It needs the USER's message (the triggers
+// live in the input), so it runs in api/coach.js after the output strippers, NOT
+// inside applyOutputStrippers.
 //
 // voice-allow
-const DISTRESS_TRIGGER_RE = /\b(?:don['’]?t|do not|can['’]?t)\s+(?:really\s+|even\s+|quite\s+|always\s+|honestly\s+)?see\s+(?:the|any|a|much)\s+point\b|\bwhat['’]?s\s+the\s+point\b|\bno\s+point\s+(?:in|to|anymore|any\s?more|doing)\b|\bcan['’]?t\s+(?:go on|keep going|keep doing this|do this anymore|take (?:it|this) anymore|keep going on|keep doing this)\b|\bgiving up\b|\bwant to give up\b|\bhopeless\b|\bwhat['’]?s the use\b|\bdon['’]?t want to (?:go on|be here|do this anymore|keep going)\b|\bnothing matters\b|\blosing the will\b|\bfalling apart\b|\bbreaking down\b|\bat the end of my rope\b|\bcan['’]?t keep doing this\b|\bcan['’]?t keep going\b|\bworth\s+(?:continuing|going on|carrying on|keeping going|keeping on)\b/i
+const DISTRESS_TRIGGER_RE = /\bkill(?:ing)? myself\b|\bend (?:my life|it all|my own life)\b|\btak(?:e|ing) my (?:own )?life\b|(?<!don['’]?t\s)(?<!do not\s)\bwant to (?:die|be dead)\b|\bwish I (?:were|was) dead\b|\bbetter off (?:dead|without me)\b|\bdon['’]?t want to (?:be alive|live)\b|\bno reason to (?:live|be alive)\b|\bnothing to live for\b|\bnot worth living\b|\b(?:hurt|harm)(?:ing)? myself\b|\bsuicid(?:e|al)\b|\blosing the will to live\b|\bcan['’]?t go on living\b/i
 // SUPPORT_POINTER_RE is the idempotence guard: it must match ONLY a genuine
 // SUPPORT pointer (a friend, a counselor/therapist, a loved one, professional
 // help, or Bob), so the floor does not stand down on a reply that merely
@@ -665,7 +667,7 @@ const DISTRESS_TRIGGER_RE = /\b(?:don['’]?t|do not|can['’]?t)\s+(?:really\s+
 // DISTRESS_POINTER below names "a friend" and "a counselor", so appending it
 // once is still idempotent under this tighter guard.
 const SUPPORT_POINTER_RE = /\b(?:counselor|therapist|therapy|a friend|your friend|loved one|professional(?: help| support)|bob@career\.club|a human in your corner)\b/i
-const DISTRESS_POINTER = " And one more thing, because it matters more than any of the tactics: if this is heavier than ordinary job-search frustration, please reach out to someone you trust today — a friend, a partner, or a counselor. You can also reach Bob directly at bob@career.club. You don't have to carry this alone."
+const DISTRESS_POINTER = " One more thing, and it matters more than any job-search tactic: what you're describing sounds heavier than a hard week of searching — please talk to someone you trust about it, a friend, someone close to you, or a counselor. You're not meant to carry that alone."
 export function ensureDistressSupport(userMessage, output) {
   if (typeof output !== 'string') return output
   if (typeof userMessage !== 'string' || !DISTRESS_TRIGGER_RE.test(userMessage)) return output
