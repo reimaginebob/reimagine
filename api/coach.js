@@ -15,7 +15,7 @@
 
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
-import { applyOutputStrippers } from '../src/text-strippers.js'
+import { applyOutputStrippers, ensureDistressSupport } from '../src/text-strippers.js'
 import { getSessionUser } from './_lib/session.js'
 import { sql } from './_lib/db.js'
 
@@ -268,7 +268,11 @@ export default async function handler(req, res) {
 
   const navMatch = cleaned.match(/\n?NAVIGATE:\s*([\w-]+)\s*$/i)
   const navigateTo = navMatch ? navMatch[1] : null
-  const visibleText = navMatch ? cleaned.slice(0, navMatch.index).trim() : cleaned.trim()
+  const strippedText = navMatch ? cleaned.slice(0, navMatch.index).trim() : cleaned.trim()
+  // Distress safety-net: guarantees a human-pointer on genuine-distress inputs.
+  // Runs here (not in applyOutputStrippers) because the triggers live in the
+  // user's message. Applied to the visible text so it lands before any NAVIGATE.
+  const visibleText = ensureDistressSupport(message, strippedText)
   // Re-attach the NAVIGATE trailer (on its own line) so the client's existing
   // parser can read and strip it exactly as it does for the help chat.
   const wireText = navigateTo ? `${visibleText}\nNAVIGATE: ${navigateTo}` : visibleText

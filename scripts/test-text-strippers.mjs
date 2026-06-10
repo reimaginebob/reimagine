@@ -11,7 +11,7 @@
 //   2. applyContaminationPlaceholders: each of the 5 placeholders applies
 //      on its target phrase; clean input passes through unchanged.
 
-import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers, stripComparativeStanding, stripIntensifiers, stripHireabilityVerdict, stripFrameworkNames, applyOutputStrippers } from '../src/text-strippers.mjs'
+import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers, stripComparativeStanding, stripIntensifiers, stripHireabilityVerdict, stripFrameworkNames, stripFabricatedMarketData, ensureDistressSupport, applyOutputStrippers } from '../src/text-strippers.mjs'
 
 const AP19 = String.fromCharCode(0x2019) // typographic apostrophe the model emits
 
@@ -531,6 +531,52 @@ assertTruthy('stripFrameworkNames: Rock’s Fab Five neutralized',
 assertEq('applyOutputStrippers: tidy recapitalizes the not-because artifact',
   applyOutputStrippers('You can keep doing this not because it is easy, but because you have before.'),
   'You can keep doing this because you have before.')
+
+// ---- Voice-gate-fix re-run #2 (2026-06-09c) -------------------------------
+
+// Fragment-free + markdown-aware logic-flip.
+assertEq('stripLogicFlipCadence: cleft "What they are not is X. They are Y." -> keep Y whole (no fragment)',
+  stripLogicFlipCadence('What they are not is a verdict on your worth. They are a signal about fit.'),
+  'They are a signal about fit.')
+assertEq('stripLogicFlipCadence: markdown-wrapped not ("is **not** X. It is Y.") reconstructs subject',
+  stripLogicFlipCadence('What you feel is **not** evidence. It is the silence talking.'),
+  'What you feel is the silence talking.')
+assertTruthy('stripLogicFlipCadence: contracted still works after the rework',
+  stripLogicFlipCadence(`That${AP19}s not weakness. It${AP19}s being human.`).trim() === `It${AP19}s being human.`)
+
+// Verdict adverb + odds breadth.
+assertTruthy('stripHireabilityVerdict: "a very strong candidate" (adverb)',
+  !stripHireabilityVerdict(`You${AP19}re a very strong candidate for VP TA roles.`).includes('very strong candidate'))
+assertTruthy('stripHireabilityVerdict: "the odds are as high as they get"',
+  !stripHireabilityVerdict('The odds here are as high as they get. You are the profile.').includes('as high as they get'))
+assertTruthy('stripHireabilityVerdict: KEEP conditional with adverb',
+  stripHireabilityVerdict(`Whether you${AP19}re a very strong candidate depends on the role.`).includes('Whether you'))
+
+// Market-data floor.
+assertTruthy('stripFabricatedMarketData: drops asserted salary figure',
+  !stripFabricatedMarketData('The average salary for that role is $185,000. Here is more.').includes('$185,000'))
+assertTruthy('stripFabricatedMarketData: drops hiring-odds percentage',
+  !stripFabricatedMarketData('You have a 70% chance of landing a role this quarter.').includes('70% chance'))
+assertTruthy('stripFabricatedMarketData: KEEPS profile numbers ($4.2M, 22% to 9%)',
+  stripFabricatedMarketData('You saved $4.2M and cut declines from 22% to 9%.') === 'You saved $4.2M and cut declines from 22% to 9%.')
+
+// KEEL section + than/would comparatives.
+assertTruthy('stripFrameworkNames: "the KEEL section" neutralized',
+  !stripFrameworkNames('Re-read the KEEL section now.').includes('KEEL'))
+assertTruthy('stripComparativeStanding: trailing "than most people show" dropped',
+  !stripComparativeStanding(`you${AP19}ve communicated more care than most people show.`).includes('most people'))
+assertTruthy('stripComparativeStanding: trailing "most people would ..." dropped',
+  !stripComparativeStanding('execution under conditions most people would use as an excuse.').includes('most people'))
+assertTruthy('stripComparativeStanding: KEEP where-clause',
+  stripComparativeStanding('environments where most people just manage process.').includes('where most people just manage'))
+
+// Distress safety-net.
+assertTruthy('ensureDistressSupport: appends a human-pointer when trigger fires and none present',
+  ensureDistressSupport(`Some days I don${AP19}t really see the point of any of it anymore.`, 'I hear you. One small step?').includes('bob@career.club'))
+assertTruthy('ensureDistressSupport: does NOT double up when a pointer is already present',
+  !ensureDistressSupport(`I don${AP19}t see the point anymore.`, 'Reach out to a counselor or someone you trust.').includes('bob@career.club'))
+assertTruthy('ensureDistressSupport: no-op on a non-distress message',
+  ensureDistressSupport('How do I write my resume?', 'Here is how.') === 'Here is how.')
 
 // ---- Report ----------------------------------------------------------
 
