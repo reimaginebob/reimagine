@@ -3150,6 +3150,10 @@ export default function PivotEngine(){
   const[updateBannerDismissed,setUpdateBannerDismissed]=useState(false)
   const[voiceMigBanner,setVoiceMigBanner]=useState(false)
   const[voiceBannerDismissed,setVoiceBannerDismissed]=useState(false)
+  // One-time My Coach intro banner. seenCoachIntro rides in the autosave blob
+  // (synced profile_state + pe_v4 mirror) so "once" holds across devices, set on
+  // either dismissal or click-through.
+  const[seenCoachIntro,setSeenCoachIntro]=useState(false)
   const voiceMigCheckedRef=useRef(false)
   const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p}}catch{}return[{role:'assistant',content:"Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you."}]})
   const[showPulse,setShowPulse]=useState(false)
@@ -3196,7 +3200,7 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
   // Hydrate the saved playbooks set from its own localStorage key on mount.
   // Demo mode skips persistence; test mode wipes the key so test sessions
   // start clean (mirrors the pe_v4 gating one line up).
@@ -3217,7 +3221,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
@@ -3283,7 +3287,7 @@ export default function PivotEngine(){
     if(deletingRef.current)return
     setSaveStatus('saving')
     try{
-      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks})
+      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks,seenCoachIntro})
       localStorage.setItem('pe_v4',blob)
       if(signedInUser){
         try{const r=await fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob});if(!r.ok)throw new Error('save_failed')}catch{setSaveStatus('error');return}
@@ -3291,7 +3295,7 @@ export default function PivotEngine(){
       setLastSaveAt(Date.now())
       setSaveStatus('saved')
     }catch{setSaveStatus('error')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks,signedInUser,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks,seenCoachIntro,signedInUser,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // savedPlaybooks rides in the autosave blob above (PUT to /api/profile/save)
@@ -6147,6 +6151,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <span>A newer version is ready. Reload when you're at a good stopping point.</span>
         <button onClick={versionCheck.reload} style={{background:'#FFFFFF',color:C.gold,border:'none',borderRadius:4,padding:'4px 12px',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Reload</button>
         <button onClick={()=>setUpdateBannerDismissed(true)} aria-label="Dismiss" style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>×</button>
+      </div>}
+      {/* One-time My Coach intro banner. Same slot/pattern as the version
+          banner above. Gated to signed-in, post-orientation (Personal Brand
+          done) users — the same audience as the My Coach sidebar item — and
+          hidden on the Coach page itself. Dismissing the × OR clicking Try it
+          sets seenCoachIntro, which persists in the synced profile_state (and
+          the pe_v4 localStorage mirror), so it never returns on any device. */}
+      {signedInUser&&!isDemo&&done.includes('p3')&&step!=='myCoach'&&!seenCoachIntro&&<div data-print="hide" role="region" aria-label="My Coach announcement" style={{background:C.gold,color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:16,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12,flexWrap:'wrap',flexShrink:0}}>
+        <span><strong>New: My Coach.</strong> Ask anything about your search — networking, interviews, your resume, or just a tough day — and get guidance built on your profile.</span>
+        <button onClick={()=>{setSeenCoachIntro(true);nav('myCoach')}} style={{background:'#FFFFFF',color:C.gold,border:'none',borderRadius:4,padding:'4px 14px',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Try it</button>
+        <button onClick={()=>setSeenCoachIntro(true)} aria-label="Dismiss" style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>×</button>
       </div>}
       <div style={{display:'flex',flex:1,minHeight:0}}>
         <div data-print="hide" style={{width:260,background:'#1A2540',borderRight:'1px solid #0F1A30',padding:'16px 0',overflowY:'auto',flexShrink:0}}>
