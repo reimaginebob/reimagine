@@ -216,12 +216,16 @@ const SINCERITY_MID_RE = /\b(?:I need to be (?:honest|straight) with you|I['’]
 const BRUTAL_HONESTY_RE = /(^|[.!?]\s+|\n+)(?:and\s+)?(?:this|here) is where (?:brutal|radical|real|total|complete) honesty comes in[.:]?\s*/gi
 const HERES_HONEST_RE = /(^|[.!?]\s+|\n+)(?:so,?\s+)?here(?:['’]s| is) the honest (?:answer|read|reading|truth|take|view)\b(?::\s*|\s+is\s+that\s+|\s*[—–-]\s*)?/gi
 const HONEST_HEADER_RE = /(^|\n)#{1,6}\s*the honest (?:read|reading|answer|truth|take|view)[^\n]*(?=\n|$)/gi
+// "I'll give you the honest read." / "Let me give you the honest take." -- a
+// throat-clear sentence announcing honesty; drop the whole sentence.
+const GIVE_HONEST_RE = /(^|[.!?]\s+|\n+)(?:I['’]?ll\s+|I will\s+|let me\s+|so\s+)?give you the honest (?:read|reading|answer|truth|take|view|assessment|appraisal)\b[^.!?\n]*?[.!?]\s*/gi
 export function stripSincerityQualifiers(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1)
   let out = text
   out = out.replace(HONEST_HEADER_RE, (_match, lead) => { count++; return lead })
+  out = out.replace(GIVE_HONEST_RE, (_match, lead) => { count++; return lead })
   out = out.replace(HONEST_NOUN_RE, (_match, lead, claim) => { count++; return `${lead}${cap(claim)}` })
   out = out.replace(SINCERITY_ADVERB_RE, (_match, lead, claim) => { count++; return `${lead}${cap(claim)}` })
   out = out.replace(BRUTAL_HONESTY_RE, (_match, lead) => { count++; return lead })
@@ -319,12 +323,17 @@ const CMP_GROUP = '(?:Most|Many|Almost every(?:one|body)?|Plenty of|A lot of|Oth
 // false trigger. The spelled-out negations and the scope words (just/only/etc.)
 // are listed explicitly.
 const CMP_TRIGGER = "(?:n['’]t\\b|\\bcannot\\b|\\bdo not\\b|\\bdoes not\\b|\\bwill not\\b|\\brarely\\b|\\bnever\\b|\\bseldom\\b|\\bjust\\b|\\bonly\\b|\\bmerely\\b|\\bsimply\\b|\\bstruggles?\\b|\\bmiss(?:es|ed)?\\b|\\bfalls? short\\b|\\bfails?\\b|\\bclaims?\\b|\\boptimizes?\\b|\\bmanages?\\b)"
-// Group-first: "Most <group> ... . You ... ." -> keep the You sentence.
+// Group-first: "Most <group> ... . [You|Yours|When you|...] ... ." -> keep the
+// affirmative contrast sentence. The contrast sentence may start with You / Your /
+// Yours, optionally led by "When/Where/Now/But/And/So/Yet you", since the model
+// phrases the user-side contrast that way ("...have relationships. Yours run
+// deeper." / "...in receive mode. When you show up trying to help, ...").
+const CMP_YOU_START = "(?:(?:When|Where|Now|But|And|So|Yet)\\s+)?You(?:['’]re|rs|r)?\\b"
 const CMP_GROUP_FIRST_RE = new RegExp(
   '(^|[.!?]' + EMPH + '\\s+|\\n+)' + EMPH +
   '(' + CMP_GROUP + '\\b[^.!?\\n]*?[.!?])' +
   EMPH + '\\s+' +
-  '(' + EMPH + "You(?:['’]re|r)?\\b[^.!?\\n]*?[.!?])",
+  '(' + EMPH + CMP_YOU_START + '[^.!?\\n]*?[.!?])',
   'g'
 )
 // You-first (reversed): "You ... . Most <group> ... <lesser> ... ." -> keep You.

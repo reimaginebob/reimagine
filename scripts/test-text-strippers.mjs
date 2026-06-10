@@ -578,6 +578,19 @@ assertTruthy('ensureDistressSupport: does NOT double up when a pointer is alread
 assertTruthy('ensureDistressSupport: no-op on a non-distress message',
   ensureDistressSupport('How do I write my resume?', 'Here is how.') === 'Here is how.')
 
+// ---- Voice-gate-fix re-run #3: contrast-subject comparatives + give-honest ----
+
+assertEq('stripComparativeStanding: "Most X have Y. Yours run deeper." -> keep "Yours ..."',
+  stripComparativeStanding('Most senior HR people have relationships. Yours run deeper than that.'),
+  'Yours run deeper than that.')
+assertEq('stripComparativeStanding: "Most X do Y. When you ..." -> keep "When you ..."',
+  stripComparativeStanding('Most people show up in receive mode. When you show up trying to help, it transforms.'),
+  'When you show up trying to help, it transforms.')
+assertTruthy('stripComparativeStanding: KEEP "Your resume should be ready" (not a contrast)',
+  stripComparativeStanding('Your resume should be ready before you apply.') === 'Your resume should be ready before you apply.')
+assertTruthy('stripSincerityQualifiers: "I\'ll give you the honest read." sentence dropped',
+  !stripSincerityQualifiers(`I${AP19}ll give you the honest read. What makes you different is the build.`).includes('honest read'))
+
 // ---- Report ----------------------------------------------------------
 
 if (failed > 0) {
