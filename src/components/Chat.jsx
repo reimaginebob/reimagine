@@ -174,12 +174,6 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
     </div>
   )
 
-  const guideFooter = (
-    <div style={{ padding: '8px 18px', borderTop: '1px solid #E2E5EA', background: '#FAFBFC', fontSize: 15, color: '#718096', textAlign: 'center', lineHeight: 1.5 }}>
-      Need more depth? <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{ color: C.gold, fontWeight: 600, textDecoration: 'none' }}>Download the full User Guide (PDF)</a>
-    </div>
-  )
-
   const inputRow = (
     <div style={{ padding: 12, borderTop: '1px solid #E2E5EA', display: 'flex', gap: 8 }}>
       <input
@@ -231,7 +225,6 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
           </button>
         </div>
         {transcript}
-        {guideFooter}
         {inputRow}
       </div>
     )
@@ -306,7 +299,6 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
         </div>
       </div>
       {transcript}
-      {guideFooter}
       {inputRow}
     </div>
   )
