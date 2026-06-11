@@ -81,6 +81,12 @@ eq('strips a differently-named wrapper tag (<final_gauge>SELFCHECK: none</final_
 eq('drops a stray bare tag line on its own',
   parseSelfcheck('Reply body.\n<selfcheck>\nSELFCHECK: go-to-market\n</selfcheck>'),
   { feature: 'go-to-market', text: 'Reply body.' })
+eq('strips <selfcheck>slug</selfcheck> with NO "SELFCHECK:" token, reads the slug',
+  parseSelfcheck('Want to start there?\n<selfcheck>interview-prep</selfcheck>'),
+  { feature: 'interview-prep', text: 'Want to start there?' })
+eq('strips <verdict>none</verdict> element (arbitrary tag), feature null',
+  parseSelfcheck('Reply.\n<verdict>none</verdict>'),
+  { feature: null, text: 'Reply.' })
 
 // --- community resources: recognized slugs, but prose-only (no button) ---
 eq('career-club-corner -> null (prose-only, no in-app screen)', resolveSelfcheckNavigate('career-club-corner', withLane), null)
