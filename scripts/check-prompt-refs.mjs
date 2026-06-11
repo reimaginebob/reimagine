@@ -136,40 +136,15 @@ if (stepLabelsCloseIdx === -1) {
 }
 const stepLabelsKeys = extractTopLevelKeys(chatSrc.slice(stepLabelsOpenIdx + 1, stepLabelsCloseIdx))
 
-// Parse the api/chat.js SYSTEM_PROMPT step-id table. The table sits inside a
-// JS template literal, so the data-row regex must be region-anchored to
-// avoid matching the header row, the separator row, or any pipe-delimited
-// content that may appear elsewhere in the prompt body. Start after the
-// header sentinel; stop at the closing sentence; skip the `|---|---|`
-// separator row explicitly.
-const API_CHAT_PATH = 'api/chat.js'
-const apiChatSrc = fs.readFileSync(API_CHAT_PATH, 'utf-8')
-const TABLE_START_SENTINEL = '| Step id | User-facing name (use these to match user intent) |'
-const TABLE_END_SENTINEL = "If the user's request does not clearly map to one of the rows above, do not include NAVIGATE: in your reply."
-const tableStartIdx = apiChatSrc.indexOf(TABLE_START_SENTINEL)
-const tableEndIdx = apiChatSrc.indexOf(TABLE_END_SENTINEL)
-if (tableStartIdx === -1 || tableEndIdx === -1 || tableEndIdx <= tableStartIdx) {
-  console.error(`check-prompt-refs: FAIL\nCould not locate the step-id table region in ${API_CHAT_PATH}.`)
-  console.error(`  Looked for start sentinel: "${TABLE_START_SENTINEL}"`)
-  console.error(`  Looked for end sentinel:   "${TABLE_END_SENTINEL}"`)
-  process.exit(1)
-}
-const tableRegion = apiChatSrc.slice(tableStartIdx + TABLE_START_SENTINEL.length, tableEndIdx)
-const apiTableSteps = new Set()
-const DATA_ROW = /^\|\s*([A-Za-z_0-9-]+)\s*\|/
-for (const line of tableRegion.split('\n')) {
-  if (/^\|\s*-+\s*\|/.test(line)) continue // separator row
-  const m = line.match(DATA_ROW)
-  if (m) apiTableSteps.add(m[1])
-}
+// (The api/chat.js help-bot endpoint and its system-prompt step-id table were
+// retired 2026-06-11 — the UI calls /api/coach exclusively, so the help bot was
+// dead code carrying latent dead-NAVIGATE targets. Its step-table invariant is
+// removed with it; the STEP_LABELS invariant below still guards Chat.jsx.)
 
-// Cross-check. Every STEP_LABELS key and every table step-id must exist in META.
+// Cross-check. Every STEP_LABELS key must exist in META.
 const chatHelperMissing = [] // { source, id }
 for (const id of stepLabelsKeys) {
   if (!metaKeys.has(id)) chatHelperMissing.push({ source: `${CHAT_PATH} STEP_LABELS`, id })
-}
-for (const id of apiTableSteps) {
-  if (!metaKeys.has(id)) chatHelperMissing.push({ source: `${API_CHAT_PATH} system-prompt table`, id })
 }
 if (chatHelperMissing.length > 0) {
   console.error('check-prompt-refs: FAIL')
@@ -198,30 +173,11 @@ const buildLabelMap = (body) => {
 }
 const metaLabels = buildLabelMap(metaBody)
 const stepLabelMap = buildLabelMap(chatSrc.slice(stepLabelsOpenIdx + 1, stepLabelsCloseIdx))
-const apiTableLabels = new Map()
-const API_ROW = /^\|\s*([A-Za-z_0-9-]+)\s*\|\s*(.*?)\s*\|/
-for (const line of tableRegion.split('\n')) {
-  if (/^\|\s*-+\s*\|/.test(line)) continue
-  const rowMatch = line.match(API_ROW)
-  if (rowMatch) {
-    // Strip any trailing parenthetical descriptor that api/chat.js carries
-    // for the chat-helper's benefit (e.g., "(Phase 5, Get Ready)",
-    // "(post-completion bonus)") but META does not; match by leading
-    // label only.
-    const label = rowMatch[2].replace(/\s*\([^)]*\)\s*$/, '').trim()
-    apiTableLabels.set(rowMatch[1], label)
-  }
-}
 
 const labelDrift = []
 for (const [k, v] of stepLabelMap) {
   if (metaLabels.has(k) && metaLabels.get(k) !== v) {
     labelDrift.push({ source: `${CHAT_PATH} STEP_LABELS`, id: k, expected: metaLabels.get(k), found: v })
-  }
-}
-for (const [k, v] of apiTableLabels) {
-  if (metaLabels.has(k) && metaLabels.get(k) !== v) {
-    labelDrift.push({ source: `${API_CHAT_PATH} system-prompt table`, id: k, expected: metaLabels.get(k), found: v })
   }
 }
 if (labelDrift.length > 0) {
@@ -253,7 +209,7 @@ if (unreachableTargets.length) {
   process.exit(1)
 }
 
-console.log(`check-prompt-refs: OK (${pcKeys.size} pc keys, ${prompts.length} prompt templates, ${metaKeys.size} META keys, ${stepLabelsKeys.size} STEP_LABELS, ${apiTableSteps.size} api/chat.js table rows checked, ${BUTTON_TARGETS.length} coach nav targets reachable)`)
+console.log(`check-prompt-refs: OK (${pcKeys.size} pc keys, ${prompts.length} prompt templates, ${metaKeys.size} META keys, ${stepLabelsKeys.size} STEP_LABELS checked, ${BUTTON_TARGETS.length} coach nav targets reachable)`)
 
 // --- Helpers ---
 

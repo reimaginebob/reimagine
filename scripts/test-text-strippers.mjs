@@ -11,7 +11,7 @@
 //   2. applyContaminationPlaceholders: each of the 5 placeholders applies
 //      on its target phrase; clean input passes through unchanged.
 
-import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers, stripComparativeStanding, stripIntensifiers, stripHireabilityVerdict, stripFrameworkNames, stripFabricatedMarketData, ensureDistressSupport, detectResidualVoice, applyOutputStrippers } from '../src/text-strippers.mjs'
+import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers, stripComparativeStanding, stripIntensifiers, stripHireabilityVerdict, stripFrameworkNames, stripFabricatedMarketData, stripRoomsPlaceholder, ensureDistressSupport, detectResidualVoice, applyOutputStrippers } from '../src/text-strippers.mjs'
 
 const AP19 = String.fromCharCode(0x2019) // typographic apostrophe the model emits
 
@@ -734,6 +734,72 @@ assertEq('stripFrameworkNames: "what X called the circle of concern/control" -> 
   "Those live in what's outside your hands and what's in your hands.")
 assertTruthy('stripFrameworkNames: "what this idea called" mangle never produced',
   !/\bwhat\s+this idea called\b/i.test(stripFrameworkNames('Those live in what Covey called the circle of concern.')))
+
+// ---- Cleanup bundle 2026-06-11 -------------------------------------------
+
+// Item 7: bare framework acronyms (case-sensitive, all-caps only).
+assertTruthy('stripFrameworkNames: bare "KEEL" neutralized ("second E in your KEEL")',
+  !/KEEL/.test(stripFrameworkNames('Remember the second E in your KEEL when it gets hard.')))
+assertEq('stripFrameworkNames: "your KEEL" -> "your attitude"',
+  stripFrameworkNames('Trust your KEEL here.'), 'Trust your attitude here.')
+assertEq('stripFrameworkNames: "the STAR method" -> story structure',
+  stripFrameworkNames('Use the STAR method for that answer.'), 'Use a clear story structure for that answer.')
+assertEq('stripFrameworkNames: "STAR stories" -> "structured stories"',
+  stripFrameworkNames('Prepare your STAR stories.'), 'Prepare your structured stories.')
+assertTruthy('stripFrameworkNames: bare "STAR" neutralized',
+  !/\bSTAR\b/.test(stripFrameworkNames('Just use STAR.')))
+assertEq('stripFrameworkNames: lowercase "star" untouched',
+  stripFrameworkNames('She was the star of the show.'), 'She was the star of the show.')
+assertEq('stripFrameworkNames: "the SCOPE framework" -> "this approach"',
+  stripFrameworkNames('Try the SCOPE framework.'), 'Try this approach.')
+assertEq('stripFrameworkNames: lowercase "scope" untouched',
+  stripFrameworkNames('That is outside the scope of this chat.'), 'That is outside the scope of this chat.')
+
+// Item 9: broadened rooms stripper.
+assertEq('stripRoomsPlaceholder: "rooms that matter" -> "conversations that matter"',
+  stripRoomsPlaceholder('Get ready for rooms that matter for your search.'),
+  'Get ready for conversations that matter for your search.')
+assertEq('stripRoomsPlaceholder: "get into rooms" -> "the conversations that matter"',
+  stripRoomsPlaceholder('You need to get into rooms.'),
+  'You need to get into the conversations that matter.')
+assertEq('stripRoomsPlaceholder: "rooms where" still handled',
+  stripRoomsPlaceholder('the rooms where decisions happen'), 'the conversations where decisions happen')
+assertEq('stripRoomsPlaceholder: "waiting room" untouched',
+  stripRoomsPlaceholder('Sit in the waiting room.'), 'Sit in the waiting room.')
+assertEq('stripRoomsPlaceholder: "interview room" untouched',
+  stripRoomsPlaceholder('Walk into the interview room confidently.'), 'Walk into the interview room confidently.')
+assertEq('stripRoomsPlaceholder: "room to grow" untouched',
+  stripRoomsPlaceholder('There is room to grow here.'), 'There is room to grow here.')
+
+// Item 10: logic-flip "not because ... but because" recapitalizes at sentence start.
+assertEq('stripLogicFlipCadence: sentence-initial "Not because" -> "Because"',
+  stripLogicFlipCadence('Set it down. Not because it mattered, but because the past is gone.'),
+  'Set it down. Because the past is gone.')
+assertEq('stripLogicFlipCadence: mid-sentence "not because" stays lowercase "because"',
+  stripLogicFlipCadence('Set it down, not because it mattered, but because the past is gone.'),
+  'Set it down, because the past is gone.')
+
+// Item 4: detector flags "the move", "sit with", and cited stats for regeneration.
+assertTruthy('detectResidualVoice: "is the move" flagged',
+  detectResidualVoice('Updating your resume is the move.').theMove)
+assertTruthy('detectResidualVoice: "here\'s the play" flagged',
+  detectResidualVoice("Here's the play: reach out today.").theMove)
+assertTruthy('detectResidualVoice: "the key is to" flagged',
+  detectResidualVoice('The key is to follow up within a day.').theMove)
+assertTruthy('detectResidualVoice: plain action NOT flagged as theMove',
+  !detectResidualVoice('Send a follow-up note today.').theMove)
+assertTruthy('detectResidualVoice: "sit with" flagged',
+  detectResidualVoice('Sit with that discomfort for a while.').sitWith)
+assertTruthy('detectResidualVoice: "lean into" flagged',
+  detectResidualVoice('Lean into your operations background.').sitWith)
+assertTruthy('detectResidualVoice: cited stat with source flagged (according-to + %)',
+  detectResidualVoice('According to LinkedIn, 70% of jobs are filled through referrals.').citedStat)
+assertTruthy('detectResidualVoice: cited stat flagged (% + study, reverse order)',
+  detectResidualVoice('Roughly 80% of roles, a study found, never get posted.').citedStat)
+assertTruthy('detectResidualVoice: "according to your resume" + number NOT flagged',
+  !detectResidualVoice('According to your resume, you managed a $1.2M grant portfolio for 400 families.').citedStat)
+assertTruthy('detectResidualVoice: profile numbers without a source NOT flagged',
+  !detectResidualVoice('You served 400 families and ran a 12-year career across three sectors.').citedStat)
 
 // ---- Report ----------------------------------------------------------
 

@@ -56,6 +56,20 @@ eq('markdown-decorated trailer line tolerated',
   { feature: 'resume-refresh', text: 'Reply.' })
 eq('non-string input safe', parseSelfcheck(null), { feature: null, text: '' })
 
+// --- strip control lines ANYWHERE, not just trailing (2026-06-11) ---
+eq('strips a stray mid-body NAVIGATE line + a dangling --- rule',
+  parseSelfcheck('Want me to take you there?\nNAVIGATE: Pick a Direction\n\n---\nSELFCHECK: personal-brand'),
+  { feature: 'personal-brand', text: 'Want me to take you there?' })
+eq('strips a --- rule sitting between body and SELFCHECK trailer',
+  parseSelfcheck('Here is your coaching.\n\n---\nSELFCHECK: go-to-market'),
+  { feature: 'go-to-market', text: 'Here is your coaching.' })
+eq('strips a SELFCHECK line that lands mid-body (last one wins)',
+  parseSelfcheck('First part.\nSELFCHECK: none\nSecond part.\nSELFCHECK: income-now'),
+  { feature: 'income-now', text: 'First part.\nSecond part.' })
+eq('drops a bare horizontal rule even with no trailer',
+  parseSelfcheck('Line one.\n---\nLine two.'),
+  { feature: null, text: 'Line one.\nLine two.' })
+
 // --- community resources: recognized slugs, but prose-only (no button) ---
 eq('career-club-corner -> null (prose-only, no in-app screen)', resolveSelfcheckNavigate('career-club-corner', withLane), null)
 eq('accountability-partner -> null (prose-only)', resolveSelfcheckNavigate('accountability-partner', withLane), null)
