@@ -10,10 +10,10 @@
 // bundler can both import it (the `.mjs`-across-api/src boundary is unsafe — the
 // 2026-05-27 FUNCTION_INVOCATION_FAILED outage).
 //
-// AUTHORITY NOTE: these strings are the labels that actually render today. The
-// `META` map in src/App.jsx is a STALE parallel ("Pick a Direction",
-// "Upload a Live Opportunity") and is NOT authoritative; retiring/deriving META
-// from this module is a separate cleanup.
+// AUTHORITY NOTE: these strings are the labels that actually render today, and
+// they are now the ONLY label source. The old parallel `META` map in src/App.jsx
+// was retired 2026-06-11 — its labels (including the stale "Pick a Direction" /
+// "Upload a Live Opportunity") were absorbed here, corrected to the live values.
 export const NAV_LABELS = {
   // Standalone destinations — sidebar "Your work" (src/App.jsx primaryItems).
   myCoach: 'My Coach',
@@ -34,4 +34,25 @@ export const NAV_LABELS = {
   // Playbook section header AND what the coach calls it, together). Bob to
   // confirm "Industry Background" vs "The Lingo".
   p9: 'Industry Background',
+  // Orientation + structural step labels. Moved here from the old META map in
+  // src/App.jsx (2026-06-11) so there is one render-true label source — the
+  // orientation sidebar and the section-name lookup now read these. These
+  // values are byte-identical to what META rendered; the only correction is
+  // that laneSelect/op above are the live "Career Paths"/"Add an Opportunity"
+  // (META still carried the stale "Pick a Direction"/"Upload a Live Opportunity").
+  welcome: 'Welcome',
+  location: 'Location & Work',
+  resume: 'Your Resume',
+  linkedin: 'Your LinkedIn',
+  assessment: 'Assessments',
+  values: 'Values, Passions & Causes',
+  reputation: 'Reputation',
+  'life-events': 'Your Story',
+  skills: 'Your Skills',
+  'orientation-done': 'Orientation Complete',
+  p1: 'Resume Analysis',
+  p2: 'Wiring & Compass',
+  p4: 'Role Options',
+  focus: 'Focus Playbook',
+  complete: 'Complete',
 }

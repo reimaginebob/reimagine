@@ -1952,7 +1952,11 @@ const PHASES=[
   {id:1,label:'Personal Brand',color:'#C8924A',steps:['p3']},
   {id:2,label:'Apply Your Foundation',color:'#4A9E72',steps:['twoDoors']},
 ]
-const META={welcome:'Welcome',location:'Location & Work',resume:'Your Resume',linkedin:'Your LinkedIn',assessment:'Assessments',values:'Values, Passions & Causes',reputation:'Reputation','life-events':'Your Story','skills':'Your Skills','orientation-done':'Orientation Complete',p1:'Resume Analysis',p2:'Wiring & Compass',p3:'Personal Brand',twoDoors:'Put It to Work',laneSelect:'Pick a Direction',p4:'Role Options',focus:'Focus Playbook',mylib:'My Playbooks',p6:'Your Bridge Story',p7:'Go-to-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Industry Background',complete:'Complete',income:'Income Now',op:'Upload a Live Opportunity',myCoach:'My Coach'}
+// META (the step-id -> label map) was retired 2026-06-11: its labels moved to
+// NAV_LABELS (src/nav-labels.js), the single render-true label source, and its
+// two readers (the orientation sidebar and the section-name lookup) now read
+// NAV_LABELS. This also fixed the stale "Pick a Direction"/"Upload a Live
+// Opportunity" labels META still carried.
 const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p1','p2','p3','twoDoors','laneSelect','p4','focus','mylib','op','complete','myCoach']
 const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p1','p2','p3'])
 // Captured at module load (before any beforeprint can change document.title) so
@@ -3014,7 +3018,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
     <div style={{fontSize:18,color:'#FFFFFF',fontWeight:600,marginBottom:8}}>You're {prog}% complete</div>
     <div style={{width:'100%',height:5,background:'#0F1A30',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:3,transition:'width 0.4s'}}/></div>
   </div>}
-  {phasesToRender.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active,isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{META[sid]}{sid==='focus'&&chosen?<span style={{display:'block',fontSize:13,fontWeight:400,color:'#8A9BB8',marginTop:2}}>{chosen}</span>:null}</span>{active&&<span style={{fontSize:14,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
+  {phasesToRender.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active,isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{NAV_LABELS[sid]}{sid==='focus'&&chosen?<span style={{display:'block',fontSize:13,fontWeight:400,color:'#8A9BB8',marginTop:2}}>{chosen}</span>:null}</span>{active&&<span style={{fontSize:14,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
 </div>}
 
 const DEMO_TOUR=[
@@ -3394,7 +3398,7 @@ export default function PivotEngine(){
     setCurrentRoleInSavedSet(true)
   },[hydrationStable,chosen,selectedLane,savedPlaybooks])
   useEffect(()=>{
-    const sectionName=META[step]||'Output'
+    const sectionName=NAV_LABELS[step]||'Output'
     const su=signedInUser||{}
     const fn=(su.first_name||'').trim()
     const ln=(su.last_name||'').trim()

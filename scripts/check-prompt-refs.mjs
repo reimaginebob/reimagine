@@ -1,5 +1,4 @@
 import fs from 'node:fs'
-import { BUTTON_TARGETS } from '../src/coach-routing.js'
 
 // Build-time invariant. Catches the class of bug where a prompt template
 // interpolates `${pr.X}` but the compiled profile `pc` does not include `X`.
@@ -83,40 +82,18 @@ if (missing.length > 0) {
   process.exit(1)
 }
 
-// --- (Removed 2026-06-11) STEP_LABELS / META label invariant ---------------
-// The coach is now prose-only on feature references (no clickable NAVIGATE
-// button), so src/components/Chat.jsx no longer carries a STEP_LABELS
-// button-label map. With the help bot (api/chat.js) already retired, nothing
-// renders a navigation label from META here, so the STEP_LABELS<->META
-// cross-check and the label-drift guard were removed with it. META still backs
-// the orientation sidebar in src/App.jsx; retiring/deriving it is a separate
-// cleanup. The coach's render-true labels are guarded instead by
+// --- Retired invariants (note) ---------------------------------------------
+// Build-time invariants that used to live here were removed as the Coach went
+// prose-only and the label sources consolidated:
+//   - the STEP_LABELS<->META label cross-check (Chat.jsx no longer carries a
+//     button-label map; the help bot api/chat.js was retired);
+//   - the BUTTON_TARGETS reachability check (no NAVIGATE button renders, so the
+//     slug->step routing in src/coach-routing.js was removed).
+// Step labels are now single-sourced in src/nav-labels.js (NAV_LABELS) — META in
+// src/App.jsx was retired. The Coach's render-true labels are guarded by
 // scripts/check-coach-nav-map.mjs (NAV_LABELS -> COACH_NAV_MAP).
 
-// --- Reachability invariant (2026-06-10, now dormant) ---
-// The coach no longer surfaces NAVIGATE buttons (prose-only), so BUTTON_TARGETS
-// is dormant. The invariant is kept as a cheap, true guard: every id a future
-// button could route to still has a real rStep() case. Retiring BUTTON_TARGETS /
-// resolveSelfcheckNavigate is a candidate for the same follow-up cleanup.
-// Every step id the My Coach self-check sanitizer can emit as a NAVIGATE target
-// (src/coach-routing.js BUTTON_TARGETS) MUST resolve to a real `case '<id>':`
-// in rStep() (src/App.jsx). This is the static guard that would have caught the
-// dead-link bug: routing to p8/p7/p_res (focus sections with no rStep case),
-// which fall through to `default: return null` — a blank screen behind the
-// "Take me to …" button.
-const unreachableTargets = BUTTON_TARGETS.filter(id => {
-  const re = new RegExp(`case\\s*['"\`]${id}['"\`]\\s*:`)
-  return !re.test(raw)
-})
-if (unreachableTargets.length) {
-  console.error('check-prompt-refs: FAIL')
-  console.error('coach sanitizer NAVIGATE targets with no `case` in rStep() (dead link):')
-  unreachableTargets.forEach(id => console.error(`  - ${id}`))
-  console.error('Add a rStep() case in src/App.jsx, or remove the id from BUTTON_TARGETS in src/coach-routing.js.')
-  process.exit(1)
-}
-
-console.log(`check-prompt-refs: OK (${pcKeys.size} pc keys, ${prompts.length} prompt templates, ${BUTTON_TARGETS.length} coach nav targets reachable)`)
+console.log(`check-prompt-refs: OK (${pcKeys.size} pc keys, ${prompts.length} prompt templates)`)
 
 // --- Helpers ---
 

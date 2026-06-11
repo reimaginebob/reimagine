@@ -28,22 +28,21 @@
 // label a feature carries is exactly what the UI renders and a rename can't
 // desync. Order here = order in the generated COACH_NAV_MAP.
 //
-// reach:
-//   'standalone'  — its own always-rendering step; `navStep` is the button target.
-//   'focus-gated' — a section inside `focus`; routes to `focus` ONLY when a lane
-//                   is selected, else prose-only (locked product rule).
-//   'community'   — not an in-app tool; no step, no button; carries an inline
-//                   `label` + `where` pointer (no NAV_LABELS entry to join).
+// reach (drives the generated nav map's grouping + the focus-gating prose):
+//   'standalone'  — its own always-rendering step.
+//   'focus-gated' — a section inside the Focus Playbook, for a chosen direction.
+//   'community'   — not an in-app tool; carries an inline `label` + `where`
+//                   pointer (no NAV_LABELS entry to join).
 // labelId: the NAV_LABELS key to join the user-facing label from (standalone +
 //   focus-gated). The generator hard-fails if it is not in NAV_LABELS.
 export const FEATURE_MAP = [
-  { slug: 'personal-brand',       reach: 'standalone',  navStep: 'p3',         labelId: 'p3',
+  { slug: 'personal-brand',       reach: 'standalone',  labelId: 'p3',
     does: 'finds the through-line that ties a varied background together' },
-  { slug: 'role-options',         reach: 'standalone',  navStep: 'laneSelect', labelId: 'laneSelect',
+  { slug: 'role-options',         reach: 'standalone',  labelId: 'laneSelect',
     does: 'opens up directions worth exploring, including off the obvious path' },
-  { slug: 'income-now',           reach: 'standalone',  navStep: 'income',     labelId: 'income',
+  { slug: 'income-now',           reach: 'standalone',  labelId: 'income',
     does: 'surfaces faster ways to bring in money while the bigger search runs' },
-  { slug: 'opportunity-playbook', reach: 'standalone',  navStep: 'op',         labelId: 'op',
+  { slug: 'opportunity-playbook', reach: 'standalone',  labelId: 'op',
     does: 'turns one specific live opening into a tailored plan of attack' },
 
   { slug: 'bridge-story',         reach: 'focus-gated', labelId: 'p6',
@@ -60,42 +59,21 @@ export const FEATURE_MAP = [
     does: "builds fluency in a new sector's language and players" },
 
   // Community resources — surfaced in prose only (especially on discouragement
-  // turns when someone is carrying the search alone). No step, no button:
-  // resolveSelfcheckNavigate returns null. The Corner pointer is always
-  // "register at career.club", never an in-app screen.
+  // turns when someone is carrying the search alone). No step. The Corner pointer
+  // is always "register at career.club", never an in-app screen.
   { slug: 'career-club-corner',     reach: 'community', label: 'Career Club Corner',
     where: 'register at career.club',            does: 'a free weekly call with people in the same search' },
   { slug: 'accountability-partner', reach: 'community', label: 'an accountability partner',
     where: 'one person to check in with weekly', does: 'turns a lonely grind into a standing date' },
 ]
 
-// The routing tables derive from FEATURE_MAP — one source, no parallel lists to
-// drift. resolveSelfcheckNavigate (below) reads these exactly as before.
+// The coach's feature vocabulary (the SELFCHECK slugs). The coach is prose-only
+// (2026-06-11): it names a feature and the SELFCHECK trailer logs the verdict —
+// there is no NAVIGATE button, so the slug->step routing that used to live here
+// (resolveSelfcheckNavigate, BUTTON_TARGETS, and the standalone/focus-section
+// lookup tables) was removed. CANONICAL_FEATURE_SLUGS stays:
+// scripts/check-coach-nav-map.mjs asserts FEATURE_MAP's slugs equal it.
 export const CANONICAL_FEATURE_SLUGS = FEATURE_MAP.map(f => f.slug)
-const STANDALONE_TARGET = Object.fromEntries(
-  FEATURE_MAP.filter(f => f.reach === 'standalone').map(f => [f.slug, f.navStep]))
-const FOCUS_SECTION_SLUGS = new Set(
-  FEATURE_MAP.filter(f => f.reach === 'focus-gated').map(f => f.slug))
-
-// Every step id the sanitizer can ever emit as a NAVIGATE target. The
-// reachability invariant in scripts/check-prompt-refs.mjs asserts each of these
-// has a real `case '<id>':` in rStep() (src/App.jsx), so a button can never be
-// dead. If you add a routable feature, add its target here and keep that true.
-export const BUTTON_TARGETS = ['p3', 'laneSelect', 'income', 'op', 'focus']
-
-// Resolve a SELFCHECK slug to a reachable step id, or null for prose-only.
-// `profileState` is the user's stored profile_state JSONB (has selectedLane).
-export function resolveSelfcheckNavigate(slug, profileState) {
-  if (!slug || typeof slug !== 'string') return null
-  const s = slug.trim().toLowerCase()
-  if (s === 'none') return null
-  if (STANDALONE_TARGET[s]) return STANDALONE_TARGET[s]
-  if (FOCUS_SECTION_SLUGS.has(s)) {
-    const lane = profileState && typeof profileState === 'object' ? profileState.selectedLane : null
-    return (typeof lane === 'string' && lane.trim()) ? 'focus' : null
-  }
-  return null // unknown slug (model drift) → no button, prose only
-}
 
 // Pull the SELFCHECK verdict off the reply and strip every control line from the
 // visible text. Returns { feature: <slug|null>, text: <cleaned> }. `feature` is
