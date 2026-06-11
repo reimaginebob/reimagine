@@ -786,6 +786,10 @@ assertTruthy('detectResidualVoice: "here\'s the play" flagged',
   detectResidualVoice("Here's the play: reach out today.").theMove)
 assertTruthy('detectResidualVoice: "the key is to" flagged',
   detectResidualVoice('The key is to follow up within a day.').theMove)
+assertTruthy('detectResidualVoice: "here\'s the other move" flagged',
+  detectResidualVoice("And here's the other move: find a partner.").theMove)
+assertTruthy('detectResidualVoice: "that\'s the move" flagged',
+  detectResidualVoice("Update your resume. That's the move.").theMove)
 assertTruthy('detectResidualVoice: plain action NOT flagged as theMove',
   !detectResidualVoice('Send a follow-up note today.').theMove)
 assertTruthy('detectResidualVoice: "sit with" flagged',

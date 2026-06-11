@@ -746,7 +746,7 @@ const RESIDUAL_COMPARATIVE_RE = /\b(?:most|many)\s+(?:people|persons|professiona
 const RESIDUAL_SINCERITY_RE = /\bfrankly\b|\bcandidly\b|\bthe honest (?:answer|read|reading|truth|take|view|assessment)\b|\bbrutal honesty\b|\bto be honest\b|\b(?:be|being|am being|'?m being) (?:honest|straight) with you\b|\bgive you the honest\b|\bhonest with you\b/i
 // "the move" tic and family (2026-06-11). Flag-and-regenerate, NOT delete:
 // deleting "is the move" mid-sentence mangles the clause, so the retry rewrites.
-const RESIDUAL_THE_MOVE_RE = /\bis the move\b|\bthe move (?:is|here|now)\b|\bhere['’]?s the play\b|\bthe play (?:is|here)\b|\bthe key is to\b|\bwhat you want to do is\b|\byour (?:next |best )?move (?:is|here)\b/i
+const RESIDUAL_THE_MOVE_RE = /\bis the move\b|\bthe move (?:is|here|now)\b|\b(?:here|that|this|it)['’]?s (?:the|your|another|the other) move\b|\bhere['’]?s (?:the|your|another|the other) play\b|\bthe play (?:is|here)\b|\bthe key is to\b|\bwhat you want to do is\b|\byour (?:next |best )?move (?:is|here)\b/i
 // AI-coaching-therapy register (2026-06-11). Same flag-and-regenerate handling.
 const RESIDUAL_SIT_WITH_RE = /\bsit(?:ting)? with\b|\blean(?:ing)? into\b|\bhold(?:ing)? space for\b|\bbe(?:ing)? present with\b/i
 // Cited statistic WITH a (necessarily fabricated) source — the Coach has no live
