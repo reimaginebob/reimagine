@@ -106,7 +106,7 @@ You can stop regenerating wherever the changes no longer matter. If your edit on
 
 You built a Focus Playbook for one role in Phase 2. Now you are curious what the journey would look like for a different option. Each direction you explore becomes its own Focus Playbook, saved alongside the others, so you keep everything you have already built.
 
-1. Use **Explore another direction** from the role options, or click **Pick a Direction** (Phase 2) in the sidebar.
+1. Use **Explore another direction** from the role options, or click **Career Paths** (Phase 2) in the sidebar.
 2. Choose a different role, or name a new direction in the input box. Reimagine builds a fresh **Focus Playbook** for it.
 3. Inside that playbook, build the sections you want (The Role, your Bridge Story, and the rest), and refine or regenerate any of them with its feedback box.
 
