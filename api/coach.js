@@ -18,6 +18,7 @@ import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
 import { parseSelfcheck } from '../src/coach-routing.js'
+import { LANE_LABELS } from '../src/nav-labels.js'
 import { getSessionUser } from './_lib/session.js'
 import { sql } from './_lib/db.js'
 
@@ -41,7 +42,6 @@ function isAllowedOrigin(rawOrigin) {
   }
 }
 
-const LANE_LABELS = { FG: 'Familiar Ground', II: 'Industry Insider', WTM: 'Work That Matters' }
 
 // Build the per-user profile slice fed to the coach each turn. This is the
 // "index + two anchors" selection layer the brief calls for: the Personal
