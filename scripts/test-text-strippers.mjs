@@ -729,6 +729,11 @@ assertTruthy('stripFrameworkNames: "Viktor Frankl" name never survives',
 assertEq('stripFrameworkNames: "your circle of control" -> plain language',
   stripFrameworkNames('Focus on your circle of control.'),
   "Focus on what's in your hands.")
+assertEq('stripFrameworkNames: "what X called the circle of concern/control" -> clean, no fragment',
+  stripFrameworkNames('Those live in what Covey called the circle of concern and the circle of control.'),
+  "Those live in what's outside your hands and what's in your hands.")
+assertTruthy('stripFrameworkNames: "what this idea called" mangle never produced',
+  !/\bwhat\s+this idea called\b/i.test(stripFrameworkNames('Those live in what Covey called the circle of concern.')))
 
 // ---- Report ----------------------------------------------------------
 

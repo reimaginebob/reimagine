@@ -556,6 +556,14 @@ const FRAMEWORK_SUBS = [
   [/\bas\s+(?:Viktor\s+)?Frankl\s+(?:put it|puts it|said|says|wrote)\b/gi, 'the way to see it is'],
   [/\b(?:Stephen\s+)?Covey\s+(?:writes|wrote|talks|talked|speaks|spoke)\s+about\b/gi, "there's a useful distinction between"],
   [/\b(?:Viktor\s+)?Frankl\s+(?:writes|wrote|talks|talked|speaks|spoke)\s+about\b/gi, "there's a hard-won idea about"],
+  // "what X called the <framework>" — consume the whole attribution incl. the
+  // leading "what" and trailing article, leaving the framework label for the
+  // circle-of-X rewrite below (so "what Covey called the circle of concern"
+  // becomes clean "what's outside your hands", not a mangled fragment).
+  [/\bwhat\s+(?:Stephen\s+)?Covey\s+call(?:ed|s)\s+(?:the\s+)?/gi, ''],
+  [/\bwhat\s+(?:Viktor\s+)?Frankl\s+call(?:ed|s)\s+(?:the\s+)?/gi, ''],
+  [/\b(?:Stephen\s+)?Covey\s+call(?:ed|s)\s+(?:the\s+)?/gi, ''],
+  [/\b(?:Viktor\s+)?Frankl\s+call(?:ed|s)\s+(?:the\s+)?/gi, ''],
   [/\bStephen\s+Covey\b/gi, 'this idea'],
   [/\bViktor\s+Frankl\b/gi, 'this idea'],
   [/\bCovey\b/gi, 'this idea'],
