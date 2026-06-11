@@ -544,6 +544,25 @@ const FRAMEWORK_SUBS = [
   [/\b(?:the\s+)?(?:Five|5)\s+P['’]?s\b/gi, 'these points'],
   [/\bQuota of One\b/gi, 'the one-yes idea'],
   [/\bLike-for-Like Fallacy\b/gi, 'that trap'],
+  // Authors behind the discouragement exemplars: the ideas ship, the names
+  // never do (per Bob: Frankl/Covey stay unnamed, their ideas only). Catch the
+  // attribution lead-ins first so the sentence stays grammatical, then a
+  // bare-name fallback so a name can never survive. The named framework that
+  // rides along ("circle of concern/control") is rewritten to plain language.
+  // Paired with the in-prompt no-naming rule (api/coach.js DISCOURAGEMENT).
+  [/\b(?:Stephen\s+)?Covey['’]s\b/gi, 'this'],
+  [/\b(?:Viktor\s+)?Frankl['’]s\b/gi, 'this'],
+  [/\bas\s+(?:Stephen\s+)?Covey\s+(?:put it|puts it|said|says|wrote)\b/gi, 'the way to see it is'],
+  [/\bas\s+(?:Viktor\s+)?Frankl\s+(?:put it|puts it|said|says|wrote)\b/gi, 'the way to see it is'],
+  [/\b(?:Stephen\s+)?Covey\s+(?:writes|wrote|talks|talked|speaks|spoke)\s+about\b/gi, "there's a useful distinction between"],
+  [/\b(?:Viktor\s+)?Frankl\s+(?:writes|wrote|talks|talked|speaks|spoke)\s+about\b/gi, "there's a hard-won idea about"],
+  [/\bStephen\s+Covey\b/gi, 'this idea'],
+  [/\bViktor\s+Frankl\b/gi, 'this idea'],
+  [/\bCovey\b/gi, 'this idea'],
+  [/\bFrankl\b/gi, 'this idea'],
+  [/\b(?:the\s+|your\s+|a\s+)?circle of control\b/gi, "what's in your hands"],
+  [/\b(?:the\s+|your\s+|a\s+)?circle of concern\b/gi, "what's outside your hands"],
+  [/\b(?:the\s+|your\s+|a\s+)?circle of influence\b/gi, 'where you have some sway'],
   // Section-label form: "the book — STAR", "the book — People Hire People".
   // Match the label as 1–4 Title-Case/ALLCAPS words so it stops at the next
   // lowercase word ("STAR and ..." keeps "and ...").
