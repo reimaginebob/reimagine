@@ -56,3 +56,20 @@ export const NAV_LABELS = {
   focus: 'Focus Playbook',
   complete: 'Complete',
 }
+
+// SINGLE SOURCE OF TRUTH for the career-lane labels, keyed on the value the app
+// actually stores in `selectedLane` (the LANE_CARDS ids in src/App.jsx, plus
+// 'specific' for the Door-2 / opportunity path). The sidebar/Focus surfaces in
+// App.jsx and the My Coach profile slice (api/coach.js) both read this, so the
+// name the Coach speaks ("Familiar Ground") is exactly what the UI renders.
+//
+// Keyed on selectedLane on purpose: the older Coach map was mis-keyed FG/II/WTM
+// and never matched the stored familiar/insider/wtm values, so the Coach echoed
+// the raw lane ("familiar"). The Opportunity surface stores a different variable
+// (opLaneValue, FG/II/WTM) and normalizes onto these keys before reading here.
+export const LANE_LABELS = {
+  familiar: 'Familiar Ground',
+  insider: 'Industry Insider',
+  wtm: 'Work That Matters',
+  specific: 'Specific Role',
+}
