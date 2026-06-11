@@ -1,6 +1,11 @@
 // Unit tests for the My Coach self-check sanitizer (src/coach-routing.js).
 // Run by `npm test` and the prebuild gate.
-import { resolveSelfcheckNavigate, parseSelfcheck, BUTTON_TARGETS, CANONICAL_FEATURE_SLUGS, FEATURE_MAP } from '../src/coach-routing.js'
+//
+// The coach is prose-only: it names a feature and emits a SELFCHECK trailer that
+// the server strips and logs. There is no NAVIGATE button, so the slug->step
+// routing (resolveSelfcheckNavigate / BUTTON_TARGETS) was removed (2026-06-11);
+// these tests cover what remains — the trailer stripping and the FEATURE_MAP.
+import { parseSelfcheck, CANONICAL_FEATURE_SLUGS, FEATURE_MAP } from '../src/coach-routing.js'
 import { NAV_LABELS } from '../src/nav-labels.js'
 
 let pass = 0, fail = 0
@@ -10,28 +15,6 @@ function eq(label, got, want) {
   else { fail++; console.error(`FAIL: ${label}\n   got  ${g}\n   want ${w}`) }
 }
 function ok(label, cond) { if (cond) pass++; else { fail++; console.error(`FAIL: ${label}`) } }
-
-// --- resolveSelfcheckNavigate: standalone features (button always, any state) ---
-const noLane = {}, withLane = { selectedLane: 'FG' }, emptyLane = { selectedLane: '' }
-eq('personal-brand -> p3', resolveSelfcheckNavigate('personal-brand', noLane), 'p3')
-eq('role-options -> laneSelect', resolveSelfcheckNavigate('role-options', noLane), 'laneSelect')
-eq('income-now -> income', resolveSelfcheckNavigate('income-now', noLane), 'income')
-eq('opportunity-playbook -> op', resolveSelfcheckNavigate('opportunity-playbook', withLane), 'op')
-
-// --- focus-section features: button (focus) ONLY when a lane is selected ---
-eq('go-to-market + lane -> focus', resolveSelfcheckNavigate('go-to-market', withLane), 'focus')
-eq('linkedin-remix + lane -> focus', resolveSelfcheckNavigate('linkedin-remix', withLane), 'focus')
-eq('resume-refresh + lane -> focus', resolveSelfcheckNavigate('resume-refresh', withLane), 'focus')
-eq('interview-prep + lane -> focus', resolveSelfcheckNavigate('interview-prep', withLane), 'focus')
-eq('go-to-market + NO lane -> null (prose-only)', resolveSelfcheckNavigate('go-to-market', noLane), null)
-eq('linkedin-remix + empty lane -> null', resolveSelfcheckNavigate('linkedin-remix', emptyLane), null)
-eq('bridge-story + null profile -> null', resolveSelfcheckNavigate('bridge-story', null), null)
-
-// --- verdict edge cases ---
-eq('none -> null', resolveSelfcheckNavigate('none', withLane), null)
-eq('null slug -> null', resolveSelfcheckNavigate(null, withLane), null)
-eq('unknown slug -> null', resolveSelfcheckNavigate('foobar', withLane), null)
-eq('case-insensitive slug', resolveSelfcheckNavigate('Personal-Brand', noLane), 'p3')
 
 // --- parseSelfcheck: strips the trailer, returns the matched feature ---
 eq('matched slug parsed + stripped',
@@ -88,31 +71,18 @@ eq('strips <verdict>none</verdict> element (arbitrary tag), feature null',
   parseSelfcheck('Reply.\n<verdict>none</verdict>'),
   { feature: null, text: 'Reply.' })
 
-// --- community resources: recognized slugs, but prose-only (no button) ---
-eq('career-club-corner -> null (prose-only, no in-app screen)', resolveSelfcheckNavigate('career-club-corner', withLane), null)
-eq('accountability-partner -> null (prose-only)', resolveSelfcheckNavigate('accountability-partner', withLane), null)
+// --- CANONICAL_FEATURE_SLUGS (the SELFCHECK vocabulary) ---
 ok('community slugs are in the canonical set',
   CANONICAL_FEATURE_SLUGS.includes('career-club-corner') && CANONICAL_FEATURE_SLUGS.includes('accountability-partner'))
-
-// --- BUTTON_TARGETS sanity: only the reachable set ---
-ok('BUTTON_TARGETS = the reachable set',
-  JSON.stringify([...BUTTON_TARGETS].sort()) === JSON.stringify(['focus', 'income', 'laneSelect', 'op', 'p3']))
 ok('CANONICAL_FEATURE_SLUGS has 12 entries', CANONICAL_FEATURE_SLUGS.length === 12)
 
-// --- FEATURE_MAP is the single source the routing tables derive from ---
+// --- FEATURE_MAP is the single structured source ---
 eq('CANONICAL_FEATURE_SLUGS derives from FEATURE_MAP (same order)',
   CANONICAL_FEATURE_SLUGS, FEATURE_MAP.map(f => f.slug))
 ok('every standalone/focus-gated labelId resolves in NAV_LABELS',
   FEATURE_MAP.filter(f => f.reach !== 'community').every(f => typeof NAV_LABELS[f.labelId] === 'string'))
 ok('community features carry an inline label + where (no NAV_LABELS join)',
   FEATURE_MAP.filter(f => f.reach === 'community').every(f => f.label && f.where && !f.labelId))
-ok('standalone navStep resolves through the sanitizer to a button target',
-  FEATURE_MAP.filter(f => f.reach === 'standalone')
-    .every(f => resolveSelfcheckNavigate(f.slug, { selectedLane: 'FG' }) === f.navStep))
-ok('focus-gated features resolve to focus only with a lane, null without',
-  FEATURE_MAP.filter(f => f.reach === 'focus-gated').every(f =>
-    resolveSelfcheckNavigate(f.slug, { selectedLane: 'FG' }) === 'focus' &&
-    resolveSelfcheckNavigate(f.slug, {}) === null))
 eq('role-options label is the render-true "Career Paths" (not stale "Role Options")',
   NAV_LABELS[FEATURE_MAP.find(f => f.slug === 'role-options').labelId], 'Career Paths')
 

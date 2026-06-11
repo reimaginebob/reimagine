@@ -34,4 +34,25 @@ export const NAV_LABELS = {
   // Playbook section header AND what the coach calls it, together). Bob to
   // confirm "Industry Background" vs "The Lingo".
   p9: 'Industry Background',
+  // Orientation + structural step labels. Moved here from the old META map in
+  // src/App.jsx (2026-06-11) so there is one render-true label source — the
+  // orientation sidebar and the section-name lookup now read these. These
+  // values are byte-identical to what META rendered; the only correction is
+  // that laneSelect/op above are the live "Career Paths"/"Add an Opportunity"
+  // (META still carried the stale "Pick a Direction"/"Upload a Live Opportunity").
+  welcome: 'Welcome',
+  location: 'Location & Work',
+  resume: 'Your Resume',
+  linkedin: 'Your LinkedIn',
+  assessment: 'Assessments',
+  values: 'Values, Passions & Causes',
+  reputation: 'Reputation',
+  'life-events': 'Your Story',
+  skills: 'Your Skills',
+  'orientation-done': 'Orientation Complete',
+  p1: 'Resume Analysis',
+  p2: 'Wiring & Compass',
+  p4: 'Role Options',
+  focus: 'Focus Playbook',
+  complete: 'Complete',
 }

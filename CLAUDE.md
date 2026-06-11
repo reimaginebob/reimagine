@@ -124,20 +124,15 @@ Briefs that come back at 25-80% of their original scope after pre-flight are com
 
 ---
 
-## 6. The META / STEP_LABELS / api/chat.js invariant
+## 6. Navigation labels and the My Coach self-check
 
-Three surfaces hold step-name labels and must stay in sync:
+**Single label source.** `src/nav-labels.js` `NAV_LABELS` is the render-true map of step id → user-facing label. The sidebar (`primaryItems`), the Focus Playbook section list (`FOCUS_ORDER`), the orientation sidebar, and the section-name lookup all read it. To rename a step's label, change it in `NAV_LABELS` only. The old parallel label maps are gone: `META` (App.jsx) was retired 2026-06-11 (its labels moved into NAV_LABELS, which also fixed the stale "Pick a Direction"/"Upload a Live Opportunity" it carried); `STEP_LABELS` (Chat.jsx) was retired when the Coach went prose-only; the `api/chat.js` help bot was deleted (2026-06-11).
 
-- `src/App.jsx` `META` (line ~1132): canonical step-name map for sidebar display.
-- `src/components/Chat.jsx` `STEP_LABELS`: chat helper's navigation target table.
-- `api/chat.js` step-id table: chat helper LLM's reference for picking NAVIGATE intents.
+**My Coach is prose-only.** The Coach names a fitting feature in prose using its NAV_LABELS label; it does **not** render a clickable NAVIGATE button. The server emits no NAVIGATE trailer, so the slug→step routing (`resolveSelfcheckNavigate`, `BUTTON_TARGETS`) was removed. The model still emits a silent `SELFCHECK: <slug>` trailer that `parseSelfcheck` (`src/coach-routing.js`) strips from the visible reply (in any wrapper form) and the server logs as a product signal (verdict / feature). The slug vocabulary is `CANONICAL_FEATURE_SLUGS`, derived from `FEATURE_MAP`.
 
-`scripts/check-prompt-refs.mjs` enforces a build-time invariant:
+**Generated coach nav map + its gate.** The feature catalog the Coach is fed (`COACH_NAV_MAP`, in `src/coach-nav-map.js`) is generated from `FEATURE_MAP` (`src/coach-routing.js`) joined to `NAV_LABELS` by `labelId` — so the names the Coach speaks are exactly what the UI renders. `scripts/check-coach-nav-map.mjs` (prebuild) regenerates the map in memory and fails the build if the committed `src/coach-nav-map.js` is stale, so a rename in NAV_LABELS/FEATURE_MAP cannot desync from the Coach. Regenerate with `npm run gen:coach-nav-map`.
 
-- **ID-equality check** (existing): every key in STEP_LABELS and the api/chat.js table must exist in META. ID drift fails the build.
-- **Label-equality check** (added 2026-05-21 via the label-resync PR): for each shared key, STEP_LABELS / api-table label must match META. Label drift fails the build. The api-table check strips trailing parentheticals like `(Phase 5, Get Ready)` and `(post-completion bonus)`.
-
-When adding a new step or renaming an existing one, all three surfaces must be updated in the same PR. The build will catch drift; do not rely on manual cross-checking.
+**Retired invariants.** Two `check-prompt-refs.mjs` invariants for this area were removed: the STEP_LABELS↔META label cross-check and the BUTTON_TARGETS→`rStep()` reachability check. `check-prompt-refs.mjs` still runs its `pc`/prompt-reference checks; the Coach-label guard is now `check-coach-nav-map.mjs`.
 
 ---
 
@@ -154,7 +149,7 @@ When adding a new step or renaming an existing one, all three surfaces must be u
     App.jsx                        main app, all prompt builders, META, voice-allow regions
     main.jsx                       entry
     components/
-      Chat.jsx                     chat helper UI + STEP_LABELS
+      Chat.jsx                     My Coach chat UI (prose-only)
       CookieBanner.jsx
       ... (extracted React components)
     voice-patterns.mjs             HARD_PATTERNS used by the voice gate
@@ -165,14 +160,15 @@ When adding a new step or renaming an existing one, all three surfaces must be u
   
   api/                             Vercel functions
     claude.js                      Anthropic API proxy + voice gate enforcement
-    chat.js                        chat helper LLM + step-id table
+    coach.js                       My Coach (prose-only, profile-aware chat)
     auth/, account/, profile/      magic-link auth + profile sync
     me.js
     _lib/
   
   scripts/
     check-voice.mjs                voice gate (build-time, also runtime via api/claude.js)
-    check-prompt-refs.mjs          META/STEP_LABELS/api-table invariant
+    check-prompt-refs.mjs          pc / prompt-reference checks
+    check-coach-nav-map.mjs        coach nav map regenerate-and-compare gate
     build-user-guide.mjs           regenerates user-guide artifacts
     reimagine-corrections-log.gs   Apps Script for corrections logging
     ... other build scripts
@@ -289,7 +285,7 @@ When CTO / CPO / Consumer Insights / Marketing / Design-UX roles disagree intern
 - **User-facing copy authority:** `src/data/user-guide/` (canonical). The workspace path `Output/docs/reimagine-user-guide/` is deprecated; see Section 7.
 - **System architecture docs:** `Output/docs/reimagine-system-documentation/`. Chapter 11 is the changelog updated on every infrastructure-touching brief.
 - **Voice patterns:** `src/voice-patterns.mjs` (HARD_PATTERNS) and `scripts/check-voice.mjs` (the gate).
-- **Step labels & invariants:** `META` in `src/App.jsx`, `STEP_LABELS` in `src/components/Chat.jsx`, step-id table in `api/chat.js`, invariant enforced by `scripts/check-prompt-refs.mjs`.
+- **Navigation labels:** `NAV_LABELS` in `src/nav-labels.js` is the single render-true label source (`META`/`STEP_LABELS` retired). The Coach's feature catalog is generated into `src/coach-nav-map.js` from `FEATURE_MAP` + `NAV_LABELS` and guarded by `scripts/check-coach-nav-map.mjs`.
 
 ---
 
