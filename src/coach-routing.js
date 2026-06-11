@@ -22,31 +22,60 @@
 
 // The stable feature vocabulary the model emits in SELFCHECK. Decoupled from
 // step ids on purpose.
-export const CANONICAL_FEATURE_SLUGS = [
-  'personal-brand', 'role-options', 'bridge-story', 'go-to-market',
-  'resume-refresh', 'linkedin-remix', 'interview-prep', 'industry-background',
-  'income-now', 'opportunity-playbook',
-  // Community resources (not in-app tools): surfaced in prose only, especially
-  // on discouragement turns. They are intentionally absent from STANDALONE_TARGET
-  // and FOCUS_SECTION_SLUGS, so resolveSelfcheckNavigate returns null (no button)
-  // — the Corner pointer is always "register at career.club", never an in-app screen.
-  'career-club-corner', 'accountability-partner',
+// The single structured source for the coach's feature catalog + reachability.
+// Labels are NOT stored here — they are joined from NAV_LABELS (src/nav-labels.js)
+// by `labelId` at generate time (scripts/lib/render-coach-nav-map.mjs), so the
+// label a feature carries is exactly what the UI renders and a rename can't
+// desync. Order here = order in the generated COACH_NAV_MAP.
+//
+// reach:
+//   'standalone'  — its own always-rendering step; `navStep` is the button target.
+//   'focus-gated' — a section inside `focus`; routes to `focus` ONLY when a lane
+//                   is selected, else prose-only (locked product rule).
+//   'community'   — not an in-app tool; no step, no button; carries an inline
+//                   `label` + `where` pointer (no NAV_LABELS entry to join).
+// labelId: the NAV_LABELS key to join the user-facing label from (standalone +
+//   focus-gated). The generator hard-fails if it is not in NAV_LABELS.
+export const FEATURE_MAP = [
+  { slug: 'personal-brand',       reach: 'standalone',  navStep: 'p3',         labelId: 'p3',
+    does: 'finds the through-line that ties a varied background together' },
+  { slug: 'role-options',         reach: 'standalone',  navStep: 'laneSelect', labelId: 'laneSelect',
+    does: 'opens up directions worth exploring, including off the obvious path' },
+  { slug: 'income-now',           reach: 'standalone',  navStep: 'income',     labelId: 'income',
+    does: 'surfaces faster ways to bring in money while the bigger search runs' },
+  { slug: 'opportunity-playbook', reach: 'standalone',  navStep: 'op',         labelId: 'op',
+    does: 'turns one specific live opening into a tailored plan of attack' },
+
+  { slug: 'bridge-story',         reach: 'focus-gated', labelId: 'p6',
+    does: 'builds the "tell me about yourself" pitch for a chosen direction' },
+  { slug: 'go-to-market',         reach: 'focus-gated', labelId: 'p7',
+    does: 'researches target companies live and drafts the outreach' },
+  { slug: 'linkedin-remix',       reach: 'focus-gated', labelId: 'p8',
+    does: "rewrites the person's own LinkedIn profile for where they're headed" },
+  { slug: 'resume-refresh',       reach: 'focus-gated', labelId: 'p_res',
+    does: 'repoints the resume at a chosen direction' },
+  { slug: 'interview-prep',       reach: 'focus-gated', labelId: 'p11',
+    does: 'works the likely interview questions with worked-through answers' },
+  { slug: 'industry-background',  reach: 'focus-gated', labelId: 'p9',
+    does: "builds fluency in a new sector's language and players" },
+
+  // Community resources — surfaced in prose only (especially on discouragement
+  // turns when someone is carrying the search alone). No step, no button:
+  // resolveSelfcheckNavigate returns null. The Corner pointer is always
+  // "register at career.club", never an in-app screen.
+  { slug: 'career-club-corner',     reach: 'community', label: 'Career Club Corner',
+    where: 'register at career.club',            does: 'a free weekly call with people in the same search' },
+  { slug: 'accountability-partner', reach: 'community', label: 'an accountability partner',
+    where: 'one person to check in with weekly', does: 'turns a lonely grind into a standing date' },
 ]
 
-// Features that ARE a standalone, always-rendering step. Button always safe.
-const STANDALONE_TARGET = {
-  'personal-brand': 'p3',
-  'role-options': 'laneSelect',
-  'income-now': 'income',
-  'opportunity-playbook': 'op',
-}
-
-// Features that live only as sections inside the `focus` playbook. Reachable
-// (via `focus`) ONLY when a lane is selected; otherwise prose-only (null).
-const FOCUS_SECTION_SLUGS = new Set([
-  'go-to-market', 'linkedin-remix', 'resume-refresh',
-  'bridge-story', 'interview-prep', 'industry-background',
-])
+// The routing tables derive from FEATURE_MAP — one source, no parallel lists to
+// drift. resolveSelfcheckNavigate (below) reads these exactly as before.
+export const CANONICAL_FEATURE_SLUGS = FEATURE_MAP.map(f => f.slug)
+const STANDALONE_TARGET = Object.fromEntries(
+  FEATURE_MAP.filter(f => f.reach === 'standalone').map(f => [f.slug, f.navStep]))
+const FOCUS_SECTION_SLUGS = new Set(
+  FEATURE_MAP.filter(f => f.reach === 'focus-gated').map(f => f.slug))
 
 // Every step id the sanitizer can ever emit as a NAVIGATE target. The
 // reachability invariant in scripts/check-prompt-refs.mjs asserts each of these

@@ -83,114 +83,21 @@ if (missing.length > 0) {
   process.exit(1)
 }
 
-// --- Chat-helper invariant -------------------------------------------------
-// Catches the class of drift that landed the 2026-05-20 audit findings:
-// `src/components/Chat.jsx` STEP_LABELS and the `api/chat.js` system-prompt
-// step-id table both name step IDs the helper can NAVIGATE to. If either
-// names an ID that does not exist in the navigable step map (META), the
-// chat helper offers a dead navigation target.
-//
-// Source of truth: the META constant in src/App.jsx. The reverse check (every
-// META step is named in STEP_LABELS / table) is intentionally not enforced;
-// some META steps are internal-only and not appropriate navigation targets.
+// --- (Removed 2026-06-11) STEP_LABELS / META label invariant ---------------
+// The coach is now prose-only on feature references (no clickable NAVIGATE
+// button), so src/components/Chat.jsx no longer carries a STEP_LABELS
+// button-label map. With the help bot (api/chat.js) already retired, nothing
+// renders a navigation label from META here, so the STEP_LABELS<->META
+// cross-check and the label-drift guard were removed with it. META still backs
+// the orientation sidebar in src/App.jsx; retiring/deriving it is a separate
+// cleanup. The coach's render-true labels are guarded instead by
+// scripts/check-coach-nav-map.mjs (NAV_LABELS -> COACH_NAV_MAP).
 
-const META_REGEX = /const\s+META\s*=\s*\{/
-const metaMatch = raw.match(META_REGEX)
-if (!metaMatch) {
-  console.error('check-prompt-refs: FAIL\nCould not locate `const META=` in src/App.jsx.')
-  process.exit(1)
-}
-const metaOpenIdx = metaMatch.index + metaMatch[0].length - 1
-const metaCloseIdx = findMatchingBrace(raw, metaOpenIdx)
-if (metaCloseIdx === -1) {
-  console.error('check-prompt-refs: FAIL\nCould not find matching `}` for `const META=` literal.')
-  process.exit(1)
-}
-const metaBody = raw.slice(metaOpenIdx + 1, metaCloseIdx)
-const metaKeys = extractTopLevelKeys(metaBody)
-
-// Sanity: META must include the two known kebab-case keys. If parser drift
-// hides them, the chat-helper invariant becomes silently wrong.
-const REQUIRED_META_KEYS = ['life-events', 'orientation-done']
-const missingRequired = REQUIRED_META_KEYS.filter(k => !metaKeys.has(k))
-if (missingRequired.length > 0) {
-  console.error('check-prompt-refs: FAIL')
-  console.error(`META parser did not capture expected kebab-case keys: ${missingRequired.join(', ')}.`)
-  console.error('This usually means the extractTopLevelKeys identifier regex or quoted-string handling regressed.')
-  process.exit(1)
-}
-
-// Parse STEP_LABELS from src/components/Chat.jsx.
-const CHAT_PATH = 'src/components/Chat.jsx'
-const chatSrc = fs.readFileSync(CHAT_PATH, 'utf-8')
-const stepLabelsMatch = chatSrc.match(/const\s+STEP_LABELS\s*=\s*\{/)
-if (!stepLabelsMatch) {
-  console.error(`check-prompt-refs: FAIL\nCould not locate \`const STEP_LABELS=\` in ${CHAT_PATH}.`)
-  process.exit(1)
-}
-const stepLabelsOpenIdx = stepLabelsMatch.index + stepLabelsMatch[0].length - 1
-const stepLabelsCloseIdx = findMatchingBrace(chatSrc, stepLabelsOpenIdx)
-if (stepLabelsCloseIdx === -1) {
-  console.error(`check-prompt-refs: FAIL\nCould not find matching \`}\` for STEP_LABELS in ${CHAT_PATH}.`)
-  process.exit(1)
-}
-const stepLabelsKeys = extractTopLevelKeys(chatSrc.slice(stepLabelsOpenIdx + 1, stepLabelsCloseIdx))
-
-// (The api/chat.js help-bot endpoint and its system-prompt step-id table were
-// retired 2026-06-11 — the UI calls /api/coach exclusively, so the help bot was
-// dead code carrying latent dead-NAVIGATE targets. Its step-table invariant is
-// removed with it; the STEP_LABELS invariant below still guards Chat.jsx.)
-
-// Cross-check. Every STEP_LABELS key must exist in META.
-const chatHelperMissing = [] // { source, id }
-for (const id of stepLabelsKeys) {
-  if (!metaKeys.has(id)) chatHelperMissing.push({ source: `${CHAT_PATH} STEP_LABELS`, id })
-}
-if (chatHelperMissing.length > 0) {
-  console.error('check-prompt-refs: FAIL')
-  console.error('The following chat-helper step IDs do not exist in `META` (src/App.jsx):')
-  for (const { source, id } of chatHelperMissing) {
-    console.error(`  - ${source}: ${id}`)
-  }
-  console.error('Remove the orphan IDs, or add the missing steps to META.')
-  process.exit(1)
-}
-
-// Label-match invariant. Added 2026-05-21 to close chat-helper-p9p10-label-drift
-// (audit finding 2026-05-21). The check above validates that every
-// STEP_LABELS / api-table key exists in META. This second tier validates that
-// for each shared key the actual label string matches too. ID mismatch fails
-// the build above; label mismatch fails here with its own message.
-const PAIR_RE = /(?:['"]?)([A-Za-z_$][A-Za-z0-9_$-]*)(?:['"]?)\s*:\s*['"]([^'"\\]*)['"]/g
-const buildLabelMap = (body) => {
-  const m = new Map()
-  PAIR_RE.lastIndex = 0
-  let r
-  while ((r = PAIR_RE.exec(body)) !== null) {
-    if (!m.has(r[1])) m.set(r[1], r[2])
-  }
-  return m
-}
-const metaLabels = buildLabelMap(metaBody)
-const stepLabelMap = buildLabelMap(chatSrc.slice(stepLabelsOpenIdx + 1, stepLabelsCloseIdx))
-
-const labelDrift = []
-for (const [k, v] of stepLabelMap) {
-  if (metaLabels.has(k) && metaLabels.get(k) !== v) {
-    labelDrift.push({ source: `${CHAT_PATH} STEP_LABELS`, id: k, expected: metaLabels.get(k), found: v })
-  }
-}
-if (labelDrift.length > 0) {
-  console.error('check-prompt-refs: FAIL')
-  console.error('The following chat-helper labels do not match META values in src/App.jsx:')
-  for (const { source, id, expected, found } of labelDrift) {
-    console.error(`  - ${source}: ${id} -> "${found}" (META says: "${expected}")`)
-  }
-  console.error('Fix the divergent label, or update META if META is wrong.')
-  process.exit(1)
-}
-
-// --- Reachability invariant (2026-06-10) ---
+// --- Reachability invariant (2026-06-10, now dormant) ---
+// The coach no longer surfaces NAVIGATE buttons (prose-only), so BUTTON_TARGETS
+// is dormant. The invariant is kept as a cheap, true guard: every id a future
+// button could route to still has a real rStep() case. Retiring BUTTON_TARGETS /
+// resolveSelfcheckNavigate is a candidate for the same follow-up cleanup.
 // Every step id the My Coach self-check sanitizer can emit as a NAVIGATE target
 // (src/coach-routing.js BUTTON_TARGETS) MUST resolve to a real `case '<id>':`
 // in rStep() (src/App.jsx). This is the static guard that would have caught the
@@ -209,7 +116,7 @@ if (unreachableTargets.length) {
   process.exit(1)
 }
 
-console.log(`check-prompt-refs: OK (${pcKeys.size} pc keys, ${prompts.length} prompt templates, ${metaKeys.size} META keys, ${stepLabelsKeys.size} STEP_LABELS checked, ${BUTTON_TARGETS.length} coach nav targets reachable)`)
+console.log(`check-prompt-refs: OK (${pcKeys.size} pc keys, ${prompts.length} prompt templates, ${BUTTON_TARGETS.length} coach nav targets reachable)`)
 
 // --- Helpers ---
 

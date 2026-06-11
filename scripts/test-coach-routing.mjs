@@ -1,6 +1,7 @@
 // Unit tests for the My Coach self-check sanitizer (src/coach-routing.js).
 // Run by `npm test` and the prebuild gate.
-import { resolveSelfcheckNavigate, parseSelfcheck, BUTTON_TARGETS, CANONICAL_FEATURE_SLUGS } from '../src/coach-routing.js'
+import { resolveSelfcheckNavigate, parseSelfcheck, BUTTON_TARGETS, CANONICAL_FEATURE_SLUGS, FEATURE_MAP } from '../src/coach-routing.js'
+import { NAV_LABELS } from '../src/nav-labels.js'
 
 let pass = 0, fail = 0
 function eq(label, got, want) {
@@ -80,6 +81,23 @@ ok('community slugs are in the canonical set',
 ok('BUTTON_TARGETS = the reachable set',
   JSON.stringify([...BUTTON_TARGETS].sort()) === JSON.stringify(['focus', 'income', 'laneSelect', 'op', 'p3']))
 ok('CANONICAL_FEATURE_SLUGS has 12 entries', CANONICAL_FEATURE_SLUGS.length === 12)
+
+// --- FEATURE_MAP is the single source the routing tables derive from ---
+eq('CANONICAL_FEATURE_SLUGS derives from FEATURE_MAP (same order)',
+  CANONICAL_FEATURE_SLUGS, FEATURE_MAP.map(f => f.slug))
+ok('every standalone/focus-gated labelId resolves in NAV_LABELS',
+  FEATURE_MAP.filter(f => f.reach !== 'community').every(f => typeof NAV_LABELS[f.labelId] === 'string'))
+ok('community features carry an inline label + where (no NAV_LABELS join)',
+  FEATURE_MAP.filter(f => f.reach === 'community').every(f => f.label && f.where && !f.labelId))
+ok('standalone navStep resolves through the sanitizer to a button target',
+  FEATURE_MAP.filter(f => f.reach === 'standalone')
+    .every(f => resolveSelfcheckNavigate(f.slug, { selectedLane: 'FG' }) === f.navStep))
+ok('focus-gated features resolve to focus only with a lane, null without',
+  FEATURE_MAP.filter(f => f.reach === 'focus-gated').every(f =>
+    resolveSelfcheckNavigate(f.slug, { selectedLane: 'FG' }) === 'focus' &&
+    resolveSelfcheckNavigate(f.slug, {}) === null))
+eq('role-options label is the render-true "Career Paths" (not stale "Role Options")',
+  NAV_LABELS[FEATURE_MAP.find(f => f.slug === 'role-options').labelId], 'Career Paths')
 
 console.log(`coach-routing tests: ${pass} passed, ${fail} failed`)
 if (fail > 0) process.exit(1)
