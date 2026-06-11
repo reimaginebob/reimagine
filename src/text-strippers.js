@@ -787,7 +787,11 @@ export function applyOutputStrippers(text) {
   out = stripComparativeStanding(out)
   out = stripHireabilityVerdict(out)
   out = stripFabricatedMarketData(out)
-  out = stripFrameworkNames(out)
+  // stripFrameworkNames is intentionally NOT in the chain (2026-06-11, Bob's
+  // call): the coach now TEACHES the Making Your Own Weather frameworks (KEEL,
+  // the 4 C's, the 5 P's, STAR, SCOPE) and credits Frankl/Covey by name, so
+  // scrubbing those names would gut the teaching. The function + its unit tests
+  // stay (dormant) in case the structured-generation path ever needs them.
   out = stripLogicFlipCadence(out)
   out = stripSincerityQualifiers(out)
   out = stripIntensifiers(out)
