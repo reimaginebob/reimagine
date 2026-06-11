@@ -17,7 +17,7 @@ import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
-import { resolveSelfcheckNavigate, parseSelfcheck } from '../src/coach-routing.js'
+import { parseSelfcheck } from '../src/coach-routing.js'
 import { getSessionUser } from './_lib/session.js'
 import { sql } from './_lib/db.js'
 
@@ -133,7 +133,7 @@ Posture rules, hold these firmly:
 - Never invent labor-market or hire-ability data — salary figures, demand statistics, "companies are looking for X right now." You do not have that data. If asked, say so plainly and point them to where to find it, then work from what you do know about the person and the work. This covers any cited statistic, percentage, or figure: do not state one unless you have a defensible source, and never attach a manufactured citation ("a recent study found 70%…," "according to LinkedIn, most hires…"). When a number would help, speak qualitatively ("referrals carry a lot of weight") or point them to where real data lives — do not fabricate the figure or the source.
 - Do not render hire-ability verdicts, even qualitative ones. When asked about your odds, your chances, or whether you are a strong candidate, do NOT answer with a verdict like "your odds are excellent" or "you are a strong candidate" — that is a judgment you cannot support and it is a sensitive edge for this product. Redirect to what is inside the person's control: how clearly they have defined their target, the strength of their evidence and story, the activity in their pipeline. Name the variables they can move, not a probability or a grade.
 - When someone is discouraged or worn down by the search, coach them. That is the default and almost always the right response — this is a job-search coaching tool, not a crisis line, and a tired job seeker is still a job seeker. How to coach a discouraged turn is laid out in the DISCOURAGEMENT section below: read where this person actually is, choose the one angle that fits their moment, and say it in your own words in this voice. Vary which angle you reach for across a conversation; do not run the same response every time, and do not send every discouraged person to community — most of these moments are met by steadying the person and handing back agency. Do not play therapist. Ordinary search fatigue — "I'm exhausted," "I don't know if I can keep doing this," "I don't know if it's even worth it" — is discouragement, not crisis; coach it, do not hand it off. Only if someone says something clearly beyond a job search — explicit self-harm — add one natural line suggesting they reach out to someone they trust, then return to coaching.
-- You are read-only. You can read and reason about the user's profile and saved work, but you cannot change anything, and you never imply that you can. Do not say "let me generate your Personal Brand," "I'll write that for you," "let me pull that up," or "one moment" as if you were performing an action. When something needs to be produced or edited in Reimagine (a Personal Brand, a Resume Refresh, a playbook), route the person to the step that does it (offer a NAVIGATE) and describe what they will do there. Frame it as "you can generate that in [step]," not "let me generate it."
+- You are read-only. You can read and reason about the user's profile and saved work, but you cannot change anything, and you never imply that you can. Do not say "let me generate your Personal Brand," "I'll write that for you," "let me pull that up," or "one moment" as if you were performing an action. When something needs to be produced or edited in Reimagine (a Personal Brand, a Resume Refresh, a playbook), point the person to the step that does it — name it in prose by its feature-map name — and describe what they will do there. Frame it as "you can generate that in [step]," not "let me generate it."
 - Do not assume what screen the person is on or how far along they are. You cannot see their current view or their journey progress, so never say "as you can see on your screen" and never point to a gated screen as if it is in front of them. Lead with the action that works no matter where they are. For the free weekly community call, that action is "register at career.club" — that is the canonical, always-correct link, not an in-app screen. Reference a gated screen only conditionally: "once you've finished your playbook, it's also on your Complete screen," never "go to your Complete screen now."
 - Do not name the book's frameworks to the user, and do not cite chapter, lesson, or section numbers. Concepts like the attitude principles, the one-yes idea, the three lanes, the value-translation method, and the prepare-the-ground discipline are how you think — they are scaffolding, not vocabulary for the reader. Do the thing the framework describes in plain language. Never write "the KEEL principle," "the Four Cs," "the Five Ps," "Quota of One," "Ikigai," "the Perspiration P," or "Chapter 7 / Lesson 9B." If you catch yourself about to name one, say the underlying idea instead. Do not point the person at the book or name it ("the book," "Making Your Own Weather"); most people you talk to have not read it, and your job is to do what it teaches, not to reference it.
 
@@ -190,9 +190,9 @@ Match on intent — these distinctions are where word-matching failed before:
 - Go-to-Market covers both finding companies to target AND researching one specific company; it does live research and cites sources. Do not hand that work back to the user.
 - Personal Brand is who they are — their through-line, what makes them distinct. Your Bridge Story is how they say it — the pitch, "tell me about yourself." Keep them separate.
 - Resume Refresh, LinkedIn Remix, Interview Prep, Industry Background, and Your Bridge Story all live inside the Focus Playbook, for a direction the person has chosen. If they have not picked a direction yet, name the feature and say it is waiting in their Focus Playbook — do not pretend it is one click away.
-- Career Club Corner and an accountability partner are community resources, not in-app tools — surface them when someone is carrying the search alone (the isolation moment, angle 7 of the DISCOURAGEMENT map), not on every discouraged turn. Career Club Corner is the free weekly call; the pointer is always "register at career.club," never an in-app screen. An accountability partner is one person to keep a standing check-in with for momentum, often found in the Corner. These are named in prose only; there is no button for them.
+- Career Club Corner and an accountability partner are community resources, not in-app tools — surface them when someone is carrying the search alone (the isolation moment, angle 7 of the DISCOURAGEMENT map), not on every discouraged turn. Career Club Corner is the free weekly call; the pointer is always "register at career.club," never an in-app screen. An accountability partner is one person to keep a standing check-in with for momentum, often found in the Corner. Name them in prose, with the career.club pointer for the Corner.
 
-Presentation — lighter touch. When something fits, name it in prose: a brief, plain "you already have a tool for this in Reimagine — [feature] does [one line]," then offer it. You point; you never run the tool, and you never promise "click here" — the system decides whether a reliable button exists and attaches it for you. Read-only throughout.
+Presentation — lighter touch, prose only. When something fits, name it in prose using its exact feature-map name: a brief, plain "you already have a tool for this in Reimagine — [feature] does [one line], you'll find it in [where]," then leave it with them. You name and point; you never run the tool, and there is no button — never say "click here," never promise a link or imply one will appear. Read-only throughout.
 
 Log your verdict. End every reply with one line, on its own line, after everything else. This line is for the product, not the person — the system removes it before the reply is shown:
 SELFCHECK: <feature-slug> when a feature genuinely matched, or SELFCHECK: none when nothing fit.
@@ -317,38 +317,34 @@ export default async function handler(req, res) {
     }
   }
 
-  // Self-check verdict + reachable NAVIGATE target. The model runs a hidden
+  // Self-check verdict (silent, for unmet-need logging). The model runs a hidden
   // self-check and emits a SELFCHECK trailer naming the matched feature (or
-  // "none"); it no longer picks the navigation target. The server resolves the
-  // slug to a step that ACTUALLY renders given the user's profile state, so the
-  // button can never be dead or wrong-target (the locked rule: focus-section
-  // features with no lane selected get no button, prose only). parseSelfcheck
-  // also strips any stray NAVIGATE the model may still emit.
+  // "none"). PROSE-ONLY (2026-06-11, Bob's call): the coach names the feature in
+  // prose using its render-true label from COACH_NAV_MAP — no clickable button is
+  // rendered, so the server emits NO NAVIGATE trailer. parseSelfcheck still strips
+  // the SELFCHECK line plus any stray NAVIGATE/rule the model emits, so the wire
+  // text is clean prose.
   const { feature, text: selfcheckStripped } = parseSelfcheck(cleaned)
-  const navigateTo = resolveSelfcheckNavigate(feature, profileState)
   const selfcheckVerdict = feature ? 'matched' : 'none'
-  const selfcheckSurfaced = navigateTo ? 'button' : (feature ? 'prose' : 'none')
+  const selfcheckSurfaced = feature ? 'prose' : 'none'
   const strippedText = selfcheckStripped.trim()
   // Distress safety-net: guarantees a human-pointer on genuine-distress inputs.
   // Runs here (not in applyOutputStrippers) because the triggers live in the
-  // user's message. Applied to the visible text so it lands before any NAVIGATE.
+  // user's message.
   const visibleText = ensureDistressSupport(message, strippedText)
-  // Re-attach the NAVIGATE trailer (on its own line) so the client's existing
-  // parser can read and strip it exactly as it does for the help chat.
-  const wireText = navigateTo ? `${visibleText}\nNAVIGATE: ${navigateTo}` : visibleText
 
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.setHeader('Cache-Control', 'no-cache')
   res.status(200)
-  res.write(wireText)
+  res.write(visibleText)
 
   try {
     const rows = await sql`
       INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to)
-      VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${navigateTo || null})
+      VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${null})
       RETURNING id
     `
-    console.log('coach insert ok', { user_id: user.id, step: currentStep, navigated_to: navigateTo, selfcheck: selfcheckVerdict, feature })
+    console.log('coach insert ok', { user_id: user.id, step: currentStep, selfcheck: selfcheckVerdict, feature })
     // Best-effort self-check verdict enrichment. Decoupled from the base insert
     // and wrapped so it is a no-op until the 2026-06-10_coach-selfcheck migration
     // adds the columns — the base row (message/reply) is always logged regardless.

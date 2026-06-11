@@ -3,43 +3,18 @@ import MD from './MD'
 
 const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
 
-// Mirror of META in src/App.jsx. The build-time invariant in
-// scripts/check-prompt-refs.mjs verifies every key here exists in META
-// AND that each STEP_LABELS value matches the corresponding META value.
-const STEP_LABELS = {
-  welcome: 'Welcome',
-  location: 'Location & Work',
-  resume: 'Your Resume',
-  linkedin: 'Your LinkedIn',
-  assessment: 'Assessments',
-  values: 'Values, Passions & Causes',
-  reputation: 'Reputation',
-  'life-events': 'Your Story',
-  'skills': 'Your Skills',
-  'orientation-done': 'Orientation Complete',
-  p3: 'Personal Brand',
-  twoDoors: 'Put It to Work',
-  laneSelect: 'Pick a Direction',
-  p4: 'Role Options',
-  focus: 'Focus Playbook',
-  mylib: 'My Playbooks',
-  p6: 'Your Bridge Story',
-  p7: 'Go-to-Market',
-  p8: 'LinkedIn Remix',
-  p_res: 'Resume Refresh',
-  p9: 'Industry Background',
-  complete: 'Complete',
-  income: 'Income Now',
-  op: 'Upload a Live Opportunity',
-}
-const VALID_STEPS = new Set(Object.keys(STEP_LABELS))
-
-// My Coach. Two doors, one engine: the floating bubble (default) and the
+// My Coach. PROSE-ONLY on feature references (2026-06-11): the coach names a
+// feature in prose ("you'll find this in Career Paths") and never renders a
+// clickable navigation button. Render-true labels come from COACH_NAV_MAP in the
+// prompt (api/coach.js); the silent SELFCHECK trailer still logs unmet needs.
+// This removed the dead-link risk and the stale STEP_LABELS button-label map.
+//
+// Two doors, one engine: the floating bubble (default) and the
 // embedded sidebar view (embedded=true) are the same component talking to
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false }) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -70,7 +45,7 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
     if (!input.trim() || loading) return
     const userMsg = { role: 'user', content: input.trim() }
     const historyAtSend = messages
-    setMessages(m => [...m, userMsg, { role: 'assistant', content: '', navigateTo: null }])
+    setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])
     setInput('')
     setLoading(true)
     try {
@@ -101,21 +76,10 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
           const { done, value } = await reader.read()
           if (done) break
           fullText += decoder.decode(value, { stream: true })
-          // Hide any trailing NAVIGATE line from the visible bubble as it streams.
-          const navIdx = fullText.lastIndexOf('\nNAVIGATE')
-          const visible = navIdx >= 0 ? fullText.slice(0, navIdx).trimEnd() : fullText
+          // Prose-only: the wire carries no NAVIGATE trailer to strip.
           setMessages(m => {
             const copy = [...m]
-            copy[copy.length - 1] = { ...copy[copy.length - 1], content: visible }
-            return copy
-          })
-        }
-        const navMatch = fullText.match(/\n?NAVIGATE:\s*([\w-]+)\s*$/i)
-        const navigateTo = navMatch ? navMatch[1] : null
-        if (navigateTo) {
-          setMessages(m => {
-            const copy = [...m]
-            copy[copy.length - 1] = { ...copy[copy.length - 1], navigateTo }
+            copy[copy.length - 1] = { ...copy[copy.length - 1], content: fullText }
             return copy
           })
         }
@@ -155,20 +119,6 @@ export default function Chat({ currentStep, onNavigate, C, showPulse, onDismissP
                 ? <MD text={m.content} />
                 : m.content}
           </div>
-          {m.navigateTo && VALID_STEPS.has(m.navigateTo) && (
-            <div style={{ marginTop: 6 }}>
-              <button
-                onClick={() => { onNavigate(m.navigateTo); if (!embedded) setOpen(false) }}
-                style={{
-                  background: '#fff', color: C.gold,
-                  border: `1px solid ${C.gold}`, borderRadius: 8,
-                  padding: '8px 14px', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                Take me to {STEP_LABELS[m.navigateTo]} →
-              </button>
-            </div>
-          )}
         </div>
       ))}
     </div>
