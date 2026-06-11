@@ -714,6 +714,27 @@ assertTruthy('stripFrameworkNames: standalone "Making Your Own Weather" neutrali
 assertTruthy('stripFrameworkNames: "the four C’s" neutralized',
   !stripFrameworkNames(`Think about the four C${AP19}s here.`).includes('four C'))
 
+// ---- Discouragement exemplars (2026-06-11): authors stay unnamed ----------
+// The seven discouragement angles are Frankl/Covey-derived; the ideas ship, the
+// names never do. Backstop for the in-prompt no-naming rule (api/coach.js).
+assertEq('stripFrameworkNames: "Covey writes about the circle of concern/control" rewritten clean',
+  stripFrameworkNames('Stephen Covey writes about the circle of concern and the circle of control.'),
+  "there's a useful distinction between what's outside your hands and what's in your hands.")
+assertTruthy('stripFrameworkNames: "Stephen Covey" name never survives',
+  !/covey/i.test(stripFrameworkNames('As Stephen Covey put it, you choose your response.')))
+assertTruthy('stripFrameworkNames: bare "Covey" name neutralized',
+  !/covey/i.test(stripFrameworkNames('Like Covey, focus on what you control.')))
+assertTruthy('stripFrameworkNames: "Viktor Frankl" name never survives',
+  !/frankl/i.test(stripFrameworkNames('Viktor Frankl wrote about the space between stimulus and response.')))
+assertEq('stripFrameworkNames: "your circle of control" -> plain language',
+  stripFrameworkNames('Focus on your circle of control.'),
+  "Focus on what's in your hands.")
+assertEq('stripFrameworkNames: "what X called the circle of concern/control" -> clean, no fragment',
+  stripFrameworkNames('Those live in what Covey called the circle of concern and the circle of control.'),
+  "Those live in what's outside your hands and what's in your hands.")
+assertTruthy('stripFrameworkNames: "what this idea called" mangle never produced',
+  !/\bwhat\s+this idea called\b/i.test(stripFrameworkNames('Those live in what Covey called the circle of concern.')))
+
 // ---- Report ----------------------------------------------------------
 
 if (failed > 0) {
