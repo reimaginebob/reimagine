@@ -10,10 +10,10 @@
 // bundler can both import it (the `.mjs`-across-api/src boundary is unsafe — the
 // 2026-05-27 FUNCTION_INVOCATION_FAILED outage).
 //
-// AUTHORITY NOTE: these strings are the labels that actually render today. The
-// `META` map in src/App.jsx is a STALE parallel ("Pick a Direction",
-// "Upload a Live Opportunity") and is NOT authoritative; retiring/deriving META
-// from this module is a separate cleanup.
+// AUTHORITY NOTE: these strings are the labels that actually render today, and
+// they are now the ONLY label source. The old parallel `META` map in src/App.jsx
+// was retired 2026-06-11 — its labels (including the stale "Pick a Direction" /
+// "Upload a Live Opportunity") were absorbed here, corrected to the live values.
 export const NAV_LABELS = {
   // Standalone destinations — sidebar "Your work" (src/App.jsx primaryItems).
   myCoach: 'My Coach',
