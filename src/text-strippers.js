@@ -270,6 +270,14 @@ export function stripRoomsPlaceholder(text) {
     hits++
     return `${lead} the conversations that matter`
   })
+  // Form 3: singular "in/into the room" used for the interview audience (Bob
+  // flagged "into the room" as AI-speak, 2026-06-11). Only bare "the room" (no
+  // qualifier between "the" and "room"), so "the interview room" / "the waiting
+  // room" are untouched; the "elephant in the room" idiom is excluded.
+  out = out.replace(/(?<!\belephant\s)\b(into|in)\s+the\s+room\b/gi, (_m, prep) => {
+    hits++
+    return `${prep} the conversation`
+  })
   if (hits) console.warn(`[stripRoomsPlaceholder] rewrote ${hits} audience-placeholder noun phrase${hits === 1 ? '' : 's'} from LLM output`)
   return out
 }

@@ -111,8 +111,16 @@ export function resolveSelfcheckNavigate(slug, profileState) {
 // appears; the last SELFCHECK seen wins the feature. The canonical NAVIGATE is
 // re-attached server-side from the resolved slug after this runs, so dropping all
 // model-emitted NAVIGATE lines here is correct.
-const SELFCHECK_LINE_RE = /^[ \t>*_-]*SELFCHECK:\s*([^\n|]*?)\s*(?:\|.*)?$/i
-const NAVIGATE_LINE_RE = /^[ \t>*_-]*NAVIGATE:\s*.+$/i
+// A control line is any line that CONTAINS a SELFCHECK:/NAVIGATE: token —
+// regardless of what wraps it. The model has wrapped the trailer in invented
+// XML-ish tags (`<selfcheck>SELFCHECK: x</selfcheck>`, `<final_gauge>SELFCHECK:
+// none</final_gauge>`) and markdown, which a start-anchored match missed and let
+// leak live (2026-06-11). Match the token anywhere on the line and drop the whole
+// line; read the slug up to the first `<`, `|`, or end. Also drop a bare tag-only
+// line (`<selfcheck>` / `</foo>`) and stray horizontal rules.
+const SELFCHECK_LINE_RE = /\bSELFCHECK:\s*([^\n|<]*?)\s*(?:[|<].*)?$/i
+const NAVIGATE_LINE_RE = /\bNAVIGATE:/i
+const BARE_TAG_RE = /^\s*<\/?[A-Za-z][\w-]*\s*\/?>\s*$/
 const HRULE_LINE_RE = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/
 
 export function parseSelfcheck(text) {
@@ -124,9 +132,10 @@ export function parseSelfcheck(text) {
     if (sc) {
       const raw = sc[1].trim().toLowerCase()
       feature = (raw && raw !== 'none') ? raw : null // last SELFCHECK wins
-      continue // drop the control line
+      continue // drop the control line (tag wrapper and all)
     }
     if (NAVIGATE_LINE_RE.test(line)) continue // drop stray NAVIGATE lines anywhere
+    if (BARE_TAG_RE.test(line)) continue // drop a stray bare XML-ish tag line
     if (HRULE_LINE_RE.test(line)) continue // drop stray markdown horizontal rules
     kept.push(line)
   }
