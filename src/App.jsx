@@ -2229,8 +2229,20 @@ const shuffleArr = (arr) => { const a = [...arr]; for (let i = a.length - 1; i >
 const normalizeWork = (p) => {
   if (!p) return p
   let next = p
-  if (next.loc && typeof next.loc.work === 'string') {
-    next = { ...next, loc: { ...next.loc, work: next.loc.work ? [next.loc.work] : [] } }
+  // Defensive loc guard: a persisted/legacy profile_state may lack `loc` entirely
+  // (older schema, partial seed, externally-written row). Downstream reads access
+  // loc.work / loc.country unguarded (the pc builder, the p1 prompt, the Location
+  // screen), so guarantee a safe shape here — the single point both load paths
+  // (localStorage hydrate + /api/profile/load) funnel through. The normal
+  // orientation flow always populates loc (the Location screen's Continue gate
+  // requires country + >=1 work), so this only fires for restored/partial rows.
+  if (!next.loc || typeof next.loc !== 'object') {
+    next = { ...next, loc: { country: '', city: '', work: [] } }
+  } else {
+    const work = typeof next.loc.work === 'string'
+      ? (next.loc.work ? [next.loc.work] : [])
+      : (Array.isArray(next.loc.work) ? next.loc.work : [])
+    next = { ...next, loc: { country: next.loc.country || '', city: next.loc.city || '', work } }
   }
   if (!Array.isArray(next.corrections)) {
     next = { ...next, corrections: [] }

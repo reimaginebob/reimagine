@@ -68,31 +68,39 @@ export function resolveSelfcheckNavigate(slug, profileState) {
   return null // unknown slug (model drift) → no button, prose only
 }
 
-// Pull the SELFCHECK verdict off the end of the reply and strip it (plus any
-// stray trailing NAVIGATE the model may still emit) from the visible text.
-// Returns { feature: <slug|null>, text: <cleaned> }. `feature` is null when the
-// self-check verdict is "none" or absent; a non-canonical slug is returned
-// verbatim (so model drift is visible in logs) but resolves to no button.
-const SELFCHECK_RE = /\n?[ \t>*_-]*SELFCHECK:\s*([^\n|]+?)\s*(?:\|[^\n]*)?\s*$/i
-const TRAILING_NAV_RE = /\n?[ \t>*_-]*NAVIGATE:\s*[\w-]+\s*$/i
+// Pull the SELFCHECK verdict off the reply and strip every control line from the
+// visible text. Returns { feature: <slug|null>, text: <cleaned> }. `feature` is
+// null when the self-check verdict is "none" or absent; a non-canonical slug is
+// returned verbatim (so model drift is visible in logs) but resolves to no button.
+//
+// Strip-ANYWHERE, not just trailing (2026-06-11): the model occasionally emits a
+// SELFCHECK or a stray NAVIGATE control line mid-body, or drops a markdown
+// horizontal rule ("---") between the reply and its trailer. The earlier
+// trailing-only peel left those in the user-visible text (a stray "NAVIGATE: Pick
+// a Direction" and a "---" rule both leaked live). Now any line that IS a control
+// line (SELFCHECK / NAVIGATE) or a bare horizontal rule is removed wherever it
+// appears; the last SELFCHECK seen wins the feature. The canonical NAVIGATE is
+// re-attached server-side from the resolved slug after this runs, so dropping all
+// model-emitted NAVIGATE lines here is correct.
+const SELFCHECK_LINE_RE = /^[ \t>*_-]*SELFCHECK:\s*([^\n|]*?)\s*(?:\|.*)?$/i
+const NAVIGATE_LINE_RE = /^[ \t>*_-]*NAVIGATE:\s*.+$/i
+const HRULE_LINE_RE = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/
 
 export function parseSelfcheck(text) {
   if (typeof text !== 'string' || !text) return { feature: null, text: text || '' }
-  let out = text
   let feature = null
-  // SELFCHECK and a stray NAVIGATE may appear in either order at the very end;
-  // peel up to two trailing control lines.
-  for (let i = 0; i < 2; i++) {
-    const sc = out.match(SELFCHECK_RE)
+  const kept = []
+  for (const line of text.split('\n')) {
+    const sc = line.match(SELFCHECK_LINE_RE)
     if (sc) {
       const raw = sc[1].trim().toLowerCase()
-      feature = (raw && raw !== 'none') ? raw : null
-      out = out.slice(0, sc.index).replace(/\s+$/, '')
-      continue
+      feature = (raw && raw !== 'none') ? raw : null // last SELFCHECK wins
+      continue // drop the control line
     }
-    const nv = out.match(TRAILING_NAV_RE)
-    if (nv) { out = out.slice(0, nv.index).replace(/\s+$/, ''); continue }
-    break
+    if (NAVIGATE_LINE_RE.test(line)) continue // drop stray NAVIGATE lines anywhere
+    if (HRULE_LINE_RE.test(line)) continue // drop stray markdown horizontal rules
+    kept.push(line)
   }
+  const out = kept.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '')
   return { feature, text: out }
 }

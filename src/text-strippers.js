@@ -154,7 +154,7 @@ const LOGIC_FLIP_APPOSITIVE_RE = new RegExp(
   'gi'
 )
 // (F) "not because X, but because Y" -> "because Y".
-const LOGIC_FLIP_NOT_BECAUSE_RE = /\bnot because\s+[^.,;:!?\n]+?,?\s+but because\s+/gi
+const LOGIC_FLIP_NOT_BECAUSE_RE = /\b(Not|not)\s+because\s+[^.,;:!?\n]+?,?\s+but\s+because\s+/g
 export function stripLogicFlipCadence(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
@@ -184,9 +184,11 @@ export function stripLogicFlipCadence(text) {
     count++
     return `${aux} ${kept}`
   })
-  out = out.replace(LOGIC_FLIP_NOT_BECAUSE_RE, () => {
+  out = out.replace(LOGIC_FLIP_NOT_BECAUSE_RE, (_match, notWord) => {
     count++
-    return 'because '
+    // Recapitalize when the trimmed "not X" half opened the sentence, so the
+    // kept clause does not start mid-thought with a lowercase "because".
+    return notWord === 'Not' ? 'Because ' : 'because '
   })
   if (count > 0) {
     console.warn(`[stripLogicFlipCadence] rewrote ${count} logic-flip cadence${count === 1 ? '' : 's'} from LLM output`)
@@ -247,19 +249,28 @@ export function stripSincerityQualifiers(text) {
 // voice-allow
 export function stripRoomsPlaceholder(text) {
   if (typeof text !== 'string' || !text) return text
-  const roomsHits = (text.match(/\brooms?\s+(?:where|in\s+which)\b/gi) || []).length
-  if (roomsHits === 0) return text
-  // Audience-placeholder noun phrase becomes conversation(s). Preserves
-  // singular vs plural and capitalization of the original noun so sentence-
-  // initial occurrences do not drop their capital.
-  const out = text.replace(/\b(rooms?)\s+(where|in\s+which)\b/gi, (_match, noun, tail) => {
+  let out = text
+  let hits = 0
+  // Form 1: "rooms where / in which / that matter / that count" -> conversation(s).
+  // Broadened 2026-06-11: "rooms that matter" leaked live ("rooms that matter for
+  // your search"). Preserves singular vs plural and capitalization of the noun.
+  out = out.replace(/\b(rooms?)\s+(where|in\s+which|that\s+matter|that\s+count)\b/gi, (_m, noun, tail) => {
+    hits++
     const isPlural = /s$/i.test(noun)
     let repl = isPlural ? 'conversations' : 'conversation'
     if (/^[A-Z]/.test(noun)) repl = repl.charAt(0).toUpperCase() + repl.slice(1)
-    const cleanTail = tail.toLowerCase().replace(/\s+/g, ' ')
-    return `${repl} ${cleanTail}`
+    return `${repl} ${tail.toLowerCase().replace(/\s+/g, ' ')}`
   })
-  console.warn(`[stripRoomsPlaceholder] rewrote ${roomsHits} audience-placeholder noun phrase${roomsHits === 1 ? '' : 's'} from LLM output`)
+  // Form 2: abstract plural "rooms" as audience after a motion/presence verb with
+  // no qualifier ("get into rooms", "walk into the rooms", "be in rooms"). Plural-
+  // and verb-anchored so named/physical rooms ("waiting room", "the interview
+  // room", "conference rooms") are left alone. Runs after Form 1 so "rooms that
+  // matter" is already handled (the negative lookahead also guards against it).
+  out = out.replace(/\b(get(?:ting)?\s+in(?:to)?|walk(?:ing)?\s+in(?:to)?|be(?:ing)?\s+in|step(?:ping)?\s+in(?:to)?)\s+(?:the\s+)?rooms\b(?!\s+(?:where|in\s+which|that\s+matter|that\s+count))/gi, (_m, lead) => {
+    hits++
+    return `${lead} the conversations that matter`
+  })
+  if (hits) console.warn(`[stripRoomsPlaceholder] rewrote ${hits} audience-placeholder noun phrase${hits === 1 ? '' : 's'} from LLM output`)
   return out
 }
 // voice-allow-end
@@ -540,6 +551,7 @@ const FRAMEWORK_SUBS = [
   [/\b(?:Chapter|Lesson)\s+\d+\w*\b/gi, 'the methodology'],
   [/\bthe KEEL (?:principles?|section|framework|model|idea)\b/gi, 'these attitude principles'],
   [/\bthe KEEL\b/gi, 'the attitude'],
+  [/\byour KEEL\b/gi, 'your attitude'],
   [/\b(?:the\s+)?(?:Four|4)\s+C['’]?s\b/gi, 'this approach'],
   [/\b(?:the\s+)?(?:Five|5)\s+P['’]?s\b/gi, 'these points'],
   [/\bQuota of One\b/gi, 'the one-yes idea'],
@@ -588,6 +600,17 @@ const FRAMEWORK_SUBS = [
   [/\s*\b(?:from|in)\s+the book\b/gi, ''],
   [/\bMaking Your Own Weather\b/g, 'the methodology'],
   [/\bthe book\b/gi, 'this work'],
+  // Bare framework acronyms (2026-06-11) — LAST, after the specific "the book —
+  // STAR" section-label rule above so that label is consumed as a unit first.
+  // Instruction alone held poorly (bare "KEEL" leaked live, "the second E in your
+  // KEEL"). Case-SENSITIVE (all-caps only) so ordinary words are safe: "keel"
+  // (boat), "star"/"Star", "scope"/"Scope" never match.
+  [/\bKEEL\b/g, 'the attitude'],
+  [/\b(?:the\s+)?STAR\s+(?:method|framework|format|approach|technique|model|structure|breakdown)\b/gi, 'a clear story structure'],
+  [/\bSTAR\s+(stories|story|answers?|responses?|examples?)\b/g, 'structured $1'],
+  [/\bSTAR\b/g, 'a clear structure'],
+  [/\b(?:the\s+)?SCOPE\s+(?:method|framework|model|approach|technique)\b/gi, 'this approach'],
+  [/\bSCOPE\b/g, 'this approach'],
 ]
 export function stripFrameworkNames(text) {
   if (typeof text !== 'string' || !text) return text
@@ -721,11 +744,31 @@ export function ensureDistressSupport(userMessage, output) {
 // voice-allow
 const RESIDUAL_COMPARATIVE_RE = /\b(?:most|many)\s+(?:people|persons|professionals|candidates|leaders|peers|executives|of them|others)\b|\bmost\s+(?:senior|hr|talent|hiring)\b|\bthan most\b|\bunlike (?:most )?(?:other|the average|the typical)\b|\bwhere most\b|\bfewer than most\b|\bthan average\b|-than-average\b|\bthan the (?:average|typical)\b|\bthan\s+\d{1,3}\s?(?:%|percent)\s+of\b|\bpeople who\b[^.\n]{0,60}?\b(?:do not|don['’]t|cannot|can['’]t|never)\b/i
 const RESIDUAL_SINCERITY_RE = /\bfrankly\b|\bcandidly\b|\bthe honest (?:answer|read|reading|truth|take|view|assessment)\b|\bbrutal honesty\b|\bto be honest\b|\b(?:be|being|am being|'?m being) (?:honest|straight) with you\b|\bgive you the honest\b|\bhonest with you\b/i
+// "the move" tic and family (2026-06-11). Flag-and-regenerate, NOT delete:
+// deleting "is the move" mid-sentence mangles the clause, so the retry rewrites.
+const RESIDUAL_THE_MOVE_RE = /\bis the move\b|\bthe move (?:is|here|now)\b|\b(?:here|that|this|it)['’]?s (?:the|your|another|the other) move\b|\bhere['’]?s (?:the|your|another|the other) play\b|\bthe play (?:is|here)\b|\bthe key is to\b|\bwhat you want to do is\b|\byour (?:next |best )?move (?:is|here)\b/i
+// AI-coaching-therapy register (2026-06-11). Same flag-and-regenerate handling.
+const RESIDUAL_SIT_WITH_RE = /\bsit(?:ting)? with\b|\blean(?:ing)? into\b|\bhold(?:ing)? space for\b|\bbe(?:ing)? present with\b/i
+// Cited statistic WITH a (necessarily fabricated) source — the Coach has no live
+// data, so a figure dressed in a citation is an invention to regenerate. Detect
+// a percentage/figure within range of a citation keyword in either order.
+// Profile numbers ("$1.2M grant", "400 families") carry no citation keyword, so
+// they do not trip this. Extends the fabricated-market-data floor (which strips
+// bare sourceless figures); this catches the sourced shape and regenerates.
+// "according to" is tightened to external-data sources so it never trips on the
+// legitimate "according to your resume/profile". The forward number requires 3+
+// digits or a percent (so 2-digit ages/years and the user's "one yes" are safe);
+// the reverse arm is anchored on a percent (a figure the Coach should not invent
+// regardless). Either order within range of a citation cue flags for regen.
+const RESIDUAL_CITED_STAT_RE = /\b(?:according to\s+(?:a\s+|the\s+|recent\s+|new\s+|one\s+)*(?:study|studies|survey|report|poll|analysis|research|data|statistics?|LinkedIn|Glassdoor|Indeed|Bureau of Labor)|a\s+(?:recent\s+|new\s+)?study\b|studies\s+(?:show|found|suggest)|research\s+(?:shows|suggests|finds|found)|surveys?\s+(?:show|found|suggest)|statistics?\s+(?:show|say)|data\s+(?:shows|suggest)|reports?\s+(?:show|say|found)|per\s+(?:a\s+)?(?:study|survey|report)|LinkedIn\s+(?:reports|says|found|data))\b[^.\n]{0,80}?(?:\d{1,3}\s?%|\d{1,3}\s+percent|\b\d[\d,]{2,}\b)|(?:\d{1,3}\s?%|\d{1,3}\s+percent)[^.\n]{0,60}?\b(?:according to|study|studies|research|survey|statistics?|report|data|LinkedIn|Glassdoor|Indeed)\b/i
 export function detectResidualVoice(text) {
-  if (typeof text !== 'string' || !text) return { comparative: false, sincerity: false }
+  if (typeof text !== 'string' || !text) return { comparative: false, sincerity: false, theMove: false, sitWith: false, citedStat: false }
   return {
     comparative: RESIDUAL_COMPARATIVE_RE.test(text),
     sincerity: RESIDUAL_SINCERITY_RE.test(text),
+    theMove: RESIDUAL_THE_MOVE_RE.test(text),
+    sitWith: RESIDUAL_SIT_WITH_RE.test(text),
+    citedStat: RESIDUAL_CITED_STAT_RE.test(text),
   }
 }
 // voice-allow-end
