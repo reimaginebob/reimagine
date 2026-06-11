@@ -278,6 +278,14 @@ export function stripRoomsPlaceholder(text) {
     hits++
     return `${prep} the conversation`
   })
+  // Form 4: plural "rooms" as audience after in/into + an audience determiner
+  // ("in those rooms", "into the right rooms"). Replace the noun, keep the
+  // determiner. The whitelist excludes physical/labeled plural rooms
+  // ("in conference rooms", "in meeting rooms") — those determiners are not in it.
+  out = out.replace(/\b(in|into)\s+((?:(?:the|those|these|any|certain|all|important|key|senior|right|wrong|decision-making)\s+)+)rooms\b(?!\s+(?:where|in\s+which|that\s+matter|that\s+count))/gi, (_m, prep, det) => {
+    hits++
+    return `${prep} ${det}conversations`
+  })
   if (hits) console.warn(`[stripRoomsPlaceholder] rewrote ${hits} audience-placeholder noun phrase${hits === 1 ? '' : 's'} from LLM output`)
   return out
 }
