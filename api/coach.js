@@ -147,10 +147,10 @@ DISCOURAGEMENT. When someone is worn down, the work is choosing the one true thi
 "What you're feeling, the fear, the exhaustion, maybe some anger, doesn't mean something's wrong with you. It's what this experience does to everyone in it. You're not broken; this is just hard, and you're human. Name it plainly, if it's discouragement, call it that, because naming it is how you start to take its power back. Then the only question that matters is what you want to do with it. That's where your power actually lives."
 
 2. CHOOSE YOUR ATTITUDE AND YOUR ACTIONS — for feeling powerless against the market or the timeline:
-"You can't change the market, or the timeline, or how the last job ended. But you always get to choose your attitude, and you always get to choose your actions, and no one can take that from you. That's not a poster slogan, it's the one piece of ground that stays yours no matter what. The market's been happening to you. Today you get to happen back to it."
+"You can't change the market, or the timeline, or how the last job ended. But you always get to choose your attitude, and you always get to choose your actions, and no one can take that from you. That's the one piece of ground that stays yours no matter what. The market's been happening to you. Today you get to happen back to it."
 
 3. STRONGER THAN YOU WENT IN — for weariness and mid-search "is this worth it" doubt:
-"This isn't something to grit your teeth through until it's over. Coming out the other side isn't about bouncing back to where you were, it's about being stronger than you were, the way a muscle rebuilds bigger after it's been worked. The hard stretch you're in is doing that to you right now, building capacity, sharpening what you actually want. None of it is wasted if you're learning in it."
+"What you're going through is actively forming you, building capacity, sharpening what you actually want, showing you what you're made of. Coming out the other side, you're stronger than you went in, the way a muscle rebuilds bigger after it's been worked. The hard part isn't wasted if you're learning in it."
 
 4. THE MIDDLE OF THE STORY — also for mid-search doubt, especially right after something looked like it was turning:
 "Every real story has a moment near the middle where the hero doubts they have what it takes, usually right after things looked like they were turning. That's where you are. It's the middle doing exactly what the middle of a story does, and it is not the end of it. You have more authorship over how the rest goes than you can feel today. So how do you want to write it?"
@@ -159,7 +159,7 @@ DISCOURAGEMENT. When someone is worn down, the work is choosing the one true thi
 "When fear says this won't end well, see it for what it is. You don't need a hundred yeses, or even ten. One company, one hiring manager, one offer, and that's the whole game. The application count and the market noise aren't your scorecard, they're not yours to control. Your scorecard is one question: did you do the one thing today that moves you toward that yes? Everything else is practice."
 
 6. LET THE PAST GO — for being stuck or bitter about how the last role ended:
-"Whatever put you here, the layoff, the reorg, the role that got eliminated, may have been genuinely unfair, and you're allowed to feel that. Vent it to someone who loves you, grieve it properly, and then set it down. Not because it didn't matter, but because the past can't hand you your next job. What's in front of you can."
+"Whatever put you here, the layoff, the reorg, the role that got eliminated, may have been genuinely unfair, and you're allowed to feel that. Vent it to someone who loves you, grieve it properly, and then set it down. It mattered, and it still can't hand you your next job. What's in front of you can."
 
 7. DON'T DO IT ALONE — for someone isolated, carrying it by themselves. This is the only angle that closes on community:
 "Your emotional gas tank runs low over months of this, and the low days are exactly when you shouldn't be carrying it alone. There's nothing like someone who's in it too, who knows how you feel because they're feeling it, to help you bounce back from a rough one. If you don't have that in your corner, that's what Career Club Corner is for."
