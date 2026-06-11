@@ -71,6 +71,23 @@ eq('drops a bare horizontal rule even with no trailer',
   parseSelfcheck('Line one.\n---\nLine two.'),
   { feature: null, text: 'Line one.\nLine two.' })
 
+// --- SELFCHECK wrapped in invented XML-ish tags must still be stripped (2026-06-11) ---
+eq('strips <selfcheck>SELFCHECK: x</selfcheck> wrapper, keeps the slug',
+  parseSelfcheck('Here is your coaching.\n<selfcheck>SELFCHECK: interview-prep</selfcheck>'),
+  { feature: 'interview-prep', text: 'Here is your coaching.' })
+eq('strips a differently-named wrapper tag (<final_gauge>SELFCHECK: none</final_gauge>)',
+  parseSelfcheck('Reply body.\n<final_gauge>SELFCHECK: none</final_gauge>'),
+  { feature: null, text: 'Reply body.' })
+eq('drops a stray bare tag line on its own',
+  parseSelfcheck('Reply body.\n<selfcheck>\nSELFCHECK: go-to-market\n</selfcheck>'),
+  { feature: 'go-to-market', text: 'Reply body.' })
+eq('strips <selfcheck>slug</selfcheck> with NO "SELFCHECK:" token, reads the slug',
+  parseSelfcheck('Want to start there?\n<selfcheck>interview-prep</selfcheck>'),
+  { feature: 'interview-prep', text: 'Want to start there?' })
+eq('strips <verdict>none</verdict> element (arbitrary tag), feature null',
+  parseSelfcheck('Reply.\n<verdict>none</verdict>'),
+  { feature: null, text: 'Reply.' })
+
 // --- community resources: recognized slugs, but prose-only (no button) ---
 eq('career-club-corner -> null (prose-only, no in-app screen)', resolveSelfcheckNavigate('career-club-corner', withLane), null)
 eq('accountability-partner -> null (prose-only)', resolveSelfcheckNavigate('accountability-partner', withLane), null)

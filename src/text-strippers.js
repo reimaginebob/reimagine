@@ -270,6 +270,22 @@ export function stripRoomsPlaceholder(text) {
     hits++
     return `${lead} the conversations that matter`
   })
+  // Form 3: singular "in/into the room" used for the interview audience (Bob
+  // flagged "into the room" as AI-speak, 2026-06-11). Only bare "the room" (no
+  // qualifier between "the" and "room"), so "the interview room" / "the waiting
+  // room" are untouched; the "elephant in the room" idiom is excluded.
+  out = out.replace(/(?<!\belephant\s)\b(into|in)\s+the\s+room\b/gi, (_m, prep) => {
+    hits++
+    return `${prep} the conversation`
+  })
+  // Form 4: plural "rooms" as audience after in/into + an audience determiner
+  // ("in those rooms", "into the right rooms"). Replace the noun, keep the
+  // determiner. The whitelist excludes physical/labeled plural rooms
+  // ("in conference rooms", "in meeting rooms") — those determiners are not in it.
+  out = out.replace(/\b(in|into)\s+((?:(?:the|those|these|any|certain|all|important|key|senior|right|wrong|decision-making)\s+)+)rooms\b(?!\s+(?:where|in\s+which|that\s+matter|that\s+count))/gi, (_m, prep, det) => {
+    hits++
+    return `${prep} ${det}conversations`
+  })
   if (hits) console.warn(`[stripRoomsPlaceholder] rewrote ${hits} audience-placeholder noun phrase${hits === 1 ? '' : 's'} from LLM output`)
   return out
 }
@@ -787,7 +803,11 @@ export function applyOutputStrippers(text) {
   out = stripComparativeStanding(out)
   out = stripHireabilityVerdict(out)
   out = stripFabricatedMarketData(out)
-  out = stripFrameworkNames(out)
+  // stripFrameworkNames is intentionally NOT in the chain (2026-06-11, Bob's
+  // call): the coach now TEACHES the Making Your Own Weather frameworks (KEEL,
+  // the 4 C's, the 5 P's, STAR, SCOPE) and credits Frankl/Covey by name, so
+  // scrubbing those names would gut the teaching. The function + its unit tests
+  // stay (dormant) in case the structured-generation path ever needs them.
   out = stripLogicFlipCadence(out)
   out = stripSincerityQualifiers(out)
   out = stripIntensifiers(out)

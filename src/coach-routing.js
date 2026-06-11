@@ -111,21 +111,41 @@ export function resolveSelfcheckNavigate(slug, profileState) {
 // appears; the last SELFCHECK seen wins the feature. The canonical NAVIGATE is
 // re-attached server-side from the resolved slug after this runs, so dropping all
 // model-emitted NAVIGATE lines here is correct.
-const SELFCHECK_LINE_RE = /^[ \t>*_-]*SELFCHECK:\s*([^\n|]*?)\s*(?:\|.*)?$/i
-const NAVIGATE_LINE_RE = /^[ \t>*_-]*NAVIGATE:\s*.+$/i
+// A control line is any line that CONTAINS a SELFCHECK:/NAVIGATE: token —
+// regardless of what wraps it. The model has wrapped the trailer in invented
+// XML-ish tags (`<selfcheck>SELFCHECK: x</selfcheck>`, `<final_gauge>SELFCHECK:
+// none</final_gauge>`) and markdown, which a start-anchored match missed and let
+// leak live (2026-06-11). Match the token anywhere on the line and drop the whole
+// line; read the slug up to the first `<`, `|`, or end. Also drop a bare tag-only
+// line (`<selfcheck>` / `</foo>`) and stray horizontal rules.
+const SELFCHECK_TOKEN_RE = /\bSELFCHECK:\s*([^\n|<]*?)\s*(?:[|<].*)?$/i
+const NAVIGATE_LINE_RE = /\bNAVIGATE:/i
+// A line that is ONLY an XML-ish element: <tag>inner</tag>, a bare <tag> / </tag>,
+// or a self-closing <tag/>. The model wraps the verdict in invented, varying tags
+// (<selfcheck>interview-prep</selfcheck>, <final_gauge>SELFCHECK: none</final_gauge>)
+// with no reliable "SELFCHECK:" token. A coaching reply uses markdown, never a
+// standalone XML element, so dropping such a line is always safe; the inner text
+// (minus any "SELFCHECK:" prefix) is read as the slug when it looks like one.
+const XML_ELEMENT_LINE_RE = /^\s*<([A-Za-z][\w-]*)(?:\s[^>]*)?>\s*([\s\S]*?)\s*<\/\1\s*>\s*$/
+const BARE_TAG_RE = /^\s*<\/?[A-Za-z][\w-]*(?:\s[^>]*)?\/?>\s*$/
+const SLUG_RE = /^[a-z][a-z0-9-]*$/
 const HRULE_LINE_RE = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/
 
 export function parseSelfcheck(text) {
   if (typeof text !== 'string' || !text) return { feature: null, text: text || '' }
   let feature = null
+  const setFeature = raw => { const s = raw.trim().toLowerCase(); feature = (s && s !== 'none') ? s : null }
   const kept = []
   for (const line of text.split('\n')) {
-    const sc = line.match(SELFCHECK_LINE_RE)
-    if (sc) {
-      const raw = sc[1].trim().toLowerCase()
-      feature = (raw && raw !== 'none') ? raw : null // last SELFCHECK wins
-      continue // drop the control line
+    const sc = line.match(SELFCHECK_TOKEN_RE)
+    if (sc) { setFeature(sc[1]); continue } // explicit "SELFCHECK:" token, any wrapper
+    const el = line.match(XML_ELEMENT_LINE_RE)
+    if (el) {
+      const inner = el[2].replace(/^\s*SELFCHECK:\s*/i, '').trim()
+      if (SLUG_RE.test(inner.toLowerCase())) setFeature(inner)
+      continue // drop a standalone <tag>...</tag> verdict line
     }
+    if (BARE_TAG_RE.test(line)) continue // drop a stray bare / self-closing tag line
     if (NAVIGATE_LINE_RE.test(line)) continue // drop stray NAVIGATE lines anywhere
     if (HRULE_LINE_RE.test(line)) continue // drop stray markdown horizontal rules
     kept.push(line)

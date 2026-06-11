@@ -770,6 +770,20 @@ assertEq('stripRoomsPlaceholder: "interview room" untouched',
   stripRoomsPlaceholder('Walk into the interview room confidently.'), 'Walk into the interview room confidently.')
 assertEq('stripRoomsPlaceholder: "room to grow" untouched',
   stripRoomsPlaceholder('There is room to grow here.'), 'There is room to grow here.')
+assertEq('stripRoomsPlaceholder: "into the room" (audience) -> "into the conversation"',
+  stripRoomsPlaceholder('Bring that warmth into the room.'), 'Bring that warmth into the conversation.')
+assertEq('stripRoomsPlaceholder: "in the room" (audience) -> "in the conversation"',
+  stripRoomsPlaceholder('Be yourself in the room.'), 'Be yourself in the conversation.')
+assertEq('stripRoomsPlaceholder: "elephant in the room" idiom untouched',
+  stripRoomsPlaceholder('Name the elephant in the room.'), 'Name the elephant in the room.')
+assertEq('stripRoomsPlaceholder: "the interview room" (physical) untouched',
+  stripRoomsPlaceholder('Walk into the interview room calmly.'), 'Walk into the interview room calmly.')
+assertEq('stripRoomsPlaceholder: "in those rooms" (plural audience) -> "in those conversations"',
+  stripRoomsPlaceholder("what's happening in those rooms"), "what's happening in those conversations")
+assertEq('stripRoomsPlaceholder: "into the right rooms" -> "into the right conversations"',
+  stripRoomsPlaceholder('Get into the right rooms.'), 'Get into the right conversations.')
+assertEq('stripRoomsPlaceholder: "in conference rooms" (physical plural) untouched',
+  stripRoomsPlaceholder('Meet in conference rooms downtown.'), 'Meet in conference rooms downtown.')
 
 // Item 10: logic-flip "not because ... but because" recapitalizes at sentence start.
 assertEq('stripLogicFlipCadence: sentence-initial "Not because" -> "Because"',
