@@ -57,6 +57,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           message: userMsg.content,
           history: historyAtSend,
           currentStep,
+          // Entry point for insight logging: the embedded variant is the My
+          // Coach sidebar; the floating variant is the help bubble.
+          surface: embedded ? 'sidebar' : 'help',
         }),
       })
       if (!res.ok || !res.body) {

@@ -3,7 +3,8 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "crons": [
-    { "path": "/api/survey/daily-digest", "schedule": "0 12 * * *" }
+    { "path": "/api/survey/daily-digest", "schedule": "0 12 * * *" },
+    { "path": "/api/admin/classify-coach", "schedule": "0 7 * * *" }
   ],
   "redirects": [
     { "source": "/demo", "destination": "/?demo=true", "statusCode": 302 }
@@ -14,7 +15,8 @@
     { "source": "/privacy", "destination": "/index.html" },
     { "source": "/terms", "destination": "/index.html" },
     { "source": "/quick-start", "destination": "/index.html" },
-    { "source": "/admin/dashboard", "destination": "/index.html" }
+    { "source": "/admin/dashboard", "destination": "/index.html" },
+    { "source": "/admin/coach-insights", "destination": "/index.html" }
   ],
   "headers": [
     {

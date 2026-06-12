@@ -245,7 +245,7 @@ export default async function handler(req, res) {
   const user = await getSessionUser(req, res)
   if (!user) return res.status(401).json({ error: 'Not signed in' })
 
-  const { message, history = [], currentStep } = req.body || {}
+  const { message, history = [], currentStep, surface } = req.body || {}
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'message required' })
   }
@@ -261,6 +261,20 @@ export default async function handler(req, res) {
     // Fall through with a null profile rather than failing the turn.
   }
   const profileBlock = buildCoachProfileSlice(profileState)
+
+  // Deterministic per-turn context for question-insight logging (real columns on
+  // chat_messages; see migrations/2026-06-12_coach-insight-foundation.sql). All
+  // known here at write-time — no classifier. Classified attributes are NOT
+  // computed here; the nightly job (api/admin/classify-coach.js) fills those.
+  const _pstate = profileState && typeof profileState === 'object' ? profileState : {}
+  const _pprofile = _pstate.profile && typeof _pstate.profile === 'object' ? _pstate.profile : {}
+  const _poutputs = _pstate.outputs && typeof _pstate.outputs === 'object' ? _pstate.outputs : {}
+  const _hasText = v => typeof v === 'string' && v.trim().length > 0 && !v.includes('[object Object]')
+  const lane = _hasText(_pstate.selectedLane) ? _pstate.selectedLane.trim() : null
+  const hasResume = _hasText(_pprofile.resume)
+  const hasPersonalBrand = _hasText(_poutputs.p3)
+  const turnIndex = Array.isArray(history) ? history.length : 0
+  const entryPoint = (surface === 'help' || surface === 'sidebar') ? surface : null
 
   const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".]` : ''
 
@@ -370,8 +384,8 @@ export default async function handler(req, res) {
 
   try {
     const rows = await sql`
-      INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to)
-      VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${null})
+      INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to, lane, turn_index, has_resume, has_personal_brand, entry_point)
+      VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${null}, ${lane}, ${turnIndex}, ${hasResume}, ${hasPersonalBrand}, ${entryPoint})
       RETURNING id
     `
     console.log('coach insert ok', { user_id: user.id, step: currentStep, selfcheck: selfcheckVerdict, feature })
