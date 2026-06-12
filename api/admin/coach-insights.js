@@ -3,8 +3,9 @@
 // Auth mirrors api/admin/analytics.js exactly: ADMIN_TOKEN, accepted as either
 // Authorization: Bearer <token> OR ?t=<token> (browser convenience); missing env
 // -> 500, neither credential -> 403. Same CORS block so a same-origin browser
-// page (src/CoachInsights.jsx) can read it. ADMIN_EMAILS, if set, are excluded
-// from the aggregates (so the operator's own test turns don't skew the picture).
+// page (src/CoachInsights.jsx) can read it. Internal/test users — ADMIN_EMAILS
+// plus anyone @career.club — are excluded from every aggregate by default so the
+// dashboard reflects real external usage; ?includeInternal=1 shows everyone.
 //
 // PRIVACY: this endpoint aggregates over NON-PII only. reply, user_id, and email
 // NEVER leave the server (email is used only in a WHERE to exclude admins). The
@@ -71,6 +72,13 @@ export default async function handler(req, res) {
   const adminJson = JSON.stringify(parseAdminEmails(process.env.ADMIN_EMAILS))
   const V = TAXONOMY_VERSION
 
+  // Internal/test users — the operator ADMIN_EMAILS plus anyone @career.club —
+  // are excluded from EVERY aggregate by default so the dashboard shows the real
+  // external user picture. ?includeInternal=1 disables the whole exclusion (debug:
+  // show everyone). Read-time only: internal rows are still logged and tagged, so
+  // this rule can change later without having lost any data.
+  const includeInternal = !!(req.query && req.query.includeInternal === '1')
+
   try {
     // 1. Totals + verdict breakdown over all messages in the window (admin-
     //    excluded, attribute-filtered). LEFT JOIN so untagged rows still count
@@ -86,10 +94,13 @@ export default async function handler(req, res) {
       LEFT JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
         AND (${hasFilter} = false OR t.attributes @> ${filterJson}::jsonb)
-        AND NOT EXISTS (
+        AND (${includeInternal} OR NOT EXISTS (
           SELECT 1 FROM users u WHERE u.id = c.user_id
-            AND lower(u.email) IN (SELECT lower(jsonb_array_elements_text(${adminJson}::jsonb)))
-        )
+            AND (
+              lower(u.email) IN (SELECT lower(jsonb_array_elements_text(${adminJson}::jsonb)))
+              OR lower(u.email) LIKE '%@career.club'
+            )
+        ))
     `
     const tr = totalsRows[0] || { total: 0, tagged: 0, matched: 0, none_count: 0, unset: 0 }
     const verdictTotal = tr.matched + tr.none_count + tr.unset
@@ -108,10 +119,13 @@ export default async function handler(req, res) {
       JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
         AND (${hasFilter} = false OR t.attributes @> ${filterJson}::jsonb)
-        AND NOT EXISTS (
+        AND (${includeInternal} OR NOT EXISTS (
           SELECT 1 FROM users u WHERE u.id = c.user_id
-            AND lower(u.email) IN (SELECT lower(jsonb_array_elements_text(${adminJson}::jsonb)))
-        )
+            AND (
+              lower(u.email) IN (SELECT lower(jsonb_array_elements_text(${adminJson}::jsonb)))
+              OR lower(u.email) LIKE '%@career.club'
+            )
+        ))
     `
     const distribution = {}
     for (const k of ATTRIBUTE_KEYS) distribution[k] = tally(tagRows, k)
@@ -124,10 +138,13 @@ export default async function handler(req, res) {
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
         AND c.selfcheck_verdict = 'matched' AND c.selfcheck_feature IS NOT NULL
         AND (${hasFilter} = false OR t.attributes @> ${filterJson}::jsonb)
-        AND NOT EXISTS (
+        AND (${includeInternal} OR NOT EXISTS (
           SELECT 1 FROM users u WHERE u.id = c.user_id
-            AND lower(u.email) IN (SELECT lower(jsonb_array_elements_text(${adminJson}::jsonb)))
-        )
+            AND (
+              lower(u.email) IN (SELECT lower(jsonb_array_elements_text(${adminJson}::jsonb)))
+              OR lower(u.email) LIKE '%@career.club'
+            )
+        ))
       GROUP BY c.selfcheck_feature
       ORDER BY n DESC
     `
@@ -142,10 +159,13 @@ export default async function handler(req, res) {
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
         AND c.selfcheck_verdict = 'none'
         AND (${hasFilter} = false OR t.attributes @> ${filterJson}::jsonb)
-        AND NOT EXISTS (
+        AND (${includeInternal} OR NOT EXISTS (
           SELECT 1 FROM users u WHERE u.id = c.user_id
-            AND lower(u.email) IN (SELECT lower(jsonb_array_elements_text(${adminJson}::jsonb)))
-        )
+            AND (
+              lower(u.email) IN (SELECT lower(jsonb_array_elements_text(${adminJson}::jsonb)))
+              OR lower(u.email) LIKE '%@career.club'
+            )
+        ))
       ORDER BY c.created_at DESC
       LIMIT ${UNMET_CAP}
     `
@@ -161,6 +181,7 @@ export default async function handler(req, res) {
       generatedAt: new Date().toISOString(),
       taxonomyVersion: V,
       days,
+      includeInternal,
       filter,
       categories: CATEGORIES,
       totals: { messages: tr.total, tagged: tr.tagged },
