@@ -2960,8 +2960,12 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
         {id:'laneSelect',label:NAV_LABELS.laneSelect,activeSteps:['laneSelect','p4','focus']},
         // Door 2 routes to op (the Opportunity Playbook).
         {id:'op',label:NAV_LABELS.op,activeSteps:['op']},
+        // Income Now is a bonus inside the Focus Playbook; lives under Put It to
+        // Work to reflect that nesting. Christine 2026-06-04 feedback: the previous
+        // top-level placement misrepresented the structure. Icon dropped 2026-06-05
+        // per Bob's decision for visual consistency with its two icon-less siblings.
+        {id:'income',label:NAV_LABELS.income,activeSteps:['income']},
       ]},
-      {id:'income',label:NAV_LABELS.income,Icon:DollarSign},
     ]
     const inputsItems=[
       {id:'resume',label:'Resume'},
