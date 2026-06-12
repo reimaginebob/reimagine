@@ -23,3 +23,4 @@ src/build-meta.js
 # voice harness.
 scripts/fixtures/*
 !scripts/fixtures/mockup-profiles.mjs
+.vercel
