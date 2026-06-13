@@ -67,3 +67,65 @@ export function countTermInText(text, term) {
   while (re.exec(text) !== null) c++
   return c
 }
+
+// ---- Pre-submit conflict detection (Track 6 / Track 7) ----
+//
+// A "conflict" is when a correction asks us to USE a phrase that Reimagine
+// writes around (typology labels, AI-speak/resume cliches, passion-stack,
+// comparative-standing). It is NOT a conflict when the correction asks us to
+// AVOID such a phrase (e.g. "stop using architect") — that is the user helping.
+//
+// CURATED set on purpose. We deliberately do NOT check sincerity qualifiers,
+// intensifiers, em-dashes, meta-narration, or the formula-* family: they
+// over-fire on ordinary correction phrasing or describe output shape the user
+// would never type. Each entry carries the plain-English reason and an example
+// rephrase the modal offers. Keep reasons/rephrases in the "way Reimagine
+// writes" register — no rule/jargon framing in user-facing strings.
+const CONFLICT_PATTERNS = [
+  {
+    key: 'typology',
+    terms: ['architect', 'operator', 'builder', 'integrator', 'strategist', 'connector', 'hunter', 'farmer', 'fixer', 'closer', 'maven', 'guru', 'rockstar', 'ninja', 'wizard', 'unicorn'],
+    reason: 'a one-word type label reads as filler to hiring readers — they want the move you actually made, not a category',
+    rephrase: 'Name the move you made, not a one-word type — e.g. "I rebuilt the planning system."',
+  },
+  {
+    key: 'ai-speak',
+    terms: ['leverage', 'leveraged', 'utilize', 'utilized', 'synergy', 'synergies', 'robust', 'seamless', 'world-class', 'best-in-class', 'results-driven', 'results-oriented', 'proven track record', 'move the needle', 'game-changer', 'game changer', 'thought leader', 'go-getter', 'detail-oriented', 'team player', 'self-starter'],
+    reason: 'this is the kind of phrase hiring readers flag as AI-written or resume-cliche',
+    rephrase: 'Say what you actually did in plain words instead of the buzzword — e.g. "used" rather than "leveraged".',
+  },
+  {
+    key: 'passion',
+    terms: ['passionate', 'passionate about', 'passion for', 'deeply passionate'],
+    reason: 'naming the feeling states it without showing it; readers discount "passionate" as a tell',
+    rephrase: 'Show what you care about through what you have built, not the word "passionate."',
+  },
+  {
+    key: 'comparative',
+    terms: ['most people', 'unlike most', 'better than most', 'more than most', 'unlike others', 'stand out from the crowd', 'ahead of the pack'],
+    reason: 'comparing you to an unnamed crowd reads as a flattery move rather than evidence',
+    rephrase: 'Point to your specific result instead of comparing yourself to others.',
+  },
+]
+
+const FORBIDDING_BEFORE = /\b(not|never|no|stop|don'?t|do not|avoid|without|drop|remove|less|instead of|rather than|replace|cut)\b/
+
+// Returns { phrase, reason, rephrase } for the first conflicting phrase the
+// correction asks us to USE, or null. Skips phrases in a forbidding context.
+export function detectCorrectionConflict(text) {
+  if (!text || typeof text !== 'string') return null
+  const lower = text.toLowerCase()
+  for (const pat of CONFLICT_PATTERNS) {
+    for (const term of pat.terms) {
+      const esc = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+')
+      const re = new RegExp(`(?:^|[^\\w-])(${esc})(?![\\w-])`, 'i')
+      const m = re.exec(lower)
+      if (!m) continue
+      const idx = m.index + m[0].toLowerCase().indexOf(term.toLowerCase().split(/\s+/)[0])
+      const before = lower.slice(Math.max(0, idx - 24), idx)
+      if (FORBIDDING_BEFORE.test(before)) continue
+      return { phrase: term, reason: pat.reason, rephrase: pat.rephrase }
+    }
+  }
+  return null
+}

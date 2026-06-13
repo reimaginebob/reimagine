@@ -1,4 +1,4 @@
-import { extractCorrectionTerms, countTermInText } from '../src/corrections.js'
+import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from '../src/corrections.js'
 
 let pass = 0, fail = 0
 const has = (arr, t, msg) => {
@@ -27,6 +27,33 @@ eq(countTermInText("The architect's architectural plan. Architect again.", 'arch
 eq(countTermInText('nothing relevant here', 'architect'), 0, 'no match -> 0')
 eq(countTermInText('leverage and Leverage and LEVERAGE', 'leverage'), 3, 'case-insensitive count')
 eq(countTermInText('rooted in the work, rooted in values', 'rooted in'), 2, 'multiword term count')
+
+// detectCorrectionConflict
+const conflict = (t) => detectCorrectionConflict(t)
+const isConflict = (t, phrase, msg) => {
+  const c = conflict(t)
+  const ok = c && c.phrase.toLowerCase() === phrase.toLowerCase() && typeof c.reason === 'string' && typeof c.rephrase === 'string'
+  if (ok) pass++; else { fail++; console.log('FAIL', msg, '— got', JSON.stringify(c), 'want phrase', phrase) }
+}
+const noConflict = (t, msg) => {
+  const c = conflict(t)
+  if (c === null) pass++; else { fail++; console.log('FAIL', msg, '— got', JSON.stringify(c), 'want null') }
+}
+// asks to USE a banned phrase -> conflict
+isConflict('Please describe me as an architect', 'architect', 'typology: use architect')
+isConflict('Make the opening more passionate', 'passionate', 'passion: more passionate')
+isConflict('Say that I leverage data to drive results', 'leverage', 'ai-speak: leverage')
+isConflict('I want it to say results-driven leader', 'results-driven', 'ai-speak: results-driven')
+isConflict('Mention that I stand out from the crowd', 'stand out from the crowd', 'comparative')
+// asks to AVOID a banned phrase -> NOT a conflict (the PR1 helping case)
+noConflict("stop using 'architect'", 'forbidding: stop using architect')
+noConflict('Never call me a builder', 'forbidding: never builder')
+noConflict("don't use the word leverage", 'forbidding: dont use leverage')
+noConflict('less passionate, more grounded', 'forbidding: less passionate')
+// ordinary factual correction -> NOT a conflict
+noConflict('I led a team of 12, not 4', 'factual correction')
+noConflict('My time at Acme was internal strategy, not consulting', 'factual: not consulting')
+noConflict('Lead with my supply chain work instead', 'style steer, no banned term')
 
 console.log(`test-corrections: ${pass} passed, ${fail} failed`)
 if (fail > 0) process.exit(1)
