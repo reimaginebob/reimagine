@@ -3511,13 +3511,15 @@ export default function PivotEngine(){
       if(downstream.includes('chosen'))setChosen('')
       setDone(d=>d.filter(s=>!downstream.includes(s)))
     }
-    // Clear saved-slot write-through when any role-level section is downstream,
-    // so further generations create fresh state rather than overwriting a stale
-    // saved slot.
-    if(downstream.some(k=>ROLE_SUBMODULES.includes(k)||k==='op')){
-      currentSavedSlotIdRef.current=null
-      setCurrentRoleInSavedSet(false)
-    }
+    // Saved-slot ref intentionally NOT nulled here (root-cause fix paired with
+    // saveCurrentDoor1's dedupe). invalidateDownstream is only ever reached by
+    // in-place upstream refreshes — cascadeInvalidate on p1/p3/p6 and the
+    // refreshP3 migration — where chosen/selectedLane do not change: the user is
+    // still inside the same saved playbook, so the slot stays valid and later
+    // generations write through to it. Nulling the ref here was the root cause of
+    // duplicate Door 1 records: a Personal Brand refresh dropped the ref, then the
+    // next downstream regenerate minted a fresh record. Genuine role switches null
+    // the ref themselves in applyRoleSwitchDoor1, not via this path.
   }
   const cascadeInvalidate=(source)=>{
     const downstream=downstreamOf(source)
@@ -4139,6 +4141,32 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     return{id,title,lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||'',p5:feedback.p5||'',p6:feedback.p6||'',p_res:feedback.p_res||'',p11:feedback.p11||'',companyRead:feedback.companyRead||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:'',p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}}}
   }
   const saveCurrentDoor1=(currentKey,currentR)=>{
+    // Dedupe at the creation chokepoint. Every duplicate-Door-1-record vector
+    // funnels through here while the active-slot ref is null:
+    //   (1) a Personal Brand (p3) refresh nulls the ref via cascadeInvalidate;
+    //   (2) a Bridge Story (p6) refresh does the same;
+    //   (3) PR1's "Update this section" staleness button is the one-click
+    //       trigger that regenerates a downstream section right after (1)/(2);
+    //   (4) a role-tile click that rebuilds a role already saved on this lane.
+    // If a Door 1 record for this title+lane already exists, re-link to it and
+    // write the current section through instead of minting a second record.
+    // Silent: no toast, no nav. (Change B stops vectors 1/2 from nulling the
+    // ref at all; this dedupe is the belt-and-suspenders backstop for 3/4 and
+    // the hard-refresh re-link race.)
+    const existing=savedPlaybooks.find(r=>r.source==='door1'&&r.title===chosen&&r.lane===selectedLane)
+    if(existing){
+      currentSavedSlotIdRef.current=existing.id
+      setCurrentRoleInSavedSet(true)
+      if(currentKey&&currentR!==undefined&&currentR!==null){
+        setSavedPlaybooks(prev=>prev.map(rec=>{
+          if(rec.id!==existing.id)return rec
+          const nextOutputs={...rec.outputs,[currentKey]:currentR}
+          const nextDone=rec.done.includes(currentKey)?rec.done:[...rec.done,currentKey]
+          return{...rec,outputs:nextOutputs,done:nextDone,updatedAt:new Date().toISOString()}
+        }))
+      }
+      return
+    }
     const id=newSavedId()
     const rec=buildDoor1Record(id,chosen,selectedLane)
     // buildDoor1Record reads outputs and done from React closure. When this
