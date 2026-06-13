@@ -34,7 +34,7 @@ When Reimagine misreads your background, tell it. Examples:
 - "You missed my P&L ownership at Acme."
 - "I'm not an introvert at work, just selective."
 
-These corrections do something important: **they stick.** When you submit a factual correction on one section, Reimagine saves it to your profile. Every later section you regenerate reads from that corrections list and honors them. You no longer need to make the same correction repeatedly across multiple sections.
+These corrections do something important: **they carry forward.** When you submit a correction on one section, Reimagine saves it to your profile, and every later section you generate or regenerate reads from that list and honors it. You no longer need to make the same correction repeatedly across sections. If a section was already written before you made the correction, it shows a small note so you can refresh it and bring it in line.
 
 When you correct your Personal Brand, the correction joins your profile and applies to every later section you regenerate. The wrong assumption stops cascading.
 
@@ -49,7 +49,7 @@ The feedback box also handles tone and emphasis requests:
 
 Reimagine does better with feedback that describes what you want than with feedback about what you do not want. "Make it lead with my operations experience" produces better results than "It shouldn't lead with product." Both work; the first is sharper.
 
-Stylistic adjustments do not persist across other sections the way factual corrections do. They apply to the section you submitted them on. That is intentional. The tone you want in your Bridge Story may not be the tone you want in your Go-to-Market outreach.
+Both kinds of feedback — factual fixes and tone steers — are saved to your profile and carry forward to the sections you generate next. A section written before your feedback shows a note so you can refresh it and apply the change. If you want a different tone in another section, just say so there; the tone you want in your Bridge Story may not be the tone you want in your Go-to-Market outreach.
 
 ### When to use Start fresh
 
