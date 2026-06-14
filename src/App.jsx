@@ -2313,7 +2313,20 @@ const normalizeProfileState = (loaded) => {
   const isPreV1 = !('selectedLane' in s) || !('exploredRoleTitles' in s)
   let migrated = false
   const M = () => { migrated = true }
-  if (s.outputs.p4 !== undefined && typeof s.outputs.p4 === 'string') { delete s.outputs.p4; M() }
+  // Legacy pre-V1 outputs.p4 was a single lane-options string; the current render
+  // expects a lane-keyed object. Preserve the content (wrap under the user's
+  // selectedLane, or 'familiar' when lost) instead of deleting it — the destructive
+  // delete here wiped intact Career Paths content on every hydration. Autosave then
+  // writes the object shape back, healing the row permanently. Empty legacy strings
+  // are still deleted cleanly.
+  if (s.outputs.p4 !== undefined && typeof s.outputs.p4 === 'string' && s.outputs.p4.trim()) {
+    const laneKey = (s.selectedLane && String(s.selectedLane).length) ? s.selectedLane : 'familiar'
+    s.outputs.p4 = { [laneKey]: s.outputs.p4 }
+    M()
+  } else if (s.outputs.p4 !== undefined && typeof s.outputs.p4 === 'string') {
+    delete s.outputs.p4
+    M()
+  }
   if (typeof s.outputs.p5 === 'string' && (s.outputs.p5.indexOf('## OPTION A') >= 0 || s.outputs.p5.indexOf('## OPTION B') >= 0)) { delete s.outputs.p5; M() }
   if (typeof s.outputs.p6 === 'string' && s.outputs.p6.trim() && !('p6_legacy' in s.outputs)) { s.outputs.p6_legacy = s.outputs.p6; M() }
   // Heal "[object Object]" corruption in prose-output slots. A persisted value
