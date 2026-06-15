@@ -57,6 +57,20 @@ Use **Start fresh** if the current direction is wrong enough that refining it wi
 
 Start fresh does not delete previously submitted corrections from your profile; those still apply to the new generation.
 
+## When Reimagine writes around a phrase you asked for
+
+Reimagine deliberately writes around a small set of phrasings: jargon-shaped labels, marketing-cadence slogans, claims that rank you against other people, and coaching-speak. The voice is the product, so the tool holds that line even on request.
+
+If you submit a correction that asks for one of those phrasings, Reimagine flags it before saving the correction and gives you three choices:
+
+- **Apply anyway.** Reimagine honors the intent behind your request and regenerates the section, though the exact phrase may not appear word for word.
+- **Rephrase.** Reimagine suggests a way to keep your meaning without the wording it writes around.
+- **Take it offline.** Skip the correction and edit the wording yourself once the section is generated. What you generate is yours to change.
+
+If you choose Apply anyway, the section shows an honest note so nothing is hidden from you: it tells you that you asked for that phrase and that Reimagine writes around it by design, then regenerates aiming at your intent.
+
+When you correct a section that sits downstream of your foundation (your Bridge Story, your LinkedIn copy, and the like), you may also see a short, optional prompt asking whether you want to check the earlier section it came from. It is a reminder, not a step you have to take: if the same wording you just corrected also lives upstream, this is a one-click way to go look. Skip it and nothing changes.
+
 ## How to update an earlier input and regenerate
 
 Sometimes the issue lives in an earlier input, not the current step. Some examples:
@@ -81,11 +95,21 @@ Edit the field. Replace the resume file. Paste new text. Add a values entry. Wha
 
 ### Step 3: Regenerate the affected steps
 
-When you regenerate a step (with **Update with my correction** or **Start fresh**), Reimagine clears any later steps that were built on top of it. The cleared steps appear empty when you reach them, and a small banner tells you they were cleared because the upstream step changed. The clearing happens automatically; the regeneration does not. You click forward and re-run each later step you want to refresh.
+When you regenerate a step (with **Update with my correction** or **Start fresh**), Reimagine applies your change to that step. The later steps you already built stay exactly as they were. None of your downstream work is wiped.
 
-For most input edits, that means a short cascade: change your resume, regenerate Personal Brand, click forward to Role Options and click **Show My Options** again, and so on for any later steps you want to update. Steps you do not plan to revisit can be left cleared until you need them.
+What changes is that the affected later steps now show a yellow staleness indicator, because they were written from the earlier version of the step you just changed. The indicator flags that the upstream moved and offers an **Update this section** button. You decide which later steps are worth refreshing and which are fine as they are.
 
-One special case: the migration banner that appears at the top of Personal Brand for older saved profiles uses a refresh path that also clears Role Options and everything downstream, because the new Personal Brand changes the underlying analysis that the rest of the playbook is built on.
+The indicator comes in three forms, depending on what changed:
+
+- A quiet note that the section was built from an earlier version, shown when an upstream step was regenerated.
+- A note that names the specific section that changed, so you know where the update would come from.
+- When the change came from a correction, a note that quotes your correction and counts how many times the old wording still appears in this section, so you can see exactly what a refresh would bring into line.
+
+When you refresh a flagged step, it regenerates with your correction applied and the out-of-date upstream content left out of its context, so the new version reflects what is true now instead of re-inheriting the old wording. If you skip the refresh, the step stays as it is.
+
+For most input edits that means a short, optional cascade: change your resume, regenerate Personal Brand, then refresh Role Options and any later steps you want to bring in line. Steps you do not plan to revisit can be left as they are until you need them.
+
+One note for older saved profiles: the migration banner at the top of Personal Brand refreshes your Personal Brand in the current format. Like any upstream change, that flags the later steps so you can refresh them; it does not erase them.
 
 ### A practical example
 

@@ -51,6 +51,9 @@ Yes, automatically. Sign in from the new device with the same email and your ful
 **Can I have more than one Reimagine direction in flight at a time?**
 Not directly. Reimagine holds one active session per account. To explore two different directions in parallel, finish one, download the markdown of all outputs as a snapshot, then come back to the Decision step and pick a different option to generate downstream artifacts for the second direction. Chapter 12 covers the mechanics.
 
+**Why is there only one playbook when I built the same role twice (or uploaded the same job description twice)?**
+Reimagine de-duplicates. If you pick the same role from Career Paths twice, or upload the same job description twice, Reimagine quietly re-links you to the existing playbook instead of creating a second copy. Your work is not lost; you land back in the same record, right where you left it. If you want a clean start on that role or job description, delete the existing playbook from My Playbooks first, then build it again.
+
 ## Inside the journey
 
 **A generation is taking a long time. Is something wrong?**
