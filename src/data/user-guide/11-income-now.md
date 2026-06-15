@@ -1,6 +1,6 @@
 # 11. Bonus. Income Now
 
-> **Where this lives now.** Income Now is the bonus section that lives below the seven main sections inside the Focus Playbook for a specific role (Chapter 6). It generates separately and renders with bonus-stripe treatment on both the Focus Playbook page and the Complete page. You can reach it from inside the Focus Playbook, and from the Income Now item in the left sidebar. If you open it from the sidebar before picking a direction, you'll see a short screen that points you to Career Paths first, since the plan is built around the direction you choose. Everything below still describes what it produces and how to use it.
+> **Where this lives now.** Income Now is the bonus section that lives below the seven main sections inside the Focus Playbook for a specific role (Chapter 6). It generates separately and renders with bonus-stripe treatment on both the Focus Playbook page and the Complete page. You can reach it from inside the Focus Playbook, and from the Income Now item nested under Put It to Work in the left sidebar. If you open it from the sidebar before picking a direction, you'll see a short screen that points you to Career Paths first, since the plan is built around the direction you choose. Everything below still describes what it produces and how to use it.
 
 When money gets tight, the temptation is to take whatever pays the bills. Reimagine has a different idea.
 
@@ -35,7 +35,7 @@ Reimagine builds a complete fractional and consulting plan tailored to your back
 
 You can access Income Now in two places:
 
-- **From the sidebar.** Once you complete the main journey through Phase 5, the Income Now module unlocks in the left sidebar below Complete. When you generate it, the sidebar entry gets a checkmark like every other completed step.
+- **From the sidebar.** Income Now appears in the left sidebar nested under Put It to Work, reachable once you have picked a direction and built your Focus Playbook. When you generate it, the sidebar entry gets a checkmark like every other completed step.
 - **From the Results page.** When you reach the **Complete** screen at the end of the main journey, there is a callout for Income Now with a **Generate My Income Plan** button.
 
 ## On the screen
