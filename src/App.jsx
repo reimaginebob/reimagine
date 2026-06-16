@@ -4349,7 +4349,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }catch(e){
       if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,[key]:e.message||'Generation failed. Try again.'}))
     }finally{
-      if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
+      if(reqId===opSectionReqRef.current){
+        setOpSectionBuilding(null);setOpBuildingSlot(null)
+        // Auto-companyRead hand-off (op-auto-company-read brief 2026-06-14): once
+        // the p5 auto-build releases the lock, fire companyRead for the same slot.
+        // Runs on both success and failure paths (finally), so a p5 failure does
+        // not block companyRead — it is independent of p5 content. Gated on key
+        // ==='p5' (only the auto-build hand-off) and on the slot still matching
+        // (a mid-flight op-record switch clears the pending ref without firing on
+        // the wrong record). The render-N closure's opSectionBuilding is null, so
+        // generateOpCompanyRead's own lock guard passes when called here.
+        if(key==='p5'&&_pendingCompanyReadRef.current===slotId){
+          _pendingCompanyReadRef.current=null
+          if(currentSavedSlotIdRef.current===slotId)generateOpCompanyRead()
+        }
+      }
     }
   }
   // --- Op lane inference (PR2). Infers FG/II/WTM for a door2 opportunity from
@@ -4367,6 +4381,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // user switches op records (the slotId match in runOpLaneInference's
   // success path acts as the freshness check).
   const _pendingAutoBuildRef=useRef(null)
+  // _pendingCompanyReadRef (op-auto-company-read brief 2026-06-14): set alongside
+  // _pendingAutoBuildRef in submitOpRole. After p5's auto-build completes (or
+  // fails) and releases the lock, generateOpSection's finally fires
+  // generateOpCompanyRead so a single JD upload populates BOTH The Role and
+  // About This Company. Sequential by the shared opSectionBuilding lock — p5
+  // (fast, no web search) first, companyRead (slow, web search) second. Closes
+  // audit gap #1 (Door-2 industry context) via the existing companyRead surface
+  // rather than porting Industry Background (P.p9) from Door 1.
+  const _pendingCompanyReadRef=useRef(null)
   // Compact foundation summary for the lane inference call: the synthesized
   // Personal Brand when present, plus the raw values / passions / reputation.
   const buildOpProfileSummary=()=>{
@@ -4939,6 +4962,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const title=deriveOpRoleTitle(jd)
     applyRoleSwitchDoor2(title,jd)
     _pendingAutoBuildRef.current=currentSavedSlotIdRef.current
+    // Queue companyRead to auto-build after p5; both refs set synchronously
+    // here, well before runOpLaneInference's deferred hand-off can fire p5.
+    _pendingCompanyReadRef.current=currentSavedSlotIdRef.current
   }
   const savePlaybookPdf=()=>{playbookSavePendingRef.current=true;afterSaveRunRef.current=null;window.print()}
   const focusNumberedIds=FOCUS_GROUPS.flatMap(g=>g.sectionIds)
