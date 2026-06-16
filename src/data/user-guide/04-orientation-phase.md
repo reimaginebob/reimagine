@@ -90,12 +90,12 @@ LinkedIn has a built-in PDF export. It is on the desktop site (not the mobile ap
 1. Sign in to LinkedIn at **linkedin.com** on a desktop or laptop browser.
 2. Click your profile photo (top right) or the **Me** button in the navigation bar.
 3. Choose **View profile** from the dropdown. You should land on the page whose URL starts with `linkedin.com/in/your-handle`.
-4. Find the **More** button. It sits in the section just below your name and headline, next to the buttons labeled **Open to** and **Add profile section**. The exact wording may shift slightly with LinkedIn redesigns, but **More** has been the consistent label.
-5. Click **More**. A dropdown menu appears.
+4. Find the **More** button, shown as a **…** (three-dot) icon. It sits in the section just below your name and headline, alongside buttons like **Open to**, **Add section**, and **Enhance profile**. LinkedIn changes these labels from time to time, but the **…** (More) action is where the PDF export lives.
+5. Click the **…** (More) button. A dropdown menu appears.
 6. Choose **Save to PDF**.
 7. The PDF downloads automatically to your default download folder. It will be named something like `Profile.pdf` or `[Your Name].pdf`.
 
-If the **More** dropdown does not show **Save to PDF**, LinkedIn may be A/B testing a different layout for your account. The fallback is to copy your About section and any recommendations into the paste field on the Reimagine LinkedIn screen instead of uploading a PDF.
+If the **…** (More) dropdown does not show **Save to PDF**, LinkedIn may be A/B testing a different layout for your account. The fallback is to copy your About section and any recommendations into the paste field on the Reimagine LinkedIn screen instead of uploading a PDF.
 
 ### On the Reimagine screen
 
