@@ -5067,6 +5067,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       <p style={{fontSize:20,fontWeight:500,color:'#1A2540',lineHeight:1.75,margin:'0 0 28px'}}><span style={{fontWeight:700,color:'#e4572e'}}>Reimagine</span> is a career strategy tool for senior professionals in transition. You bring your resume, an assessment, what matters to you, and your sense of what you want next. Reimagine turns that into a personal brand, a map of options, a story you can tell, a target company list, and the materials you need to walk into conversations ready.</p>
 
+      <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center',marginBottom:32}}>
+        {!isDemo&&<>
+          <Btn onClick={()=>advance('welcome','location')}>Let's get started <ChevronRight size={14}/></Btn>
+          <Btn onClick={()=>importFileRef.current?.click()} style={{background:'#2A3F60'}}><Upload size={14}/>Load a Saved Profile</Btn>
+          {Object.values(outputs).some(v=>v&&(typeof v==='string'?v.length>0:true))&&<Btn onClick={exportProfile} style={{background:'#2A3F60'}}><Download size={14}/>Save Profile as JSON</Btn>}
+        </>}
+      </div>
+
       <CoachingCallout>
         <strong style={{color:'#1A2540'}}>Take your time.</strong>
         <p style={{margin:'8px 0 0'}}>The 20 minutes of intake is where the leverage is. What you put in shapes what comes out, so put your best foot forward and Reimagine does the same for you in everything that follows. The full journey runs longer than one sitting; pace yourself across multiple sessions. Your progress saves automatically once you sign in, and you can pick it up on any device.</p>
@@ -5203,7 +5211,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <summary style={{cursor:'pointer',fontWeight:600,color:'#1A2540'}}>How to export your LinkedIn as a PDF</summary>
         <ol style={{margin:'10px 0 0 20px',padding:0}}>
           <li style={{margin:'0 0 4px'}}>Open your LinkedIn profile (the URL that starts with linkedin.com/in/your-name).</li>
-          <li style={{margin:'0 0 4px'}}>Click the <strong>More</strong> button below your headline (next to <strong>Open to</strong> and <strong>Add profile section</strong>).</li>
+          <li style={{margin:'0 0 4px'}}>Click the <strong>More</strong> button (the <strong>…</strong> icon) below your headline.</li>
           <li style={{margin:'0 0 4px'}}>Choose <strong>Save to PDF</strong>.</li>
           <li style={{margin:0}}>The PDF downloads in a few seconds. Upload it here.</li>
         </ol>
@@ -5283,7 +5291,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </CoachingCallout>
       <div style={S.card}>
         <div style={S.field}><label style={S.label}>Core Values: 3 to 5 non-negotiables</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>The conditions under which you do your best work and feel most like yourself.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.values} onChange={e=>pr('values',e.target.value)} placeholder="e.g. Independence, Family, Justice, Stability, Wealth creation, Cooperation, Service, Faith, Intellectual challenge…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('values',t)}/>}</div></div>
-        <div style={S.field}><label style={S.label}>Passions, Interests & Causes: 3 to 5 things you care about</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>What do you read about for fun, volunteer your time for, or could talk about for 30 minutes with zero preparation? Include hobbies, industries that fascinate you, communities you belong to, and causes close to your heart.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.passions} onChange={e=>pr('passions',e.target.value)} placeholder="e.g. Youth mentoring, Formula 1, Fintech, Sustainability, Veterans' employment, Youth sports, Faith-based service, Addiction recovery, Women in leadership, Gaming, Geopolitics…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('passions',t)}/>}</div></div>
+        <div style={S.field}><label style={S.label}>Passions, Interests & Causes (3-5)</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>What do you read about for fun, volunteer your time for, or could talk about for 30 minutes with zero preparation? Include hobbies, industries that fascinate you, communities you belong to, and causes close to your heart.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.passions} onChange={e=>pr('passions',e.target.value)} placeholder="e.g. Youth mentoring, Formula 1, Fintech, Sustainability, Veterans' employment, Youth sports, Faith-based service, Addiction recovery, Women in leadership, Gaming, Geopolitics…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('passions',t)}/>}</div></div>
       </div>
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('assessment')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.values&&profile.passions?advance('values','reputation'):setErr('Please fill in both fields.')}>Continue <ChevronRight size={14}/></Btn></div>
@@ -5300,21 +5308,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{margin:'0 0 8px',fontStyle:'italic'}}>"After the acquisition closed, the CFO emailed me at 11pm and said: 'I do not know how you held that team together through this. You were the only one who kept everyone focused on what mattered. The whole quarter was you.'"</p>
         <p style={{margin:'0 0 0'}}>Both describe a moment of praise. The "good" version gives Reimagine something to work with. The "better" version gives it a quote, a specific situation, and the qualities the speaker named. Aim for the better version where you can.</p>
       </CoachingCallout>
-      <details style={{background:'#FFFFFF',border:`1px solid ${C.border}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:C.grayL,lineHeight:1.65}}>
-        <summary style={{cursor:'pointer',fontWeight:600,color:'#1A2540'}}>Where to find this</summary>
-        <div style={{marginTop:10}}>
-          Sources to mine before you fill these in:
-          <ul style={{margin:'8px 0 0 20px',padding:0}}>
-            <li>Old performance reviews or 360 feedback</li>
-            <li>LinkedIn recommendations on your profile</li>
-            <li>Specific praise emails or messages you saved</li>
-            <li>What your manager said in your last "what makes you valuable" conversation</li>
-            <li>What close colleagues or direct reports tell you when you ask</li>
-            <li>Performance reviews, 360 feedback, and LinkedIn recommendations you can upload directly using the control above the Additional Feedback field</li>
-          </ul>
-          <p style={{margin:'10px 0 0'}}>The phrases other people use to describe you are often more accurate than the ones you use about yourself. The Memory and the Emergency Call do the most work for the analysis that follows, so prioritize those.</p>
-        </div>
-      </details>
+      <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:C.grayL,lineHeight:1.65}}>
+        <div style={{fontWeight:600,color:'#1A2540',marginBottom:10}}>Where to find this</div>
+        <div>Sources to mine before you fill these in:</div>
+        <ul style={{margin:'8px 0 0 20px',padding:0}}>
+          <li>Old performance reviews or 360 feedback</li>
+          <li>LinkedIn recommendations on your profile</li>
+          <li>Specific praise emails or messages you saved</li>
+          <li>What your manager said in your last "what makes you valuable" conversation</li>
+          <li>What close colleagues or direct reports tell you when you ask</li>
+          <li>Performance reviews, 360 feedback, and LinkedIn recommendations you can upload directly using the control above the Additional Feedback field</li>
+        </ul>
+        <p style={{margin:'10px 0 0'}}>The phrases other people use to describe you are often more accurate than the ones you use about yourself. The Memory and the Emergency Call do the most work for the analysis that follows, so prioritize those.</p>
+      </div>
       <div style={S.card}>
         {[['memory','The Memory',"Think of a specific moment at work when someone thanked you or praised you. What was the situation and what did they say?"],['emergency','The Emergency Call','If your former team had a critical problem right now, what type of situation would they call you to handle?'],['twoWords','The Two Words','If your best former manager described your professional superpower in exactly two words, what would they be?'],['other','Additional Feedback','Performance reviews, LinkedIn recommendations, 360 feedback. Paste anything here.']].map(([f,lbl,hint])=><div key={f} style={S.field}><label style={S.label}>{lbl}</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>{hint}</div>{f==='other'&&<div style={{marginBottom:14}}>
           <p style={S.helperText}>Old performance reviews, 360 feedback, LinkedIn recommendations as PDFs. You can upload multiple files; each gets added to the text below with a divider line so Reimagine can attribute what came from where.</p>
@@ -5338,7 +5344,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'life-events':return <div>
       {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>}
       <h1 style={S.title}>Your Story</h1>
-      <p style={S.sub}>We'd love to get to know you better. The things that shape who we are often don't show up on a resume, like where we grew up, the role we played in our family, an identity we carry, a person who shaped us, a long-running commitment, or a season that changed us. If something like that comes to mind, share it. One thing or several.</p>
+      <p style={S.sub}>We'd love to get to know you better. The things that shape who we are often don't show up on a resume, like the role we played in our family, an identity we carry, a person who shaped us, or a season that changed us. If something like that comes to mind, share it. One thing or several.</p>
       <div style={S.card}>
         <div style={S.field}>
           <div style={S.helperText}>Optional. Share only what you're comfortable with.</div>
