@@ -2,7 +2,7 @@
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
-This is the **Add an Opportunity** card on the Put It to Work screen in Phase 2 (Chapter 6). Whenever you have a specific job description in hand, choose Add an Opportunity, paste it in, and Reimagine creates an Opportunity Playbook for that role with five sections you can build on demand. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here. You no longer have to finish the main journey first; Add an Opportunity is available as soon as you reach the Put It to Work screen, and the sidebar entry under Phase 2 routes back there from anywhere in the app.
+This is the **Add an Opportunity** card on the Put It to Work screen in Phase 2 (Chapter 6). Whenever you have a specific job description in hand, choose Add an Opportunity, paste it in, and Reimagine creates an Opportunity Playbook for that role with five sections. Two of them start building the moment you submit the posting; the rest you build on demand. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here. You no longer have to finish the main journey first; Add an Opportunity is available as soon as you reach the Put It to Work screen, and the sidebar entry under Phase 2 routes back there from anywhere in the app.
 
 ## When to use it
 
@@ -19,7 +19,7 @@ Use it when:
 
 ## What this module produces
 
-You paste a job description or upload it as a PDF. Reimagine creates an Opportunity Playbook scoped to that role with five sections you can build on demand. Click Build on the section you want first; each generates in about 30 seconds and is saved with this opportunity:
+You paste a job description or upload it as a PDF. Reimagine creates an Opportunity Playbook scoped to that role with five sections. Two of them, The Role and About This Company, start building the moment you submit the posting, because they need nothing from you beyond the JD itself. The other three you build when you want them, in about 30 seconds each. Every section is saved with this opportunity:
 
 - **The Role** — an honest read on alignment with the direction you are pursuing, where the role stretches you, and the watch-outs you should know going in.
 - **Bridge Story** — a 30-second tell-me-about-yourself answer tuned to this role. Generate it, then refine it in the feedback box until it sounds like you saying it.
@@ -27,7 +27,7 @@ You paste a job description or upload it as a PDF. Reimagine creates an Opportun
 - **Interview Prep** — the questions this role's interview cycle is most likely to ask, each with a structured answer (STAR) drawn from your own experience.
 - **About This Company** — a read on the company beyond what you would find on Glassdoor: news from the last 90 days, the employee voice, industry-specific signal (CMS Star Ratings for hospital systems, GitHub cadence for tech, FINRA filings for financial services, and similar), the leadership's public footprint, and watch-outs named honestly. Every numeric or named factual claim cites its source URL inline; the card uses live web search.
 
-Each section is independent. Build the ones that help most for the role you care about and leave the rest. A section rail on the left of the page lists the five sections; each entry shows a check once it is built, so you can see your progress at a glance. Click any entry to jump to it.
+Each section is independent. The Role and About This Company are already underway from the moment you submit; for the other three, build the ones that help most for the role you care about and leave the rest. A section rail on the left of the page lists the five sections; each entry shows a check once it is built, so you can see your progress at a glance. Click any entry to jump to it.
 
 ## How to find it
 
@@ -49,7 +49,7 @@ You can use either. If you upload a PDF, Reimagine extracts the text and shows i
 
 Each time you add an opportunity, the form starts empty, so you are always pasting a fresh posting rather than editing a prior one. Your existing opportunities stay saved in My Playbooks; adding a new one never replaces them.
 
-When you have the JD in place, click **Build My Playbook**. Reimagine creates the opportunity record and lands you on the five-section page within about a second. From there, click Build on the section you want first; each section takes about 30 seconds to generate.
+When you have the JD in place, click **Build My Playbook**. Reimagine creates the opportunity record and lands you on the five-section page within about a second, then immediately starts building two cards for you. The Role gives you a quick read on what the posting is asking for, and About This Company gathers industry context, recent moves, and how this company tends to evaluate candidates. The other three cards (Bridge Story, Resume Refresh, and Interview Prep) wait for you to choose what to build next. The Role lands in about half a minute; About This Company takes a little longer because it runs live web search.
 
 ## What good looks like
 
