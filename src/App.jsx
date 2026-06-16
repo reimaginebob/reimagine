@@ -300,6 +300,28 @@ const C = {
 // string 'not provided' when no skill is set, matching the convention
 // of the other RAW SIGNALS lines.
 
+// p3 (Personal Brand) cache breakpoint. P.p3 ends its stable content with this
+// marker; callClaude splits the user message into a cached prefix block (every-
+// thing before the marker) and an uncached suffix block (anything after it).
+// The voice/dim/structured gates append their correctives AFTER the full prompt
+// string, so they always land in the uncached suffix and the large stable p3
+// prefix is reused across all retries within the 5-minute ephemeral TTL. The
+// marker is sliced out and never reaches the API. Other prompts have no marker
+// and take the plain-string passthrough unchanged.
+const P3_CACHE_BREAK = ' __REIMAGINE_P3_CACHE_BREAK__ '
+
+// Bound the raw resume for p3. Resumes are reverse-chronological, so the head
+// carries the summary and the most-recent roles; a generous char cap keeps that
+// signal while protecting the context budget across retries. The prompt labels
+// this "(may be truncated)" so the model never reads an absent tail as signal.
+const boundResumeForP3 = (r) => {
+  if (!r) return 'not provided'
+  const MAX = 9000
+  return r.length > MAX
+    ? r.slice(0, MAX) + '\n[...truncated for length; summary and most-recent roles retained above...]'
+    : r
+}
+
 async function callClaude(prompt, opts={}) {
   const{webSearch=false,highTemp=false,maxTokens=5000,temperature,voiceMode,profileBlock,step}=opts
   const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined
@@ -307,7 +329,19 @@ async function callClaude(prompt, opts={}) {
   // the canonical profile (cache_control ephemeral = the cached prefix shared
   // across migrated surfaces) followed by the prompt-specific instructions.
   // Otherwise send the prompt as a plain string (backwards-compatible passthrough).
-  const content=profileBlock?[{type:"text",text:profileBlock,cache_control:{type:"ephemeral"}},{type:"text",text:prompt}]:prompt
+  let content
+  if(profileBlock){
+    content=[{type:"text",text:profileBlock,cache_control:{type:"ephemeral"}},{type:"text",text:prompt}]
+  }else if(typeof prompt==='string'&&prompt.includes(P3_CACHE_BREAK)){
+    const i=prompt.indexOf(P3_CACHE_BREAK)
+    const prefix=prompt.slice(0,i)
+    const suffix=prompt.slice(i+P3_CACHE_BREAK.length)
+    content=suffix.trim().length
+      ? [{type:"text",text:prefix,cache_control:{type:"ephemeral"}},{type:"text",text:suffix}]
+      : [{type:"text",text:prefix,cache_control:{type:"ephemeral"}}]
+  }else{
+    content=prompt
+  }
   const body={model:"claude-sonnet-4-5",max_tokens:maxTokens,temperature:typeof temperature==='number'?temperature:(highTemp?1.0:0.7),system:[{type:"text",text:SYS_BASE,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content}],...(voiceMode&&{voiceMode}),...(step&&{step}),...(tools&&{tools})}
   const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
   if(!res.ok){const e=await res.json();throw new Error(e.error?.message||"API error")}
@@ -1486,6 +1520,12 @@ PRIOR WORK-SIDE ANALYSIS: ${o1}
 
 WIRING & COMPASS (human-side): ${o2}
 
+The two analyses above are PRIOR INTERPRETATION of this person. Use them as a guide, but do not echo them back as the synthesis. The value of this step is reasoning the analysis forward from the primary sources below, not restating o1 and o2.
+
+PRIMARY SOURCE MATERIAL (reason directly over these raw instruments; they carry signal the prior prose has already compressed):
+RAW ASSESSMENT (${pr.assessType||'provided'}, the user's own instrument output, in full): ${pr.assess||'not provided'}
+RAW RESUME (may be truncated): ${boundResumeForP3(pr.resume)}
+
 RAW VALUES (user's own framing, as context): ${pr.values||'not provided'}
 RAW PASSIONS AND CAUSES (user's own framing, as context): ${pr.passions||'not provided'}
 RAW LIFE EXPERIENCES (user's own framing, as context): ${pr.lifeEvents||'not provided'}
@@ -1610,7 +1650,7 @@ Notice what the illustration does NOT do: it does not open with "three sources c
 
 Write in second person ("you," "your") throughout. Never use third person or the person's name.
 
-TRIANGULATION DISCIPLINE: When multiple personal inputs are available (multiple passions, multiple values, multiple reputation phrases, multiple life-shaping experiences, multiple accomplishments), do not list them. Test each one against the user's career arc and the through-line you have identified, and pick the ONE input that creates the strongest single-frame view. The other inputs may be true and may inform your analysis silently. They do not earn space in the output unless they anchor a specific insight that would land less precisely without them. Listing dilutes. Anchoring works. If you find yourself writing "X, and Y, and Z" with three personal items in one sentence, stop and pick one.
+TRIANGULATION DISCIPLINE: When multiple personal inputs are available (multiple passions, multiple values, multiple reputation phrases, multiple life-shaping experiences, multiple accomplishments), do not list them. Test each one against the user's career arc and the through-line you have identified, and pick the ONE input that creates the strongest single-frame view. The other inputs may be true and may inform your analysis silently. They do not earn space in the output unless they anchor a specific insight that would land less precisely without them. Listing dilutes. Anchoring works. If you find yourself writing "X, and Y, and Z" with three personal items in one sentence, stop and pick one. When the inputs support it, make at least one cross-instrument move: read a single accomplishment from the resume through a non-obvious lens, or hold one assessment dimension against the literal work history, to surface a connection the user did not state outright. Anchor it in the raw material above; do not force it where the inputs do not support it.
 
 VARIED RHETORICAL SHAPE (load-bearing across this output):
 
@@ -1666,7 +1706,7 @@ Rules for the structured emit:
 - dimensionalFit: every one of the six dimensions present, status drawn from the enumerated set, read is a single sentence.
 - topAnchors: six to eight entries. Each entry is one of the three types listed. Each entry text is a single sentence describing the anchor.
 - The user does NOT see this JSON block. It is structured input for downstream modules.
-- Do not change your prose to accommodate the JSON requirement. The prose synthesis stands on its own.`
+- Do not change your prose to accommodate the JSON requirement. The prose synthesis stands on its own.${P3_CACHE_BREAK}`
   },
   p4:(pr,o1,o2,o3,o3Structured,selectedLane,previousOptions,userFeedback)=>{const _struct=buildSynthesisContext(o3Structured);const _LB=selectedLane==='wtm'?`
 ## WORK THAT MATTERS
