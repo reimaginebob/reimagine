@@ -279,6 +279,17 @@ ${REGISTER_DIRECTIVE}
 
 ${USER_GUIDE_CONTENT}`
 
+// p3 (Personal Brand synthesis) uses the prose register but does not need the
+// user guide body: brand synthesis is not user-guide-shaped content, and the
+// guide is roughly 84% of the prose system prompt's tokens. SYS_PROSE_NOGUIDE
+// keeps SYS_BASE (voice + safety) and the REGISTER_DIRECTIVE (register intent)
+// and drops the guide, cutting p3's system-prompt cost sharply with no effect on
+// the synthesis. Scoped to voiceMode 'prose-lite', used only by the p3 call
+// sites; My Coach and every other prose step keep SYS_PROSE with the guide.
+const SYS_PROSE_NOGUIDE = `${SYS_BASE}
+
+${REGISTER_DIRECTIVE}`
+
 const ALLOWED_HOSTS = new Set([
   'reimagine2-two.vercel.app',
   'reimagine.career.club',
@@ -318,7 +329,9 @@ export default async function handler(req, res) {
   }
 
   const reqBody = req.body || {}
-  const sysText = reqBody.voiceMode === 'prose' ? SYS_PROSE : SYS_BASE
+  const sysText = reqBody.voiceMode === 'prose' ? SYS_PROSE
+    : reqBody.voiceMode === 'prose-lite' ? SYS_PROSE_NOGUIDE
+    : SYS_BASE
   let anthropicBody
 
   if (typeof reqBody.prompt === 'string') {
