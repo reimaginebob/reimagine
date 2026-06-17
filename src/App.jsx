@@ -1555,7 +1555,7 @@ HARD RULE (load-bearing): you are a compositor, not an editor. Preserve the anal
 
 OUTPUT, in two parts.
 
-PART 1 - the brand as flowing prose. Write the brand as one continuous second-person read, in the analysis's own order: the through-line first as the opening sentence, then the body, then (if present) the formative-origin passage and the growth edges woven where the analysis places them, ending on the settled-versus-open forward turn. This is the verbatim, person-shifted analysis as prose. No headers, no labels, no bullet characters.
+PART 1 - the brand as flowing prose. Write the brand as one continuous second-person read, in the analysis's own order: the through-line first as the opening sentence, then the body, then (if present) the formative-origin passage and the growth edges woven where the analysis places them, ending on the settled-versus-open forward turn. This is the verbatim, person-shifted analysis as prose. Begin directly with the through-line sentence: no title, no "Personal Brand" heading, no markdown headers, no bold or italics, no bullet characters. Plain prose only; the layout provides all emphasis. Every presentation field below is likewise plain prose with no markdown.
 
 PART 2 - the JSON tail. After the prose, append a single fenced code block: triple backticks, the word json, a newline, the JSON object, a newline, triple backticks. It is the LAST thing in your output, nothing after it. The user never sees this JSON.
 
@@ -3031,15 +3031,19 @@ const PBKicker=({children})=><div style={{fontSize:11,textTransform:'uppercase',
 function PersonalBrandView({presentation:p,proseForCopy,onCopy,copied}){
   if(!p||typeof p!=='object')return null
   const ACCENT='#C8924A',PRIMARY='#1A2540',TERT='#8A9BB8',BODY='#2D3748'
-  const hero=(typeof p.hero==='string'?p.hero:'').trim()
+  // Plain prose only: the kickers are the bold scan layer, so any stray markdown
+  // (a leading title, inline **bold**/*italics*) the model emits is stripped.
+  const clean=s=>stripMarkdown(String(s||'')).trim()
+  const stripTitle=(t)=>{const m=t.match(/^([^\n]{1,60})\n\s*\n/);return m&&!/[.!?]/.test(m[1])?t.slice(m[0].length):t}
+  const hero=clean(p.hero)
   if(!hero)return null
   const proof=(Array.isArray(p.proofPoints)?p.proofPoints:[]).filter(x=>x&&typeof x==='object'&&String(x.value||'').trim())
-  const heroKey=hero.replace(/\s+/g,' ').trim()
-  const dedupeHero=(t)=>{const s=String(t||'').trim();const sk=s.replace(/\s+/g,' ');return sk.startsWith(heroKey)?s.slice(s.length-(sk.length-heroKey.length)).trim():s}
-  const sections=(Array.isArray(p.sections)?p.sections:[]).map(x=>x&&typeof x==='object'?{kicker:String(x.kicker||'').trim(),body:dedupeHero(x.body)}:null).filter(x=>x&&x.body)
-  const origin=p.origin&&typeof p.origin==='object'&&String(p.origin.body||'').trim()?String(p.origin.body).trim():null
+  const heroKey=hero.replace(/\s+/g,' ')
+  const dedupeHero=(t)=>{const s=t.trim();const sk=s.replace(/\s+/g,' ');return sk.startsWith(heroKey)?s.slice(s.length-(sk.length-heroKey.length)).trim():s}
+  const sections=(Array.isArray(p.sections)?p.sections:[]).map(x=>x&&typeof x==='object'?{kicker:clean(x.kicker),body:dedupeHero(stripTitle(clean(x.body)))}:null).filter(x=>x&&x.body)
+  const origin=p.origin&&typeof p.origin==='object'&&clean(p.origin.body)?clean(p.origin.body):null
   const edges=(Array.isArray(p.edges)?p.edges:[]).filter(x=>x&&typeof x==='object'&&String(x.claim||'').trim())
-  const close=typeof p.forwardClose==='string'&&p.forwardClose.trim()?p.forwardClose.trim():null
+  const close=typeof p.forwardClose==='string'&&clean(p.forwardClose)?clean(p.forwardClose):null
   return <div style={{maxWidth:640,margin:'0 auto'}}>
     <PBKicker>Phase 1 · Personal Brand</PBKicker>
     <div style={{fontSize:24,fontWeight:500,lineHeight:1.32,color:PRIMARY,margin:'0 0 2px'}}>{hero}</div>
@@ -3059,8 +3063,8 @@ function PersonalBrandView({presentation:p,proseForCopy,onCopy,copied}){
       <PBKicker>Worth naming, and how to use it</PBKicker>
       <div style={{fontSize:13,color:TERT,margin:'-2px 0 14px',lineHeight:1.5}}>Every strength has a flip side. These are yours, and what to do with them.</div>
       {edges.map((e,i)=><div key={i} style={{borderLeft:`2px solid ${C.border}`,paddingLeft:14,marginBottom:14}}>
-        <div style={{fontSize:15,fontWeight:500,color:PRIMARY,lineHeight:1.45}}>{e.claim}</div>
-        {String(e.detail||'').trim()&&<div style={{fontSize:15,color:BODY,marginTop:4,lineHeight:1.6}}>{e.detail}</div>}
+        <div style={{fontSize:15,fontWeight:500,color:PRIMARY,lineHeight:1.45}}>{clean(e.claim)}</div>
+        {clean(e.detail)&&<div style={{fontSize:15,color:BODY,marginTop:4,lineHeight:1.6}}>{clean(e.detail)}</div>}
       </div>)}
     </div>}
     {close&&<div style={{borderLeft:`2px solid ${ACCENT}`,paddingLeft:16,margin:'4px 0 6px'}}>
