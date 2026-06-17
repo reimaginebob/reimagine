@@ -300,16 +300,6 @@ const C = {
 // string 'not provided' when no skill is set, matching the convention
 // of the other RAW SIGNALS lines.
 
-// p3 (Personal Brand) cache breakpoint. P.p3 ends its stable content with this
-// marker; callClaude splits the user message into a cached prefix block (every-
-// thing before the marker) and an uncached suffix block (anything after it).
-// The voice/dim/structured gates append their correctives AFTER the full prompt
-// string, so they always land in the uncached suffix and the large stable p3
-// prefix is reused across all retries within the 5-minute ephemeral TTL. The
-// marker is sliced out and never reaches the API. Other prompts have no marker
-// and take the plain-string passthrough unchanged.
-const P3_CACHE_BREAK = ' __REIMAGINE_P3_CACHE_BREAK__ '
-
 // Bound the raw resume for p3. Resumes are reverse-chronological, so the head
 // carries the summary and the most-recent roles; a generous char cap keeps that
 // signal while protecting the context budget across retries. The prompt labels
@@ -332,13 +322,6 @@ async function callClaude(prompt, opts={}) {
   let content
   if(profileBlock){
     content=[{type:"text",text:profileBlock,cache_control:{type:"ephemeral"}},{type:"text",text:prompt}]
-  }else if(typeof prompt==='string'&&prompt.includes(P3_CACHE_BREAK)){
-    const i=prompt.indexOf(P3_CACHE_BREAK)
-    const prefix=prompt.slice(0,i)
-    const suffix=prompt.slice(i+P3_CACHE_BREAK.length)
-    content=suffix.trim().length
-      ? [{type:"text",text:prefix,cache_control:{type:"ephemeral"}},{type:"text",text:suffix}]
-      : [{type:"text",text:prefix,cache_control:{type:"ephemeral"}}]
   }else{
     content=prompt
   }
@@ -1506,209 +1489,111 @@ const AUDIENCE_PRIORITY_CLAUSE = (sel) => `weighted by what the audience hiring 
 const P={
   p1:(pr)=>`Analyze this resume for career strategy. Location: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''}. Work preference: ${pr.loc.work}.\n\nEVIDENCE-BASED CONFIDENCE: Every claim about who this user is at work must anchor in specific evidence from their inputs — an accomplishment with numbers, a named decision, a specific moment from their reputation, their own verbatim words from orientation. State the evidence concretely. Let the listener draw the conclusion. The user's confidence comes from what they have done, never from claims about how they stack up against others. The goal is winsome and likeable, not arrogant. Use evidence-anchored sentence patterns like "When [specific situation], you [specific action]" or "In [specific role/context], you delivered [specific result]." Avoid any sentence that asserts the user's relative standing against unnamed groups.\n\nREFUSE THESE EXACT CONSTRUCTIONS:\n- "most people [verb]…" / "many candidates [verb]…" / "the average professional…" / "where others X" / "more than most" / "unlike most" / "ahead of others"\n- Any sentence that compares the user to an unnamed group, an average, or "most" or "many" of any role.\n\nA runtime gate will scan shipped output for these constructions and force regeneration when detected. Output that contains them will not reach the user. Produce content that anchors in the user's specific evidence; the user is compared to no one.\n\nLOGIC-FLIP CADENCE REFUSAL (load-bearing, applies to every section of this output):\n\nNever use logic-flip cadence anywhere. Banned constructions include:\n- "You do not just X, you Y."\n- "You build X, not Y."\n- "It is not a Z, it is a W."\n- "They are not evaluating A, they are picturing B."\n- "Z was not because of W; it was because of X."\n\nReal failure cases to refuse (these have shipped in past Reimagine outputs):\n- "I do not just maintain accounts, I open doors that stay open." Rewrite: "I open doors that stay open."\n- "The cost reduction was not a lucky negotiation; it was you mapping the entire spend, finding the leaks, and redesigning the system." Rewrite: "You mapped the entire spend, found the leaks, and redesigned the system to close them. That is where the savings came from."\n\nIf you catch yourself reaching for a negation-pivot construction, refuse it and rewrite from the positive side. State the positive claim on its own.\n\nREFUSE THESE EXACT CONSTRUCTIONS:\n- "Your X is not Y. It is Z." (or any "X is not Y. [Pronoun] is Z." shape)\n- "You do not just X, you Y."\n- "You are not X-ing. You are Y-ing."\n- "It is not a Z, it is a W."\n- "They are not evaluating A, they are picturing B."\n- "Z was not because of W; it was because of X."\n\nIf you find yourself reaching for any of these constructions, stop and rewrite the passage as the positive claim on its own. State what is, not what is-not-but-actually-is.\n\nReal failure cases that have shipped in past Reimagine outputs (DO NOT reproduce these shapes):\n- "Your career is not about building products. It is about understanding how people experience reality."\n- "The empathy your colleagues name is not soft skill. It is analytical discipline."\n- "you refuse to design for an abstraction called 'the user.' You design for the actual person."\n- "I do not just maintain accounts, I open doors that stay open."\n\nA runtime gate will scan shipped output for these constructions and force regeneration when detected. Output that contains them will not reach the user.\n\nEVIDENCE-ANCHORED PATTERNS (use these sentence shapes when writing about the user's drive, capability, or character):\n- "When [specific situation from inputs], you [specific action]. The result: [specific outcome with number]."\n- "Your [trait or capability] shows up in [specific moment]: [specific detail from inputs]."\n- "In [specific role or context], you [specific decision or action]."\nDo NOT use abstract assertions like "you sustain the intensity required to get to yes" or "you move fast" without anchoring in the specific evidence that demonstrates it. Every claim about the user gets a concrete moment behind it.\n\nNO TYPOLOGY LABELS. Name the tendency, not the type. Do not characterize the user with category labels or type vocabulary (builder, operator, integrator, strategist, connector, hunter, farmer, architect, fixer, closer, etc.). These labels are jargon-adjacent and skip the work of naming the underlying tendency. Instead, describe what you see in the inputs and what it adds up to, in plain language. "You care about people by holding them to what they are capable of" is the move. "You care about people the way operators do" is not.\n\nNO AI-COACHING REGISTER: Do not use phrases like "worth sitting with," "sit with this," "let that land," "lean into," "hold space for," "get curious about," "notice what comes up," "take a moment to consider," "trust the process," or "honor your journey." These cue reflective register without adding observation. Name the observation directly and let it stand.\n\nEPISTEMIC CALIBRATION (load-bearing across this output):\n\nEvery interpretive claim about the user is a HYPOTHESIS by default, expressed in directional language. Declarative claims are EARNED ONLY when the supporting evidence is named in the same paragraph as the claim. Hedge by default; go declarative when evidence is on the page; refuse declarative when it is not.\n\nDIRECTIONAL PHRASES to reach for (use varied vocabulary; do not repeat any single phrase across the output):\n"There is a pattern that seems to indicate," "this may suggest," "often correlates with," "tends to signal," "we see a pattern of," "this points toward," "it appears that," "you seem to," "on more than one occasion," "the pattern often involves," "this looks like."\n\nEARNED DECLARATIVE : three cases where declarative is appropriate:\n\n(a) Explicit assessment signal named in the output, INCLUDING THE ASSESSMENT NAME (CliftonStrengths, Predictive Index, Big Five, Affintus, MBTI, etc.) in the same sentence or the immediately preceding sentence. Example: "Your CliftonStrengths shows Strategic in your top 5, which means you naturally see patterns others miss." The "which means" is declarative because BOTH the assessment name AND the construct are present. Refuse: "High openness to experience means you prefer a job that requires you to create solutions" (construct named, source instrument not named). Either name the instrument or rewrite into hypothesis voice ("this looks like high openness, which often points toward...").\n\n(b) Verbatim user-input quoted in the output. Example: 'You wrote in orientation that you "want to build things that matter to people who do not have a voice." That conviction shapes the function choices below.' Declarative because the quote is right there.\n\n(c) Named triangulation across 2-3 specific inputs the output lists. Example: 'In orientation you described the work as "designing the question." Your reputation note named "methodology under ambiguity." Your Apple accomplishment built measurement protocols for a product that did not yet exist. Three sources, the same operational move: you build the research question before you answer it.' The closing declarative is earned because three sources are named in the same chunk.\n\nREFUSE these specific overclaim patterns:\n\n1. ABSOLUTISM IN INTERPRETIVE CLAIMS:\n- "Every [noun] you have [verb]" / "every major program" / "every role" / "every time"\n- "Always" / "never" / "the hardest" / "the most X" / "the only Y"\n- "You have spent your career [verb]-ing" : life-arc framing presented as fact\n\nIf the claim depends on a pattern across the career, name the specific career moments the pattern is drawn from. Do not collapse to "every".\n\n2. MIND-READING (attributing internal motivation):\n- "by [verb]-ing X" claiming internal motivation ("by refusing to," "by choosing to," "by caring about")\n- "your conviction that [X]" / "your mission is [X]" / "you believe [X]"\n\nRefuse unless the [X] is directly quoted from the user's verbatim inputs (orientation answers, reputation phrases, values text). Reading minds is not analysis.\n\n3. SLOGAN-CADENCE CLOSERS:\n- Paired declarative sentences in "The X is the Y. The Z is the W." cadence\n- "X is the engine. Y is the fuel."\n- Inspirational-poster paired sentences\n\nThese read as marketing copy, not analysis. Refuse the cadence regardless of whether the content is otherwise accurate.\n\nA runtime gate will scan shipped output for these constructions and force regeneration when detected. Output that contains them will not reach the user.\n\nTRANSLATION NOT PRAISE (load-bearing across this output):\n\nEvery interpretive claim about the user is a TRANSLATION move, not a CHARACTERIZATION. Translation tells the user where their capability transfers to a context they have not been in. Characterization tells them what trait they have, which they already know.\n\nThe user comes to Reimagine already feeling capable. Telling them "you bring rigor to applied problems" or "you are an operator" or "you handle ambiguity well" is praise-shaped: reflection without new information. They feel acknowledged but learn nothing. The value-add Reimagine provides is showing them where their capability transfers, which contexts they have not been in would reward this exact move.\n\nFor every interpretive sentence:\n- Refuse "you bring X to Y." Rewrite as "this transfers to [specific other contexts where the move is rare or valuable]."\n- Refuse "you are an X." Rewrite as "the operational move you made, [specific], works the same way in [specific other contexts]."\n- Refuse trait-noun characterizations (rigorous, operator, builder, integrator, connector, hunter, farmer, architect, fixer, closer, etc.). These also violate the existing NO TYPOLOGY LABELS rule.\n- Anchor every translation in a specific operational move the user actually made, not a trait inferred from inputs.\n\nNEVER assert relative standing against unnamed groups. "Most people," "many candidates," "the average professional," "most hiring managers do not see X," "where others settle for X" are all forbidden. The user gets compared to no one. The voice guard catches some of these; the rule is broader than the guard.\n\nFailure cases to refuse:\n- "You bring academic rigor to applied problems." (characterization, no translation)\n- "You can isolate causality in messy environments where most people settle for correlation." (characterization plus comparative standing)\n- "You are a connector." (typology trait, also covered by NO TYPOLOGY LABELS)\n- "You sustain the intensity required to get to yes." (already refused by EVIDENCE-BASED CONFIDENCE; same failure mode)\n\nSuccess cases:\n- "Where this transfers: you can design and run a multi-year protocol where measurement methodology has to hold across time and conditions. That maps to long-horizon product experiments, regulatory submissions, and longitudinal customer research."\n- "The operational move: you sequenced the rollout across thirty-eight markets while protecting the margin in each. That works the same way in any multi-region launch where local economics differ."\n- "What this signals to a hiring manager in [different domain]: someone who has run [specific operational pattern] in conditions [different domain] usually does not have."\n\nTest for every interpretive sentence: does this tell the user something they could only know if they imagined themselves in a context they have not been in? If yes, it is translation. If it tells them something about themselves they already feel, it is praise.\n\nSURFACE THE INSIGHT (load-bearing across this output):\n\nEvery interpretive chunk in this output uses visual hierarchy so a 7-second scan catches the salient insight. The user scans before they read. An insight buried mid-paragraph is a missed insight.\n\nFor every pattern, observation, capability, fit-read, story-piece, or other interpretive unit in this output:\n\n- Lead with a BOLDED HEADLINE of 5 to 12 words that names the insight in plain language. The headline carries the translation move (per TRANSLATION NOT PRAISE rule) when applicable. Plain language, no hedging language in the headline itself.\n- Follow with 1 to 3 short sentences of supporting prose that anchor the headline in the specific evidence from the user's inputs.\n- Refuse wall-of-text paragraph output where the insight is buried mid-sentence or at the end of a long prose block.\n- Use bullets, indented callouts, or numbered lists when the content is genuinely list-shaped. Refuse prose-shaped output that is actually a list pretending to be a paragraph.\n\nThe visual structure is part of the deliverable, not decoration. A correctly-shaped analytical chunk:\n\n**You define research practice where none exists yet.**\nVR consumer experiences, AI-assisted search, computational photography. A decade of work where the research question itself is ambiguous. This pattern of choosing pre-playbook problems transfers to any space where the product category is still forming and the research function has to be built alongside it.\n\nThe same content as a wall-of-text paragraph is a failure:\n\n"Your career shows a consistent pattern of choosing the hardest research problems: the products that do not exist yet, the user behaviors that are emerging in real time, the questions where there is no playbook. From VR consumer experiences to AI-assisted search to computational photography, you have spent the last decade in spaces where the research question itself is ambiguous. Patterns like this often signal intellectual restlessness and a preference for operating at the edge of what is known. You are defining what the research practice should be for a product category that is still forming."\n\nSame insight. The structured version scans; the prose version buries. Always produce the structured version.\n\nThis rule applies to every section that produces interpretive content. Sections that are inherently single-sentence (the Golden Thread of P.p3, the Personal Brand statement of P.p3) are exempt because they are themselves the headline. Sections that produce structured deliverables already (STAR stories, company lists, interview questions) follow their existing structure.\n\nRESUME:\n${pr.resume}\n\nEXTRACTED SKILLS (user-validated, may include items not in the resume narrative):\n${formatSkills(pr.skills)}\n\nBEFORE WRITING THE STRUCTURED OUTPUT, FIND THE FORCE.\n\nPattern recognition is your default mode and a necessary first move. The synthesis the user needs depends on going further: finding the FORCE that integrates their choices, beyond the surface pattern that runs through them.\n\nFour levels of analytical depth. Three to refuse. One to target.\n\nLEVEL 1 (refuse): apply the structural template directly to the inputs. Each input field becomes a slot. The result is generic.\n\nLEVEL 2 (refuse): find the pattern that runs across the inputs. Name it. Treat naming the pattern as the synthesis. This is your default mode. It is a label only.\n\nLEVEL 3 (refuse): pattern with personal source. Find the pattern AND the formative experience or stated value that "explains" the pattern. Write it up as "X is true about this person because Y experience taught them Z." This looks like synthesis. It is pattern recognition with backstory attached. The integration is still missing.\n\nLEVEL 3.5 (refuse): framing absorbed from conversation. If a user, coach, or collaborator offers an interpretive framing, the failure mode is to build force-level structure around it without testing whether the inputs themselves support that framing as the strongest read. Plausibility is not grounding. If your synthesis depends substantially on someone else's interpretation, surface the framing as a hypothesis the user can confirm or refine. Present it in hypothesis voice with explicit invitation.\n\nLEVEL 4 (target): force-level synthesis grounded in the inputs themselves. Find the INTEGRATING FACTOR that the inputs collectively make visible, that explains why the source produced this specific pattern, and predicts what the person will do in situations not yet shown. The force is what makes the user a coherent person, beyond a coherent profile. When multiple force-level readings remain plausible from the inputs, present the strongest reading in hypothesis voice with explicit invitation to refine.\n\nTo find the force, ask these questions internally before writing. The first four surface the pattern. The last three surface the force.\n\nPattern (first layer):\n- Why is this person in this field, specifically?\n- Why this specific function within the field?\n- Why have they stayed or moved when they did?\n- What is the conviction, named or implicit, that explains the choices?\n\nForce (the integrating layer):\n- What is this person trying to prove, resolve, repair, or protect through their work? The force usually takes one of these four shapes.\n- What does this person worry about that no one would guess from their resume? The implicit threat the work is structured to prevent.\n- What does this person love about the work that the work itself does not visibly demand? The signal of what the work means to them beyond the job description.\n\nThe signal that the force has been found: recognition. The synthesis surfaces something that was true but unstated, and the user recognizes it as accurate to how they experience their work. If the synthesis only describes what is already visible, you are at Level 2 or 3. Keep working.\n\nDo NOT show your force-finding work in the output. The pre-step is internal analytical discipline. The user reads only the structured output.\n\nFor this output specifically: the force shapes the PATTERNS IN YOUR WORK HISTORY section. Pattern observations compound into one through-line that the section then surfaces in plain language.\n\nSTART your response with:\n## QUICK TAKEAWAY\n3-4 sentences: where this person sits in the market, their biggest asset, and the one thing that makes their background distinctive. Plain language, no headers inside this section.\n\nThen continue with the full analysis:\n\n## WHERE YOU SIT\nHighest responsibility held, complexity/pace of environments, industries, seniority baseline. Write as a single flowing paragraph.\n\n## TRANSLATED ACCOMPLISHMENTS\nExtract 5–7 strongest. For each accomplishment, write 2-3 concise sentences maximum:\n- The headline: one short italicized sentence that restates the accomplishment as made money / saved money / mitigated risk with the specific numbers. The user already has this on their resume; this is recap, not insight, and is visually demoted.\n- **Bold the translation**: one bolded sentence that names where this capability transfers, leading with "Where this transfers:" or "The operational move:". Anchor in the specific work named in the headline. Name 2-3 distinct contexts (industries, functions, scales) where the same move would pay off. NO praise-shape ("you bring X"), NO trait nouns, NO comparison against unnamed groups. This is what Reimagine adds; this is what earns the visual weight.\n- If a key number is missing, add one short parenthetical at regular weight suggesting what to quantify.\n\n## PATTERNS IN YOUR WORK HISTORY\n\nThis is the part of the resume that surfaces who you are, not just what you did. Mine the career history for patterns and signals beyond the outcomes themselves. Look across:\n\n- The FUNCTIONS the person has gravitated toward (accounting, sales, engineering, marketing, operations, HR, legal, product, etc.). Different functions correlate with different cognitive preferences and styles.\n- The INDUSTRIES they have chosen (healthcare, tech, finance, manufacturing, education, government, consulting, etc.). Different industries pull different kinds of people.\n- The COMPANY SIZES they have worked at (startup, mid-market, enterprise, public, private, founder-led, PE-backed). Different scales reward different orientations.\n- The TENURE PATTERNS (long stays vs. shorter runs, depth vs. breadth orientation).\n- The CAREER TRANSITIONS (industry jumps, functional pivots, vertical progression, lateral moves, founder roles, turnaround contexts).\n\nProduce 3-5 observations. Each observation is a structured chunk, NOT a flowing prose paragraph:\n\n- **Bolded headline (5-12 words)**: the insight named in plain language. The headline carries the translation move per TRANSLATION NOT PRAISE: where this pattern transfers, or what operational capability it signals, not what trait the user has.\n- 1-3 short sentences of supporting prose: name the specific pattern from evidence ("Your career history shows X across A, B, and C"), and anchor the translation in that evidence. Use directional language ("often signals," "tends to indicate") to keep it hypothesis-shaped, not verdict-shaped.\n\nThe bolded headline is what a 7-second scan reads. The supporting prose is what a committed reader reads. Both must work.\n\nVOICE RULES FOR THIS SECTION (critical):\n- Frame as patterns, not personality verdicts. "Your career history shows a pattern of moving from larger to smaller companies, which often signals comfort with ambiguity and a preference for breadth over depth." Not "You are someone who craves ambiguity."\n- Use hedged language: "often signals," "suggests," "tends to indicate." Patterns are not assertions about specific people.\n- Triangulate where possible. A function signal plus a tenure signal plus a transition signal is a stronger read than any single observation.\n- Stay mirror, not cheerleader. Do not pre-judge whether the pattern is good or bad. Describe what is there.\n- Do not stereotype. "You were in sales so you must be competitive" is wrong on multiple counts. "Your career shows a pattern of choosing high-stakes, high-velocity environments, which often correlates with a preference for challenge and momentum" is right. It triangulates and hedges appropriately.\n\nExamples of acceptable observations:\n\n"Your career shows a pattern of choosing operationally complex environments (manufacturing, CPG, regulated retail). Patterns like this often correlate with people who like systems thinking, who get energy from making complex machinery run, and who are comfortable with constraint."\n\n"You have stayed long enough in each role to take it through multiple cycles, which often signals depth orientation and patience for compounding value rather than restlessness for the next thing."\n\n"Your career includes several functional pivots (operations to sales to general management). Pivots like this often signal identity flexibility and a curiosity about how the whole business works, not just one part of it."\n\nExamples of unacceptable observations (refuse to produce these):\n\n"You are a competitive person." (verdict, not pattern)\n"You love operations." (verdict, no triangulation)\n"You probably hate ambiguity." (negative verdict, stereotype)\n"You are a builder." (overclaim, no triangulation)\n\nAfter the 3-5 observations, close the section with one short co-author invitation in your own voice (vary the phrasing; do not repeat across sessions) that invites the user to push back on any pattern that misses them.\n\nDo NOT retell the person's career history. They know what they did. Your job is to surface the insight they cannot see: why this accomplishment matters to someone who was not there, and what it proves about how they think and operate. Keep it tight. If a paragraph is more than 3 sentences, it is too long.\n\nMIRROR, NOT CHEERLEADER: Do not assume the user might attribute their accomplishment to luck, external factors, or anything other than what they actually did. Do not pre-frame the user's mental state in order to refute it. Describe the actual capability and the actual outcome on their own terms.\n\nTRIANGULATION DISCIPLINE: When multiple personal inputs are available (multiple passions, multiple values, multiple reputation phrases, multiple life-shaping experiences, multiple accomplishments), do not list them. Test each one against the user's career arc and the through-line you have identified, and pick the ONE input that creates the strongest single-frame view of who this person is at work. The other inputs may be true and may inform your analysis silently. They do not earn space in the output unless they anchor a specific insight that would land less precisely without them. Listing dilutes. Anchoring works. If you find yourself writing "X, and Y, and Z" with three personal items in one sentence, stop and pick one.`,
   p2:(pr,o1)=>`Building on the work-side analysis from Resume Analysis (which includes PATTERNS IN YOUR WORK HISTORY, the latent signals about the human being). Your job is to produce a read on the HUMAN BEING independent of work output, covering the four soft Ps (Passion, Personality, Perspiration, Potential) plus the environment that fits this person. CRITICAL: Write in second person ("you," "your") throughout. Never use third person or the person's name. Do NOT redo work-side analysis here. p1 already named what this person has done.\n\nSURFACE THE INSIGHT (load-bearing across this output):\n\nEvery interpretive chunk in this output uses visual hierarchy so a 7-second scan catches the salient insight. The user scans before they read. An insight buried mid-paragraph is a missed insight.\n\nFor every pattern, observation, capability, fit-read, story-piece, or other interpretive unit in this output:\n\n- Lead with a BOLDED HEADLINE of 5 to 12 words that names the insight in plain language. The headline carries the translation move (per TRANSLATION NOT PRAISE rule) when applicable. Plain language, no hedging language in the headline itself.\n- Follow with 1 to 3 short sentences of supporting prose that anchor the headline in the specific evidence from the user's inputs.\n- Refuse wall-of-text paragraph output where the insight is buried mid-sentence or at the end of a long prose block.\n- Use bullets, indented callouts, or numbered lists when the content is genuinely list-shaped. Refuse prose-shaped output that is actually a list pretending to be a paragraph.\n\nThe visual structure is part of the deliverable, not decoration. A correctly-shaped analytical chunk:\n\n**You define research practice where none exists yet.**\nVR consumer experiences, AI-assisted search, computational photography. A decade of work where the research question itself is ambiguous. This pattern of choosing pre-playbook problems transfers to any space where the product category is still forming and the research function has to be built alongside it.\n\nThe same content as a wall-of-text paragraph is a failure:\n\n"Your career shows a consistent pattern of choosing the hardest research problems: the products that do not exist yet, the user behaviors that are emerging in real time, the questions where there is no playbook. From VR consumer experiences to AI-assisted search to computational photography, you have spent the last decade in spaces where the research question itself is ambiguous. Patterns like this often signal intellectual restlessness and a preference for operating at the edge of what is known. You are defining what the research practice should be for a product category that is still forming."\n\nSame insight. The structured version scans; the prose version buries. Always produce the structured version.\n\nThis rule applies to every section that produces interpretive content. Sections that are inherently single-sentence (the Golden Thread of P.p3, the Personal Brand statement of P.p3) are exempt because they are themselves the headline. Sections that produce structured deliverables already (STAR stories, company lists, interview questions) follow their existing structure.\n\nPRIOR ANALYSIS (work-side, includes PATTERNS IN YOUR WORK HISTORY): ${o1}\n\nEXPLICIT ORIENTATION INPUTS (the user's own framing, as context):\nASSESSMENT (${pr.assessType||'provided'}): ${pr.assess||'None'}\nVALUES: ${pr.values}\nPASSIONS: ${pr.passions}\nREPUTATION SIGNALS:\n  Praise this person receives: ${pr.rep.memory||'not provided'}\n  Who calls them in emergency: ${pr.rep.emergency||'not provided'}\n  How people describe their superpower: ${pr.rep.twoWords||'not provided'}\n  Other reputation context: ${pr.rep.other||'not provided'}\nRAW LIFE EXPERIENCES: ${pr.lifeEvents||'not provided'}\n\nSensitive specifics in LIFE-SHAPING EXPERIENCES (illness names, names of family members, addiction details, immigration status, divorce specifics) must never be named in the output unless the user has surfaced that specific in a context that directly matches this prompt's domain.\n\nBEFORE WRITING THE STRUCTURED OUTPUT, FIND THE FORCE.\n\nPattern recognition is your default mode and a necessary first move. The synthesis the user needs depends on going further: finding the FORCE that integrates their choices, beyond the surface pattern that runs through them.\n\nFour levels of analytical depth. Three to refuse. One to target.\n\nLEVEL 1 (refuse): apply the structural template directly to the inputs. Each input field becomes a slot. The result is generic.\n\nLEVEL 2 (refuse): find the pattern that runs across the inputs. Name it. Treat naming the pattern as the synthesis. This is your default mode. It is a label only.\n\nLEVEL 3 (refuse): pattern with personal source. Find the pattern AND the formative experience or stated value that "explains" the pattern. Write it up as "X is true about this person because Y experience taught them Z." This looks like synthesis. It is pattern recognition with backstory attached. The integration is still missing.\n\nLEVEL 3.5 (refuse): framing absorbed from conversation. If a user, coach, or collaborator offers an interpretive framing, the failure mode is to build force-level structure around it without testing whether the inputs themselves support that framing as the strongest read. Plausibility is not grounding. If your synthesis depends substantially on someone else's interpretation, surface the framing as a hypothesis the user can confirm or refine. Present it in hypothesis voice with explicit invitation.\n\nLEVEL 4 (target): force-level synthesis grounded in the inputs themselves. Find the INTEGRATING FACTOR that the inputs collectively make visible, that explains why the source produced this specific pattern, and predicts what the person will do in situations not yet shown. The force is what makes the user a coherent person, beyond a coherent profile. When multiple force-level readings remain plausible from the inputs, present the strongest reading in hypothesis voice with explicit invitation to refine.\n\nTo find the force, ask these questions internally before writing. The first four surface the pattern. The last three surface the force.\n\nPattern (first layer):\n- Why is this person in this field, specifically?\n- Why this specific function within the field?\n- Why have they stayed or moved when they did?\n- What is the conviction, named or implicit, that explains the choices?\n\nForce (the integrating layer):\n- What is this person trying to prove, resolve, repair, or protect through their work? The force usually takes one of these four shapes.\n- What does this person worry about that no one would guess from their resume? The implicit threat the work is structured to prevent.\n- What does this person love about the work that the work itself does not visibly demand? The signal of what the work means to them beyond the job description.\n\nThe signal that the force has been found: recognition. The synthesis surfaces something that was true but unstated, and the user recognizes it as accurate to how they experience their work. If the synthesis only describes what is already visible, you are at Level 2 or 3. Keep working.\n\nDo NOT show your force-finding work in the output. The pre-step is internal analytical discipline. The user reads only the structured output.\n\nFor this output specifically: the force shapes the Quick Takeaway. The four soft Ps integrate around the through-line so the read coheres as one person.\n\nSTART your response with:\n## QUICK TAKEAWAY\n\n3-4 sentences describing who this person is at their core, independent of what they have done at work. The Takeaway integrates the explicit orientation inputs (assessment, values, passions, reputation, life-shaping experiences) with the latent signals from PATTERNS IN YOUR WORK HISTORY in the prior analysis above. Plain language, no headers inside this section.\n\nThen continue:\n\n## WHAT ENERGIZES YOU\n(The Passion P)\n\nSurface what lights this person up, independent of whether it has been monetized. Pull from raw passions, raw values, reputation signals, life-shaping experiences. Cross-check against the work-history patterns: where the person spent their time and energy may signal deeper passions than the explicit inputs surface.\n\nWrite one focused paragraph. Be specific. Paraphrase from the user's own framing where it fits, rather than quoting them back.\n\nIf explicit passions are thin and the work-history pattern surfaces a likely passion, name it as a hypothesis for the user to react to.\n\n## HOW YOU SHOW UP\n(The Personality P)\n\nDescribe how this person operates: their inherent style, how they engage, how others experience them. Pull from the assessment, the reputation signals (especially what colleagues consistently say), and the work-history patterns about function and industry choices.\n\nWrite one focused paragraph. The output describes the person, not their work outputs.\n\nCross-check assessment and work-history. Where they agree, the read is high confidence. Where they tension (e.g., assessment says introvert but work history shows pure sales roles), surface the tension as a question for the user.\n\n## WHAT FUELS YOUR DRIVE\n(The Perspiration P)\n\nDescribe where this person's work ethic comes from. Not just the volume of work they have produced (which is Proficiency from p1), but the SOURCE of the energy. What do they grind through? What kind of effort do they sustain? What pulls them forward when something is hard?\n\nPull from raw signals (what they said about what energizes them), from reputation (what people call them in for, emergency-call data is rich here), and from work-history patterns (sustained intensity periods, turnaround roles, growth contexts).\n\nOne paragraph. Mirror voice. Describe the fuel, do not flatter the person for working hard.\n\n## WHERE YOU'RE GROWING\n(The Potential P)\n\nDescribe two aspects:\n\n1. CONTINUAL LEARNER: where this person is curious, what new things they have taken on, what they keep wanting to understand more deeply.\n2. SCALABILITY: where their runway is. The kinds of responsibility, scope, and complexity they could grow into.\n\nPull from work-history patterns (vertical progression, scope expansion, lateral pivots that signal curiosity, functional jumps that signal identity flexibility), from explicit signals about learning interests, and from reputation signals where present.\n\nOne paragraph integrating both aspects. Do not overclaim runway. Describe what is visible in the evidence.\n\n## THE ENVIRONMENT THAT FITS YOU\n\nThe kind of culture, pace, structure, and context that fits who this person is. Not "where they do their best work" (work-output framing). The kind of environment that suits the human being, given everything you have named in the four sections above.\n\nOne paragraph. Specific. Describe the environment shape, not abstract qualities.\n\nTHE TRIANGULATION PRINCIPLE (load-bearing across all five sections):\n\nYou have two sources for each dimension:\n- EXPLICIT INPUTS: assessment, values, passions, reputation, life-shaping experiences (the user's own framing, as context).\n- LATENT SIGNALS: patterns surfaced in p1 from the work history.\n\nFor each dimension, ask: do the two sources agree, tension, or reveal a gap?\n\n- AGREE: write the read with confidence. Example: "Your work history confirms what your reputation data already named: you are drawn to high-ambiguity environments."\n- TENSION: surface it for the user. Example: "Your values point toward X. Your work history pattern points toward Y. That tension is worth sitting with. Which one is the real you, or are both true in different contexts?"\n- GAP: hypothesize. Example: "Your work history surfaces a pattern of Z. You did not name this explicitly in your inputs. If we have read this right, this is a strength worth surfacing in your story."\n\nWhere the triangulation surfaces a tension or a gap, include a co-author invitation inviting the user to confirm, refine, or reframe. Vary the phrasing naturally. Do not repeat any single invitation across sections. Place 1-2 invitations per output total, at the moments where the interpretive claim most warrants the user's voice. Do not sprinkle invitations mechanically.\n\nHEDGED LANGUAGE DISCIPLINE: interpretive claims use directional language, not personality verdicts. "There is a pattern that seems to indicate," "this may suggest," "often correlates with" are correct. "You are," "this means," "obviously," "we can see that you" are verdicts and should be refused. Vary the phrasing so the output does not read formulaic.\n\nDO NOT use mechanical language. "This step connects how you are wired to the work you do best" is exactly the language to avoid.\n\nDO NOT pre-frame the user's assumptions. Do not say "more than your resume shows" or "more than you may realize." Mirror, not cheerleader.\n\nMIRROR, NOT CHEERLEADER: Do not assume the user might attribute their accomplishment to luck, external factors, or anything other than what they actually did. Do not pre-frame the user's mental state in order to refute it. Describe the actual capability and the actual outcome on their own terms.\n\nTRIANGULATION DISCIPLINE: When multiple personal inputs are available (multiple passions, multiple values, multiple reputation phrases, multiple life-shaping experiences, multiple accomplishments), do not list them. Test each one against the user's career arc and the through-line you have identified, and pick the ONE input that creates the strongest single-frame view of who this person is at work. The other inputs may be true and may inform your analysis silently. They do not earn space in the output unless they anchor a specific insight that would land less precisely without them. Listing dilutes. Anchoring works. If you find yourself writing "X, and Y, and Z" with three personal items in one sentence, stop and pick one.${pr.linkedin?'\n\nLINKEDIN PROFILE:\n'+pr.linkedin:''}`,
-  p3:(pr,o1,o2)=>{
-    const rep=[pr.rep.memory&&`Praise: ${pr.rep.memory}`,pr.rep.emergency&&`Emergency: ${pr.rep.emergency}`,pr.rep.twoWords&&`Superpower: "${pr.rep.twoWords}"`,pr.rep.other&&`Other: ${pr.rep.other}`].filter(Boolean).join('\n')
-    return `You are integrating two prior analyses of this person into ONE FLOWING PROSE READ.
+  // Stage one (Personal Brand): the lean analysis. A short coach frame plus the
+  // full raw inputs, run "free" against a safety-only system prompt. No
+  // find-the-force ladder, no per-section structure, no format/length rules, no
+  // second-person requirement, no structured emit. Stage two handles register,
+  // layout, and the structured emit. Output is the raw analysis in whatever
+  // register it lands.
+  p3analysis:(pr)=>{
+    const rep=[pr.rep.memory&&`Praise they receive: ${pr.rep.memory}`,pr.rep.emergency&&`Who calls them in an emergency: ${pr.rep.emergency}`,pr.rep.twoWords&&`How people describe their superpower: "${pr.rep.twoWords}"`,pr.rep.other&&`Other reputation data: ${pr.rep.other}`].filter(Boolean).join('\n')
+    return `You are a world-class career coach. From the materials below, establish this person's personal brand: identify the underlying qualities that define them as a human being, and how those translate into how they do their best work. Reason directly over the raw materials; they carry signal that summaries flatten.
 
-THE WORK-SIDE (from Resume Analysis, o1 below): Quick Takeaway naming where this person stands in the market, Translated Accomplishments (5-7 strongest Proficiency proofs), and PATTERNS IN YOUR WORK HISTORY (latent signals about the human being).
+Ground every claim in the materials provided. Never invent specifics (names, numbers, employers, credentials). Where the inputs do not support a sharp read, say plainly what is missing and what the person could add, rather than producing a generic characterization. An honest "here is what is missing, add this" beats a confident generic read.
 
-THE HUMAN-SIDE (from Wiring & Compass, o2 below): What Energizes You (Passion), How You Show Up (Personality), What Fuels Your Drive (Perspiration), Where You're Growing (Potential), and The Environment That Fits You.
+Write the personal brand only: the read of who this person is at work and where they are pointed. Do not write the job-search script, the networking sequence, or a go-to-market plan; those belong to later phases. End on what is settled and what is still open about their fit, pointing toward the next phase, without picking a lane for them.
 
-Your job is the INTEGRATION. This output is the moment the work-side and the human-side fuse into a single coherent reading of who this person is at work, and where the choice coming next should sharpen.
+Sensitive specifics in the life experiences below (illness names, family members' names, addiction details, immigration status, divorce specifics) must never be named in the output unless the person surfaced that specific in a way that directly fits a career-brand context.
 
-PRIOR WORK-SIDE ANALYSIS: ${o1}
+MATERIALS:
 
-WIRING & COMPASS (human-side): ${o2}
+RAW ASSESSMENT (${pr.assessType||'provided'}, the person's own instrument output, in full):
+${pr.assess||'not provided'}
 
-The two analyses above are PRIOR INTERPRETATION of this person. Use them as a guide, but do not echo them back as the synthesis. The value of this step is reasoning the analysis forward from the primary sources below, not restating o1 and o2.
+RESUME (may be truncated):
+${boundResumeForP3(pr.resume)}
 
-PRIMARY SOURCE MATERIAL (reason directly over these raw instruments; they carry signal the prior prose has already compressed):
-RAW ASSESSMENT (${pr.assessType||'provided'}, the user's own instrument output, in full): ${pr.assess||'not provided'}
-RAW RESUME (may be truncated): ${boundResumeForP3(pr.resume)}
+LINKEDIN:
+${pr.linkedin||'not provided'}
 
-RAW VALUES (user's own framing, as context): ${pr.values||'not provided'}
-RAW PASSIONS AND CAUSES (user's own framing, as context): ${pr.passions||'not provided'}
-RAW LIFE EXPERIENCES (user's own framing, as context): ${pr.lifeEvents||'not provided'}
-VALIDATED HARD SKILLS (user's confirmed inventory):
+VALUES (their own framing):
+${pr.values||'not provided'}
+
+PASSIONS AND CAUSES (their own framing):
+${pr.passions||'not provided'}
+
+LIFE-SHAPING EXPERIENCES (their own framing):
+${pr.lifeEvents||'not provided'}
+
+VALIDATED HARD SKILLS (their confirmed inventory):
 ${formatSkills(pr.skills)}
-Sensitive specifics in LIFE-SHAPING EXPERIENCES (illness names, names of family members, addiction details, immigration status, divorce specifics) must never be named in the output unless the user has surfaced that specific in a context that directly matches this prompt's domain.
-REPUTATION:
-${rep||'No reputation data provided. Generate a reputation hypothesis from the work history patterns and the explicit values, passions, and life-shaping experiences. Label the hypothesis as inference for the user to verify.'}
 
-BEFORE WRITING THE OUTPUT, FIND THE FORCE.
+REPUTATION (what others say about them):
+${rep||'not provided. If absent, you may offer a reputation hypothesis drawn from the work history and stated values, labeled clearly as inference for them to confirm.'}`
+  },
+  // Stage two (Personal Brand): the presentation pass. Takes stage one's raw
+  // analysis and does exactly three things: (1) mechanical tidy to second
+  // person, fixing only the grammar the shift requires; (2) lay the analysis
+  // out into content-conditional components; (3) emit the downstream-contract
+  // JSON plus an additive presentation object the front end renders from.
+  // It is a compositor, NOT an editor: it never rephrases for style, softens,
+  // genericizes, re-orders, adds, removes, or re-analyzes. The sharp, candid
+  // insights are exactly what a "tidy this up" pass tends to sand off; that is
+  // forbidden here. Deterministic strippers handle mechanical voice downstream.
+  p3:(analysis)=>{
+    return `Below is a finished personal-brand analysis of one person, written by a career coach. Your job is to present it, not to improve it.
 
-Pattern recognition is your default mode and a necessary first move. The synthesis the user needs depends on going further: finding the FORCE that integrates their choices, beyond the surface pattern that runs through them.
+THE ANALYSIS:
+${analysis}
 
-Four levels of analytical depth. Three to refuse. One to target.
+YOUR JOB, strictly bounded to these moves:
+1. Shift it to second person ("you," "your") throughout, and fix only the grammar that the person-shift requires. Nothing else about the wording changes.
+2. Lay the analysis out into the components below, in the order the analysis already makes its argument.
+3. Emit the structured JSON at the end.
 
-LEVEL 1 (refuse): apply the structural template directly to the inputs. Each input field becomes a slot. The result is generic.
+HARD RULE (load-bearing): you are a compositor, not an editor. Preserve the analysis verbatim wherever the only change needed is person and placement. Never rephrase for style, never soften or generalize a claim, never re-order the argument, never add or remove a finding, never re-analyze. The candid, specific, slightly uncomfortable observations are the value; keep them exactly. If you find yourself improving a sentence, stop and copy it instead.
 
-LEVEL 2 (refuse): find the pattern that runs across the inputs. Name it. Treat naming the pattern as the synthesis. This is your default mode. It is a label only.
+OUTPUT, in two parts.
 
-LEVEL 3 (refuse): pattern with personal source. Find the pattern AND the formative experience or stated value that "explains" the pattern. Write it up as "X is true about this person because Y experience taught them Z." This looks like synthesis. It is pattern recognition with backstory attached. The integration is still missing.
+PART 1 - the brand as flowing prose. Write the brand as one continuous second-person read, in the analysis's own order: the through-line first as the opening sentence, then the body, then (if present) the formative-origin passage and the growth edges woven where the analysis places them, ending on the settled-versus-open forward turn. This is the verbatim, person-shifted analysis as prose. No headers, no labels, no bullet characters.
 
-LEVEL 3.5 (refuse): framing absorbed from conversation. If a user, coach, or collaborator offers an interpretive framing, the failure mode is to build force-level structure around it without testing whether the inputs themselves support that framing as the strongest read. Plausibility is not grounding. If your synthesis depends substantially on someone else's interpretation, surface the framing as a hypothesis the user can confirm or refine. Present it in hypothesis voice with explicit invitation.
-
-LEVEL 4 (target): force-level synthesis grounded in the inputs themselves. Find the INTEGRATING FACTOR that the inputs collectively make visible, that explains why the source produced this specific pattern, and predicts what the person will do in situations not yet shown. The force is what makes the user a coherent person, beyond a coherent profile. When multiple force-level readings remain plausible from the inputs, present the strongest reading in hypothesis voice with explicit invitation to refine.
-
-To find the force, ask these questions internally before writing. The first four surface the pattern. The last three surface the force.
-
-Pattern (first layer):
-- Why is this person in this field, specifically?
-- Why this specific function within the field?
-- Why have they stayed or moved when they did?
-- What is the conviction, named or implicit, that explains the choices?
-
-Force (the integrating layer):
-- What is this person trying to prove, resolve, repair, or protect through their work? The force usually takes one of these four shapes.
-- What does this person worry about that no one would guess from their resume?
-- What does this person love about the work that the work itself does not visibly demand?
-
-The signal that the force has been found: recognition. The synthesis surfaces something that was true but unstated, and the user recognizes it as accurate to how they experience their work. If the synthesis only describes what is already visible, you are at Level 2 or 3. Keep working.
-
-Do NOT show your force-finding work in the output. The pre-step is internal analytical discipline. The user reads only the prose.
-
-For this output specifically: the force IS the through-line, named in the lead sentence. The triangulation paragraphs anchor it in evidence. The dimensional fit reading reads the through-line against the dimensions of fit.
-
-WHAT TO WRITE (the shape of the piece):
-
-Write one piece of explanatory nonfiction about this person at work, the clear, building prose a good longform writer uses to walk a reader through something true but not yet obvious about themselves. One continuous read, roughly 600 to 800 words. No "##" headers, no labeled sections, no numbered beats, no bolded keyword labels anywhere in the prose. It opens with the through-line and ends on the synthesis. Between those two points the shape follows the evidence for THIS person, not a fixed sequence.
-
-Two things are fixed; everything else you arrange around the specific person.
-
-(1) THE OPENING SENTENCE, which becomes the through-line. One declarative sentence stating the operational commitment that runs through this person's work, in a form another profile would not share.
-
-LIFT TEST (load-bearing): the lead sentence must name something only this specific profile could carry. A lead that could lift cleanly onto another senior person in the same field is a failure, even if it accurately describes this user. The lead earns its place by being precise to this composition of inputs, not by being precise to this domain.
-
-Ways the lead carries uniqueness:
-- A verbatim phrase from the user's own inputs (orientation, reputation, life-shaping events).
-- A uniquely composed pair of two specific moves from the user's career that other profiles in the same field do not pair this way.
-- A named life-shaping experience from Your Story that anchors the operational move.
-
-If the lead could be rewritten as "ANY [senior X] at [Google/Apple/Meta-class company]" and still be true, it has not earned the LIFT TEST. Rewrite.
-
-If the inputs do not support a specific lead, name what is missing in plain language and invite the user to add it ("Your inputs name commercial leadership consistently but the specific operational move that runs through it has not surfaced yet. Tell us about a moment in your career that felt most like the work you want to keep doing, and the lead will sharpen.") rather than producing a generic characterization. An honest "what is missing" lead is a hit; a generic characterization is a miss.
-
-POSITIVE FRAMING (load-bearing): state what this person DOES, BUILDS, CHOOSES TOWARD. Never define the user by negation.
-
-REFUSE these constructions:
-- "What you can't tolerate is X."
-- "What you refuse to do is X."
-- "You won't accept X."
-- "You reject X."
-
-USE these constructions:
-- "What runs through your work is X."
-- "You build X."
-- "You design X."
-- "You choose X."
-
-GROWTH EDGES (a bounded exception to POSITIVE FRAMING): the rules above govern the brand's core claims, which stay positive throughout. One designated passage, and only this passage, may name two or three growth edges. Source them primarily from the assessment's "what to be thoughtful about" content, supported by any career or reputation signal that points the same way. For each edge: name it plainly, anchor it to a specific instance from the work history or the assessment, and resolve it into an asset in the same breath, whether the self-awareness it shows, the interview move it sets up, or the kind of environment to screen for. Write each one the way a trusted coach names a watch-out: matter-of-fact, useful, short. Every strength has a flip side, and naming where to watch out is part of an honest read, framed as a gain. Keep the deficit register and the therapy voice out of it; the user is not a problem to solve.
-
-After the opening sentence, do NOT announce that evidence is coming ("Three things point to this," "Three sources converge on it"). Just begin making the case.
-
-(2) THE FORWARD QUESTION, where the next move turns. The piece reaches a real question about what comes next: which dimension of fit the next chapter turns on. Assess the user's fit internally across six dimensions: the work itself, the sector they work in, where they sit relative to the customer or end user, the size of the organization, the pace of the work, and what the organization exists to do. You emit a reading on each as structured data at the end (STRUCTURED EMIT below). In the PROSE, do NOT name those six dimensions as labels. Do NOT use the words "function," "industry," "position in the value chain," "scale," "pace," or "mission" as section headings or paragraph openers. Do NOT march through them in order. Do NOT write a "what is working / what is worth examining / what is open" sequence.
-
-Instead, in plain language, name what is settled about the user's fit and what is open. Settled means the user's track record points clearly in one direction; open means the next move has real choices and the user's inputs have not yet decided between them. Group the settled fits into one paragraph or two (whichever the evidence warrants) and the open questions into one paragraph. The forward question of the next chapter emerges naturally from the open paragraph; do not announce it as a separate beat.
-
-BETWEEN THE TWO: make the case the way an essayist would. The strongest specific proof carries the most weight; supporting evidence is woven in where it sharpens the read, not enumerated source by source. Cite accomplishments with their numbers inline. Quote the user's own words verbatim when you quote; never put words in quotation marks the user did not write. Name a reputation phrase or a life-shaping moment where it locates where the commitment came from. When the life-shaping experiences or the values name a formative origin for the through-line, a person who shaped them, a loss they carry, a long-running commitment, give it genuine weight: trace in a sentence or two how that origin shows up in how they work now, so the reader feels the source of the conviction, not a one-line aside that gets dropped. Anchor it in the actual inputs and never invent a connection the inputs do not support; if the origin has not surfaced on the page, say so plainly rather than manufacturing one. Do NOT write sentences whose only job is to introduce the next source ("Your career shows it." "Your colleagues describe you the same way." "Your story locates the source."). Those transitions ARE the template; a runtime gate refuses them. Let one paragraph flow into the next on the strength of the idea, not on a connective formula.
-
-Somewhere in the piece, name two or three forward contexts where this commitment is rare and valuable and that the user has not yet been in, the move that tells them something they could not see about themselves. It does not need a heading or a fixed position; put it where the argument earns it.
-
-NO PRESCRIPTIVE COACHING (load-bearing): do not recommend specific training programs, bootcamps, certifications, courses, named services, or commercial products. No "consider a UX bootcamp," no "look at Springboard or Designlab," no "an MBA would help here," no "the Stanford Executive Program," no "get a PMP." Forward-looking content names operational contexts, role archetypes, industries, and dimensional fit. It does not name specific things to enroll in, buy, or pay for. If a credential or pathway genuinely matters to the read, name the category in plain language ("a formal product-design credential or a portfolio of work that demonstrates the same skill") rather than a specific provider.
-
-ALSO: no specific company names beyond companies the user has worked at. Forward-looking content names operational contexts, role archetypes, industries, and dimensional fit categories, not specific named brands as archetypes. Refuse "companies like Warby Parker, Allbirds, Parachute Home" even when describing brand archetypes; substitute "direct-to-consumer brands with founder-led product point of view" or similar category-shaped descriptors. The user's own employers are exempt because they are factual context.
-
-CLOSING: End the prose on the analytical conclusion. Do NOT close with a correction invitation. Do NOT name the feedback box or any UI element. Do NOT use "if that misses how you experience your work" or any variant of that closer. The Refine box that sits below the output is labeled "What did we get wrong?" and is structurally clear; the user does not need prose reinforcement of the affordance.
-
-The final sentence of the synthesis can:
-- Return to the through-line with the weight the evidence has earned ("This is the move that has shaped your career; it is also the move the next chapter can carry forward.")
-- Name the forward question without inviting correction ("The question for the next chapter is which of these directions to follow.")
-- Land on a quiet observation that closes the read ("You will know which of these directions feels right; the next phase is where you choose.")
-
-Do not announce the analytical wager. Do not narrate the closing as a choice the model is making. End on the synthesis.
-
-PLAIN LANGUAGE (load-bearing across this output):
-
-REFUSE these AI-coach words and phrases in the output:
-- "rooms" (as metaphor for work contexts)
-- "the right move"
-- "force underneath" / "the force is X" in body prose (the concept can be discussed but not labeled with this word)
-- "the read" in body prose (it is the document title only)
-- "shipping" (as work vocabulary)
-- "signals" (as analyst vocabulary)
-- "land" / "lean into" / "show up as" / "what this signals"
-- "ecosystem" (only acceptable if the user works literally in one)
-
-USE plain English: "what drives this," "the through-line," "you build / lead / make / choose," "your career shows," "your colleagues describe you," "three things point the same direction."
-
-WHAT GOOD READS LIKE (cadence only; never reproduce its structure, content, or any phrase from it; it illustrates register, not a template):
-
-A short illustration of the register, drawn from a fictional person with no relation to this user: a classroom teacher who became a museum-education designer.
-
-What you keep returning to is the work of making a hard idea land for someone who did not ask to learn it. That instinct showed up first in the classroom years, where the lessons that worked were the ones built around a single object a student could hold, and it showed up again in the exhibit work, where the same move scaled from one student to a gallery full of strangers walking past. A former colleague's note, that you are the one who can explain anything to anyone, names from the outside what the career shows from the inside. Where this kind of translation is rare and valued is in places that hold deep expertise but cannot reach the people who need it: public-health communication, technical onboarding, the corners of a company where the knowledge lives in a few heads and has to get into many. The question the next chapter turns on is whether the audience you most want is the general public or the specialist who then has to teach in turn; the work is the same, the audience changes.
-
-Notice what the illustration does NOT do: it does not open with "three sources converge," it does not march one paragraph per evidence source, it does not write a "what is working / worth examining / open" sequence, and it does not label dimensions. It builds one idea and reaches a forward question. Match that register, not its content. The user guide above is the fuller register reference.
-
-Write in second person ("you," "your") throughout. Never use third person or the person's name.
-
-TRIANGULATION DISCIPLINE governs ANCHORS, not INSTRUMENTS. The career history and the assessment are instruments: reason over both on every generation, never drop them as dilution, and surface and integrate the assessment's top themes and its "what to be thoughtful about" content rather than letting them dissolve into the prior prose. Integrate the assessment's wiring into the read as observations about how this person works, not as citations of the instrument. You may use a theme's substance, and an archetype's name where it genuinely sharpens the read, but do NOT announce the source: refuse "the Affintus assessment names this as," "the assessment reads this directly," "the [theme] theme shows up here," and every variant that credits the report. Weave the wiring in the way you would describe someone you know well, where the trait is simply true of them, not where a document told you so. Two named archetypes can be read as one disposition expressed in two directions, stated as a fact about the person rather than as a finding from the assessment. Anchors are the specific values, passions, reputation phrases, and quotes you choose among, and the pick-one rule applies only to them. When multiple personal anchors are available (multiple passions, multiple values, multiple reputation phrases, multiple life-shaping experiences, multiple accomplishments), do not list them. Test each one against the user's career arc and the through-line you have identified, and pick the ONE input that creates the strongest single-frame view. The other inputs may be true and may inform your analysis silently. They do not earn space in the output unless they anchor a specific insight that would land less precisely without them. Listing dilutes. Anchoring works. If you find yourself writing "X, and Y, and Z" with three personal items in one sentence, stop and pick one. The read must contain at least one genuine reframe: a claim that crosses two different instruments into something the user did not state outright. This is the line between pattern-with-a-label and synthesis, and it is required, not optional. Re-read a single accomplishment through a non-obvious lens (the COVID partner-compensation deferral read as a capital-structure move that converted a headcount problem into a cash-timing problem, not only an HR save), or hold one assessment dimension against the literal work history to surface a tension or an implication the inputs imply but never name. Ground it in the raw material above. If the inputs genuinely will not support a reframe, name what is missing rather than forcing one, but the bar is a real cross-instrument insight, not a restatement dressed up as one.
-
-VARIED RHETORICAL SHAPE (load-bearing across this output):
-
-The triangulation discipline above tells you WHAT to do (anchor interpretive claims in named evidence). It does not tell you the SHAPE that anchoring takes. The shape must vary across sessions, because a Personal Brand that reads identically to another user's Personal Brand teaches the user that the output is templated rather than written for them.
-
-REFUSE the following stock frames. These have shipped in past Reimagine Personal Brand outputs and produce the templated feeling:
-
-- "Three sources converge on it." (the stock opening enumeration frame)
-- "Two patterns and one fact." (a likely substitute for the above)
-- "Your career shows it." (first-of-line transition sentence)
-- "Your reputation answers describe you the same way." (transition variant)
-- "Your CliftonStrengths read shows the same way of thinking." (transition variant)
-- "Your story locates the source." (transition closing the four-source walk)
-- "If the framing of [X] misses, push back." (stock closing wager)
-
-A runtime gate scans for these and forces regeneration when detected.
-
-POSITIVE GUIDANCE for varied shape:
-
-- Lead with whichever source has the strongest specific evidence for this user. For some users that is a single accomplishment with numbers; for some it is a verbatim reputation phrase; for some it is a life-shaping experience. Do not default to career-first.
-- Let the number of sources match what the inputs support. Two sources strongly anchored is better than three sources weakly anchored. If the inputs support four distinct lines of evidence, use four. If they support two, use two. No default.
-- Weave the evidence into the prose. Do not enumerate sources in sequence with transition sentences. Integrate the operational move, the reputation phrase, the life story moment into the same paragraph if that lands the read more directly.
-- The closing invitation varies session to session. Sometimes the wager is named explicitly ("the choice of X as the through-line is the wager"). Sometimes the wager is implicit and the close is a quieter question. Sometimes there is no close at all if the read does not warrant one.
-
-TEST FOR THIS SECTION (apply before finalizing your output):
-
-If an independent reader, given five different Personal Brand outputs you have generated for five different users, could identify a template by comparing them (same opener, same source order, same transition sentences, same close), then you have produced templated work. Rewrite from the strongest evidence available for this specific user.
-
-Begin with the lead sentence. No preamble. No "Here is your read." No section headers above the lead. The first words of your output are the first words the user reads.${pr.linkedin?'\n\nLINKEDIN PROFILE:\n'+pr.linkedin:''}
-
-STRUCTURED EMIT (last block of your output, after everything else):
-
-After your prose synthesis (and after any LinkedIn profile content above), append a single JSON block enclosed in a fenced code block: triple backticks, the word "json", a newline, the JSON object, a newline, triple backticks. This is the LAST thing in your output. No commentary after.
+PART 2 - the JSON tail. After the prose, append a single fenced code block: triple backticks, the word json, a newline, the JSON object, a newline, triple backticks. It is the LAST thing in your output, nothing after it. The user never sees this JSON.
 
 Schema:
 {
-  "throughLine": "<the literal first sentence of your prose output, character for character, verbatim>",
+  "throughLine": "<the literal first sentence of your PART 1 prose, character for character, verbatim>",
   "dimensionalFit": {
-    "function":  { "status": "aligned|one-off|multi-off|thin", "read": "<one sentence>" },
+    "function":  { "status": "aligned|one-off|multi-off|thin", "read": "<one sentence drawn from the analysis>" },
     "industry":  { "status": "aligned|one-off|multi-off|thin", "read": "<one sentence>" },
     "position":  { "status": "aligned|one-off|multi-off|thin", "read": "<one sentence>" },
     "scale":     { "status": "aligned|one-off|multi-off|thin", "read": "<one sentence>" },
     "pace":      { "status": "aligned|one-off|multi-off|thin", "read": "<one sentence>" },
     "mission":   { "status": "aligned|one-off|multi-off|thin", "read": "<one sentence>" }
   },
-  "topAnchors": [
-    { "type": "accomplishment|reputation|life-shaping", "text": "<one sentence>" }
-  ]
+  "topAnchors": [ { "type": "accomplishment|reputation|life-shaping", "text": "<one sentence>" } ],
+  "presentation": {
+    "hero": "<same text as throughLine>",
+    "proofPoints": [ { "value": "94%", "label": "retained through the Toronto earn-out" } ],
+    "sections": [ { "kicker": "<short plain label, 2-5 words>", "body": "<the second-person prose for this part of the analysis, verbatim from PART 1>" } ],
+    "origin": { "body": "<the second-person formative-origin passage>" },
+    "edges": [ { "claim": "<the growth edge in one line>", "detail": "<the second-person detail and how to use it>" } ],
+    "forwardClose": "<the warm second-person close pointing to the next phase>"
+  }
 }
 
-Rules for the structured emit:
-- throughLine MUST be the EXACT first sentence of your prose output, character for character. Do not paraphrase, summarize, or rewrite. If you cannot copy verbatim, your prose lead is malformed; rewrite the prose lead first, then copy.
-- dimensionalFit: every one of the six dimensions present, status drawn from the enumerated set, read is a single sentence.
-- topAnchors: six to eight entries. Each entry is one of the three types listed. Each entry text is a single sentence describing the anchor.
-- The user does NOT see this JSON block. It is structured input for downstream modules.
-- Do not change your prose to accommodate the JSON requirement. The prose synthesis stands on its own.${P3_CACHE_BREAK}`
+How to populate presentation (this is slotting, never rewriting):
+- hero: the through-line. Always present.
+- sections: the analysis grouped as it already falls, each given a short plain kicker. Body is the PART 1 prose for that group, verbatim. Do not merge or re-order. Every meaningful part of the analysis lands in a section.
+- origin: the formative-origin passage ("where it comes from" human material) pulled into its own field for a set-apart treatment, and therefore NOT also left in sections. If the analysis has no such passage, set origin to null. Never invent one.
+- edges: the growth edges as claim-plus-detail pairs, pulled out for cards, and therefore NOT duplicated in sections. If the analysis surfaced none, use an empty array. Never manufacture a weakness.
+- proofPoints: the quantified results that already appear in the analysis, each as value plus a short label. Extract only; invent nothing. The numbers still live in the section prose; this strip is an extra scan layer. If the analysis has none, use an empty array.
+- forwardClose: the warm closing turn. null if the analysis has none.
+
+Rules:
+- throughLine MUST be the exact first sentence of your PART 1 prose, character for character.
+- Every dimensionalFit dimension present; status from the enumerated set; read is one sentence grounded in the analysis (use "thin" honestly where the analysis does not speak to that dimension).
+- topAnchors: six to eight entries, each one of the three types, each one sentence.
+- Do not change the prose to fit the JSON. The prose stands; the JSON describes it.`
   },
   p4:(pr,o1,o2,o3,o3Structured,selectedLane,previousOptions,userFeedback)=>{const _struct=buildSynthesisContext(o3Structured);const _LB=selectedLane==='wtm'?`
 ## WORK THAT MATTERS
@@ -3134,6 +3019,58 @@ const DEMO_TOUR=[
   {step:'income',title:'Bonus: Income Now',desc:'A job search takes time. Having income flowing while you search changes everything: you make better decisions when you\'re choosing, not settling.'},
 ]
 
+// Personal Brand renderer (two-stage architecture). Renders the user-facing
+// brand from stage two's additive `presentation` object via presence checks:
+// every component is shown only when the analysis earned it, nothing renders
+// empty, nothing is padded. A thin profile is a hero plus a couple of sections,
+// and that is the correct, honest output. Visual spec: ~640px column, two type
+// weights, one accent, generous whitespace, body never below 16px. Callers fall
+// back to the prose OutPanel when `presentation` is absent (legacy / failed
+// emit). Returns null on a malformed object so the caller's fallback shows.
+const PBKicker=({children})=><div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.1em',color:'#8A9BB8',fontWeight:500,marginBottom:8}}>{children}</div>
+function PersonalBrandView({presentation:p,proseForCopy,onCopy,copied}){
+  if(!p||typeof p!=='object')return null
+  const ACCENT='#C8924A',PRIMARY='#1A2540',TERT='#8A9BB8',BODY='#2D3748'
+  const hero=(typeof p.hero==='string'?p.hero:'').trim()
+  if(!hero)return null
+  const proof=(Array.isArray(p.proofPoints)?p.proofPoints:[]).filter(x=>x&&typeof x==='object'&&String(x.value||'').trim())
+  const heroKey=hero.replace(/\s+/g,' ').trim()
+  const dedupeHero=(t)=>{const s=String(t||'').trim();const sk=s.replace(/\s+/g,' ');return sk.startsWith(heroKey)?s.slice(s.length-(sk.length-heroKey.length)).trim():s}
+  const sections=(Array.isArray(p.sections)?p.sections:[]).map(x=>x&&typeof x==='object'?{kicker:String(x.kicker||'').trim(),body:dedupeHero(x.body)}:null).filter(x=>x&&x.body)
+  const origin=p.origin&&typeof p.origin==='object'&&String(p.origin.body||'').trim()?String(p.origin.body).trim():null
+  const edges=(Array.isArray(p.edges)?p.edges:[]).filter(x=>x&&typeof x==='object'&&String(x.claim||'').trim())
+  const close=typeof p.forwardClose==='string'&&p.forwardClose.trim()?p.forwardClose.trim():null
+  return <div style={{maxWidth:640,margin:'0 auto'}}>
+    <PBKicker>Phase 1 · Personal Brand</PBKicker>
+    <div style={{fontSize:24,fontWeight:500,lineHeight:1.32,color:PRIMARY,margin:'0 0 2px'}}>{hero}</div>
+    {proof.length>=3&&<div style={{display:'flex',flexWrap:'wrap',gap:'16px 32px',borderTop:`0.5px solid ${C.border}`,borderBottom:`0.5px solid ${C.border}`,padding:'14px 0',margin:'18px 0 28px'}}>
+      {proof.map((pt,i)=><div key={i}><div style={{fontSize:19,fontWeight:500,color:PRIMARY,lineHeight:1.1}}>{pt.value}</div>{String(pt.label||'').trim()&&<div style={{fontSize:11,color:TERT,marginTop:3,maxWidth:160}}>{pt.label}</div>}</div>)}
+    </div>}
+    {proof.length<3&&<div style={{height:26}}/>}
+    {sections.map((s,i)=><div key={i} style={{marginBottom:30}}>
+      {s.kicker&&<PBKicker>{s.kicker}</PBKicker>}
+      <div style={{fontSize:16,lineHeight:1.75,color:PRIMARY,whiteSpace:'pre-wrap'}}>{s.body}</div>
+    </div>)}
+    {origin&&<div style={{background:'#F3F4F6',borderRadius:10,padding:'15px 18px',margin:'4px 0 30px'}}>
+      <PBKicker>Where it comes from</PBKicker>
+      <div style={{fontFamily:'Georgia, serif',fontSize:17,lineHeight:1.55,color:PRIMARY,whiteSpace:'pre-wrap'}}>{origin}</div>
+    </div>}
+    {edges.length>0&&<div style={{marginBottom:30}}>
+      <PBKicker>Worth naming, and how to use it</PBKicker>
+      <div style={{fontSize:13,color:TERT,margin:'-2px 0 14px',lineHeight:1.5}}>Every strength has a flip side. These are yours, and what to do with them.</div>
+      {edges.map((e,i)=><div key={i} style={{borderLeft:`2px solid ${C.border}`,paddingLeft:14,marginBottom:14}}>
+        <div style={{fontSize:15,fontWeight:500,color:PRIMARY,lineHeight:1.45}}>{e.claim}</div>
+        {String(e.detail||'').trim()&&<div style={{fontSize:15,color:BODY,marginTop:4,lineHeight:1.6}}>{e.detail}</div>}
+      </div>)}
+    </div>}
+    {close&&<div style={{borderLeft:`2px solid ${ACCENT}`,paddingLeft:16,margin:'4px 0 6px'}}>
+      <PBKicker>What is next</PBKicker>
+      <div style={{fontSize:16,lineHeight:1.7,color:PRIMARY,whiteSpace:'pre-wrap'}}>{close}</div>
+    </div>}
+    {onCopy&&proseForCopy&&<div style={{marginTop:26}}><button type="button" onClick={()=>onCopy(proseForCopy)} style={{background:'#FFF',color:ACCENT,border:`1px solid ${ACCENT}`,borderRadius:8,padding:'8px 16px',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{copied?'Copied':'Copy text'}</button></div>}
+  </div>
+}
+
 export default function PivotEngine(){
   const _params=new URLSearchParams(window.location.search)
   const _path=typeof window!=='undefined'?(window.location.pathname.replace(/\/+$/,'')||'/'):'/'
@@ -3795,6 +3732,24 @@ export default function PivotEngine(){
   // Re-entrancy: a single `loading` guard wraps the chain; the per-call
   // generatingSection guard does not apply because this is not a section
   // generation.
+  // Personal Brand two-stage runner. Stage one (lean analysis) runs as a
+  // NON-p3 call against the safety-only system prompt: no voice/dim/structured
+  // gate and no onStructured, so the single-onStructured invariant stays with
+  // stage two. Stage two (presentation) is the p3-keyed gated call that owns
+  // the structured emit, the dimensional gate, and the single onStructured.
+  // analysisExtra carries any correction into stage one (corrections are about
+  // the analysis, so they re-run the analysis, not just the layout). Returns
+  // the rendered brand text and the captured structured object (incl. its
+  // additive presentation field) for the caller's out('p3',...) write.
+  const runP3TwoStage=async(analysisExtra='')=>{
+    const corr=correctionsBlock(profile.corrections)
+    setLoadingStage('Reading your inputs')
+    const analysis=await callClaude(corr+P.p3analysis(pc)+(analysisExtra?`\n\nThe person gave this correction on a previous read; weight it: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
+    setLoadingStage('Writing your synthesis')
+    let structuredP3=null
+    const brand=await callClaudeWithVoiceGate(()=>P.p3(analysis),{voiceMode:'prose-lite',maxTokens:6000},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
+    return {brand,structured:structuredP3}
+  }
   const generateChain=async()=>{
     if(loading||generatingSection)return
     window.scrollTo(0,0)
@@ -3806,10 +3761,8 @@ export default function PivotEngine(){
       setLoadingStage('Cross-referencing with your wiring')
       const o2=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+P.p2(pc,o1),{},{step:'p2',onEvent:logVoiceEvent})
       out('p2',o2)
-      setLoadingStage('Writing your synthesis')
-      let structuredP3=null
-      const o3=await callClaudeWithVoiceGate(()=>correctionsBlock(profile.corrections)+P.p3(pc,o1,o2),{voiceMode:'prose-lite'},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
-      out('p3',o3,{structured:structuredP3})
+      const {brand,structured}=await runP3TwoStage()
+      out('p3',brand,{structured})
     }catch(e){setErr(e.message)}
     finally{setLoading(false);setLoadingStage('');scrollToOutput('p3')}
   }
@@ -3832,10 +3785,8 @@ export default function PivotEngine(){
     setLoading(true);setErr(null);setLoadMsg('Writing your Personal Brand in the new format…')
     setLoadingStage('Writing your synthesis')
     try{
-      const fn=()=>correctionsBlock(profile.corrections)+P.p3(pc,outputs.p1,outputs.p2)+(extraContext?`\n\nNEW CORRECTION FROM THIS SECTION: ${extraContext}`:'')
-      let structuredP3=null
-      const o3=await callClaudeWithVoiceGate(fn,{voiceMode:'prose-lite'},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
-      out('p3',o3,{structured:structuredP3})
+      const {brand,structured}=await runP3TwoStage(extraContext)
+      out('p3',brand,{structured})
       cascadeInvalidate('p3')
     }catch(e){setErr(e.message)}
     finally{setLoading(false);setLoadingStage('');scrollToOutput('p3')}
@@ -5464,7 +5415,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </ul>
           <p style={{margin:'14px 0 0',fontSize:16,color:C.gray}}>The "What did we get wrong?" box below accepts factual corrections and style tweaks. Your correction stays in your profile and applies to every later section automatically. Small corrections compound across the journey. You can also ask in the chat in the corner if you want a worked example.</p>
         </div>}
-        <OutPanel text={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>
+        {outputs.p3_structured&&outputs.p3_structured.presentation
+          ? <PersonalBrandView presentation={outputs.p3_structured.presentation} proseForCopy={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>
+          : <OutPanel text={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>}
         {!isDemo&&<div style={{background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,padding:'24px 28px',margin:'0 0 22px'}}>
           <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 12px'}}>What this gives you</h3>
           <p style={{fontSize:16,color:C.gray,margin:'0 0 16px',lineHeight:1.6}}>Your Personal Brand is the foundation everything downstream is built on. Here is what having a sharp one unlocks.</p>
@@ -5476,7 +5429,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <li style={{marginBottom:0,fontSize:16,lineHeight:1.65,color:'#2D3748'}}><span style={{display:'block',fontWeight:700,color:'#1A2540',marginBottom:3,fontSize:17}}>A confidence tool.</span>A clear read of who you are, with your accomplishments cited as proof, changes how you walk into the next conversation.</li>
           </ul>
         </div>}
-        {!isDemo&&<RefineBox guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{cascadeInvalidate('p3');recordCorrection('p3',v);out('p3','');generate('p3',()=>P.p3(pc,outputs.p1,outputs.p2)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''))}}/>}
+        {!isDemo&&<RefineBox guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{recordCorrection('p3',v);out('p3','');refreshP3(v)}}/>}
         {!isDemo&&<div style={{margin:'20px 0 10px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>The dimensions you and Reimagine surfaced as worth examining — often scale, mission, or position in the value chain — are what Phase 2 is designed to sharpen. Choose how you want to explore.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');out('p1','');out('p2','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','twoDoors')}>Put It to Work <ChevronRight size={14}/></Btn></div>}
       </>}
