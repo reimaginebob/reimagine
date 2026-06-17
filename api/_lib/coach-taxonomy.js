@@ -43,12 +43,17 @@ export const ATTRIBUTE_KEYS = Object.keys(CATEGORIES)
 // model can decline ("allow null/unclear over a forced fit"). additionalProperties
 // is false and all keys are required (the value may be null) per structured-output
 // rules. Order of properties mirrors CATEGORIES.
+//
+// Nullable enums use anyOf [string-enum | null], NOT a type:['string','null'] union
+// with null in the enum — the Anthropic structured-output schema compiler rejects
+// the latter ("Enum value 'X' does not match declared type ['string','null']"),
+// which 400s every classify call and silently tags nothing.
 export const TAG_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   required: ATTRIBUTE_KEYS,
   properties: Object.fromEntries(
-    ATTRIBUTE_KEYS.map(k => [k, { type: ['string', 'null'], enum: [...CATEGORIES[k], null] }])
+    ATTRIBUTE_KEYS.map(k => [k, { anyOf: [{ type: 'string', enum: CATEGORIES[k] }, { type: 'null' }] }])
   ),
 }
 
