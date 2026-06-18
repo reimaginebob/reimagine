@@ -480,23 +480,65 @@ function buildVarianceCorrective(violations) {
   return parts.join('')
 }
 
-// Derive the flowing brand prose from the stage-two presentation object. Stage
-// two emits the structured presentation ONLY (no duplicated prose), so the
-// flowing text the gate scans and the downstream text consumers (outputs.p3 ->
-// p6/p8/coach/completeCard) read is reconstructed here, deterministically, in
-// reading order: hero, then sections (with the hero de-duplicated from the
-// first section's lead), origin, growth edges, forward close.
+// Deterministic presentation normalizer (render/derivation layer only; no prompt
+// changes). Applied identically to the on-screen view, the copied prose, and the
+// export so they never diverge. Two cleanups:
+//   1) Dedupe: drop any section whose body is substantially the same text as the
+//      origin block or a growth edge, so no passage renders/exports twice.
+//   2) Kill the clinical "settled / still open" framing: relabel a "settled" fit
+//      section to a warm plain kicker, fold any "still open" section into the
+//      forward close (they overlap), and strip settled/open framing from text.
+function normalizePresentation(p){
+  if(!p||typeof p!=='object')return null
+  const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim()
+  const stripSO=t=>{
+    let s=String(t||'')
+    s=s.replace(/what(?:'s| is)(?: still)? settled,? and what(?:'s| is)(?: still)? open/gi,'what is clear, and what is still ahead')
+    s=s.replace(/(^|\n)[ \t]*what(?:'s| is| is still)?[ \t]+(?:settled|open|still open)[ \t]*[:\-–—][ \t]*/gi,'$1')
+    s=s.replace(/\bwhat(?:'s| is)(?: still)? settled\b/gi,'what is clear')
+    s=s.replace(/\bwhat(?:'s| is)(?: still)? open\b/gi,'the question ahead')
+    s=s.replace(/\bstill open\b/gi,'still ahead')
+    s=s.replace(/\bis settled\b/gi,'is clear')
+    return s.replace(/[ \t]{2,}/g,' ').replace(/[ \t]+\n/g,'\n').trim()
+  }
+  const hero=stripSO(p.hero)
+  const origin=p.origin&&typeof p.origin==='object'&&String(p.origin.body||'').trim()?{body:stripSO(p.origin.body)}:null
+  const edges=(Array.isArray(p.edges)?p.edges:[]).filter(e=>e&&String(e.claim||'').trim()).map(e=>({claim:stripSO(e.claim),detail:stripSO(e.detail)}))
+  const dupeTargets=[]
+  if(origin)dupeTargets.push(norm(origin.body))
+  edges.forEach(e=>{dupeTargets.push(norm(e.claim+' '+e.detail));if(e.detail)dupeTargets.push(norm(e.detail))})
+  const isDup=body=>{const b=norm(body);if(b.length<40)return false;return dupeTargets.some(t=>t.length>=40&&(t.includes(b)||b.includes(t)))}
+  const kept=[]; const foldedOpen=[]
+  ;(Array.isArray(p.sections)?p.sections:[]).forEach(s=>{
+    if(!s||!String(s.body||'').trim())return
+    if(isDup(s.body))return
+    const k=String(s.kicker||'')
+    if(/(still\s+open|what'?s?\s+(?:still\s+)?open|open\s+question)/i.test(k)){foldedOpen.push(stripSO(s.body));return}
+    const kicker=/settled/i.test(k)?'Where you fit':stripSO(k)
+    kept.push({kicker,body:stripSO(s.body)})
+  })
+  const closeParts=[]
+  if(typeof p.forwardClose==='string'&&p.forwardClose.trim())closeParts.push(stripSO(p.forwardClose))
+  foldedOpen.forEach(o=>{if(o&&!closeParts.some(c=>{const cn=norm(c),on=norm(o);return cn.includes(on)||on.includes(cn)}))closeParts.push(o)})
+  const forwardClose=closeParts.length?closeParts.join('\n\n'):null
+  return {hero,proofPoints:Array.isArray(p.proofPoints)?p.proofPoints:[],sections:kept,origin,edges,forwardClose}
+}
+
+// Derive the flowing brand prose from the normalized presentation, in reading
+// order: hero, sections (hero de-duplicated from the first), origin, edges,
+// forward close. Consumed by the gate, outputs.p3, p6/p8/coach/completeCard.
 function presentationToProse(p){
-  if(!p||typeof p!=='object')return ''
-  const hero=String(p.hero||'').trim()
+  const np=normalizePresentation(p)
+  if(!np)return ''
+  const hero=String(np.hero||'').trim()
   const heroKey=hero.replace(/\s+/g,' ')
   const ded=t=>{const s=String(t||'').trim();const sk=s.replace(/\s+/g,' ');return heroKey&&sk.startsWith(heroKey)?s.slice(s.length-(sk.length-heroKey.length)).trim():s}
   const parts=[]
   if(hero)parts.push(hero)
-  ;(Array.isArray(p.sections)?p.sections:[]).forEach(s=>{const b=ded(s&&s.body);if(b)parts.push(b)})
-  if(p.origin&&typeof p.origin==='object'&&String(p.origin.body||'').trim())parts.push(String(p.origin.body).trim())
-  ;(Array.isArray(p.edges)?p.edges:[]).forEach(e=>{if(e&&String(e.claim||'').trim())parts.push(String(e.claim).trim()+(String(e.detail||'').trim()?' '+String(e.detail).trim():''))})
-  if(typeof p.forwardClose==='string'&&p.forwardClose.trim())parts.push(p.forwardClose.trim())
+  np.sections.forEach(s=>{const b=ded(s&&s.body);if(b)parts.push(b)})
+  if(np.origin&&String(np.origin.body||'').trim())parts.push(String(np.origin.body).trim())
+  np.edges.forEach(e=>{if(e&&String(e.claim||'').trim())parts.push(String(e.claim).trim()+(String(e.detail||'').trim()?' '+String(e.detail).trim():''))})
+  if(typeof np.forwardClose==='string'&&np.forwardClose.trim())parts.push(np.forwardClose.trim())
   return parts.filter(Boolean).join('\n\n')
 }
 
@@ -3068,7 +3110,7 @@ const DEMO_TOUR=[
 // presentation; opened via window.open like downloadOnePager. Used by the
 // Personal Brand view's export button (and the pending pre-rerun login notice).
 function printPersonalBrand(p, name, proseFallback){
-  p = (p && typeof p === 'object') ? p : {}
+  p = normalizePresentation(p) || {}
   const esc=t=>String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
   const clean=t=>esc(stripMarkdown(String(t||'')))
   const date=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
@@ -3120,8 +3162,11 @@ ${body}
 }
 
 const PBKicker=({children})=><div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.1em',color:'#8A9BB8',fontWeight:500,marginBottom:8}}>{children}</div>
-function PersonalBrandView({presentation:p,proseForCopy,onCopy,copied,onPrint}){
-  if(!p||typeof p!=='object')return null
+function PersonalBrandView({presentation:rawPresentation,proseForCopy,onCopy,copied,onPrint}){
+  // Normalize first (dedupe sections vs origin/edges; relabel/fold settled-open)
+  // so the on-screen view matches the copied/exported prose exactly.
+  const p=normalizePresentation(rawPresentation)
+  if(!p)return null
   const ACCENT='#C8924A',PRIMARY='#1A2540',TERT='#8A9BB8',BODY='#2D3748'
   // Plain prose only: the kickers are the bold scan layer, so any stray markdown
   // (a leading title, inline **bold**/*italics*) the model emits is stripped.
