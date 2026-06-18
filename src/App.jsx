@@ -6494,7 +6494,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     <Analytics/>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
-    {!isDemo&&!isTest&&!loading&&outputs.p3&&outputs.p3.trim()&&!pbUpgradeDismissed&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+    {!isDemo&&!loading&&outputs.p3&&outputs.p3.trim()&&!pbUpgradeDismissed&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:540,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Your Personal Brand just got an upgrade</h2>
         <p style={{fontSize:17,color:'#4A5568',lineHeight:1.65,marginBottom:22}}>We reworked how Reimagine builds your Personal Brand, and the new version digs deeper into what makes you, you. We would love for you to re-run yours and see the difference. One thing to know first: re-running replaces your current Personal Brand, so if you want to keep it, download or print it before you start.</p>
