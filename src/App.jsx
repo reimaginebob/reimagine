@@ -1897,21 +1897,28 @@ There is a second way in, through the turnaround itself. If the conversation lea
   // number, mirror not flatter, plain warm language.
   // LINKEDIN_PARSE (plain path): structure a LinkedIn "Save to PDF" text export
   // into the builder skeleton. Extraction only; invents nothing.
-  LINKEDIN_PARSE:(text)=>`You are reading the text of a LinkedIn "Save to PDF" profile export. Extract the person's work history into structured JSON. Use ONLY what is in the text. Invent nothing. If a field is not present, return an empty string for it.
+  LINKEDIN_PARSE:(text)=>`The text below was extracted from a LinkedIn "Save to PDF" profile export. The order may be scrambled by the PDF layout. Pull out the person's contact header and work history. Return ONLY what is present in the text. Do not invent or infer any employer, title, date, number, or contact detail that is not there.
 
-From the EXPERIENCE section, list each employer in the order shown. For each employer:
+HEADER. Extract every field the file contains, do not leave these out (the source is the person's own profile):
+- "name": the person's full name, shown near the top.
+- "location": their own location line near their name (for example a metro area).
+- "email": their email address if present (often in the Contact section).
+- "phone": their phone number if present.
+- "linkedinUrl": their LinkedIn profile URL if present (for example "www.linkedin.com/in/their-handle").
+- "summary": the person's Summary / About paragraph if present, copied as written.
+
+EMPLOYERS. From the EXPERIENCE section, list each employer in the order shown. For each:
 - "company": the employer name.
-- "context": a short phrase describing what the company does or its size, ONLY if the text states it near that employer; otherwise an empty string. Do not invent or guess.
-- "titles": one or more roles held at that employer, each with "title" and "dates" copied as written (for example "January 2021 - Present" or "2019 - 2024"). When one employer shows several roles stacked together (a promotion history), include each as a separate entry in this list, in the order shown, under that one employer. Do not copy the employer-level total tenure line (for example "5 years 1 month") as a title.
+- "context": company description, marketing copy, or size markers ABOUT THE COMPANY (for example "the largest background screening firm in the world", "approximately $7MM revenue, 27 associates"). This is boilerplate about the employer, not the person's own work. Empty string if none.
+- "titles": one or more roles held at that employer, each with "title" and "dates" copied as written (for example "January 2021 - Present" or "2019 - 2024"). When one employer shows several roles stacked together (a promotion history), include each as a separate entry, in order, under that one employer. Do not copy the employer-level total tenure line (for example "5 years 1 month") as a title.
+- "rawLines": the person's OWN contributions and accomplishments at that employer, as they wrote them. Each distinct sentence or bullet becomes one string in the array. INCLUDE every explicit "Key Responsibilities & Accomplishments" bullet. Copy them verbatim, including all numbers (for example "team delivered over $25MM in incremental revenue", "75% increase in Annual Revenue", "166% of New Business Objective", "140% of Annual Revenue Target"). Put the person's own work here; put company-about boilerplate in "context" instead. Empty array if the person wrote nothing of their own for that role.
 
-Also extract:
-- "name": the person's full name, shown near the top of the profile.
-- "location": the person's own location line near their name (for example a metro area), if present.
+Separate the two carefully: a sentence describing what the COMPANY is or does goes in "context"; a sentence describing what THE PERSON did, led, built, grew, or delivered goes in "rawLines".
 
-Ignore page markers like "Page 1 of 7", and ignore the Contact, Top Skills, Languages, Certifications, Summary, and Education sections for this output.
+Ignore page markers like "Page 1 of 7". If you find no work history, return { "header": { ... }, "employers": [] }.
 
 Return ONLY a JSON object, no preamble and no markdown fence:
-{ "name": "", "location": "", "employers": [{ "company": "", "context": "", "titles": [{ "title": "", "dates": "" }] }] }
+{ "header": { "name": "", "location": "", "email": "", "phone": "", "linkedinUrl": "", "summary": "" }, "employers": [{ "company": "", "context": "", "titles": [{ "title": "", "dates": "" }], "rawLines": [] }] }
 
 PROFILE TEXT:
 ${text}`,
@@ -4677,18 +4684,27 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const raw=await callClaude(P.LINKEDIN_PARSE(text),{maxTokens:4000})
       if(reqId!==builderReqRef.current)return
       const parsed=parseJsonObject(raw)
-      const emps=((parsed&&Array.isArray(parsed.employers))?parsed.employers:[]).map(e=>({
-        company:((e&&e.company)||'').trim(),
-        context:((e&&e.context)||'').trim(),
-        titles:(((e&&Array.isArray(e.titles)&&e.titles.length)?e.titles:[{}]).map(t=>({title:((t&&t.title)||'').trim(),dates:((t&&t.dates)||'').trim()}))),
-        areas:[],rawText:'',shaped:[]
-      })).filter(e=>e.company||e.titles.some(t=>t.title))
-      const name=((parsed&&parsed.name)||'').trim()
-      const loc=((parsed&&parsed.location)||'').trim()
+      // Tolerate both the nested {header:{...}} shape and a flat object.
+      const ph=(parsed&&parsed.header&&typeof parsed.header==='object')?parsed.header:(parsed||{})
+      const emps=((parsed&&Array.isArray(parsed.employers))?parsed.employers:[]).map(e=>{
+        const rawLines=Array.isArray(e&&e.rawLines)?e.rawLines.map(s=>String(s||'').trim()).filter(Boolean):[]
+        return {
+          company:((e&&e.company)||'').trim(),
+          context:((e&&e.context)||'').trim(),
+          titles:(((e&&Array.isArray(e.titles)&&e.titles.length)?e.titles:[{}]).map(t=>({title:((t&&t.title)||'').trim(),dates:((t&&t.dates)||'').trim()}))),
+          // rawLines (the person's own contributions) pre-seed the capture box so a
+          // LinkedIn user confirms and sharpens rather than starting blank.
+          areas:[],rawText:rawLines.join('\n'),shaped:[]
+        }
+      }).filter(e=>e.company||e.titles.some(t=>t.title))
+      const g=(k)=>((ph&&ph[k])||'').trim()
+      const name=g('name'),loc=g('location'),email=g('email'),phone=g('phone'),linkedinUrl=g('linkedinUrl'),summary=g('summary')
       setProfile(p=>{
-        const builder=p.builder||{}
+        const builder=p.builder||{};const hdr=builder.header||{}
         const nextLoc=(p.loc&&p.loc.city)?p.loc:{...(p.loc||{}),city:loc||((p.loc||{}).city||'')}
-        return{...p,loc:nextLoc,builder:{...builder,source:'linkedin',linkedinFile:file.name,linkedinRaw:text,header:{...(builder.header||{}),name:name||((builder.header||{}).name||'')},employers:emps.length?emps:[emptyEmployer()],phase:'skeleton'}}
+        return{...p,loc:nextLoc,builder:{...builder,source:'linkedin',linkedinFile:file.name,linkedinRaw:text,linkedinSummary:summary||builder.linkedinSummary||'',
+          header:{...hdr,name:name||hdr.name||'',email:email||hdr.email||'',phone:phone||hdr.phone||'',linkedin:linkedinUrl||hdr.linkedin||p.linkedin||''},
+          employers:emps.length?emps:[emptyEmployer()],phase:'skeleton'}}
       })
       if(!emps.length)builderErr(key,'We read your file but could not lay out the roles cleanly. Add them below and keep going.')
     }catch(e){
@@ -4708,8 +4724,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const raw=await callClaude(P.AREAS(roleTitle(emp),'',emp.context||''),{maxTokens:600})
       if(reqId!==builderReqRef.current)return
       const areas=String(raw||'').split('\n').map(s=>s.replace(/^[-*•\d.\)\s]+/,'').trim()).filter(Boolean).slice(0,10)
-      setBuilder(cur=>{const employers=[...(cur.employers||[])];employers[idx]={...employers[idx],areas};return{...cur,employers}})
-    }catch(e){if(reqId===builderReqRef.current)builderErr(key,e.message||'Could not load suggestions. Write your own below.')}
+      setBuilder(cur=>{const employers=[...(cur.employers||[])];if(employers[idx])employers[idx]={...employers[idx],areas,areasTried:true};return{...cur,employers}})
+    }catch(e){if(reqId===builderReqRef.current){setBuilder(cur=>{const employers=[...(cur.employers||[])];if(employers[idx])employers[idx]={...employers[idx],areasTried:true};return{...cur,employers}});builderErr(key,e.message||'Could not load suggestions. Write your own below.')}}
     finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
   }
   // 2. SHAPE_AND_NUDGE (voice-gated): rewrite raw lines + measurement nudges.
@@ -4733,7 +4749,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const genBuilderSkills=async()=>{
     if(builderBuilding)return
     const b=profile.builder||{}
-    const allShaped=(b.employers||[]).flatMap(e=>(e.shaped||[]).map(s=>s.shaped)).filter(Boolean)
+    // Ground in shaped lines where present, else the person's raw captured lines.
+    const allShaped=(b.employers||[]).flatMap(e=>(e.shaped&&e.shaped.length)?e.shaped.map(s=>s.shaped):String(e.rawText||'').split('\n')).map(s=>String(s||'').trim()).filter(Boolean)
     const title=roleTitle((b.employers||[])[0])
     const key='skills';setBuilderBuilding(key);builderErr(key,null)
     const reqId=++builderReqRef.current
@@ -4742,8 +4759,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if(reqId!==builderReqRef.current)return
       const arr=parseJsonArray(raw)||[]
       const skills=arr.map(g=>({category:(g&&g.category)||'',items:((g&&g.items)||[]).map(it=>({skill:(it&&it.skill)||'',selected:!!(it&&it.preselected)}))})).filter(g=>g.items.length)
-      setBuilder(cur=>({...cur,skills}))
-    }catch(e){if(reqId===builderReqRef.current)builderErr(key,e.message||'Could not build the list. Add your own skills below.')}
+      setBuilder(cur=>({...cur,skills,skillsTried:true}))
+    }catch(e){if(reqId===builderReqRef.current){setBuilder(cur=>({...cur,skillsTried:true}));builderErr(key,e.message||'Could not build the list. Add your own skills below.')}}
     finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
   }
   // Assemble the captured material into a plain block for BASELINE. Only what the
@@ -4754,6 +4771,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     L.push('HEADER:')
     L.push(`Name: ${h.name||''}`)
     L.push(`Email: ${h.email||''}`);L.push(`Phone: ${h.phone||''}`);L.push(`Location: ${loc}`);L.push(`LinkedIn: ${h.linkedin||''}`)
+    if(b.linkedinSummary&&b.linkedinSummary.trim()){L.push('');L.push("THE PERSON'S OWN LINKEDIN SUMMARY (their voice, for reference when writing the professional summary):");L.push(b.linkedinSummary.trim())}
     L.push('')
     L.push('EXPERIENCE:')
     ;(b.employers||[]).forEach(emp=>{
@@ -4791,6 +4809,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }catch(e){if(reqId===builderReqRef.current)builderErr(key,e.message||'That did not come together. Try again.')}
     finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
   }
+  // Generated helper content displays by default, never behind a click: auto-run
+  // AREAS on landing on a role's capture step, and SKILLS on landing on the skills
+  // step. Cached on profile.builder (areasTried / skillsTried) so each runs once.
+  useEffect(()=>{
+    if(step!=='resume-builder'||builderBuilding)return
+    const b=profile.builder;if(!b)return
+    if(b.phase==='capture'){
+      const i=Math.min(b.roleIdx||0,Math.max((b.employers||[]).length-1,0))
+      const emp=(b.employers||[])[i]
+      if(emp&&!emp.areasTried&&!(emp.areas&&emp.areas.length))genBuilderAreas(i)
+    }else if(b.phase==='skills'){
+      if(!b.skillsTried&&!(b.skills&&b.skills.length))genBuilderSkills()
+    }
+  },[step,profile.builder&&profile.builder.phase,profile.builder&&profile.builder.roleIdx,builderBuilding])
   // --- Resume Builder UI. A single re-enterable orientation step ('resume-builder')
   // with internal phases stored on profile.builder.phase. All captured material lives
   // on profile.builder so the step persists + is editable on re-entry.
@@ -4868,21 +4900,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:15,color:C.gray,margin:'4px 0 12px'}}>Not a checklist. Use these to jog your memory, then write what you actually did.</p>
         {builderBuilding==='areas-'+idx&&<Loading msg="Pulling up ideas…"/>}
         {builderErrors['areas-'+idx]&&<ErrBox msg={builderErrors['areas-'+idx]}/>}
-        {(emp.areas&&emp.areas.length)?<div style={{display:'flex',flexWrap:'wrap',gap:8}}>{emp.areas.map((a,ai)=><span key={ai} style={{background:`${C.gold}14`,border:`1px solid ${C.gold}30`,borderRadius:16,padding:'5px 12px',fontSize:14,color:'#1A2540'}}>{a}</span>)}</div>
-          :builderBuilding!=='areas-'+idx&&<Btn small secondary onClick={()=>genBuilderAreas(idx)}><Sparkles size={12}/>Show ideas for this role</Btn>}
+        {(emp.areas&&emp.areas.length)>0&&<div style={{display:'flex',flexWrap:'wrap',gap:8}}>{emp.areas.map((a,ai)=><span key={ai} style={{background:`${C.gold}14`,border:`1px solid ${C.gold}30`,borderRadius:16,padding:'5px 12px',fontSize:14,color:'#1A2540'}}>{a}</span>)}</div>}
+        {!(emp.areas&&emp.areas.length)&&emp.areasTried&&builderBuilding!=='areas-'+idx&&<Btn small secondary onClick={()=>genBuilderAreas(idx)}><RotateCcw size={11}/>Try again</Btn>}
       </div>
       <div style={S.card}>
         <div style={{fontWeight:700,color:'#1A2540'}}>What did you do here that you're proud of?</div>
-        <p style={{fontSize:15,color:C.gray,margin:'4px 0 12px'}}>In your own words, one thought per line. We'll shape it into resume language for you.</p>
+        <p style={{fontSize:15,color:C.gray,margin:'4px 0 12px'}}>{emp.rawText?'We pulled these from your LinkedIn profile. Confirm them, fix anything that came through wrong, and add what is missing. One thought per line.':"In your own words, one thought per line. We'll turn it into resume language for you."}</p>
         <textarea style={{...S.ta,minHeight:160}} value={emp.rawText||''} onChange={ev=>updEmployer(idx,{rawText:ev.target.value})} placeholder={"Ran the pick-and-pack redesign across three sites\nLed a team through a system rollout"}/>
         <div style={{fontSize:14,color:C.gray,marginTop:8}}>Numbers make these land harder, but they're never required. A rough range is fine, and if you can't recall one, a former teammate often can. Leave it out and the line still works.</div>
       </div>
-      <div style={S.row}>{back(idx>0?'shaping':'skeleton')}<Btn disabled={builderBuilding==='shape-'+idx} onClick={()=>{setPhase('shaping');genBuilderShape(idx)}}>Shape these lines <ChevronRight size={14}/></Btn></div>
+      <div style={S.row}>{back(idx>0?'shaping':'skeleton')}<Btn disabled={builderBuilding==='shape-'+idx} onClick={()=>{setPhase('shaping');genBuilderShape(idx)}}>Make these resume-ready <ChevronRight size={14}/></Btn></div>
     </div>
 
     if(phase==='shaping'){const shaped=emp.shaped||[];return <div>
       {hdr('Phase 0 · Orientation',"Here's each line in resume language","Add a number where one fits. If you can't recall it, leave it, the line still works.")}
-      {builderBuilding==='shape-'+idx&&!shaped.length&&<Loading msg="Shaping your lines…"/>}
+      {builderBuilding==='shape-'+idx&&!shaped.length&&<Loading msg="Making your lines resume-ready…"/>}
       {builderErrors['shape-'+idx]&&<><ErrBox msg={builderErrors['shape-'+idx]}/><Btn small secondary onClick={()=>genBuilderShape(idx)}><RotateCcw size={11}/>Try again</Btn></>}
       {shaped.map((s,si)=><div key={si} style={S.card}>
         <div style={{fontSize:14,color:C.gray,marginBottom:6}}>You wrote: {origLines[si]||''}</div>
@@ -4900,7 +4932,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {hdr('Phase 0 · Orientation','Skills that fit your background','Drawn from your roles and what you described. Tap the ones that are true for you, and add anything we missed. These are the terms employers and their systems scan for.')}
       {builderBuilding==='skills'&&<Loading msg="Building your skills list…"/>}
       {builderErrors['skills']&&<ErrBox msg={builderErrors['skills']}/>}
-      {(!b.skills||!b.skills.length)?(builderBuilding!=='skills'&&<Btn onClick={genBuilderSkills}><Sparkles size={13}/>Build my skills list</Btn>):<>
+      {(!b.skills||!b.skills.length)?(b.skillsTried&&builderBuilding!=='skills'&&<Btn small secondary onClick={genBuilderSkills}><RotateCcw size={12}/>Try again</Btn>):<>
         {b.skills.map((g,gi)=><div key={gi} style={S.card}>
           <div style={{fontWeight:700,color:'#1A2540',marginBottom:10}}>{g.category}</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:8}}>{g.items.map((it,ii)=><button key={ii} type="button" onClick={()=>toggleSkill(gi,ii)} style={{borderRadius:16,padding:'6px 13px',fontSize:14,cursor:'pointer',border:`1px solid ${it.selected?C.gold:C.border}`,background:it.selected?`${C.gold}22`:'transparent',color:it.selected?'#1A2540':C.gray,fontWeight:it.selected?600:400}}>{it.selected?'✓ ':''}{it.skill}</button>)}</div>
