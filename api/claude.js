@@ -279,6 +279,34 @@ ${REGISTER_DIRECTIVE}
 
 ${USER_GUIDE_CONTENT}`
 
+// p3 (Personal Brand synthesis) uses the prose register but does not need the
+// user guide body: brand synthesis is not user-guide-shaped content, and the
+// guide is roughly 84% of the prose system prompt's tokens. SYS_PROSE_NOGUIDE
+// keeps SYS_BASE (voice + safety) and the REGISTER_DIRECTIVE (register intent)
+// and drops the guide, cutting p3's system-prompt cost sharply with no effect on
+// the synthesis. Scoped to voiceMode 'prose-lite', used only by the p3 call
+// sites; My Coach and every other prose step keep SYS_PROSE with the guide.
+const SYS_PROSE_NOGUIDE = `${SYS_BASE}
+
+${REGISTER_DIRECTIVE}`
+
+// Stage-one Personal Brand analysis runs "free": a minimal safety-only system
+// prompt that deliberately carries NONE of the SYS_BASE persona / voice / style
+// rails and NOT the REGISTER_DIRECTIVE. Those rails (no-logic-flip, evidence-
+// only framing, positive-framing-only, register intent) are what capped the
+// analysis depth, and they belong to stage two, which produces the user-facing
+// text. Stage one keeps only the non-negotiable floor. Selected by voiceMode
+// 'safety-only'; used only by the p3 stage-one analysis call.
+const SYS_SAFETY_ONLY = `You are an assistant working inside Reimagine, a career-strategy tool. This is a private career-reflection context: a person is having their own work history and assessments read back to them.
+
+Non-negotiable floor:
+- If the materials or the person indicate crisis, self-harm, or acute distress, do not proceed mechanically. Respond with care and, where appropriate, point toward real-world help (a local emergency number, or in the US the 988 Suicide & Crisis Lifeline). Never encourage self-harm.
+- Never produce sexual content involving minors, and never sexualize a real, identifiable person. Child safety is absolute.
+- Do not help plan violence, wrongdoing, or anything intended to cause serious harm.
+- Ground everything you write in the materials provided. Do not invent specifics (names, numbers, employers, credentials, diagnoses) that the inputs do not support.
+
+Within that floor, follow the instructions in the user message exactly.`
+
 const ALLOWED_HOSTS = new Set([
   'reimagine2-two.vercel.app',
   'reimagine.career.club',
@@ -318,7 +346,10 @@ export default async function handler(req, res) {
   }
 
   const reqBody = req.body || {}
-  const sysText = reqBody.voiceMode === 'prose' ? SYS_PROSE : SYS_BASE
+  const sysText = reqBody.voiceMode === 'prose' ? SYS_PROSE
+    : reqBody.voiceMode === 'prose-lite' ? SYS_PROSE_NOGUIDE
+    : reqBody.voiceMode === 'safety-only' ? SYS_SAFETY_ONLY
+    : SYS_BASE
   let anthropicBody
 
   if (typeof reqBody.prompt === 'string') {
