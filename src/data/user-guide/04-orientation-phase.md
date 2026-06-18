@@ -54,7 +54,11 @@ Click **Continue** when you are done.
 
 ## Screen 3: Your Resume
 
-Upload your most recent resume, or paste it as text.
+Your resume is the raw material for everything Reimagine builds with you next. This screen gives you two ways to provide it.
+
+### Door 1: Upload my resume
+
+If you already have a resume, this is the fast path.
 
 **Upload.** Drag a file onto the upload area or click to browse. PDF, Word (.docx), and plain text all work.
 
@@ -64,7 +68,24 @@ You can do both. The text field is the source of truth for what Reimagine reads,
 
 Once Reimagine has read the file, you will see a green checkmark and a character count. Click **Continue**.
 
-**A reminder from Chapter 3:** the more your resume includes specific outcomes. Money made, money saved, risk mitigated, with numbers attached. The better the output. If you have time, add a few numbers before you upload. If you do not, that is fine. Reimagine will flag where it would help and you can come back later.
+### Door 2: I need help with my resume first
+
+If you do not have a current resume, or the one you have is thin, Reimagine builds one with you, step by step. You end up with a recruiter-ready resume you can send today, and the same material feeds the rest of your journey.
+
+Here is how the builder works:
+
+1. **Pick a starting point.** Hand over your LinkedIn profile as a PDF (open your profile, click the three dots, choose Save to PDF, and upload it), or start from a few basics. Either way you are never staring at a blank page.
+2. **Lay out where you worked.** Company, one line on what it does and its size, and your title and dates. Add more than one title under a company if you were promoted.
+3. **Capture each role in your own words.** For each role Reimagine offers a short list of areas people in that role often own, to jog your memory. Then you write what you actually did, one thought per line. Reimagine shapes each line into resume language, translating what you said without inventing anything.
+4. **Add numbers where they fit.** When a line could be quantified, Reimagine names how that kind of work is usually measured and asks for the figure. Numbers make a line land harder, but they are never required. If you cannot recall one, leave it and the line still works.
+5. **Confirm your skills.** Reimagine builds a grouped, role-specific list of skills, with the obvious matches pre-selected. Tap the ones that are true for you, and add anything it missed. These are the terms employers and their systems scan for.
+6. **Add education and anything beyond your jobs.** Degrees, certifications and licenses, and optional extras like board or volunteer roles.
+
+When you finish, Reimagine produces a clean, single-column resume written to a broadly legible posture, the kind a wide range of recruiters read easily. It is good enough to send today. You can download it as a Word file, and the text flows into the rest of orientation exactly as an uploaded resume would.
+
+The builder is a step you can return to. Your entries are saved to your account, so you can leave, come back, add more, and rebuild your resume whenever new details surface. When you add more later, Reimagine also offers to refresh your Personal Brand and the work that builds on it, so your sharper material reaches every downstream result. That refresh is always your choice, never automatic.
+
+**A reminder from Chapter 3:** the more your resume includes specific outcomes. Money made, money saved, risk mitigated, with numbers attached. The better the output. If you have time, add a few numbers. If you do not, that is fine. Reimagine will flag where it would help and you can come back later.
 
 ## Screen 4: Your LinkedIn (optional)
 
