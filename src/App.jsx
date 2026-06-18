@@ -521,7 +521,21 @@ function normalizePresentation(p){
   if(typeof p.forwardClose==='string'&&p.forwardClose.trim())closeParts.push(stripSO(p.forwardClose))
   foldedOpen.forEach(o=>{if(o&&!closeParts.some(c=>{const cn=norm(c),on=norm(o);return cn.includes(on)||on.includes(cn)}))closeParts.push(o)})
   const forwardClose=closeParts.length?closeParts.join('\n\n'):null
-  return {hero,proofPoints:Array.isArray(p.proofPoints)?p.proofPoints:[],sections:kept,origin,edges,forwardClose}
+  // Paragraph-level dedup (verbatim / fully-contained only) across the assembled
+  // brand in render order, so no passage prints or exports twice even when it
+  // recurs across sections. Conservative: requires full normalized containment
+  // (len >= 40). The hero is intentionally NOT seeded — the hero/first-section
+  // lead overlap is handled separately by dedupeHero, and seeding it here would
+  // drop the entire opening paragraph.
+  const seen=[]
+  const isSeen=para=>{const n=norm(para);return n.length>=40&&seen.some(s=>s.includes(n)||n.includes(s))}
+  const remember=para=>{const n=norm(para);if(n.length>=40)seen.push(n)}
+  const dedupParas=txt=>{const out=[];String(txt||'').split(/\n\n+/).forEach(pp=>{const t=pp.trim();if(!t)return;if(isSeen(t))return;out.push(t);remember(t)});return out.join('\n\n')}
+  const sectionsD=kept.map(s=>({kicker:s.kicker,body:dedupParas(s.body)})).filter(s=>s.body.trim())
+  const originD=origin?(()=>{const b=dedupParas(origin.body);return b.trim()?{body:b}:null})():null
+  edges.forEach(e=>{remember((e.claim||'')+' '+(e.detail||''));if(e.detail)remember(e.detail)})
+  const forwardCloseD=forwardClose?(()=>{const b=dedupParas(forwardClose);return b.trim()?b:null})():null
+  return {hero,proofPoints:Array.isArray(p.proofPoints)?p.proofPoints:[],sections:sectionsD,origin:originD,edges,forwardClose:forwardCloseD}
 }
 
 // Derive the flowing brand prose from the normalized presentation, in reading
@@ -3105,6 +3119,22 @@ const DEMO_TOUR=[
 // weights, one accent, generous whitespace, body never below 16px. Callers fall
 // back to the prose OutPanel when `presentation` is absent (legacy / failed
 // emit). Returns null on a malformed object so the caller's fallback shows.
+// Derive the person's actual name from the résumé's first line for the export
+// title/filename/header — e.g. "LINDSEY BARTLETT, SHRM-SCP" -> "Lindsey Bartlett"
+// (not "Resume LINDSEY BARTLETT SHRMSCP"). Drops anything after a comma/pipe,
+// strips trailing credential tokens, keeps up to three name words, title-cases.
+// Returns '' when no plausible name is found.
+function deriveDisplayName(resume){
+  const first=String(resume||'').split(/\n/).find(l=>l.trim())||''
+  let nm=first.split(/[,|•·]/)[0]
+  nm=nm.replace(/\b(SHRM[- ]?SCP|SHRM[- ]?CP|PHR|SPHR|GPHR|MBA|MPA|MPH|PMP|CPA|CFA|PhD|MD|JD|Esq|RN|BSN|MSN|CISSP|PE)\b\.?/gi,'')
+  nm=nm.replace(/[^a-zA-Z .'-]/g,' ').replace(/\s+/g,' ').trim()
+  const words=nm.split(/\s+/).filter(Boolean).slice(0,3)
+  if(!words.length)return ''
+  const titled=words.map(w=>/^[A-Z][a-z]/.test(w)?w:w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ')
+  return (titled.length>1&&titled.length<50)?titled:''
+}
+
 // Open a print-ready window for the rendered Personal Brand (browser Save-as-PDF
 // or print). Mirrors the on-screen component layout and presence-gating from
 // presentation; opened via window.open like downloadOnePager. Used by the
@@ -3135,7 +3165,7 @@ ${close?`<div class="close">${k('What is next')}<div class="b">${close}</div></d
   const proseBody=`${k('Phase 1 · Personal Brand')}<div class="sec"><div class="b">${proseClean}</div></div>`
   const body=(hero||sections.length)?compBody:(proseClean?proseBody:'')
   if(!body)return
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Personal Brand${name?' - '+esc(name):''}</title>
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${name?esc(name)+' — Personal Brand':'Personal Brand'}</title>
 <style>@page{size:letter;margin:0.7in 0.8in}*{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1A2540;line-height:1.6;font-size:12px}
 .wrap{max-width:680px;margin:0 auto}
@@ -3313,6 +3343,10 @@ export default function PivotEngine(){
   const[copied,setCopied]=useState(false)
   const[csvCopied,setCsvCopied]=useState(false)
   const[resumeParseFails,setResumeParseFails]=useState(0)
+  // Returning-user notice: the two-stage Personal Brand upgrade. One-time,
+  // dismissible, shown only to users who already have a generated brand.
+  const[pbUpgradeDismissed,setPbUpgradeDismissed]=useState(()=>{try{return localStorage.getItem('reimagine_pb_upgrade_v1_dismissed')==='1'}catch{return true}})
+  const dismissPbUpgrade=()=>{try{localStorage.setItem('reimagine_pb_upgrade_v1_dismissed','1')}catch{};setPbUpgradeDismissed(true)}
   const[deepExpanded,setDeepExpanded]=useState(false)
   const[hasProgress,setHasProgress]=useState(false)
   const[laneTab,setLaneTab]=useState(0)
@@ -5557,20 +5591,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {outputs.p3&&!loading&&<>
         {!isDemo&&!hasSeenCorrectionsIntro&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:'#1A2540',lineHeight:1.65,position:'relative'}}>
           <button type="button" onClick={dismissCorrectionsIntro} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
-          <strong>Before you refine, three things to look for.</strong>
-          <ul style={{margin:'10px 0 4px 0',padding:0,listStyle:'none'}}>
-            <li style={{display:'flex',gap:12,marginBottom:10,alignItems:'flex-start',fontSize:16,color:C.creamD,lineHeight:1.65}}><span style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}></span><div><strong>The lead sentence should be specific enough to be wrong.</strong> If it could describe anyone in your role, it is too generic — tell Reimagine to push harder.</div></li>
-            <li style={{display:'flex',gap:12,marginBottom:10,alignItems:'flex-start',fontSize:16,color:C.creamD,lineHeight:1.65}}><span style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}></span><div><strong>Your strongest accomplishments should appear inline, with their numbers.</strong> If the prose talks about your career in generalities, ask for the specifics.</div></li>
-            <li style={{display:'flex',gap:12,marginBottom:0,alignItems:'flex-start',fontSize:16,color:C.creamD,lineHeight:1.65}}><span style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}></span><div><strong>The "Where this transfers" paragraph should name forward contexts you have not been in.</strong> If it restates your current trajectory, ask Reimagine to push further.</div></li>
+          <strong>This brand is yours to shape.</strong>
+          <p style={{margin:'8px 0 0',fontSize:16,color:C.creamD,lineHeight:1.65}}>If anything here doesn't sound like you, push Reimagine to sharpen it. Small corrections carry forward and make every later step sharper.</p>
+          <ul style={{margin:'12px 0 4px 0',padding:0,listStyle:'none'}}>
+            <li style={{display:'flex',gap:12,marginBottom:10,alignItems:'flex-start',fontSize:16,color:C.creamD,lineHeight:1.65}}><span style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}></span><div><strong>Does the opening line sound like you, and only you?</strong> A strong brand's first sentence couldn't be lifted onto anyone else in your role. If it could, ask Reimagine to push harder.</div></li>
+            <li style={{display:'flex',gap:12,marginBottom:10,alignItems:'flex-start',fontSize:16,color:C.creamD,lineHeight:1.65}}><span style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}></span><div><strong>Does it sound like a person, not just a professional?</strong> The best brands connect your work to what shaped you. If it reads as all competence and no human, ask Reimagine to bring more of you in.</div></li>
+            <li style={{display:'flex',gap:12,marginBottom:0,alignItems:'flex-start',fontSize:16,color:C.creamD,lineHeight:1.65}}><span style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}></span><div><strong>Does it point somewhere, not just back?</strong> The close should open real possibilities for what's next, not restate where you have already been. If it plays it safe, ask it to push further.</div></li>
           </ul>
-          <p style={{margin:'14px 0 0',fontSize:16,color:C.gray}}>The "What did we get wrong?" box below accepts factual corrections and style tweaks. Your correction stays in your profile and applies to every later section automatically. Small corrections compound across the journey. You can also ask in the chat in the corner if you want a worked example.</p>
+          <p style={{margin:'14px 0 0',fontSize:16,color:C.gray}}>The "What did we get wrong?" box takes factual corrections and style tweaks, and your correction carries forward to every later section automatically. You can also ask in the chat in the corner.</p>
         </div>}
         {outputs.p3_structured&&outputs.p3_structured.presentation
           ? <PersonalBrandView presentation={outputs.p3_structured.presentation} proseForCopy={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>
           : <OutPanel text={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>}
         {/* Export is shown for either render path (component or prose fallback) so
             it is always available, including for the pre-rerun login notice. */}
-        <div style={{display:'flex',justifyContent:'flex-end',marginBottom:18}}><Btn small secondary onClick={()=>{const fl=(profile.resume||'').split(/\n/).find(l=>l.trim())||'';const np=fl.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ');printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,np.length>2&&np.length<50?np:'',stripPersonalBrandTail(outputs.p3))}}><Printer size={12}/>Save as PDF</Btn></div>
+        <div style={{display:'flex',justifyContent:'flex-end',marginBottom:18}}><Btn small secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={12}/>Save as PDF</Btn></div>
         {!isDemo&&<div style={{background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,padding:'24px 28px',margin:'0 0 22px'}}>
           <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 12px'}}>What this gives you</h3>
           <p style={{fontSize:16,color:C.gray,margin:'0 0 16px',lineHeight:1.6}}>Your Personal Brand is the foundation everything downstream is built on. Here is what having a sharp one unlocks.</p>
@@ -6459,6 +6494,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     <Analytics/>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
+    {!isDemo&&!isTest&&!loading&&outputs.p3&&outputs.p3.trim()&&!pbUpgradeDismissed&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:540,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Your Personal Brand just got an upgrade</h2>
+        <p style={{fontSize:17,color:'#4A5568',lineHeight:1.65,marginBottom:22}}>We reworked how Reimagine builds your Personal Brand, and the new version digs deeper into what makes you, you. We would love for you to re-run yours and see the difference. One thing to know first: re-running replaces your current Personal Brand, so if you want to keep it, download or print it before you start.</p>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <Btn secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={13}/>Save my current version</Btn>
+          <Btn onClick={()=>{dismissPbUpgrade();nav('p3');refreshP3('')}}>Re-run my Personal Brand</Btn>
+        </div>
+        <div style={{marginTop:14}}><button type="button" onClick={dismissPbUpgrade} style={{background:'transparent',border:'none',cursor:'pointer',fontSize:15,color:C.gray,fontFamily:'inherit',textDecoration:'underline'}}>Not now</button></div>
+      </div>
+    </div>}
     {atCapModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:600,width:'100%',maxHeight:'80vh',display:'flex',flexDirection:'column',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>You're at {getSavedCap()} saved playbooks</h2>

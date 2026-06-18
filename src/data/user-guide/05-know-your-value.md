@@ -10,7 +10,7 @@ Plan to spend more time reading and refining Phase 1 than any later phase. The 1
 
 Phase 1 is a single step: **Personal Brand**. You click one button, you wait once, and you get one flowing prose synthesis of who you are at work. Behind the scenes Reimagine runs three analytical passes (resume analysis, wiring and compass, then the synthesis), but those passes never reach the screen as separate outputs. The integration is the deliverable.
 
-The synthesis pulls from everything you provided in Orientation: your resume, your assessment, your values, your passions, your reputation answers, your life-shaping experiences. The three passes feed each other and produce a single read with five parts woven into one continuous document.
+The synthesis pulls from everything you provided in Orientation: your resume, your assessment, your values, your passions, your reputation answers, your life-shaping experiences. The passes feed each other and produce a single read, laid out as a set of components that appear only when your inputs earn them.
 
 ## On the screen
 
@@ -24,24 +24,24 @@ The quote is for you, not for the analysis. Use the time.
 
 ## What you will get back
 
-Personal Brand is a single prose document, roughly 600 to 800 words, that reads in four to five minutes. Five parts flow as one continuous read:
+Personal Brand comes back as a designed read, not a wall of text. It opens with one line, then lays out only the parts your inputs actually support, so a sparse profile reads short and a rich one reads full. Nothing is padded to fill a slot. You may see:
 
-1. **The lead sentence.** One declarative sentence at the very top stating the through-line of your work: the operational commitment that runs through your choices. Specific enough that another profile would not be described the same way, and specific enough that you could plausibly push back if the read is wrong.
-2. **Triangulation across sources.** A short setup that names where the evidence lines up, then two or three paragraphs of evidence-anchored synthesis. Each paragraph names a source dimension explicitly (your career history, your assessment results, your colleagues' words, your orientation answers, your life-shaping experiences) and shows where the sources point to the same shape. Specific accomplishments with numbers cited inline as proof.
-3. **Where this transfers.** One paragraph naming forward-looking contexts where the through-line is rare and valuable: specific industries, role types, or problem spaces. This is the translation move, where Reimagine names contexts you may not have imagined yourself in.
-4. **What's settled and what's open.** A read of how your track record lines up with what you have been doing, in plain language. Reimagine names what is settled about your fit, meaning your track record points clearly in one direction, and what is open, meaning the next move has real choices and your inputs have not yet decided between them. The forward question of the next chapter emerges from the open paragraph naturally.
-5. **A close that lands on the synthesis.** The read ends on its analytical conclusion, not a verdict. The through-line is a hypothesis you and Reimagine author together: the **What did we get wrong?** box below lets you confirm or redirect it.
+- **A through-line at the top.** One sentence naming what runs through your work, specific enough that it could not be lifted onto anyone else in your role.
+- **A proof strip.** When your inputs carry several quantified results, the strongest few sit in a row near the top as a quick scan layer. With only one or two, the numbers stay inline in the prose.
+- **Sections, each led by a short label.** The body of the read, in the order the analysis makes its case. The labels are the scan layer; the prose underneath rewards the deep read.
+- **Where it comes from.** When your life-shaping inputs hold a real formative source, it gets its own set-apart passage. If your story inputs are thin, there is no origin section, and Reimagine will not invent one.
+- **Worth naming.** A short set of growth edges, each named the way a trusted coach names a watch-out: matter-of-fact, useful, and resolved into how to use it. Only when your inputs surfaced real ones.
+- **What is next.** A warm close that points toward Phase 2 without picking a lane for you.
+
+You can keep a copy any time with **Save as PDF**, which opens a clean print-or-save view of the read. Re-running replaces your current Personal Brand, so save first if you want to hold on to a version.
 
 ## What good looks like
 
-Use these checks as you read:
+Three checks as you read:
 
-- **The lead sentence should be precise enough to be wrong.** Another senior professional in your function should not have the same lead. If the lead is "you bring strategic operational rigor to complex problems," that is generic. If the lead is "what runs through your work is the will to stay inside something while it is breaking, until it stops breaking," that is specific. If the lead lands as generic, refine.
-- **The triangulation paragraphs should show convergence, not list sources.** A good output names where two or three sources point in the same direction with the same shape. A weak output enumerates the sources separately. Look for the shape behind the convergence; if you do not see it, refine.
-- **Specific accomplishments should appear inline with numbers.** Your strongest results should show up in the prose as proof of the claims: "[your strongest result, with its number and the work behind it]," not "your career includes major cost reductions." If the prose talks about your career in generalities, refine.
-- **The Where this transfers paragraph should name forward contexts you have not been in.** Translation, not characterization. If the paragraph just restates your current trajectory, refine for more specific transfer contexts.
-- **The settled / open weighting should match the evidence.** Settled fits should be named briefly; open questions should get the longer paragraph because that is where the next move turns. If you read three roughly equal paragraphs that feel like a checklist, the model is doing the form wrong.
-- **The close should land on the synthesis, not ask for approval.** The read ends on its analytical conclusion; you confirm or redirect the through-line in the **What did we get wrong?** box below, not through a prose invitation.
+- **Does the opening line sound like you, and only you?** A strong brand's first sentence could not be lifted onto anyone else in your role. If it could, ask Reimagine to push harder.
+- **Does it sound like a person, not just a professional?** The best brands connect your work to what shaped you. If it reads as all competence and no human, ask Reimagine to bring more of you in.
+- **Does it point somewhere, not just back?** The close should open real possibilities for what is next, not restate where you have already been. If it plays it safe, ask it to push further.
 
 ## How to refine
 
@@ -49,9 +49,9 @@ Below the read, the **What did we get wrong?** box accepts both factual correcti
 
 Refinement patterns that work well:
 
-- **Push back on the through-line if the read is wrong.** "The through-line should center on building new operating models from scratch. The work has been greenfield rather than turnaround. Rework the lead and the triangulation if it shifts."
+- **Push back on the through-line if the read is wrong.** "The through-line should center on building new operating models from scratch. The work has been greenfield rather than turnaround. Rework the lead if it shifts."
 - **Correct a fact that landed in the prose.** "The Acme integration was a hostile take-under, not a friendly merger. That changes the read on the customer-retention number. Rework that paragraph."
-- **Push back on a dimensional read.** "The dimensional read named industry as the open question. I disagree. Industry has always been a fit. The open question is scale: I have not run a billion-plus P&L and the next move depends on whether that stretch is real or speculative."
+- **Ask for more of the human.** "The read is all competence. The years I spent caring for a parent shaped how I lead under pressure. Bring that in if the inputs support it."
 - **Add missing context that is not on the resume.** "I led the post-acquisition integration after the Acme deal closed; that is not on the resume because we kept it quiet at the time. Fold it in."
 
 Use **Start fresh** to clear your correction and regenerate from scratch.
