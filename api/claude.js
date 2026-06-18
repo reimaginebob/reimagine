@@ -328,10 +328,17 @@ function isAllowedOrigin(rawOrigin) {
   }
 }
 
-function clampTokens(value) {
+function clampTokens(value, step) {
   const n = parseInt(value, 10)
   if (!Number.isFinite(n)) return 4000
-  return Math.min(Math.max(n, 100), 8000)
+  // p3 stage two emits the rendered brand prose PLUS the presentation object,
+  // which for rich profiles runs past the default 8000 ceiling. Truncation
+  // there cuts the JSON tail, the structured emit fails to parse, and the front
+  // end drops back to the prose fallback (no component layout). Give that one
+  // step headroom (still within the 300s maxDuration). Other steps keep the
+  // conservative cap.
+  const cap = step === 'p3' ? 16000 : 8000
+  return Math.min(Math.max(n, 100), cap)
 }
 
 export default async function handler(req, res) {
@@ -359,7 +366,7 @@ export default async function handler(req, res) {
     }
     anthropicBody = {
       model: 'claude-sonnet-4-5',
-      max_tokens: clampTokens(reqBody.maxTokens),
+      max_tokens: clampTokens(reqBody.maxTokens, reqBody.step),
       temperature: reqBody.highTemp ? 1.0 : 0.7,
       system: [{ type: 'text', text: sysText, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: reqBody.prompt }],
@@ -371,7 +378,7 @@ export default async function handler(req, res) {
     anthropicBody = {
       ...reqBody,
       model: 'claude-sonnet-4-5',
-      max_tokens: clampTokens(reqBody.max_tokens),
+      max_tokens: clampTokens(reqBody.max_tokens, reqBody.step),
       system: [{ type: 'text', text: sysText, cache_control: { type: 'ephemeral' } }]
     }
   } else {

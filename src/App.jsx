@@ -3751,7 +3751,7 @@ export default function PivotEngine(){
     const analysis=await callClaude(corr+P.p3analysis(pc)+(analysisExtra?`\n\nThe person gave this correction on a previous read; weight it: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
     setLoadingStage('Writing your synthesis')
     let structuredP3=null
-    const brand=await callClaudeWithVoiceGate(()=>P.p3(analysis),{voiceMode:'prose-lite',maxTokens:10000},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
+    const brand=await callClaudeWithVoiceGate(()=>P.p3(analysis),{voiceMode:'prose-lite',maxTokens:16000},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
     return {brand,structured:structuredP3}
   }
   const generateChain=async()=>{
