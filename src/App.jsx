@@ -1535,6 +1535,8 @@ const P={
 
 Tell the whole story a strong brand needs: who they are, where it comes from in their life, how it shows up in their work, the edges worth being aware of, and where they're pointed next. Draw only on what the materials genuinely support; where they don't support a part, leave it out rather than forcing it. Write in your own voice, speaking to the person directly, drawing on the assessment as your own understanding rather than citing it by name.
 
+Say each thing once and build forward. Don't restate a point you've already made in new words later in the piece; a brand that circles back reads as padded. Aim for the tightest true version, not the most exhaustive one.
+
 Ground everything in the materials. Don't invent specifics, and where something's missing, say so plainly instead of filling it with something generic.
 
 Close by drawing the brand together and pointing them toward what the next steps open up.
@@ -3065,8 +3067,8 @@ const DEMO_TOUR=[
 // or print). Mirrors the on-screen component layout and presence-gating from
 // presentation; opened via window.open like downloadOnePager. Used by the
 // Personal Brand view's export button (and the pending pre-rerun login notice).
-function printPersonalBrand(p, name){
-  if(!p||typeof p!=='object')return
+function printPersonalBrand(p, name, proseFallback){
+  p = (p && typeof p === 'object') ? p : {}
   const esc=t=>String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
   const clean=t=>esc(stripMarkdown(String(t||'')))
   const date=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
@@ -3079,7 +3081,18 @@ function printPersonalBrand(p, name){
   const edges=(Array.isArray(p.edges)?p.edges:[]).filter(e=>e&&String(e.claim||'').trim())
   const close=typeof p.forwardClose==='string'&&p.forwardClose.trim()?clean(p.forwardClose):''
   const k=s=>`<div class="k">${s}</div>`
-  if(!hero&&!sections.length)return
+  // Component layout when a presentation exists; otherwise a plain-prose document
+  // from the fallback text so the export still works on the prose-fallback view.
+  const compBody=`${k('Phase 1 · Personal Brand')}<div class="hero">${hero}</div>
+${proof.length>=3?`<div class="proof">${proof.map(pt=>`<div><div class="v">${clean(pt.value)}</div>${String(pt.label||'').trim()?`<div class="l">${clean(pt.label)}</div>`:''}</div>`).join('')}</div>`:'<div style="height:16px"></div>'}
+${sections.map(s=>`<div class="sec">${s.kicker?k(s.kicker):''}<div class="b">${s.body}</div></div>`).join('')}
+${origin?`<div class="origin">${k('Where it comes from')}<div class="b">${origin}</div></div>`:''}
+${edges.length?`<div>${k('Worth naming, and how to use it')}${edges.map(e=>`<div class="edge"><div class="c">${clean(e.claim)}</div>${String(e.detail||'').trim()?`<div class="d">${clean(e.detail)}</div>`:''}</div>`).join('')}</div>`:''}
+${close?`<div class="close">${k('What is next')}<div class="b">${close}</div></div>`:''}`
+  const proseClean=clean(proseFallback)
+  const proseBody=`${k('Phase 1 · Personal Brand')}<div class="sec"><div class="b">${proseClean}</div></div>`
+  const body=(hero||sections.length)?compBody:(proseClean?proseBody:'')
+  if(!body)return
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Personal Brand${name?' - '+esc(name):''}</title>
 <style>@page{size:letter;margin:0.7in 0.8in}*{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1A2540;line-height:1.6;font-size:12px}
@@ -3099,12 +3112,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,san
 .close{border-left:2px solid #C8924A;padding-left:14px;margin-top:6px;page-break-inside:avoid}.close .b{font-size:12px;line-height:1.6;white-space:pre-wrap}
 .foot{margin-top:24px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:9px;color:#94A3B8}</style></head><body><div class="wrap">
 <div class="head"><div><span class="badge">Reimagine by Career Club</span><div class="nm">${name?esc(name)+' · ':''}Personal Brand</div></div><div class="dt">${esc(date)}</div></div>
-${k('Phase 1 · Personal Brand')}<div class="hero">${hero}</div>
-${proof.length>=3?`<div class="proof">${proof.map(pt=>`<div><div class="v">${clean(pt.value)}</div>${String(pt.label||'').trim()?`<div class="l">${clean(pt.label)}</div>`:''}</div>`).join('')}</div>`:'<div style="height:16px"></div>'}
-${sections.map(s=>`<div class="sec">${s.kicker?k(s.kicker):''}<div class="b">${s.body}</div></div>`).join('')}
-${origin?`<div class="origin">${k('Where it comes from')}<div class="b">${origin}</div></div>`:''}
-${edges.length?`<div>${k('Worth naming, and how to use it')}${edges.map(e=>`<div class="edge"><div class="c">${clean(e.claim)}</div>${String(e.detail||'').trim()?`<div class="d">${clean(e.detail)}</div>`:''}</div>`).join('')}</div>`:''}
-${close?`<div class="close">${k('What is next')}<div class="b">${close}</div></div>`:''}
+${body}
 <div class="foot">Reimagine by Career Club · career.club · ${esc(date)}</div>
 </div></body></html>`
   const w=window.open('','_blank')
@@ -5513,8 +5521,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <p style={{margin:'14px 0 0',fontSize:16,color:C.gray}}>The "What did we get wrong?" box below accepts factual corrections and style tweaks. Your correction stays in your profile and applies to every later section automatically. Small corrections compound across the journey. You can also ask in the chat in the corner if you want a worked example.</p>
         </div>}
         {outputs.p3_structured&&outputs.p3_structured.presentation
-          ? <PersonalBrandView presentation={outputs.p3_structured.presentation} proseForCopy={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied} onPrint={()=>{const fl=(profile.resume||'').split(/\n/).find(l=>l.trim())||'';const np=fl.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ');printPersonalBrand(outputs.p3_structured.presentation,np.length>2&&np.length<50?np:'')}}/>
+          ? <PersonalBrandView presentation={outputs.p3_structured.presentation} proseForCopy={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>
           : <OutPanel text={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>}
+        {/* Export is shown for either render path (component or prose fallback) so
+            it is always available, including for the pre-rerun login notice. */}
+        <div style={{display:'flex',justifyContent:'flex-end',marginBottom:18}}><Btn small secondary onClick={()=>{const fl=(profile.resume||'').split(/\n/).find(l=>l.trim())||'';const np=fl.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ');printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,np.length>2&&np.length<50?np:'',stripPersonalBrandTail(outputs.p3))}}><Printer size={12}/>Save as PDF</Btn></div>
         {!isDemo&&<div style={{background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,padding:'24px 28px',margin:'0 0 22px'}}>
           <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 12px'}}>What this gives you</h3>
           <p style={{fontSize:16,color:C.gray,margin:'0 0 16px',lineHeight:1.6}}>Your Personal Brand is the foundation everything downstream is built on. Here is what having a sharp one unlocks.</p>
