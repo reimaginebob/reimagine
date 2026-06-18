@@ -3493,6 +3493,7 @@ export default function PivotEngine(){
   const[p7Intro,setP7Intro]=useState(true)
   const[p9Intro,setP9Intro]=useState(true)
   const[fileLoading,setFileLoading]=useState(false)
+  const[showPasteResume,setShowPasteResume]=useState(false)
   const[skipAssessWarn,setSkipAssessWarn]=useState(false)
   const[surveyDone,setSurveyDone]=useState(isDemo)
   const[survey,setSurvey]=useState({nps:null,valuable:'',confidence:null,accuracy:null,open:''})
@@ -5826,20 +5827,25 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
       <h1 style={S.title} >Add your resume<InfoTooltip label="Why your resume matters here">Your resume is the single largest input. Reimagine reads it for accomplishments, scope, industry context, and trajectory. A thin or unquantified resume produces thin output. If you need to update it before continuing, do that first.</InfoTooltip></h1>
       <p style={S.sub}>This is the raw material for everything we build with you next.</p>
-      {/* Door 1: upload / paste (unchanged path). */}
-      <div style={S.card}>
-        <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>Upload my resume</div>
-        <p style={{fontSize:15,color:C.gray,margin:'0 0 14px'}}>PDF or Word. Drag it in and keep going.</p>
-        <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
-        {fileLoading&&<Loading msg="Reading your file…"/>}
-        <div style={S.field}><label style={S.label}>Or paste resume text</label><textarea style={{...S.ta,minHeight:220}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} placeholder="Paste your resume text here…"/></div>
-        {profile.resume&&<div style={{fontSize:15,color:C.ok}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
+      {/* Two co-equal doors, side by side and both visible without scrolling. */}
+      <div style={{display:'flex',gap:16,alignItems:'stretch',flexWrap:'wrap'}}>
+        {/* Door 1: upload (unchanged behavior); paste demoted behind a reveal link. */}
+        <div style={{...S.card,flex:'1 1 320px',marginBottom:0,display:'flex',flexDirection:'column'}}>
+          <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>Upload my resume</div>
+          <p style={{fontSize:15,color:C.gray,margin:'0 0 14px'}}>PDF or Word. Drag it in and keep going.</p>
+          <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
+          {fileLoading&&<Loading msg="Reading your file…"/>}
+          {!(showPasteResume||(profile.resume&&!profile.resumeFile))&&<button type="button" onClick={()=>setShowPasteResume(true)} style={{alignSelf:'flex-start',background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:'10px 0 0',fontSize:15}}>Or paste it instead</button>}
+          {(showPasteResume||(profile.resume&&!profile.resumeFile))&&<div style={{...S.field,marginTop:14,marginBottom:0}}><label style={S.label}>Paste resume text</label><textarea style={{...S.ta,minHeight:160}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} placeholder="Paste your resume text here…"/></div>}
+          {profile.resume&&<div style={{fontSize:15,color:C.ok,marginTop:10}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
+        </div>
+        {/* Door 2: build a resume with the person (unchanged behavior). */}
+        <button type="button" onClick={()=>{if(!(profile.builder&&profile.builder.phase)){setBuilder({phase:'intro',source:'',header:{name:'',email:'',phone:'',linkedin:profile.linkedin||''},employers:[],skills:[],education:[],certs:'',extras:'',proudest:''})}nav('resume-builder')}} style={{flex:'1 1 320px',textAlign:'left',background:'#FFFDF8',border:`1.5px solid ${C.gold}`,borderRadius:10,padding:'32px 38px',cursor:'pointer',display:'flex',flexDirection:'column',fontFamily:'inherit'}}>
+          <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>{profile.builder&&profile.builder.phase?'Continue building my resume':'I need help with my resume first'}</div>
+          <p style={{fontSize:15,color:C.gray,margin:0}}>{profile.builder&&profile.builder.phase?'Pick up where you left off. Your entries are saved.':"We'll build one with you, step by step."}</p>
+          <div style={{marginTop:'auto',paddingTop:18,color:C.gold,fontWeight:700,fontSize:15,display:'flex',alignItems:'center',gap:6}}>{profile.builder&&profile.builder.phase?'Continue':'Build my resume'}<ChevronRight size={15}/></div>
+        </button>
       </div>
-      {/* Door 2: build a resume with the person. */}
-      <button type="button" onClick={()=>{if(!(profile.builder&&profile.builder.phase)){setBuilder({phase:'intro',source:'',header:{name:'',email:'',phone:'',linkedin:profile.linkedin||''},employers:[],skills:[],education:[],certs:'',extras:'',proudest:''})}nav('resume-builder')}} style={{display:'block',width:'100%',textAlign:'left',background:'#FFFDF8',border:`1.5px solid ${C.gold}`,borderRadius:10,padding:'16px 18px',cursor:'pointer',marginTop:14}}>
-        <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>{profile.builder&&profile.builder.phase?'Continue building my resume':'I need help with my resume first'}</div>
-        <div style={{fontSize:15,color:C.gray}}>{profile.builder&&profile.builder.phase?'Pick up where you left off. Your entries are saved.':"We'll build one with you, step by step."}</div>
-      </button>
       {profile.baselineResume&&<div style={{...S.note,marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}><Check size={14} color={C.ok}/>Your built resume is saved to your account.<a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume)}>Download (Word)</a></div>}
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('location')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.resume?advance('resume','linkedin'):setErr('Add your resume to continue, or build one with us.')}>Continue <ChevronRight size={14}/></Btn></div>
