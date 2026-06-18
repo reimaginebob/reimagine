@@ -1531,11 +1531,13 @@ const P={
   // register it lands.
   p3analysis:(pr)=>{
     const rep=[pr.rep.memory&&`Praise they receive: ${pr.rep.memory}`,pr.rep.emergency&&`Who calls them in an emergency: ${pr.rep.emergency}`,pr.rep.twoWords&&`How people describe their superpower: "${pr.rep.twoWords}"`,pr.rep.other&&`Other reputation data: ${pr.rep.other}`].filter(Boolean).join('\n')
-    return `You are a world-class career coach. From the materials below, establish this person's personal brand: identify the underlying qualities that define them as a human being, and how those translate into how they do their best work. Reason directly over the raw materials; they carry signal that summaries flatten.
+    return `You are a world-class career coach. Read the materials below and establish this person's personal brand: who they are at their core, and how that shapes the way they do their best work.
 
-Ground every claim in the materials provided. Never invent specifics (names, numbers, employers, credentials). Where the inputs do not support a sharp read, say plainly what is missing and what the person could add, rather than producing a generic characterization. An honest "here is what is missing, add this" beats a confident generic read.
+Tell the whole story a strong brand needs: who they are, where it comes from in their life, how it shows up in their work, the edges worth being aware of, and where they're pointed next. Draw only on what the materials genuinely support; where they don't support a part, leave it out rather than forcing it. Write in your own voice, speaking to the person directly, drawing on the assessment as your own understanding rather than citing it by name.
 
-Write the personal brand only: the read of who this person is at work and where they are pointed. Do not write the job-search script, the networking sequence, or a go-to-market plan; those belong to later phases. End on what is settled and what is still open about their fit, pointing toward the next phase, without picking a lane for them.
+Ground everything in the materials. Don't invent specifics, and where something's missing, say so plainly instead of filling it with something generic.
+
+Close by drawing the brand together and pointing them toward what the next steps open up.
 
 Sensitive specifics in the life experiences below (illness names, family members' names, addiction details, immigration status, divorce specifics) must never be named in the output unless the person surfaced that specific in a way that directly fits a career-brand context.
 
@@ -2491,12 +2493,13 @@ const LOADING_PREVIEWS = {
 const correctionsBlock = (corrections) => {
   if (!corrections || corrections.length === 0) return ''
   const recent = corrections.slice(-20)
-  const lines = recent.map(c => `- About ${STEP_DISPLAY_NAMES[c.step] || c.step}: "${c.text}"`).join('\n')
-  return `USER CORRECTIONS, these are corrections the user has made in prior sections. Honor them in this output. If a correction conflicts with the resume or other source material, the user's correction wins.
+  const lines = recent.map(c => `- ${c.text}`).join('\n')
+  // Fed as ground-truth facts in the person's own terms, NOT meta-labeled as
+  // "corrections the user made" — that framing leaks into the prose (the model
+  // narrates the process). Presented this way the model absorbs them as input.
+  return `The person has told us the following directly about themselves and their work. Treat each as established, ground-truth fact and let it shape this read as naturally as any other evidence; where it differs from the resume or other source material, it takes precedence.
 
 ${lines}
-
-(End of corrections.)
 
 `
 }
@@ -3058,8 +3061,58 @@ const DEMO_TOUR=[
 // weights, one accent, generous whitespace, body never below 16px. Callers fall
 // back to the prose OutPanel when `presentation` is absent (legacy / failed
 // emit). Returns null on a malformed object so the caller's fallback shows.
+// Open a print-ready window for the rendered Personal Brand (browser Save-as-PDF
+// or print). Mirrors the on-screen component layout and presence-gating from
+// presentation; opened via window.open like downloadOnePager. Used by the
+// Personal Brand view's export button (and the pending pre-rerun login notice).
+function printPersonalBrand(p, name){
+  if(!p||typeof p!=='object')return
+  const esc=t=>String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  const clean=t=>esc(stripMarkdown(String(t||'')))
+  const date=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
+  const heroRaw=String(p.hero||'').trim(), hero=clean(heroRaw)
+  const heroKey=heroRaw.replace(/\s+/g,' ')
+  const ded=t=>{const s=String(t||'').trim();const sk=s.replace(/\s+/g,' ');return heroKey&&sk.startsWith(heroKey)?s.slice(s.length-(sk.length-heroKey.length)).trim():s}
+  const proof=(Array.isArray(p.proofPoints)?p.proofPoints:[]).filter(x=>x&&String(x.value||'').trim())
+  const sections=(Array.isArray(p.sections)?p.sections:[]).map(s=>s&&String(s.body||'').trim()?{kicker:clean(s.kicker),body:clean(ded(s.body))}:null).filter(Boolean)
+  const origin=p.origin&&typeof p.origin==='object'&&String(p.origin.body||'').trim()?clean(p.origin.body):''
+  const edges=(Array.isArray(p.edges)?p.edges:[]).filter(e=>e&&String(e.claim||'').trim())
+  const close=typeof p.forwardClose==='string'&&p.forwardClose.trim()?clean(p.forwardClose):''
+  const k=s=>`<div class="k">${s}</div>`
+  if(!hero&&!sections.length)return
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Personal Brand${name?' - '+esc(name):''}</title>
+<style>@page{size:letter;margin:0.7in 0.8in}*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1A2540;line-height:1.6;font-size:12px}
+.wrap{max-width:680px;margin:0 auto}
+.badge{display:inline-block;background:#C8924A;color:#fff;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:3px}
+.head{border-bottom:2px solid #C8924A;padding-bottom:10px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-end}
+.head .nm{font-size:18px;font-weight:600;margin-top:6px}.head .dt{font-size:11px;color:#64748B}
+.k{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8A9BB8;font-weight:600;margin-bottom:6px}
+.hero{font-size:18px;font-weight:500;line-height:1.35;margin-bottom:4px}
+.proof{display:flex;flex-wrap:wrap;gap:10px 28px;border-top:.5px solid #E2E5EA;border-bottom:.5px solid #E2E5EA;padding:12px 0;margin:16px 0 22px}
+.proof .v{font-size:16px;font-weight:500}.proof .l{font-size:10px;color:#8A9BB8;margin-top:2px;max-width:150px}
+.sec{margin-bottom:20px;page-break-inside:avoid}.sec .b{font-size:12px;line-height:1.65;white-space:pre-wrap}
+.origin{background:#F3F4F6;border-radius:8px;padding:14px 16px;margin:4px 0 20px;page-break-inside:avoid}
+.origin .b{font-family:Georgia,serif;font-size:13px;line-height:1.55;white-space:pre-wrap}
+.edge{border-left:2px solid #E2E5EA;padding-left:12px;margin-bottom:12px;page-break-inside:avoid}
+.edge .c{font-size:12px;font-weight:500}.edge .d{font-size:11px;color:#2D3748;margin-top:3px}
+.close{border-left:2px solid #C8924A;padding-left:14px;margin-top:6px;page-break-inside:avoid}.close .b{font-size:12px;line-height:1.6;white-space:pre-wrap}
+.foot{margin-top:24px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:9px;color:#94A3B8}</style></head><body><div class="wrap">
+<div class="head"><div><span class="badge">Reimagine by Career Club</span><div class="nm">${name?esc(name)+' · ':''}Personal Brand</div></div><div class="dt">${esc(date)}</div></div>
+${k('Phase 1 · Personal Brand')}<div class="hero">${hero}</div>
+${proof.length>=3?`<div class="proof">${proof.map(pt=>`<div><div class="v">${clean(pt.value)}</div>${String(pt.label||'').trim()?`<div class="l">${clean(pt.label)}</div>`:''}</div>`).join('')}</div>`:'<div style="height:16px"></div>'}
+${sections.map(s=>`<div class="sec">${s.kicker?k(s.kicker):''}<div class="b">${s.body}</div></div>`).join('')}
+${origin?`<div class="origin">${k('Where it comes from')}<div class="b">${origin}</div></div>`:''}
+${edges.length?`<div>${k('Worth naming, and how to use it')}${edges.map(e=>`<div class="edge"><div class="c">${clean(e.claim)}</div>${String(e.detail||'').trim()?`<div class="d">${clean(e.detail)}</div>`:''}</div>`).join('')}</div>`:''}
+${close?`<div class="close">${k('What is next')}<div class="b">${close}</div></div>`:''}
+<div class="foot">Reimagine by Career Club · career.club · ${esc(date)}</div>
+</div></body></html>`
+  const w=window.open('','_blank')
+  if(w){w.document.write(html);w.document.close();setTimeout(()=>{try{w.print()}catch{}},400)}
+}
+
 const PBKicker=({children})=><div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.1em',color:'#8A9BB8',fontWeight:500,marginBottom:8}}>{children}</div>
-function PersonalBrandView({presentation:p,proseForCopy,onCopy,copied}){
+function PersonalBrandView({presentation:p,proseForCopy,onCopy,copied,onPrint}){
   if(!p||typeof p!=='object')return null
   const ACCENT='#C8924A',PRIMARY='#1A2540',TERT='#8A9BB8',BODY='#2D3748'
   // Plain prose only: the kickers are the bold scan layer, so any stray markdown
@@ -3102,7 +3155,10 @@ function PersonalBrandView({presentation:p,proseForCopy,onCopy,copied}){
       <PBKicker>What is next</PBKicker>
       <div style={{fontSize:16,lineHeight:1.7,color:PRIMARY,whiteSpace:'pre-wrap'}}>{close}</div>
     </div>}
-    {onCopy&&proseForCopy&&<div style={{marginTop:26}}><button type="button" onClick={()=>onCopy(proseForCopy)} style={{background:'#FFF',color:ACCENT,border:`1px solid ${ACCENT}`,borderRadius:8,padding:'8px 16px',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{copied?'Copied':'Copy text'}</button></div>}
+    {(onCopy||onPrint)&&<div style={{marginTop:26,display:'flex',gap:10,flexWrap:'wrap'}}>
+      {onCopy&&proseForCopy&&<button type="button" onClick={()=>onCopy(proseForCopy)} style={{background:'#FFF',color:ACCENT,border:`1px solid ${ACCENT}`,borderRadius:8,padding:'8px 16px',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{copied?'Copied':'Copy text'}</button>}
+      {onPrint&&<button type="button" onClick={onPrint} style={{background:'#FFF',color:ACCENT,border:`1px solid ${ACCENT}`,borderRadius:8,padding:'8px 16px',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6}}><Printer size={14}/>Save as PDF</button>}
+    </div>}
   </div>
 }
 
@@ -3779,7 +3835,7 @@ export default function PivotEngine(){
   const runP3TwoStage=async(analysisExtra='')=>{
     const corr=correctionsBlock(profile.corrections)
     setLoadingStage('Reading your inputs')
-    const analysis=await callClaude(corr+P.p3analysis(pc)+(analysisExtra?`\n\nThe person gave this correction on a previous read; weight it: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
+    const analysis=await callClaude(corr+P.p3analysis(pc)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
     setLoadingStage('Writing your synthesis')
     let structuredP3=null
     // Stage two emits the structured presentation ONLY (no duplicated prose),
@@ -5457,7 +5513,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <p style={{margin:'14px 0 0',fontSize:16,color:C.gray}}>The "What did we get wrong?" box below accepts factual corrections and style tweaks. Your correction stays in your profile and applies to every later section automatically. Small corrections compound across the journey. You can also ask in the chat in the corner if you want a worked example.</p>
         </div>}
         {outputs.p3_structured&&outputs.p3_structured.presentation
-          ? <PersonalBrandView presentation={outputs.p3_structured.presentation} proseForCopy={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>
+          ? <PersonalBrandView presentation={outputs.p3_structured.presentation} proseForCopy={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied} onPrint={()=>{const fl=(profile.resume||'').split(/\n/).find(l=>l.trim())||'';const np=fl.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ');printPersonalBrand(outputs.p3_structured.presentation,np.length>2&&np.length<50?np:'')}}/>
           : <OutPanel text={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>}
         {!isDemo&&<div style={{background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,padding:'24px 28px',margin:'0 0 22px'}}>
           <h3 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 12px'}}>What this gives you</h3>
