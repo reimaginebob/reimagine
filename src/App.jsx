@@ -480,6 +480,26 @@ function buildVarianceCorrective(violations) {
   return parts.join('')
 }
 
+// Derive the flowing brand prose from the stage-two presentation object. Stage
+// two emits the structured presentation ONLY (no duplicated prose), so the
+// flowing text the gate scans and the downstream text consumers (outputs.p3 ->
+// p6/p8/coach/completeCard) read is reconstructed here, deterministically, in
+// reading order: hero, then sections (with the hero de-duplicated from the
+// first section's lead), origin, growth edges, forward close.
+function presentationToProse(p){
+  if(!p||typeof p!=='object')return ''
+  const hero=String(p.hero||'').trim()
+  const heroKey=hero.replace(/\s+/g,' ')
+  const ded=t=>{const s=String(t||'').trim();const sk=s.replace(/\s+/g,' ');return heroKey&&sk.startsWith(heroKey)?s.slice(s.length-(sk.length-heroKey.length)).trim():s}
+  const parts=[]
+  if(hero)parts.push(hero)
+  ;(Array.isArray(p.sections)?p.sections:[]).forEach(s=>{const b=ded(s&&s.body);if(b)parts.push(b)})
+  if(p.origin&&typeof p.origin==='object'&&String(p.origin.body||'').trim())parts.push(String(p.origin.body).trim())
+  ;(Array.isArray(p.edges)?p.edges:[]).forEach(e=>{if(e&&String(e.claim||'').trim())parts.push(String(e.claim).trim()+(String(e.detail||'').trim()?' '+String(e.detail).trim():''))})
+  if(typeof p.forwardClose==='string'&&p.forwardClose.trim())parts.push(p.forwardClose.trim())
+  return parts.filter(Boolean).join('\n\n')
+}
+
 async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
   const isP3 = meta.step === 'p3'
 
@@ -568,8 +588,18 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
     if (!isP3) return voiceCleanResult
     let dimResult = voiceCleanResult
     for (let dimAttempt = 0; dimAttempt <= DIM_MAX_RETRIES; dimAttempt++) {
-      const tailBoundary = findPersonalBrandTailBoundary(dimResult)
-      const dimScanText = tailBoundary !== -1 ? dimResult.slice(0, tailBoundary) : dimResult
+      // Stage two emits presentation-only (no flowing prose before the tail),
+      // so scan the reconstructed brand prose from the parsed presentation.
+      // Fall back to the pre-tail slice for any legacy prose+tail output.
+      const _dimParsed = parsePersonalBrandTail(dimResult)
+      const _dimPres = _dimParsed.parsed && _dimParsed.parsed.presentation
+      let dimScanText
+      if (_dimPres) {
+        dimScanText = presentationToProse(_dimParsed.parsed.presentation)
+      } else {
+        const tailBoundary = findPersonalBrandTailBoundary(dimResult)
+        dimScanText = tailBoundary !== -1 ? dimResult.slice(0, tailBoundary) : dimResult
+      }
       const dimViolation = detectDimensionalFitRegression(dimScanText)
       if (!dimViolation) {
         if (dimAttempt > 0 && typeof meta.onEvent === 'function') {
@@ -690,9 +720,13 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
       if (typeof meta.onStructured === 'function') meta.onStructured(null)
       return result
     }
-    const boundary = findPersonalBrandTailBoundary(result)
-    const prose = boundary !== -1 ? result.slice(0, boundary) : result
-    const leadSentence = extractLeadSentence(prose)
+    // The rendered brand's lead is presentation.hero (stage two emits no flowing
+    // prose). Drift check compares throughLine against the hero. Falls back to
+    // the pre-tail prose lead for any legacy prose+tail output.
+    const _pres = parsed.parsed.presentation
+    const leadSentence = _pres && typeof _pres.hero === 'string' && _pres.hero.trim()
+      ? extractLeadSentence(_pres.hero)
+      : extractLeadSentence(findPersonalBrandTailBoundary(result) !== -1 ? result.slice(0, findPersonalBrandTailBoundary(result)) : result)
     const throughLine = String(parsed.parsed.throughLine || '').trim()
     if (leadSentence !== throughLine) {
       if (typeof meta.onEvent === 'function') {
@@ -1549,19 +1583,16 @@ ${analysis}
 YOUR JOB, strictly bounded to these moves:
 1. Shift it to second person ("you," "your") throughout, and fix only the grammar that the person-shift requires. Nothing else about the wording changes.
 2. Lay the analysis out into the components below, in the order the analysis already makes its argument.
-3. Emit the structured JSON at the end.
 
 HARD RULE (load-bearing): you are a compositor, not an editor. Preserve the analysis verbatim wherever the only change needed is person and placement. Never rephrase for style, never soften or generalize a claim, never re-order the argument, never add or remove a finding, never re-analyze. The candid, specific, slightly uncomfortable observations are the value; keep them exactly. If you find yourself improving a sentence, stop and copy it instead.
 
-OUTPUT, in two parts.
+OUTPUT: a SINGLE fenced JSON code block and NOTHING else. No prose before it, no prose after it. Triple backticks, the word json, a newline, the JSON object, a newline, triple backticks. The brand text lives inside the JSON (in the section bodies); do not also write it out as prose. The user never sees the JSON keys; they see only the text values, laid out by the app.
 
-PART 1 - the brand as flowing prose. Write the brand as one continuous second-person read, in the analysis's own order: the through-line first as the opening sentence, then the body, then (if present) the formative-origin passage and the growth edges woven where the analysis places them, ending on the settled-versus-open forward turn. This is the verbatim, person-shifted analysis as prose. Begin directly with the through-line sentence: no title, no "Personal Brand" heading, no markdown headers, no bold or italics, no bullet characters. Plain prose only; the layout provides all emphasis. Every presentation field below is likewise plain prose with no markdown.
-
-PART 2 - the JSON tail. After the prose, append a single fenced code block: triple backticks, the word json, a newline, the JSON object, a newline, triple backticks. It is the LAST thing in your output, nothing after it. The user never sees this JSON.
+All text values are plain prose: no markdown, no headers, no bold or italics, no bullet characters. The layout provides all emphasis.
 
 Schema:
 {
-  "throughLine": "<the literal first sentence of your PART 1 prose, character for character, verbatim>",
+  "throughLine": "<the brand's opening sentence: the single sentence that leads the first section body, character for character>",
   "dimensionalFit": {
     "function":  { "status": "aligned|one-off|multi-off|thin", "read": "<one sentence drawn from the analysis>" },
     "industry":  { "status": "aligned|one-off|multi-off|thin", "read": "<one sentence>" },
@@ -1574,26 +1605,26 @@ Schema:
   "presentation": {
     "hero": "<same text as throughLine>",
     "proofPoints": [ { "value": "94%", "label": "retained through the Toronto earn-out" } ],
-    "sections": [ { "kicker": "<short plain label, 2-5 words>", "body": "<the second-person prose for this part of the analysis, verbatim from PART 1>" } ],
+    "sections": [ { "kicker": "<short plain label, 2-5 words>", "body": "<the second-person prose for this part of the analysis, verbatim from the analysis>" } ],
     "origin": { "body": "<the second-person formative-origin passage>" },
     "edges": [ { "claim": "<the growth edge in one line>", "detail": "<the second-person detail and how to use it>" } ],
     "forwardClose": "<the warm second-person close pointing to the next phase>"
   }
 }
 
-How to populate presentation (this is slotting, never rewriting):
-- hero: the through-line. Always present.
-- sections: the analysis grouped as it already falls, each given a short plain kicker. Body is the PART 1 prose for that group, verbatim. Do not merge or re-order. Every meaningful part of the analysis lands in a section.
+How to populate presentation (this is slotting the analysis text, never rewriting). The section bodies together ARE the brand, read top to bottom; they hold the entire analysis, second-person and verbatim:
+- hero: the brand's opening sentence (the lead of the first section body). Always present.
+- sections: the analysis grouped as it already falls, each given a short plain kicker, the body the verbatim second-person prose for that group. Do not merge, re-order, drop, or summarize. The first section body opens with the hero sentence. Every meaningful part of the analysis lands in a section. This is the whole brand; nothing is left out.
 - origin: the formative-origin passage ("where it comes from" human material) pulled into its own field for a set-apart treatment, and therefore NOT also left in sections. If the analysis has no such passage, set origin to null. Never invent one.
 - edges: the growth edges as claim-plus-detail pairs, pulled out for cards, and therefore NOT duplicated in sections. If the analysis surfaced none, use an empty array. Never manufacture a weakness.
 - proofPoints: the quantified results that already appear in the analysis, each as value plus a short label. Extract only; invent nothing. The numbers still live in the section prose; this strip is an extra scan layer. If the analysis has none, use an empty array.
 - forwardClose: the warm closing turn. null if the analysis has none.
 
 Rules:
-- throughLine MUST be the exact first sentence of your PART 1 prose, character for character.
+- throughLine MUST equal hero MUST be the exact opening sentence of the first section body, character for character.
 - Every dimensionalFit dimension present; status from the enumerated set; read is one sentence grounded in the analysis (use "thin" honestly where the analysis does not speak to that dimension).
 - topAnchors: six to eight entries, each one of the three types, each one sentence.
-- Do not change the prose to fit the JSON. The prose stands; the JSON describes it.`
+- Output ONLY the fenced JSON. Nothing before or after it.`
   },
   p4:(pr,o1,o2,o3,o3Structured,selectedLane,previousOptions,userFeedback)=>{const _struct=buildSynthesisContext(o3Structured);const _LB=selectedLane==='wtm'?`
 ## WORK THAT MATTERS
@@ -3751,7 +3782,13 @@ export default function PivotEngine(){
     const analysis=await callClaude(corr+P.p3analysis(pc)+(analysisExtra?`\n\nThe person gave this correction on a previous read; weight it: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
     setLoadingStage('Writing your synthesis')
     let structuredP3=null
-    const brand=await callClaudeWithVoiceGate(()=>P.p3(analysis),{voiceMode:'prose-lite',maxTokens:16000},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
+    // Stage two emits the structured presentation ONLY (no duplicated prose),
+    // so output is roughly half what it was and 6000 tokens is ample headroom.
+    const raw=await callClaudeWithVoiceGate(()=>P.p3(analysis),{voiceMode:'prose-lite',maxTokens:6000},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
+    // outputs.p3 (the flowing prose the text consumers read) is derived from the
+    // presentation, not generated separately. Fall back to the stripped raw
+    // output if the structured emit failed (presentation absent).
+    const brand=(structuredP3&&structuredP3.presentation)?presentationToProse(structuredP3.presentation):stripPersonalBrandTail(raw)
     return {brand,structured:structuredP3}
   }
   const generateChain=async()=>{
