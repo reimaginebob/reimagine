@@ -1895,6 +1895,26 @@ There is a second way in, through the turnaround itself. If the conversation lea
   // run the voice-gated path like Resume Refresh. Shared truthfulness discipline:
   // never assert anything the person did not state, never invent or pre-fill a
   // number, mirror not flatter, plain warm language.
+  // LINKEDIN_PARSE (plain path): structure a LinkedIn "Save to PDF" text export
+  // into the builder skeleton. Extraction only; invents nothing.
+  LINKEDIN_PARSE:(text)=>`You are reading the text of a LinkedIn "Save to PDF" profile export. Extract the person's work history into structured JSON. Use ONLY what is in the text. Invent nothing. If a field is not present, return an empty string for it.
+
+From the EXPERIENCE section, list each employer in the order shown. For each employer:
+- "company": the employer name.
+- "context": a short phrase describing what the company does or its size, ONLY if the text states it near that employer; otherwise an empty string. Do not invent or guess.
+- "titles": one or more roles held at that employer, each with "title" and "dates" copied as written (for example "January 2021 - Present" or "2019 - 2024"). When one employer shows several roles stacked together (a promotion history), include each as a separate entry in this list, in the order shown, under that one employer. Do not copy the employer-level total tenure line (for example "5 years 1 month") as a title.
+
+Also extract:
+- "name": the person's full name, shown near the top of the profile.
+- "location": the person's own location line near their name (for example a metro area), if present.
+
+Ignore page markers like "Page 1 of 7", and ignore the Contact, Top Skills, Languages, Certifications, Summary, and Education sections for this output.
+
+Return ONLY a JSON object, no preamble and no markdown fence:
+{ "name": "", "location": "", "employers": [{ "company": "", "context": "", "titles": [{ "title": "", "dates": "" }] }] }
+
+PROFILE TEXT:
+${text}`,
   AREAS:(title,industry,companyContext)=>`Someone is rebuilding their resume and needs help remembering what they did in a past role. The role is ${title}${industry?` in ${industry}`:''}${companyContext?` (${companyContext})`:''}.
 
 List up to 10 areas of responsibility and impact that someone in this role commonly owns. These are memory-joggers to spark their own recall, not claims about this person and not resume bullets.
@@ -4627,7 +4647,56 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const a=s.indexOf('['),b=s.lastIndexOf(']');if(a<0||b<0||b<a)return null
     try{const o=JSON.parse(s.slice(a,b+1));return Array.isArray(o)?o:null}catch{return null}
   }
+  const parseJsonObject=(raw)=>{
+    if(typeof raw!=='string')return null
+    let s=raw.trim();const f=s.match(/^```(?:json)?\s*([\s\S]*?)```\s*$/);if(f)s=f[1].trim()
+    const a=s.indexOf('{'),b=s.lastIndexOf('}');if(a<0||b<0||b<a)return null
+    try{const o=JSON.parse(s.slice(a,b+1));return o&&typeof o==='object'?o:null}catch{return null}
+  }
   const roleTitle=(emp)=>(emp&&emp.titles&&emp.titles[0]&&emp.titles[0].title)||''
+  const emptyEmployer=()=>({company:'',context:'',titles:[{title:'',dates:''}],areas:[],rawText:'',shaped:[]})
+  // extractText returns a bracketed notice string when the PDF has no text layer
+  // (image-based / browser-printed). Detect it so we route to from-scratch.
+  const looksLikeExtractFallback=(t)=>/^\s*\[/.test(String(t||''))&&/(could\W?n\W?t be read|image-based|browser)/i.test(String(t||''))
+  // 0. LINKEDIN_PARSE (plain path): extract the LinkedIn PDF text, then structure
+  // it into the builder skeleton so the person sees their history laid out and only
+  // corrects it. Falls through to from-scratch when the PDF has no readable text.
+  const genBuilderLinkedinParse=async(file)=>{
+    if(builderBuilding)return
+    const key='linkedin-parse';setBuilderBuilding(key);builderErr(key,null)
+    const reqId=++builderReqRef.current
+    try{
+      const text=await extractText(file)
+      if(reqId!==builderReqRef.current)return
+      if(looksLikeExtractFallback(text)){
+        setBuilder(cur=>({...cur,source:'scratch',linkedinFile:file.name,employers:(cur.employers&&cur.employers.length)?cur.employers:[emptyEmployer()],phase:'skeleton'}))
+        builderErr(key,"We could not read that PDF as text. It may be image-based or printed from a browser, which LinkedIn sometimes produces. Build it from a few basics below instead.")
+        return
+      }
+      const raw=await callClaude(P.LINKEDIN_PARSE(text),{maxTokens:4000})
+      if(reqId!==builderReqRef.current)return
+      const parsed=parseJsonObject(raw)
+      const emps=((parsed&&Array.isArray(parsed.employers))?parsed.employers:[]).map(e=>({
+        company:((e&&e.company)||'').trim(),
+        context:((e&&e.context)||'').trim(),
+        titles:(((e&&Array.isArray(e.titles)&&e.titles.length)?e.titles:[{}]).map(t=>({title:((t&&t.title)||'').trim(),dates:((t&&t.dates)||'').trim()}))),
+        areas:[],rawText:'',shaped:[]
+      })).filter(e=>e.company||e.titles.some(t=>t.title))
+      const name=((parsed&&parsed.name)||'').trim()
+      const loc=((parsed&&parsed.location)||'').trim()
+      setProfile(p=>{
+        const builder=p.builder||{}
+        const nextLoc=(p.loc&&p.loc.city)?p.loc:{...(p.loc||{}),city:loc||((p.loc||{}).city||'')}
+        return{...p,loc:nextLoc,builder:{...builder,source:'linkedin',linkedinFile:file.name,linkedinRaw:text,header:{...(builder.header||{}),name:name||((builder.header||{}).name||'')},employers:emps.length?emps:[emptyEmployer()],phase:'skeleton'}}
+      })
+      if(!emps.length)builderErr(key,'We read your file but could not lay out the roles cleanly. Add them below and keep going.')
+    }catch(e){
+      if(reqId===builderReqRef.current){
+        setBuilder(cur=>({...cur,source:'linkedin',linkedinFile:file.name,employers:(cur.employers&&cur.employers.length)?cur.employers:[emptyEmployer()],phase:'skeleton'}))
+        builderErr(key,(e&&e.message)||'We could not read that file. Add your roles below and keep going.')
+      }
+    }finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
+  }
   // 1. AREAS (plain path): memory-jogger phrases for one employer/role.
   const genBuilderAreas=async(idx)=>{
     if(builderBuilding)return
@@ -4756,17 +4825,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(phase==='onramp')return <div>
       {hdr('Phase 0 · Orientation','The fastest way to start',"If you're on LinkedIn, your profile already has the backbone we need: your roles, companies, and dates. Here's how to hand it to us. Open your LinkedIn profile, click the three dots near your name, choose Save to PDF, and upload that file here. We'll read it and lay out your history so you're not starting from a blank page.")}
       <div style={S.card}>
-        <FileUpload label="Upload my LinkedIn PDF" hint="PDF only" fileName={b.linkedinFile} onFile={async f=>{setBuilderBuilding('linkedin-parse');builderErr('linkedin-parse',null);try{const t=await extractText(f);setBuilder(cur=>({...cur,source:'linkedin',linkedinFile:f.name,linkedinRaw:t,employers:(cur.employers&&cur.employers.length)?cur.employers:[{company:'',context:'',titles:[{title:'',dates:''}],areas:[],rawText:'',shaped:[]}],phase:'skeleton'}))}catch(e){builderErr('linkedin-parse',e.message||'Could not read that file.')}finally{setBuilderBuilding(null)}}}/>
-        {builderBuilding==='linkedin-parse'&&<Loading msg="Reading your profile…"/>}
+        <FileUpload label="Upload my LinkedIn PDF" hint="PDF only" fileName={b.linkedinFile} onFile={f=>genBuilderLinkedinParse(f)}/>
+        {builderBuilding==='linkedin-parse'&&<Loading msg="Reading your profile and laying out your history…"/>}
         {builderErrors['linkedin-parse']&&<ErrBox msg={builderErrors['linkedin-parse']}/>}
       </div>
       <p style={{fontSize:16,color:C.gray,margin:'4px 0 10px'}}>Not on LinkedIn? We'll build it from a few basics instead.</p>
       <div style={S.row}>{back('intro')}<Btn secondary onClick={()=>{setBuilder(cur=>({...cur,source:'scratch',employers:(cur.employers&&cur.employers.length)?cur.employers:[{company:'',context:'',titles:[{title:'',dates:''}],areas:[],rawText:'',shaped:[]}],phase:'skeleton'}))}}>Start from scratch <ChevronRight size={14}/></Btn></div>
     </div>
 
-    if(phase==='skeleton')return <div>
-      {hdr('Phase 0 · Orientation','Where have you worked?','Start with your most recent role and work back. We just need the basics here; the good stuff comes next.')}
-      {b.source==='linkedin'&&b.linkedinRaw&&<details style={{marginBottom:14}}><summary style={{cursor:'pointer',color:C.gold,fontWeight:600}}>What we read from your LinkedIn file</summary><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:13,color:C.gray,maxHeight:220,overflow:'auto',marginTop:8}}>{b.linkedinRaw}</pre><div style={{fontSize:13,color:C.gray}}>LinkedIn's file is not always clean, so use this as a reference and fill in the fields below.</div></details>}
+    if(phase==='skeleton'){const fromLinkedin=b.source==='linkedin'&&employers.some(e=>e.company||(e.titles||[]).some(t=>t.title));return <div>
+      {hdr('Phase 0 · Orientation','Where have you worked?',fromLinkedin?'We laid out your history from LinkedIn below. Check that your companies, titles, and dates look right, and fix anything that came through wrong.':'Start with your most recent role and work back. We just need the basics here; the good stuff comes next.')}
+      {builderErrors['linkedin-parse']&&<div style={{...S.note,marginBottom:14}}>{builderErrors['linkedin-parse']}</div>}
+      {b.source==='linkedin'&&b.linkedinRaw&&<details style={{marginBottom:14}}><summary style={{cursor:'pointer',color:C.gold,fontWeight:600}}>What we read from your LinkedIn file</summary><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:13,color:C.gray,maxHeight:220,overflow:'auto',marginTop:8}}>{b.linkedinRaw}</pre><div style={{fontSize:13,color:C.gray}}>This is the raw text we read, kept here for reference. Your roles are in the fields below.</div></details>}
       {employers.map((e,i)=><div key={i} style={S.card}>
         <div style={S.field}><label style={S.label}>Company</label><input style={iS} value={e.company||''} onChange={ev=>updEmployer(i,{company:ev.target.value})} placeholder="Company name"/></div>
         <div style={S.field}><label style={S.label}>What the company does and its size</label><input style={iS} value={e.context||''} onChange={ev=>updEmployer(i,{context:ev.target.value})} placeholder="e.g. regional logistics firm, ~$200M revenue"/></div>
@@ -4787,7 +4857,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}>{back('onramp')}<Btn onClick={()=>{const ok=employers.some(e=>(e.company||'').trim()&&(e.titles||[]).some(t=>(t.title||'').trim()));if(!ok){setErr('Add at least one company and title to continue.');return}setErr(null);setBuilder(cur=>({...cur,roleIdx:0,phase:'capture'}))}}>Continue <ChevronRight size={14}/></Btn></div>
-    </div>
+    </div>}
 
     if(phase==='capture')return <div>
       {hdr('Phase 0 · Orientation',`${(emp.titles&&emp.titles[0]&&emp.titles[0].title)||'This role'}${emp.company?` at ${emp.company}`:''}`,null)}
