@@ -43,6 +43,7 @@ export const NAV_LABELS = {
   welcome: 'Welcome',
   location: 'Location & Work',
   resume: 'Your Resume',
+  'resume-builder': 'Resume Builder',
   linkedin: 'Your LinkedIn',
   assessment: 'Assessments',
   values: 'Values, Passions & Causes',

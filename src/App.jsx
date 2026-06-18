@@ -836,7 +836,7 @@ function parseResumeJSON(raw){
   const last=s.lastIndexOf('}')
   if(first===-1||last===-1||last<first)return null
   const candidate=s.slice(first,last+1)
-  try{const obj=JSON.parse(candidate);if(obj&&typeof obj==='object'&&obj.header&&Array.isArray(obj.keyAccomplishments))return obj;return null}
+  try{const obj=JSON.parse(candidate);if(obj&&typeof obj==='object'&&obj.header&&(Array.isArray(obj.keyAccomplishments)||Array.isArray(obj.experience)))return obj;return null}
   catch{return null}
 }
 
@@ -1308,33 +1308,56 @@ function renderResumeText(r){
   }
 
   const h=r.header||{}
-  const contact=[h.city,h.email,h.phone,h.linkedin].filter(Boolean).join(' · ')
+  const contact=[h.city||h.location,h.email,h.phone,h.linkedin].filter(Boolean).join(' · ')
   const lines=[]
   lines.push((h.name||'').toUpperCase())
   if(contact)lines.push(contact)
   lines.push('')
   lines.push('SUMMARY')
   lines.push(r.summary||'')
-  lines.push('')
-  lines.push('KEY ACCOMPLISHMENTS')
-  ;(r.keyAccomplishments||[]).forEach(b=>lines.push('• '+bulletToText(b)))
+  const ka=(r.keyAccomplishments||[]).filter(Boolean)
+  if(ka.length){
+    lines.push('')
+    lines.push('KEY ACCOMPLISHMENTS')
+    ka.forEach(b=>lines.push('• '+bulletToText(b)))
+  }
   lines.push('')
   lines.push('EXPERIENCE')
   lines.push('')
   ;(r.experience||[]).forEach((role,idx)=>{
-    lines.push(`${role.title||''}, ${role.company||''}`.replace(/^, /,'').replace(/, $/,''))
-    const sub=[role.dates,role.location].filter(Boolean).join(' · ')
-    if(sub)lines.push(sub)
+    // Baseline shape supports titles:[{title,dates}] (multiple, for promotions);
+    // Resume Refresh shape uses flat title/dates. Render either.
+    const titleList=Array.isArray(role.titles)&&role.titles.length?role.titles:[{title:role.title,dates:role.dates}]
+    titleList.forEach((t,ti)=>{
+      const head=`${t.title||''}, ${role.company||''}`.replace(/^, /,'').replace(/, $/,'')
+      lines.push(head)
+      const sub=[t.dates,role.location].filter(Boolean).join(' · ')
+      if(sub)lines.push(sub)
+      if(ti===0&&role.context)lines.push(role.context)
+    })
     ;(role.bullets||[]).forEach(b=>lines.push('• '+bulletToText(b)))
     if(idx<(r.experience||[]).length-1)lines.push('')
   })
-  lines.push('')
-  lines.push('EDUCATION')
-  lines.push('')
-  ;(r.education||[]).forEach(e=>{
-    const parts=[e.degree,e.institution,e.year].filter(Boolean).join(', ')
-    lines.push(parts)
-  })
+  const edu=(r.education||[]).filter(Boolean)
+  if(edu.length){
+    lines.push('')
+    lines.push('EDUCATION')
+    lines.push('')
+    edu.forEach(e=>{
+      const deg=[e.degree,e.field].filter(Boolean).join(', ')
+      const parts=[deg,e.institution,e.year].filter(Boolean).join(', ')
+      lines.push(parts)
+    })
+  }
+  const skillGroups=(r.skills||[]).filter(g=>g&&Array.isArray(g.items)&&g.items.length)
+  if(skillGroups.length){
+    lines.push('')
+    lines.push('SKILLS')
+    skillGroups.forEach(g=>{
+      const items=g.items.map(s=>typeof s==='string'?s:(s&&s.skill)||'').filter(Boolean).join(', ')
+      if(items)lines.push(g.category?`${g.category}: ${items}`:items)
+    })
+  }
   return lines.join('\n')
 }
 
@@ -1470,23 +1493,48 @@ async function buildResumeDoc(r){
   children.push(sectionHeader('PROFESSIONAL EXPERIENCE'))
   ;(r.experience || []).forEach(role => {
     const companyLeft = [role.company, role.location].filter(Boolean).join(', ')
-    // Company + location on left, dates right-aligned via tab stop
+    // Baseline shape carries titles:[{title,dates}] (multiple, for promotions) plus
+    // an optional company context line; Resume Refresh shape uses flat title/dates.
+    const titleList = Array.isArray(role.titles) && role.titles.length ? role.titles : [{ title: role.title, dates: role.dates }]
+    const singleFlat = titleList.length === 1
+    // Company on left; dates right-aligned via tab stop only when a single flat title.
     children.push(new Paragraph({
       spacing: { before: 160, after: 0 },
       tabStops: [{ type: TabStopType.RIGHT, position: CONTENT_W }],
       children: [
         new TextRun({ text: companyLeft, bold: true, size: 22, font: FONT }),
         new TextRun({ text: '\t', size: 22, font: FONT }),
-        new TextRun({ text: role.dates || '', size: 22, font: FONT })
+        new TextRun({ text: singleFlat ? (titleList[0].dates || '') : '', size: 22, font: FONT })
       ]
     }))
-    // Title in italic on its own line
-    if (role.title) {
+    // Company context line (baseline only): what the company does + size marker.
+    if (role.context) {
       children.push(new Paragraph({
-        spacing: { after: 80 },
-        children: [new TextRun({ text: role.title, italics: true, size: 22, font: FONT })]
+        spacing: { after: 40 },
+        children: [new TextRun({ text: role.context, italics: true, size: 20, font: FONT })]
       }))
     }
+    titleList.forEach(t => {
+      if (!t || !t.title) return
+      if (singleFlat) {
+        // Legacy look: title italic on its own line (dates already on company line).
+        children.push(new Paragraph({
+          spacing: { after: 80 },
+          children: [new TextRun({ text: t.title, italics: true, size: 22, font: FONT })]
+        }))
+      } else {
+        // Multiple titles: title left (italic), its own dates right-aligned.
+        children.push(new Paragraph({
+          spacing: { after: 60 },
+          tabStops: [{ type: TabStopType.RIGHT, position: CONTENT_W }],
+          children: [
+            new TextRun({ text: t.title, italics: true, size: 22, font: FONT }),
+            new TextRun({ text: '\t', size: 22, font: FONT }),
+            new TextRun({ text: t.dates || '', size: 22, font: FONT })
+          ]
+        }))
+      }
+    })
     ;(role.bullets || []).forEach(b => children.push(experienceBulletParagraph(b)))
   })
 
@@ -1503,13 +1551,30 @@ async function buildResumeDoc(r){
         new TextRun({ text: e.year || '', size: 22, font: FONT })
       ]
     }))
-    if (e.degree) {
+    const deg = [e.degree, e.field].filter(Boolean).join(', ')
+    if (deg) {
       children.push(new Paragraph({
         spacing: { after: 60 },
-        children: [new TextRun({ text: e.degree, italics: true, size: 22, font: FONT })]
+        children: [new TextRun({ text: deg, italics: true, size: 22, font: FONT })]
       }))
     }
   })
+
+  // SKILLS (baseline schema extension). One paragraph per category: "Category: a, b, c".
+  const skillGroups = (r.skills || []).filter(g => g && Array.isArray(g.items) && g.items.length)
+  if (skillGroups.length) {
+    children.push(sectionHeader('SKILLS'))
+    skillGroups.forEach(g => {
+      const items = g.items.map(s => typeof s === 'string' ? s : (s && s.skill) || '').filter(Boolean).join(', ')
+      if (!items) return
+      children.push(new Paragraph({
+        spacing: { after: 80, line: 280 },
+        children: g.category
+          ? [new TextRun({ text: `${g.category}: `, bold: true, size: 22, font: FONT }), new TextRun({ text: items, size: 22, font: FONT })]
+          : [new TextRun({ text: items, size: 22, font: FONT })]
+      }))
+    })
+  }
 
   return new Document({
     creator: 'Reimagine',
@@ -1825,6 +1890,76 @@ There is a second way in, through the turnaround itself. If the conversation lea
   op:(pr,outs,sel,jd)=>`Build a playbook for this specific opportunity, weaving in the user's foundation work. The user has completed their full Reimagine journey and is evaluating this specific opportunity. Analyze it on its own terms using their foundation work. Do not reference, assume, or align against any direction or path the user chose earlier in the journey; this role stands alone.\n\nEVIDENCE-BASED CONFIDENCE: Every claim about who this user is at work must anchor in specific evidence from their inputs — an accomplishment with numbers, a named decision, a specific moment from their reputation, their own verbatim words from orientation. State the evidence concretely. Let the listener draw the conclusion. The user's confidence comes from what they have done, never from claims about how they stack up against others. The goal is winsome and likeable, not arrogant. Use evidence-anchored sentence patterns like "When [specific situation], you [specific action]" or "In [specific role/context], you delivered [specific result]." Avoid any sentence that asserts the user's relative standing against unnamed groups.\n\nEVIDENCE-ANCHORED PATTERNS (use these sentence shapes when writing about the user's drive, capability, or character):\n- "When [specific situation from inputs], you [specific action]. The result: [specific outcome with number]."\n- "Your [trait or capability] shows up in [specific moment]: [specific detail from inputs]."\n- "In [specific role or context], you [specific decision or action]."\nDo NOT use abstract assertions like "you sustain the intensity required to get to yes" or "you move fast" without anchoring in the specific evidence that demonstrates it. Every claim about the user gets a concrete moment behind it.\n\nNO TYPOLOGY LABELS. Name the tendency, not the type. Do not characterize the user with category labels or type vocabulary (builder, operator, integrator, strategist, connector, hunter, farmer, architect, fixer, closer, etc.). These labels are jargon-adjacent and skip the work of naming the underlying tendency. Instead, describe what you see in the inputs and what it adds up to, in plain language. "You care about people by holding them to what they are capable of" is the move. "You care about people the way operators do" is not.\n\nNO AI-COACHING REGISTER: Do not use phrases like "worth sitting with," "sit with this," "let that land," "lean into," "hold space for," "get curious about," "notice what comes up," "take a moment to consider," "trust the process," or "honor your journey." These cue reflective register without adding observation. Name the observation directly and let it stand.\n\nEPISTEMIC CALIBRATION (load-bearing across this output):\n\nEvery interpretive claim about the user is a HYPOTHESIS by default, expressed in directional language. Declarative claims are EARNED ONLY when the supporting evidence is named in the same paragraph as the claim. Hedge by default; go declarative when evidence is on the page; refuse declarative when it is not.\n\nDIRECTIONAL PHRASES to reach for (use varied vocabulary; do not repeat any single phrase across the output):\n"There is a pattern that seems to indicate," "this may suggest," "often correlates with," "tends to signal," "we see a pattern of," "this points toward," "it appears that," "you seem to," "on more than one occasion," "the pattern often involves," "this looks like."\n\nEARNED DECLARATIVE : three cases where declarative is appropriate:\n\n(a) Explicit assessment signal named in the output, INCLUDING THE ASSESSMENT NAME (CliftonStrengths, Predictive Index, Big Five, Affintus, MBTI, etc.) in the same sentence or the immediately preceding sentence. Example: "Your CliftonStrengths shows Strategic in your top 5, which means you naturally see patterns others miss." The "which means" is declarative because BOTH the assessment name AND the construct are present. Refuse: "High openness to experience means you prefer a job that requires you to create solutions" (construct named, source instrument not named). Either name the instrument or rewrite into hypothesis voice ("this looks like high openness, which often points toward...").\n\n(b) Verbatim user-input quoted in the output. Example: 'You wrote in orientation that you "want to build things that matter to people who do not have a voice." That conviction shapes the function choices below.' Declarative because the quote is right there.\n\n(c) Named triangulation across 2-3 specific inputs the output lists. Example: 'In orientation you described the work as "designing the question." Your reputation note named "methodology under ambiguity." Your Apple accomplishment built measurement protocols for a product that did not yet exist. Three sources, the same operational move: you build the research question before you answer it.' The closing declarative is earned because three sources are named in the same chunk.\n\nREFUSE these specific overclaim patterns:\n\n1. ABSOLUTISM IN INTERPRETIVE CLAIMS:\n- "Every [noun] you have [verb]" / "every major program" / "every role" / "every time"\n- "Always" / "never" / "the hardest" / "the most X" / "the only Y"\n- "You have spent your career [verb]-ing" : life-arc framing presented as fact\n\nIf the claim depends on a pattern across the career, name the specific career moments the pattern is drawn from. Do not collapse to "every".\n\n2. MIND-READING (attributing internal motivation):\n- "by [verb]-ing X" claiming internal motivation ("by refusing to," "by choosing to," "by caring about")\n- "your conviction that [X]" / "your mission is [X]" / "you believe [X]"\n\nRefuse unless the [X] is directly quoted from the user's verbatim inputs (orientation answers, reputation phrases, values text). Reading minds is not analysis.\n\n3. SLOGAN-CADENCE CLOSERS:\n- Paired declarative sentences in "The X is the Y. The Z is the W." cadence\n- "X is the engine. Y is the fuel."\n- Inspirational-poster paired sentences\n\nThese read as marketing copy, not analysis. Refuse the cadence regardless of whether the content is otherwise accurate.\n\nA runtime gate will scan shipped output for these constructions and force regeneration when detected. Output that contains them will not reach the user.\n\nTRANSLATION NOT PRAISE (load-bearing across this output):\n\nEvery interpretive claim about the user is a TRANSLATION move, not a CHARACTERIZATION. Translation tells the user where their capability transfers to a context they have not been in. Characterization tells them what trait they have, which they already know.\n\nThe user comes to Reimagine already feeling capable. Telling them "you bring rigor to applied problems" or "you are an operator" or "you handle ambiguity well" is praise-shaped: reflection without new information. They feel acknowledged but learn nothing. The value-add Reimagine provides is showing them where their capability transfers, which contexts they have not been in would reward this exact move.\n\nFor every interpretive sentence:\n- Refuse "you bring X to Y." Rewrite as "this transfers to [specific other contexts where the move is rare or valuable]."\n- Refuse "you are an X." Rewrite as "the operational move you made, [specific], works the same way in [specific other contexts]."\n- Refuse trait-noun characterizations (rigorous, operator, builder, integrator, connector, hunter, farmer, architect, fixer, closer, etc.). These also violate the existing NO TYPOLOGY LABELS rule.\n- Anchor every translation in a specific operational move the user actually made, not a trait inferred from inputs.\n\nNEVER assert relative standing against unnamed groups. "Most people," "many candidates," "the average professional," "most hiring managers do not see X," "where others settle for X" are all forbidden. The user gets compared to no one. The voice guard catches some of these; the rule is broader than the guard.\n\nFailure cases to refuse:\n- "You bring academic rigor to applied problems." (characterization, no translation)\n- "You can isolate causality in messy environments where most people settle for correlation." (characterization plus comparative standing)\n- "You are a connector." (typology trait, also covered by NO TYPOLOGY LABELS)\n- "You sustain the intensity required to get to yes." (already refused by EVIDENCE-BASED CONFIDENCE; same failure mode)\n\nSuccess cases:\n- "Where this transfers: you can design and run a multi-year protocol where measurement methodology has to hold across time and conditions. That maps to long-horizon product experiments, regulatory submissions, and longitudinal customer research."\n- "The operational move: you sequenced the rollout across thirty-eight markets while protecting the margin in each. That works the same way in any multi-region launch where local economics differ."\n- "What this signals to a hiring manager in [different domain]: someone who has run [specific operational pattern] in conditions [different domain] usually does not have."\n\nTest for every interpretive sentence: does this tell the user something they could only know if they imagined themselves in a context they have not been in? If yes, it is translation. If it tells them something about themselves they already feel, it is praise.\n\nSURFACE THE INSIGHT (load-bearing across this output):\n\nEvery interpretive chunk in this output uses visual hierarchy so a 7-second scan catches the salient insight. The user scans before they read. An insight buried mid-paragraph is a missed insight.\n\nFor every pattern, observation, capability, fit-read, story-piece, or other interpretive unit in this output:\n\n- Lead with a BOLDED HEADLINE of 5 to 12 words that names the insight in plain language. The headline carries the translation move (per TRANSLATION NOT PRAISE rule) when applicable. Plain language, no hedging language in the headline itself.\n- Follow with 1 to 3 short sentences of supporting prose that anchor the headline in the specific evidence from the user's inputs.\n- Refuse wall-of-text paragraph output where the insight is buried mid-sentence or at the end of a long prose block.\n- Use bullets, indented callouts, or numbered lists when the content is genuinely list-shaped. Refuse prose-shaped output that is actually a list pretending to be a paragraph.\n\nThe visual structure is part of the deliverable, not decoration. A correctly-shaped analytical chunk:\n\n**You define research practice where none exists yet.**\nVR consumer experiences, AI-assisted search, computational photography. A decade of work where the research question itself is ambiguous. This pattern of choosing pre-playbook problems transfers to any space where the product category is still forming and the research function has to be built alongside it.\n\nThe same content as a wall-of-text paragraph is a failure:\n\n"Your career shows a consistent pattern of choosing the hardest research problems: the products that do not exist yet, the user behaviors that are emerging in real time, the questions where there is no playbook. From VR consumer experiences to AI-assisted search to computational photography, you have spent the last decade in spaces where the research question itself is ambiguous. Patterns like this often signal intellectual restlessness and a preference for operating at the edge of what is known. You are defining what the research practice should be for a product category that is still forming."\n\nSame insight. The structured version scans; the prose version buries. Always produce the structured version.\n\nThis rule applies to every section that produces interpretive content. Sections that are inherently single-sentence (the Golden Thread of P.p3, the Personal Brand statement of P.p3) are exempt because they are themselves the headline. Sections that produce structured deliverables already (STAR stories, company lists, interview questions) follow their existing structure.\n\nNO PROCESS NARRATION: Do not narrate your research or reasoning process in the output. Do not write sentences like "I need to search for...", "Let me look at...", "Now let me search...", "Based on my research, I now have...", "Let me create...", "I will now produce...", or "First, I'll examine..." or any similar process-narration phrasing. The output is the deliverable itself. Your search, reasoning, and synthesis happen internally and never appear in the response. Start your response with the QUICK TAKEAWAY heading directly.\n\nJOB DESCRIPTION (uploaded or pasted by the user):\n${jd}\n\nBRIDGE STORY: ${asText(bridgeStoryToProse(outs.p6)).substring(0,2000)}\nGO-TO-MARKET (excerpt): ${asText(outs.p7).substring(0,1500)}\n\n\n\nThese raw signals are the strongest input for Personality, Passion, and identity grounding. Read them carefully as context for who this person is and what they care about. Do not quote them verbatim back to the user. Paraphrase, and use them to inform your judgment rather than as material to reproduce. Sensitive specifics in LIFE-SHAPING EXPERIENCES (illness names, names of family members, addiction details, immigration status, divorce specifics) must never be named in the output unless the user has surfaced that specific in a context that directly matches this prompt's domain.\n\nSECTION BUDGET: This is a 10-section playbook. Every section from ## 1 to ## 10 must appear in the output. Keep each section tight, roughly the length needed to deliver the section's specific value without padding. If you are running long, compress the earlier sections. Never drop or shorten section 10 (Cover Letter Draft). That section completes the playbook and must appear in full in every generation, including its closing sentence and signature line.\n\nSTART your response with:\n## QUICK TAKEAWAY\n4-5 sentences. Lead with what this role is and what makes it interesting for this user given their background and brand. Surface the specific evidence from their inputs that points to fit (named accomplishments, named capabilities, named values or passions that align) without issuing a verdict about how strong the fit is. Name the most important watch-out or trade-off. End with the action this week. Plain language, no headers inside this section.\n\nThen produce the full playbook in this exact order, with the exact section headers shown:\n\n## 1. HOW THIS ROLE FITS YOU\nLead with an honest read on how well this role fits the user, based only on their actual experience, brand, and wiring measured against what this role requires. Do not reference any direction or path the user chose earlier in Reimagine; evaluate this opportunity on its own terms. If the user's background is a strong match, say so and name why. If it is a stretch or a weak match, say so plainly and explain where the gaps are. Do not block or warn them away. Coach, do not gatekeep. They decide whether to pursue.\n\n## 2. WHY THIS COULD BE A FIT\n(Each fit-reason is a bolded headline of 5 to 12 words carrying the translation move per TRANSLATION NOT PRAISE, then 1 to 2 supporting sentences anchored in specific evidence. No paragraph-shaped fit-reasons, no trait nouns.)\n2 to 3 paragraphs grounded in specific evidence from their Wiring, Brand Synthesis, and prior wins. Name the capabilities and the proof points. Concrete, not abstract. Then foreground the proof points and angles from the user's Brand Synthesis that carry the most weight for THIS role: pick what to emphasize and give a one-line rationale for each framing move. Do not rewrite the synthesis; surface it and apply it to this opportunity.\n\n## 3. RISKS AND HOW TO ADDRESS THEM\n(Each risk is a bolded headline of 5 to 12 words, then 1 to 2 supporting sentences on how to address it, anchored in specifics. No paragraph-shaped risks.)\nTwo parts. First, the watch-outs: where the role stretches the user past their proven track record, and where the JD might be overselling. Be direct; the user needs the watch-outs more than the cheerleading. Second, the likely objections: what resistance the user's profile creates against this specific role, and how to handle each one grounded in their actual experience. Give 3 to 5 objections, each with a rebuttal that does not over-promise or under-acknowledge.\n\n## 4. THE MOST IMPORTANT SIGNALS IN THIS JD\nIdentify 4 to 6 things in the posting that carry real weight. Everything else is secondary. State each in one sentence and explain why it matters.\n\n## 5. WHAT THE HIRING MANAGER IS SOLVING FOR\nRead the JD as evidence of an underlying problem. Infer from industry, company size, title altitude, and what the posting emphasizes and omits. The user reading this should know what conversation the hiring manager actually wants to have.\n\n## 6. STAR STORIES, TUNED TO THIS ROLE\nBuild exactly 3 STAR stories tuned to this specific opportunity. T stands for Thinking, not Tasks. The user already has core stories from their experience; this section selects three and re-emphasizes them for the questions this role's interview cycle is most likely to ask. Use this exact structure for each:\n\n### STORY [NUMBER]: [Short descriptive title]\n**Best for answering:** [2 to 3 specific interview questions this story handles well]\n\n**Situation:** 2 to 3 sentences setting the scene.\n\n**Thinking:** 3 to 4 sentences on how the user diagnosed the situation, what options they weighed, and why they chose the path they chose. Reference a named framework if applicable. This is the most important section because it shows how the user thinks, which is what transfers.\n\n**Action:** 2 to 3 sentences. What they actually did. Specific verbs, no "led the initiative" filler.\n\n**Result:** 1 to 2 sentences. The quantifiable outcome. Bold the key metric.\n\n**Strengthen This Story:** 2 to 3 specific questions that would make this story stronger if answered.\n\n## 7. GETTING PAST THE SCREENING INTERVIEW\nThe first conversation in most hiring processes is a 30-minute screening with a recruiter, HR partner, or initial point of contact. The bar is "do not get screened out" rather than "demonstrate depth." The recruiter is filtering for clear fit, clean fundamentals, and reasons to advance the candidate to the hiring manager.\n\nIdentify the 4 to 5 things this person should land cleanly in that conversation:\n\n- The 1 to 2 accomplishments that translate immediately when stated simply with numbers. Pick ones a recruiter without domain expertise can grasp in one sentence.\n- A clear, one-line answer to "why this role" grounded in the user's actual capability and interest, not in flattery toward the company.\n- A clear, one-line answer to "why now" that connects to their current chapter without over-explaining.\n- One signal of culture fit specific to this company without over-pitching.\n- One question they should ask the recruiter that signals seriousness and gives the recruiter ammunition to advocate for them with the hiring manager.\n\nNote: in many processes the screening interview is also a low-key culture screen. Generic energy gets discounted. Specific curiosity about the company's work and an authentic version of the user's working style land better.\n\n## 8. DRAFT 90-DAY PLAN\nA defensible starting position the user can refine through the interview process. Three phases (first 30, 31-60, 61-90 days), each with 3 to 4 specific actions tied to the responsibilities in the JD. Not the final answer. Framed as a starting position, not a deliverable.\n\n## 9. HIGH-VALUE QUESTIONS TO ASK\n5 to 7 questions specific to this JD's stated and implied scope. Questions that signal seniority and engagement, not generic interview questions. Each question should connect to something in the JD or in what was inferred about the company.\n\n## 10. COVER LETTER DRAFT\nA written counterpart to the bridge story. Same voice rules as the cold outreach in p7 (direct, peer-to-peer, no HR-formula). 3 paragraphs. Senior outreach posture: this is positioning work, not form-filling. End with a complete closing sentence and a signature line; do not leave the close unfinished. Your full Bridge Story is at the Bridge Story step; adapt it to this opportunity by leading with the framing most relevant to this role.\n\nCRITICAL VOICE AND METHODOLOGY RULES:\n- All standard Reimagine voice rules apply: second person, no AI words, no intensifiers, no logic-flips, no staccato drama, no "nightmare," no exposed framework names for KEEL, the 4 C's, the three paths, or balcony/basement.\n- STAR is the exception to "no framework names." Name it openly with T = Thinking framing. The same-story-different-angle idea (a strong story shifts with the question) is also named openly because it is the methodology.\n- Mirror enforcement: surface misfit actively. Especially in sections 1 and 3. Cheerleading defeats the purpose.\n- Coach, do not gatekeep. When the user's background does not fit the role, say so plainly and explain why, then let the user decide.\n- Tailored framing means foregrounding existing material. It does not mean regenerating the Brand Synthesis or Wiring. Those stay stable across all opportunities the user evaluates.\n- Refuse confident claims about anything not in the JD or supportable from general knowledge of the industry, company size, and altitude. Sparse JDs produce sparser output, not invented detail.\n\nLOGIC-FLIP CADENCE REFUSAL (load-bearing, applies to every section of this output):\n\nNever use logic-flip cadence anywhere. Banned constructions include:\n- "You do not just X, you Y."\n- "You build X, not Y."\n- "It is not a Z, it is a W."\n- "They are not evaluating A, they are picturing B."\n- "Z was not because of W; it was because of X."\n\nReal failure cases to refuse (these have shipped in past Reimagine outputs):\n- "I do not just maintain accounts, I open doors that stay open." Rewrite: "I open doors that stay open."\n- "The cost reduction was not a lucky negotiation; it was you mapping the entire spend, finding the leaks, and redesigning the system." Rewrite: "You mapped the entire spend, found the leaks, and redesigned the system to close them. That is where the savings came from."\n\nIf you catch yourself reaching for a negation-pivot construction, refuse it and rewrite from the positive side. State the positive claim on its own.\n\nMIRROR, NOT CHEERLEADER: Do not assume the user might attribute their accomplishment to luck, external factors, or anything other than what they actually did. Do not pre-frame the user's mental state in order to refute it. Describe the actual capability and the actual outcome on their own terms.\n\nTRIANGULATION DISCIPLINE: When multiple personal inputs are available (multiple passions, multiple values, multiple reputation phrases, multiple life-shaping experiences, multiple accomplishments), do not list them. Test each one against the user's career arc and the through-line you have identified, and pick the ONE input that creates the strongest single-frame view of who this person is at work. The other inputs may be true and may inform your analysis silently. They do not earn space in the output unless they anchor a specific insight that would land less precisely without them. Listing dilutes. Anchoring works. If you find yourself writing "X, and Y, and Z" with three personal items in one sentence, stop and pick one.`,
   income:(pr,outs,sel)=>`You are building an Income Now plan for this professional. They are pursuing: **${sel}** as their longer-term goal and need income during the transition.\n\nEPISTEMIC CALIBRATION (load-bearing across this output):\n\nEvery interpretive claim about the user is a HYPOTHESIS by default, expressed in directional language. Declarative claims are EARNED ONLY when the supporting evidence is named in the same paragraph as the claim. Hedge by default; go declarative when evidence is on the page; refuse declarative when it is not.\n\nDIRECTIONAL PHRASES to reach for (use varied vocabulary; do not repeat any single phrase across the output):\n"There is a pattern that seems to indicate," "this may suggest," "often correlates with," "tends to signal," "we see a pattern of," "this points toward," "it appears that," "you seem to," "on more than one occasion," "the pattern often involves," "this looks like."\n\nEARNED DECLARATIVE : three cases where declarative is appropriate:\n\n(a) Explicit assessment signal named in the output, INCLUDING THE ASSESSMENT NAME (CliftonStrengths, Predictive Index, Big Five, Affintus, MBTI, etc.) in the same sentence or the immediately preceding sentence. Example: "Your CliftonStrengths shows Strategic in your top 5, which means you naturally see patterns others miss." The "which means" is declarative because BOTH the assessment name AND the construct are present. Refuse: "High openness to experience means you prefer a job that requires you to create solutions" (construct named, source instrument not named). Either name the instrument or rewrite into hypothesis voice ("this looks like high openness, which often points toward...").\n\n(b) Verbatim user-input quoted in the output. Example: 'You wrote in orientation that you "want to build things that matter to people who do not have a voice." That conviction shapes the function choices below.' Declarative because the quote is right there.\n\n(c) Named triangulation across 2-3 specific inputs the output lists. Example: 'In orientation you described the work as "designing the question." Your reputation note named "methodology under ambiguity." Your Apple accomplishment built measurement protocols for a product that did not yet exist. Three sources, the same operational move: you build the research question before you answer it.' The closing declarative is earned because three sources are named in the same chunk.\n\nREFUSE these specific overclaim patterns:\n\n1. ABSOLUTISM IN INTERPRETIVE CLAIMS:\n- "Every [noun] you have [verb]" / "every major program" / "every role" / "every time"\n- "Always" / "never" / "the hardest" / "the most X" / "the only Y"\n- "You have spent your career [verb]-ing" : life-arc framing presented as fact\n\nIf the claim depends on a pattern across the career, name the specific career moments the pattern is drawn from. Do not collapse to "every".\n\n2. MIND-READING (attributing internal motivation):\n- "by [verb]-ing X" claiming internal motivation ("by refusing to," "by choosing to," "by caring about")\n- "your conviction that [X]" / "your mission is [X]" / "you believe [X]"\n\nRefuse unless the [X] is directly quoted from the user's verbatim inputs (orientation answers, reputation phrases, values text). Reading minds is not analysis.\n\n3. SLOGAN-CADENCE CLOSERS:\n- Paired declarative sentences in "The X is the Y. The Z is the W." cadence\n- "X is the engine. Y is the fuel."\n- Inspirational-poster paired sentences\n\nThese read as marketing copy, not analysis. Refuse the cadence regardless of whether the content is otherwise accurate.\n\nA runtime gate will scan shipped output for these constructions and force regeneration when detected. Output that contains them will not reach the user.\n\nTRANSLATION NOT PRAISE (load-bearing across this output):\n\nEvery interpretive claim about the user is a TRANSLATION move, not a CHARACTERIZATION. Translation tells the user where their capability transfers to a context they have not been in. Characterization tells them what trait they have, which they already know.\n\nThe user comes to Reimagine already feeling capable. Telling them "you bring rigor to applied problems" or "you are an operator" or "you handle ambiguity well" is praise-shaped: reflection without new information. They feel acknowledged but learn nothing. The value-add Reimagine provides is showing them where their capability transfers, which contexts they have not been in would reward this exact move.\n\nFor every interpretive sentence:\n- Refuse "you bring X to Y." Rewrite as "this transfers to [specific other contexts where the move is rare or valuable]."\n- Refuse "you are an X." Rewrite as "the operational move you made, [specific], works the same way in [specific other contexts]."\n- Refuse trait-noun characterizations (rigorous, operator, builder, integrator, connector, hunter, farmer, architect, fixer, closer, etc.). These also violate the existing NO TYPOLOGY LABELS rule.\n- Anchor every translation in a specific operational move the user actually made, not a trait inferred from inputs.\n\nNEVER assert relative standing against unnamed groups. "Most people," "many candidates," "the average professional," "most hiring managers do not see X," "where others settle for X" are all forbidden. The user gets compared to no one. The voice guard catches some of these; the rule is broader than the guard.\n\nFailure cases to refuse:\n- "You bring academic rigor to applied problems." (characterization, no translation)\n- "You can isolate causality in messy environments where most people settle for correlation." (characterization plus comparative standing)\n- "You are a connector." (typology trait, also covered by NO TYPOLOGY LABELS)\n- "You sustain the intensity required to get to yes." (already refused by EVIDENCE-BASED CONFIDENCE; same failure mode)\n\nSuccess cases:\n- "Where this transfers: you can design and run a multi-year protocol where measurement methodology has to hold across time and conditions. That maps to long-horizon product experiments, regulatory submissions, and longitudinal customer research."\n- "The operational move: you sequenced the rollout across thirty-eight markets while protecting the margin in each. That works the same way in any multi-region launch where local economics differ."\n- "What this signals to a hiring manager in [different domain]: someone who has run [specific operational pattern] in conditions [different domain] usually does not have."\n\nTest for every interpretive sentence: does this tell the user something they could only know if they imagined themselves in a context they have not been in? If yes, it is translation. If it tells them something about themselves they already feel, it is praise.\n\nSURFACE THE INSIGHT (load-bearing across this output):\n\nEvery interpretive chunk in this output uses visual hierarchy so a 7-second scan catches the salient insight. The user scans before they read. An insight buried mid-paragraph is a missed insight.\n\nFor every pattern, observation, capability, fit-read, story-piece, or other interpretive unit in this output:\n\n- Lead with a BOLDED HEADLINE of 5 to 12 words that names the insight in plain language. The headline carries the translation move (per TRANSLATION NOT PRAISE rule) when applicable. Plain language, no hedging language in the headline itself.\n- Follow with 1 to 3 short sentences of supporting prose that anchor the headline in the specific evidence from the user's inputs.\n- Refuse wall-of-text paragraph output where the insight is buried mid-sentence or at the end of a long prose block.\n- Use bullets, indented callouts, or numbered lists when the content is genuinely list-shaped. Refuse prose-shaped output that is actually a list pretending to be a paragraph.\n\nThe visual structure is part of the deliverable, not decoration. A correctly-shaped analytical chunk:\n\n**You define research practice where none exists yet.**\nVR consumer experiences, AI-assisted search, computational photography. A decade of work where the research question itself is ambiguous. This pattern of choosing pre-playbook problems transfers to any space where the product category is still forming and the research function has to be built alongside it.\n\nThe same content as a wall-of-text paragraph is a failure:\n\n"Your career shows a consistent pattern of choosing the hardest research problems: the products that do not exist yet, the user behaviors that are emerging in real time, the questions where there is no playbook. From VR consumer experiences to AI-assisted search to computational photography, you have spent the last decade in spaces where the research question itself is ambiguous. Patterns like this often signal intellectual restlessness and a preference for operating at the edge of what is known. You are defining what the research practice should be for a product category that is still forming."\n\nSame insight. The structured version scans; the prose version buries. Always produce the structured version.\n\nThis rule applies to every section that produces interpretive content. Sections that are inherently single-sentence (the Golden Thread of P.p3, the Personal Brand statement of P.p3) are exempt because they are themselves the headline. Sections that produce structured deliverables already (STAR stories, company lists, interview questions) follow their existing structure.\n\nLINKEDIN REMIX: ${asText(outs.p8)}\nPASSIONS: ${pr.passions}\nLOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}\n\n\n\nThese raw signals are the strongest input for Personality, Passion, and identity grounding. When you need to ground a claim about who this person is or what they care about, reach for verbatim phrases from these signals rather than paraphrasing through the synthesized profile.\n\nUSE THE STRONGEST GROUNDING SOURCE AVAILABLE. When raw signals point to a specific assessment finding, a verbatim reputation phrase, a named passion, or a specific formative life pattern, lead with that. Defaulting to the safer professional-only proof is a failure mode.\n\nSTART your response with:\n## QUICK TAKEAWAY\n4-5 sentences: the fastest path to income for this person, the single best platform to start on and why, a realistic rate range, and the one thing to do in the next 48 hours. Plain language, no headers inside this section.\n\nThen continue with the full plan:\n\nFRAMING: Income Now lives in Familiar Ground, the senior, modernized version of what this person already does well. They do not need to reinvent themselves. They need to package what they know and make it easy for buyers to find and hire them quickly.\n\nPITCH PRINCIPLE: People buy painkillers, not vitamins. They act when something is hurting. Every service description and outreach message should name a real problem the buyer is living with right now. Lead with the pain. Follow with how this person fixes it. Close with what it costs. The buyer does not care about titles or tenure. They care whether their problem goes away.\n\n**PART 1, WHERE TO SHOW UP:** Based on their specific background, identify 4-6 marketplaces and channels where this person can get in front of paying clients quickly. Think beyond the obvious. There are specialist platforms for nearly every senior function. Match these to their actual background.\n\nExamples by function: HR/talent/people leader: Catalant, Business Talent Group, Bolste, Learnerbly. Finance executive: Toptal Finance, Graphite, CFO Alliance, Paro. Tech/product executive: Toptal, Arc, Expert360, Gun.io. Marketing/brand/growth: GrowthMentor, Credo, Mayple, Expert360. Strategy/general management: Catalant, Business Talent Group, Umbrex. Sales/revenue leader: Bravado, Toptal, Sales Talent Agency. Board-ready executive: Boardlist, OnBoard, Bolste. Career/coaching/talent development: Coach.me, Clarity.fm, Maven, LinkedIn Services, direct outreach.\n\nFor each: platform name, why it fits this specific person, type of work available, realistic rate range, and the single first step to get listed or active.\n\n**PART 2, YOUR CONSULTING PRESENCE:** Write ready-to-use copy this person can use across any of the platforms above or in direct outreach. Everything should be framed around buyer pain, not seller biography.\n\n- Positioning headline (under 100 characters, names the problem, not the person's background)\n- Bio (150 words, first person, opens with the pain the buyer has, closes with a specific outcome this person has delivered)\n- 4 specific service offerings. For each: a problem-first title (e.g. "When your best people are leaving and you don't know why" not "Retention Consulting"), the specific buyer, what the engagement includes, the outcome framed as money made/saved/risk removed, and price at senior market rates ($300-$500/hour advisory, $1,000-$3,000 for a defined deliverable, $4,000-$10,000 for a strategic engagement)\n- One outreach message: sentence 1 names the pain, sentences 2-3 connect one specific result from their background to that pain, sentence 4 asks for 15 minutes as a peer conversation. Plain language. No buzzwords.\n\n**PART 3, FRACTIONAL PITCH:** One paragraph for cold LinkedIn or email. Same pain-first structure. Names the business problem, explains how they fix it, states cost and how to engage.\n\n**PART 4, GIGS AT THE PASSION INTERSECTION (TWO SLICES):**\n\n**Slice A, Income-First.** 3 specific engagements at the intersection of the candidate's current skills and stated passions that could generate income within 60 days. For each: the service, the buyer, why this person is credible to them, price, and one action to take this week.\n\nFor each Slice A engagement, name a specific buyer TYPE, not just a service category. Buyer specificity is what turns a passion-adjacent idea into something the candidate can pursue in the next 60 days.\n\nExamples of the move from category to buyer:\n\nCATEGORY ONLY (insufficient): "Advisory work for purpose-driven CPG brands."\nSPECIFIC BUYER (right): "Advisory work for emerging functional-food brands in the $5M to $25M revenue band, specifically those backed by impact-focused funds like Acumen Fund Partners or Beneficial Returns. These funds need operating advice from someone who has scaled in CPG without dilution of mission."\n\nCATEGORY ONLY (insufficient): "Consulting for nonprofit boards in healthcare."\nSPECIFIC BUYER (right): "Fractional commercial advisor to community health center networks at the $20M to $100M revenue scale, particularly FQHCs in mid-size markets that have grown beyond grant funding and need commercial discipline. The Vital Roots Network is one example; the candidate's stated passion for accessible healthcare connects directly."\n\nFor each Slice A engagement:\n- Name the buyer specifically (organization type, revenue band, geography or vertical if relevant, named examples if known).\n- Name why this person is credible to THAT buyer (which professional capability transfers and which passion connects).\n- Price and one action to take this week.\n\nIf the candidate's stated passions point to a buyer type that requires specific credentials or networks they do not have (e.g., they care about climate but have no climate experience), name what would need to be added to make this passion-adjacent path viable rather than listing it as immediately actionable.\n\n**Slice B, Evidence-First.** 2 to 3 engagements at the intersection of MISSING skills and the candidate's pr.passions. The goal of Slice B is to build the gap skills the LinkedIn Remix Skills Delta surfaced. Volunteer engagements sit on equal footing with paid gigs in this slice; for an unproven skill, volunteer is often the faster path to evidence.\n\nIf LINKEDIN REMIX (outs.p8) is present in the PROFILE block above, read the development-area skills from List 4 of the Skills Delta. If outs.p8 is absent (the candidate came to Income Now before generating LinkedIn Remix), infer gap skills from ${sel} versus outs.p1, with explicitly lower confidence in the framing.\n\nFor each Slice B engagement:\n- The org type, or two to three specific organizations aligned with the causes side of pr.passions.\n- The missing skill it builds, named explicitly.\n- The deliverable that produces real evidence (a campaign, a project, a measurable outcome).\n- Where the experience lives on LinkedIn (Experience or Volunteer Experience section).\n- Timeline to first evidence, 30 to 90 days.\n- First step to engage this week.\n\nFrame Slice B as a choice the candidate makes to close a gap by doing real work. Volunteer is one valid path, paid gig is another; both produce evidence.\n\n**PART 5, THE ONE SHEET:** Problem-first throughout. Sections: The Problem I Solve (2 sentences), How I Help (3 service bullets with prices), Who I Work With, What Happens When We Work Together (2-3 outcomes as made money/saved money/mitigated risk), How to Start (rates, availability, contact).\n\n**PART 6, FIRST 48 HOURS:** Exactly what to do in the next two days to have a profile live or an outreach message sent. Specific steps only.\n\nTone: direct and practical. Write everything as if it will be used today.`,
   skillsExtract:(pr)=>`You are extracting structured hard skills from a candidate's resume and LinkedIn profile. Output ONLY a JSON object matching the schema below. No prose. No preamble. No markdown fence.\n\nSchema:\n{\n  "technical": [string],\n  "systems": [string],\n  "certifications": [string],\n  "languages": [string],\n  "methodologies": [string]\n}\n\nCategory definitions:\n- technical: Hard tools, software, programming languages, design tools, analytics tools. Examples: Excel, Python, SQL, Tableau, Figma, Adobe Creative Suite.\n- systems: ERP, CRM, billing, HRIS, industry platforms. Examples: Salesforce, SAP, Workday, Epic, NetSuite, ServiceNow.\n- certifications: Named credentials. Examples: PMP, CFA, CPA, AWS Solutions Architect, Six Sigma Black Belt, ScrumMaster, SHRM-CP.\n- languages: Spoken or written languages with fluency level when stated. Examples: "Spanish (fluent)", "Mandarin (conversational)".\n- methodologies: Named frameworks, processes, or approaches. Examples: Agile, Lean, Design Thinking, OKRs, RICE prioritization, JTBD.\n\nRules:\n- Extract only skills the candidate explicitly demonstrates in the documents below. Do not infer.\n- Use the candidate's own terminology where it is clear; normalize obvious variants (e.g., "MS Excel" and "Microsoft Excel" both become "Excel").\n- Skip skills that are too vague to be useful as keywords ("leadership", "communication", "problem solving"). Those belong in Personality and Wiring outputs, not the hard skills inventory.\n- If a category has no entries, return an empty array for that category. Do not omit the key.\n- Maximum 12 entries per category. If more are present, prioritize the most recent and most explicitly demonstrated.\n- Certifications are PROFESSIONAL CREDENTIALS only. Examples: PMP, CFA, CPA, SHRM-SCP, Workday HCM Certified, AWS Solutions Architect, Six Sigma Black Belt, ScrumMaster, board certifications, state licenses. The following are NOT certifications and must NEVER appear in this category:\n  - Academic degrees (MBA, BA, BS, MS, MA, PhD, JD, EdD)\n  - University-issued certificates of completion or continuing education (e.g., "Certificate in Multi-Media Technologies," "Masters Certificate in Leadership")\n  - Executive education programs from named business schools (Wharton, MIT Sloan, Harvard Business School, Stanford GSB, Kellogg, etc.) regardless of how the candidate phrases them\n- Languages: extract only languages explicitly named in the documents with stated fluency or context. If no language is explicitly named, return an empty array. Do NOT add "English" by inference from the candidate's location or document language.\n- Methodologies are INDUSTRY-RECOGNIZED FRAMEWORKS with proper-noun specificity. Examples: Agile, Scrum, Lean, Six Sigma, Lean Six Sigma, OKRs, RICE prioritization, Design Thinking, JTBD (Jobs To Be Done), Toyota Kata, Kaizen, SMED, TAKT time, Stage Gate, Design of Experiments (DOE), MaxDiff, Conjoint, TURF, Segmentation, CAWI, CAPI, CATI. Quality standards (ISO 9001, NADCAP, IATF 16949, MS 13485) belong here when the candidate implements them. The following are NOT methodologies:\n  - Function or role labels ("workforce planning," "business development," "change management," "process improvement," "project management")\n  - Generic business practices ("strategic planning," "cultural transformation," "coaching/mentoring," "P&L management")\n  - Job-area descriptors ("sales methodologies," "integrated business planning")\n  - Company-internal program names (e.g., "Quick Cycle Innovation," "HIVE," "Joint Business Plan / JBP," "Joint Value Plan / JVP") unless those names are also recognized industry frameworks\n- Treat resume sections labeled "Core Competencies," "Key Skills," "Areas of Expertise," or LinkedIn "Top Skills" as suggestive context only, not as authoritative skill labels. Each item must still pass the category definitions above to be extracted. Most items in these sections are function/practice labels and should be skipped.\n- Disambiguation for analytics platforms (Tableau, Power BI, Looker, Nielsen products, YouGov products, Walmart Luminate, SAP BusinessObjects, etc.): place in technical when the user wields the tool to run analyses, place in systems when the platform is operated at enterprise scale and the user works within it. When ambiguous, default to technical.\n- Generic references (e.g., "CRM system," "ERP system," "SaaS BI tool," "analytics platform," "knowledge management system") without a named product MUST NOT be extracted. Skills require specific named tools, systems, or methodologies; category labels do not qualify.\n- Extract certifications even when they appear unrelated to the candidate's primary career (e.g., a yoga instructor cert held by a food scientist). The schema does not filter by relevance; downstream prompts decide which skills to surface.\n\nCANDIDATE RESUME:\n${pr.resume||'not provided'}\n\nCANDIDATE LINKEDIN PROFILE:\n${pr.linkedin||'not provided'}\n\nOutput the JSON object now.`,
+  // --- Resume Builder ("I need help with my resume first") generation prompts.
+  // AREAS and SKILLS run the plain callClaude path; SHAPE_AND_NUDGE and BASELINE
+  // run the voice-gated path like Resume Refresh. Shared truthfulness discipline:
+  // never assert anything the person did not state, never invent or pre-fill a
+  // number, mirror not flatter, plain warm language.
+  // LINKEDIN_PARSE (plain path): structure a LinkedIn "Save to PDF" text export
+  // into the builder skeleton. Extraction only; invents nothing.
+  LINKEDIN_PARSE:(text)=>`You are reading the text of a LinkedIn "Save to PDF" profile export. Extract the person's work history into structured JSON. Use ONLY what is in the text. Invent nothing. If a field is not present, return an empty string for it.
+
+From the EXPERIENCE section, list each employer in the order shown. For each employer:
+- "company": the employer name.
+- "context": a short phrase describing what the company does or its size, ONLY if the text states it near that employer; otherwise an empty string. Do not invent or guess.
+- "titles": one or more roles held at that employer, each with "title" and "dates" copied as written (for example "January 2021 - Present" or "2019 - 2024"). When one employer shows several roles stacked together (a promotion history), include each as a separate entry in this list, in the order shown, under that one employer. Do not copy the employer-level total tenure line (for example "5 years 1 month") as a title.
+
+Also extract:
+- "name": the person's full name, shown near the top of the profile.
+- "location": the person's own location line near their name (for example a metro area), if present.
+
+Ignore page markers like "Page 1 of 7", and ignore the Contact, Top Skills, Languages, Certifications, Summary, and Education sections for this output.
+
+Return ONLY a JSON object, no preamble and no markdown fence:
+{ "name": "", "location": "", "employers": [{ "company": "", "context": "", "titles": [{ "title": "", "dates": "" }] }] }
+
+PROFILE TEXT:
+${text}`,
+  AREAS:(title,industry,companyContext)=>`Someone is rebuilding their resume and needs help remembering what they did in a past role. The role is ${title}${industry?` in ${industry}`:''}${companyContext?` (${companyContext})`:''}.
+
+List up to 10 areas of responsibility and impact that someone in this role commonly owns. These are memory-joggers to spark their own recall, not claims about this person and not resume bullets.
+
+Rules: each item is a short phrase (2 to 5 words), not a sentence. Span the real range of the role: the functional work, the leadership and management, the cross-functional and stakeholder work, and any domain or compliance areas, not only the technical parts. No metrics, no invented specifics, no company names. Return a plain list, one phrase per line, nothing else.`,
+  SHAPE_AND_NUDGE:(title,industry,rawLines)=>`A person wrote rough notes about what they did as ${title}${industry?` in ${industry}`:''}. Turn each note into a strong resume line, then decide whether it could be quantified more.
+
+For each note, return an object with:
+- "shaped": the note rewritten as a resume bullet. Translate only what they said. Lead with a strong verb. Frame the result as money made, money saved, time or efficiency gained, or risk reduced where the note supports it. Do not add accomplishments, tools, or scope they did not mention. Do not invent or insert any number.
+- "nudge": include only if the line is measurable but has no number. Name how this kind of work is usually measured and ask them to recall the figure. Choose the dimension that is missing:
+  - impact (how much something moved): name the typical units for this work and ask roughly how much it changed.
+  - scope (how big the thing they ran was): name the sizing dimensions (budget, headcount, volume, geography, share of the total) and ask what it added up to.
+  Keep the nudge to two or three sentences, warm and plain. If the line already carries a clear number or clearly needs none, omit "nudge".
+
+Return ONLY a JSON array of objects { "shaped": string, "nudge"?: string } in the same order as the input lines. No preamble, no markdown fence. Input lines:
+${rawLines}`,
+  SKILLS:(title,industry,shapedAccomplishments)=>`Build a skills list for a ${title}${industry?` in ${industry}`:''}, to appear on their resume. Ground it in what they described:
+${shapedAccomplishments||'(no accomplishments captured yet; use the role and industry)'}
+
+Return skills grouped by category. Use these categories where they apply: functional and domain expertise; leadership and management; methodologies; technical and systems; compliance and safety. Span the full range a strong resume writer would capture, not only technical skills, and include the durable skills that are real for this role (for example stakeholder management, negotiation) while avoiding filler like "team player" or "hard worker".
+
+Mark each skill that is clearly supported by what they described as pre-selected. Name skills in the concrete terms an applicant tracking system scans for. Do not invent specific tools or certifications they did not mention; for technical and systems, prefer the category or common examples unless their notes named a specific tool.
+
+Return ONLY a JSON array of objects { "category": string, "items": [{ "skill": string, "preselected": boolean }] }. No preamble, no markdown fence.`,
+  BASELINE:(material,proudestOf,posture)=>`Assemble a resume from the material below. Write it to a Familiar Ground posture: ${posture} That means present this person for the kind of work they already do well, in broadly legible terms, without tailoring to any specific job or pivot.
+
+Rules:
+- Use only what is provided. Do not invent employers, roles, accomplishments, tools, or numbers. Where a bullet has no number, leave it as a strong qualitative statement.
+- Open with a short professional summary in the person's voice.${proudestOf?` Let what they said they are proudest of anchor it: ${proudestOf}`:''}
+- Order each role's bullets so the strongest impact leads.
+- Keep it ATS-clean: plain language, standard sections, no graphics or tables (the renderer handles layout).
+- No em dashes. No filler adjectives.
+
+CAPTURED MATERIAL:
+${material}
+
+Return ONLY a JSON object in this schema (no preamble, no markdown fence):
+{
+  "header": { "name": "", "email": "", "phone": "", "location": "", "linkedin": "" },
+  "summary": "",
+  "keyAccomplishments": [],
+  "experience": [{ "company": "", "context": "", "titles": [{ "title": "", "dates": "" }], "bullets": [] }],
+  "education": [{ "degree": "", "field": "", "institution": "", "year": "" }],
+  "skills": [{ "category": "", "items": [] }]
+}`,
   // Per-slot LinkedIn Remix regen sub-prompts (PR A). Instructions + sibling
   // context only: the canonical profile arrives as the cached content block via
   // callClaude opts.profileBlock (PR #172 two-block shape), so these stay light
@@ -2012,8 +2147,8 @@ const PHASES=[
 // two readers (the orientation sidebar and the section-name lookup) now read
 // NAV_LABELS. This also fixed the stale "Pick a Direction"/"Upload a Live
 // Opportunity" labels META still carried.
-const ALL=['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p1','p2','p3','twoDoors','laneSelect','p4','focus','mylib','op','complete','myCoach']
-const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p1','p2','p3'])
+const ALL=['welcome','location','resume','resume-builder','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p1','p2','p3','twoDoors','laneSelect','p4','focus','mylib','op','complete','myCoach']
+const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','resume-builder','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p1','p2','p3'])
 // Captured at module load (before any beforeprint can change document.title) so
 // afterprint always restores the true base title regardless of effect re-runs.
 const BASE_DOC_TITLE=typeof document!=='undefined'?document.title:'Reimagine'
@@ -2597,6 +2732,10 @@ const LANE_CARDS = [
   { id:'insider', label:'Industry Insider', tagline:'Your industry expertise, in more places than you might think.', blurb:'You stay in your industry but expand where you can work within it. The ecosystem around your current role holds more options than you may realize — clients, vendors, consultants, regulators, adjacent companies. Same insider knowledge, broader range of roles.' },
   { id:'wtm', label:'Work That Matters', tagline:'A real pivot toward meaning.', blurb:"Built on the intersection of what you love, what you are good at, what the world needs, and what you can be paid for. The biggest move of the three, and often the one that feels most energizing if it's the right move." },
 ]
+// Shared Familiar Ground posture, lifted from the lane card blurb + the inline
+// lane gloss (App.jsx:~2003) so the Resume Builder baseline does not restate it.
+// Kept em-dash-free for the builder prompts' no-em-dash rule. Used by P.BASELINE.
+const FAMILIAR_GROUND_POSTURE = "Familiar Ground is the no-pivot default. Present the person for the kind of work they already do well: same function, similar or adjacent industry, possibly a bigger company or more scope. Write it so the widest set of recruiters read it as immediately legible, because the work itself is familiar and the track record speaks for itself. Do not tailor to any one job, pivot, or narrow lane, and assume no specific target role."
 const OPTION_SPLIT_RE = /(?=^#{1,3}\s*OPTION:\s*)/m
 const OPTION_COUNT_RE = /^#{1,3}\s*OPTION:/mg
 const sliceLaneBlock = (text, header) => {
@@ -3261,7 +3400,7 @@ export default function PivotEngine(){
   // current build vs a stale one: build/live SHAs, last check time, and
   // status all render in a fixed corner element. Production users see nothing.
   const isDebug=_params.get('debug')==='1'
-  const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',linkedin:'',linkedinFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',skills:{technical:[],systems:[],certifications:[],languages:[],methodologies:[]},corrections:[],frameworks:[],jd:'',jdFile:'',companyReadInput:''}
+  const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',linkedin:'',linkedinFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',skills:{technical:[],systems:[],certifications:[],languages:[],methodologies:[]},corrections:[],frameworks:[],jd:'',jdFile:'',companyReadInput:'',builder:null,baselineResume:null}
   const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''}
   const initStep=isDemo?'welcome':'welcome'
   const[step,setStep]=useState(initStep)
@@ -3354,6 +3493,7 @@ export default function PivotEngine(){
   const[p7Intro,setP7Intro]=useState(true)
   const[p9Intro,setP9Intro]=useState(true)
   const[fileLoading,setFileLoading]=useState(false)
+  const[showPasteResume,setShowPasteResume]=useState(false)
   const[skipAssessWarn,setSkipAssessWarn]=useState(false)
   const[surveyDone,setSurveyDone]=useState(isDemo)
   const[survey,setSurvey]=useState({nps:null,valuable:'',confidence:null,accuracy:null,open:''})
@@ -3753,8 +3893,12 @@ export default function PivotEngine(){
   // p3->every-section / p6->POST_P6_FOCUS approximation, which mis-flagged p9
   // and p7 and missed the p8->income edge).
   //   p3 -> {p5,p6,p7,p8,p11,p_res,income}   p6 -> {p8,p11}   p8 -> {income}
-  const SECTION_UPSTREAMS={p5:['p3'],p6:['p3'],p7:['p3'],p8:['p3','p6'],p11:['p3','p6'],p_res:['p3'],p9:[],income:['p3','p8']}
-  const STAMPABLE_UPSTREAMS=['p3','p6','p8']
+  // resume -> {p1,p2,p3}: a Resume Builder edit/regen stamps outputs.resume_updated_at
+  // (on commit/baseline regen, NOT on keystroke), so the synthesis chain reads as
+  // refreshable. The refresh is an explicit offer on the Personal Brand surface,
+  // never automatic. p3 -> downstream edges already propagate once p3 is rebuilt.
+  const SECTION_UPSTREAMS={p1:['resume'],p2:['resume'],p3:['resume'],p5:['p3'],p6:['p3'],p7:['p3'],p8:['p3','p6'],p11:['p3','p6'],p_res:['p3'],p9:[],income:['p3','p8']}
+  const STAMPABLE_UPSTREAMS=['resume','p3','p6','p8']
   const isSectionStaleAgainst=(sectionId,upstream)=>{
     const sectionAt=outputs[`${sectionId}_built_at`]
     const upstreamAt=outputs[`${upstream}_updated_at`]
@@ -4485,6 +4629,327 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[opBuildingSlot,setOpBuildingSlot]=useState(null)
   const[opSectionErrors,setOpSectionErrors]=useState({})
   const opSectionReqRef=useRef(0)
+  // Resume Builder ("I need help with my resume first") private generation state.
+  // Mirrors the op-section pattern: a busy key (which generation/role is in flight),
+  // a per-key error map, and a request-id ref so a re-edit drops a stale write. Kept
+  // OFF the shared loading / generatingSection guards so the builder never blocks (or
+  // is blocked by) the synthesis chain or a Focus refresh.
+  const[builderBuilding,setBuilderBuilding]=useState(null)
+  const[builderErrors,setBuilderErrors]=useState({})
+  const[skillDraft,setSkillDraft]=useState('')
+  const builderReqRef=useRef(0)
+  const setBuilder=(fn)=>setProfile(p=>{const cur=p.builder||{};return{...p,builder:typeof fn==='function'?fn(cur):fn}})
+  const builderErr=(k,msg)=>setBuilderErrors(e=>({...e,[k]:msg}))
+  // Robust JSON-array extractor for the shaping/skills generations (mirrors
+  // parseResumeJSON's fence-and-bracket strategy for arrays).
+  const parseJsonArray=(raw)=>{
+    if(typeof raw!=='string')return null
+    let s=raw.trim();const f=s.match(/^```(?:json)?\s*([\s\S]*?)```\s*$/);if(f)s=f[1].trim()
+    const a=s.indexOf('['),b=s.lastIndexOf(']');if(a<0||b<0||b<a)return null
+    try{const o=JSON.parse(s.slice(a,b+1));return Array.isArray(o)?o:null}catch{return null}
+  }
+  const parseJsonObject=(raw)=>{
+    if(typeof raw!=='string')return null
+    let s=raw.trim();const f=s.match(/^```(?:json)?\s*([\s\S]*?)```\s*$/);if(f)s=f[1].trim()
+    const a=s.indexOf('{'),b=s.lastIndexOf('}');if(a<0||b<0||b<a)return null
+    try{const o=JSON.parse(s.slice(a,b+1));return o&&typeof o==='object'?o:null}catch{return null}
+  }
+  const roleTitle=(emp)=>(emp&&emp.titles&&emp.titles[0]&&emp.titles[0].title)||''
+  const emptyEmployer=()=>({company:'',context:'',titles:[{title:'',dates:''}],areas:[],rawText:'',shaped:[]})
+  // extractText returns a bracketed notice string when the PDF has no text layer
+  // (image-based / browser-printed). Detect it so we route to from-scratch.
+  const looksLikeExtractFallback=(t)=>/^\s*\[/.test(String(t||''))&&/(could\W?n\W?t be read|image-based|browser)/i.test(String(t||''))
+  // 0. LINKEDIN_PARSE (plain path): extract the LinkedIn PDF text, then structure
+  // it into the builder skeleton so the person sees their history laid out and only
+  // corrects it. Falls through to from-scratch when the PDF has no readable text.
+  const genBuilderLinkedinParse=async(file)=>{
+    if(builderBuilding)return
+    const key='linkedin-parse';setBuilderBuilding(key);builderErr(key,null)
+    const reqId=++builderReqRef.current
+    try{
+      const text=await extractText(file)
+      if(reqId!==builderReqRef.current)return
+      if(looksLikeExtractFallback(text)){
+        setBuilder(cur=>({...cur,source:'scratch',linkedinFile:file.name,employers:(cur.employers&&cur.employers.length)?cur.employers:[emptyEmployer()],phase:'skeleton'}))
+        builderErr(key,"We could not read that PDF as text. It may be image-based or printed from a browser, which LinkedIn sometimes produces. Build it from a few basics below instead.")
+        return
+      }
+      const raw=await callClaude(P.LINKEDIN_PARSE(text),{maxTokens:4000})
+      if(reqId!==builderReqRef.current)return
+      const parsed=parseJsonObject(raw)
+      const emps=((parsed&&Array.isArray(parsed.employers))?parsed.employers:[]).map(e=>({
+        company:((e&&e.company)||'').trim(),
+        context:((e&&e.context)||'').trim(),
+        titles:(((e&&Array.isArray(e.titles)&&e.titles.length)?e.titles:[{}]).map(t=>({title:((t&&t.title)||'').trim(),dates:((t&&t.dates)||'').trim()}))),
+        areas:[],rawText:'',shaped:[]
+      })).filter(e=>e.company||e.titles.some(t=>t.title))
+      const name=((parsed&&parsed.name)||'').trim()
+      const loc=((parsed&&parsed.location)||'').trim()
+      setProfile(p=>{
+        const builder=p.builder||{}
+        const nextLoc=(p.loc&&p.loc.city)?p.loc:{...(p.loc||{}),city:loc||((p.loc||{}).city||'')}
+        return{...p,loc:nextLoc,builder:{...builder,source:'linkedin',linkedinFile:file.name,linkedinRaw:text,header:{...(builder.header||{}),name:name||((builder.header||{}).name||'')},employers:emps.length?emps:[emptyEmployer()],phase:'skeleton'}}
+      })
+      if(!emps.length)builderErr(key,'We read your file but could not lay out the roles cleanly. Add them below and keep going.')
+    }catch(e){
+      if(reqId===builderReqRef.current){
+        setBuilder(cur=>({...cur,source:'linkedin',linkedinFile:file.name,employers:(cur.employers&&cur.employers.length)?cur.employers:[emptyEmployer()],phase:'skeleton'}))
+        builderErr(key,(e&&e.message)||'We could not read that file. Add your roles below and keep going.')
+      }
+    }finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
+  }
+  // 1. AREAS (plain path): memory-jogger phrases for one employer/role.
+  const genBuilderAreas=async(idx)=>{
+    if(builderBuilding)return
+    const emp=((profile.builder||{}).employers||[])[idx];if(!emp)return
+    const key='areas-'+idx;setBuilderBuilding(key);builderErr(key,null)
+    const reqId=++builderReqRef.current
+    try{
+      const raw=await callClaude(P.AREAS(roleTitle(emp),'',emp.context||''),{maxTokens:600})
+      if(reqId!==builderReqRef.current)return
+      const areas=String(raw||'').split('\n').map(s=>s.replace(/^[-*•\d.\)\s]+/,'').trim()).filter(Boolean).slice(0,10)
+      setBuilder(cur=>{const employers=[...(cur.employers||[])];employers[idx]={...employers[idx],areas};return{...cur,employers}})
+    }catch(e){if(reqId===builderReqRef.current)builderErr(key,e.message||'Could not load suggestions. Write your own below.')}
+    finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
+  }
+  // 2. SHAPE_AND_NUDGE (voice-gated): rewrite raw lines + measurement nudges.
+  const genBuilderShape=async(idx)=>{
+    if(builderBuilding)return
+    const emp=((profile.builder||{}).employers||[])[idx];if(!emp)return
+    const lines=String(emp.rawText||'').split('\n').map(s=>s.trim()).filter(Boolean)
+    if(!lines.length){builderErr('shape-'+idx,'Write a line or two above first.');return}
+    const key='shape-'+idx;setBuilderBuilding(key);builderErr(key,null)
+    const reqId=++builderReqRef.current
+    try{
+      const raw=await callClaudeWithVoiceGate(()=>P.SHAPE_AND_NUDGE(roleTitle(emp),'',lines.join('\n')),{maxTokens:4000,voiceMode:'prose'},{step:'builder-shape',onEvent:logVoiceEvent})
+      if(reqId!==builderReqRef.current)return
+      const arr=parseJsonArray(raw)||[]
+      const shaped=arr.map((o,i)=>({shaped:(o&&o.shaped)||lines[i]||'',nudge:(o&&o.nudge)||'',number:'',dismissed:false}))
+      setBuilder(cur=>{const employers=[...(cur.employers||[])];employers[idx]={...employers[idx],shaped};return{...cur,employers}})
+    }catch(e){if(reqId===builderReqRef.current)builderErr(key,e.message||'That did not come together. Try again.')}
+    finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
+  }
+  // 3. SKILLS (plain path): grouped, role-specific picklist grounded in captured lines.
+  const genBuilderSkills=async()=>{
+    if(builderBuilding)return
+    const b=profile.builder||{}
+    const allShaped=(b.employers||[]).flatMap(e=>(e.shaped||[]).map(s=>s.shaped)).filter(Boolean)
+    const title=roleTitle((b.employers||[])[0])
+    const key='skills';setBuilderBuilding(key);builderErr(key,null)
+    const reqId=++builderReqRef.current
+    try{
+      const raw=await callClaude(P.SKILLS(title,'',allShaped.join('\n')),{maxTokens:2000})
+      if(reqId!==builderReqRef.current)return
+      const arr=parseJsonArray(raw)||[]
+      const skills=arr.map(g=>({category:(g&&g.category)||'',items:((g&&g.items)||[]).map(it=>({skill:(it&&it.skill)||'',selected:!!(it&&it.preselected)}))})).filter(g=>g.items.length)
+      setBuilder(cur=>({...cur,skills}))
+    }catch(e){if(reqId===builderReqRef.current)builderErr(key,e.message||'Could not build the list. Add your own skills below.')}
+    finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
+  }
+  // Assemble the captured material into a plain block for BASELINE. Only what the
+  // person provided; no invented content.
+  const assembleBuilderMaterial=(b)=>{
+    const h=b.header||{};const loc=[profile.loc&&profile.loc.city,profile.loc&&profile.loc.country].filter(Boolean).join(', ')
+    const L=[]
+    L.push('HEADER:')
+    L.push(`Name: ${h.name||''}`)
+    L.push(`Email: ${h.email||''}`);L.push(`Phone: ${h.phone||''}`);L.push(`Location: ${loc}`);L.push(`LinkedIn: ${h.linkedin||''}`)
+    L.push('')
+    L.push('EXPERIENCE:')
+    ;(b.employers||[]).forEach(emp=>{
+      const titles=(emp.titles||[]).map(t=>`${t.title||''} (${t.dates||''})`).join('; ')
+      L.push(`- Company: ${emp.company||''}${emp.context?` | ${emp.context}`:''}`)
+      L.push(`  Titles: ${titles}`)
+      ;(emp.shaped||[]).forEach(s=>{const num=s.number&&s.number.trim()?` [number to use: ${s.number.trim()}]`:'';L.push(`  Bullet: ${s.shaped}${num}`)})
+    })
+    const sel=(b.skills||[]).map(g=>({category:g.category,items:(g.items||[]).filter(i=>i.selected).map(i=>i.skill)})).filter(g=>g.items.length)
+    if(sel.length){L.push('');L.push('SKILLS:');sel.forEach(g=>L.push(`- ${g.category}: ${g.items.join(', ')}`))}
+    if((b.education||[]).length){L.push('');L.push('EDUCATION:');(b.education||[]).forEach(e=>L.push(`- ${[e.degree,e.field,e.institution,e.year].filter(Boolean).join(', ')}`))}
+    if(b.certs&&b.certs.trim()){L.push('');L.push('CERTIFICATIONS AND LICENSES:');L.push(b.certs.trim())}
+    if(b.extras&&b.extras.trim()){L.push('');L.push('BEYOND THE JOBS:');L.push(b.extras.trim())}
+    return L.join('\n')
+  }
+  // 4. BASELINE (voice-gated): assemble the Familiar Ground baseline. Writes the
+  // structured resume to the NEW slot (profile.baselineResume + outputs.baseline)
+  // AND the resume text to profile.resume (the convergence contract), then stamps
+  // outputs.resume_updated_at so the synthesis chain reads as refreshable. Never
+  // touches outputs.p_res.
+  const genBuilderBaseline=async()=>{
+    if(builderBuilding)return
+    const b=profile.builder||{}
+    const key='baseline';setBuilderBuilding(key);builderErr(key,null)
+    const reqId=++builderReqRef.current
+    try{
+      const material=assembleBuilderMaterial(b)
+      const raw=await callClaudeWithVoiceGate(()=>P.BASELINE(material,(b.proudest||'').trim(),FAMILIAR_GROUND_POSTURE),{maxTokens:5000,voiceMode:'prose'},{step:'builder-baseline',onEvent:logVoiceEvent})
+      if(reqId!==builderReqRef.current)return
+      const json=parseResumeJSON(raw)
+      if(!json)throw new Error('The resume did not come together cleanly. Try once more.')
+      const text=renderResumeText(json)
+      setProfile(p=>({...p,builder:{...(p.builder||{}),phase:'ready'},baselineResume:json,resume:text,resumeFile:'Built with Reimagine'}))
+      setOutputs(o=>({...o,baseline:JSON.stringify(json),resume_updated_at:Date.now()}))
+    }catch(e){if(reqId===builderReqRef.current)builderErr(key,e.message||'That did not come together. Try again.')}
+    finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
+  }
+  // --- Resume Builder UI. A single re-enterable orientation step ('resume-builder')
+  // with internal phases stored on profile.builder.phase. All captured material lives
+  // on profile.builder so the step persists + is editable on re-entry.
+  const renderResumeBuilder=()=>{
+    const b=profile.builder||{}
+    const phase=b.phase||'intro'
+    const employers=b.employers||[]
+    const idx=Math.min(b.roleIdx||0,Math.max(employers.length-1,0))
+    const iS={width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}
+    const setPhase=(ph)=>setBuilder(cur=>({...cur,phase:ph}))
+    const addEmployer=()=>setBuilder(cur=>({...cur,employers:[...(cur.employers||[]),{company:'',context:'',titles:[{title:'',dates:''}],areas:[],rawText:'',shaped:[]}]}))
+    const updEmployer=(i,patch)=>setBuilder(cur=>{const e=[...(cur.employers||[])];e[i]={...e[i],...patch};return{...cur,employers:e}})
+    const removeEmployer=(i)=>setBuilder(cur=>({...cur,employers:(cur.employers||[]).filter((_,j)=>j!==i)}))
+    const addTitle=(i)=>setBuilder(cur=>{const e=[...(cur.employers||[])];e[i]={...e[i],titles:[...(e[i].titles||[]),{title:'',dates:''}]};return{...cur,employers:e}})
+    const updTitle=(i,ti,patch)=>setBuilder(cur=>{const e=[...(cur.employers||[])];const ts=[...(e[i].titles||[])];ts[ti]={...ts[ti],...patch};e[i]={...e[i],titles:ts};return{...cur,employers:e}})
+    const updHeader=(patch)=>setBuilder(cur=>({...cur,header:{...(cur.header||{}),...patch}}))
+    const updShaped=(i,si,patch)=>setBuilder(cur=>{const e=[...(cur.employers||[])];const sh=[...(e[i].shaped||[])];sh[si]={...sh[si],...patch};e[i]={...e[i],shaped:sh};return{...cur,employers:e}})
+    const addEdu=()=>setBuilder(cur=>({...cur,education:[...(cur.education||[]),{degree:'',field:'',institution:'',year:''}]}))
+    const updEdu=(i,patch)=>setBuilder(cur=>{const ed=[...(cur.education||[])];ed[i]={...ed[i],...patch};return{...cur,education:ed}})
+    const toggleSkill=(gi,ii)=>setBuilder(cur=>{const sk=(cur.skills||[]).map(g=>({...g,items:[...g.items]}));sk[gi].items[ii]={...sk[gi].items[ii],selected:!sk[gi].items[ii].selected};return{...cur,skills:sk}})
+    const addOwnSkill=()=>{const name=skillDraft.trim();if(!name)return;setBuilder(cur=>{const sk=(cur.skills||[]).map(g=>({...g,items:[...g.items]}));let gi=sk.findIndex(g=>g.category==='Added by you');if(gi<0){sk.push({category:'Added by you',items:[]});gi=sk.length-1}sk[gi].items.push({skill:name,selected:true});return{...cur,skills:sk}});setSkillDraft('')}
+    const hdr=(tag,title,sub)=> <><div style={S.tag('#8A9BB8')}>{tag}</div><h1 style={S.title}>{title}</h1>{sub&&<p style={S.sub}>{sub}</p>}</>
+    const back=(ph)=> <Btn secondary onClick={()=>ph==='resume'?nav('resume'):setPhase(ph)}><ArrowLeft size={13}/>Back</Btn>
+    const skillCount=(b.skills||[]).reduce((n,g)=>n+(g.items||[]).filter(i=>i.selected).length,0)
+    const emp=employers[idx]||{}
+    const origLines=String(emp.rawText||'').split('\n').map(s=>s.trim()).filter(Boolean)
+
+    if(phase==='intro')return <div>
+      {hdr('Phase 0 · Orientation',"Let's build your resume together","You don't need every detail or every number right now. We'll work with what you remember, shape it into strong resume language, and you can sharpen it as you go.")}
+      <div style={S.row}>{back('resume')}<Btn onClick={()=>setPhase('onramp')}>Start <ChevronRight size={14}/></Btn></div>
+    </div>
+
+    if(phase==='onramp')return <div>
+      {hdr('Phase 0 · Orientation','The fastest way to start',"If you're on LinkedIn, your profile already has the backbone we need: your roles, companies, and dates. Here's how to hand it to us. Open your LinkedIn profile, click the three dots near your name, choose Save to PDF, and upload that file here. We'll read it and lay out your history so you're not starting from a blank page.")}
+      <div style={S.card}>
+        <FileUpload label="Upload my LinkedIn PDF" hint="PDF only" fileName={b.linkedinFile} onFile={f=>genBuilderLinkedinParse(f)}/>
+        {builderBuilding==='linkedin-parse'&&<Loading msg="Reading your profile and laying out your history…"/>}
+        {builderErrors['linkedin-parse']&&<ErrBox msg={builderErrors['linkedin-parse']}/>}
+      </div>
+      <p style={{fontSize:16,color:C.gray,margin:'4px 0 10px'}}>Not on LinkedIn? We'll build it from a few basics instead.</p>
+      <div style={S.row}>{back('intro')}<Btn secondary onClick={()=>{setBuilder(cur=>({...cur,source:'scratch',employers:(cur.employers&&cur.employers.length)?cur.employers:[{company:'',context:'',titles:[{title:'',dates:''}],areas:[],rawText:'',shaped:[]}],phase:'skeleton'}))}}>Start from scratch <ChevronRight size={14}/></Btn></div>
+    </div>
+
+    if(phase==='skeleton'){const fromLinkedin=b.source==='linkedin'&&employers.some(e=>e.company||(e.titles||[]).some(t=>t.title));return <div>
+      {hdr('Phase 0 · Orientation','Where have you worked?',fromLinkedin?'We laid out your history from LinkedIn below. Check that your companies, titles, and dates look right, and fix anything that came through wrong.':'Start with your most recent role and work back. We just need the basics here; the good stuff comes next.')}
+      {builderErrors['linkedin-parse']&&<div style={{...S.note,marginBottom:14}}>{builderErrors['linkedin-parse']}</div>}
+      {b.source==='linkedin'&&b.linkedinRaw&&<details style={{marginBottom:14}}><summary style={{cursor:'pointer',color:C.gold,fontWeight:600}}>What we read from your LinkedIn file</summary><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:13,color:C.gray,maxHeight:220,overflow:'auto',marginTop:8}}>{b.linkedinRaw}</pre><div style={{fontSize:13,color:C.gray}}>This is the raw text we read, kept here for reference. Your roles are in the fields below.</div></details>}
+      {employers.map((e,i)=><div key={i} style={S.card}>
+        <div style={S.field}><label style={S.label}>Company</label><input style={iS} value={e.company||''} onChange={ev=>updEmployer(i,{company:ev.target.value})} placeholder="Company name"/></div>
+        <div style={S.field}><label style={S.label}>What the company does and its size</label><input style={iS} value={e.context||''} onChange={ev=>updEmployer(i,{context:ev.target.value})} placeholder="e.g. regional logistics firm, ~$200M revenue"/></div>
+        {(e.titles||[]).map((t,ti)=><div key={ti} style={{display:'flex',gap:10,marginBottom:8,flexWrap:'wrap'}}>
+          <input style={{...iS,flex:2,minWidth:180}} value={t.title||''} onChange={ev=>updTitle(i,ti,{title:ev.target.value})} placeholder="Your title"/>
+          <input style={{...iS,flex:1,minWidth:120}} value={t.dates||''} onChange={ev=>updTitle(i,ti,{dates:ev.target.value})} placeholder="2019 – 2023"/>
+        </div>)}
+        <button type="button" onClick={()=>addTitle(i)} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:'4px 0',fontSize:15}}>+ Add another title here (for a promotion or role change)</button>
+        {employers.length>1&&<div><button type="button" onClick={()=>removeEmployer(i)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',fontSize:14,marginTop:6}}>× Remove this company</button></div>}
+      </div>)}
+      <Btn secondary onClick={addEmployer}>+ Add another company</Btn>
+      <div style={{...S.card,marginTop:18}}>
+        <div style={{fontWeight:700,color:'#1A2540',marginBottom:10}}>A few contact details</div>
+        <div style={S.field}><label style={S.label}>Full name</label><input style={iS} value={(b.header||{}).name||''} onChange={ev=>updHeader({name:ev.target.value})} placeholder="Your name"/></div>
+        <div style={S.field}><label style={S.label}>Email</label><input style={iS} value={(b.header||{}).email||''} onChange={ev=>updHeader({email:ev.target.value})} placeholder="you@example.com"/></div>
+        <div style={S.field}><label style={S.label}>Phone</label><input style={iS} value={(b.header||{}).phone||''} onChange={ev=>updHeader({phone:ev.target.value})} placeholder="(555) 555-5555"/></div>
+        <div style={S.field}><label style={S.label}>LinkedIn URL</label><input style={iS} value={(b.header||{}).linkedin||''} onChange={ev=>updHeader({linkedin:ev.target.value})} placeholder="linkedin.com/in/you"/></div>
+      </div>
+      {err&&<ErrBox msg={err}/>}
+      <div style={S.row}>{back('onramp')}<Btn onClick={()=>{const ok=employers.some(e=>(e.company||'').trim()&&(e.titles||[]).some(t=>(t.title||'').trim()));if(!ok){setErr('Add at least one company and title to continue.');return}setErr(null);setBuilder(cur=>({...cur,roleIdx:0,phase:'capture'}))}}>Continue <ChevronRight size={14}/></Btn></div>
+    </div>}
+
+    if(phase==='capture')return <div>
+      {hdr('Phase 0 · Orientation',`${(emp.titles&&emp.titles[0]&&emp.titles[0].title)||'This role'}${emp.company?` at ${emp.company}`:''}`,null)}
+      <div style={{fontSize:15,color:C.gray,marginBottom:18}}>Role {idx+1} of {employers.length}</div>
+      <div style={S.card}>
+        <div style={{fontWeight:700,color:'#1A2540'}}>Areas people in this role often own</div>
+        <p style={{fontSize:15,color:C.gray,margin:'4px 0 12px'}}>Not a checklist. Use these to jog your memory, then write what you actually did.</p>
+        {builderBuilding==='areas-'+idx&&<Loading msg="Pulling up ideas…"/>}
+        {builderErrors['areas-'+idx]&&<ErrBox msg={builderErrors['areas-'+idx]}/>}
+        {(emp.areas&&emp.areas.length)?<div style={{display:'flex',flexWrap:'wrap',gap:8}}>{emp.areas.map((a,ai)=><span key={ai} style={{background:`${C.gold}14`,border:`1px solid ${C.gold}30`,borderRadius:16,padding:'5px 12px',fontSize:14,color:'#1A2540'}}>{a}</span>)}</div>
+          :builderBuilding!=='areas-'+idx&&<Btn small secondary onClick={()=>genBuilderAreas(idx)}><Sparkles size={12}/>Show ideas for this role</Btn>}
+      </div>
+      <div style={S.card}>
+        <div style={{fontWeight:700,color:'#1A2540'}}>What did you do here that you're proud of?</div>
+        <p style={{fontSize:15,color:C.gray,margin:'4px 0 12px'}}>In your own words, one thought per line. We'll shape it into resume language for you.</p>
+        <textarea style={{...S.ta,minHeight:160}} value={emp.rawText||''} onChange={ev=>updEmployer(idx,{rawText:ev.target.value})} placeholder={"Ran the pick-and-pack redesign across three sites\nLed a team through a system rollout"}/>
+        <div style={{fontSize:14,color:C.gray,marginTop:8}}>Numbers make these land harder, but they're never required. A rough range is fine, and if you can't recall one, a former teammate often can. Leave it out and the line still works.</div>
+      </div>
+      <div style={S.row}>{back(idx>0?'shaping':'skeleton')}<Btn disabled={builderBuilding==='shape-'+idx} onClick={()=>{setPhase('shaping');genBuilderShape(idx)}}>Shape these lines <ChevronRight size={14}/></Btn></div>
+    </div>
+
+    if(phase==='shaping'){const shaped=emp.shaped||[];return <div>
+      {hdr('Phase 0 · Orientation',"Here's each line in resume language","Add a number where one fits. If you can't recall it, leave it, the line still works.")}
+      {builderBuilding==='shape-'+idx&&!shaped.length&&<Loading msg="Shaping your lines…"/>}
+      {builderErrors['shape-'+idx]&&<><ErrBox msg={builderErrors['shape-'+idx]}/><Btn small secondary onClick={()=>genBuilderShape(idx)}><RotateCcw size={11}/>Try again</Btn></>}
+      {shaped.map((s,si)=><div key={si} style={S.card}>
+        <div style={{fontSize:14,color:C.gray,marginBottom:6}}>You wrote: {origLines[si]||''}</div>
+        <textarea style={{...S.ta,minHeight:70}} value={s.shaped||''} onChange={ev=>updShaped(idx,si,{shaped:ev.target.value})}/>
+        {s.nudge&&!s.dismissed&&<div style={{...S.note,marginTop:10}}>
+          <div style={{marginBottom:8}}>{s.nudge}</div>
+          <input style={iS} value={s.number||''} onChange={ev=>updShaped(idx,si,{number:ev.target.value})} placeholder="e.g. orders/hour up ~30%, or cycle time 3 days to 1 day"/>
+          <div><button type="button" onClick={()=>updShaped(idx,si,{dismissed:true})} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',fontSize:14,marginTop:8,textDecoration:'underline'}}>I don't recall a number</button></div>
+        </div>}
+      </div>)}
+      <div style={S.row}>{back('capture')}<Btn onClick={()=>{if(idx<employers.length-1){setBuilder(cur=>({...cur,roleIdx:idx+1,phase:'capture'}))}else{setPhase('skills')}}}>{idx<employers.length-1?'Next role':'Continue to skills'} <ChevronRight size={14}/></Btn></div>
+    </div>}
+
+    if(phase==='skills')return <div>
+      {hdr('Phase 0 · Orientation','Skills that fit your background','Drawn from your roles and what you described. Tap the ones that are true for you, and add anything we missed. These are the terms employers and their systems scan for.')}
+      {builderBuilding==='skills'&&<Loading msg="Building your skills list…"/>}
+      {builderErrors['skills']&&<ErrBox msg={builderErrors['skills']}/>}
+      {(!b.skills||!b.skills.length)?(builderBuilding!=='skills'&&<Btn onClick={genBuilderSkills}><Sparkles size={13}/>Build my skills list</Btn>):<>
+        {b.skills.map((g,gi)=><div key={gi} style={S.card}>
+          <div style={{fontWeight:700,color:'#1A2540',marginBottom:10}}>{g.category}</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:8}}>{g.items.map((it,ii)=><button key={ii} type="button" onClick={()=>toggleSkill(gi,ii)} style={{borderRadius:16,padding:'6px 13px',fontSize:14,cursor:'pointer',border:`1px solid ${it.selected?C.gold:C.border}`,background:it.selected?`${C.gold}22`:'transparent',color:it.selected?'#1A2540':C.gray,fontWeight:it.selected?600:400}}>{it.selected?'✓ ':''}{it.skill}</button>)}</div>
+        </div>)}
+        <div style={{display:'flex',gap:10,marginTop:6,flexWrap:'wrap'}}><input style={{...iS,flex:1,minWidth:200}} value={skillDraft} onChange={ev=>setSkillDraft(ev.target.value)} onKeyDown={ev=>{if(ev.key==='Enter'){ev.preventDefault();addOwnSkill()}}} placeholder="Add a skill we missed"/><Btn small secondary onClick={addOwnSkill}>Add</Btn></div>
+        <div style={{fontSize:15,color:C.gray,marginTop:10}}>{skillCount} selected</div>
+      </>}
+      <div style={S.row}>{back('shaping')}<Btn onClick={()=>setPhase('education')}>Continue <ChevronRight size={14}/></Btn></div>
+    </div>
+
+    if(phase==='education')return <div>
+      {hdr('Phase 0 · Orientation','Education and credentials','Add your degrees, and any certifications or licenses worth showing. For some roles these are the first thing a reader looks for.')}
+      {(b.education||[]).map((e,i)=><div key={i} style={S.card}>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:8}}><input style={{...iS,flex:1,minWidth:150}} value={e.degree||''} onChange={ev=>updEdu(i,{degree:ev.target.value})} placeholder="Degree (e.g. BS)"/><input style={{...iS,flex:1,minWidth:150}} value={e.field||''} onChange={ev=>updEdu(i,{field:ev.target.value})} placeholder="Field of study"/></div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}><input style={{...iS,flex:2,minWidth:180}} value={e.institution||''} onChange={ev=>updEdu(i,{institution:ev.target.value})} placeholder="Institution"/><input style={{...iS,flex:1,minWidth:100}} value={e.year||''} onChange={ev=>updEdu(i,{year:ev.target.value})} placeholder="Year (optional)"/></div>
+      </div>)}
+      <Btn secondary onClick={addEdu}>+ Add education</Btn>
+      <div style={{...S.card,marginTop:18}}><div style={S.field}><label style={S.label}>Certifications and licenses</label><textarea style={{...S.ta,minHeight:90}} value={b.certs||''} onChange={ev=>setBuilder(cur=>({...cur,certs:ev.target.value}))} placeholder="PMP, state license, etc. One per line."/></div></div>
+      <div style={S.row}>{back('skills')}<Btn onClick={()=>setPhase('extras')}>Continue <ChevronRight size={14}/></Btn></div>
+    </div>
+
+    if(phase==='extras')return <div>
+      {hdr('Phase 0 · Orientation',"Anything beyond your jobs you'd want on here?",'Board or volunteer roles, speaking, writing, or groups you\'re part of. Optional, but they can round out the picture.')}
+      <div style={S.card}><textarea style={{...S.ta,minHeight:120}} value={b.extras||''} onChange={ev=>setBuilder(cur=>({...cur,extras:ev.target.value}))} placeholder="Optional"/></div>
+      <div style={S.row}>{back('education')}<Btn onClick={()=>setPhase('proudest')}>Continue <ChevronRight size={14}/></Btn></div>
+    </div>
+
+    if(phase==='proudest')return <div>
+      {hdr('Phase 0 · Orientation','Of everything you\'ve told us, what are you proudest of?','We\'ll use it to open your resume in your voice.')}
+      <div style={S.card}><textarea style={{...S.ta,minHeight:110}} value={b.proudest||''} onChange={ev=>setBuilder(cur=>({...cur,proudest:ev.target.value}))} placeholder="Optional, but it helps us open in your voice"/></div>
+      {builderBuilding==='baseline'&&<Loading msg="Building your starting resume…"/>}
+      {builderErrors['baseline']&&<ErrBox msg={builderErrors['baseline']}/>}
+      <div style={S.row}>{back('extras')}<Btn disabled={builderBuilding==='baseline'} onClick={genBuilderBaseline}><Sparkles size={14}/>Create my resume</Btn></div>
+    </div>
+
+    if(phase==='ready'){const bl=profile.baselineResume;return <div>
+      {hdr('Phase 0 · Orientation','Your starting resume is ready',"It's good enough to send today. As more information becomes available, you can always come back to your Resume section and add it, and your resume will update.")}
+      <div style={{...S.note}}>New details can also strengthen your personal brand and the results that build on it, so you may want to refresh those too.</div>
+      {bl&&<div style={{...S.out,marginTop:8}}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:'#1A2540',margin:0}}>{renderResumeText(bl)}</pre></div>}
+      <div style={{fontSize:14,color:C.ok,marginTop:10}}><Check size={12} style={{display:'inline',marginRight:4}}/>Saved to your account</div>
+      <div style={S.row}>
+        {bl&&<Btn onClick={()=>downloadResumeWord(bl)}><Download size={14}/>Download (Word)</Btn>}
+        <Btn secondary onClick={()=>genBuilderBaseline()} disabled={builderBuilding==='baseline'}><RotateCcw size={12}/>Rebuild</Btn>
+        <Btn secondary onClick={()=>advance('resume-builder','linkedin')}>Add more later <ChevronRight size={14}/></Btn>
+      </div>
+    </div>}
+
+    return <div>{hdr('Phase 0 · Orientation','Resume Builder',null)}<Btn onClick={()=>setPhase('intro')}>Start</Btn></div>
+  }
   // GTM Company Read (PR-2). Per-company building state keyed by company name;
   // errors keyed by company name. Persisted output lives on the active door1
   // record as record.companyReads[companyName] (lazy-init, no schemaVersion bump).
@@ -5360,20 +5825,32 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
     case'resume':return <div>
       <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
-      <h1 style={S.title} >Your Resume<InfoTooltip label="Why your resume matters here">Your resume is the single largest input. Reimagine reads it for accomplishments, scope, industry context, and trajectory. A thin or unquantified resume produces thin output. If you need to update it before continuing, do that first.</InfoTooltip></h1>
-      <p style={S.sub}>Upload your most recent resume. It does not need to be perfect. Reimagine will read it carefully and flag where adding a number or two would help.</p>
-      <CoachingCallout>
-        <strong style={{color:'#1A2540'}}>What good looks like.</strong> The strongest resumes for this work attach numbers to outcomes: revenue produced, money saved, headcount managed, percentages improved. If yours is light on numbers, upload it anyway and add specifics later in the refinement step. Reimagine will flag where to add them.
-      </CoachingCallout>
-      <div style={S.card}>
-        <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
-        {fileLoading&&<Loading msg="Reading your file…"/>}
-        <div style={S.field}><label style={S.label}>Or paste resume text</label><textarea style={{...S.ta,minHeight:220}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} placeholder="Paste your resume text here…"/></div>
-        {profile.resume&&<div style={{fontSize:15,color:C.ok}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
+      <h1 style={S.title} >Add your resume<InfoTooltip label="Why your resume matters here">Your resume is the single largest input. Reimagine reads it for accomplishments, scope, industry context, and trajectory. A thin or unquantified resume produces thin output. If you need to update it before continuing, do that first.</InfoTooltip></h1>
+      <p style={S.sub}>This is the raw material for everything we build with you next.</p>
+      {/* Two co-equal doors, side by side and both visible without scrolling. */}
+      <div style={{display:'flex',gap:16,alignItems:'stretch',flexWrap:'wrap'}}>
+        {/* Door 1: upload (unchanged behavior); paste demoted behind a reveal link. */}
+        <div style={{...S.card,flex:'1 1 320px',marginBottom:0,display:'flex',flexDirection:'column'}}>
+          <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>Upload my resume</div>
+          <p style={{fontSize:15,color:C.gray,margin:'0 0 14px'}}>PDF or Word. Drag it in and keep going.</p>
+          <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
+          {fileLoading&&<Loading msg="Reading your file…"/>}
+          {!(showPasteResume||(profile.resume&&!profile.resumeFile))&&<button type="button" onClick={()=>setShowPasteResume(true)} style={{alignSelf:'flex-start',background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:'10px 0 0',fontSize:15}}>Or paste it instead</button>}
+          {(showPasteResume||(profile.resume&&!profile.resumeFile))&&<div style={{...S.field,marginTop:14,marginBottom:0}}><label style={S.label}>Paste resume text</label><textarea style={{...S.ta,minHeight:160}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} placeholder="Paste your resume text here…"/></div>}
+          {profile.resume&&<div style={{fontSize:15,color:C.ok,marginTop:10}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
+        </div>
+        {/* Door 2: build a resume with the person (unchanged behavior). */}
+        <button type="button" onClick={()=>{if(!(profile.builder&&profile.builder.phase)){setBuilder({phase:'intro',source:'',header:{name:'',email:'',phone:'',linkedin:profile.linkedin||''},employers:[],skills:[],education:[],certs:'',extras:'',proudest:''})}nav('resume-builder')}} style={{flex:'1 1 320px',textAlign:'left',background:'#FFFDF8',border:`1.5px solid ${C.gold}`,borderRadius:10,padding:'32px 38px',cursor:'pointer',display:'flex',flexDirection:'column',fontFamily:'inherit'}}>
+          <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>{profile.builder&&profile.builder.phase?'Continue building my resume':'I need help with my resume first'}</div>
+          <p style={{fontSize:15,color:C.gray,margin:0}}>{profile.builder&&profile.builder.phase?'Pick up where you left off. Your entries are saved.':"We'll build one with you, step by step."}</p>
+          <div style={{marginTop:'auto',paddingTop:18,color:C.gold,fontWeight:700,fontSize:15,display:'flex',alignItems:'center',gap:6}}>{profile.builder&&profile.builder.phase?'Continue':'Build my resume'}<ChevronRight size={15}/></div>
+        </button>
       </div>
+      {profile.baselineResume&&<div style={{...S.note,marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}><Check size={14} color={C.ok}/>Your built resume is saved to your account.<a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume)}>Download (Word)</a></div>}
       {err&&<ErrBox msg={err}/>}
-      <div style={S.row}><Btn secondary onClick={()=>nav('location')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.resume?advance('resume','linkedin'):setErr('Please provide your resume.')}>Continue <ChevronRight size={14}/></Btn></div>
+      <div style={S.row}><Btn secondary onClick={()=>nav('location')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.resume?advance('resume','linkedin'):setErr('Add your resume to continue, or build one with us.')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
+    case'resume-builder':return renderResumeBuilder()
 
     case'linkedin':return <div>
       <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
@@ -5595,6 +6072,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&!outputs.p3&&!loading&&<><Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn><div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:14,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>A single prose synthesis of who you are at work, roughly 600 to 800 words. About 4 to 5 minutes to generate.</div></>}
       {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3"/>}
       {outputs.p3&&!loading&&<>
+        {!isDemo&&sectionStaleUpstreams('p3').includes('resume')&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:'#1A2540',lineHeight:1.6,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
+          <span>You updated your resume since this was written. Refresh your Personal Brand so it builds on the new material. This rewrites it; any wording you refined will be regenerated.</span>
+          <Btn small onClick={generateChain}><RotateCcw size={12}/>Refresh</Btn>
+        </div>}
         {!isDemo&&!hasSeenCorrectionsIntro&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:'#1A2540',lineHeight:1.65,position:'relative'}}>
           <button type="button" onClick={dismissCorrectionsIntro} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
           <strong>This brand is yours to shape.</strong>
