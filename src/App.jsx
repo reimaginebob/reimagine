@@ -1954,7 +1954,8 @@ Return ONLY a JSON array of objects { "category": string, "items": [{ "skill": s
 
 Rules:
 - Use only what is provided. Do not invent employers, roles, accomplishments, tools, or numbers. Where a bullet has no number, leave it as a strong qualitative statement.
-- Open with a short professional summary in the person's voice.${proudestOf?` Let what they said they are proudest of anchor it: ${proudestOf}`:''}
+- Open with a short professional summary in standard resume register: third person with an implied subject, and NO first-person pronouns (no "I", "I'm", "my", "me", "we"). Lead with the role and seniority, for example "Sales and business development leader with two decades across market research and consumer intelligence." If the reference summary below is written in the first person, convert it to this register.${proudestOf?` Let what they said they are proudest of anchor it: ${proudestOf}`:''}
+- Include every Education entry and every Skill from the material below, copied faithfully into the education and skills arrays. Do not drop the Education or Skills sections.
 - Order each role's bullets so the strongest impact leads.
 - Keep it ATS-clean: plain language, standard sections, no graphics or tables (the renderer handles layout).
 - No em dashes. No filler adjectives.
@@ -4779,6 +4780,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if(reqId!==builderReqRef.current)return
       const json=parseResumeJSON(raw)
       if(!json)throw new Error('The resume did not come together cleanly. Try once more.')
+      // Deterministic backfill: LINKEDIN_PARSE reliably extracts education + Top Skills
+      // into the builder, but BASELINE can omit them on very long histories (education
+      // sits last in the schema). Restore from the captured builder so the draft always
+      // renders complete. Only fills when BASELINE left the section empty.
+      if((!Array.isArray(json.education)||!json.education.length)&&(b.education&&b.education.length))json.education=b.education
+      if((!Array.isArray(json.skills)||!json.skills.length)&&(b.skills&&b.skills.length))json.skills=b.skills.map(g=>({category:g.category||'',items:(g.items||[]).filter(i=>i.selected!==false).map(i=>typeof i==='string'?i:((i&&i.skill)||'')).filter(Boolean)})).filter(g=>g.items.length)
       const text=renderResumeText(json)
       setProfile(p=>({...p,builder:{...(p.builder||{}),phase:'draft'},baselineResume:json,resume:text,resumeFile:'Built with Reimagine'}))
       setOutputs(o=>({...o,baseline:JSON.stringify(json),resume_updated_at:Date.now()}))
