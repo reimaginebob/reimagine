@@ -70,20 +70,18 @@ Once Reimagine has read the file, you will see a green checkmark and a character
 
 ### Door 2: I need help with my resume first
 
-If you do not have a current resume, or the one you have is thin, Reimagine builds one with you, step by step. You end up with a recruiter-ready resume you can send today, and the same material feeds the rest of your journey.
+If you do not have a current resume, or the one you have is thin, Reimagine builds one with you and gets you to a complete, sendable draft fast. You refine a resume that already exists rather than building up to one.
 
 Here is how the builder works:
 
 1. **Pick a starting point.** Hand over your LinkedIn profile as a PDF (open your profile, click the three dots, choose Save to PDF, and upload it), or start from a few basics. Either way you are never staring at a blank page.
-2. **Lay out where you worked.** Company, one line on what it does and its size, and your title and dates. Add more than one title under a company if you were promoted.
-3. **Capture each role in your own words.** For each role Reimagine offers a short list of areas people in that role often own, to jog your memory. Then you write what you actually did, one thought per line. Reimagine shapes each line into resume language, translating what you said without inventing anything.
-4. **Add numbers where they fit.** When a line could be quantified, Reimagine names how that kind of work is usually measured and asks for the figure. Numbers make a line land harder, but they are never required. If you cannot recall one, leave it and the line still works.
-5. **Confirm your skills.** Reimagine builds a grouped, role-specific list of skills, with the obvious matches pre-selected. Tap the ones that are true for you, and add anything it missed. These are the terms employers and their systems scan for.
-6. **Add education and anything beyond your jobs.** Degrees, certifications and licenses, and optional extras like board or volunteer roles.
+2. **Get a complete draft right away.** If you upload LinkedIn, Reimagine reads your roles, dates, the accomplishments you already wrote, your skills, and your education, and writes a full first draft. If you start from scratch, you give the basics (companies, titles, dates, and optionally a few lines about your work) and Reimagine drafts from those. No long questionnaire first.
+3. **Edit it on the page.** The draft is your workspace, and everything on it is editable: the summary, each bullet, your skills, and your education. Your changes save as you go.
+4. **Sharpen it where you want to, all optional.** A bullet without a number shows an **add a number?** prompt that names how that kind of work is usually measured. **Say more about this role** opens a box to add anything that is missing, and can offer a few role-typical ideas to jog your memory. **Suggest more skills** finds skills your draft implies. None of this is required; the draft already works without it.
 
-When you finish, Reimagine produces a clean, single-column resume written to a broadly legible posture, the kind a wide range of recruiters read easily. It is good enough to send today. You can download it as a Word file, and the text flows into the rest of orientation exactly as an uploaded resume would.
+The draft is written to a broadly legible posture, the kind a wide range of recruiters read easily, in a clean single-column format. It is good enough to send today. Download it as a Word file, and the text flows into the rest of orientation exactly as an uploaded resume would.
 
-The builder is a step you can return to. Your entries are saved to your account, so you can leave, come back, add more, and rebuild your resume whenever new details surface. When you add more later, Reimagine also offers to refresh your Personal Brand and the work that builds on it, so your sharper material reaches every downstream result. That refresh is always your choice, never automatic.
+The builder is a step you can return to. Your draft is saved to your account, so you can leave, come back, and add more whenever new details surface. When you do, Reimagine also offers to refresh your Personal Brand and the work that builds on it, so your sharper material reaches every downstream result. That refresh is always your choice, never automatic.
 
 **A reminder from Chapter 3:** the more your resume includes specific outcomes. Money made, money saved, risk mitigated, with numbers attached. The better the output. If you have time, add a few numbers. If you do not, that is fine. Reimagine will flag where it would help and you can come back later.
 
