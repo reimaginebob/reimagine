@@ -1915,10 +1915,14 @@ EMPLOYERS. From the EXPERIENCE section, list each employer in the order shown. F
 
 Separate the two carefully: a sentence describing what the COMPANY is or does goes in "context"; a sentence describing what THE PERSON did, led, built, grew, or delivered goes in "rawLines".
 
-Ignore page markers like "Page 1 of 7". If you find no work history, return { "header": { ... }, "employers": [] }.
+EDUCATION. From the Education section, list each entry with "degree", "field" (field of study), "institution", and "year" (or year range), each copied as written. Empty string for any part not present.
+
+SKILLS. Return skills grouped by category. Start from the profile's own "Top Skills" section (copy those exactly), then add skills clearly evidenced by the roles and accomplishments above. Group under categories such as "Functional & domain", "Leadership & management", "Technical & systems", "Methodologies". Do not invent specific tools or certifications the text does not mention.
+
+Ignore page markers like "Page 1 of 7". If you find no work history, return { "header": { ... }, "employers": [], "education": [], "skills": [] }.
 
 Return ONLY a JSON object, no preamble and no markdown fence:
-{ "header": { "name": "", "location": "", "email": "", "phone": "", "linkedinUrl": "", "summary": "" }, "employers": [{ "company": "", "context": "", "titles": [{ "title": "", "dates": "" }], "rawLines": [] }] }
+{ "header": { "name": "", "location": "", "email": "", "phone": "", "linkedinUrl": "", "summary": "" }, "employers": [{ "company": "", "context": "", "titles": [{ "title": "", "dates": "" }], "rawLines": [] }], "education": [{ "degree": "", "field": "", "institution": "", "year": "" }], "skills": [{ "category": "", "items": [] }] }
 
 PROFILE TEXT:
 ${text}`,
@@ -4644,6 +4648,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[builderBuilding,setBuilderBuilding]=useState(null)
   const[builderErrors,setBuilderErrors]=useState({})
   const[skillDraft,setSkillDraft]=useState('')
+  // Transient draft-workspace UI state (not persisted): per-role area sparks, per-
+  // bullet "add a number?" nudges, and which role's "say more" box is open.
+  const[draftAreas,setDraftAreas]=useState({})   // roleIdx -> [phrase]
+  const[draftNudges,setDraftNudges]=useState({}) // `${ri}:${bi}` -> nudge text
+  const[sayMore,setSayMore]=useState({ri:null,text:''})
   const builderReqRef=useRef(0)
   const setBuilder=(fn)=>setProfile(p=>{const cur=p.builder||{};return{...p,builder:typeof fn==='function'?fn(cur):fn}})
   const builderErr=(k,msg)=>setBuilderErrors(e=>({...e,[k]:msg}))
@@ -4661,7 +4670,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const a=s.indexOf('{'),b=s.lastIndexOf('}');if(a<0||b<0||b<a)return null
     try{const o=JSON.parse(s.slice(a,b+1));return o&&typeof o==='object'?o:null}catch{return null}
   }
-  const roleTitle=(emp)=>(emp&&emp.titles&&emp.titles[0]&&emp.titles[0].title)||''
   const emptyEmployer=()=>({company:'',context:'',titles:[{title:'',dates:''}],areas:[],rawText:'',shaped:[]})
   // extractText returns a bracketed notice string when the PDF has no text layer
   // (image-based / browser-printed). Detect it so we route to from-scratch.
@@ -4699,12 +4707,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       }).filter(e=>e.company||e.titles.some(t=>t.title))
       const g=(k)=>((ph&&ph[k])||'').trim()
       const name=g('name'),loc=g('location'),email=g('email'),phone=g('phone'),linkedinUrl=g('linkedinUrl'),summary=g('summary')
+      // education + skills (round-3): parsed straight into the builder so the first
+      // baseline draft renders complete (Top Skills + Education sections present).
+      const education=((parsed&&Array.isArray(parsed.education))?parsed.education:[]).map(e=>({degree:((e&&e.degree)||'').trim(),field:((e&&e.field)||'').trim(),institution:((e&&e.institution)||'').trim(),year:((e&&e.year)||'').trim()})).filter(e=>e.degree||e.institution)
+      const skills=((parsed&&Array.isArray(parsed.skills))?parsed.skills:[]).map(grp=>({category:((grp&&grp.category)||'').trim(),items:((grp&&Array.isArray(grp.items))?grp.items:[]).map(it=>({skill:(typeof it==='string'?it:((it&&it.skill)||'')).trim(),selected:true})).filter(it=>it.skill)})).filter(grp=>grp.items.length)
       setProfile(p=>{
         const builder=p.builder||{};const hdr=builder.header||{}
         const nextLoc=(p.loc&&p.loc.city)?p.loc:{...(p.loc||{}),city:loc||((p.loc||{}).city||'')}
+        // employers present -> go straight to drafting (the effect fires the baseline);
+        // no roles parsed -> drop to the skeleton so the person can add them.
         return{...p,loc:nextLoc,builder:{...builder,source:'linkedin',linkedinFile:file.name,linkedinRaw:text,linkedinSummary:summary||builder.linkedinSummary||'',
           header:{...hdr,name:name||hdr.name||'',email:email||hdr.email||'',phone:phone||hdr.phone||'',linkedin:linkedinUrl||hdr.linkedin||p.linkedin||''},
-          employers:emps.length?emps:[emptyEmployer()],phase:'skeleton'}}
+          education:education.length?education:(builder.education||[]),skills:skills.length?skills:(builder.skills||[]),
+          employers:emps.length?emps:[emptyEmployer()],phase:emps.length?'drafting':'skeleton'}}
       })
       if(!emps.length)builderErr(key,'We read your file but could not lay out the roles cleanly. Add them below and keep going.')
     }catch(e){
@@ -4714,55 +4729,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       }
     }finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
   }
-  // 1. AREAS (plain path): memory-jogger phrases for one employer/role.
-  const genBuilderAreas=async(idx)=>{
-    if(builderBuilding)return
-    const emp=((profile.builder||{}).employers||[])[idx];if(!emp)return
-    const key='areas-'+idx;setBuilderBuilding(key);builderErr(key,null)
-    const reqId=++builderReqRef.current
-    try{
-      const raw=await callClaude(P.AREAS(roleTitle(emp),'',emp.context||''),{maxTokens:600})
-      if(reqId!==builderReqRef.current)return
-      const areas=String(raw||'').split('\n').map(s=>s.replace(/^[-*•\d.\)\s]+/,'').trim()).filter(Boolean).slice(0,10)
-      setBuilder(cur=>{const employers=[...(cur.employers||[])];if(employers[idx])employers[idx]={...employers[idx],areas,areasTried:true};return{...cur,employers}})
-    }catch(e){if(reqId===builderReqRef.current){setBuilder(cur=>{const employers=[...(cur.employers||[])];if(employers[idx])employers[idx]={...employers[idx],areasTried:true};return{...cur,employers}});builderErr(key,e.message||'Could not load suggestions. Write your own below.')}}
-    finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
-  }
-  // 2. SHAPE_AND_NUDGE (voice-gated): rewrite raw lines + measurement nudges.
-  const genBuilderShape=async(idx)=>{
-    if(builderBuilding)return
-    const emp=((profile.builder||{}).employers||[])[idx];if(!emp)return
-    const lines=String(emp.rawText||'').split('\n').map(s=>s.trim()).filter(Boolean)
-    if(!lines.length){builderErr('shape-'+idx,'Write a line or two above first.');return}
-    const key='shape-'+idx;setBuilderBuilding(key);builderErr(key,null)
-    const reqId=++builderReqRef.current
-    try{
-      const raw=await callClaudeWithVoiceGate(()=>P.SHAPE_AND_NUDGE(roleTitle(emp),'',lines.join('\n')),{maxTokens:4000,voiceMode:'prose'},{step:'builder-shape',onEvent:logVoiceEvent})
-      if(reqId!==builderReqRef.current)return
-      const arr=parseJsonArray(raw)||[]
-      const shaped=arr.map((o,i)=>({shaped:(o&&o.shaped)||lines[i]||'',nudge:(o&&o.nudge)||'',number:'',dismissed:false}))
-      setBuilder(cur=>{const employers=[...(cur.employers||[])];employers[idx]={...employers[idx],shaped};return{...cur,employers}})
-    }catch(e){if(reqId===builderReqRef.current)builderErr(key,e.message||'That did not come together. Try again.')}
-    finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
-  }
-  // 3. SKILLS (plain path): grouped, role-specific picklist grounded in captured lines.
-  const genBuilderSkills=async()=>{
-    if(builderBuilding)return
-    const b=profile.builder||{}
-    // Ground in shaped lines where present, else the person's raw captured lines.
-    const allShaped=(b.employers||[]).flatMap(e=>(e.shaped&&e.shaped.length)?e.shaped.map(s=>s.shaped):String(e.rawText||'').split('\n')).map(s=>String(s||'').trim()).filter(Boolean)
-    const title=roleTitle((b.employers||[])[0])
-    const key='skills';setBuilderBuilding(key);builderErr(key,null)
-    const reqId=++builderReqRef.current
-    try{
-      const raw=await callClaude(P.SKILLS(title,'',allShaped.join('\n')),{maxTokens:2000})
-      if(reqId!==builderReqRef.current)return
-      const arr=parseJsonArray(raw)||[]
-      const skills=arr.map(g=>({category:(g&&g.category)||'',items:((g&&g.items)||[]).map(it=>({skill:(it&&it.skill)||'',selected:!!(it&&it.preselected)}))})).filter(g=>g.items.length)
-      setBuilder(cur=>({...cur,skills,skillsTried:true}))
-    }catch(e){if(reqId===builderReqRef.current){setBuilder(cur=>({...cur,skillsTried:true}));builderErr(key,e.message||'Could not build the list. Add your own skills below.')}}
-    finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
-  }
+  // Draft-side enrichment generators are defined after the baseline commit helpers
+  // (genDraftAreas / genDraftNudge / genDraftSayMore / genDraftSkills).
   // Assemble the captured material into a plain block for BASELINE. Only what the
   // person provided; no invented content.
   const assembleBuilderMaterial=(b)=>{
@@ -4778,11 +4746,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const titles=(emp.titles||[]).map(t=>`${t.title||''} (${t.dates||''})`).join('; ')
       L.push(`- Company: ${emp.company||''}${emp.context?` | ${emp.context}`:''}`)
       L.push(`  Titles: ${titles}`)
-      ;(emp.shaped||[]).forEach(s=>{const num=s.number&&s.number.trim()?` [number to use: ${s.number.trim()}]`:'';L.push(`  Bullet: ${s.shaped}${num}`)})
+      // Draft-first: use shaped bullets when present (post-enrichment), otherwise the
+      // person's raw captured lines (LinkedIn rawText). BASELINE is itself a shaping
+      // pass, so raw lines are sufficient to produce the immediate draft.
+      if(emp.shaped&&emp.shaped.length){
+        emp.shaped.forEach(s=>{const num=s.number&&s.number.trim()?` [number to use: ${s.number.trim()}]`:'';L.push(`  Bullet: ${s.shaped}${num}`)})
+      }else{
+        String(emp.rawText||'').split('\n').map(s=>s.trim()).filter(Boolean).forEach(line=>L.push(`  Bullet: ${line}`))
+      }
     })
     const sel=(b.skills||[]).map(g=>({category:g.category,items:(g.items||[]).filter(i=>i.selected).map(i=>i.skill)})).filter(g=>g.items.length)
     if(sel.length){L.push('');L.push('SKILLS:');sel.forEach(g=>L.push(`- ${g.category}: ${g.items.join(', ')}`))}
     if((b.education||[]).length){L.push('');L.push('EDUCATION:');(b.education||[]).forEach(e=>L.push(`- ${[e.degree,e.field,e.institution,e.year].filter(Boolean).join(', ')}`))}
+    if(b.scratchNotes&&b.scratchNotes.trim()){L.push('');L.push('ADDITIONAL NOTES FROM THE PERSON (distribute into the right roles or the summary):');L.push(b.scratchNotes.trim())}
     if(b.certs&&b.certs.trim()){L.push('');L.push('CERTIFICATIONS AND LICENSES:');L.push(b.certs.trim())}
     if(b.extras&&b.extras.trim()){L.push('');L.push('BEYOND THE JOBS:');L.push(b.extras.trim())}
     return L.join('\n')
@@ -4804,25 +4780,112 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const json=parseResumeJSON(raw)
       if(!json)throw new Error('The resume did not come together cleanly. Try once more.')
       const text=renderResumeText(json)
-      setProfile(p=>({...p,builder:{...(p.builder||{}),phase:'ready'},baselineResume:json,resume:text,resumeFile:'Built with Reimagine'}))
+      setProfile(p=>({...p,builder:{...(p.builder||{}),phase:'draft'},baselineResume:json,resume:text,resumeFile:'Built with Reimagine'}))
       setOutputs(o=>({...o,baseline:JSON.stringify(json),resume_updated_at:Date.now()}))
-    }catch(e){if(reqId===builderReqRef.current)builderErr(key,e.message||'That did not come together. Try again.')}
+    }catch(e){if(reqId===builderReqRef.current){
+      // On failure from the transient 'drafting' handoff, drop to the skeleton so the
+      // person can edit and retry rather than being stuck on a spinner.
+      setBuilder(cur=>(cur.phase==='drafting'?{...cur,phase:'skeleton'}:cur))
+      builderErr(key,e.message||'That did not come together. Try again.')
+    }}
     finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
   }
-  // Generated helper content displays by default, never behind a click: auto-run
-  // AREAS on landing on a role's capture step, and SKILLS on landing on the skills
-  // step. Cached on profile.builder (areasTried / skillsTried) so each runs once.
+  // Draft-first handoff: when the builder enters the transient 'drafting' phase
+  // (set by the LinkedIn parse or the from-scratch skeleton), fire the baseline
+  // generation once. Fired from an effect (not chained synchronously) so it reads
+  // the committed profile.builder, never a stale pre-commit snapshot.
   useEffect(()=>{
     if(step!=='resume-builder'||builderBuilding)return
     const b=profile.builder;if(!b)return
-    if(b.phase==='capture'){
-      const i=Math.min(b.roleIdx||0,Math.max((b.employers||[]).length-1,0))
-      const emp=(b.employers||[])[i]
-      if(emp&&!emp.areasTried&&!(emp.areas&&emp.areas.length))genBuilderAreas(i)
-    }else if(b.phase==='skills'){
-      if(!b.skillsTried&&!(b.skills&&b.skills.length))genBuilderSkills()
-    }
-  },[step,profile.builder&&profile.builder.phase,profile.builder&&profile.builder.roleIdx,builderBuilding])
+    if(b.phase==='drafting'&&(b.employers||[]).length)genBuilderBaseline()
+  },[step,profile.builder&&profile.builder.phase,builderBuilding])
+  // Debounced supplement-later stamp: on builder-driven edits to the draft we
+  // re-derive profile.resume immediately but advance outputs.resume_updated_at only
+  // after the edits settle (stamp on commit, not on every keystroke).
+  const resumeStampRef=useRef(null)
+  const scheduleResumeStamp=()=>{
+    if(resumeStampRef.current)clearTimeout(resumeStampRef.current)
+    resumeStampRef.current=setTimeout(()=>{setOutputs(o=>({...o,resume_updated_at:Date.now()}))},1200)
+  }
+  // Commit an edited baseline JSON: keep profile.baselineResume, profile.resume
+  // (convergence), and outputs.baseline in sync, then schedule the stamp. This sync
+  // is the load-bearing invariant for the orientation chain + refresh offer.
+  const commitBaseline=(next)=>{
+    const text=renderResumeText(next)
+    setProfile(p=>({...p,baselineResume:next,resume:text}))
+    setOutputs(o=>({...o,baseline:JSON.stringify(next)}))
+    scheduleResumeStamp()
+  }
+  const editBaseline=(mutator)=>{const cur=profile.baselineResume;if(!cur)return;const next=mutator(JSON.parse(JSON.stringify(cur)));commitBaseline(next)}
+  // --- Draft-side enrichment generators (all optional, all reuse the round-2 prompts).
+  // They operate on profile.baselineResume (the draft is the source of truth) and run
+  // one-at-a-time through the shared builderBuilding key + builderReqRef guard.
+  const draftRole=(ri)=>((profile.baselineResume||{}).experience||[])[ri]||{}
+  const draftRoleTitle=(ri)=>{const e=draftRole(ri);return (e.titles&&e.titles[0]&&e.titles[0].title)||e.title||''}
+  const genDraftAreas=async(ri)=>{
+    if(builderBuilding)return
+    const key='areas-'+ri;setBuilderBuilding(key);builderErr(key,null)
+    const reqId=++builderReqRef.current
+    try{
+      const raw=await callClaude(P.AREAS(draftRoleTitle(ri),'',draftRole(ri).context||''),{maxTokens:600})
+      if(reqId!==builderReqRef.current)return
+      const areas=String(raw||'').split('\n').map(s=>s.replace(/^[-*•\d.\)\s]+/,'').trim()).filter(Boolean).slice(0,10)
+      setDraftAreas(m=>({...m,[ri]:areas}))
+    }catch(e){if(reqId===builderReqRef.current)builderErr(key,(e&&e.message)||'Could not load ideas.')}
+    finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
+  }
+  // "Add a number?" for one bullet: fetch the measurement nudge for that line.
+  const genDraftNudge=async(ri,bi,bulletText)=>{
+    if(builderBuilding)return
+    const key=`nudge-${ri}:${bi}`;setBuilderBuilding(key);builderErr(key,null)
+    const reqId=++builderReqRef.current
+    try{
+      const raw=await callClaudeWithVoiceGate(()=>P.SHAPE_AND_NUDGE(draftRoleTitle(ri),'',String(bulletText||'')),{maxTokens:1500,voiceMode:'prose'},{step:'builder-nudge',onEvent:logVoiceEvent})
+      if(reqId!==builderReqRef.current)return
+      const arr=parseJsonArray(raw)||[]
+      const nudge=(arr[0]&&arr[0].nudge)||'Add the figure this line moved, if you can recall it. A rough range is fine.'
+      setDraftNudges(m=>({...m,[`${ri}:${bi}`]:nudge}))
+    }catch(e){if(reqId===builderReqRef.current)builderErr(key,(e&&e.message)||'Could not load a suggestion.')}
+    finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
+  }
+  // "Say more": shape the person's new lines for one role and append them as bullets.
+  const genDraftSayMore=async(ri,text)=>{
+    if(builderBuilding)return
+    const lines=String(text||'').split('\n').map(s=>s.trim()).filter(Boolean)
+    if(!lines.length){setSayMore({ri:null,text:''});return}
+    const key='saymore-'+ri;setBuilderBuilding(key);builderErr(key,null)
+    const reqId=++builderReqRef.current
+    try{
+      const raw=await callClaudeWithVoiceGate(()=>P.SHAPE_AND_NUDGE(draftRoleTitle(ri),'',lines.join('\n')),{maxTokens:4000,voiceMode:'prose'},{step:'builder-saymore',onEvent:logVoiceEvent})
+      if(reqId!==builderReqRef.current)return
+      const arr=parseJsonArray(raw)||[]
+      const newBullets=arr.map((o,i)=>(o&&o.shaped)||lines[i]||'').filter(Boolean)
+      if(newBullets.length)editBaseline(j=>{const exp=j.experience||[];if(exp[ri])exp[ri]={...exp[ri],bullets:[...(exp[ri].bullets||[]),...newBullets]};j.experience=exp;return j})
+      setSayMore({ri:null,text:''})
+    }catch(e){if(reqId===builderReqRef.current)builderErr(key,(e&&e.message)||'That did not come together. Try again.')}
+    finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
+  }
+  // "Suggest more skills": SKILLS grounded on the draft's own bullets, merged in.
+  const genDraftSkills=async()=>{
+    if(builderBuilding)return
+    const bl=profile.baselineResume;if(!bl)return
+    const allBullets=(bl.experience||[]).flatMap(e=>e.bullets||[]).map(s=>String(s||'').trim()).filter(Boolean)
+    const key='skills';setBuilderBuilding(key);builderErr(key,null)
+    const reqId=++builderReqRef.current
+    try{
+      const raw=await callClaude(P.SKILLS(draftRoleTitle(0),'',allBullets.join('\n')),{maxTokens:2000})
+      if(reqId!==builderReqRef.current)return
+      const arr=parseJsonArray(raw)||[]
+      const groups=arr.map(g=>({category:(g&&g.category)||'',items:((g&&g.items)||[]).map(it=>(typeof it==='string'?it:((it&&it.skill)||'')).trim()).filter(Boolean)})).filter(g=>g.items.length)
+      if(groups.length)editBaseline(j=>{
+        const have=new Set((j.skills||[]).flatMap(g=>(g.items||[]).map(s=>String(s).toLowerCase())))
+        const merged=(j.skills||[]).map(g=>({...g,items:[...g.items]}))
+        groups.forEach(g=>{const fresh=g.items.filter(s=>!have.has(String(s).toLowerCase()));if(!fresh.length)return;const ex=merged.find(m=>m.category===g.category);if(ex)ex.items=[...ex.items,...fresh];else merged.push({category:g.category,items:fresh})})
+        j.skills=merged;return j
+      })
+    }catch(e){if(reqId===builderReqRef.current)builderErr(key,(e&&e.message)||'Could not suggest skills.')}
+    finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
+  }
   // --- Resume Builder UI. A single re-enterable orientation step ('resume-builder')
   // with internal phases stored on profile.builder.phase. All captured material lives
   // on profile.builder so the step persists + is editable on re-entry.
@@ -4830,25 +4893,27 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const b=profile.builder||{}
     const phase=b.phase||'intro'
     const employers=b.employers||[]
-    const idx=Math.min(b.roleIdx||0,Math.max(employers.length-1,0))
     const iS={width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}
     const setPhase=(ph)=>setBuilder(cur=>({...cur,phase:ph}))
-    const addEmployer=()=>setBuilder(cur=>({...cur,employers:[...(cur.employers||[]),{company:'',context:'',titles:[{title:'',dates:''}],areas:[],rawText:'',shaped:[]}]}))
+    const addEmployer=()=>setBuilder(cur=>({...cur,employers:[...(cur.employers||[]),emptyEmployer()]}))
     const updEmployer=(i,patch)=>setBuilder(cur=>{const e=[...(cur.employers||[])];e[i]={...e[i],...patch};return{...cur,employers:e}})
     const removeEmployer=(i)=>setBuilder(cur=>({...cur,employers:(cur.employers||[]).filter((_,j)=>j!==i)}))
     const addTitle=(i)=>setBuilder(cur=>{const e=[...(cur.employers||[])];e[i]={...e[i],titles:[...(e[i].titles||[]),{title:'',dates:''}]};return{...cur,employers:e}})
     const updTitle=(i,ti,patch)=>setBuilder(cur=>{const e=[...(cur.employers||[])];const ts=[...(e[i].titles||[])];ts[ti]={...ts[ti],...patch};e[i]={...e[i],titles:ts};return{...cur,employers:e}})
     const updHeader=(patch)=>setBuilder(cur=>({...cur,header:{...(cur.header||{}),...patch}}))
-    const updShaped=(i,si,patch)=>setBuilder(cur=>{const e=[...(cur.employers||[])];const sh=[...(e[i].shaped||[])];sh[si]={...sh[si],...patch};e[i]={...e[i],shaped:sh};return{...cur,employers:e}})
-    const addEdu=()=>setBuilder(cur=>({...cur,education:[...(cur.education||[]),{degree:'',field:'',institution:'',year:''}]}))
-    const updEdu=(i,patch)=>setBuilder(cur=>{const ed=[...(cur.education||[])];ed[i]={...ed[i],...patch};return{...cur,education:ed}})
-    const toggleSkill=(gi,ii)=>setBuilder(cur=>{const sk=(cur.skills||[]).map(g=>({...g,items:[...g.items]}));sk[gi].items[ii]={...sk[gi].items[ii],selected:!sk[gi].items[ii].selected};return{...cur,skills:sk}})
-    const addOwnSkill=()=>{const name=skillDraft.trim();if(!name)return;setBuilder(cur=>{const sk=(cur.skills||[]).map(g=>({...g,items:[...g.items]}));let gi=sk.findIndex(g=>g.category==='Added by you');if(gi<0){sk.push({category:'Added by you',items:[]});gi=sk.length-1}sk[gi].items.push({skill:name,selected:true});return{...cur,skills:sk}});setSkillDraft('')}
     const hdr=(tag,title,sub)=> <><div style={S.tag('#8A9BB8')}>{tag}</div><h1 style={S.title}>{title}</h1>{sub&&<p style={S.sub}>{sub}</p>}</>
     const back=(ph)=> <Btn secondary onClick={()=>ph==='resume'?nav('resume'):setPhase(ph)}><ArrowLeft size={13}/>Back</Btn>
-    const skillCount=(b.skills||[]).reduce((n,g)=>n+(g.items||[]).filter(i=>i.selected).length,0)
-    const emp=employers[idx]||{}
-    const origLines=String(emp.rawText||'').split('\n').map(s=>s.trim()).filter(Boolean)
+    // Draft-workspace editors (operate on profile.baselineResume via editBaseline).
+    const bl=profile.baselineResume
+    const editHeaderField=(k,v)=>editBaseline(j=>{j.header={...(j.header||{}),[k]:v};return j})
+    const editSummary=(v)=>editBaseline(j=>{j.summary=v;return j})
+    const editBullet=(ri,bi,v)=>editBaseline(j=>{const ex=j.experience||[];const bs=[...(ex[ri].bullets||[])];bs[bi]=v;ex[ri]={...ex[ri],bullets:bs};j.experience=ex;return j})
+    const removeBullet=(ri,bi)=>editBaseline(j=>{const ex=j.experience||[];ex[ri]={...ex[ri],bullets:(ex[ri].bullets||[]).filter((_,k)=>k!==bi)};j.experience=ex;return j})
+    const removeSkill=(gi,ii)=>editBaseline(j=>{const sk=(j.skills||[]).map(g=>({...g,items:[...g.items]}));sk[gi].items=sk[gi].items.filter((_,k)=>k!==ii);j.skills=sk.filter(g=>g.items.length);return j})
+    const addSkillTo=(gi,name)=>{const n=String(name||'').trim();if(!n)return;editBaseline(j=>{const sk=(j.skills||[]).map(g=>({...g,items:[...g.items]}));if(sk[gi])sk[gi].items.push(n);else sk.push({category:'Skills',items:[n]});j.skills=sk;return j});setSkillDraft('')}
+    const editEdu=(i,patch)=>editBaseline(j=>{const ed=(j.education||[]).map(e=>({...e}));ed[i]={...ed[i],...patch};j.education=ed;return j})
+    const addEduRow=()=>editBaseline(j=>{j.education=[...(j.education||[]),{degree:'',field:'',institution:'',year:''}];return j})
+    const hasNumber=(s)=>/\d/.test(String(s||''))
 
     if(phase==='intro')return <div>
       {hdr('Phase 0 · Orientation',"Let's build your resume together","You don't need every detail or every number right now. We'll work with what you remember, shape it into strong resume language, and you can sharpen it as you go.")}
@@ -4888,95 +4953,99 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={S.field}><label style={S.label}>Phone</label><input style={iS} value={(b.header||{}).phone||''} onChange={ev=>updHeader({phone:ev.target.value})} placeholder="(555) 555-5555"/></div>
         <div style={S.field}><label style={S.label}>LinkedIn URL</label><input style={iS} value={(b.header||{}).linkedin||''} onChange={ev=>updHeader({linkedin:ev.target.value})} placeholder="linkedin.com/in/you"/></div>
       </div>
+      {b.source==='scratch'&&<div style={{...S.card,marginTop:18}}><div style={S.field}><label style={S.label}>Anything you want to add about your work? <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label><textarea style={{...S.ta,minHeight:110}} value={b.scratchNotes||''} onChange={ev=>setBuilder(cur=>({...cur,scratchNotes:ev.target.value}))} placeholder="A few lines about what you did, any wins or numbers. We'll turn it into a first draft you can edit. You can also add more once it's on the page."/></div></div>}
       {err&&<ErrBox msg={err}/>}
-      <div style={S.row}>{back('onramp')}<Btn onClick={()=>{const ok=employers.some(e=>(e.company||'').trim()&&(e.titles||[]).some(t=>(t.title||'').trim()));if(!ok){setErr('Add at least one company and title to continue.');return}setErr(null);setBuilder(cur=>({...cur,roleIdx:0,phase:'capture'}))}}>Continue <ChevronRight size={14}/></Btn></div>
+      <div style={S.row}>{back('onramp')}<Btn disabled={builderBuilding==='baseline'} onClick={()=>{const ok=employers.some(e=>(e.company||'').trim()&&(e.titles||[]).some(t=>(t.title||'').trim()));if(!ok){setErr('Add at least one company and title to continue.');return}setErr(null);setPhase('drafting')}}><Sparkles size={14}/>Create my resume</Btn></div>
     </div>}
 
-    if(phase==='capture')return <div>
-      {hdr('Phase 0 · Orientation',`${(emp.titles&&emp.titles[0]&&emp.titles[0].title)||'This role'}${emp.company?` at ${emp.company}`:''}`,null)}
-      <div style={{fontSize:15,color:C.gray,marginBottom:18}}>Role {idx+1} of {employers.length}</div>
-      <div style={S.card}>
-        <div style={{fontWeight:700,color:'#1A2540'}}>Areas people in this role often own</div>
-        <p style={{fontSize:15,color:C.gray,margin:'4px 0 12px'}}>Not a checklist. Use these to jog your memory, then write what you actually did.</p>
-        {builderBuilding==='areas-'+idx&&<Loading msg="Pulling up ideas…"/>}
-        {builderErrors['areas-'+idx]&&<ErrBox msg={builderErrors['areas-'+idx]}/>}
-        {(emp.areas&&emp.areas.length)>0&&<div style={{display:'flex',flexWrap:'wrap',gap:8}}>{emp.areas.map((a,ai)=><span key={ai} style={{background:`${C.gold}14`,border:`1px solid ${C.gold}30`,borderRadius:16,padding:'5px 12px',fontSize:14,color:'#1A2540'}}>{a}</span>)}</div>}
-        {!(emp.areas&&emp.areas.length)&&emp.areasTried&&builderBuilding!=='areas-'+idx&&<Btn small secondary onClick={()=>genBuilderAreas(idx)}><RotateCcw size={11}/>Try again</Btn>}
-      </div>
-      <div style={S.card}>
-        <div style={{fontWeight:700,color:'#1A2540'}}>What did you do here that you're proud of?</div>
-        <p style={{fontSize:15,color:C.gray,margin:'4px 0 12px'}}>{emp.rawText?'We pulled these from your LinkedIn profile. Confirm them, fix anything that came through wrong, and add what is missing. One thought per line.':"In your own words, one thought per line. We'll turn it into resume language for you."}</p>
-        <textarea style={{...S.ta,minHeight:160}} value={emp.rawText||''} onChange={ev=>updEmployer(idx,{rawText:ev.target.value})} placeholder={"Ran the pick-and-pack redesign across three sites\nLed a team through a system rollout"}/>
-        <div style={{fontSize:14,color:C.gray,marginTop:8}}>Numbers make these land harder, but they're never required. A rough range is fine, and if you can't recall one, a former teammate often can. Leave it out and the line still works.</div>
-      </div>
-      <div style={S.row}>{back(idx>0?'shaping':'skeleton')}<Btn disabled={builderBuilding==='shape-'+idx} onClick={()=>{setPhase('shaping');genBuilderShape(idx)}}>Make these resume-ready <ChevronRight size={14}/></Btn></div>
+    if(phase==='drafting')return <div>
+      {hdr('Phase 0 · Orientation','Putting your resume together','One moment. We are turning what you gave us into a complete, sendable draft you can edit.')}
+      <Loading msg="Writing your starting resume…"/>
+      {builderErrors['baseline']&&<><ErrBox msg={builderErrors['baseline']}/><div style={S.row}>{back('skeleton')}<Btn onClick={()=>setPhase('drafting')}><RotateCcw size={12}/>Try again</Btn></div></>}
     </div>
 
-    if(phase==='shaping'){const shaped=emp.shaped||[];return <div>
-      {hdr('Phase 0 · Orientation',"Here's each line in resume language","Add a number where one fits. If you can't recall it, leave it, the line still works.")}
-      {builderBuilding==='shape-'+idx&&!shaped.length&&<Loading msg="Making your lines resume-ready…"/>}
-      {builderErrors['shape-'+idx]&&<><ErrBox msg={builderErrors['shape-'+idx]}/><Btn small secondary onClick={()=>genBuilderShape(idx)}><RotateCcw size={11}/>Try again</Btn></>}
-      {shaped.map((s,si)=><div key={si} style={S.card}>
-        <div style={{fontSize:14,color:C.gray,marginBottom:6}}>You wrote: {origLines[si]||''}</div>
-        <textarea style={{...S.ta,minHeight:70}} value={s.shaped||''} onChange={ev=>updShaped(idx,si,{shaped:ev.target.value})}/>
-        {s.nudge&&!s.dismissed&&<div style={{...S.note,marginTop:10}}>
-          <div style={{marginBottom:8}}>{s.nudge}</div>
-          <input style={iS} value={s.number||''} onChange={ev=>updShaped(idx,si,{number:ev.target.value})} placeholder="e.g. orders/hour up ~30%, or cycle time 3 days to 1 day"/>
-          <div><button type="button" onClick={()=>updShaped(idx,si,{dismissed:true})} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',fontSize:14,marginTop:8,textDecoration:'underline'}}>I don't recall a number</button></div>
-        </div>}
-      </div>)}
-      <div style={S.row}>{back('capture')}<Btn onClick={()=>{if(idx<employers.length-1){setBuilder(cur=>({...cur,roleIdx:idx+1,phase:'capture'}))}else{setPhase('skills')}}}>{idx<employers.length-1?'Next role':'Continue to skills'} <ChevronRight size={14}/></Btn></div>
-    </div>}
+    if(phase==='draft'){
+      if(!bl)return <div>{hdr('Phase 0 · Orientation','Your draft','')}<Loading msg="Loading your draft…"/></div>
+      const h=bl.header||{}
+      const skillGroups=(bl.skills||[]).filter(g=>g&&Array.isArray(g.items)&&g.items.length)
+      return <div>
+      {hdr('Phase 0 · Orientation','Your resume is ready to edit',"This is your draft, good enough to send today. Everything here is editable. Add a number, say more about a role, or adjust the wording. Your changes save as you go.")}
+      <div style={{...S.note}}>New details can also strengthen your personal brand and the work that builds on it, so you may want to refresh those later.</div>
 
-    if(phase==='skills')return <div>
-      {hdr('Phase 0 · Orientation','Skills that fit your background','Drawn from your roles and what you described. Tap the ones that are true for you, and add anything we missed. These are the terms employers and their systems scan for.')}
-      {builderBuilding==='skills'&&<Loading msg="Building your skills list…"/>}
-      {builderErrors['skills']&&<ErrBox msg={builderErrors['skills']}/>}
-      {(!b.skills||!b.skills.length)?(b.skillsTried&&builderBuilding!=='skills'&&<Btn small secondary onClick={genBuilderSkills}><RotateCcw size={12}/>Try again</Btn>):<>
-        {b.skills.map((g,gi)=><div key={gi} style={S.card}>
-          <div style={{fontWeight:700,color:'#1A2540',marginBottom:10}}>{g.category}</div>
-          <div style={{display:'flex',flexWrap:'wrap',gap:8}}>{g.items.map((it,ii)=><button key={ii} type="button" onClick={()=>toggleSkill(gi,ii)} style={{borderRadius:16,padding:'6px 13px',fontSize:14,cursor:'pointer',border:`1px solid ${it.selected?C.gold:C.border}`,background:it.selected?`${C.gold}22`:'transparent',color:it.selected?'#1A2540':C.gray,fontWeight:it.selected?600:400}}>{it.selected?'✓ ':''}{it.skill}</button>)}</div>
+      <div style={S.card}>
+        <div style={{fontWeight:700,color:'#1A2540',marginBottom:10}}>Contact</div>
+        <div style={S.field}><label style={S.label}>Full name</label><input style={iS} value={h.name||''} onChange={ev=>editHeaderField('name',ev.target.value)} placeholder="Your name"/></div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <input style={{...iS,flex:1,minWidth:160}} value={h.email||''} onChange={ev=>editHeaderField('email',ev.target.value)} placeholder="Email"/>
+          <input style={{...iS,flex:1,minWidth:140}} value={h.phone||''} onChange={ev=>editHeaderField('phone',ev.target.value)} placeholder="Phone"/>
+        </div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:8}}>
+          <input style={{...iS,flex:1,minWidth:160}} value={h.location||h.city||''} onChange={ev=>editHeaderField('location',ev.target.value)} placeholder="Location"/>
+          <input style={{...iS,flex:1,minWidth:160}} value={h.linkedin||''} onChange={ev=>editHeaderField('linkedin',ev.target.value)} placeholder="LinkedIn URL"/>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <div style={{fontWeight:700,color:'#1A2540',marginBottom:8}}>Summary</div>
+        <textarea style={{...S.ta,minHeight:100}} value={bl.summary||''} onChange={ev=>editSummary(ev.target.value)} placeholder="A short professional summary."/>
+      </div>
+
+      <div style={{fontWeight:700,color:'#1A2540',margin:'18px 0 8px',fontSize:20}}>Experience</div>
+      {(bl.experience||[]).map((role,ri)=><div key={ri} style={S.card}>
+        <div style={{fontWeight:700,color:'#1A2540',fontSize:17}}>{role.company||'Company'}</div>
+        <div style={{fontSize:14,color:C.gray,marginBottom:4}}>{(role.titles||[]).map(t=>`${t.title||''}${t.dates?` · ${t.dates}`:''}`).filter(Boolean).join('  |  ')||role.title||''}</div>
+        {role.context&&<div style={{fontSize:13,color:C.gray,fontStyle:'italic',marginBottom:8}}>{role.context}</div>}
+        {(role.bullets||[]).map((bt,bi)=><div key={bi} style={{marginBottom:10}}>
+          <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+            <span style={{color:C.gold,marginTop:10}}>•</span>
+            <textarea style={{...S.ta,minHeight:50,fontSize:16}} value={bt} onChange={ev=>editBullet(ri,bi,ev.target.value)}/>
+            <button type="button" onClick={()=>removeBullet(ri,bi)} title="Remove" style={{background:'none',border:'none',color:C.gray,cursor:'pointer',fontSize:18,marginTop:6}}>×</button>
+          </div>
+          {!hasNumber(bt)&&<div style={{marginLeft:18}}>
+            {draftNudges[`${ri}:${bi}`]
+              ? <div style={{fontSize:14,color:C.goldL,background:`${C.gold}10`,border:`1px solid ${C.gold}25`,borderRadius:6,padding:'8px 12px',marginTop:4}}>{draftNudges[`${ri}:${bi}`]}</div>
+              : <button type="button" disabled={!!builderBuilding} onClick={()=>genDraftNudge(ri,bi,bt)} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',fontSize:14,padding:'2px 0'}}>{builderBuilding===`nudge-${ri}:${bi}`?'Thinking…':'add a number?'}</button>}
+          </div>}
         </div>)}
-        <div style={{display:'flex',gap:10,marginTop:6,flexWrap:'wrap'}}><input style={{...iS,flex:1,minWidth:200}} value={skillDraft} onChange={ev=>setSkillDraft(ev.target.value)} onKeyDown={ev=>{if(ev.key==='Enter'){ev.preventDefault();addOwnSkill()}}} placeholder="Add a skill we missed"/><Btn small secondary onClick={addOwnSkill}>Add</Btn></div>
-        <div style={{fontSize:15,color:C.gray,marginTop:10}}>{skillCount} selected</div>
-      </>}
-      <div style={S.row}>{back('shaping')}<Btn onClick={()=>setPhase('education')}>Continue <ChevronRight size={14}/></Btn></div>
-    </div>
-
-    if(phase==='education')return <div>
-      {hdr('Phase 0 · Orientation','Education and credentials','Add your degrees, and any certifications or licenses worth showing. For some roles these are the first thing a reader looks for.')}
-      {(b.education||[]).map((e,i)=><div key={i} style={S.card}>
-        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:8}}><input style={{...iS,flex:1,minWidth:150}} value={e.degree||''} onChange={ev=>updEdu(i,{degree:ev.target.value})} placeholder="Degree (e.g. BS)"/><input style={{...iS,flex:1,minWidth:150}} value={e.field||''} onChange={ev=>updEdu(i,{field:ev.target.value})} placeholder="Field of study"/></div>
-        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}><input style={{...iS,flex:2,minWidth:180}} value={e.institution||''} onChange={ev=>updEdu(i,{institution:ev.target.value})} placeholder="Institution"/><input style={{...iS,flex:1,minWidth:100}} value={e.year||''} onChange={ev=>updEdu(i,{year:ev.target.value})} placeholder="Year (optional)"/></div>
+        {sayMore.ri===ri
+          ? <div style={{marginTop:8}}>
+              <textarea style={{...S.ta,minHeight:90}} value={sayMore.text} onChange={ev=>setSayMore({ri,text:ev.target.value})} placeholder="What else did you do here? One thought per line. We'll turn it into resume lines."/>
+              {draftAreas[ri]&&draftAreas[ri].length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:8,margin:'8px 0'}}>{draftAreas[ri].map((a,ai)=><span key={ai} style={{background:`${C.gold}14`,border:`1px solid ${C.gold}30`,borderRadius:16,padding:'4px 11px',fontSize:13,color:'#1A2540'}}>{a}</span>)}</div>}
+              <div style={{display:'flex',gap:10,marginTop:6,flexWrap:'wrap',alignItems:'center'}}>
+                <Btn small disabled={!!builderBuilding} onClick={()=>genDraftSayMore(ri,sayMore.text)}>{builderBuilding==='saymore-'+ri?'Adding…':'Add these'}</Btn>
+                <Btn small secondary onClick={()=>setSayMore({ri:null,text:''})}>Cancel</Btn>
+                {!(draftAreas[ri]&&draftAreas[ri].length)&&<button type="button" disabled={!!builderBuilding} onClick={()=>genDraftAreas(ri)} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',fontSize:14}}>{builderBuilding==='areas-'+ri?'…':'need ideas?'}</button>}
+              </div>
+            </div>
+          : <button type="button" onClick={()=>setSayMore({ri,text:''})} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',fontSize:15,padding:'6px 0'}}>+ Say more about this role</button>}
       </div>)}
-      <Btn secondary onClick={addEdu}>+ Add education</Btn>
-      <div style={{...S.card,marginTop:18}}><div style={S.field}><label style={S.label}>Certifications and licenses</label><textarea style={{...S.ta,minHeight:90}} value={b.certs||''} onChange={ev=>setBuilder(cur=>({...cur,certs:ev.target.value}))} placeholder="PMP, state license, etc. One per line."/></div></div>
-      <div style={S.row}>{back('skills')}<Btn onClick={()=>setPhase('extras')}>Continue <ChevronRight size={14}/></Btn></div>
-    </div>
 
-    if(phase==='extras')return <div>
-      {hdr('Phase 0 · Orientation',"Anything beyond your jobs you'd want on here?",'Board or volunteer roles, speaking, writing, or groups you\'re part of. Optional, but they can round out the picture.')}
-      <div style={S.card}><textarea style={{...S.ta,minHeight:120}} value={b.extras||''} onChange={ev=>setBuilder(cur=>({...cur,extras:ev.target.value}))} placeholder="Optional"/></div>
-      <div style={S.row}>{back('education')}<Btn onClick={()=>setPhase('proudest')}>Continue <ChevronRight size={14}/></Btn></div>
-    </div>
+      <div style={{fontWeight:700,color:'#1A2540',margin:'18px 0 8px',fontSize:20}}>Skills</div>
+      <div style={S.card}>
+        {skillGroups.length===0&&<div style={{fontSize:14,color:C.gray,marginBottom:8}}>No skills yet. Suggest some below.</div>}
+        {skillGroups.map((g,gi)=><div key={gi} style={{marginBottom:12}}>
+          {g.category&&<div style={{fontWeight:600,color:'#1A2540',marginBottom:6,fontSize:15}}>{g.category}</div>}
+          <div style={{display:'flex',flexWrap:'wrap',gap:8,alignItems:'center'}}>{g.items.map((it,ii)=><span key={ii} style={{display:'inline-flex',alignItems:'center',gap:6,background:`${C.gold}18`,border:`1px solid ${C.gold}40`,borderRadius:16,padding:'5px 10px',fontSize:14,color:'#1A2540'}}>{typeof it==='string'?it:(it&&it.skill)}<button type="button" onClick={()=>removeSkill(gi,ii)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',fontSize:15,lineHeight:1}}>×</button></span>)}
+            <input style={{...iS,width:170,padding:'5px 10px'}} value={skillDraft} onChange={ev=>setSkillDraft(ev.target.value)} onKeyDown={ev=>{if(ev.key==='Enter'){ev.preventDefault();addSkillTo(gi,skillDraft)}}} placeholder="Add a skill"/>
+          </div>
+        </div>)}
+        <Btn small secondary disabled={!!builderBuilding} onClick={genDraftSkills}>{builderBuilding==='skills'?'Finding…':'Suggest more skills'}</Btn>
+      </div>
 
-    if(phase==='proudest')return <div>
-      {hdr('Phase 0 · Orientation','Of everything you\'ve told us, what are you proudest of?','We\'ll use it to open your resume in your voice.')}
-      <div style={S.card}><textarea style={{...S.ta,minHeight:110}} value={b.proudest||''} onChange={ev=>setBuilder(cur=>({...cur,proudest:ev.target.value}))} placeholder="Optional, but it helps us open in your voice"/></div>
-      {builderBuilding==='baseline'&&<Loading msg="Building your starting resume…"/>}
-      {builderErrors['baseline']&&<ErrBox msg={builderErrors['baseline']}/>}
-      <div style={S.row}>{back('extras')}<Btn disabled={builderBuilding==='baseline'} onClick={genBuilderBaseline}><Sparkles size={14}/>Create my resume</Btn></div>
-    </div>
+      <div style={{fontWeight:700,color:'#1A2540',margin:'18px 0 8px',fontSize:20}}>Education</div>
+      {(bl.education||[]).map((e,i)=><div key={i} style={S.card}>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:8}}><input style={{...iS,flex:1,minWidth:150}} value={e.degree||''} onChange={ev=>editEdu(i,{degree:ev.target.value})} placeholder="Degree"/><input style={{...iS,flex:1,minWidth:150}} value={e.field||''} onChange={ev=>editEdu(i,{field:ev.target.value})} placeholder="Field of study"/></div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}><input style={{...iS,flex:2,minWidth:180}} value={e.institution||''} onChange={ev=>editEdu(i,{institution:ev.target.value})} placeholder="Institution"/><input style={{...iS,flex:1,minWidth:100}} value={e.year||''} onChange={ev=>editEdu(i,{year:ev.target.value})} placeholder="Year"/></div>
+      </div>)}
+      <Btn secondary onClick={addEduRow}>+ Add education</Btn>
 
-    if(phase==='ready'){const bl=profile.baselineResume;return <div>
-      {hdr('Phase 0 · Orientation','Your starting resume is ready',"It's good enough to send today. As more information becomes available, you can always come back to your Resume section and add it, and your resume will update.")}
-      <div style={{...S.note}}>New details can also strengthen your personal brand and the results that build on it, so you may want to refresh those too.</div>
-      {bl&&<div style={{...S.out,marginTop:8}}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:'#1A2540',margin:0}}>{renderResumeText(bl)}</pre></div>}
+      <div style={{fontWeight:700,color:'#1A2540',margin:'22px 0 8px',fontSize:20}}>Preview</div>
+      <div style={{...S.out,marginTop:0}}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:14,lineHeight:1.6,color:'#1A2540',margin:0}}>{renderResumeText(bl)}</pre></div>
       <div style={{fontSize:14,color:C.ok,marginTop:10}}><Check size={12} style={{display:'inline',marginRight:4}}/>Saved to your account</div>
       <div style={S.row}>
-        {bl&&<Btn onClick={()=>downloadResumeWord(bl)}><Download size={14}/>Download (Word)</Btn>}
-        <Btn secondary onClick={()=>genBuilderBaseline()} disabled={builderBuilding==='baseline'}><RotateCcw size={12}/>Rebuild</Btn>
-        <Btn secondary onClick={()=>advance('resume-builder','linkedin')}>Add more later <ChevronRight size={14}/></Btn>
+        <Btn onClick={()=>downloadResumeWord(bl)}><Download size={14}/>Download (Word)</Btn>
+        <Btn secondary disabled={!!builderBuilding} onClick={()=>genBuilderBaseline()}><RotateCcw size={12}/>Regenerate</Btn>
+        <Btn secondary onClick={()=>advance('resume-builder','linkedin')}>Continue <ChevronRight size={14}/></Btn>
       </div>
     </div>}
 
