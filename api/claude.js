@@ -9,8 +9,8 @@
 
 // Vercel Pro ceiling. The handler is non-streaming (await fetch + await
 // response.json), so it holds the connection open for the full Anthropic
-// generation. Heaviest prompts (p8 LinkedIn Remix, the Phase 1 chain p1-p2-p3,
-// p11 Interview Prep, p_res Resume Refresh) regularly run 90-150 seconds
+// generation. Heaviest prompts (p8 LinkedIn Remix, the Personal Brand two-stage
+// build, p11 Interview Prep, p_res Resume Refresh) regularly run 90-150 seconds
 // against the larger profile shapes; without an explicit cap the function
 // was hitting the platform default and returning a `---` status (Vercel's
 // tell for a function that never returned). Streaming is the proper fix
