@@ -3412,7 +3412,7 @@ export default function PivotEngine(){
   // current build vs a stale one: build/live SHAs, last check time, and
   // status all render in a fixed corner element. Production users see nothing.
   const isDebug=_params.get('debug')==='1'
-  const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',linkedin:'',linkedinFile:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',skills:{technical:[],systems:[],certifications:[],languages:[],methodologies:[]},corrections:[],frameworks:[],jd:'',jdFile:'',companyReadInput:'',builder:null,baselineResume:null}
+  const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',linkedin:'',linkedinFile:'',linkedinRecs:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',skills:{technical:[],systems:[],certifications:[],languages:[],methodologies:[]},corrections:[],frameworks:[],jd:'',jdFile:'',companyReadInput:'',builder:null,baselineResume:null}
   const IO={p1:'',p2:'',p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''}
   const initStep=isDemo?'welcome':'welcome'
   const[step,setStep]=useState(initStep)
@@ -4526,7 +4526,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   };
   const importProfile=(file)=>{const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.profile)setProfile(normalizeWork(data.profile));if(data.outputs)setOutputs(data.outputs);if(data.done)setDone(data.done);if(data.deepOpts)setDeepOpts(data.deepOpts);if(data.chosen)setChosen(data.chosen);if(data.selectedLane!==undefined)setSelectedLane(data.selectedLane);if(Array.isArray(data.exploredRoleTitles))setExploredRoleTitles(data.exploredRoleTitles);if(Array.isArray(data.savedPlaybooks))setSavedPlaybooks(data.savedPlaybooks);const lastStep=(typeof data.step==='string'&&data.step)?data.step:(data.done&&data.done.length>0?data.done[data.done.length-1]:'welcome');setStep(lastStep);setErr(null)}catch(err){setErr('Failed to import profile. Please check the file format.')}};reader.onerror=()=>setErr('Failed to read file.');reader.readAsText(file)}
   const prog=INPUT_PHASE_STEPS.has(step)?Math.round((ALL.indexOf(step)/ALL.indexOf('p3'))*100):null
-  const pc={loc:{...profile.loc,work:Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||'')},resume:profile.resume,linkedin:profile.linkedin,lifeEvents:profile.lifeEvents,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep,skills:profile.skills,frameworks:profile.frameworks}
+  const pc={loc:{...profile.loc,work:Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||'')},resume:profile.resume,linkedin:[profile.linkedin,profile.linkedinRecs].filter(Boolean).join('\n\n'),lifeEvents:profile.lifeEvents,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,rep:profile.rep,skills:profile.skills,frameworks:profile.frameworks}
   const recordExploredRole=(title,lane)=>setExploredRoleTitles(prev=>{const ts=new Date().toISOString();const i=prev.findIndex(r=>r.title===title);if(i>=0){const n=[...prev];n[i]={...n[i],lane,lastExplored:ts};return n}return[...prev,{title,lane,lastExplored:ts}].slice(-20)})
   // Saved playbooks: record builders + save/delete helpers + restore.
   // Door 1 records hold the ROLE_SUBMODULES subset of outputs/done/feedback
@@ -4717,7 +4717,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         const nextLoc=(p.loc&&p.loc.city)?p.loc:{...(p.loc||{}),city:loc||((p.loc||{}).city||'')}
         // employers present -> go straight to drafting (the effect fires the baseline);
         // no roles parsed -> drop to the skeleton so the person can add them.
-        return{...p,loc:nextLoc,builder:{...builder,source:'linkedin',linkedinFile:file.name,linkedinRaw:text,linkedinSummary:summary||builder.linkedinSummary||'',
+        // Feed the orientation LinkedIn field from its real source (the extracted PDF
+        // text) so the LinkedIn upload step is auto-satisfied and we don't re-ask for
+        // the same file. Distinct field from profile.resume; not cross-wired.
+        return{...p,loc:nextLoc,linkedin:text,linkedinFile:file.name,builder:{...builder,source:'linkedin',linkedinFile:file.name,linkedinRaw:text,linkedinSummary:summary||builder.linkedinSummary||'',
           header:{...hdr,name:name||hdr.name||'',email:email||hdr.email||'',phone:phone||hdr.phone||'',linkedin:linkedinUrl||hdr.linkedin||p.linkedin||''},
           education:education.length?education:(builder.education||[]),skills:skills.length?skills:(builder.skills||[]),
           employers:emps.length?emps:[emptyEmployer()],phase:emps.length?'drafting':'skeleton'}}
@@ -5960,16 +5963,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>
     case'resume-builder':return renderResumeBuilder()
 
-    case'linkedin':return <div>
+    case'linkedin':{const fromBuilderLinkedin=!!(profile.builder&&profile.builder.source==='linkedin'&&profile.linkedin);return <div>
       <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
       <h1 style={S.title}>Your LinkedIn</h1>
-      <p style={S.sub}>This step is optional. Adding it sharpens Reimagine's read on how you present yourself publicly and what others have said about you.</p>
+      <p style={S.sub}>{fromBuilderLinkedin?'We already pulled your LinkedIn profile from the resume builder. You can add your recommendations below, or just continue.':"This step is optional. Adding it sharpens Reimagine's read on how you present yourself publicly and what others have said about you."}</p>
       <CoachingCallout>
         <strong style={{color:'#1A2540'}}>Why this helps.</strong>
         <p style={{margin:'8px 0 8px'}}>Your LinkedIn profile holds material your resume does not: your About section (your own public self-positioning), recommendations from colleagues (third-party voice about you), skills with endorsement counts (social proof of competencies others have validated), and your activity (what you engage with publicly, which signals values and passions).</p>
         <p style={{margin:'0 0 0'}}>It also lets Reimagine produce a true <em>refresh</em> of your LinkedIn in Phase 5 (rather than recommendations written from scratch), so the suggestions point at your actual current profile and what to change about it.</p>
       </CoachingCallout>
-      <details style={{background:'#F7F8FA',border:`1px solid ${C.border}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:C.grayL,lineHeight:1.65}}>
+      {!fromBuilderLinkedin&&<details style={{background:'#F7F8FA',border:`1px solid ${C.border}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:C.grayL,lineHeight:1.65}}>
         <summary style={{cursor:'pointer',fontWeight:600,color:'#1A2540'}}>How to export your LinkedIn as a PDF</summary>
         <ol style={{margin:'10px 0 0 20px',padding:0}}>
           <li style={{margin:'0 0 4px'}}>Open your LinkedIn profile (the URL that starts with linkedin.com/in/your-name).</li>
@@ -5977,14 +5980,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <li style={{margin:'0 0 4px'}}>Choose <strong>Save to PDF</strong>.</li>
           <li style={{margin:0}}>The PDF downloads in a few seconds. Upload it here.</li>
         </ol>
-      </details>
-      <div style={S.card}>
+      </details>}
+      {fromBuilderLinkedin?<div style={S.card}>
+        <div style={{fontSize:16,color:C.ok,marginBottom:6}}><Check size={14} style={{display:'inline',marginRight:6}}/>We already have your LinkedIn profile from the resume builder, so there's no need to upload it again.</div>
+        <div style={{...S.field,marginTop:14}}><label style={S.label}>Add your LinkedIn recommendations <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label><textarea style={{...S.ta,minHeight:160}} value={profile.linkedinRecs||''} onChange={e=>pr('linkedinRecs',e.target.value)} placeholder="The Save-to-PDF export does not include recommendations. Paste any recommendations from colleagues you would like Reimagine to read here."/></div>
+      </div>:<div style={S.card}>
         <p style={S.helperText}>PDF, Word, or plain text. The PDF export from LinkedIn works directly.</p>
         <FileUpload label="Upload LinkedIn profile" hint="The 'Save to PDF' export from your LinkedIn profile page." fileName={profile.linkedinFile} onFile={async f=>{setFileLoading(true);try{const t=await extractText(f);pr('linkedin',t);pr('linkedinFile',f.name);setErr(null)}catch(e){setErr(`Could not read ${f.name}: ${e.message}`)}finally{setFileLoading(false)}}}/>
         {fileLoading&&<Loading msg="Reading your file…"/>}
         <div style={S.field}><label style={S.label}>Or paste your LinkedIn content here</label><textarea style={{...S.ta,minHeight:200}} value={profile.linkedin||''} onChange={e=>pr('linkedin',e.target.value)} placeholder="Paste your About section, recommendations, or any LinkedIn content you want Reimagine to read. The PDF export above is the easiest path."/></div>
         {profile.linkedin&&<div style={{fontSize:14,color:C.ok}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.linkedin.length.toLocaleString()} characters loaded</div>}
-      </div>
+      </div>}
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}>
         <Btn secondary onClick={()=>nav('resume')}><ArrowLeft size={13}/>Back</Btn>
@@ -5993,7 +5999,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn onClick={()=>advance('linkedin','assessment')}>Continue <ChevronRight size={14}/></Btn>
         </div>
       </div>
-    </div>
+    </div>}
 
     case'assessment':return <div>
       <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
