@@ -8,17 +8,16 @@ Plan to spend more time reading and refining Phase 1 than any later phase. The 1
 
 ## One step, one read
 
-Phase 1 is a single step: **Personal Brand**. You click one button, you wait once, and you get one flowing prose synthesis of who you are at work. Behind the scenes Reimagine runs three analytical passes (resume analysis, wiring and compass, then the synthesis), but those passes never reach the screen as separate outputs. The integration is the deliverable.
+Phase 1 is a single step: **Personal Brand**. You click one button, you wait once, and you get one flowing prose synthesis of who you are at work. Behind the scenes Reimagine runs a two-stage build: a deep read of everything you provided, then the synthesis that turns it into your brand. Neither stage reaches the screen as a separate output. The integration is the deliverable.
 
-The synthesis pulls from everything you provided in Orientation: your resume, your assessment, your values, your passions, your reputation answers, your life-shaping experiences. The passes feed each other and produce a single read, laid out as a set of components that appear only when your inputs earn them.
+The synthesis pulls from everything you provided in Orientation: your resume, your assessment, your values, your passions, your reputation answers, your life-shaping experiences. The two stages feed each other and produce a single read, laid out as a set of components that appear only when your inputs earn them.
 
 ## On the screen
 
-Click **Build My Personal Brand**. The full generation takes about three to four minutes. Reimagine shows a rotating quote from a thinker on purpose, leadership, or resilience while the work runs. A short stage line above the quote tells you where in the chain Reimagine is:
+Click **Build My Personal Brand**. The full generation takes about three to four minutes. Reimagine shows a rotating quote from a thinker on purpose, leadership, or resilience while the work runs. A short stage line above the quote tells you where in the build Reimagine is:
 
-- **Reading your resume** while the first pass runs
-- **Cross-referencing with your wiring** while the second pass runs
-- **Writing your synthesis** while the synthesis runs
+- **Reading your inputs** while it studies your resume, your assessment, and the rest of your orientation
+- **Writing your synthesis** while it composes your Personal Brand
 
 The quote is for you, not for the analysis. Use the time.
 
@@ -62,7 +61,7 @@ Click **Put It to Work** to advance to Phase 2: Apply Your Foundation. Personal 
 
 ## Phase 1 in one paragraph
 
-You arrived in Phase 1 with a resume, an assessment, your values, your passions, what others say about you, and a life-shaping experience or two. You leave with one document: a single integrated read of who you are at work, with a forward-looking translation of where the through-line applies and a dimensional reading that names the choices worth sharpening in Phase 2. Behind the scenes Reimagine ran three analytical passes against your inputs; on the screen you saw one CTA, one wait, and one synthesis. If you ever need to start over on a downstream step, the easiest fix is usually to come back to Phase 1, refine here, and let the changes flow forward. Chapter 12 covers the mechanics.
+You arrived in Phase 1 with a resume, an assessment, your values, your passions, what others say about you, and a life-shaping experience or two. You leave with one document: a single integrated read of who you are at work, with a forward-looking translation of where the through-line applies and a dimensional reading that names the choices worth sharpening in Phase 2. Behind the scenes Reimagine ran a two-stage build against your inputs; on the screen you saw one CTA, one wait, and one synthesis. If you ever need to start over on a downstream step, the easiest fix is usually to come back to Phase 1, refine here, and let the changes flow forward. Chapter 12 covers the mechanics.
 
 ---
 
