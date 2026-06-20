@@ -14,6 +14,7 @@ function assert(label, cond) {
 }
 
 const pr = {
+  resume: 'Resume text: 12 years leading X, shipped Y, saved $3M.',
   values: 'integrity, curiosity, building things that last',
   passions: 'mentoring first-gen students',
   rep: { memory: 'calm in chaos', emergency: 'the one people call', twoWords: 'systems thinker', other: 'translates between teams' },
@@ -23,8 +24,6 @@ const pr = {
   assess: 'Strategic, Learner, Achiever',
 }
 const outs = {
-  p1: 'Resume analysis prose.',
-  p2: 'Wiring and compass prose.',
   p3: 'Personal brand prose.',
   p3_structured: {
     throughLine: 'builds clarity from ambiguity',
@@ -53,7 +52,11 @@ assert('identical output for deep-equal distinct inputs', buildUserProfileBlock(
 
 // 3. Canonical markers present, in order.
 const markers = [
-  'PROFILE: Resume analysis prose.',
+  'PROFILE:',
+  'RESUME:',
+  'Resume text: 12 years leading X, shipped Y, saved $3M.',
+  'PERSONAL BRAND:',
+  'Personal brand prose.',
   'RAW SIGNALS (this person\'s own words from orientation, do not paraphrase back to them):',
   'VALUES: integrity, curiosity, building things that last',
   'PASSIONS AND CAUSES: mentoring first-gen students',

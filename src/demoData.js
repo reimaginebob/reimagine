@@ -113,55 +113,11 @@ export const demoChosen = "Chief People Officer at a digital health company";
 
 export const demoDone = [
   "welcome", "location", "resume", "assessment", "values", "reputation",
-  "p1", "p2", "p3", "p4", "p5", "decision",
+  "p3", "p4", "p5", "decision",
   "p6", "p7", "p8", "p_res", "p9", "p10", "complete", "income"
 ];
 
 export const demoOutputs = {
-
-// ─── P1: BRAND SYNTHESIS (Proficiency + work-history latent signals) ────
-
-p1: `### Capability
-
-Sarah is a builder of talent infrastructure inside complex institutions. She designs the systems an organization uses to meet its people at scale.
-
-### Proof
-
-The referral program at Meridian was a build from scratch. It now generates 34% of all hires and runs 15 days faster than non-referred sourcing. The Taleo-to-Workday migration moved 300+ hiring managers in eight weeks during a COVID hiring surge while her own team scaled 175%. The offer experience redesign compressed decline rate from 22% to 9% without a base-salary increase across the board. The $4.2M annual reduction in clinical hiring costs came from agency consolidation and process redesign rather than headcount cuts. Across fourteen years she has built upward inside one institution while the function grew from two recruiters to a department supporting 14,000 employees. The work she has been asked to do has not required her to architect at this level. She chooses to.
-
-### Personal Brand statement
-
-"I build the systems institutions use to meet their people at scale. I do this work in healthcare because the stakes of the institution-employee relationship are highest here."
-
-### Hedge
-
-The "systems institutions use to meet their people" framing is one read of what unifies fourteen years of work. A second read is that Sarah is a healthcare HR generalist who specialized in TA. The first read accounts for her staying patterns and her choice to build rather than maintain at every juncture. The second does not. We carry the first read into the rest of the outputs with the user invited to refine.`,
-
-// ─── P2: WIDE LENS (Passion, Personality, Perspiration, Potential, Environment) ─
-
-p2: `The Five Ps put Proficiency at the front and four soft Ps that shape the fit of the work to the person. p1 named what Sarah is good at. p2 reads what kind of work and what kind of place will let her bring it.
-
-### Passion
-
-The stated passions (healthcare innovation, organizational psychology, mentoring women into healthcare HR leadership, real estate) share a shape. Sarah is drawn to systems where individual outcomes are shaped by structure, and she is drawn to building or improving the structure. The mentoring she does is at the level of emerging HR leaders, not job seekers. She works one layer up from the individual case.
-
-### Personality
-
-The Affintus signals (builder, decisive, sociable, persuasive, high-stamina, steady) match the work she has gravitated to. The pattern hardest to see from a profile alone is the steadiness alongside the decisiveness. Decisive builders often burn out. Steady builders compound. Sarah has compounded for fourteen years in one place.
-
-### Perspiration
-
-Fourteen years at Meridian is the headline. She has chosen depth over breadth at every juncture where she could have moved. The harder read: she has built things, watched them work, and stayed close to them rather than moving on once they were operational. That pattern is rarer than it looks.
-
-### Potential
-
-The question of next-level is not whether she can run a larger talent function. She has done that. The question is whether the conviction (institutions can be reliable at the moments that matter) needs to stay inside one institution to live, or whether it is general enough to be exported. The honest read: the conviction is general. The venue she has been in for fourteen years is specific. At some point those two will pull on each other. They may already be.
-
-### Environment fit
-
-Sarah does her strongest work inside an institution complex enough to make architecture meaningful, with operators who will let her build, and at a scale where the architecture has reach. Healthcare is one such environment. Late-stage private-sector health is another. So is the public sector at scale, or large-scale nonprofit work where the institution-employee relationship is high-stakes by design. The fit is institution-shaped, not industry-shaped.`,
-
-// ─── P3: INTEGRATION (multi-dimensional alignment reading) ──────────────
 
 p3: `Sarah's profile has unusual coherence on six dimensions. Each dimension can be read as a lane she is comfortable in and as a lane she could plausibly extend into. The integration is the part where the dimensions speak to each other.
 

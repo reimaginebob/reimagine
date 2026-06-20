@@ -51,12 +51,19 @@ export const buildSynthesisContext = (s) => {
 // Canonical user-profile block. Sent as the first user-message content block
 // with cache_control so every migrated surface (p5/p7/p8/p11/p_res/income/op)
 // shares one cached prefix within a 5-minute TTL. Field labels and 'not provided'
-// fallbacks match the pre-migration inline templates byte-for-byte. Surface-
-// specific extras (resume, bridge story, GTM excerpt, location) live in the
-// per-template instruction tail, NOT here, so they do not fork the cached prefix.
+// fallbacks are stable so the cached prefix stays byte-identical across surfaces.
+// Carries the raw résumé (user-stable source material, identical across surfaces,
+// so it does not fork the cached prefix) plus the Personal Brand prose, its
+// structured emit, and the raw orientation signals. The raw résumé replaced the
+// retired Resume Analysis (p1) and Wiring & Compass (p2) analyses on 2026-06-19;
+// downstream surfaces digest the résumé directly, the way the brand's own
+// stage-one analysis does.
 export function buildUserProfileBlock(pr, outs) {
-  return `PROFILE: ${asText(outs.p1)}
-${asText(outs.p2)}
+  return `PROFILE:
+RESUME:
+${asText(pr.resume)||'not provided'}
+
+PERSONAL BRAND:
 ${asText(outs.p3)}
 ${buildSynthesisContext(outs.p3_structured)}
 RAW SIGNALS (this person's own words from orientation, do not paraphrase back to them):

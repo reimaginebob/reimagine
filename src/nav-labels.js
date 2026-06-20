@@ -51,8 +51,6 @@ export const NAV_LABELS = {
   'life-events': 'Your Story',
   skills: 'Your Skills',
   'orientation-done': 'Orientation Complete',
-  p1: 'Resume Analysis',
-  p2: 'Wiring & Compass',
   p4: 'Role Options',
   focus: 'Focus Playbook',
   complete: 'Complete',
