@@ -96,6 +96,6 @@ The Personal Brand prose names what is settled about your fit and what is open. 
 
 **Put It to Work.** The first screen in Phase 2. Two cards: **Career Paths** leads to picking a direction and exploring roles; **Add an Opportunity** takes a pasted job description and builds a playbook for that exact role. Renamed 2026-05-27 from "Two Doors / Choose Your Path"; the sidebar entry under Phase 2 routes here from anywhere in the app.
 
-**Wiring & Compass.** Retired as a separate user-visible step in 2026-05-20. The wiring read (how you are wired, where you thrive, what lights you up, drawn from your assessment, values, and accomplishments) is now an internal analytical pass that feeds your Personal Brand.
+**Wiring & Compass.** Fully retired. It became an internal analytical pass when it stopped being a separate user-visible step in 2026-05-20, and as of 2026-06-19 that pass is gone too. How you are wired, where you thrive, and what lights you up are now read directly from your assessment, values, and accomplishments inside the Personal Brand build.
 
 **Work That Matters.** One of the three directions on the Lane Selection screen. The Ikigai direction, for people ready for more meaning in their work or at a stage where legacy matters more than maximizing comp.
