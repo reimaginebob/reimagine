@@ -3266,7 +3266,10 @@ const DEMO_TOUR=[
 // strips trailing credential tokens, keeps up to three name words, title-cases.
 // Returns '' when no plausible name is found.
 function deriveDisplayName(resume){
-  const first=String(resume||'').split(/\n/).find(l=>l.trim())||''
+  let first=String(resume||'').split(/\n/).find(l=>l.trim())||''
+  // Drop a leading résumé/CV document label so it does not leak into the name
+  // (e.g. "Resume Lindsey Bartlett", "RESUME OF Jane Doe", "Résumé — A B", "CV: …").
+  first=first.replace(/^\s*(?:r[eé]sum[eé]|curriculum\s+vitae|cv)(?=$|[\s:•·—–-])[\s:•·—–-]*(?:of|for)?\s*/i,'')
   let nm=first.split(/[,|•·]/)[0]
   nm=nm.replace(/\b(SHRM[- ]?SCP|SHRM[- ]?CP|PHR|SPHR|GPHR|MBA|MPA|MPH|PMP|CPA|CFA|PhD|MD|JD|Esq|RN|BSN|MSN|CISSP|PE)\b\.?/gi,'')
   nm=nm.replace(/[^a-zA-Z .'-]/g,' ').replace(/\s+/g,' ').trim()
