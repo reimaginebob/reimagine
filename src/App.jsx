@@ -3945,6 +3945,18 @@ export default function PivotEngine(){
   const scrollToOutput=(key)=>{requestAnimationFrame(()=>{const el=document.getElementById(`section-${key}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
   const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);window.scrollTo(0,0)}}
   const demoPrev=()=>{if(demoIdx>0){const prev=demoIdx-1;setDemoIdx(prev);setStep(DEMO_TOUR[prev].step);window.scrollTo(0,0)}}
+  // Telemetry identity: a returning magic-link user is restored straight to
+  // signed-in (signedInUser via /api/me) and never repopulates signupForm, so
+  // signupForm.email is blank at log time. Prefer the authenticated account
+  // identity; fall back to the in-session signup form for users still mid-signup.
+  // /api/me returns the raw users row (snake_case): email, first_name, last_name.
+  const logIdentity=()=>{
+    const email=((signedInUser&&signedInUser.email)||signupForm.email||'').trim()
+    const su=signedInUser||{}
+    const nameFromAccount=[su.first_name,su.last_name].filter(Boolean).join(' ').trim()
+    const nameFromForm=((signupForm.firstName||'')+' '+(signupForm.lastName||'')).trim()
+    return {userEmail:email,userName:(nameFromAccount||nameFromForm)}
+  }
   const logCorrection=(correction)=>{
     if(!CORRECTIONS_LOG_URL||CORRECTIONS_LOG_URL.startsWith('PASTE_'))return
     try{
@@ -3956,8 +3968,7 @@ export default function PivotEngine(){
       const rawOutput=outputs[correction.step]||''
       const renderableOutput=correction.step==='p3'?stripPersonalBrandTail(rawOutput):rawOutput
       const payload={
-        userEmail:(signupForm.email||'').trim(),
-        userName:((signupForm.firstName||'')+' '+(signupForm.lastName||'')).trim(),
+        ...logIdentity(),
         correctionId:correction.id,
         step:correction.step,
         stepDisplayName:STEP_DISPLAY_NAMES[correction.step]||correction.step,
@@ -3975,8 +3986,7 @@ export default function PivotEngine(){
     try{
       const payload={
         type:'voice_violation',
-        userEmail:(signupForm.email||'').trim(),
-        userName:((signupForm.firstName||'')+' '+(signupForm.lastName||'')).trim(),
+        ...logIdentity(),
         step:evt.step||'',
         stepDisplayName:STEP_DISPLAY_NAMES[evt.step]||evt.step||'',
         attempt:Number(evt.attempt||0),
