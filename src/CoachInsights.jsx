@@ -130,6 +130,9 @@ export default function CoachInsights() {
   const distribution = p.distribution || {}
   const features = p.featureBreakdown || []
   const unmet = p.unmetQuestions || []
+  const aq = p.answerQuality || { up: 0, down: 0, helpfulPct: 0, downByTopic: {}, downByRegister: {} }
+  const rated = p.ratedExchanges || null
+  const contentReview = !!p.contentReview
   const activeFilters = Object.entries(filter)
 
   return (
@@ -173,8 +176,8 @@ export default function CoachInsights() {
           <Stat label="No self-check logged" value={vb.null} sub="pre-migration / legacy" />
         </div>
 
-        {/* Unmet-need questions, front and center */}
-        <Panel title={`Unmet-need questions (${unmet.length})`} subtitle="Coach self-check returned “none” — newest first. The only place raw question text appears.">
+        {/* Unmet-need questions, front and center. Raw text rides the review gate. */}
+        <Panel title={`Unmet-need questions (${unmet.length})`} subtitle={contentReview ? "Coach self-check returned “none” — newest first." : "Coach self-check returned “none” — counts/tags shown; question text behind the review gate."}>
           {unmet.length === 0 ? <div style={S.empty}>No unmet-need questions in this window.</div> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {unmet.map((u, i) => {
@@ -187,7 +190,7 @@ export default function CoachInsights() {
                       {u.current_step && <span style={S.stepTag}>{u.current_step}</span>}
                       {chips.map((c, j) => <span key={j} style={S.tagChip}>{c}</span>)}
                     </div>
-                    <div style={S.unmetText}>{u.message}</div>
+                    <div style={S.unmetText}>{contentReview ? u.message : <span style={{ color: GRAYL, fontStyle: "italic" }}>content review off — pending policy</span>}</div>
                   </div>
                 )
               })}
@@ -211,9 +214,52 @@ export default function CoachInsights() {
           )}
         </Panel>
 
-        {/* Answer-quality placeholder — capture not built here */}
-        <Panel title="Answer quality" subtitle="Reserved for the thumbs-up/down job">
-          <div style={S.empty}>Not yet wired. Per-answer quality (thumbs) capture is a separate step; this panel is a placeholder so the layout has a home for it.</div>
+        {/* Answer quality — numeric tier always on; raw exchanges behind the gate */}
+        <Panel title="Answer quality" subtitle="Per-reply thumbs from users">
+          {(aq.up + aq.down) === 0 ? <div style={S.empty}>No ratings in this window yet.</div> : (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12, marginBottom: 14 }}>
+                <Stat label="Helpful" value={aq.up} accent />
+                <Stat label="Not helpful" value={aq.down} danger />
+                <Stat label="% helpful" value={`${aq.helpfulPct}%`} big />
+              </div>
+              <div style={S.mixGrid}>
+                <Panel title="Thumbs-down by topic" subtitle="Click a value to filter">
+                  <DistBars dist={aq.downByTopic} activeVal={filter.topic} onPick={(v) => toggleFilter("topic", v)} />
+                </Panel>
+                <Panel title="Thumbs-down by register" subtitle="Click a value to filter">
+                  <DistBars dist={aq.downByRegister} activeVal={filter.register} onPick={(v) => toggleFilter("register", v)} />
+                </Panel>
+              </div>
+            </>
+          )}
+          {contentReview && rated ? (
+            <div style={{ marginTop: 16 }}>
+              <div style={S.panelSub}>Rated exchanges (de-identified) — newest first</div>
+              {rated.length === 0 ? <div style={S.empty}>No rated exchanges.</div> : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
+                  {rated.map((r, i) => {
+                    const a = r.attributes || {}
+                    const chips = ["topic", "register", "need_type"].map(k => a[k]).filter(Boolean)
+                    return (
+                      <div key={i} style={{ ...S.unmetItem, borderLeft: `3px solid ${r.rating === -1 ? ERRC : "#4A9E72"}` }}>
+                        <div style={S.unmetMeta}>
+                          <span style={{ color: r.rating === -1 ? ERRC : "#2F7D54", fontWeight: 500 }}>{r.rating === -1 ? "Not helpful" : "Helpful"}</span>
+                          <span>{fmtDate(r.rated_at)}</span>
+                          {chips.map((c, j) => <span key={j} style={S.tagChip}>{c}</span>)}
+                        </div>
+                        {r.comment && <div style={{ ...S.unmetText, fontStyle: "italic" }}>“{r.comment}”</div>}
+                        <div style={{ fontSize: 13, color: GRAYL, marginTop: 4 }}>Q: {r.message}</div>
+                        <div style={{ fontSize: 13, color: GRAY, marginTop: 2 }}>A: {r.reply}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ marginTop: 16 }}><div style={S.empty}>Content review off — pending policy. Numeric counts above are live; question / reply / comment text stays hidden until COACH_CONTENT_REVIEW is enabled.</div></div>
+          )}
         </Panel>
       </div>
     </div>

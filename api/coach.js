@@ -377,33 +377,39 @@ export default async function handler(req, res) {
   // user's message.
   const visibleText = ensureDistressSupport(message, strippedText)
 
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
-  res.setHeader('Cache-Control', 'no-cache')
-  res.status(200)
-  res.write(visibleText)
-
+  // Persist the turn BEFORE writing the body so the row id can ride back on a
+  // response header (X-Coach-Message-Id) — the client attaches per-reply thumbs to
+  // it. Best-effort: an insert failure must NOT block the reply, so on failure we
+  // skip the header and still send the text (that one reply is just unrateable).
+  let rowId = null
   try {
     const rows = await sql`
       INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to, lane, turn_index, has_resume, has_personal_brand, entry_point)
       VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${null}, ${lane}, ${turnIndex}, ${hasResume}, ${hasPersonalBrand}, ${entryPoint})
       RETURNING id
     `
+    rowId = rows && rows[0] && rows[0].id
     console.log('coach insert ok', { user_id: user.id, step: currentStep, selfcheck: selfcheckVerdict, feature })
-    // Best-effort self-check verdict enrichment. Decoupled from the base insert
-    // and wrapped so it is a no-op until the 2026-06-10_coach-selfcheck migration
-    // adds the columns — the base row (message/reply) is always logged regardless.
-    const rowId = rows && rows[0] && rows[0].id
-    if (rowId) {
-      try {
-        await sql`
-          UPDATE chat_messages
-          SET selfcheck_verdict = ${selfcheckVerdict}, selfcheck_feature = ${feature || null}, selfcheck_surfaced = ${selfcheckSurfaced}
-          WHERE id = ${rowId}
-        `
-      } catch { /* columns not migrated yet; ignore */ }
-    }
   } catch (logErr) {
     console.error('coach chat_messages insert failed:', logErr)
+  }
+
+  if (rowId) res.setHeader('X-Coach-Message-Id', String(rowId))
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.status(200)
+  res.write(visibleText)
+
+  // Best-effort self-check verdict enrichment, AFTER the write (logging only; uses
+  // the captured rowId). No-op if the base insert failed or the columns are absent.
+  if (rowId) {
+    try {
+      await sql`
+        UPDATE chat_messages
+        SET selfcheck_verdict = ${selfcheckVerdict}, selfcheck_feature = ${feature || null}, selfcheck_surfaced = ${selfcheckSurfaced}
+        WHERE id = ${rowId}
+      `
+    } catch { /* columns not migrated yet; ignore */ }
   }
 
   res.end()
