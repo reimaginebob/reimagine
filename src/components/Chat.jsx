@@ -24,6 +24,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // below pins the user's most recent question to the top of the visible
   // chat area so the assistant response reads downward from a fixed eyeline.
   const messageRefs = useRef([])
+  // Per-reply feedback: which message's comment box is open, and its draft text.
+  const [commentFor, setCommentFor] = useState(null)
+  const [commentDraft, setCommentDraft] = useState('')
 
   useEffect(() => {
     if (!messages || messages.length === 0) return
@@ -72,6 +75,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           return copy
         })
       } else {
+        // The persisted reply row id rides back on this header (same-origin, so
+        // it's readable without CORS config). Stash it on the assistant message so
+        // the thumbs below it can attach a rating to that exact row.
+        const msgId = res.headers.get('X-Coach-Message-Id') || null
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let fullText = ''
@@ -82,7 +89,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           // Prose-only: the wire carries no NAVIGATE trailer to strip.
           setMessages(m => {
             const copy = [...m]
-            copy[copy.length - 1] = { ...copy[copy.length - 1], content: fullText }
+            copy[copy.length - 1] = { ...copy[copy.length - 1], content: fullText, id: msgId }
             return copy
           })
         }
@@ -96,6 +103,41 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     } finally {
       setLoading(false)
     }
+  }
+
+  // Per-reply rating. Optimistic; reverts on a non-200. Re-clicking the active
+  // thumb sends rating:null (undo). A down-vote opens the note box with a stronger
+  // nudge. Ownership (own message only) is enforced server-side.
+  const postRating = async (messageId, rating, comment) => {
+    const res = await fetch('/api/coach-rate', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(comment === undefined ? { messageId, rating } : { messageId, rating, comment }),
+    })
+    if (!res.ok) throw new Error('rate failed')
+  }
+
+  const rate = async (idx, messageId, value) => {
+    const cur = messages[idx] || {}
+    const next = (cur.rating || null) === value ? null : value
+    const prev = { rating: cur.rating || null, ratingComment: cur.ratingComment || null }
+    setMessages(m => {
+      const c = [...m]
+      c[idx] = next === null ? { ...c[idx], rating: null, ratingComment: null } : { ...c[idx], rating: next }
+      return c
+    })
+    if (next === -1) { setCommentFor(messageId); setCommentDraft(cur.ratingComment || '') }
+    else if (commentFor === messageId) setCommentFor(null)
+    try { await postRating(messageId, next) }
+    catch { setMessages(m => { const c = [...m]; c[idx] = { ...c[idx], ...prev }; return c }) }
+  }
+
+  const sendComment = async (idx, messageId) => {
+    const text = commentDraft.trim().slice(0, 2000)
+    const rating = messages[idx] && messages[idx].rating ? messages[idx].rating : -1
+    setMessages(m => { const c = [...m]; c[idx] = { ...c[idx], rating, ratingComment: text || null }; return c })
+    setCommentFor(null)
+    try { await postRating(messageId, rating, text || null) } catch { /* keep optimistic; the rating itself already saved */ }
   }
 
   // Shared inner content: the scrolling transcript, the user-guide footer, and
@@ -122,6 +164,38 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 ? <MD text={m.content} />
                 : m.content}
           </div>
+          {m.role === 'assistant' && m.id && (
+            <div data-print="hide" style={{ marginTop: 5, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button onClick={() => rate(i, m.id, 1)} aria-pressed={m.rating === 1} aria-label="Helpful"
+                  style={{ background: m.rating === 1 ? '#E8F1EA' : 'transparent', border: `1px solid ${m.rating === 1 ? '#4A9E72' : '#D8DEE8'}`, color: m.rating === 1 ? '#2F7D54' : '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Helpful
+                </button>
+                <button onClick={() => rate(i, m.id, -1)} aria-pressed={m.rating === -1} aria-label="Not helpful"
+                  style={{ background: m.rating === -1 ? '#FBEBE8' : 'transparent', border: `1px solid ${m.rating === -1 ? '#C0432F' : '#D8DEE8'}`, color: m.rating === -1 ? '#C0432F' : '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Not helpful
+                </button>
+                {m.rating && commentFor !== m.id && (
+                  <button onClick={() => { setCommentFor(m.id); setCommentDraft(m.ratingComment || '') }}
+                    style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
+                    {m.ratingComment ? 'Edit note' : 'Add a note'}
+                  </button>
+                )}
+                {m.ratingComment && commentFor !== m.id && <span style={{ fontSize: 12, color: '#8A9BB8' }}>note saved</span>}
+              </div>
+              {commentFor === m.id && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: '85%' }}>
+                  <textarea value={commentDraft} onChange={e => setCommentDraft(e.target.value)} maxLength={2000} rows={2} autoFocus
+                    placeholder={m.rating === -1 ? 'What was off? A sentence helps us improve your coach.' : 'Anything to add? (optional)'}
+                    style={{ border: '1px solid #D8DEE8', borderRadius: 8, padding: '8px 10px', fontSize: 14, fontFamily: 'inherit', color: '#1A2540', resize: 'vertical' }} />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => sendComment(i, m.id)} style={{ background: C.gold, color: '#fff', border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Send</button>
+                    <button onClick={() => setCommentFor(null)} style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Skip</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

@@ -7,12 +7,14 @@
 // plus anyone @career.club — are excluded from every aggregate by default so the
 // dashboard reflects real external usage; ?includeInternal=1 shows everyone.
 //
-// PRIVACY: this endpoint aggregates over NON-PII only. reply, user_id, and email
-// NEVER leave the server (email is used only in a WHERE to exclude admins). The
-// only place raw question text appears is the unmetQuestions list, and even there
-// it returns message + current_step + created_at + attributes only — never the
-// reply or any identity. Requires the selfcheck columns (2026-06-10 migration)
-// and the insight columns/table (2026-06-12 migration) to be live.
+// PRIVACY: user_id and email NEVER leave the server (email is used only in a WHERE
+// to exclude admins). All RAW CONTENT — question text, reply text, rating comments
+// — rides the COACH_CONTENT_REVIEW gate (default OFF): when off, the response is
+// counts / tags / dates / rating values only, with no raw text anywhere (including
+// the unmet-question text). Numeric tiers (totals, verdict, distributions, feature
+// breakdown, answer-quality counts) are always on. Requires the selfcheck columns
+// (2026-06-10), the insight columns/table (2026-06-12), and the rating columns
+// (2026-06-12 coach-reply-ratings) to be live.
 
 import { sql } from '../_lib/db.js'
 import { TAXONOMY_VERSION, CATEGORIES, ATTRIBUTE_KEYS } from '../_lib/coach-taxonomy.js'
@@ -79,6 +81,13 @@ export default async function handler(req, res) {
   // this rule can change later without having lost any data.
   const includeInternal = !!(req.query && req.query.includeInternal === '1')
 
+  // Content-review gate: a single env switch governing ALL raw content (question /
+  // reply / comment text) across this endpoint. OFF unless COACH_CONTENT_REVIEW is
+  // exactly 'on'. When OFF, the response carries counts / tags / dates / rating
+  // values ONLY — no raw text anywhere, including the existing unmet-question text.
+  // Numeric tiers are unaffected. Default OFF pending the content-review clause.
+  const contentReview = process.env.COACH_CONTENT_REVIEW === 'on'
+
   try {
     // 1. Totals + verdict breakdown over all messages in the window (admin-
     //    excluded, attribute-filtered). LEFT JOIN so untagged rows still count
@@ -89,7 +98,9 @@ export default async function handler(req, res) {
         count(t.message_id)::int AS tagged,
         count(*) FILTER (WHERE c.selfcheck_verdict = 'matched')::int AS matched,
         count(*) FILTER (WHERE c.selfcheck_verdict = 'none')::int AS none_count,
-        count(*) FILTER (WHERE c.selfcheck_verdict IS NULL)::int AS unset
+        count(*) FILTER (WHERE c.selfcheck_verdict IS NULL)::int AS unset,
+        count(*) FILTER (WHERE c.rating = 1)::int AS thumbs_up,
+        count(*) FILTER (WHERE c.rating = -1)::int AS thumbs_down
       FROM chat_messages c
       LEFT JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
@@ -102,7 +113,7 @@ export default async function handler(req, res) {
             )
         ))
     `
-    const tr = totalsRows[0] || { total: 0, tagged: 0, matched: 0, none_count: 0, unset: 0 }
+    const tr = totalsRows[0] || { total: 0, tagged: 0, matched: 0, none_count: 0, unset: 0, thumbs_up: 0, thumbs_down: 0 }
     const verdictTotal = tr.matched + tr.none_count + tr.unset
     const verdictBreakdown = {
       matched: tr.matched,
@@ -150,8 +161,65 @@ export default async function handler(req, res) {
     `
     const featureBreakdown = featureRows.map(r => ({ feature: r.feature, n: r.n }))
 
-    // 4. Unmet-need questions: verdict='none'. Message text + step + date + tags
-    //    ONLY. Never user_id / email / reply.
+    // 4. Answer quality — NUMERIC tier (ALWAYS ON, gate-independent). Up/down come
+    //    from the totals FILTERs; thumbs-down sliced by topic/register via the tag
+    //    join (counts only — no question/reply/comment text).
+    const downTagRows = await sql`
+      SELECT t.attributes AS attributes
+      FROM chat_messages c
+      JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
+      WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
+        AND c.rating = -1
+        AND (${hasFilter} = false OR t.attributes @> ${filterJson}::jsonb)
+        AND (${includeInternal} OR NOT EXISTS (
+          SELECT 1 FROM users u WHERE u.id = c.user_id
+            AND (
+              lower(u.email) IN (SELECT lower(jsonb_array_elements_text(${adminJson}::jsonb)))
+              OR lower(u.email) LIKE '%@career.club'
+            )
+        ))
+    `
+    const ratedTotal = tr.thumbs_up + tr.thumbs_down
+    const answerQuality = {
+      up: tr.thumbs_up,
+      down: tr.thumbs_down,
+      helpfulPct: ratedTotal > 0 ? Math.round((tr.thumbs_up / ratedTotal) * 1000) / 10 : 0,
+      downByTopic: tally(downTagRows, 'topic'),
+      downByRegister: tally(downTagRows, 'register'),
+    }
+
+    // 5. Rated-exchange content — BEHIND THE GATE (default off). De-identified
+    //    question + reply + comment + tags + date, newest first. NEVER user_id /
+    //    email. Only queried when the gate is on, so raw reply text is not even
+    //    fetched when off.
+    let ratedExchanges = null
+    if (contentReview) {
+      const reRows = await sql`
+        SELECT c.message AS message, c.reply AS reply, c.rating AS rating,
+               c.rating_comment AS comment, c.rated_at AS rated_at, t.attributes AS attributes
+        FROM chat_messages c
+        LEFT JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
+        WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
+          AND c.rating IS NOT NULL
+          AND (${hasFilter} = false OR t.attributes @> ${filterJson}::jsonb)
+          AND (${includeInternal} OR NOT EXISTS (
+            SELECT 1 FROM users u WHERE u.id = c.user_id
+              AND (
+                lower(u.email) IN (SELECT lower(jsonb_array_elements_text(${adminJson}::jsonb)))
+                OR lower(u.email) LIKE '%@career.club'
+              )
+          ))
+        ORDER BY c.rated_at DESC
+        LIMIT ${UNMET_CAP}
+      `
+      ratedExchanges = reRows.map(r => ({
+        message: r.message, reply: r.reply, rating: r.rating,
+        comment: r.comment, rated_at: r.rated_at, attributes: r.attributes || null,
+      }))
+    }
+
+    // 6. Unmet-need questions: verdict='none'. step + date + tags always; the raw
+    //    question text rides the SAME content-review gate (omitted when off).
     const unmetRows = await sql`
       SELECT c.message AS message, c.current_step AS current_step, c.created_at AS created_at, t.attributes AS attributes
       FROM chat_messages c
@@ -170,7 +238,7 @@ export default async function handler(req, res) {
       LIMIT ${UNMET_CAP}
     `
     const unmetQuestions = unmetRows.map(r => ({
-      message: r.message,
+      ...(contentReview ? { message: r.message } : {}),
       current_step: r.current_step,
       created_at: r.created_at,
       attributes: r.attributes || null,
@@ -182,12 +250,15 @@ export default async function handler(req, res) {
       taxonomyVersion: V,
       days,
       includeInternal,
+      contentReview,
       filter,
       categories: CATEGORIES,
       totals: { messages: tr.total, tagged: tr.tagged },
       verdictBreakdown,
       distribution,
       featureBreakdown,
+      answerQuality,
+      ratedExchanges,
       unmetQuestions,
     })
   } catch (err) {
