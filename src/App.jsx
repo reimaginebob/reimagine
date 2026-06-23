@@ -3335,7 +3335,7 @@ ${body}
   if(w){w.document.write(html);w.document.close();setTimeout(()=>{try{w.print()}catch{}},400)}
 }
 
-const PBKicker=({children})=><div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.1em',color:'#8A9BB8',fontWeight:500,marginBottom:8}}>{children}</div>
+const PBKicker=({children})=><div style={{fontSize:13,textTransform:'uppercase',letterSpacing:'0.1em',color:'#1A2540',fontWeight:500,marginBottom:8}}>{children}</div>
 function PersonalBrandView({presentation:rawPresentation,proseForCopy,onCopy,copied,onPrint}){
   // Normalize first (dedupe sections vs origin/edges; relabel/fold settled-open)
   // so the on-screen view matches the copied/exported prose exactly.
@@ -3355,7 +3355,7 @@ function PersonalBrandView({presentation:rawPresentation,proseForCopy,onCopy,cop
   const origin=p.origin&&typeof p.origin==='object'&&clean(p.origin.body)?clean(p.origin.body):null
   const edges=(Array.isArray(p.edges)?p.edges:[]).filter(x=>x&&typeof x==='object'&&String(x.claim||'').trim())
   const close=typeof p.forwardClose==='string'&&clean(p.forwardClose)?clean(p.forwardClose):null
-  return <div style={{maxWidth:640,margin:'0 auto'}}>
+  return <div style={{maxWidth:800,margin:'0'}}>
     <PBKicker>Phase 1 · Personal Brand</PBKicker>
     <div style={{fontSize:24,fontWeight:500,lineHeight:1.32,color:PRIMARY,margin:'0 0 2px'}}>{hero}</div>
     {proof.length>=3&&<div style={{display:'flex',flexWrap:'wrap',gap:'16px 32px',borderTop:`0.5px solid ${C.border}`,borderBottom:`0.5px solid ${C.border}`,padding:'14px 0',margin:'18px 0 28px'}}>
