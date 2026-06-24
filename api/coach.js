@@ -108,7 +108,7 @@ function buildCoachProfileSlice(state) {
     const titles = state.savedPlaybooks.map(r => r && r.title).filter(Boolean)
     if (titles.length) idx.push(`Saved playbooks: ${titles.join('; ')}`)
   }
-  const indexBlock = `INDEX — OTHER SAVED WORK (titles only; you can see these names but not the content inside them. If the conversation turns to one, the person can open it in Reimagine or paste the part they want to work on):\n${idx.length ? idx.map(s => `- ${s}`).join('\n') : '- nothing saved yet'}`
+  const indexBlock = `INDEX — OTHER SAVED WORK (titles only here. When the conversation is about a specific one, its key sections are pulled in under IN FOCUS below; the rest stay titles-only):\n${idx.length ? idx.map(s => `- ${s}`).join('\n') : '- nothing saved yet'}`
 
   const sparse = !personalBrand && !resume
   const sparseNote = sparse
@@ -116,6 +116,108 @@ function buildCoachProfileSlice(state) {
     : ''
 
   return `THIS USER'S REIMAGINE PROFILE (read-only; you can reference and reason about it, but you never change it):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${sparseNote}`
+}
+
+// === In-focus saved-playbook expansion (PR-B) ===
+// When the conversation references a specific saved playbook (by title or
+// company), pull that one record's anchor + the intent-matched section into the
+// per-turn slice (block 2, uncached) so the coach reasons about the real content
+// rather than asking the user to paste it. Stateless: the in-focus record is
+// re-derived from the transcript each turn (current message + a short look-back),
+// no persisted "record in focus" state. One record, one extra section, capped.
+const EXPANSION_CAP = 6000
+const INTENT_SECTION = {
+  door2: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'companyRead' },
+  door1: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'p7', linkedin: 'p8', industry: 'p9', outreach: 'p7', income: 'income' },
+}
+const SECTION_NAME = { p5: 'THE ROLE', p6: 'BRIDGE STORY', p_res: 'RESUME REFRESH', p11: 'INTERVIEW PREP', companyRead: 'ABOUT THIS COMPANY', p7: 'GO-TO-MARKET', p8: 'LINKEDIN REMIX', p9: 'INDUSTRY BACKGROUND', income: 'INCOME NOW' }
+
+function detectIntent(message) {
+  const m = (typeof message === 'string' ? message : '').toLowerCase()
+  if (/\bstar\b|\binterview/.test(m) || /tell me about a time/.test(m)) return 'interview'
+  if (/tell me about yourself|elevator pitch|\bpitch\b|bridge story/.test(m)) return 'pitch'
+  if (/\bresume\b|\bcv\b/.test(m)) return 'resume'
+  if (/\blinkedin\b/.test(m)) return 'linkedin'
+  if (/\bindustry\b|\blingo\b|\bsector\b/.test(m)) return 'industry'
+  if (/outreach|target compan|go.?to.?market|\bgtm\b/.test(m)) return 'outreach'
+  if (/\bincome\b|contracting|freelanc/.test(m)) return 'income'
+  if (/about this company|company culture|research (the|this) company|\bemployer\b/.test(m)) return 'company'
+  return null
+}
+
+// Read a section's text from a record, handling both door shapes (door2 stores
+// {content}/{bridge_story}/string under sections; door1 stores strings under outputs).
+function recordSectionText(record, key) {
+  if (record.source === 'door2') {
+    const sec = record.sections && record.sections[key]
+    if (!sec) return ''
+    if (typeof sec === 'string') return sec
+    return sec.content || sec.bridge_story || ''
+  }
+  const v = record.outputs && record.outputs[key]
+  return typeof v === 'string' ? v : ''
+}
+
+// Find the single in-focus record from the transcript (current message + up to 2
+// prior user turns, newest first). Latest mention wins; one record max. Skips
+// generic fallback titles and sub-6-char keys so it does not over-fire.
+function findInFocusRecord(savedPlaybooks, message, history) {
+  if (!Array.isArray(savedPlaybooks) || !savedPlaybooks.length) return null
+  const norm = s => (typeof s === 'string' ? s.toLowerCase().replace(/\s+/g, ' ').trim() : '')
+  const GENERIC = new Set(['job description', 'untitled', 'opportunity', 'specific role'])
+  const cands = savedPlaybooks.filter(r => r && r.id).map(r => {
+    const keys = []
+    for (const v of [r.title, r.company]) {
+      const k = norm(v)
+      if (k && k.length >= 6 && !GENERIC.has(k)) keys.push(k)
+    }
+    return { r, keys }
+  }).filter(x => x.keys.length)
+  if (!cands.length) return null
+  const userTurns = (Array.isArray(history) ? history : []).filter(m => m && m.role === 'user').map(m => m.content)
+  const window = [message, ...userTurns.slice(-2).reverse()].map(norm)
+  for (const turn of window) {
+    if (!turn) continue
+    let best = null, bestLen = 0
+    for (const { r, keys } of cands) {
+      for (const k of keys) {
+        if (turn.includes(k) && k.length > bestLen) { best = r; bestLen = k.length }
+      }
+    }
+    if (best) return best
+  }
+  return null
+}
+
+// Build the IN FOCUS block: always-on anchor (door2: JD + The Role; door1: the
+// direction + lane + The Role) plus the one intent-matched section, each capped.
+function buildPlaybookExpansion(record, intent) {
+  if (!record) return ''
+  const title = record.title || 'untitled'
+  const door2 = record.source === 'door2'
+  const cap = s => (s || '').slice(0, EXPANSION_CAP)
+  const parts = [`IN FOCUS — "${title}" (the saved playbook this conversation is about; read-only — you can reason about it, not change it):`]
+  if (door2) {
+    const jd = cap(record.jd).trim()
+    if (jd) parts.push(`JOB DESCRIPTION:\n${jd}`)
+    const p5 = cap(recordSectionText(record, 'p5')).trim()
+    parts.push(`THE ROLE:\n${p5 || '(not built yet)'}`)
+  } else {
+    const laneLabel = LANE_LABELS[record.lane] || record.lane || ''
+    parts.push(`DIRECTION: ${title}${laneLabel ? ` (${laneLabel})` : ''}`)
+    const p5 = cap(recordSectionText(record, 'p5')).trim()
+    parts.push(`THE ROLE:\n${p5 || '(not built yet)'}`)
+  }
+  const map = door2 ? INTENT_SECTION.door2 : INTENT_SECTION.door1
+  const key = intent && map[intent]
+  if (key && key !== 'p5') {
+    const txt = cap(recordSectionText(record, key)).trim()
+    const name = SECTION_NAME[key] || key.toUpperCase()
+    parts.push(txt
+      ? `${name}:\n${txt}`
+      : `${name}: not built yet — point the person to build it in Reimagine rather than inventing its content.`)
+  }
+  return parts.join('\n\n')
 }
 
 // Stable across users and turns -> belongs in the cached prefix. Covers the
@@ -135,7 +237,7 @@ Posture rules, hold these firmly:
 - When someone is discouraged or worn down by the search, coach them. That is the default and almost always the right response — this is a job-search coaching tool, not a crisis line, and a tired job seeker is still a job seeker. How to coach a discouraged turn is laid out in the DISCOURAGEMENT section below: read where this person actually is, choose the one angle that fits their moment, and say it in your own words in this voice. Vary which angle you reach for across a conversation; do not run the same response every time, and do not send every discouraged person to community — most of these moments are met by steadying the person and handing back agency. Do not play therapist. Ordinary search fatigue — "I'm exhausted," "I don't know if I can keep doing this," "I don't know if it's even worth it" — is discouragement, not crisis; coach it, do not hand it off. Only if someone says something clearly beyond a job search — explicit self-harm — add one natural line suggesting they reach out to someone they trust, then return to coaching.
 - You are read-only. You can read and reason about the user's profile and saved work, but you cannot change anything, and you never imply that you can. Do not say "let me generate your Personal Brand," "I'll write that for you," "let me pull that up," or "one moment" as if you were performing an action. When something needs to be produced or edited in Reimagine (a Personal Brand, a Resume Refresh, a playbook), point the person to the step that does it — name it in prose by its feature-map name — and describe what they will do there. Frame it as "you can generate that in [step]," not "let me generate it."
 - Do not assume what screen the person is on or how far along they are. You cannot see their current view or their journey progress, so never say "as you can see on your screen" and never point to a gated screen as if it is in front of them. Lead with the action that works no matter where they are. For the free weekly community call, that action is "register at career.club" — that is the canonical, always-correct link, not an in-app screen. Reference a gated screen only conditionally: "once you've finished your playbook, it's also on your Complete screen," never "go to your Complete screen now."
-- You are talking with the person in a text chat. You cannot accept file uploads, open attachments, or see their screen — when they want you to work from a document like a job description, a posting, or a resume, ask them to paste the relevant text into the chat. And you cannot read the contents of their saved playbooks right now: you can see the titles, not what is inside any one of them. If they want to work from a specific playbook, ask them to paste the part they want to work on, or point them to open it in Reimagine.
+- You are talking with the person in a text chat. You cannot accept file uploads, open attachments, or see their screen — when they want you to work from a document like a job description, a posting, or a resume, ask them to paste the relevant text into the chat. You see the titles of their saved playbooks in the index, and when the conversation is about a specific one, its key sections are provided to you under IN FOCUS in the profile block — reason from those. If a section they need is not built yet, point them to build it in Reimagine.
 - Teach the frameworks, do not hide them. Making Your Own Weather has named frameworks — KEEL, the 4 C's, the 5 P's, STAR, SCOPE — and your job is to teach the one that fits this person's situation, by name and in the book's own words (the exact definitions are in TEACH THE FRAMEWORKS below). Never drop a bare label assuming they have read the book; name it and explain it in the same breath. Name the source — "Making Your Own Weather, Bob Goodwin's book on the job search" — and vary how you say it across a conversation ("Bob Goodwin lays out in Making Your Own Weather…", "Bob Goodwin, who wrote Making Your Own Weather, calls this…", "this comes from Making Your Own Weather…"); once it is established in the conversation, shorthand like "Bob's approach" is fine. Never call it just "the book." When an idea is Frankl's or Covey's, name and credit them with a short attribution — channel the idea, do not quote at length.
 
 When someone worries that their background is messy, non-linear, or hard to describe — "my career hasn't been linear," "I can't describe my value," "how do I turn my mix of skills into something employers want" — meet them reassure-first: the breadth is the asset they're underrating, and the connecting thread is findable. Model the opening on this register:
@@ -261,7 +363,19 @@ export default async function handler(req, res) {
     console.error('coach profile read failed:', err)
     // Fall through with a null profile rather than failing the turn.
   }
-  const profileBlock = buildCoachProfileSlice(profileState)
+  let profileBlock = buildCoachProfileSlice(profileState)
+  // PR-B: if the conversation is about a specific saved playbook, expand its
+  // anchor + intent-matched section into the (uncached) slice. Best-effort — a
+  // malformed record must never break the turn.
+  try {
+    const inFocus = findInFocusRecord(profileState && profileState.savedPlaybooks, message, history)
+    if (inFocus) {
+      const expansion = buildPlaybookExpansion(inFocus, detectIntent(message))
+      if (expansion) profileBlock += '\n\n' + expansion
+    }
+  } catch (err) {
+    console.error('coach in-focus expansion failed:', err)
+  }
 
   // Deterministic per-turn context for question-insight logging (real columns on
   // chat_messages; see migrations/2026-06-12_coach-insight-foundation.sql). All
