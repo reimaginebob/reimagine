@@ -6266,20 +6266,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>}
       <h1 style={S.title}>Put It to Work</h1>
       <p style={S.sub}>Your foundation is set. In this section, you decide how to explore your options: a wider look at the directions your background opens up, or a focused playbook for a job description you already have in hand. You can come back to this choice anytime from the sidebar.</p>
-      <div style={{margin:'4px 0 18px',fontSize:17,color:'#4A5568',lineHeight:1.65,maxWidth:920}}>Not sure which to pick first? Most people find Career Paths the strongest starting point — it shows the range of where your background takes you and builds your Go-to-Market pipeline. If you already have specific roles in flight, Add an Opportunity puts you straight into prep for those roles, and you can come back to Career Paths anytime to build the wider pipeline. The two paths are not mutually exclusive.</div>
+      <div style={{margin:'4px 0 18px',fontSize:17,color:'#4A5568',lineHeight:1.65,maxWidth:920}}>If you have a current opportunity you're pursuing, start here. We'll build your playbook around that specific role.<br/><span style={{color:C.gray}}>No specific opportunity in play yet? Start with Career Paths to explore where you could go.</span></div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,maxWidth:920,marginTop:8}}>
-        <button onClick={()=>advance('twoDoors','laneSelect')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-            <Route size={28} color={C.gold} strokeWidth={1.75}/>
-            <div style={{fontSize:22,fontWeight:700,color:'#1A2540'}}>Career Paths</div>
-          </div>
-          <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}>See role options across <strong>Familiar Ground</strong> (where your credibility extends), <strong>Industry Insider</strong> (where your sector knowledge translates), and <strong>Work That Matters</strong> (where your values point).</div>
-          <div style={{borderTop:`1px solid ${C.border}`,marginTop:18,paddingTop:14,display:'flex',flexDirection:'column',gap:8}}>
-            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>Three directions, each with role candidates and reasoning.</div>
-            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Clock size={14} style={{flexShrink:0}}/>About 90 seconds to generate.</div>
-          </div>
-          <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:C.gold,color:'#FFFFFF',padding:'10px 18px',borderRadius:8,fontWeight:600,fontSize:16}}>Start Exploring <ChevronRight size={15}/></div>
-        </button>
         <button onClick={()=>{markDone('twoDoors');addNewOpportunity()}} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
             <Target size={28} color="#4F7CAC" strokeWidth={1.75}/>
@@ -6290,7 +6278,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>A tailored playbook for one specific job.</div>
             <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Clock size={14} style={{flexShrink:0}}/>Four sections, built on demand. About 30 seconds per section.</div>
           </div>
-          <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:'transparent',color:'#4F7CAC',border:`1.5px solid #4F7CAC`,padding:'8.5px 16.5px',borderRadius:8,fontWeight:600,fontSize:16}}>Add an Opportunity <ChevronRight size={15}/></div>
+          <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:'#4F7CAC',color:'#FFFFFF',padding:'10px 18px',borderRadius:8,fontWeight:600,fontSize:16}}>Add an Opportunity <ChevronRight size={15}/></div>
+        </button>
+        <button onClick={()=>advance('twoDoors','laneSelect')} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+            <Route size={28} color={C.gold} strokeWidth={1.75}/>
+            <div style={{fontSize:22,fontWeight:700,color:'#1A2540'}}>Career Paths</div>
+          </div>
+          <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}>See role options across <strong>Familiar Ground</strong> (where your credibility extends), <strong>Industry Insider</strong> (where your sector knowledge translates), and <strong>Work That Matters</strong> (where your values point).</div>
+          <div style={{borderTop:`1px solid ${C.border}`,marginTop:18,paddingTop:14,display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>Three directions, each with role candidates and reasoning.</div>
+            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Clock size={14} style={{flexShrink:0}}/>About 90 seconds to generate.</div>
+          </div>
+          <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:'transparent',color:C.gold,border:`1.5px solid ${C.gold}`,padding:'8.5px 16.5px',borderRadius:8,fontWeight:600,fontSize:16}}>Start Exploring <ChevronRight size={15}/></div>
         </button>
       </div>
     </div>
