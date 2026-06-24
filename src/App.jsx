@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye, Route, Compass } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye, Route, Compass, Plus, X } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-patterns.mjs"
@@ -2493,6 +2493,15 @@ const getSavedCap = () => SAVED_PLAYBOOKS_CAP
 // LANE_LABELS is the canonical map imported from ./nav-labels.js (keyed on the
 // stored selectedLane values). laneLabelFor reads it; behavior is unchanged.
 const laneLabelFor = (ln) => LANE_LABELS[ln]||'Specific Role'
+// Declared role-in-the-loop options for the Interview Panel (door2). Values are
+// the stored enum; labels are user-facing. Stable order = display order.
+const ROLE_IN_LOOP_OPTIONS = [
+  { value: 'hiring_manager', label: 'Hiring manager' },
+  { value: 'skip_level', label: 'Skip-level' },
+  { value: 'peer', label: 'Peer' },
+  { value: 'cross_functional', label: 'Cross-functional partner' },
+  { value: 'recruiter_screen', label: 'Recruiter screen' },
+]
 const normalizeProfileState = (loaded) => {
   const s = loaded && typeof loaded === 'object' ? { ...loaded } : {}
   s.outputs = s.outputs && typeof s.outputs === 'object' ? { ...s.outputs } : {}
@@ -4582,7 +4591,26 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // each per-card RefineBox writes the user's last correction text into
     // record.feedback[cardKey] so a restored door2 record rehydrates the
     // textarea contents.
-    return{id,title,company:'',role:'',location:'',lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||'',p5:feedback.p5||'',p6:feedback.p6||'',p_res:feedback.p_res||'',p11:feedback.p11||'',companyRead:feedback.companyRead||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:'',p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}}}
+    return{id,title,company:'',role:'',location:'',lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||'',p5:feedback.p5||'',p6:feedback.p6||'',p_res:feedback.p_res||'',p11:feedback.p11||'',companyRead:feedback.companyRead||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:'',p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}},panel:{interviewers:[],opportunity_context:''}}
+  }
+  // Interview Panel (door2): the user maintains a per-opportunity list of
+  // interviewers plus an opportunity-level free-text context box. Storage only
+  // in this PR — rides in users.profile_state JSONB under savedPlaybooks[], no
+  // migration; account deletion purges it (panel ⊂ record ⊂ savedPlaybooks ⊂
+  // profile_state). getOpPanel is a defensive reader so records saved before the
+  // panel existed (panel absent) load cleanly as an empty panel; nothing is
+  // written to disk until the user edits. The free-text fields are the user's
+  // own notes (may include a read of a third party); they are never surfaced on
+  // any analytics/insights path. Per-interviewer shape: { id (internal, for
+  // keys/reorder), name, role_in_loop, title, function, linkedin_url, learned_note }.
+  const newInterviewerId=()=>`iv_${Date.now()}_${Math.random().toString(36).slice(2,7)}`
+  const getOpPanel=(rec)=>{
+    const p=rec&&rec.panel&&typeof rec.panel==='object'?rec.panel:null
+    return{opportunity_context:(p&&typeof p.opportunity_context==='string')?p.opportunity_context:'',interviewers:(p&&Array.isArray(p.interviewers))?p.interviewers:[]}
+  }
+  const updateOpPanel=(slotId,updater)=>{
+    if(!slotId)return
+    setSavedPlaybooks(prev=>prev.map(rec=>rec.id===slotId?{...rec,panel:updater(getOpPanel(rec)),updatedAt:new Date().toISOString()}:rec))
   }
   const saveCurrentDoor1=(currentKey,currentR)=>{
     // Dedupe at the creation chokepoint. Every duplicate-Door-1-record vector
@@ -6889,6 +6917,52 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </>,'section-p6')}
               {_simpleCard('p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize the competencies this role asks for. The rest of your resume can stay as it is.')}
               {_simpleCard('p11','Interview Prep','Ten to twelve questions this role\'s interview cycle is most likely to ask, each with a STAR story drawn from your own background.')}
+              {(()=>{
+                // Interview Panel editor — storage + UI only (no generation, no
+                // coach, no web research; those are later PRs). Reads/writes the
+                // active door2 record's panel via getOpPanel/updateOpPanel; the
+                // savedPlaybooks autosave persists it. Free-text stays private.
+                const _slot=currentSavedSlotIdRef.current
+                const _panel=getOpPanel(_rec)
+                const _ivs=_panel.interviewers
+                const _inp={width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}
+                const _optTag={color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}
+                const _setCtx=v=>updateOpPanel(_slot,p=>({...p,opportunity_context:v}))
+                const _addIv=()=>updateOpPanel(_slot,p=>({...p,interviewers:[...p.interviewers,{id:newInterviewerId(),name:'',role_in_loop:'hiring_manager',title:'',function:'',linkedin_url:'',learned_note:''}]}))
+                const _updIv=(id,patch)=>updateOpPanel(_slot,p=>({...p,interviewers:p.interviewers.map(iv=>iv.id===id?{...iv,...patch}:iv)}))
+                const _delIv=id=>updateOpPanel(_slot,p=>({...p,interviewers:p.interviewers.filter(iv=>iv.id!==id)}))
+                const _moveIv=(idx,dir)=>updateOpPanel(_slot,p=>{const a=[...p.interviewers];const j=idx+dir;if(j<0||j>=a.length)return p;const t=a[idx];a[idx]=a[j];a[j]=t;return{...p,interviewers:a}})
+                return _cardWrap(<>
+                  <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>Interview Panel</div>
+                  <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4,marginBottom:16}}>List the people you will meet and what you know about each. These notes are yours and stay private to your account.</div>
+                  <div style={S.field}>
+                    <label style={S.label}>Context about this opportunity <span style={_optTag}>(optional)</span></label>
+                    <textarea style={{...S.ta,minHeight:80,fontSize:16}} value={_panel.opportunity_context} onChange={e=>_setCtx(e.target.value)} placeholder="Anything you know about the loop overall: who referred you, what the team said, what matters most to them."/>
+                  </div>
+                  {_ivs.length===0&&<div style={{fontSize:15,color:C.gray,fontStyle:'italic',margin:'4px 0 14px'}}>No interviewers added yet. Add the people you expect to meet.</div>}
+                  {_ivs.map((iv,idx)=><div key={iv.id} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 16px',marginBottom:12,background:C.bg}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:12}}>
+                      <div style={{fontSize:14,fontWeight:700,color:C.grayL,letterSpacing:'1px',textTransform:'uppercase'}}>Interviewer {idx+1}</div>
+                      <div style={{display:'flex',gap:6}}>
+                        <Btn small secondary onClick={()=>_moveIv(idx,-1)} disabled={idx===0} style={{padding:'6px 9px'}}><ChevronUp size={14}/></Btn>
+                        <Btn small secondary onClick={()=>_moveIv(idx,1)} disabled={idx===_ivs.length-1} style={{padding:'6px 9px'}}><ChevronDown size={14}/></Btn>
+                        <Btn small secondary onClick={()=>_delIv(iv.id)} style={{padding:'6px 11px'}}><X size={13}/>Remove</Btn>
+                      </div>
+                    </div>
+                    <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                      <div style={{flex:2,minWidth:160}}><label style={S.label}>Name <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.name||''} onChange={e=>_updIv(iv.id,{name:e.target.value})} placeholder="Their name"/></div>
+                      <div style={{flex:2,minWidth:160}}><label style={S.label}>Role in the loop</label><select style={S.sel} value={iv.role_in_loop||'hiring_manager'} onChange={e=>_updIv(iv.id,{role_in_loop:e.target.value})}>{ROLE_IN_LOOP_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+                    </div>
+                    <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                      <div style={{flex:2,minWidth:160}}><label style={S.label}>Title <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.title||''} onChange={e=>_updIv(iv.id,{title:e.target.value})} placeholder="e.g. VP Product"/></div>
+                      <div style={{flex:2,minWidth:160}}><label style={S.label}>Function <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.function||''} onChange={e=>_updIv(iv.id,{function:e.target.value})} placeholder="e.g. Product"/></div>
+                    </div>
+                    <div style={S.field}><label style={S.label}>LinkedIn URL <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.linkedin_url||''} onChange={e=>_updIv(iv.id,{linkedin_url:e.target.value})} placeholder="https://www.linkedin.com/in/…"/></div>
+                    <div style={{...S.field,marginBottom:0}}><label style={S.label}>What you have learned <span style={_optTag}>(optional)</span></label><textarea style={{...S.ta,minHeight:70,fontSize:16}} value={iv.learned_note||''} onChange={e=>_updIv(iv.id,{learned_note:e.target.value})} placeholder="What you know about this person and what they care about, in your own words."/></div>
+                  </div>)}
+                  <Btn small secondary onClick={_addIv}><Plus size={14}/>Add an interviewer</Btn>
+                </>,'section-panel')
+              })()}
               {(()=>{
                 const _crBuilt=!!(_sec.companyRead&&_sec.companyRead.content&&_sec.companyRead.content.trim())
                 const _crBusy=opSectionBuilding==='companyRead'&&opBuildingSlot===currentSavedSlotIdRef.current
