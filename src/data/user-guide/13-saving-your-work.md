@@ -8,7 +8,7 @@ This chapter covers how Reimagine saves your progress, how your work syncs acros
 
 When you are signed in, Reimagine saves your progress to your account automatically as you go. Your inputs, your outputs, the direction you picked, the list of roles you have explored, and any corrections you have submitted are all saved against your email and synced to your devices.
 
-Your Focus Playbook sections are saved to your account alongside your inputs. You can build several playbooks across different roles simultaneously — each is saved separately and accessible from **My Playbooks** in the sidebar. The PDF gives you a portable copy you can share or keep alongside your offline notes.
+Your Focus Playbook sections are saved to your account alongside your inputs. You can build several playbooks across different roles simultaneously — each is saved separately and accessible from **My Playbooks** in the sidebar. On the My Playbooks dashboard, click a playbook's title to rename it, so a saved role reads the way you think of it. The PDF gives you a portable copy you can share or keep alongside your offline notes.
 
 Three things worth knowing.
 

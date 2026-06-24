@@ -1132,6 +1132,32 @@ async function inferLaneForOpportunity(jd,profileSummary,quickTakeaway){
     return {value:obj.value,confidence:conf,reasoning:typeof obj.reasoning==='string'?obj.reasoning.trim().slice(0,800):''}
   }catch(e){return null}
 }
+const INFER_JD_METADATA_PROMPT=(jd)=>`Extract the hiring company, the role title, and the work location from this job description. Output JSON only, no preamble.
+
+Job description:
+${jd}
+
+Return exactly this JSON shape:
+{"company":"<company name, or empty string>","role":"<role title as posted, or empty string>","location":"<city or region, or Remote, or empty string>"}
+
+Rules: use the company name exactly as written. For role, use the posted title, trimmed. For location, give the primary location or "Remote". If a field is not stated in the JD, use an empty string. Do not guess or invent any field.`
+// inferJdMetadata: pulls company / role / location off a JD via a small focused
+// LLM call. Mirror of inferLaneForOpportunity / inferIndustry. Always resolves to
+// an object with empty-string defaults so callers never null-check.
+async function inferJdMetadata(jd){
+  const empty={company:'',role:'',location:''}
+  try{
+    const text=((jd)||'').slice(0,6000)
+    if(!text.trim())return empty
+    const raw=await callClaude(INFER_JD_METADATA_PROMPT(text),{maxTokens:300,temperature:0.2})
+    const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
+    if(a<0||b<0||b<=a)return empty
+    let obj;try{obj=JSON.parse(raw.slice(a,b+1))}catch(e){return empty}
+    if(!obj||typeof obj!=='object')return empty
+    const s=v=>(typeof v==='string'?v.trim().slice(0,120):'')
+    return {company:s(obj.company),role:s(obj.role),location:s(obj.location)}
+  }catch(e){return empty}
+}
 // === Company Read module helpers (PR-1) ===
 // Industry rubric mapping. Deterministic; the classifier returns one of these
 // keys and the rubric text below is injected verbatim into the Company Read
@@ -4528,7 +4554,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // each per-card RefineBox writes the user's last correction text into
     // record.feedback[cardKey] so a restored door2 record rehydrates the
     // textarea contents.
-    return{id,title,lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||'',p5:feedback.p5||'',p6:feedback.p6||'',p_res:feedback.p_res||'',p11:feedback.p11||'',companyRead:feedback.companyRead||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:'',p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}}}
+    return{id,title,company:'',role:'',location:'',lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||'',p5:feedback.p5||'',p6:feedback.p6||'',p_res:feedback.p_res||'',p11:feedback.p11||'',companyRead:feedback.companyRead||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:'',p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}}}
   }
   const saveCurrentDoor1=(currentKey,currentR)=>{
     // Dedupe at the creation chokepoint. Every duplicate-Door-1-record vector
@@ -5531,6 +5557,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }catch(e){setP11QuestionErrors(prev=>({...prev,[questionIdx]:e.message||'Generation failed. Try again.'}))}
     finally{setRegeneratingP11QuestionIdx(null)}
   }
+  const renameSavedPlaybook=(id,newTitle)=>{
+    const t=(newTitle||'').trim().slice(0,120)
+    if(!t)return
+    setSavedPlaybooks(prev=>prev.map(r=>r.id===id?{...r,title:t,updatedAt:new Date().toISOString()}:r))
+    // Q4 lockstep: the active-role display (sidebar sub-label + Complete-page
+    // header) is driven by `chosen`, separate state from rec.title. Keep it in
+    // sync when the renamed record is the active one, or the sidebar shows stale.
+    if(currentSavedSlotIdRef.current===id)setChosen(t)
+  }
   const deleteFromSavedSet=(id)=>{
     setSavedPlaybooks(prev=>prev.filter(r=>r.id!==id))
     if(currentSavedSlotIdRef.current===id){
@@ -5643,6 +5678,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       setSavedPlaybooks(prev=>[...prev,rec])
       setCurrentRoleInSavedSet(true)
       currentSavedSlotIdRef.current=id
+      // Async company/role extraction (fire-and-forget). On return, retitle to
+      // "Company · Role" — but ONLY if the user has not renamed first (checked
+      // live against the fallback inside the updater) and extraction produced
+      // something. Partial extraction degrades gracefully. Keep the active-role
+      // label (sidebar + Complete header, both driven by `chosen`) in lockstep.
+      inferJdMetadata(jdText).then(meta=>{
+        const{company,role,location}=meta||{company:'',role:'',location:''}
+        const derived=[company,role].filter(Boolean).join(' · ')
+        setSavedPlaybooks(prev=>prev.map(r=>r.id!==id?r:{...r,company,role,location,title:(r.title===derivedTitle&&derived)?derived:r.title}))
+        if(derived&&currentSavedSlotIdRef.current===id)setChosen(prev=>prev===derivedTitle?derived:prev)
+      })
     }
     // Same-JD dedupe (mirrors PR #207's Door 1 dedupe at saveCurrentDoor1). JD is
     // the source-of-truth key; derivedTitle is computed from the JD so a same-JD
@@ -6576,7 +6622,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:6}}>My Playbooks</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {savedPlaybooks.length} of {getSavedCap()} saved.</p>
       </div>
-      <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity}/>
+      <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity}/>
     </div>
     case'income':{
       // Standalone Income Now surface. Two states gated strictly on `chosen`

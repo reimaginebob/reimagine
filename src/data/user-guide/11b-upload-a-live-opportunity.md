@@ -49,7 +49,7 @@ You can use either. If you upload a PDF, Reimagine extracts the text and shows i
 
 Each time you add an opportunity, the form starts empty, so you are always pasting a fresh posting rather than editing a prior one. Your existing opportunities stay saved in My Playbooks; adding a new one never replaces them.
 
-When you have the JD in place, click **Build My Playbook**. Reimagine creates the opportunity record and lands you on the five-section page within about a second, then immediately starts building two cards for you. The Role gives you a quick read on what the posting is asking for, and About This Company gathers industry context, recent moves, and how this company tends to evaluate candidates. The other three cards (Bridge Story, Resume Refresh, and Interview Prep) wait for you to choose what to build next. The Role lands in about half a minute; About This Company takes a little longer because it runs live web search.
+When you have the JD in place, click **Build My Playbook**. Reimagine creates the opportunity record and lands you on the five-section page within about a second, then immediately starts building two cards for you. The Role gives you a quick read on what the posting is asking for, and About This Company gathers industry context, recent moves, and how this company tends to evaluate candidates. The other three cards (Bridge Story, Resume Refresh, and Interview Prep) wait for you to choose what to build next. The Role lands in about half a minute; About This Company takes a little longer because it runs live web search. The saved playbook is titled from the posting itself — the company and the role — a moment after you submit, and you can rename it any time from My Playbooks.
 
 ## What good looks like
 
