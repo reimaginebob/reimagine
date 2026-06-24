@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye, Route, Compass, Plus, X } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye, Route, Compass, Plus, X, Search } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-patterns.mjs"
@@ -705,7 +705,10 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
   // for unsourced numeric claims and fabrication templates. Retries once with
   // a corrective callout if either detector fires; falls open on retry
   // exhaustion so the user always sees the generated output.
-  const isCompanyRead = meta.step === 'op-company-read' || meta.step === 'gtm-company-read'
+  // panel-interviewer-read (PR 4) reuses the same citation + fabrication gate as
+  // Company Read: every claim about a third party needs an inline source or an
+  // explicit hedge, and the fabrication-template detector applies too.
+  const isCompanyRead = meta.step === 'op-company-read' || meta.step === 'gtm-company-read' || meta.step === 'panel-interviewer-read'
   if (isCompanyRead) {
     let crResult = await runVoiceAndDimPhases(promptFn)
     for (let crAttempt = 0; crAttempt <= CR_MAX_RETRIES; crAttempt++) {
@@ -2147,6 +2150,31 @@ ${(correctionText||'').trim()||'(no specific feedback; produce a stronger, more 
 
 OUTPUT: the outreach email and personalization guide as prose only. No JSON, no headers beyond the email itself, no preamble, no code fences.`,
   p11_question_regen:(pr,outs,sel,life,questionIdx,currentQuestion,otherQuestionTexts,correctionText,jdContext='')=>{const qType=(currentQuestion&&currentQuestion.type)||'behavioral';const qId=(currentQuestion&&currentQuestion.id)||('q'+(questionIdx+1));const behavioralShape='SHAPE: this question is behavioral. The regenerated version MUST include a complete star_breakdown with S, T, A, R sub-sections. S carries raw_material, relevance_bridge_draft, and to_strengthen, each a non-empty string. T, A, R each carry raw_material and to_strengthen, each a non-empty string. raw_material draws from the verbatim inputs below; do not invent specifics not in the inputs. to_strengthen names what specific addition would sharpen this STAR sub-section.';const nonBehavioralShape='SHAPE: this question is non_behavioral. Produce a non_behavioral question with a non-empty framing_recommendation only (no star_breakdown).';const starOutput='"star_breakdown": { "S": { "raw_material": "specific moment from inputs", "relevance_bridge_draft": "short opener bridging to the role", "to_strengthen": "what to add" }, "T": { "raw_material": "...", "to_strengthen": "..." }, "A": { "raw_material": "...", "to_strengthen": "..." }, "R": { "raw_material": "...", "to_strengthen": "..." } }';const nonBehavioralOutput='"framing_recommendation": "plain-language framing this person can use to answer"';return `You are regenerating ONE Interview Prep question for this person while preserving every OTHER question in the set untouched. They are pursuing: **${sel}**.\\n\\nQUESTION INDEX TO REGENERATE: ${questionIdx+1} (1-based)\\n\\nUSER FEEDBACK ON THIS QUESTION:\\n${(correctionText||'').trim()||'(no specific feedback; produce a sharper version that addresses obvious weaknesses)'}\\n\\nTHE CURRENT VERSION OF THIS QUESTION (do not repeat the same prompt; do not pull the same raw_material verbatim; bring a sharper angle that responds to the feedback above):\\n${JSON.stringify(currentQuestion,null,2)}\\n\\nTHE OTHER QUESTIONS IN THIS SET (do NOT duplicate the prompt of any of these; do NOT pull source material another question already uses):\\n${(otherQuestionTexts||[]).map((q,i)=>(i+1)+'. '+q).join('\\n')}\\n\\n${jdContext?'JD CONTEXT (scope this question to the specific opportunity, lane-independent):\\n'+jdContext+'\\n\\n':''}VOICE RULES (load-bearing):\\n- Never use "room" or "rooms" as a generic synonym for situation, conversation, or audience. Use situation, conversation, interview, screen, panel, or meeting.\\n- No logic-flip cadence ("not X, you Y" / "is not Z, it is W"). State the positive claim on its own.\\n- No comparative standing against unnamed groups ("most people", "many candidates", "where others X").\\n- No AI-coaching register ("sit with this", "lean into", "hold space for", "trust the process").\\n- No absolutism ("every", "always", "the most", "the only").\\n- No mind-reading ("your conviction that X" / "your mission is X" unless verbatim from raw signals).\\n- No slogan cadence ("X is the Y. Z is the W.").\\n\\n${qType==='behavioral'?behavioralShape:nonBehavioralShape}\\n\\nframework_thread: if a framework the candidate uses applies cleanly to this question, name it (one or two words). Otherwise null.\\n\\nINPUTS:\\n\\nPROFILE: ${asText(outs.p3)}\\n\\nRAW SIGNALS (verbatim; do not paraphrase back):\\nVALUES: ${pr.values||'not provided'}\\nPASSIONS AND CAUSES: ${pr.passions||'not provided'}\\nPRAISE THEY RECEIVE: ${pr.rep.memory||'not provided'}\\nWHO CALLS THEM IN EMERGENCY: ${pr.rep.emergency||'not provided'}\\nHOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${pr.rep.twoWords||'not provided'}\\nOTHER REPUTATION DATA: ${pr.rep.other||'not provided'}\\nLIFE-SHAPING EXPERIENCES: ${life||'not provided'}\\nASSESSMENT TYPE: ${pr.assessType||'not provided'}\\nASSESSMENT NOTES: ${pr.assess||'not provided'}\\nFRAMEWORKS THEY USE: ${Array.isArray(pr.frameworks)&&pr.frameworks.length?pr.frameworks.join(', '):'not provided'}\\n\\nOUTPUT REQUIRED: a single JSON object wrapping just the regenerated question under the key "question". Return ONLY the JSON. No preamble, no markdown code fences. Start with { and end with }.\\n\\n{\\n  "question": {\\n    "id": "${qId}",\\n    "question": "the new question prompt",\\n    "type": "${qType}",\\n    "framework_thread": null,\\n    ${qType==='behavioral'?starOutput:nonBehavioralOutput}\\n  }\\n}`},
+  // Interview Panel web research (PR 4): one light, public-domain pass on a single
+  // interviewer. Confirms identity, surfaces sourced public signal, stays a
+  // hypothesis the candidate verifies. The same citation gate that guards Company
+  // Read (meta.step==='panel-interviewer-read') enforces inline sources. The
+  // user's own free-text note is NOT passed in and never treated as fact to verify.
+  interviewerResearch:(seat,companyName,roleLabel)=>`You are doing a light, public-domain web check on ONE person the candidate will interview with, to help the candidate prepare. Confirm you have the right person, then surface only what public sources actually show. This is a starting point the candidate will verify — never present it as certain, and never characterize the person's personality.
+
+WHO TO LOOK FOR (use only to identify the right public person):
+- Name: ${seat.name||'(not provided)'}
+- Title: ${seat.title||'(not provided)'}
+- Function: ${seat.function||'(not provided)'}
+- Company: ${companyName||'(not provided)'}
+- LinkedIn URL (if provided): ${seat.linkedin_url||'(not provided)'}
+- Their role in the candidate's interview loop: ${roleLabel||'interviewer'}
+
+PRODUCE three short labeled parts, 120-180 words total, scannable:
+1. IDENTITY: one line naming the most likely match (name, current title, company) with an adjacent source URL. If you cannot confirm the person with reasonable confidence, write "Public signal does not confirm this person directly" and produce nothing further.
+2. PUBLIC SIGNAL: up to two sourced points on what this person has publicly said, written, or is publicly known for that is relevant to the candidate's conversation. Each point carries an inline source URL.
+3. PREP ANGLE: one neutral sentence on how the candidate might connect, grounded only in the points above.
+
+CITATION DISCIPLINE (load-bearing — a runtime gate enforces this): every factual claim about this person (role, tenure, a quote, a published view, a number, a date) MUST carry an adjacent source URL in the same sentence, as plain text "(source: https://...)". Drop any point you cannot source.
+
+VOICE: plain and factual. No flattery, no personality read, no typology labels, no comparative standing against unnamed groups, no logic-flip cadence. A hypothesis for the candidate to confirm, not a verdict.
+
+OUTPUT: the three labeled parts as short prose. No preamble, no code fences.`,
   companyRead:(jd,foundation,companyName,industry,rubricText,laneLabel,mode='op',gtmContext='')=>`You are producing a Company Read for the candidate's evaluation of a specific opportunity. Five subsections, each opens with a bolded headline insight then 2-3 sentences of supporting prose with sources cited inline. Target length: 350-500 words total.
 
 THE CANDIDATE'S FOUNDATION:
@@ -4742,6 +4770,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[opBuildingSlot,setOpBuildingSlot]=useState(null)
   const[opSectionErrors,setOpSectionErrors]=useState({})
   const opSectionReqRef=useRef(0)
+  // Interview Panel web research (PR 4): single-flight busy id, per-interviewer
+  // error, and the inline edit buffer for a fetched research block.
+  const[researchingIvId,setResearchingIvId]=useState(null)
+  const[researchErrors,setResearchErrors]=useState({})
+  const[editingResearch,setEditingResearch]=useState(null)
   // Resume Builder ("I need help with my resume first") private generation state.
   // Mirrors the op-section pattern: a busy key (which generation/role is in flight),
   // a per-key error map, and a request-id ref so a re-edit drops a stale write. Kept
@@ -5535,6 +5568,32 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,companyRead:e.message||'Generation failed. Try again.'}))
     }finally{
       if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
+    }
+  }
+  // Interview Panel web research (PR 4): explicit, per-interviewer, user-initiated.
+  // Single-flight (researchingIvId). Reuses the Company Read web-search + citation
+  // gate via meta.step==='panel-interviewer-read'. Writes an unconfirmed research
+  // block to the interviewer; the user confirms, edits, or dismisses it. The
+  // user's own learned_note is never sent out — only public-identity fields go.
+  const generateInterviewerResearch=async(ivId)=>{
+    const slotId=currentSavedSlotIdRef.current
+    if(!slotId||!ivId||researchingIvId)return
+    const rec0=savedPlaybooks.find(r=>r.id===slotId)
+    const iv=getOpPanel(rec0).interviewers.find(x=>x.id===ivId)
+    if(!iv)return
+    setResearchingIvId(ivId);setResearchErrors(e=>({...e,[ivId]:null}))
+    try{
+      const jd=(profile.jd||'').trim()
+      const companyName=(jd.split('\n').find(l=>l.trim())||'').trim().slice(0,100)
+      const roleLabel=(ROLE_IN_LOOP_OPTIONS.find(o=>o.value===iv.role_in_loop)||{}).label||'interviewer'
+      const fn=()=>P.interviewerResearch(iv,companyName,roleLabel)
+      const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:1500},{step:'panel-interviewer-read',onEvent:logVoiceEvent})
+      if(currentSavedSlotIdRef.current!==slotId)return
+      updateOpPanel(slotId,p=>({...p,interviewers:p.interviewers.map(x=>x.id===ivId?{...x,research:{text:r,status:'unconfirmed',fetchedAt:new Date().toISOString()}}:x)}))
+    }catch(e){
+      setResearchErrors(er=>({...er,[ivId]:e.message||'Could not research this person. Try again.'}))
+    }finally{
+      setResearchingIvId(cur=>cur===ivId?null:cur)
     }
   }
   // refineOpCard (PR-A op-card-refinebox brief 2026-05-30): op-side mirror of
@@ -7023,7 +7082,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _moveIv=(idx,dir)=>updateOpPanel(_slot,p=>{const a=[...p.interviewers];const j=idx+dir;if(j<0||j>=a.length)return p;const t=a[idx];a[idx]=a[j];a[j]=t;return{...p,interviewers:a}})
                 return _cardWrap(<>
                   <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>Interview Panel</div>
-                  <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4,marginBottom:16}}>List the people you will meet and what you know about each. These notes are yours and stay private to your account.</div>
+                  <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4,marginBottom:16}}>List the people you will meet and what you know about each. The note on what a person cares about is the most useful thing you can add — it shapes your Interview Prep and what My Coach can help you with. These notes are yours and stay private to your account.</div>
                   <div style={S.field}>
                     <label style={S.label}>Context about this opportunity <span style={_optTag}>(optional)</span></label>
                     <textarea style={{...S.ta,minHeight:80,fontSize:16}} value={_panel.opportunity_context} onChange={e=>_setCtx(e.target.value)} placeholder="Anything you know about the loop overall: who referred you, what the team said, what matters most to them."/>
@@ -7048,6 +7107,47 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     </div>
                     <div style={S.field}><label style={S.label}>LinkedIn URL <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.linkedin_url||''} onChange={e=>_updIv(iv.id,{linkedin_url:e.target.value})} placeholder="https://www.linkedin.com/in/…"/></div>
                     <div style={{...S.field,marginBottom:0}}><label style={S.label}>What you have learned <span style={_optTag}>(optional)</span></label><textarea style={{...S.ta,minHeight:70,fontSize:16}} value={iv.learned_note||''} onChange={e=>_updIv(iv.id,{learned_note:e.target.value})} placeholder="What you know about this person and what they care about, in your own words."/></div>
+                    {(()=>{
+                      // Per-interviewer web research (PR 4): explicit, user-initiated; nothing
+                      // is sent until the button is clicked. Result is shown as an unconfirmed
+                      // draft the user confirms, edits (becomes their own), redoes, or dismisses.
+                      const research=iv.research&&typeof iv.research==='object'?iv.research:null
+                      const rBusy=researchingIvId===iv.id
+                      const rErr=researchErrors[iv.id]
+                      const rEditing=editingResearch&&editingResearch.ivId===iv.id
+                      const wrap=k=><div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>{k}</div>
+                      if(rBusy)return wrap(<div style={{display:'flex',alignItems:'center',gap:8,fontSize:15,color:C.gray}}><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Searching public sources…</div>)
+                      if(!research)return wrap(<>
+                        <Btn small secondary onClick={()=>generateInterviewerResearch(iv.id)} disabled={!!researchingIvId}><Search size={13}/>Research this person on the web</Btn>
+                        <div style={{fontSize:13,color:C.gray,marginTop:6,lineHeight:1.5}}>Optional. Searches public sources and shows what it finds as a draft for you to confirm. Nothing is sent until you click.</div>
+                        {rErr&&<div style={{marginTop:8}}><ErrBox msg={rErr}/></div>}
+                      </>)
+                      if(rEditing)return wrap(<>
+                        <label style={S.label}>Edit what the web turned up</label>
+                        <textarea style={{...S.ta,minHeight:120,fontSize:15}} value={editingResearch.text} onChange={e=>setEditingResearch({ivId:iv.id,text:e.target.value})}/>
+                        <div style={{display:'flex',gap:8,marginTop:8}}>
+                          <Btn small onClick={()=>{_updIv(iv.id,{research:{...research,text:editingResearch.text,status:'confirmed'}});setEditingResearch(null)}}><Check size={12}/>Save</Btn>
+                          <Btn small secondary onClick={()=>setEditingResearch(null)}>Cancel</Btn>
+                        </div>
+                      </>)
+                      const unconfirmed=research.status!=='confirmed'
+                      return wrap(<>
+                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,flexWrap:'wrap'}}>
+                          <span style={{fontSize:14,fontWeight:700,color:'#1A2540'}}>From the web</span>
+                          {unconfirmed
+                            ?<span style={{fontSize:12,fontWeight:700,color:C.goldL,background:`${C.gold}1A`,border:`1px solid ${C.gold}55`,borderRadius:20,padding:'2px 10px'}}>Unconfirmed — verify before you rely on it</span>
+                            :<span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:13,fontWeight:700,color:C.ok}}><Check size={12}/>Confirmed by you</span>}
+                        </div>
+                        <div style={{fontSize:15,color:C.cream,lineHeight:1.6}}><MD text={research.text||''}/></div>
+                        <div style={{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}}>
+                          {unconfirmed&&<Btn small onClick={()=>_updIv(iv.id,{research:{...research,status:'confirmed'}})}><Check size={12}/>Confirm</Btn>}
+                          <Btn small secondary onClick={()=>setEditingResearch({ivId:iv.id,text:research.text||''})}>Edit</Btn>
+                          <Btn small secondary onClick={()=>generateInterviewerResearch(iv.id)} disabled={!!researchingIvId}><RotateCcw size={11}/>Redo</Btn>
+                          <Btn small secondary onClick={()=>_updIv(iv.id,{research:null})}><X size={12}/>Dismiss</Btn>
+                        </div>
+                        {rErr&&<div style={{marginTop:8}}><ErrBox msg={rErr}/></div>}
+                      </>)
+                    })()}
                   </div>)}
                   <Btn small secondary onClick={_addIv}><Plus size={14}/>Add an interviewer</Btn>
                 </>,'section-panel')
