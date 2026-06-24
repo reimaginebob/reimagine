@@ -20,7 +20,7 @@
 // no logic-flip cadence, no banned AI-coach phrases, no typology labels).
 
 import { useState } from 'react'
-import { RotateCcw, Trash2, Briefcase } from 'lucide-react'
+import { RotateCcw, Trash2, Briefcase, Pencil } from 'lucide-react'
 
 const LANE_LABEL_MAP = {
   familiar: 'Familiar Ground',
@@ -112,6 +112,7 @@ function PlaybookCard({ rec, onRestore, onDelete, onRename, C }) {
   const canRename = typeof onRename === 'function'
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(rec.title)
+  const [titleHover, setTitleHover] = useState(false)
   const startEdit = () => { setDraft(rec.title); setEditing(true) }
   const commitEdit = () => {
     setEditing(false)
@@ -149,9 +150,21 @@ function PlaybookCard({ rec, onRestore, onDelete, onRename, C }) {
           ) : (
             <div
               onClick={canRename ? startEdit : undefined}
-              title={canRename ? 'Click to rename' : undefined}
-              style={{ fontSize: 20, fontWeight: 700, color: '#1A2540', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', cursor: canRename ? 'text' : 'default' }}
-            >{rec.title}</div>
+              onMouseEnter={canRename ? () => setTitleHover(true) : undefined}
+              onMouseLeave={canRename ? () => setTitleHover(false) : undefined}
+              title={canRename ? 'Rename' : undefined}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, cursor: canRename ? 'pointer' : 'default' }}
+            >
+              <span style={{
+                fontSize: 20, fontWeight: 700, color: '#1A2540',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
+                textDecoration: canRename && titleHover ? 'underline' : 'none',
+                textDecorationColor: C.gold, textUnderlineOffset: 3,
+              }}>{rec.title}</span>
+              {canRename && (
+                <Pencil size={16} aria-hidden="true" style={{ flexShrink: 0, color: titleHover ? C.gold : '#9AA6B8', opacity: titleHover ? 1 : 0.75, transition: 'color 0.12s, opacity 0.12s' }}/>
+              )}
+            </div>
           )}
           <SourceBadge source={rec.source} lane={rec.lane} C={C}/>
         </div>
