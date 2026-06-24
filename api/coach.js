@@ -158,6 +158,38 @@ function recordSectionText(record, key) {
   return typeof v === 'string' ? v : ''
 }
 
+// Interview Panel (PR 3): role-in-loop enum -> label. Source of truth is
+// ROLE_IN_LOOP_OPTIONS in src/App.jsx; inlined here (5 stable values) because
+// cross-directory api/<-src imports are a known Vercel bundler hazard (CLAUDE.md
+// §8). An unknown value falls back to "interviewer".
+const ROLE_IN_LOOP_LABEL = {
+  hiring_manager: 'Hiring manager', skip_level: 'Skip-level', peer: 'Peer',
+  cross_functional: 'Cross-functional partner', recruiter_screen: 'Recruiter screen',
+}
+// Compact, read-only rendering of a door2 record's Interview Panel for the coach
+// slice: the opportunity-level context plus, per interviewer, the declared role,
+// who they are, and the person's own free-text note. The note is the user's own
+// knowledge — surfaced for grounding, never treated as a guess and never logged
+// or echoed. Returns '' when the panel is empty/absent.
+function buildPanelSlice(record) {
+  const panel = record && record.panel && typeof record.panel === 'object' ? record.panel : null
+  if (!panel) return ''
+  const ctx = (typeof panel.opportunity_context === 'string' ? panel.opportunity_context : '').trim()
+  const ivs = (Array.isArray(panel.interviewers) ? panel.interviewers : []).filter(iv => iv && typeof iv === 'object')
+  if (!ctx && ivs.length === 0) return ''
+  const lines = []
+  if (ctx) lines.push(`Opportunity context (the person's own words): ${ctx}`)
+  ivs.forEach(iv => {
+    const role = ROLE_IN_LOOP_LABEL[iv.role_in_loop] || 'interviewer'
+    const who = [iv.name, iv.title, iv.function].filter(s => typeof s === 'string' && s.trim()).join(' / ')
+    const note = (typeof iv.learned_note === 'string' && iv.learned_note.trim()) ? iv.learned_note.trim() : ''
+    let line = `- ${role}${who ? `: ${who}` : ''}`
+    if (note) line += `\n  what the person has learned (their own knowledge): ${note}`
+    lines.push(line)
+  })
+  return lines.join('\n')
+}
+
 // Find the single in-focus record from the transcript (current message + up to 2
 // prior user turns, newest first). Latest mention wins; one record max. Skips
 // generic fallback titles and sub-6-char keys so it does not over-fire.
@@ -216,6 +248,13 @@ function buildPlaybookExpansion(record, intent) {
     parts.push(txt
       ? `${name}:\n${txt}`
       : `${name}: not built yet — point the person to build it in Reimagine rather than inventing its content.`)
+  }
+  // Interview Panel (PR 3): on an interview-intent turn for the in-focus
+  // opportunity, fold in the panel so the coach can prep the person per person.
+  // Read-only and scoped — only the in-focus door2 record, only on this intent.
+  if (door2 && intent === 'interview') {
+    const panelText = buildPanelSlice(record)
+    if (panelText) parts.push(`INTERVIEW PANEL (the people the person expects to meet, with their own notes on each — read-only; reason about it, do not change it):\n${cap(panelText)}`)
   }
   return parts.join('\n\n')
 }
