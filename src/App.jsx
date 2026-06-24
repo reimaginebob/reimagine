@@ -3526,11 +3526,40 @@ export default function PivotEngine(){
   const[fileLoading,setFileLoading]=useState(false)
   const[showPasteResume,setShowPasteResume]=useState(false)
   const[skipAssessWarn,setSkipAssessWarn]=useState(false)
-  const[surveyDone,setSurveyDone]=useState(isDemo)
-  const[survey,setSurvey]=useState({nps:null,valuable:'',confidence:null,accuracy:null,open:''})
-  const[surveySubmitted,setSurveySubmitted]=useState(false)
-  const[surveySubmitting,setSurveySubmitting]=useState(false)
-  const[surveyError,setSurveyError]=useState(null)
+  // Free-text feedback panel (header "Share feedback"). Replaces the retired
+  // post-session NPS survey as the only in-app feedback write path. Two states:
+  // form (textarea + Send) and thank-you. Opened from the header button on any
+  // step; context is gathered silently on Send (see api/feedback/submit.js).
+  // SHOW_CONTEXT_NOTE gates the "we'll see which screen you're on" helper line
+  // so it can be toggled off without touching the panel markup.
+  const SHOW_CONTEXT_NOTE=true
+  const[feedbackOpen,setFeedbackOpen]=useState(false)
+  const[feedbackText,setFeedbackText]=useState('')
+  const[feedbackSent,setFeedbackSent]=useState(false)
+  const[feedbackSending,setFeedbackSending]=useState(false)
+  const[feedbackError,setFeedbackError]=useState(null)
+  const feedbackTaRef=useRef(null)
+  const closeFeedback=()=>{setFeedbackOpen(false);setFeedbackText('');setFeedbackSent(false);setFeedbackSending(false);setFeedbackError(null)}
+  useEffect(()=>{if(!feedbackOpen)return;const t=setTimeout(()=>{if(feedbackTaRef.current)feedbackTaRef.current.focus()},0);return()=>clearTimeout(t)},[feedbackOpen])
+  // One-way drop: posts the note plus silently-gathered context (current
+  // surface, lane, focused role, build SHA). user_id and email are resolved
+  // server-side from the session cookie. On success, swap to the thank-you state.
+  const sendFeedback=async()=>{
+    const body=feedbackText.trim()
+    if(!body||feedbackSending)return
+    setFeedbackError(null);setFeedbackSending(true)
+    try{
+      const resp=await fetch('/api/feedback/submit',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({body,surface:step||null,selected_lane:selectedLane||null,context_ref:chosen||null,commit_sha:versionCheck.buildSha||null})})
+      if(!resp.ok){
+        let msg='We could not send your note. Please try again.'
+        try{const j=await resp.json();if(j&&j.error)msg=j.error}catch{}
+        setFeedbackError(msg);setFeedbackSending(false);return
+      }
+      setFeedbackSending(false);setFeedbackSent(true)
+    }catch(e){
+      setFeedbackError('We could not send your note. Check your connection and try again.');setFeedbackSending(false)
+    }
+  }
   const[signedUp,setSignedUp]=useState(isDemo||isTest)
   const[signupForm,setSignupForm]=useState({firstName:'',lastName:'',email:''})
   const[signupSubmitting,setSignupSubmitting]=useState(false)
@@ -3581,7 +3610,6 @@ export default function PivotEngine(){
   const dismissCorrectionsIntro=()=>{try{localStorage.setItem('reimagine_seen_corrections_intro','1')}catch{};setHasSeenCorrectionsIntro(true)}
   const[repFiles,setRepFiles]=useState([])
   const[assessFiles,setAssessFiles]=useState([])
-  const setSv=(k,v)=>setSurvey(s=>({...s,[k]:v}))
   const importFileRef=useRef()
   const assessRef=useRef()
   const repOtherRef=useRef()
@@ -6700,80 +6728,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.gray,lineHeight:1.6,margin:'0 0 22px',fontStyle:'italic'}}>Also in the sidebar: <strong>Income Now</strong> turns your existing expertise into consulting or fractional income while you continue the search. For some people the bridge becomes the path.</p>
       </>}
 
-      {!surveyDone&&<div id="survey" style={{...S.card,marginBottom:22,border:`1px solid ${C.gold}40`}}>
-        {!surveySubmitted?<>
-          <div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:C.cream,marginBottom:4}}>Before you go: 60 seconds of feedback</div>
-          <div style={{fontSize:18,color:C.gray,marginBottom:20,lineHeight:1.6}}>You're helping us make this better for everyone who comes after you. All questions are optional.</div>
-
-          <div style={S.field}>
-            <label style={S.label}>How likely are you to recommend Reimagine to someone in career transition?</label>
-            <div style={{fontSize:14,color:C.gray,marginBottom:8,display:'flex',justifyContent:'space-between'}}><span>Not at all likely</span><span>Extremely likely</span></div>
-            <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
-              {[0,1,2,3,4,5,6,7,8,9,10].map(n=><button key={n} onClick={()=>setSv('nps',n)} style={{width:38,height:38,borderRadius:6,border:`1.5px solid ${survey.nps===n?C.gold:C.border}`,background:survey.nps===n?C.gold:'transparent',color:survey.nps===n?C.bg:C.grayL,fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{n}</button>)}
-            </div>
-          </div>
-
-          <div style={S.field}>
-            <label style={S.label}>Which part of the process was most valuable to you?</label>
-            <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:4}}>
-              {['Personal Brand','Choosing a direction','Role Options','Bridge Story','Interview Prep','LinkedIn Remix','Resume Refresh','Go-to-Market','It all came together'].map(o=><button key={o} onClick={()=>setSv('valuable',o)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${survey.valuable===o?C.gold:C.border}`,background:survey.valuable===o?`${C.gold}20`:'transparent',color:survey.valuable===o?C.goldL:C.grayL,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}
-            </div>
-          </div>
-
-          <div style={S.field}>
-            <label style={S.label}>How has your confidence about your next move changed?</label>
-            <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:4}}>
-              {[['Much less confident'],['Less confident'],['About the same'],['More confident'],['Much more confident']].map(([label])=><button key={label} onClick={()=>setSv('confidence',label)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${survey.confidence===label?C.gold:C.border}`,background:survey.confidence===label?`${C.gold}20`:'transparent',color:survey.confidence===label?C.goldL:C.grayL,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>)}
-            </div>
-          </div>
-
-          <div style={S.field}>
-            <label style={S.label}>How well did Reimagine capture who you are and what you bring?</label>
-            <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:4}}>
-              {[['Missed the mark'],['Partially'],['Mostly right'],['Very well'],['Nailed it']].map(([label])=><button key={label} onClick={()=>setSv('accuracy',label)} style={{padding:'8px 14px',borderRadius:20,border:`1.5px solid ${survey.accuracy===label?C.gold:C.border}`,background:survey.accuracy===label?`${C.gold}20`:'transparent',color:survey.accuracy===label?C.goldL:C.grayL,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>)}
-            </div>
-          </div>
-
-          <div style={S.field}>
-            <label style={S.label}>Anything we should know? What would make this better? <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label>
-            <textarea style={{...S.ta,minHeight:80}} value={survey.open} onChange={e=>setSv('open',e.target.value)} placeholder="Share anything on your mind…"/>
-          </div>
-
-          {surveyError&&<div role="alert" style={{fontSize:16,color:C.err,lineHeight:1.5,marginBottom:10,padding:'10px 14px',background:`${C.err}10`,border:`1px solid ${C.err}40`,borderRadius:8}}>{surveyError}</div>}
-          <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-            <Btn disabled={surveySubmitting||survey.nps===null} onClick={async()=>{
-              setSurveyError(null);setSurveySubmitting(true)
-              try{
-                const resp=await fetch('/api/survey/submit',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({nps_score:survey.nps,most_valuable:survey.valuable,confidence:survey.confidence,accuracy:survey.accuracy,open_text:survey.open,chosen_role:chosen})})
-                if(!resp.ok){
-                  let msg='Submission failed. Please try again.'
-                  try{const j=await resp.json();if(j&&j.error)msg=j.error}catch{}
-                  setSurveyError(msg);setSurveySubmitting(false);return
-                }
-                setSurveySubmitting(false);setSurveySubmitted(true)
-              }catch(e){
-                setSurveyError('We could not save your feedback. Check your connection and try again.');setSurveySubmitting(false)
-              }
-            }}>Submit Feedback</Btn>
-            <Btn secondary onClick={()=>setSurveyDone(true)}>No thanks</Btn>
-          </div>
-          {surveySubmitting&&<div style={{marginTop:20,padding:'20px',background:'#F7F8FA',borderRadius:10,textAlign:'center'}}>
-            <Loader2 size={22} style={{color:C.gold,animation:'spin 0.9s linear infinite',margin:'0 auto 12px',display:'block'}}/>
-            <div style={{fontSize:16,color:C.grayL,marginBottom:16}}>Sending your feedback…</div>
-            <div style={{borderLeft:`3px solid ${C.gold}`,paddingLeft:16,textAlign:'left'}}>
-              <div style={{fontSize:18,color:'#1A2540',lineHeight:1.7,fontStyle:'italic',marginBottom:6}}>"{SHUFFLED_POOLS._attitude[0].text}"</div>
-              <div style={{fontSize:15,color:C.gold,fontWeight:600}}>{SHUFFLED_POOLS._attitude[0].author}</div>
-            </div>
-          </div>}
-        </>:<div style={{textAlign:'center',padding:'20px 0'}}>
-          <div style={{fontSize:22,marginBottom:10}}>🙏</div>
-          <div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:C.cream,marginBottom:6}}>Thank you, this means a lot.</div>
-          <div style={{fontSize:18,color:C.gray,marginBottom:16,lineHeight:1.6}}>Your feedback goes directly to the team building Reimagine. We read every response.</div>
-          <Btn onClick={()=>setSurveyDone(true)}>See my results <ChevronRight size={13}/></Btn>
-        </div>}
-      </div>}
-
-      {surveyDone&&<>
+      <>
         <div style={{background:`${C.ok}12`,border:`1px solid ${C.ok}40`,borderRadius:10,padding:'14px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:10}}>
           <Check size={16} color={C.ok} strokeWidth={2.5}/>
           <div style={{fontSize:18,color:C.ok,lineHeight:1.6}}>Your work is saved. Use the sidebar on the left to revisit any section, or click View below to open a specific output.</div>
@@ -6824,7 +6779,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {!isDemo&&<Btn secondary onClick={reset}><RotateCcw size={14}/>Start a New Session</Btn>}
           </div>
         </div>
-      </>}
+      </>
     </div>}
 
     case'op':{
@@ -7185,6 +7140,27 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
         </div>
       </div>}
+      {/* Free-text feedback panel. Opened by the header "Share feedback" button.
+          Overlay click, the × close, and "Back to work" all call closeFeedback,
+          which dismisses and resets to the empty form. Reuses the same overlay
+          primitive as the migration modal above. */}
+      {feedbackOpen&&<div data-print="hide" onClick={closeFeedback} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+        <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Share feedback" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:520,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
+          <button onClick={closeFeedback} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
+          {!feedbackSent?<>
+            <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 16px'}}>What's on your mind?</h2>
+            <textarea ref={feedbackTaRef} value={feedbackText} onChange={e=>setFeedbackText(e.target.value)} placeholder="Start typing..." style={{width:'100%',boxSizing:'border-box',minHeight:140,padding:'12px 14px',border:`1.5px solid ${C.border}`,borderRadius:10,fontSize:17,fontFamily:'inherit',color:'#1A2540',lineHeight:1.6,resize:'vertical'}}/>
+            {SHOW_CONTEXT_NOTE&&<div style={{fontSize:14,color:'#718096',margin:'8px 0 0',lineHeight:1.5}}>We'll see which screen you're on, so you don't have to explain where you were.</div>}
+            {feedbackError&&<div role="alert" style={{fontSize:16,color:C.err,lineHeight:1.5,margin:'12px 0 0',padding:'10px 14px',background:`${C.err}10`,border:`1px solid ${C.err}40`,borderRadius:8}}>{feedbackError}</div>}
+            <div style={{display:'flex',gap:10,marginTop:18}}>
+              <Btn disabled={feedbackSending||!feedbackText.trim()} onClick={sendFeedback}>{feedbackSending?'Sending…':'Send'}</Btn>
+            </div>
+          </>:<div style={{textAlign:'center',padding:'12px 4px 4px'}}>
+            <h2 style={{fontFamily:'Georgia,serif',fontSize:23,fontWeight:700,color:'#1A2540',margin:'0 0 18px',lineHeight:1.45}}>Feedback is a gift, thanks for sharing yours.</h2>
+            <Btn onClick={closeFeedback}>Back to work</Btn>
+          </div>}
+        </div>
+      </div>}
       {isSmallPortrait&&!mobileBannerDismissed&&<div data-print="hide" style={{background:'#1A2540',color:'#FFFFFF',padding:'14px 16px',display:'flex',alignItems:'flex-start',gap:12,fontSize:17,lineHeight:1.5,borderBottom:`2px solid ${C.gold}`,flexShrink:0}}>
         <div style={{flex:1}}>
           <div style={{fontWeight:700,marginBottom:4}}>Reimagine works best on a larger screen.</div>
@@ -7207,7 +7183,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </>:<>
             {typeof prog==='number'&&<div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>}
           </>}
-          {!isDemo&&<button onClick={()=>{const scroll=()=>{const el=document.getElementById('survey');if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})};if(step==='complete'){requestAnimationFrame(scroll)}else{nav('complete');setTimeout(()=>requestAnimationFrame(scroll),50)}}} style={{background:'transparent',color:C.gold,border:'none',padding:'6px 10px',fontSize:17,fontWeight:700,cursor:'pointer',fontFamily:'inherit',marginLeft:8,display:'inline-flex',alignItems:'center',gap:6}}><MessageSquare size={16}/>Share feedback</button>}
+          {!isDemo&&<button onClick={()=>setFeedbackOpen(true)} style={{background:'transparent',color:C.gold,border:'none',padding:'6px 10px',fontSize:17,fontWeight:700,cursor:'pointer',fontFamily:'inherit',marginLeft:8,display:'inline-flex',alignItems:'center',gap:6}}><MessageSquare size={16}/>Share feedback</button>}
           {!isDemo&&signedInUser&&<button onClick={deleteAccount} title="Delete your profile and start over from scratch" style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Start Fresh</button>}
           {!isDemo&&signedInUser&&<button onClick={signOut} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign out</button>}
           {!isDemo&&!signedInUser&&<button onClick={()=>{setSignedUp(false);setMagicLinkSentTo(null)}} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign in</button>}
