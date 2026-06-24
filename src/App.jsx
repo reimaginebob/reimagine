@@ -6964,8 +6964,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const _opSec=(opIsV2&&_opRec.sections)||{}
       const opCardDone=(k)=>k==='p6'?!!(_opSec.p6&&bridgeStoryToProse(_opSec.p6).trim()):!!(_opSec[k]&&_opSec[k].content&&_opSec[k].content.trim())
       const _anyOpCardBuilt=opIsV2&&_opAnyBuiltFor(_opRec)
-      const opRailDone=['p5','p6','p_res','p11','companyRead'].filter(opCardDone)
-      const opSections=[{id:'p5',label:'The Role',num:1},{id:'p6',label:'Bridge Story',num:2},{id:'p_res',label:'Resume Refresh',num:3},{id:'p11',label:'Interview Prep',num:4},{id:'companyRead',label:'About This Company',num:5}]
+      // Interview Panel is an INPUT, not a generated section: it has no number
+      // and its rail check reflects "populated" (a context note or at least one
+      // interviewer) rather than "built". It sits immediately before Interview
+      // Prep, the output it feeds.
+      const _panelPopulated=(()=>{const p=getOpPanel(_opRec);return !!((p.opportunity_context&&p.opportunity_context.trim())||p.interviewers.length)})()
+      const opRailDone=['p5','p6','p_res','p11','companyRead'].filter(opCardDone).concat(_panelPopulated?['panel']:[])
+      const opSections=[{id:'p5',label:'The Role',num:1},{id:'p6',label:'Bridge Story',num:2},{id:'p_res',label:'Resume Refresh',num:3},{id:'panel',label:'Interview Panel'},{id:'p11',label:'Interview Prep',num:4},{id:'companyRead',label:'About This Company',num:5}]
       // cards-only markDone criterion: legacy v1 (outputs.op truthy) OR any v2 card built
       if((outputs.op||_anyOpCardBuilt)&&!done.includes('op'))markDone('op')
       return <div>
@@ -7064,7 +7069,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 {_p6Built&&<div style={{marginTop:14}}><OutPanel text={bridgeStoryToProse(_p6)} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.opP6||''} onChange={v=>setFb('opP6',v)} hint="Does this feel right for this specific role? Tell us what to adjust: the opening, how you connect to the company, or the forward move." placeholder="e.g. Lead with my mission alignment instead… name the specific product line… the close needs to reference their recent funding…" onRegenerate={v=>{recordCorrection('p6',v);generateOpBridgeStory({refine:v})}}/>}</div>}
               </>,'section-p6')}
               {_simpleCard('p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize the competencies this role asks for. The rest of your resume can stay as it is.')}
-              {_simpleCard('p11','Interview Prep','Ten to twelve questions this role\'s interview cycle is most likely to ask, each with a STAR story drawn from your own background.')}
               {(()=>{
                 // Interview Panel editor — storage + UI only (no generation, no
                 // coach, no web research; those are later PRs). Reads/writes the
@@ -7082,7 +7086,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _moveIv=(idx,dir)=>updateOpPanel(_slot,p=>{const a=[...p.interviewers];const j=idx+dir;if(j<0||j>=a.length)return p;const t=a[idx];a[idx]=a[j];a[j]=t;return{...p,interviewers:a}})
                 return _cardWrap(<>
                   <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>Interview Panel</div>
-                  <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4,marginBottom:16}}>List the people you will meet and what you know about each. The note on what a person cares about is the most useful thing you can add — it shapes your Interview Prep and what My Coach can help you with. These notes are yours and stay private to your account.</div>
+                  <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4,marginBottom:16}}>Who you are meeting, and what you have learned. This shapes your Interview Prep below, and what My Coach can help you with. These notes are yours and stay private to your account.</div>
                   <div style={S.field}>
                     <label style={S.label}>Context about this opportunity <span style={_optTag}>(optional)</span></label>
                     <textarea style={{...S.ta,minHeight:80,fontSize:16}} value={_panel.opportunity_context} onChange={e=>_setCtx(e.target.value)} placeholder="Anything you know about the loop overall: who referred you, what the team said, what matters most to them."/>
@@ -7106,7 +7110,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{flex:2,minWidth:160}}><label style={S.label}>Function <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.function||''} onChange={e=>_updIv(iv.id,{function:e.target.value})} placeholder="e.g. Product"/></div>
                     </div>
                     <div style={S.field}><label style={S.label}>LinkedIn URL <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.linkedin_url||''} onChange={e=>_updIv(iv.id,{linkedin_url:e.target.value})} placeholder="https://www.linkedin.com/in/…"/></div>
-                    <div style={{...S.field,marginBottom:0}}><label style={S.label}>What you have learned <span style={_optTag}>(optional)</span></label><textarea style={{...S.ta,minHeight:70,fontSize:16}} value={iv.learned_note||''} onChange={e=>_updIv(iv.id,{learned_note:e.target.value})} placeholder="What you know about this person and what they care about, in your own words."/></div>
+                    <div style={{...S.field,marginBottom:0}}><label style={S.label}>What you have learned <span style={_optTag}>(optional)</span></label><textarea style={{...S.ta,minHeight:70,fontSize:16}} value={iv.learned_note||''} onChange={e=>_updIv(iv.id,{learned_note:e.target.value})} placeholder="What you know about this person and what they care about, in your own words."/><div style={{fontSize:13,color:C.gray,marginTop:6,lineHeight:1.5}}>This is what most shapes your per-seat Interview Prep. A sentence on what this person cares about does more than their title.</div></div>
                     {(()=>{
                       // Per-interviewer web research (PR 4): explicit, user-initiated; nothing
                       // is sent until the button is clicked. Result is shown as an unconfirmed
@@ -7149,9 +7153,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       </>)
                     })()}
                   </div>)}
-                  <Btn small secondary onClick={_addIv}><Plus size={14}/>Add an interviewer</Btn>
+                  <Btn small onClick={_addIv}><Plus size={14}/>Add an interviewer</Btn>
                 </>,'section-panel')
               })()}
+              {_simpleCard('p11','Interview Prep','Ten to twelve questions this role\'s interview cycle is most likely to ask, each with a STAR story drawn from your own background.')}
               {(()=>{
                 const _crBuilt=!!(_sec.companyRead&&_sec.companyRead.content&&_sec.companyRead.content.trim())
                 const _crBusy=opSectionBuilding==='companyRead'&&opBuildingSlot===currentSavedSlotIdRef.current
