@@ -20,7 +20,7 @@
 import { sql as defaultSql } from '../_lib/db.js'
 import {
   CONCERN_CODES, CONCERN_LABELS, VALUABLE_TO_SURFACE,
-  normalizeThemes, sentimentFromNative,
+  normalizeThemes, sentimentFromNative, stepToSurface,
 } from '../../src/feedback-taxonomy.js'
 
 const MODEL = 'claude-haiku-4-5'
@@ -111,15 +111,16 @@ async function insertEvent(sql, e) {
   const status = textBearing ? 'pending' : 'native'
   const sentiment = textBearing ? null : sentimentFromNative(e.native_type, e.native_value)
   const themes = textBearing ? null : []
+  const extras = (e.extras && Object.keys(e.extras).length) ? JSON.stringify(e.extras) : null
   await sql`
     INSERT INTO feedback_event
       (id, source, source_record, user_id, email, created_at, body, native_type,
-       native_value, surface, lane, output_ref, commit_sha, sentiment, themes, summary, status)
+       native_value, surface, lane, output_ref, commit_sha, sentiment, themes, summary, status, extras)
     VALUES
       (${e.id}, ${e.source}, ${e.source_record}, ${e.user_id ?? null}, ${e.email ?? null},
        ${e.created_at ?? null}, ${textBearing ? e.body : null}, ${e.native_type ?? null},
        ${e.native_value ?? null}, ${e.surface ?? null}, ${e.lane ?? null}, ${e.output_ref ?? null},
-       ${e.commit_sha ?? null}, ${sentiment}, ${themes}, ${null}, ${status})
+       ${e.commit_sha ?? null}, ${sentiment}, ${themes}, ${null}, ${status}, ${extras}::jsonb)
     ON CONFLICT (source, source_record) DO NOTHING
   `
 }
@@ -135,7 +136,7 @@ async function ingestShareFeedback(sql) {
     await insertEvent(sql, {
       id: `share-feedback:${r.id}`, source: 'share-feedback', source_record: String(r.id),
       user_id: r.user_id, email: r.email, created_at: r.created_at, body: r.body,
-      native_type: null, native_value: null, surface: r.surface, lane: r.selected_lane,
+      native_type: null, native_value: null, surface: stepToSurface(r.surface), lane: r.selected_lane,
       output_ref: r.context_ref, commit_sha: r.commit_sha,
     })
     n++
@@ -145,18 +146,26 @@ async function ingestShareFeedback(sql) {
 
 async function ingestNpsSurvey(sql) {
   const rows = await sql`
-    SELECT s.id, s.user_id, u.email, s.open_text, s.nps_score, s.most_valuable, s.created_at
+    SELECT s.id, s.user_id, u.email, s.open_text, s.nps_score, s.most_valuable,
+           s.confidence, s.accuracy, s.created_at
     FROM survey_responses s
     LEFT JOIN users u ON u.id = s.user_id
     WHERE NOT EXISTS (SELECT 1 FROM feedback_event f WHERE f.source = 'nps-survey' AND f.source_record = s.id::text)
   `
   let n = 0
   for (const r of rows) {
+    // Survey answers with no dedicated column ride in extras so they are not
+    // dropped. 'capture' is the accuracy question ("how well did Reimagine
+    // capture who you are"). most_valuable is already represented as surface.
+    const extras = {}
+    if (r.confidence != null) extras.confidence = r.confidence
+    if (r.accuracy != null) extras.capture = r.accuracy
     await insertEvent(sql, {
       id: `nps-survey:${r.id}`, source: 'nps-survey', source_record: String(r.id),
       user_id: r.user_id ? String(r.user_id) : null, email: r.email, created_at: r.created_at,
       body: r.open_text, native_type: 'nps', native_value: r.nps_score,
       surface: VALUABLE_TO_SURFACE[r.most_valuable] || null, lane: null, output_ref: null, commit_sha: null,
+      extras,
     })
     n++
   }

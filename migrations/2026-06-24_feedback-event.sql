@@ -26,6 +26,9 @@
 --   model classification — retried on the next cron run), 'classified' (model
 --   sentiment+themes+summary written), 'native' (text-less, sentiment derived from
 --   the native metric, no themes).
+-- * extras is JSONB for structured per-channel fields with no dedicated column.
+--   Currently the NPS survey's {confidence, capture} answers (so they are not
+--   dropped); NULL for channels that carry nothing extra.
 
 CREATE TABLE feedback_event (
   id            TEXT PRIMARY KEY,
@@ -45,6 +48,7 @@ CREATE TABLE feedback_event (
   themes        TEXT[],
   summary       TEXT,
   status        TEXT,
+  extras        JSONB,
   UNIQUE (source, source_record)
 );
 
@@ -61,4 +65,4 @@ CREATE INDEX feedback_event_themes_gin      ON feedback_event USING GIN (themes)
 --   body (text,yes), native_type (text,yes), native_value (numeric,yes),
 --   surface (text,yes), lane (text,yes), output_ref (text,yes),
 --   commit_sha (text,yes), sentiment (text,yes), themes (ARRAY,yes),
---   summary (text,yes), status (text,yes).
+--   summary (text,yes), status (text,yes), extras (jsonb,yes).

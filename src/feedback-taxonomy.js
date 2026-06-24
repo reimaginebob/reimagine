@@ -94,6 +94,64 @@ export const VALUABLE_TO_SURFACE = {
   'Go-to-Market': 'go-to-market',
 }
 
+// Maps the app's raw step ids (what general_feedback.surface stores — the value
+// of `step` / NAV_LABELS keys in src/App.jsx) onto the surface taxonomy codes,
+// so a share-feedback event lands in the same surface vocabulary as the NPS
+// channel instead of a raw step like 'mylib'. Orientation steps collapse to
+// 'onboarding'; structural hubs (Put It to Work, Focus Playbook, Complete) to
+// 'navigation-ia'. Steps with no clean code (e.g. p9 Industry Background, which
+// the surface taxonomy does not carry) are intentionally absent -> stepToSurface
+// returns null, and the event's surface is left null rather than a raw step.
+export const STEP_TO_SURFACE = {
+  // Orientation / sign-in entry
+  welcome: 'onboarding',
+  location: 'onboarding',
+  resume: 'onboarding',
+  'resume-builder': 'onboarding',
+  linkedin: 'onboarding',
+  assessment: 'onboarding',
+  values: 'onboarding',
+  reputation: 'onboarding',
+  'life-events': 'onboarding',
+  skills: 'onboarding',
+  'orientation-done': 'onboarding',
+  // Personal Brand (p1 Resume Analysis / p2 Wiring & Compass feed p3)
+  p1: 'personal-brand',
+  p2: 'personal-brand',
+  p3: 'personal-brand',
+  // Career paths / role options
+  laneSelect: 'career-paths',
+  p4: 'career-paths',
+  p5: 'career-paths',
+  // Focus Playbook content sections
+  p6: 'bridge-story',
+  p7: 'go-to-market',
+  p8: 'linkedin-remix',
+  p_res: 'resume-refresh',
+  p10: 'interview-prep',
+  p11: 'interview-prep',
+  // Opportunity
+  op: 'opportunity-playbook',
+  // Income, library, coach
+  income: 'income-now',
+  mylib: 'my-playbooks',
+  myCoach: 'my-coach',
+  // Structural / navigation hubs
+  twoDoors: 'navigation-ia',
+  focus: 'navigation-ia',
+  complete: 'navigation-ia',
+  // Deliberately unmapped (no fitting surface code): p9 (Industry Background).
+}
+
+// Normalize a raw app step id to a surface taxonomy code, or null when no code
+// fits (the caller stores null rather than a raw step). Pass-through for values
+// that are already taxonomy codes, so it is safe to call on any surface value.
+export function stepToSurface(step) {
+  if (!step || typeof step !== 'string') return null
+  if (SURFACE_CODES.includes(step)) return step
+  return STEP_TO_SURFACE[step] || null
+}
+
 // A theme is valid if it is a known concern code or a candidate:<label> escape.
 export function isValidTheme(t) {
   return typeof t === 'string' && (CONCERN_CODES.includes(t) || /^candidate:.+/.test(t))
