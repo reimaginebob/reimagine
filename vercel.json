@@ -4,7 +4,8 @@
   "framework": "vite",
   "crons": [
     { "path": "/api/survey/daily-digest", "schedule": "0 12 * * *" },
-    { "path": "/api/admin/classify-coach", "schedule": "0 7 * * *" }
+    { "path": "/api/admin/classify-coach", "schedule": "0 7 * * *" },
+    { "path": "/api/admin/ingest-feedback", "schedule": "30 7 * * *" }
   ],
   "redirects": [
     { "source": "/demo", "destination": "/?demo=true", "statusCode": 302 }

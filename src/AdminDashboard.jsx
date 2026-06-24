@@ -11,6 +11,7 @@
 // palette, Georgia for the title. No new dependencies; no Tailwind (the app
 // uses inline styles).
 import { useState, useEffect, useCallback, Fragment } from "react"
+import FeedbackDashboard from "./FeedbackDashboard"
 
 const NAVY = "#1A2540"
 const GOLD = "#C8924A"
@@ -66,6 +67,7 @@ export default function AdminDashboard() {
   const [liveAsOf, setLiveAsOf] = useState(null)
   const [tokenInput, setTokenInput] = useState("")
   const [expandedUser, setExpandedUser] = useState(null) // email of the expanded power-user row
+  const [tab, setTab] = useState("analytics") // "analytics" | "feedback"
 
   // Single call doubles as the auth probe and the data fetch: a 200 means the
   // token is valid AND we have data; a 403 means the token is wrong.
@@ -183,14 +185,25 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            {RANGES.map((r) => (
-              <button key={r} onClick={() => pickRange(r)} style={r === range ? S.pillActive : S.pill}>{r}</button>
-            ))}
-            <button onClick={refresh} disabled={loading} style={S.refreshBtn}>{loading ? "…" : "Refresh"}</button>
+            {tab === "analytics" && <>
+              {RANGES.map((r) => (
+                <button key={r} onClick={() => pickRange(r)} style={r === range ? S.pillActive : S.pill}>{r}</button>
+              ))}
+              <button onClick={refresh} disabled={loading} style={S.refreshBtn}>{loading ? "…" : "Refresh"}</button>
+            </>}
             <button onClick={signOut} style={S.signOutBtn}>Sign out</button>
           </div>
         </div>
 
+        {/* Tab bar: Analytics (existing) | Feedback (feedback_event views) */}
+        <div style={S.tabBar}>
+          <button onClick={() => setTab("analytics")} style={tab === "analytics" ? S.tabActive : S.tab}>Analytics</button>
+          <button onClick={() => setTab("feedback")} style={tab === "feedback" ? S.tabActive : S.tab}>Feedback</button>
+        </div>
+
+        {tab === "feedback" && <FeedbackDashboard token={token} />}
+
+        {tab === "analytics" && <>
         {error && (
           <div style={S.errorBanner}>
             <span>{error}</span>
@@ -361,6 +374,7 @@ export default function AdminDashboard() {
             </div>
           </Panel>
         </div>
+        </>}
       </div>
     </div>
   )
@@ -401,6 +415,9 @@ const S = {
   headerRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 22 },
   title: { fontFamily: "Georgia, serif", fontSize: "clamp(28px, 5vw, 38px)", fontWeight: 700, color: NAVY, margin: 0, lineHeight: 1.15 },
   subhead: { fontSize: 14, color: GRAYL, marginTop: 6 },
+  tabBar: { display: "flex", gap: 4, marginBottom: 20, borderBottom: `1px solid ${BORDER}` },
+  tab: { background: "transparent", border: "none", borderBottom: "2px solid transparent", color: GRAYL, padding: "8px 16px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: -1 },
+  tabActive: { background: "transparent", border: "none", borderBottom: `2px solid ${GOLD}`, color: NAVY, padding: "8px 16px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: -1 },
   pill: { background: "#FFFFFF", border: `1px solid ${BORDER}`, color: GRAY, borderRadius: 999, padding: "7px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
   pillActive: { background: GOLD, border: `1px solid ${GOLD}`, color: "#FFFFFF", borderRadius: 999, padding: "7px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
   refreshBtn: { background: NAVY, border: `1px solid ${NAVY}`, color: "#FFFFFF", borderRadius: 8, padding: "7px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
