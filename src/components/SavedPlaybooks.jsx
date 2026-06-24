@@ -19,6 +19,7 @@
 // Voice rules: all visible copy below passes the voice gate (no em dashes,
 // no logic-flip cadence, no banned AI-coach phrases, no typology labels).
 
+import { useState } from 'react'
 import { RotateCcw, Trash2, Briefcase } from 'lucide-react'
 
 const LANE_LABEL_MAP = {
@@ -104,10 +105,20 @@ function SourceBadge({ source, lane, C }) {
   )
 }
 
-function PlaybookCard({ rec, onRestore, onDelete, C }) {
+function PlaybookCard({ rec, onRestore, onDelete, onRename, C }) {
   const { built, total } = sectionsBuilt(rec)
   const door2 = rec.source === 'door2'
   const borderColor = door2 ? '#2A3F6055' : C.border
+  const canRename = typeof onRename === 'function'
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(rec.title)
+  const startEdit = () => { setDraft(rec.title); setEditing(true) }
+  const commitEdit = () => {
+    setEditing(false)
+    const t = draft.trim()
+    if (t && t !== rec.title) onRename(rec.id, t)
+  }
+  const cancelEdit = () => { setDraft(rec.title); setEditing(false) }
   const handleDelete = () => {
     if (typeof window !== 'undefined' && window.confirm(`Remove "${rec.title}" from Your playbooks?`)) {
       onDelete(rec.id)
@@ -124,7 +135,24 @@ function PlaybookCard({ rec, onRestore, onDelete, C }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#1A2540', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis' }}>{rec.title}</div>
+          {editing && canRename ? (
+            <input
+              value={draft}
+              autoFocus
+              maxLength={120}
+              onChange={e => setDraft(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitEdit() } else if (e.key === 'Escape') { cancelEdit() } }}
+              aria-label="Playbook title"
+              style={{ width: '100%', fontSize: 20, fontWeight: 700, color: '#1A2540', marginBottom: 8, fontFamily: 'inherit', border: `1px solid ${C.border}`, borderRadius: 8, padding: '4px 8px', boxSizing: 'border-box' }}
+            />
+          ) : (
+            <div
+              onClick={canRename ? startEdit : undefined}
+              title={canRename ? 'Click to rename' : undefined}
+              style={{ fontSize: 20, fontWeight: 700, color: '#1A2540', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', cursor: canRename ? 'text' : 'default' }}
+            >{rec.title}</div>
+          )}
           <SourceBadge source={rec.source} lane={rec.lane} C={C}/>
         </div>
       </div>
@@ -170,7 +198,7 @@ function AddButton({ label, onClick, C }) {
   )
 }
 
-function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDelete, C }) {
+function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDelete, onRename, C }) {
   const showAdd = typeof onAdd === 'function'
   // Complete-page recap (no add handler) omits empty sections; the dashboard
   // (add handler present) shows the empty state with its add affordance.
@@ -185,7 +213,7 @@ function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDe
         ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
             {records.map(rec => (
-              <PlaybookCard key={rec.id} rec={rec} onRestore={onRestore} onDelete={onDelete} C={C}/>
+              <PlaybookCard key={rec.id} rec={rec} onRestore={onRestore} onDelete={onDelete} onRename={onRename} C={C}/>
             ))}
           </div>
         )
@@ -204,7 +232,7 @@ function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDe
 // hides empty sections. The split is a pure render-layer filter on rec.source;
 // no schema change. The `layout` prop is retained for caller compatibility but
 // the grid is now owned per-section (the legacy wideView path is vestigial).
-export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, C, layout = 'complete', title, onAddDirection, onAddOpportunity }) {
+export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, onRename, C, layout = 'complete', title, onAddDirection, onAddOpportunity }) {
   const focus = (savedPlaybooks || []).filter(r => r && r.source !== 'door2')
   const opp = (savedPlaybooks || []).filter(r => r && r.source === 'door2')
   if (focus.length === 0 && opp.length === 0 && !onAddDirection && !onAddOpportunity) return null
@@ -220,14 +248,14 @@ export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, C,
         addLabel="Explore More Roles"
         onAdd={onAddDirection}
         emptyCopy="No Focus Playbooks yet. Explore directions across Familiar Ground, Industry Insider, and Work That Matters."
-        onRestore={onRestore} onDelete={onDelete} C={C}/>
+        onRestore={onRestore} onDelete={onDelete} onRename={onRename} C={C}/>
       <Section
         heading="Opportunity Playbooks"
         records={opp}
         addLabel="Add an Opportunity"
         onAdd={onAddOpportunity}
         emptyCopy="No Opportunity Playbooks yet. Bring a job description and Reimagine builds a playbook tuned to that exact role."
-        onRestore={onRestore} onDelete={onDelete} C={C}/>
+        onRestore={onRestore} onDelete={onDelete} onRename={onRename} C={C}/>
     </div>
   )
 }
