@@ -128,7 +128,12 @@ export default async function handler(req, res) {
   }
 
   // --- Surface x sentiment table -------------------------------------------
+  // Seed every taxonomy surface up front so all product areas always render —
+  // a zero-count area (e.g. Personal Brand before any feedback lands there) is a
+  // visible coverage gap, not an absent row. '(none)' is added only if there are
+  // events with no surface.
   const surfaceMap = new Map()
+  for (const code of SURFACE_CODES) surfaceMap.set(code, emptySplit())
   for (const e of events) {
     const key = e.surface || '(none)'
     if (!surfaceMap.has(key)) surfaceMap.set(key, emptySplit())
