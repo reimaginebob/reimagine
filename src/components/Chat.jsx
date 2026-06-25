@@ -126,7 +126,11 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       c[idx] = next === null ? { ...c[idx], rating: null, ratingComment: null } : { ...c[idx], rating: next }
       return c
     })
-    if (next === -1) { setCommentFor(messageId); setCommentDraft(cur.ratingComment || '') }
+    // Both thumbs auto-open the optional note (parity): down nudges for what was
+    // off, up invites what worked. The note is optional and dismissible; the
+    // rating itself posts immediately below and is never blocked by it. Undo
+    // (next === null) closes the box.
+    if (next === -1 || next === 1) { setCommentFor(messageId); setCommentDraft(cur.ratingComment || '') }
     else if (commentFor === messageId) setCommentFor(null)
     try { await postRating(messageId, next) }
     catch { setMessages(m => { const c = [...m]; c[idx] = { ...c[idx], ...prev }; return c }) }
@@ -186,7 +190,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               {commentFor === m.id && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: '85%' }}>
                   <textarea value={commentDraft} onChange={e => setCommentDraft(e.target.value)} maxLength={2000} rows={2} autoFocus
-                    placeholder={m.rating === -1 ? 'What was off? A sentence helps us improve your coach.' : 'Anything to add? (optional)'}
+                    placeholder={m.rating === -1 ? 'What was off? A sentence helps us improve your coach.' : 'Glad it helped. What worked? (optional)'}
                     style={{ border: '1px solid #D8DEE8', borderRadius: 8, padding: '8px 10px', fontSize: 14, fontFamily: 'inherit', color: '#1A2540', resize: 'vertical' }} />
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={() => sendComment(i, m.id)} style={{ background: C.gold, color: '#fff', border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Send</button>

@@ -7,11 +7,13 @@
 // Authorization: Bearer <CRON_SECRET>; mismatch -> 403, missing env -> 500.
 // Scheduled by an entry in vercel.json crons.
 //
-// Idempotent: Pass A inserts only source rows not already in feedback_event
-// (NOT EXISTS on source+source_record) with ON CONFLICT (source, source_record)
-// DO NOTHING, so no dupes regardless of overlap. Pass B classifies status=
-// 'pending' rows and is safe to re-run (a transient model failure leaves the row
-// 'pending' to be retried next run).
+// Idempotent: Pass A upserts on (source, source_record). share-feedback and
+// nps-survey insert only new rows (NOT EXISTS filter); coach-reply re-processes
+// every rated row so the upsert refreshes its mapping-derived surface/lane/extras
+// on each run. ON CONFLICT updates ONLY surface/lane/extras, never the
+// classification fields, so no dupes and no clobbering of sentiment/themes/
+// summary/status. Pass B classifies status='pending' rows and is safe to re-run
+// (a transient model failure leaves the row 'pending' to be retried next run).
 //
 // PRIVACY: the classifier reads the feedback body (+ light surface/lane context)
 // and writes back enum sentiment, taxonomy theme codes, and a short summary. No
@@ -121,8 +123,16 @@ async function insertEvent(sql, e) {
        ${e.created_at ?? null}, ${textBearing ? e.body : null}, ${e.native_type ?? null},
        ${e.native_value ?? null}, ${e.surface ?? null}, ${e.lane ?? null}, ${e.output_ref ?? null},
        ${e.commit_sha ?? null}, ${sentiment}, ${themes}, ${null}, ${status}, ${extras}::jsonb)
-    ON CONFLICT (source, source_record) DO NOTHING
+    ON CONFLICT (source, source_record) DO UPDATE SET
+      surface = EXCLUDED.surface,
+      lane    = EXCLUDED.lane,
+      extras  = EXCLUDED.extras
   `
+  // ON CONFLICT updates ONLY the mapping-derived fields (surface/lane/extras),
+  // so a re-ingest refreshes the product-area surface and raw context without
+  // clobbering sentiment/themes/summary/status — those are owned by the
+  // classification pass. The other INSERT values (body/native_*/created_at) are
+  // source-static, so leaving them unchanged on conflict is correct.
 }
 
 async function ingestShareFeedback(sql) {
@@ -173,20 +183,33 @@ async function ingestNpsSurvey(sql) {
 }
 
 async function ingestCoachReply(sql) {
+  // No NOT EXISTS filter here (unlike the other channels): coach-reply re-processes
+  // every rated row each run so the upsert refreshes surface/lane/extras from the
+  // current map — that is how already-ingested rows pick up the product-area
+  // surface. New rows insert fresh; classification fields are untouched on conflict.
   const rows = await sql`
-    SELECT c.id, c.user_id, u.email, c.rating_comment, c.rating, c.rated_at, c.lane
+    SELECT c.id, c.user_id, u.email, c.rating_comment, c.rating, c.rated_at, c.lane,
+           c.current_step, c.entry_point
     FROM chat_messages c
     LEFT JOIN users u ON u.id = c.user_id
     WHERE c.rating IS NOT NULL
-      AND NOT EXISTS (SELECT 1 FROM feedback_event f WHERE f.source = 'coach-reply' AND f.source_record = c.id::text)
   `
   let n = 0
   for (const r of rows) {
+    // Slice coach ratings by the product area the user was working on when they
+    // chatted: current_step -> surface code, falling back to 'my-coach' when they
+    // were on the coach page itself (current_step 'myCoach' maps there) or it is
+    // null/unmapped. Raw step/lane/entry_point ride in extras for auditing.
+    const extras = {}
+    if (r.current_step != null) extras.current_step = r.current_step
+    if (r.lane != null) extras.lane = r.lane
+    if (r.entry_point != null) extras.entry_point = r.entry_point
     await insertEvent(sql, {
       id: `coach-reply:${r.id}`, source: 'coach-reply', source_record: String(r.id),
       user_id: r.user_id ? String(r.user_id) : null, email: r.email, created_at: r.rated_at,
       body: r.rating_comment, native_type: 'thumb', native_value: r.rating,
-      surface: 'my-coach', lane: r.lane, output_ref: String(r.id), commit_sha: null,
+      surface: stepToSurface(r.current_step) || 'my-coach', lane: r.lane, output_ref: String(r.id), commit_sha: null,
+      extras,
     })
     n++
   }
