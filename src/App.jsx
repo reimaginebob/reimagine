@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Mic, MicOff, Printer, Eye, Route, Compass, Plus, X, Search } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-patterns.mjs"
@@ -25,6 +25,7 @@ import { useVersionCheck } from "./version-check"
 import Chat from "./components/Chat"
 import SavedPlaybooks from "./components/SavedPlaybooks"
 import PlaybookSectionRail from "./components/PlaybookSectionRail"
+import SpeechBtn, { hasSpeech } from "./components/SpeechBtn"
 import MD, { normalizeItalicUnderscores } from "./components/MD"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
@@ -3152,40 +3153,8 @@ function SkillsDeltaList({listKey,label,items,busy,error,onRegenerate}){
   </div>
 }
 
-const hasSpeech=typeof window!=='undefined'&&('SpeechRecognition' in window||'webkitSpeechRecognition' in window)
-function SpeechBtn({onResult,style}){
-  const[listening,setListening]=useState(false)
-  const recRef=useRef(null)
-  const toggle=()=>{
-    if(listening){recRef.current?.stop();return}
-    const SR=window.SpeechRecognition||window.webkitSpeechRecognition
-    if(!SR)return
-    const rec=new SR()
-    rec.continuous=true
-    rec.interimResults=true
-    rec.lang='en-US'
-    let finalText=''
-    rec.onresult=(e)=>{
-      let interim=''
-      for(let i=e.resultIndex;i<e.results.length;i++){
-        if(e.results[i].isFinal)finalText+=e.results[i][0].transcript
-        else interim+=e.results[i][0].transcript
-      }
-      onResult(finalText+interim)
-    }
-    rec.onend=()=>setListening(false)
-    rec.onerror=()=>setListening(false)
-    recRef.current=rec
-    rec.start()
-    setListening(true)
-  }
-  return <>
-    <style>{"@keyframes recordingPulse{0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,0.6)}50%{box-shadow:0 0 0 8px rgba(231,76,60,0)}}"}</style>
-    <button onClick={toggle} title={listening?'Recording. Click to stop.':'Speak your feedback'} style={{display:'flex',alignItems:'center',justifyContent:'center',width:40,height:40,borderRadius:10,border:`2px solid ${listening?'#e74c3c':C.border}`,background:listening?'#e74c3c':'white',cursor:'pointer',transition:'all 0.2s',flexShrink:0,...(listening?{animation:'recordingPulse 1.5s infinite'}:{}),...(style||{})}}>
-      {listening?<Mic size={18} color="#FFFFFF"/>:<Mic size={18} color={C.gray}/>}
-    </button>
-  </>
-}
+// SpeechBtn + hasSpeech moved to ./components/SpeechBtn (PR-2, Interview Team
+// round 2) so the My Coach input (Chat.jsx) can reuse them. Imported at top.
 function WidenCareerOptions({lane,prevTitles,onSubmit,disabled}){
   const[open,setOpen]=useState(false)
   const[text,setText]=useState('')
@@ -7128,7 +7097,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4,marginBottom:16}}>Who you are meeting, and what you have learned. This shapes your Interview Prep below, and what My Coach can help you with. These notes are yours and stay private to your account.</div>
                   <div style={S.field}>
                     <label style={S.label}>Context about this opportunity <span style={_optTag}>(optional)</span></label>
-                    <textarea style={{...S.ta,minHeight:80,fontSize:16}} value={_panel.opportunity_context} onChange={e=>_setCtx(e.target.value)} placeholder="Anything you know about this opportunity: how you came across it, any insider intel, what the team has said."/>
+                    <div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:80,fontSize:16,flex:1}} value={_panel.opportunity_context} onChange={e=>_setCtx(e.target.value)} placeholder="Anything you know about this opportunity: how you came across it, any insider intel, what the team has said."/>{hasSpeech&&<SpeechBtn onResult={t=>_setCtx((_panel.opportunity_context||'')+t)}/>}</div>
                   </div>
                   {_ivs.length===0&&<div style={{fontSize:15,color:C.gray,fontStyle:'italic',margin:'4px 0 14px'}}>No interviewers added yet. Add the people you expect to meet.</div>}
                   {_ivs.map((iv,idx)=><div key={iv.id} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 16px',marginBottom:12,background:C.bg}}>
@@ -7149,7 +7118,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{flex:2,minWidth:160}}><label style={S.label}>Function <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.function||''} onChange={e=>_updIv(iv.id,{function:e.target.value})} placeholder="e.g. Product"/></div>
                     </div>
                     <div style={S.field}><label style={S.label}>LinkedIn URL <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.linkedin_url||''} onChange={e=>_updIv(iv.id,{linkedin_url:e.target.value})} placeholder="https://www.linkedin.com/in/…"/></div>
-                    <div style={{...S.field,marginBottom:0}}><label style={S.label}>What you have learned <span style={_optTag}>(optional)</span></label><textarea style={{...S.ta,minHeight:70,fontSize:16}} value={iv.learned_note||''} onChange={e=>_updIv(iv.id,{learned_note:e.target.value})} placeholder="What you know about this person and what they care about, in your own words."/><div style={{fontSize:13,color:C.gray,marginTop:6,lineHeight:1.5}}>This is what most shapes this person's Interview Prep. A sentence on what they care about does more than their title.</div></div>
+                    <div style={{...S.field,marginBottom:0}}><label style={S.label}>What you have learned <span style={_optTag}>(optional)</span></label><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,fontSize:16,flex:1}} value={iv.learned_note||''} onChange={e=>_updIv(iv.id,{learned_note:e.target.value})} placeholder="What you know about this person and what they care about, in your own words."/>{hasSpeech&&<SpeechBtn onResult={t=>_updIv(iv.id,{learned_note:(iv.learned_note||'')+t})}/>}</div><div style={{fontSize:13,color:C.gray,marginTop:6,lineHeight:1.5}}>This is what most shapes this person's Interview Prep. A sentence on what they care about does more than their title.</div></div>
                     {(()=>{
                       // Per-interviewer web research (PR 4): explicit, user-initiated; nothing
                       // is sent until the button is clicked. Result is shown as an unconfirmed
