@@ -22,7 +22,7 @@
 import { sql as defaultSql } from '../_lib/db.js'
 import {
   CONCERN_CODES, CONCERN_LABELS, VALUABLE_TO_SURFACE,
-  normalizeThemes, sentimentFromNative, stepToSurface,
+  normalizeThemes, sentimentFromNative, stepToSurface, CHECKIN_ANSWER_VALUE,
 } from '../../src/feedback-taxonomy.js'
 
 const MODEL = 'claude-haiku-4-5'
@@ -117,12 +117,12 @@ async function insertEvent(sql, e) {
   await sql`
     INSERT INTO feedback_event
       (id, source, source_record, user_id, email, created_at, body, native_type,
-       native_value, surface, lane, output_ref, commit_sha, sentiment, themes, summary, status, extras)
+       native_value, surface, lane, output_ref, commit_sha, sentiment, themes, summary, status, extras, solicited)
     VALUES
       (${e.id}, ${e.source}, ${e.source_record}, ${e.user_id ?? null}, ${e.email ?? null},
        ${e.created_at ?? null}, ${textBearing ? e.body : null}, ${e.native_type ?? null},
        ${e.native_value ?? null}, ${e.surface ?? null}, ${e.lane ?? null}, ${e.output_ref ?? null},
-       ${e.commit_sha ?? null}, ${sentiment}, ${themes}, ${null}, ${status}, ${extras}::jsonb)
+       ${e.commit_sha ?? null}, ${sentiment}, ${themes}, ${null}, ${status}, ${extras}::jsonb, ${e.solicited === true})
     ON CONFLICT (source, source_record) DO UPDATE SET
       surface = EXCLUDED.surface,
       lane    = EXCLUDED.lane,
@@ -216,6 +216,29 @@ async function ingestCoachReply(sql) {
   return n
 }
 
+async function ingestPbCheckin(sql) {
+  const rows = await sql`
+    SELECT id, user_id, email, checkin_key, answer, created_at
+    FROM coach_checkin_responses
+    WHERE NOT EXISTS (SELECT 1 FROM feedback_event f WHERE f.source = 'pb-checkin' AND f.source_record = coach_checkin_responses.id::text)
+  `
+  let n = 0
+  for (const r of rows) {
+    // The Personal Brand check-in is ALWAYS filed under personal-brand and marked
+    // solicited — it fires on the twoDoors screen, so the screen's surface
+    // (navigation-ia) would mis-file it. Text-less: sentiment derives from the tap.
+    await insertEvent(sql, {
+      id: `pb-checkin:${r.id}`, source: 'pb-checkin', source_record: String(r.id),
+      user_id: r.user_id ? String(r.user_id) : null, email: r.email, created_at: r.created_at,
+      body: null, native_type: 'checkin', native_value: CHECKIN_ANSWER_VALUE[r.answer] ?? 0,
+      surface: 'personal-brand', lane: null, output_ref: r.checkin_key, commit_sha: null,
+      solicited: true, extras: { answer: r.answer, checkin: r.checkin_key },
+    })
+    n++
+  }
+  return n
+}
+
 // ---- Pass B: classify pending (text-bearing) events -------------------------
 
 async function classifyPending(sql, classify) {
@@ -252,6 +275,7 @@ export async function ingestAll(sql = defaultSql, opts = {}) {
     'share-feedback': await ingestShareFeedback(sql),
     'nps-survey': await ingestNpsSurvey(sql),
     'coach-reply': await ingestCoachReply(sql),
+    'pb-checkin': await ingestPbCheckin(sql),
   }
   let classification = { classified: 0, failed: 0, skipped: true }
   if (!opts.skipClassify) {

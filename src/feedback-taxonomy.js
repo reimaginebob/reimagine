@@ -41,13 +41,14 @@ export const CONCERN_CODES = [
 
 export const SENTIMENT_CODES = ['positive', 'negative', 'neutral', 'mixed']
 
-// The three Neon channels, in display order.
-export const SOURCE_CODES = ['share-feedback', 'nps-survey', 'coach-reply']
+// The Neon feedback channels, in display order.
+export const SOURCE_CODES = ['share-feedback', 'nps-survey', 'coach-reply', 'pb-checkin']
 
 export const SOURCE_LABELS = {
   'share-feedback': 'Share Feedback',
   'nps-survey': 'NPS Survey',
   'coach-reply': 'My Coach Thumbs',
+  'pb-checkin': 'Personal Brand check-in',
 }
 
 // Human-readable labels for display in the dashboard.
@@ -175,11 +176,17 @@ export function normalizeThemes(arr) {
 }
 
 // Derive sentiment for a text-less event from its native metric.
-//   thumb: +1 -> positive, -1 -> negative
-//   nps:   >=9 positive, <=6 negative, else neutral
+//   thumb:   +1 -> positive, -1 -> negative
+//   nps:     >=9 positive, <=6 negative, else neutral
+//   checkin: +1 (Yes) positive, -1 (Not quite) negative, 0 (Mostly) neutral
 export function sentimentFromNative(nativeType, nativeValue) {
   const v = Number(nativeValue)
   if (nativeType === 'thumb') return v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral'
   if (nativeType === 'nps') return v >= 9 ? 'positive' : v <= 6 ? 'negative' : 'neutral'
+  if (nativeType === 'checkin') return v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral'
   return 'neutral'
 }
+
+// Maps a check-in tap answer to its native numeric value (used by the ingest and
+// to label the dashboard's check-in metric).
+export const CHECKIN_ANSWER_VALUE = { yes: 1, mostly: 0, not_quite: -1 }

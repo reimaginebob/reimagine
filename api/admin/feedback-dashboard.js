@@ -53,7 +53,7 @@ export default async function handler(req, res) {
   try {
     events = await sql`
       SELECT id, source, surface, lane, sentiment, themes, native_type, native_value,
-             created_at, commit_sha, summary, status
+             created_at, commit_sha, summary, status, solicited
       FROM feedback_event
       ORDER BY created_at DESC NULLS LAST
     `
@@ -96,6 +96,10 @@ export default async function handler(req, res) {
       const up = rows.filter(e => Number(e.native_value) > 0).length
       const down = rows.filter(e => Number(e.native_value) < 0).length
       native = { type: 'thumb', up, down, net: up - down }
+    } else if (src === 'pb-checkin') {
+      const yes = rows.filter(e => Number(e.native_value) > 0).length
+      const notQuite = rows.filter(e => Number(e.native_value) < 0).length
+      native = { type: 'checkin', yes, mostly: rows.length - yes - notQuite, notQuite }
     }
     return { source: src, label: SOURCE_LABELS[src], volume: rows.length, native, sentiment: split }
   })
@@ -164,6 +168,7 @@ export default async function handler(req, res) {
     commitSha: e.commit_sha,
     summary: e.summary,
     status: e.status,
+    solicited: e.solicited === true,
   }))
 
   return res.status(200).json({
