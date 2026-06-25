@@ -240,11 +240,15 @@ function nativeMetric(ch) {
   if (ch.native.type === "thumb") {
     return <span>👍 <strong style={{ color: SENT.positive.color }}>{ch.native.up}</strong> · 👎 <strong style={{ color: SENT.negative.color }}>{ch.native.down}</strong> · net {ch.native.net >= 0 ? "+" : ""}{ch.native.net}</span>
   }
+  if (ch.native.type === "checkin") {
+    return <span><strong style={{ color: SENT.positive.color }}>{ch.native.yes}</strong> Yes · <strong style={{ color: SENT.neutral.color }}>{ch.native.mostly}</strong> Mostly · <strong style={{ color: SENT.negative.color }}>{ch.native.notQuite}</strong> Not quite</span>
+  }
   return null
 }
 function fmtNative(r) {
   if (r.nativeType === "nps") return <span title="NPS score">{r.nativeValue}</span>
   if (r.nativeType === "thumb") return r.nativeValue > 0 ? "👍" : "👎"
+  if (r.nativeType === "checkin") return <span title="Personal Brand check-in">{r.nativeValue > 0 ? "Yes" : r.nativeValue < 0 ? "Not quite" : "Mostly"}</span>
   return <span style={{ color: GRAYL }}>—</span>
 }
 

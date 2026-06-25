@@ -14,8 +14,11 @@ const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anyt
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0 }) {
   const [open, setOpen] = useState(false)
+  // App bumps openRequest to open the floating coach programmatically (e.g. the
+  // Personal Brand check-in on first arrival at Put it to Work).
+  useEffect(() => { if (openRequest) setOpen(true) }, [openRequest])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const messagesContainerRef = useRef(null)
@@ -43,6 +46,27 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       el.scrollIntoView({ block: 'start', behavior: 'smooth' })
     }
   }, [messages, loading])
+
+  // One-tap quick-reply (e.g. the Personal Brand check-in: Yes / Mostly / Not
+  // quite). The tap is the measurable signal: it records best-effort to
+  // /api/pb-checkin, drops the buttons, and continues the conversation with a
+  // canned, on-voice follow-up. The user can keep chatting normally from there.
+  const tapQuickReply = async (idx, opt, checkinKey) => {
+    setMessages(m => {
+      const c = [...m]
+      if (c[idx]) c[idx] = { ...c[idx], quickReplies: null }
+      c.push({ role: 'user', content: opt.label })
+      if (opt.followUp) c.push({ role: 'assistant', content: opt.followUp })
+      return c
+    })
+    try {
+      await fetch('/api/pb-checkin', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checkin: checkinKey || 'personal-brand', answer: opt.value }),
+      })
+    } catch { /* the conversation already continued; the tap is best-effort */ }
+  }
 
   const send = async () => {
     if (!input.trim() || loading) return
@@ -168,6 +192,16 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 ? <MD text={m.content} />
                 : m.content}
           </div>
+          {m.role === 'assistant' && Array.isArray(m.quickReplies) && m.quickReplies.length > 0 && (
+            <div data-print="hide" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {m.quickReplies.map((opt, qi) => (
+                <button key={qi} onClick={() => tapQuickReply(i, opt, m.checkinKey)}
+                  style={{ background: '#fff', border: `1px solid ${C.gold}`, color: C.gold, borderRadius: 16, padding: '6px 16px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
           {m.role === 'assistant' && m.id && (
             <div data-print="hide" style={{ marginTop: 5, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
