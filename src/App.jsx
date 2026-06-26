@@ -3665,6 +3665,12 @@ export default function PivotEngine(){
   // dismissible, shown only to users who already have a generated brand.
   const[pbUpgradeDismissed,setPbUpgradeDismissed]=useState(()=>{try{return localStorage.getItem('reimagine_pb_upgrade_v1_dismissed')==='1'}catch{return true}})
   const dismissPbUpgrade=()=>{try{localStorage.setItem('reimagine_pb_upgrade_v1_dismissed','1')}catch{};setPbUpgradeDismissed(true)}
+  // One-time "what's new" popup for the Interview Team feature. Mirrors the pb
+  // upgrade announcement surface: shown once to existing users who have a Personal
+  // Brand and have not dismissed it, and sequenced after the pb-upgrade modal so
+  // two overlays never stack. Defaults dismissed on a storage error (no flash).
+  const[itAnnounceDismissed,setItAnnounceDismissed]=useState(()=>{try{return localStorage.getItem('reimagine_interview_team_v1_dismissed')==='1'}catch{return true}})
+  const dismissItAnnounce=()=>{try{localStorage.setItem('reimagine_interview_team_v1_dismissed','1')}catch{};setItAnnounceDismissed(true)}
   const[deepExpanded,setDeepExpanded]=useState(false)
   const[hasProgress,setHasProgress]=useState(false)
   const[laneTab,setLaneTab]=useState(0)
@@ -7522,6 +7528,22 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn onClick={()=>{dismissPbUpgrade();nav('p3');refreshP3('')}}>Re-run my Personal Brand</Btn>
         </div>
         <div style={{marginTop:14}}><button type="button" onClick={dismissPbUpgrade} style={{background:'transparent',border:'none',cursor:'pointer',fontSize:15,color:C.gray,fontFamily:'inherit',textDecoration:'underline'}}>Not now</button></div>
+      </div>
+    </div>}
+    {!isDemo&&!loading&&outputs.p3&&outputs.p3.trim()&&pbUpgradeDismissed&&!itAnnounceDismissed&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      <div style={{position:'relative',background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:560,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+        <button type="button" aria-label="Close" onClick={dismissItAnnounce} style={{position:'absolute',top:12,right:12,background:'transparent',border:'none',cursor:'pointer',color:C.gray,padding:6,lineHeight:0}}><X size={20}/></button>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>New: build your Interview Team</h2>
+        <p style={{fontSize:17,color:'#4A5568',lineHeight:1.65,marginBottom:14}}>When you open an opportunity, you can now build your Interview Team: the people you expect to meet, with prep made for each of them.</p>
+        <ul style={{margin:'0 0 22px',paddingLeft:20}}>
+          <li style={{fontSize:16,color:'#4A5568',lineHeight:1.6,marginBottom:6}}>Prep for each person: what they care about, the questions they may ask, and which of your stories to lead with.</li>
+          <li style={{fontSize:16,color:'#4A5568',lineHeight:1.6,marginBottom:6}}>A clear read on where you fit and how to make your case for the role.</li>
+          <li style={{fontSize:16,color:'#4A5568',lineHeight:1.6}}>My Coach can prep you for a specific person, and you can save a reply to the opportunity.</li>
+        </ul>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <Btn onClick={()=>{dismissItAnnounce();addNewOpportunity()}}>Add an opportunity</Btn>
+          <Btn secondary onClick={dismissItAnnounce}>Got it</Btn>
+        </div>
       </div>
     </div>}
     {atCapModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
