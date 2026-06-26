@@ -15,12 +15,21 @@ const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anyt
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0 }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed }) {
   const [open, setOpen] = useState(false)
   // App bumps openRequest to open the floating coach programmatically (e.g. the
   // Personal Brand check-in on first arrival at Put it to Work).
   useEffect(() => { if (openRequest) setOpen(true) }, [openRequest])
   const [input, setInput] = useState('')
+  // Coach doors (PR-3, item H): when opened with a seed (e.g. "Help me prep for
+  // my interview with Renata…"), prefill the input once so the user can review
+  // and send. Consumed and cleared by the parent; never auto-sends.
+  useEffect(() => {
+    if (seed && seed.trim()) {
+      setInput(seed)
+      if (typeof onSeedConsumed === 'function') onSeedConsumed()
+    }
+  }, [seed])
   const [loading, setLoading] = useState(false)
   const messagesContainerRef = useRef(null)
   // Per-message DOM refs populated by the ref callback in the messages.map
