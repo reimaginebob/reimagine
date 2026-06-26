@@ -862,6 +862,22 @@ function parseInterviewPrepJSON(raw){
   let obj
   try{obj=JSON.parse(candidate)}catch{return null}
   if(!obj||typeof obj!=='object')return null
+  // Interview Team consolidation (PR-4b, item J): the team shape is per-person
+  // prep, { people: [...] }, with no STAR pre-written. Detected and validated
+  // here ahead of the old role_context/questions (STAR) shape, which survives as
+  // the no-team fallback. Lenient: a person needs some identity and a questions
+  // array; stories / questions_to_ask are optional and read defensively.
+  if(Array.isArray(obj.people)){
+    const ok=v=>typeof v==='string'&&v.trim().length>0
+    for(const p of obj.people){
+      if(!p||typeof p!=='object')return null
+      if(!ok(p.name)&&!ok(p.title)&&!ok(p.role))return null
+      if(!Array.isArray(p.questions))return null
+      if(p.stories!==undefined&&!Array.isArray(p.stories))return null
+      if(p.questions_to_ask!==undefined&&!Array.isArray(p.questions_to_ask))return null
+    }
+    return obj
+  }
   const rc=obj.role_context
   if(!rc||typeof rc!=='object'||typeof rc.target_role!=='string'||!rc.target_role.trim())return null
   const qs=obj.questions
@@ -1113,6 +1129,17 @@ function _opAllBuiltFor(record){
 function interviewPrepToProse(content){
   const ip=parseInterviewPrepJSON(content)
   if(!ip)return ''
+  // Interview Team consolidation (PR-4b): per-person prep shape for the PDF.
+  if(Array.isArray(ip.people)){
+    return ip.people.map(p=>{
+      let x=`${(p.name&&p.name.trim())||p.role||'Interviewer'}${p.title?', '+p.title:''}${p.role?' ('+p.role+')':''}`
+      if(p.looking_for)x+='\n   Looking for: '+p.looking_for
+      if(Array.isArray(p.questions)&&p.questions.length)x+='\n   Likely questions:\n'+p.questions.map(q=>'   - '+q).join('\n')
+      if(Array.isArray(p.stories)&&p.stories.length)x+='\n   Stories to use:\n'+p.stories.map(s=>'   - '+((s&&s.story)||'')+((s&&s.why)?' ('+s.why+')':'')).join('\n')
+      if(Array.isArray(p.questions_to_ask)&&p.questions_to_ask.length)x+='\n   Questions to ask:\n'+p.questions_to_ask.map(q=>'   - '+q).join('\n')
+      return x
+    }).join('\n\n')
+  }
   return ip.questions.map((q,i)=>{
     let x=(i+1)+'. '+q.question
     if(q.type==='behavioral'&&q.star_breakdown){
@@ -2199,6 +2226,53 @@ CITATION DISCIPLINE (load-bearing — a runtime gate enforces this): every factu
 VOICE: plain and factual. No flattery, no personality read, no typology labels, no comparative standing against unnamed groups, no logic-flip cadence. A hypothesis for the candidate to confirm, not a verdict.
 
 OUTPUT: the three labeled parts as short prose. No preamble, no code fences.`,
+  // Interview Team consolidation (PR-4b, item J): per-person prep is the one home
+  // when a team exists. Emits { people: [...] } with no STAR pre-written; full
+  // answers are drafted on demand by P.fullAnswer. The candidate profile arrives
+  // via the cached profile block (callClaude opts.profileBlock), so this builder
+  // carries only the JD, company research, positioning gaps, and the roster.
+  p11Team:(panel,jd,companyReadText,positioningGaps)=>{
+    const ROLE={hiring_manager:'the hiring manager',skip_level:'a skip-level interviewer',peer:'a peer on the team',cross_functional:'a cross-functional partner',recruiter_screen:'a recruiter screen'}
+    const ivs=(panel&&Array.isArray(panel.interviewers)?panel.interviewers:[]).filter(iv=>iv&&typeof iv==='object')
+    const ctx=(panel&&typeof panel.opportunity_context==='string')?panel.opportunity_context.trim():''
+    const roster=ivs.map((iv,i)=>{const who=[iv.name,iv.title,iv.function].filter(s=>typeof s==='string'&&s.trim()).join(', ');const role=ROLE[iv.role_in_loop]||'an interviewer';const note=(typeof iv.learned_note==='string'&&iv.learned_note.trim())?iv.learned_note.trim():'';return `PERSON ${i+1}: ${iv.name||'(unnamed)'}${who?', '+who:''}, ${role}.\nWhat the candidate has learned about this person (their own knowledge, treat as true): ${note||'(nothing supplied)'}`}).join('\n\n')
+    return `You are writing the per-person interview prep for a specific opportunity. This is the one home for interview prep; there is no separate generic question list. For EACH person below, produce a tight, useful card. Do NOT write full answers here; full answers are drafted later on demand. Only name which existing story to lead with and why.
+
+${jd?`JOB DESCRIPTION:\n${jd}\n\n`:''}${companyReadText&&companyReadText.trim()?`ABOUT THE COMPANY (already researched; use it to suggest good questions the candidate can ask):\n${companyReadText.trim()}\n\n`:''}${positioningGaps&&positioningGaps.trim()?`WHERE THE CANDIDATE IS LIKELY TO BE PROBED (from the positioning section; these are what people will push on):\n${positioningGaps.trim()}\n\n`:'Positioning notes were not provided, so infer the likely probe areas from the job description and the candidate profile above.\n\n'}${ctx?`CONTEXT THE CANDIDATE GAVE ABOUT THIS OPPORTUNITY (their own words, treat as true):\n${ctx}\n\n`:''}THE PEOPLE THEY WILL MEET:\n${roster}
+
+PLAIN LANGUAGE (load-bearing): write at about an 8th-grade level. Short sentences, simple words. No jargon. No em dashes; use commas or periods. Do not re-tell what the Personal Brand, Key Accomplishments, or Bridge Story already say. A claim plus the one proof, bullets over paragraphs.
+
+AUTHORITY ORDER when signals disagree: the candidate's own notes about a person first, then their stated role, then their title. The notes are the candidate's own knowledge, never a guess.
+
+NO INVENTED MATERIAL: name only real stories and details from the candidate profile above; invent nothing.
+
+Return ONLY a JSON object in this exact shape:
+{
+  "people": [
+    {
+      "name": "string",
+      "title": "string",
+      "role": "plain words for their part, e.g. the hiring manager",
+      "looking_for": "one or two plain sentences on what this person really cares about, in authority order",
+      "questions": ["about five plain-language questions this person is likely to ask"],
+      "stories": [ { "story": "the name of an existing story from the candidate's background to lead with", "why": "one short line on why it fits this person" } ],
+      "questions_to_ask": ["two or three good questions the candidate could ask this person, drawn from the company research"]
+    }
+  ]
+}
+Give about five questions per person. Give one or two stories per person, real material only. Return only the JSON, starting with { and ending with }.`
+  },
+  // On-demand full answer for the per-person prep (PR-4b): drafts one STAR answer
+  // from a chosen story, in the candidate's voice, plus enhancement suggestions.
+  // Profile arrives via the cached block (callClaude opts.profileBlock).
+  fullAnswer:(story,personName,jd)=>`The candidate clicked "write the full answer". Draft a full interview answer in their own voice, using the S T A R shape, built from this story. Then add a short note on how to make it stronger.
+
+STORY TO USE: ${story}
+${personName?`THIS IS TO PREP FOR: ${personName}.\n`:''}${jd?`ROLE CONTEXT (job description):\n${jd}\n\n`:''}Draw only on the candidate's real background from the profile above. Invent nothing; do not add a number the candidate did not give.
+
+PLAIN LANGUAGE: about an 8th-grade level, short sentences, the candidate's own voice. No em dashes; use commas or periods.
+
+Return Markdown: four short labeled parts, Situation, Thinking, Action, Result, each a short paragraph in the candidate's voice. Then a bold "To make it stronger:" line with one or two specific suggestions for what the candidate could add (a number they might have, a detail that would land). Return only the Markdown.`,
   companyRead:(jd,foundation,companyName,industry,rubricText,laneLabel,mode='op',gtmContext='')=>`You are producing a Company Read for the candidate's evaluation of a specific opportunity. Five subsections, each opens with a bolded headline insight then 2-3 sentences of supporting prose with sources cited inline. Target length: 350-500 words total.
 
 THE CANDIDATE'S FOUNDATION:
@@ -4797,6 +4871,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[researchingIvId,setResearchingIvId]=useState(null)
   const[researchErrors,setResearchErrors]=useState({})
   const[editingResearch,setEditingResearch]=useState(null)
+  // Interview Team consolidation (PR-4b, item J): transient drafts for the
+  // on-demand "write the full answer" action in the per-person prep. Keyed by
+  // person|story. Not saved to the record (saving lands in PR-5); regenerable.
+  const[fullAnswers,setFullAnswers]=useState({})
+  const[answerBusy,setAnswerBusy]=useState(null)
   // Resume Builder ("I need help with my resume first") private generation state.
   // Mirrors the op-section pattern: a busy key (which generation/role is in flight),
   // a per-key error map, and a request-id ref so a re-edit drops a stale write. Kept
@@ -5244,7 +5323,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setOpSectionBuilding(key);setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,[key]:null}))
     const reqId=++opSectionReqRef.current
     try{
-      const rec0=savedPlaybooks.find(r=>r.id===slotId);const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&bridgeStoryToProse(rec0.sections.p6).trim())?rec0.sections.p6:outputs.p6;const opOuts={...outputs,p6:opP6};const lv=(typeof laneOverride==='string')?laneOverride:opLaneValue(rec0);const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:'';const fn=()=>correctionsBlock(profile.corrections)+(key==='p5'?P.p5(pc,opOuts,chosen,'',jd,lv):key==='p_res'?P.p_res(pc,opOuts,chosen,jd):P.p11(pc,opOuts,chosen,jd,lv,getOpPanel(rec0)))+corrTail
+      const rec0=savedPlaybooks.find(r=>r.id===slotId);const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&bridgeStoryToProse(rec0.sections.p6).trim())?rec0.sections.p6:outputs.p6;const opOuts={...outputs,p6:opP6};const lv=(typeof laneOverride==='string')?laneOverride:opLaneValue(rec0);const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:'';const fn=()=>correctionsBlock(profile.corrections)+(key==='p5'?P.p5(pc,opOuts,chosen,'',jd,lv):key==='p_res'?P.p_res(pc,opOuts,chosen,jd):(()=>{const _pnl=getOpPanel(rec0);if(_pnl.interviewers&&_pnl.interviewers.length){const _cr=(rec0&&rec0.sections&&rec0.sections.companyRead&&rec0.sections.companyRead.content)||'';const _pos=(rec0&&rec0.sections&&rec0.sections.p5&&rec0.sections.p5.content)||'';return P.p11Team(_pnl,jd,_cr,_pos)}return P.p11(pc,opOuts,chosen,jd,lv)})())+corrTail
       const opts={...(key==='p11'?{maxTokens:8000}:{maxTokens:5000}),profileBlock:buildUserProfileBlock(pc,opOuts),step:key}
       const r=await callClaudeWithVoiceGate(fn,opts,{step:key,onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
@@ -5374,6 +5453,34 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const renderInterviewPrep=(content,onRegenerateQuestion,regeneratingQuestionIdx,questionErrors,onPrepWithCoach)=>{
     const ip=parseInterviewPrepJSON(content)
     if(!ip)return <><div style={S.note}>This did not come together cleanly on this try. It happens once in a while. Regenerate this section and it usually lands the second time.</div><div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:C.cream,margin:0}}>{content}</pre></div></>
+    // Interview Team consolidation (PR-4b, item J): per-person prep is the one
+    // home when a team exists. Full answers are drafted on demand per story; old
+    // STAR shape (below) renders unchanged when there is no team.
+    if(Array.isArray(ip.people)){
+      return <>
+        <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Prep for each person you will meet. When you want to practice a story, write the full answer for it.</div>
+        {ip.people.map((p,pi)=>{
+          const nm=(typeof p.name==='string'&&p.name.trim())?p.name.trim():''
+          const who=nm||'this person'
+          const qs=Array.isArray(p.questions)?p.questions.filter(q=>typeof q==='string'&&q.trim()):[]
+          const stories=Array.isArray(p.stories)?p.stories.filter(s=>s&&typeof s==='object'):[]
+          const asks=Array.isArray(p.questions_to_ask)?p.questions_to_ask.filter(q=>typeof q==='string'&&q.trim()):[]
+          const H=t=><div style={{fontSize:15,fontWeight:700,color:C.goldL,marginBottom:3}}>{t}</div>
+          return <div key={pi} style={{...S.out,marginTop:14}}>
+            <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap',marginBottom:8}}>
+              <span style={{fontSize:19,fontWeight:700,color:'#1A2540'}}>{nm||(typeof p.role==='string'&&p.role.trim()?p.role.trim():'Interviewer')}</span>
+              {typeof p.title==='string'&&p.title.trim()&&<span style={{fontSize:15,color:C.gray}}>{p.title.trim()}</span>}
+              {typeof p.role==='string'&&p.role.trim()&&<span style={{fontSize:13,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>{p.role.trim()}</span>}
+            </div>
+            {typeof p.looking_for==='string'&&p.looking_for.trim()&&<div style={{marginBottom:10}}>{H('What '+who+' is really looking for')}<div style={{fontSize:16,color:C.cream,lineHeight:1.6}}>{p.looking_for.trim()}</div></div>}
+            {qs.length>0&&<div style={{marginBottom:10}}>{H('Questions '+who+' is likely to ask')}<ul style={{margin:0,paddingLeft:20}}>{qs.map((q,qi)=><li key={qi} style={{fontSize:16,color:C.cream,lineHeight:1.6,marginBottom:3}}>{q}</li>)}</ul></div>}
+            {stories.length>0&&<div style={{marginBottom:10}}>{H('Best stories to use')}{stories.map((s,si)=>{const k=(nm||('p'+pi))+'|'+((s&&s.story)||si);const ans=fullAnswers[k];const busy=answerBusy===k;return <div key={si} style={{marginBottom:8}}><div style={{fontSize:16,color:C.cream,lineHeight:1.6}}><strong>{(s&&s.story)||''}</strong>{(s&&s.why)?'. '+s.why:''}</div>{!isDemo&&<div style={{marginTop:5}}>{busy?<span style={{fontSize:14,color:C.gray,display:'inline-flex',alignItems:'center',gap:6}}><Loader2 size={13} style={{animation:'spin 0.9s linear infinite'}}/>Writing the full answer…</span>:<Btn small secondary onClick={()=>generateFullAnswer(nm,(s&&s.story)||'')}><Sparkles size={12}/>{ans?'Rewrite the full answer':'Write the full answer'}</Btn>}</div>}{ans&&!busy&&<div style={{marginTop:8,paddingLeft:12,borderLeft:`2px solid ${C.border}`}}><MD text={ans}/></div>}</div>})}</div>}
+            {asks.length>0&&<div style={{marginBottom:10}}>{H('Good questions to ask '+who)}<ul style={{margin:0,paddingLeft:20}}>{asks.map((q,qi)=><li key={qi} style={{fontSize:16,color:C.cream,lineHeight:1.6,marginBottom:3}}>{q}</li>)}</ul></div>}
+            {typeof onPrepWithCoach==='function'&&<div style={{marginTop:6}}><Btn small secondary onClick={()=>onPrepWithCoach(who)}><MessageCircle size={13}/>Practice with My Coach</Btn></div>}
+          </div>
+        })}
+      </>
+    }
     const fwList=Array.isArray(profile.frameworks)&&profile.frameworks.length?profile.frameworks.join(', '):''
     const lbl={S:'Situation',T:'Thinking',A:'Action',R:'Result'}
     const copyAll=()=>{const t='Interview Prep: '+ip.role_context.target_role+'\n\n'+ip.questions.map((q,i)=>{let x=(i+1)+'. '+q.question+'\n';if(q.framework_thread)x+='Framework: '+q.framework_thread+'\n';if(q.type==='behavioral'&&q.star_breakdown){['S','T','A','R'].forEach(k=>{const y=q.star_breakdown[k];if(!y)return;x+='\n'+k+' - '+lbl[k]+'\nFrom your inputs: '+y.raw_material+'\n';if(k==='S'&&y.relevance_bridge_draft)x+='Opening move: "'+y.relevance_bridge_draft+'"\n';x+='To strengthen: '+y.to_strengthen+'\n'})}else if(q.framing_recommendation){x+='\n'+q.framing_recommendation+'\n'}return x}).join('\n');copy(t)}
@@ -5598,6 +5705,29 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // gate via meta.step==='panel-interviewer-read'. Writes an unconfirmed research
   // block to the interviewer; the user confirms, edits, or dismisses it. The
   // user's own learned_note is never sent out — only public-identity fields go.
+  // Interview Team consolidation (PR-4b, item J): the on-demand "write the full
+  // answer" action in the per-person prep. Drafts one STAR answer from a chosen
+  // story plus enhancement suggestions, into transient state (person|story key),
+  // voice-gated like the other generated prose. Not saved to the record.
+  const generateFullAnswer=async(personName,story)=>{
+    const key=(personName||'')+'|'+(story||'')
+    if(!story||answerBusy)return
+    const slotId=currentSavedSlotIdRef.current
+    setAnswerBusy(key)
+    try{
+      const jd=(profile.jd||'').trim()
+      const rec0=savedPlaybooks.find(r=>r.id===slotId)
+      const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&bridgeStoryToProse(rec0.sections.p6).trim())?rec0.sections.p6:outputs.p6
+      const opOuts={...outputs,p6:opP6}
+      const fn=()=>P.fullAnswer(story,personName,jd)
+      const r=await callClaudeWithVoiceGate(fn,{maxTokens:1500,profileBlock:buildUserProfileBlock(pc,opOuts),step:'p11-full-answer'},{step:'p11-full-answer',onEvent:logVoiceEvent})
+      setFullAnswers(prev=>({...prev,[key]:r}))
+    }catch(e){
+      setFullAnswers(prev=>({...prev,[key]:'We could not draft this answer. Try again.'}))
+    }finally{
+      setAnswerBusy(cur=>cur===key?null:cur)
+    }
+  }
   const generateInterviewerResearch=async(ivId)=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||!ivId||researchingIvId)return
