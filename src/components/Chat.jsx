@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import MD from './MD'
+import SpeechBtn, { hasSpeech } from './SpeechBtn'
 
 const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
 
@@ -254,6 +255,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           borderRadius: 8, fontSize: 18, fontFamily: 'inherit', color: '#1A2540',
         }}
       />
+      {hasSpeech && <SpeechBtn onResult={t => setInput((input || '') + t)} C={C} title="Speak your question" />}
       <button
         onClick={send}
         disabled={loading || !input.trim()}
