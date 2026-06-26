@@ -3654,6 +3654,12 @@ export default function PivotEngine(){
   const voiceMigCheckedRef=useRef(false)
   const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p}}catch{}return[{role:'assistant',content:"Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you."}]})
   const[showPulse,setShowPulse]=useState(false)
+  // Coach doors (PR-3, item H): a one-shot seed that prefills the My Coach input
+  // when a "prep with My Coach" / "talk it through" affordance navigates here.
+  // The embedded Chat consumes it once and clears it. Read-only: this only
+  // prefills the input the user then sends; no write path to the coach.
+  const[coachSeed,setCoachSeed]=useState('')
+  const openCoachWith=(seedText)=>{setCoachSeed(seedText||'');nav('myCoach')}
   const[isSmallPortrait,setIsSmallPortrait]=useState(false)
   const[mobileBannerDismissed,setMobileBannerDismissed]=useState(()=>{try{return sessionStorage.getItem('reimagine_mobile_advisory_dismissed')==='1'}catch{return false}})
   const dismissMobileBanner=()=>{try{sessionStorage.setItem('reimagine_mobile_advisory_dismissed','1')}catch{};setMobileBannerDismissed(true)}
@@ -5343,7 +5349,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // regen wiring (callback + busy idx + error map) so each surface can mount
   // the per-question affordance with its own surface-scoped generator. Pass
   // omit to suppress the affordance (e.g., demo mode).
-  const renderInterviewPrep=(content,onRegenerateQuestion,regeneratingQuestionIdx,questionErrors)=>{
+  const renderInterviewPrep=(content,onRegenerateQuestion,regeneratingQuestionIdx,questionErrors,onPrepWithCoach)=>{
     const ip=parseInterviewPrepJSON(content)
     if(!ip)return <><div style={S.note}>This did not come together cleanly on this try. It happens once in a while. Regenerate this section and it usually lands the second time.</div><div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:C.cream,margin:0}}>{content}</pre></div></>
     const fwList=Array.isArray(profile.frameworks)&&profile.frameworks.length?profile.frameworks.join(', '):''
@@ -5388,6 +5394,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {typeof s.read==='string'&&s.read.trim()&&<div style={{fontSize:16,color:C.cream,lineHeight:1.6,marginTop:6}}>{s.read.trim()}</div>}
           {reso.length>0&&<ul style={{margin:'8px 0 0',paddingLeft:20}}>{reso.map((r,ri)=><li key={ri} style={{fontSize:16,color:C.cream,lineHeight:1.6,marginBottom:4}}>{r}</li>)}</ul>}
           {typeof s.coach_handoff==='string'&&s.coach_handoff.trim()&&<div style={{fontSize:15,color:C.gray,fontStyle:'italic',marginTop:8}}>{s.coach_handoff.trim()}</div>}
+          {typeof onPrepWithCoach==='function'&&<div style={{marginTop:10}}><Btn small secondary onClick={()=>onPrepWithCoach((typeof s.name==='string'&&s.name.trim())?s.name.trim():((typeof s.title==='string'&&s.title.trim())?s.title.trim():roleLbl(s.seat_role)))}><MessageCircle size={13}/>Prep with My Coach</Btn></div>}
         </div>})}
       </div>}
       {grouped?qNodes:ip.questions.map((q,qi)=><InterviewPrepQuestion key={q.id||qi} q={q} qi={qi} lbl={lbl} fwList={fwList} onRegenerateQuestion={onRegenerateQuestion} regeneratingQuestionIdx={regeneratingQuestionIdx} questionErrors={questionErrors}/>)}
@@ -6813,7 +6820,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:6}}>My Coach</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your coach for the search, grounded in Making Your Own Weather and in what Reimagine knows about you. Ask anything: where to focus, how to tell your story, how to prepare for a conversation.</p>
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} onSeedConsumed={()=>setCoachSeed('')}/>
     </div>
     case'mylib':return <div>
       <div style={{marginBottom:8}}>
@@ -7009,7 +7016,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const _opAutoBuildPending=opLaneInferring&&_pendingAutoBuildRef.current&&_pendingAutoBuildRef.current===currentSavedSlotIdRef.current
             const _renderSection=(key,content)=>{
               if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:16,lineHeight:1.65,color:C.cream,margin:0}}>{renderResumeText(j)}</pre><div style={S.row}><Btn small onClick={()=>downloadResumeWord(j)}><Download size={12}/>Download as Word</Btn></div></div>}
-              if(key==='p11')return renderInterviewPrep(content,isDemo?undefined:regenerateOpP11Question,regeneratingP11QuestionIdx,p11QuestionErrors)
+              if(key==='p11')return renderInterviewPrep(content,isDemo?undefined:regenerateOpP11Question,regeneratingP11QuestionIdx,p11QuestionErrors,isDemo?undefined:(seatName)=>openCoachWith(`Help me prep for my interview with ${seatName} for ${_rec.title||'this role'}.`))
               return <div style={S.out}><MD text={content}/></div>
             }
             const _cardWrap=(children,id)=><div id={id} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px',marginBottom:14,scrollMarginTop:80}}>{children}</div>
@@ -7094,12 +7101,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _moveIv=(idx,dir)=>updateOpPanel(_slot,p=>{const a=[...p.interviewers];const j=idx+dir;if(j<0||j>=a.length)return p;const t=a[idx];a[idx]=a[j];a[j]=t;return{...p,interviewers:a}})
                 return _cardWrap(<>
                   <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>Interview Team</div>
-                  <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4,marginBottom:16}}>Who you are meeting, and what you have learned. This shapes your Interview Prep below, and what My Coach can help you with. These notes are yours and stay private to your account.</div>
+                  <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4,marginBottom:16}}>A couple of questions a good coach would ask. Your answers sharpen your Interview Prep below and give My Coach context to help. These notes stay private to your account.</div>
                   <div style={S.field}>
-                    <label style={S.label}>Context about this opportunity <span style={_optTag}>(optional)</span></label>
+                    <label style={S.label}>How did you come across this role, and what do you already know about it?</label>
                     <div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:80,fontSize:16,flex:1}} value={_panel.opportunity_context} onChange={e=>_setCtx(e.target.value)} placeholder="Anything you know about this opportunity: how you came across it, any insider intel, what the team has said."/>{hasSpeech&&<SpeechBtn onResult={t=>_setCtx((_panel.opportunity_context||'')+t)}/>}</div>
                   </div>
-                  {_ivs.length===0&&<div style={{fontSize:15,color:C.gray,fontStyle:'italic',margin:'4px 0 14px'}}>No interviewers added yet. Add the people you expect to meet.</div>}
+                  <div style={{fontSize:16,fontWeight:700,color:'#1A2540',margin:'6px 0 2px'}}>Do you know who you will be meeting with?</div>
+                  <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginBottom:10}}>Add each person and what you have learned about them. Even one name sharpens the prep.</div>
+                  {_ivs.length===0&&<div style={{fontSize:15,color:C.gray,fontStyle:'italic',margin:'4px 0 14px'}}>No one added yet.</div>}
                   {_ivs.map((iv,idx)=><div key={iv.id} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 16px',marginBottom:12,background:C.bg}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:12}}>
                       <div style={{fontSize:14,fontWeight:700,color:C.grayL,letterSpacing:'1px',textTransform:'uppercase'}}>Interviewer {idx+1}</div>
