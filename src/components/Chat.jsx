@@ -15,12 +15,17 @@ const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anyt
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote }) {
   const [open, setOpen] = useState(false)
   // App bumps openRequest to open the floating coach programmatically (e.g. the
   // Personal Brand check-in on first arrival at Put it to Work).
   useEffect(() => { if (openRequest) setOpen(true) }, [openRequest])
   const [input, setInput] = useState('')
+  // Save-to-opportunity (PR-5, item I): transient per-reply UI state for the Copy
+  // and "Save to this opportunity" actions. The save itself goes through the app
+  // (onSaveNote -> setSavedPlaybooks); this component never writes.
+  const [copiedId, setCopiedId] = useState(null)
+  const [savedAs, setSavedAs] = useState(null)
   // Coach doors (PR-3, item H): when opened with a seed (e.g. "Help me prep for
   // my interview with Renata…"), prefill the input once so the user can review
   // and send. Consumed and cleared by the parent; never auto-sends.
@@ -223,6 +228,16 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                   style={{ background: m.rating === -1 ? '#FBEBE8' : 'transparent', border: `1px solid ${m.rating === -1 ? '#C0432F' : '#D8DEE8'}`, color: m.rating === -1 ? '#C0432F' : '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Not helpful
                 </button>
+                <button onClick={() => { try { navigator.clipboard && navigator.clipboard.writeText(m.content) } catch {} ; setCopiedId(m.id) }} aria-label="Copy reply"
+                  style={{ background: 'transparent', border: '1px solid #D8DEE8', color: copiedId === m.id ? '#2F7D54' : '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {copiedId === m.id ? 'Copied' : 'Copy'}
+                </button>
+                {coachSaveTarget && (savedAs && savedAs.id === m.id
+                  ? <span style={{ fontSize: 12, color: '#2F7D54' }}>Saved to {savedAs.title}</span>
+                  : <button onClick={() => { const title = onSaveNote && onSaveNote(m.content); if (title) setSavedAs({ id: m.id, title }) }} aria-label="Save to this opportunity"
+                      style={{ background: 'transparent', border: '1px solid #D8DEE8', color: '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      Save to this opportunity
+                    </button>)}
                 {m.rating && commentFor !== m.id && (
                   <button onClick={() => { setCommentFor(m.id); setCommentDraft(m.ratingComment || '') }}
                     style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>

@@ -4763,7 +4763,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // each per-card RefineBox writes the user's last correction text into
     // record.feedback[cardKey] so a restored door2 record rehydrates the
     // textarea contents.
-    return{id,title,company:'',role:'',location:'',lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||'',p5:feedback.p5||'',p6:feedback.p6||'',p_res:feedback.p_res||'',p11:feedback.p11||'',companyRead:feedback.companyRead||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:'',p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}},panel:{interviewers:[],opportunity_context:''}}
+    return{id,title,company:'',role:'',location:'',lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||'',p5:feedback.p5||'',p6:feedback.p6||'',p_res:feedback.p_res||'',p11:feedback.p11||'',companyRead:feedback.companyRead||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:'',p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}},panel:{interviewers:[],opportunity_context:''},savedNotes:[]}
   }
   // Interview Panel (door2): the user maintains a per-opportunity list of
   // interviewers plus an opportunity-level free-text context box. Storage only
@@ -4783,6 +4783,26 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const updateOpPanel=(slotId,updater)=>{
     if(!slotId)return
     setSavedPlaybooks(prev=>prev.map(rec=>rec.id===slotId?{...rec,panel:updater(getOpPanel(rec)),updatedAt:new Date().toISOString()}:rec))
+  }
+  // Save to this opportunity (PR-5, item I): the user saves a chosen My Coach
+  // reply onto the in-focus door2 record. The write goes through the app's own
+  // save path (setSavedPlaybooks -> /api/profile/save autosave); the coach has no
+  // write path of its own and stays read-only. savedNotes rides in profile_state,
+  // so account deletion already purges it; nothing reaches any analytics path.
+  const newNoteId=()=>`note_${Date.now()}_${Math.random().toString(36).slice(2,7)}`
+  const getOpSavedNotes=(rec)=>(rec&&Array.isArray(rec.savedNotes))?rec.savedNotes:[]
+  const coachSaveTarget=()=>{const r=savedPlaybooks.find(x=>x&&x.id===currentSavedSlotIdRef.current&&x.source==='door2');return r?{id:r.id,title:r.title||'this opportunity'}:null}
+  const saveCoachNoteToOpportunity=(text,personName)=>{
+    const t=(typeof text==='string'?text:'').trim();if(!t)return ''
+    const slotId=currentSavedSlotIdRef.current;if(!slotId)return ''
+    const rec=savedPlaybooks.find(r=>r.id===slotId&&r.source==='door2');if(!rec)return ''
+    const note={id:newNoteId(),text:t,source:'coach',personName:(typeof personName==='string'&&personName.trim())?personName.trim():null,createdAt:new Date().toISOString()}
+    setSavedPlaybooks(prev=>prev.map(r=>r.id===slotId?{...r,savedNotes:[...getOpSavedNotes(r),note],updatedAt:new Date().toISOString()}:r))
+    return rec.title||'this opportunity'
+  }
+  const removeOpSavedNote=(slotId,noteId)=>{
+    if(!slotId||!noteId)return
+    setSavedPlaybooks(prev=>prev.map(r=>r.id===slotId?{...r,savedNotes:getOpSavedNotes(r).filter(n=>n&&n.id!==noteId),updatedAt:new Date().toISOString()}:r))
   }
   const saveCurrentDoor1=(currentKey,currentR)=>{
     // Dedupe at the creation chokepoint. Every duplicate-Door-1-record vector
@@ -6972,7 +6992,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:6}}>My Coach</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your coach for the search, grounded in Making Your Own Weather and in what Reimagine knows about you. Ask anything: where to focus, how to tell your story, how to prepare for a conversation.</p>
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} onSeedConsumed={()=>setCoachSeed('')}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} onSeedConsumed={()=>setCoachSeed('')} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity}/>
     </div>
     case'mylib':return <div>
       <div style={{marginBottom:8}}>
@@ -7330,6 +7350,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {/* About This Company moved to the top of the cards (item F round 2): it
                   precedes the team/positioning so reading the company can spark the
                   user's own context. See the companyRead card above _simpleCard('p5'). */}
+              {(()=>{const _notes=getOpSavedNotes(_rec);if(!_notes.length)return null;return _cardWrap(<>
+                <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>Saved notes</div>
+                <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4,marginBottom:14}}>Replies you saved from My Coach for this opportunity.</div>
+                {_notes.map(n=><div key={n.id} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 14px',marginBottom:10,background:C.bg}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:6,flexWrap:'wrap'}}>
+                    <span style={{fontSize:13,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>From My Coach{n.personName?` · ${n.personName}`:''}</span>
+                    {!isDemo&&<Btn small secondary onClick={()=>removeOpSavedNote(_rec.id,n.id)} style={{padding:'4px 10px'}}><X size={12}/>Remove</Btn>}
+                  </div>
+                  <div style={{fontSize:15,color:C.cream,lineHeight:1.6}}><MD text={n.text||''}/></div>
+                </div>)}
+              </>,'section-savednotes')})()}
               {/* Inline "All five sections built → Save as PDF" cue. Parallel to
                   Focus's line ~5430 cue. Fires once every one of p5/p6/p_res/p11/
                   companyRead has been built; complements the persistent gold
@@ -7686,7 +7717,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {toast&&<div data-print="hide" role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'#1A2540',color:'#FFFFFF',padding:'12px 22px',borderRadius:8,fontSize:16,fontWeight:500,boxShadow:'0 4px 16px rgba(0,0,0,0.18)',zIndex:1200}}>{toast}</div>}
     {/* ?debug=1 diagnostic footer. Bottom-right corner, low-contrast text.
