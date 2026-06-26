@@ -130,7 +130,7 @@ const INTENT_SECTION = {
   door2: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'companyRead' },
   door1: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'p7', linkedin: 'p8', industry: 'p9', outreach: 'p7', income: 'income' },
 }
-const SECTION_NAME = { p5: 'THE ROLE', p6: 'BRIDGE STORY', p_res: 'RESUME REFRESH', p11: 'INTERVIEW PREP', companyRead: 'ABOUT THIS COMPANY', p7: 'GO-TO-MARKET', p8: 'LINKEDIN REMIX', p9: 'INDUSTRY BACKGROUND', income: 'INCOME NOW' }
+const SECTION_NAME = { p5: 'WHERE YOU FIT', p6: 'BRIDGE STORY', p_res: 'RESUME REFRESH', p11: 'INTERVIEW PREP', companyRead: 'ABOUT THIS COMPANY', p7: 'GO-TO-MARKET', p8: 'LINKEDIN REMIX', p9: 'INDUSTRY BACKGROUND', income: 'INCOME NOW' }
 
 function detectIntent(message) {
   const m = (typeof message === 'string' ? message : '').toLowerCase()
@@ -233,12 +233,12 @@ function buildPlaybookExpansion(record, intent) {
     const jd = cap(record.jd).trim()
     if (jd) parts.push(`JOB DESCRIPTION:\n${jd}`)
     const p5 = cap(recordSectionText(record, 'p5')).trim()
-    parts.push(`THE ROLE:\n${p5 || '(not built yet)'}`)
+    parts.push(`WHERE YOU FIT:\n${p5 || '(not built yet)'}`)
   } else {
     const laneLabel = LANE_LABELS[record.lane] || record.lane || ''
     parts.push(`DIRECTION: ${title}${laneLabel ? ` (${laneLabel})` : ''}`)
     const p5 = cap(recordSectionText(record, 'p5')).trim()
-    parts.push(`THE ROLE:\n${p5 || '(not built yet)'}`)
+    parts.push(`WHERE YOU FIT:\n${p5 || '(not built yet)'}`)
   }
   const map = door2 ? INTENT_SECTION.door2 : INTENT_SECTION.door1
   const key = intent && map[intent]
