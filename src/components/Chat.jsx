@@ -42,17 +42,28 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // below pins the user's most recent question to the top of the visible
   // chat area so the assistant response reads downward from a fixed eyeline.
   const messageRefs = useRef([])
+  // Tracks message count so the pin-to-top scroll fires only when a NEW message
+  // is appended (a new turn) and not on in-place edits like rating a reply or
+  // opening its note box — those must leave the scroll position alone.
+  const prevLenRef = useRef(0)
   // Per-reply feedback: which message's comment box is open, and its draft text.
   const [commentFor, setCommentFor] = useState(null)
   const [commentDraft, setCommentDraft] = useState('')
+  const noteTaRef = useRef(null)
 
   useEffect(() => {
-    if (!messages || messages.length === 0) return
+    const len = messages ? messages.length : 0
+    // Only pin a question to the top when a new message was APPENDED (a new
+    // turn). In-place mutations — rating a reply, opening/closing its note box —
+    // keep the same length and must not move the view (that yanked the user off
+    // the note textarea they just opened).
+    const grew = len > prevLenRef.current
+    prevLenRef.current = len
+    if (!grew || len === 0) return
     // Find the most recent user message and scroll it to the top of the
-    // messages container. Replaces the prior scroll-to-bottom behavior,
-    // which pushed the start of each new answer above the visible area.
+    // messages container so the assistant response reads downward.
     let lastUserIdx = -1
-    for (let i = messages.length - 1; i >= 0; i--) {
+    for (let i = len - 1; i >= 0; i--) {
       if (messages[i].role === 'user') { lastUserIdx = i; break }
     }
     if (lastUserIdx < 0) return
@@ -61,6 +72,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       el.scrollIntoView({ block: 'start', behavior: 'smooth' })
     }
   }, [messages, loading])
+
+  // When a note box opens, focus its textarea and bring it just into view
+  // (block:'nearest' scrolls minimally, never to the top), so the user lands in
+  // the field they are meant to type in.
+  useEffect(() => {
+    if (commentFor == null) return
+    const t = noteTaRef.current
+    if (!t) return
+    t.focus()
+    if (t.scrollIntoView) t.scrollIntoView({ block: 'nearest' })
+  }, [commentFor])
 
   // One-tap quick-reply (e.g. the Personal Brand check-in: Yes / Mostly / Not
   // quite). The tap is the measurable signal: it records best-effort to
@@ -248,7 +270,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               </div>
               {commentFor === m.id && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: '85%' }}>
-                  <textarea value={commentDraft} onChange={e => setCommentDraft(e.target.value)} maxLength={2000} rows={2} autoFocus
+                  <textarea ref={noteTaRef} value={commentDraft} onChange={e => setCommentDraft(e.target.value)} maxLength={2000} rows={2}
                     placeholder={m.rating === -1 ? 'What was off? A sentence helps us improve your coach.' : 'Glad it helped. What worked? (optional)'}
                     style={{ border: '1px solid #D8DEE8', borderRadius: 8, padding: '8px 10px', fontSize: 14, fontFamily: 'inherit', color: '#1A2540', resize: 'vertical' }} />
                   <div style={{ display: 'flex', gap: 8 }}>
