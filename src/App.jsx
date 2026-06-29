@@ -1235,6 +1235,18 @@ async function inferJdMetadata(jd){
     return {company:s(obj.company),role:s(obj.role),location:s(obj.location)}
   }catch(e){return empty}
 }
+// jdLooksLinkOnly (Karen Groll URL-only bug, 2026-06-29): true when the pasted
+// "JD" is dominated by a URL with almost no posting text — the user pasted a
+// LinkedIn / job link instead of the description. Strip URLs; if under ~40 chars
+// of real text remains AND a URL was present, treat it as link-only. A genuine
+// JD that merely embeds an apply link keeps hundreds of chars of prose and is
+// not flagged. Used to block the Door 2 build and to nudge the user inline.
+function jdLooksLinkOnly(jd){
+  const t=(jd||'').trim()
+  if(!t||!/https?:\/\//i.test(t))return false
+  const withoutUrls=t.replace(/https?:\/\/\S+/gi,' ').replace(/\s+/g,' ').trim()
+  return withoutUrls.length<40
+}
 // === Company Read module helpers (PR-1) ===
 // Industry rubric mapping. Deterministic; the classifier returns one of these
 // keys and the rubric text below is injected verbatim into the Company Read
@@ -2297,6 +2309,9 @@ FABRICATION GUARD:
 - Do not use "Reports indicate", "Sources say", or "Analysts note" without naming the report and providing a URL.
 - Do not use "It has been reported" or "According to sources" with no named source.
 - If no public signal exists for a subsection, say so directly: for example, "No recent leadership transitions surfaced in public news in the last 90 days." Honest absence beats fabricated inclusion.
+
+COMPANY IDENTITY GUARD (load-bearing):
+"THE COMPANY" named above is the only company this read covers. If that value is blank, a bare URL, or anything other than a real company name, do not guess, do not web-search for a candidate company, and do not substitute a different company. Output exactly this single line and nothing else: "We could not identify the company from the posting provided. Paste the full job description text and rebuild this section."
 
 NO SOFTENING ON WATCH-OUTS:
 State each watch-out plainly with its source. Do not hedge. Name the watch-out, name the source, state the implication for the candidate's decision.
@@ -5699,11 +5714,26 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const reqId=++opSectionReqRef.current
     try{
       const rec0=savedPlaybooks.find(r=>r.id===slotId)
+      // Company name source (Karen Groll URL-only bug, 2026-06-29): prefer the
+      // auto-extracted rec.company (PR #229 — the same value behind the "Company ·
+      // Role" playbook title), falling back to a fresh inferJdMetadata only when it
+      // is absent (e.g. companyRead auto-fired before that fire-and-forget extraction
+      // resolved). The old `jd.split('\n').find(...)` first-line heuristic fed the
+      // JD's first line — a pasted URL, or the role title — in as the company, which
+      // let the web-search generation hallucinate an unrelated real company. Both
+      // sources return '' rather than invent; on empty we fail gracefully here
+      // instead of researching garbage.
+      let companyName=((rec0&&rec0.company)||'').trim()
+      if(!companyName){const meta=await inferJdMetadata(jd);companyName=(meta.company||'').trim()}
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      if(!companyName){
+        setOpSectionErrors(e=>({...e,companyRead:"We couldn't identify the company from this posting. Paste the full job description text — not just a link — then rebuild About This Company."}))
+        return
+      }
       const industry=await inferIndustry({jd})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       const rubricText=INDUSTRY_RUBRICS[industry]||INDUSTRY_RUBRICS.default
       const foundation=buildOpProfileSummary()
-      const companyName=(jd.split('\n').find(l=>l.trim())||'').trim().slice(0,100)
       const lv=opLaneValue(rec0)
       const laneLabel=opLaneLabel(lv)
       const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
@@ -5763,7 +5793,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setResearchingIvId(ivId);setResearchErrors(e=>({...e,[ivId]:null}))
     try{
       const jd=(profile.jd||'').trim()
-      const companyName=(jd.split('\n').find(l=>l.trim())||'').trim().slice(0,100)
+      // Company name from the auto-extracted rec.company (PR #229), not the JD
+      // first line (Karen Groll URL-only bug, 2026-06-29). Empty is fine here —
+      // P.interviewerResearch renders "(not provided)" — and is strictly better
+      // than feeding a pasted URL in as the company name.
+      const companyName=((rec0&&rec0.company)||'').trim()
       const roleLabel=(ROLE_IN_LOOP_OPTIONS.find(o=>o.value===iv.role_in_loop)||{}).label||'interviewer'
       const fn=()=>P.interviewerResearch(iv,companyName,roleLabel)
       const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:1500},{step:'panel-interviewer-read',onEvent:logVoiceEvent})
@@ -6111,6 +6145,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // implemented via the ref-bridge rather than a synchronous onReady because
   // setSavedPlaybooks is queued, not synchronous — see brief consult notes.
   const submitOpRole=(jd)=>{
+    // Block a link-only paste before it builds a playbook against a non-company
+    // (Karen Groll URL-only bug, 2026-06-29). The <100-char button gate already
+    // stops a bare URL; this also catches a URL plus a few words.
+    if(jdLooksLinkOnly(jd)){
+      setErr("That looks like a link, not the posting itself. Reimagine can't read a job posting from a URL — open the posting, copy the full job description text, and paste that here.")
+      return
+    }
+    setErr(null)
     const title=deriveOpRoleTitle(jd)
     applyRoleSwitchDoor2(title,jd)
     _pendingAutoBuildRef.current=currentSavedSlotIdRef.current
@@ -7424,6 +7466,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={S.field}>
               <label style={S.label}>Paste the job description</label>
               <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder="Paste the full job description here..."/>
+              {jdLooksLinkOnly(profile.jd)&&<div style={{marginTop:8,fontSize:15,color:'#B45309',lineHeight:1.55}}>That looks like a link. Reimagine can't read a posting from a URL — open the job posting, copy the full description text, and paste it here instead.</div>}
             </div>
           </div>}
           {!isDemo&&<Btn onClick={()=>submitOpRole(profile.jd)} disabled={(profile.jd||'').trim().length<100}><Sparkles size={14}/>Build My Playbook</Btn>}
