@@ -50,6 +50,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   const [commentFor, setCommentFor] = useState(null)
   const [commentDraft, setCommentDraft] = useState('')
   const noteTaRef = useRef(null)
+  const noteActionsRef = useRef(null)
 
   useEffect(() => {
     const len = messages ? messages.length : 0
@@ -79,9 +80,13 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   useEffect(() => {
     if (commentFor == null) return
     const t = noteTaRef.current
-    if (!t) return
-    t.focus()
-    if (t.scrollIntoView) t.scrollIntoView({ block: 'nearest' })
+    if (t) t.focus()
+    // Reveal the whole note block — textarea AND the Send/Skip row — by bringing
+    // its bottom (the action row) into view. block:'nearest' scrolls minimally
+    // and never to the top; the note block is short, so the textarea above stays
+    // visible too. Falls back to the textarea if the action ref is not mounted.
+    const target = noteActionsRef.current || t
+    if (target && target.scrollIntoView) target.scrollIntoView({ block: 'nearest' })
   }, [commentFor])
 
   // One-tap quick-reply (e.g. the Personal Brand check-in: Yes / Mostly / Not
@@ -271,9 +276,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               {commentFor === m.id && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: '85%' }}>
                   <textarea ref={noteTaRef} value={commentDraft} onChange={e => setCommentDraft(e.target.value)} maxLength={2000} rows={2}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment(i, m.id) } }}
                     placeholder={m.rating === -1 ? 'What was off? A sentence helps us improve your coach.' : 'Glad it helped. What worked? (optional)'}
                     style={{ border: '1px solid #D8DEE8', borderRadius: 8, padding: '8px 10px', fontSize: 14, fontFamily: 'inherit', color: '#1A2540', resize: 'vertical' }} />
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div ref={noteActionsRef} style={{ display: 'flex', gap: 8 }}>
                     <button onClick={() => sendComment(i, m.id)} style={{ background: C.gold, color: '#fff', border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Send</button>
                     <button onClick={() => setCommentFor(null)} style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Skip</button>
                   </div>
