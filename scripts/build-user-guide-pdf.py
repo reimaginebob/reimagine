@@ -145,7 +145,7 @@ def parse_markdown(md_text: str, styles: dict, skip_first_h1: bool = False):
         if pending_bullets:
             items = [
                 ListItem(Paragraph(render_inline(b), styles["body"]),
-                         leftIndent=14, value="bullet")
+                         leftIndent=14)
                 for b in pending_bullets
             ]
             flowables.append(ListFlowable(
