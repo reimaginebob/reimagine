@@ -6,7 +6,7 @@
 export const PRIVACY_MD = `# Reimagine Data Privacy and Usage Agreement
 
 **Effective date:** May 15, 2026
-**Last updated:** May 31, 2026
+**Last updated:** June 24, 2026
 
 This agreement explains what information Reimagine collects when you use the product, how we use it, who we share it with, and the choices you have. Reimagine is a career strategy tool operated by Decima LLC, doing business as Career Club. When this document says "we," "us," or "Reimagine," it refers to Decima LLC (dba Career Club) as the operator of the product. When it says "you" or "your," it refers to you as a person using Reimagine.
 
@@ -37,7 +37,7 @@ We collect three categories of information.
 - IP address, used for security and to detect unusual sign-in activity.
 - General usage metrics, such as which pages or steps were viewed and how long sessions lasted.
 
-We also collect anonymous behavioral analytics (which sections of the product you visit, how long generations take, which options you pick during the Bridge Story step) that we use to monitor product health and improve the experience. These events do not include your name, email, or content. We forward this anonymous data to a private analytics store that we control.
+We also collect anonymous behavioral analytics (which sections of the product you visit, how long generations take, which options you pick during the Bridge Story step) that we use to monitor product health and improve the experience. These events do not include your name, email, or content. We forward this anonymous data to a private analytics store that we control. This anonymous analytics stream is distinct from the de-identified review of coaching and chat conversations described in Section 2, which is a separate activity governed by that section.
 
 We do not knowingly collect government identifiers, financial account numbers, health information, or precise location data. If any of these appear in content you type into the product, you do so voluntarily and we treat that content the same way we treat the rest of your narrative inputs.
 
@@ -52,6 +52,8 @@ We use the information described above to:
 - Communicate with you about your account, including product updates, security notices, and replies to messages you send us.
 - Protect the product and our users, including detecting fraud, abuse, and security issues.
 - Comply with legal obligations.
+
+**Reviewing conversations to improve coaching.** To evaluate and improve the quality and safety of our coaching, chat, and help features, authorized Career Club personnel may review the content of your interactions with these features — the questions and messages you send, the responses you receive, and any ratings or feedback you provide. We carry out this review using de-identified records: your name, email address, and account identifiers are removed before the content is reviewed, so reviewers see the conversation and your feedback but not who you are. We use what we learn only to assess and improve the service. We do not sell this content, we do not use it to train AI models, and we do not use this review to identify, target, or contact you individually.
 
 We do not sell your personal information. We do not use your narrative content to target advertising, and we do not share your content with advertisers. We do not rent or trade your contact information.
 

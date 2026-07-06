@@ -1,14 +1,15 @@
 import { useState } from 'react'
 
-// Scaffolding only. In v1 this modal never renders because every new user's
-// stored version equals the current _MATERIAL constant and grandfathered users
-// (NULL version) are skipped by the gating check in App.jsx. When a future
-// material change ships, bump the _MATERIAL constants in src/config/legal.js,
-// replace CHANGE_SUMMARY with a plain-language description of what changed,
-// and this modal will fire at sign-in.
+// Fires at sign-in when the user's stored privacy/terms version differs from the
+// current _MATERIAL constant (src/config/legal.js). Activated 2026-06-24 for the
+// conversation-review privacy update: PRIVACY_VERSION_MATERIAL was bumped, and the
+// App.jsx gate now also prompts grandfathered (NULL-version) users for privacy so
+// this material content-review disclosure reaches every existing signed-in user
+// before content review is enabled. Records the acknowledgment (user + timestamp +
+// version) via /api/account/reaccept. CHANGE_SUMMARY is the plain-language notice.
 
 const CHANGE_SUMMARY =
-  'We have updated our agreements. Please review the latest version and confirm you agree to continue using Reimagine.'
+  "We've updated our Privacy Agreement. To improve our coaching, our team now reviews conversations with the coach and chat — your questions, the responses, and any feedback you give. This review uses de-identified records: your name and email are removed, so reviewers see the conversation but not who you are. We don't sell this content, use it to train AI models, or use it to contact you."
 
 export default function LegalReacceptanceModal({
   needsPrivacyReaccept,
@@ -97,7 +98,7 @@ export default function LegalReacceptanceModal({
               rel="noopener noreferrer"
               style={{ color: '#C8924A', fontSize: 17, fontWeight: 600 }}
             >
-              Read the updated Privacy Agreement
+              Read the full Privacy Agreement
             </a>
           )}
           {needsTermsReaccept && (
@@ -131,7 +132,7 @@ export default function LegalReacceptanceModal({
               opacity: submitting ? 0.5 : 1,
             }}
           >
-            {submitting ? 'Saving' : 'I have read and agree'}
+            {submitting ? 'Saving' : 'Got it'}
           </button>
           <button
             onClick={() => onDecline && onDecline()}
