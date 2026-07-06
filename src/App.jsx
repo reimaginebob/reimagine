@@ -3848,7 +3848,11 @@ export default function PivotEngine(){
 // with prior-account data from the same browser. See brief
 // 2026-06-04_localstorage-account-scoping.md.
 }).catch(()=>{}).finally(()=>setServerLoadDone(true))},[])
-  useEffect(()=>{if(!signedInUser)return;const needsPrivacy=signedInUser.privacy_version!=null&&signedInUser.privacy_version!==PRIVACY_VERSION_MATERIAL;const needsTerms=signedInUser.terms_version!=null&&signedInUser.terms_version!==TOS_VERSION_MATERIAL;if(needsPrivacy||needsTerms)setReaccept({needsPrivacyReaccept:needsPrivacy,needsTermsReaccept:needsTerms})},[signedInUser])
+  // Privacy: drop the NULL-guard (2026-06-24 conversation-review material update) so
+  // grandfathered users who never accepted a version also see the notice before
+  // content review applies to them. Terms keeps the NULL-guard (terms unchanged, so
+  // grandfathered users are not force-re-accepted on an unrelated document).
+  useEffect(()=>{if(!signedInUser)return;const needsPrivacy=signedInUser.privacy_version!==PRIVACY_VERSION_MATERIAL;const needsTerms=signedInUser.terms_version!=null&&signedInUser.terms_version!==TOS_VERSION_MATERIAL;if(needsPrivacy||needsTerms)setReaccept({needsPrivacyReaccept:needsPrivacy,needsTermsReaccept:needsTerms})},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;try{if(localStorage.getItem('pe_has_signed_in_before')==='true')return;const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v4');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
   useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
   useEffect(()=>{setShowPulse(false);const t=setTimeout(()=>setShowPulse(true),90000);return()=>clearTimeout(t)},[step])

@@ -143,7 +143,7 @@ Reimagine uses passwordless accounts. When you sign in, your email is used to se
 
 Reimagine sends your inputs to Anthropic's Claude service to generate each section of your strategy. Anthropic processes these requests under their own terms; Reimagine does not use your inputs to train any AI model.
 
-You control your data. You can delete your account at any time using the Start Fresh option in the product or by writing to us at info@career.club. Reimagine also collects anonymous behavioral analytics (which sections you visit, how long generations take) used to improve the product.
+You control your data. You can delete your account at any time using the Start Fresh option in the product or by writing to us at info@career.club. Reimagine also collects anonymous behavioral analytics (which sections you visit, how long generations take) used to improve the product. To improve the coach and chat features, our team may also review those conversations on a de-identified basis (your name and email removed, so reviewers see the conversation but not who you are); we do not sell that content, use it to train AI models, or use it to contact you.
 
 For the full details, see the [Privacy Policy](/privacy) and the [Terms of Service](/terms).
 
