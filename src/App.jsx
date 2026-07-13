@@ -850,16 +850,23 @@ function parseResumeJSON(raw){
 // strategy is unsafe here because the prose region above the tail can
 // contain stray braces.
 
-// KEY-DRIFT REPAIR (string-level). The model markdown-interprets the underscores
-// in the unfenced JSON schema examples and drops them from any key carrying two
-// or more underscores (`relevance_bridge_draft` -> `relevancebridgedraft`,
-// `what_to_do` -> `whattodo`). The p8/p7 top-level normalizers heal flat keys;
-// this string pass runs BEFORE JSON.parse so it also reaches NESTED keys (e.g.
-// star_breakdown.S.relevance_bridge_draft, which a hard-required check would
-// otherwise reject, dumping the whole card as raw JSON). _mangleJsonKey applies
-// the same `_x_`->`x` collapse the model performs; repairMangledJsonKeys swaps
-// each mangled key form back to canonical, but only in key position (a closing
-// quote followed by a colon) so string values are never touched.
+// KEY-DRIFT REPAIR (string-level) — the single mechanism for every structured
+// prompt (p8 LinkedIn Remix, p7 Go-to-Market, p11 Interview Prep). The model
+// markdown-interprets the underscores in the unfenced JSON schema examples and
+// drops them from any key carrying two or more underscores
+// (`resume_missing_from_linkedin` -> `resumemissingfrom_linkedin`, `what_to_do`
+// -> `whattodo`, `relevance_bridge_draft` -> `relevancebridgedraft`). Single-
+// underscore keys survive. The strict parsers then reject the drifted object,
+// dumping the whole card as raw JSON (or an empty render). Running this repair
+// BEFORE JSON.parse heals both top-level AND nested keys (e.g.
+// star_breakdown.S.relevance_bridge_draft) in one pass, and the repaired keys
+// re-serialize canonical on the next per-slot regen (self-healing storage).
+// _mangleJsonKey applies the same `_x_`->`x` collapse the model performs;
+// repairMangledJsonKeys swaps each mangled key form back to canonical, but only
+// in key position (a closing quote followed by a colon) so string values are
+// never touched. Each parser passes its own 2+-underscore key list below; the
+// prompts also instruct the model to reproduce keys literally (belt), but this
+// deterministic pass is the guarantee.
 const _mangleJsonKey=k=>k.replace(/_([^_]+)_/g,'$1')
 function repairMangledJsonKeys(str,canonicalKeys){
   let out=str
@@ -991,48 +998,14 @@ function extractP11QuestionStrings(q){
   return acc.join(String.fromCharCode(10))
 }
 // ---- LinkedIn Remix (p8) structured-emit parsers (per-slot regen) ----
-// The four canonical skills_delta keys the renderer maps over. The p8 prompt
-// schema emits exactly these; parseLinkedInRemixJSON is the single choke point
-// every consumer (render, copy/PDF, voice scan, per-slot regen) passes through.
+// The four canonical skills_delta keys the renderer maps over and the parser
+// requires. parseLinkedInRemixJSON is the single choke point every consumer
+// (render, copy/PDF, voice scan, per-slot regen) passes through.
 const P8_SKILLS_DELTA_KEYS=['resume_missing_from_linkedin','linkedin_not_on_resume','both_underweighted','target_role_demanded_absent']
-// The optional/required top-level keys the renderer reads. Same drift risk as
-// the skills_delta keys (see below): any key with two or more underscores is
-// vulnerable. `what_to_do` -> `whattodo` silently drops the "What to do" section;
-// the others carry a single underscore and survive, but are normalized anyway so
-// a future rename or a stray mangle cannot desync the card.
-const P8_TOP_LEVEL_KEYS=['quick_takeaway','headlines','about_section','skills_delta','keyword_placement','experience_reframe','what_to_do']
-// KEY-DRIFT HEALING. The model markdown-interprets the underscores in the p8
-// prompt's (unfenced) JSON schema example and reproduces multi-underscore keys
-// de-underscored: `resume_missing_from_linkedin` -> `resumemissingfrom_linkedin`
-// (a `_x_`->`x` emphasis collapse — the first two underscores pair and drop, the
-// last dangles and survives), `what_to_do` -> `whattodo`. Single-underscore keys
-// (`quick_takeaway`, `about_section`) survive. The strict key checks below then
-// reject the object, falling the whole card back to a raw JSON dump. Matching
-// keys by their underscore-stripped, lowercased form remaps any variant back to
-// canonical in place, so a strong generation renders regardless of drift and
-// re-serializes canonical on the next per-slot regen (self-healing storage). The
-// prompt also instructs the model to reproduce keys literally (belt), but this
-// deterministic pass is the guarantee. Shared by p8 and p7 (Go-to-Market), whose
-// part_N_* keys are hit by the identical drift.
-function normalizeJsonKeyDrift(obj,canonKeys,requireArray){
-  if(!obj||typeof obj!=='object')return false
-  const strip=k=>k.replace(/_/g,'').toLowerCase()
-  const byStripped={}
-  for(const k of Object.keys(obj)){const sk=strip(k);if(!(sk in byStripped))byStripped[sk]=k}
-  let drifted=false
-  for(const canon of canonKeys){
-    if(requireArray?Array.isArray(obj[canon]):(canon in obj))continue
-    const actual=byStripped[strip(canon)]
-    if(actual&&actual!==canon&&(!requireArray||Array.isArray(obj[actual]))){obj[canon]=obj[actual];delete obj[actual];drifted=true}
-  }
-  return drifted
-}
-function normalizeP8TopLevelKeys(obj){
-  if(normalizeJsonKeyDrift(obj,P8_TOP_LEVEL_KEYS,false)){try{console.warn('[p8] top-level key drift normalized to canonical; model emitted mangled keys')}catch{}}
-}
-function normalizeP8SkillsDeltaKeys(sd){
-  if(normalizeJsonKeyDrift(sd,P8_SKILLS_DELTA_KEYS,true)){try{console.warn('[p8] skills_delta key drift normalized to canonical; model emitted mangled keys')}catch{}}
-}
+// p8 keys carrying 2+ underscores (drift-vulnerable), handed to repairMangledJsonKeys
+// before parse: the top-level what_to_do plus the three multi-underscore
+// skills_delta keys (both_underweighted has one underscore and is a repair no-op).
+const P8_JSON_KEYS=['what_to_do',...P8_SKILLS_DELTA_KEYS]
 // parseLinkedInRemixJSON validates the structural core the renderer maps over
 // (headlines array, about_section hook/story/close, the four skills_delta lists).
 // quick_takeaway / keyword_placement / experience_reframe / what_to_do are
@@ -1044,9 +1017,8 @@ function parseLinkedInRemixJSON(raw){
   const fence=s.match(/^```(?:json)?\s*([\s\S]*?)```\s*$/);if(fence)s=fence[1].trim()
   const first=s.indexOf('{'),last=s.lastIndexOf('}')
   if(first===-1||last===-1||last<first)return null
-  let obj;try{obj=JSON.parse(s.slice(first,last+1))}catch{return null}
+  let obj;try{obj=JSON.parse(repairMangledJsonKeys(s.slice(first,last+1),P8_JSON_KEYS))}catch{return null}
   if(!obj||typeof obj!=='object')return null
-  normalizeP8TopLevelKeys(obj)
   const okStr=v=>typeof v==='string'&&v.trim().length>0
   if(!Array.isArray(obj.headlines)||obj.headlines.length===0)return null
   for(const h of obj.headlines){if(!h||typeof h!=='object'||!okStr(h.text))return null}
@@ -1054,7 +1026,6 @@ function parseLinkedInRemixJSON(raw){
   if(!ab||typeof ab!=='object'||!okStr(ab.hook)||!okStr(ab.story)||!okStr(ab.close))return null
   const sd=obj.skills_delta
   if(!sd||typeof sd!=='object')return null
-  normalizeP8SkillsDeltaKeys(sd)
   for(const k of P8_SKILLS_DELTA_KEYS){
     if(!Array.isArray(sd[k]))return null
   }
@@ -1114,18 +1085,13 @@ function parseP8AboutJSON(raw){
   return {hook:ab.hook,story:ab.story,close:ab.close}
 }
 // ---- Go-to-Market (p7) structured-emit parser (per-slot regen, PR B) ----
-// The top-level keys the render maps over. The part_N_* keys carry two
-// underscores each, so they are hit by the same emission-time key drift as p8's
-// what_to_do / skills_delta (the model markdown-interprets the underscores in the
-// unfenced schema example and drops them: part_1_hiring_executive ->
-// part1hiring_executive). That drift makes the required-key checks below fail and
-// falls the whole Go-to-Market card back to the empty legacy render — the likely
-// cause of the empty-GTM reports. normalizeGtmKeys heals it (see
-// normalizeJsonKeyDrift), and the p7 prompt instructs literal key reproduction.
-const GTM_TOP_LEVEL_KEYS=['quick_takeaway','part_1_hiring_executive','part_2_company_list','part_3_outreach_template','part_4_linkedin_tweak']
-function normalizeGtmKeys(obj){
-  if(normalizeJsonKeyDrift(obj,GTM_TOP_LEVEL_KEYS,false)){try{console.warn('[p7] Go-to-Market key drift normalized to canonical; model emitted mangled keys')}catch{}}
-}
+// The part_N_* keys carry two underscores each, so they drift the same way as
+// p8's what_to_do (part_1_hiring_executive -> part1hiring_executive), which made
+// the required-key checks below fail and fell the whole Go-to-Market card back to
+// the empty legacy render — the likely cause of the empty-GTM reports.
+// repairMangledJsonKeys (below) heals them before parse; the p7 prompt instructs
+// literal key reproduction.
+const GTM_JSON_KEYS=['part_1_hiring_executive','part_2_company_list','part_3_outreach_template','part_4_linkedin_tweak']
 // Validates the top-level JSON the render maps over. Returns null on malformed
 // input OR on a legacy prose+fenced-JSON record (whose brace-slice has no
 // part_1/part_2/part_3 fields), so the renderer falls back to the legacy path.
@@ -1135,9 +1101,8 @@ function parseGtmJSON(raw){
   const fence=s.match(/^```(?:json)?\s*([\s\S]*?)```\s*$/);if(fence)s=fence[1].trim()
   const first=s.indexOf('{'),last=s.lastIndexOf('}')
   if(first===-1||last===-1||last<first)return null
-  let obj;try{obj=JSON.parse(s.slice(first,last+1))}catch{return null}
+  let obj;try{obj=JSON.parse(repairMangledJsonKeys(s.slice(first,last+1),GTM_JSON_KEYS))}catch{return null}
   if(!obj||typeof obj!=='object'||Array.isArray(obj))return null
-  normalizeGtmKeys(obj)
   const okStr=v=>typeof v==='string'&&v.trim().length>0
   if(!okStr(obj.part_1_hiring_executive))return null
   if(!Array.isArray(obj.part_2_company_list))return null
