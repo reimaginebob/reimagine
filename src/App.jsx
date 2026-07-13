@@ -966,6 +966,31 @@ function extractP11QuestionStrings(q){
   return acc.join(String.fromCharCode(10))
 }
 // ---- LinkedIn Remix (p8) structured-emit parsers (per-slot regen) ----
+// The four canonical skills_delta keys the renderer maps over. The p8 prompt
+// schema emits exactly these; parseLinkedInRemixJSON is the single choke point
+// every consumer (render, copy/PDF, voice scan, per-slot regen) passes through.
+const P8_SKILLS_DELTA_KEYS=['resume_missing_from_linkedin','linkedin_not_on_resume','both_underweighted','target_role_demanded_absent']
+// normalizeP8SkillsDeltaKeys remaps drifted skills_delta keys back to canonical
+// in place. Underscore-collapsing markdown emphasis (a naive `_x_`->`x` pass
+// applied to the JSON string somewhere upstream) turns
+// `resume_missing_from_linkedin` into `resumemissingfrom_linkedin`, which the
+// strict key check below then rejects — falling the whole card back to a raw
+// JSON dump. Matching keys by their underscore-stripped, lowercased form heals
+// any such variant so a strong generation renders regardless of key mangling,
+// and re-serializes canonical on the next per-slot regen (self-healing storage).
+function normalizeP8SkillsDeltaKeys(sd){
+  if(!sd||typeof sd!=='object')return
+  const strip=k=>k.replace(/_/g,'').toLowerCase()
+  const byStripped={}
+  for(const k of Object.keys(sd)){const sk=strip(k);if(!(sk in byStripped))byStripped[sk]=k}
+  let drifted=false
+  for(const canon of P8_SKILLS_DELTA_KEYS){
+    if(Array.isArray(sd[canon]))continue
+    const actual=byStripped[strip(canon)]
+    if(actual&&actual!==canon&&Array.isArray(sd[actual])){sd[canon]=sd[actual];delete sd[actual];drifted=true}
+  }
+  if(drifted){try{console.warn('[p8] skills_delta key drift normalized to canonical; upstream emitted mangled keys')}catch{}}
+}
 // parseLinkedInRemixJSON validates the structural core the renderer maps over
 // (headlines array, about_section hook/story/close, the four skills_delta lists).
 // quick_takeaway / keyword_placement / experience_reframe / what_to_do are
@@ -986,7 +1011,8 @@ function parseLinkedInRemixJSON(raw){
   if(!ab||typeof ab!=='object'||!okStr(ab.hook)||!okStr(ab.story)||!okStr(ab.close))return null
   const sd=obj.skills_delta
   if(!sd||typeof sd!=='object')return null
-  for(const k of ['resume_missing_from_linkedin','linkedin_not_on_resume','both_underweighted','target_role_demanded_absent']){
+  normalizeP8SkillsDeltaKeys(sd)
+  for(const k of P8_SKILLS_DELTA_KEYS){
     if(!Array.isArray(sd[k]))return null
   }
   return obj
