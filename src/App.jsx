@@ -4128,6 +4128,15 @@ export default function PivotEngine(){
   const out=(k,v,extra)=>setOutputs(o=>{
     const u={...o,[k]:v}
     if(k==='p3'){
+      // Depth-1 snapshot for "Restore previous version" (Vickie Stingle 2026-06-29):
+      // capture the OUTGOING Personal Brand before this write replaces it, but only
+      // when the old p3 was real content. The empty-clear that precedes a RefineBox
+      // regen (out('p3','')) snapshots the real prior; the follow-up out('p3',brand)
+      // then sees an empty old value and skips, so p3_prev holds the genuine previous
+      // version, not the transient ''. First-ever build (old p3 empty) never snapshots.
+      if(o.p3&&typeof o.p3==='string'&&o.p3.trim()){
+        u.p3_prev={p3:o.p3,p3_structured:o.p3_structured,p3_updated_at:o.p3_updated_at,savedAt:Date.now()}
+      }
       if(v&&typeof v==='string'&&v.trim())u.p3_version='v2'
       else delete u.p3_version
       if(extra&&'structured'in extra&&extra.structured)u.p3_structured=extra.structured
@@ -4148,6 +4157,36 @@ export default function PivotEngine(){
     }
     return u
   })
+  // Restore previous Personal Brand (depth-1, swap/toggle). Bypasses out() so it
+  // does not re-snapshot; swaps current <-> p3_prev so a second click flips back
+  // (non-destructive, which matters because there is no confirm dialog and p3
+  // generation is stochastic — a displaced version can't be reproduced by
+  // regenerating). Restores p3_structured + the p3_updated_at/p3_built_at stamps
+  // from the snapshot so downstream staleness stays honest after a revert.
+  const restorePrevP3=()=>{
+    setOutputs(o=>{
+      const prev=o.p3_prev
+      if(!prev||typeof prev.p3!=='string'||!prev.p3.trim())return o
+      const cur={p3:o.p3,p3_structured:o.p3_structured,p3_updated_at:o.p3_updated_at,savedAt:Date.now()}
+      const u={...o,p3:prev.p3,p3_prev:cur,p3_version:'v2'}
+      if(prev.p3_structured)u.p3_structured=prev.p3_structured
+      else delete u.p3_structured
+      const ts=prev.p3_updated_at||Date.now()
+      u.p3_updated_at=ts;u.p3_built_at=ts
+      return u
+    })
+    setToast('Restored your previous Personal Brand')
+    setTimeout(()=>setToast(t=>t==='Restored your previous Personal Brand'?null:t),3000)
+  }
+  // Dynamic label for the restore affordance: when the live p3 is the newer of the
+  // two versions, offer to go back ("Restore previous version" — the first-encounter
+  // case); once swapped to the older one, offer the other direction. Defaults to
+  // "Restore previous version" whenever the two timestamps can't disambiguate.
+  const p3RestoreLabel=()=>{
+    const prev=outputs.p3_prev
+    if(prev&&prev.p3_updated_at&&outputs.p3_updated_at&&outputs.p3_updated_at<prev.p3_updated_at)return 'Bring back the newer version'
+    return 'Restore previous version'
+  }
   const markDone=(sid)=>{track('section_completed',{step:sid});setDone(d=>d.includes(sid)?d:[...d,sid])}
   // Forward dependency map for state invalidation. Listed in pipeline order.
   const DEPENDENCY_ORDER=['p1','p2','p3','p4','deepOpts','p5','chosen','p6','p7','p8','p_res','p9','p10','p11','income']
@@ -6676,6 +6715,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>}
 
       {!isDemo&&!outputs.p3&&!loading&&<><Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn><div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:14,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>A single prose synthesis of who you are at work, roughly 600 to 800 words. About 4 to 5 minutes to generate.</div></>}
+      {!isDemo&&!outputs.p3&&!loading&&outputs.p3_prev&&outputs.p3_prev.p3&&<div style={{marginTop:14}}><Btn small secondary onClick={restorePrevP3}><RotateCcw size={12}/>Restore previous version</Btn></div>}
       {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3"/>}
       {outputs.p3&&!loading&&<>
         {!isDemo&&sectionStaleUpstreams('p3').includes('resume')&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:'#1A2540',lineHeight:1.6,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
@@ -6698,7 +6738,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           : <OutPanel text={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>}
         {/* Export is shown for either render path (component or prose fallback) so
             it is always available, including for the pre-rerun login notice. */}
-        <div style={{display:'flex',justifyContent:'flex-end',marginBottom:18}}><Btn small secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={12}/>Save as PDF</Btn></div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap',marginBottom:18}}>
+          {!isDemo&&outputs.p3_prev&&outputs.p3_prev.p3?<Btn small secondary onClick={restorePrevP3}><RotateCcw size={12}/>{p3RestoreLabel()}</Btn>:<span/>}
+          <Btn small secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={12}/>Save as PDF</Btn>
+        </div>
         {!isDemo&&<RefineBox guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{recordCorrection('p3',v);out('p3','');refreshP3(v)}}/>}
         {!isDemo&&<div style={{margin:'24px 0 14px',fontSize:18,color:'#2D3748',lineHeight:1.7}}>This is your foundation. Next, we put it to work — finding the directions worth exploring and the people worth reaching.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','twoDoors')}>Put It to Work <ChevronRight size={14}/></Btn></div>}

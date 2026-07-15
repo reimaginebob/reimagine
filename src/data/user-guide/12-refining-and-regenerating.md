@@ -57,6 +57,10 @@ Use **Start fresh** if the current direction is wrong enough that refining it wi
 
 Start fresh does not delete previously submitted corrections from your profile; those still apply to the new generation.
 
+### Prefer the version you had before?
+
+Each time you refresh or start fresh on your Personal Brand, Reimagine keeps the version just before it. A **Restore previous version** button appears on the Personal Brand screen so you can switch back with one click, and switch again if you change your mind. It keeps the most recent prior version, so you can always compare the two.
+
 ## When Reimagine writes around a phrase you asked for
 
 Reimagine deliberately writes around a small set of phrasings: jargon-shaped labels, marketing-cadence slogans, claims that rank you against other people, and coaching-speak. The voice is the product, so the tool holds that line even on request.
