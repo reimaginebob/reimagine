@@ -74,6 +74,9 @@ Tell it in the feedback box. Example: "My time at MoneyGram was internal strateg
 **I refreshed my Personal Brand and liked the previous version better.**
 Reimagine keeps the version you had just before your last refresh or Start fresh. Click **Restore previous version** on the Personal Brand screen to bring it back. It is a one-click switch, and you can switch again if you change your mind, so you can compare the two. It keeps the most recent prior version.
 
+**I edited an input, but my Personal Brand looks the same.**
+Your Personal Brand does not rebuild on its own when you change an input (your resume, values, reputation, assessment, and so on). When you leave a changed input, Reimagine reminds you and offers to update it right then; you can also refresh it any time from the Personal Brand screen. Refreshing is safe: your current version is saved, so you can restore it if you prefer it.
+
 **What does the Bridge Story look like?**
 It is a single tell-me-about-yourself answer written in your voice and calibrated to the direction you picked. It opens with the strongest human anchor in your inputs (a passion, a craft you trained in, a formative experience, or an assessment finding), connects that to one accomplishment that carries the theme, and closes on why your next move is the natural next step. When your profile holds a second strong opening, Reimagine adds a short italic coaching note below the story. Chapter 7 covers the model in full.
 

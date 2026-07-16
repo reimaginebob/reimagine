@@ -2421,6 +2421,11 @@ const PHASES=[
 // Opportunity" labels META still carried.
 const ALL=['welcome','location','resume','resume-builder','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p3','twoDoors','laneSelect','p4','focus','mylib','op','complete','myCoach']
 const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','resume-builder','linkedin','assessment','values','reputation','life-events','skills','orientation-done','p3'])
+// Editable input surfaces (subset of INPUT_PHASE_STEPS): the screens a returning
+// user changes after the Personal Brand exists. welcome / orientation-done / p3 are
+// not editable inputs. Drives the "your Personal Brand is now out of date" nudge.
+const INPUT_EDIT_STEPS=new Set(['location','resume','resume-builder','linkedin','assessment','values','reputation','life-events','skills'])
+const INPUT_STEP_LABEL={location:'Location',resume:'Résumé','resume-builder':'Résumé',linkedin:'LinkedIn',assessment:'Assessment',values:'Values',reputation:'Reputation','life-events':'Life events',skills:'Skills'}
 // Captured at module load (before any beforeprint can change document.title) so
 // afterprint always restores the true base title regardless of effect re-runs.
 const BASE_DOC_TITLE=typeof document!=='undefined'?document.title:'Reimagine'
@@ -3663,6 +3668,9 @@ export default function PivotEngine(){
   const[savedPlaybooks,setSavedPlaybooks]=useState([])
   const[currentRoleInSavedSet,setCurrentRoleInSavedSet]=useState(false)
   const[atCapModal,setAtCapModal]=useState(null)
+  const[inputStaleModal,setInputStaleModal]=useState(null)
+  const[pbNeedsUpdate,setPbNeedsUpdate]=useState(false)
+  const inputEditedRef=useRef(false)
   // PR2 corrections editorial layer: pre-submit conflict modal (Track 6) and the
   // upstream-check prompt (Track 8). correctionConflictRef carries the conflicting
   // phrase from an "Apply anyway" choice into recordCorrection (Track 7).
@@ -4110,9 +4118,15 @@ export default function PivotEngine(){
     window.addEventListener('afterprint',onAfter)
     return ()=>window.removeEventListener('afterprint',onAfter)
   },[])
-  const pr=(f,v)=>setProfile(p=>({...p,[f]:v}))
-  const loc=(f,v)=>setProfile(p=>({...p,loc:{...p.loc,[f]:v}}))
-  const rep=(f,v)=>setProfile(p=>({...p,rep:{...p.rep,[f]:v}}))
+  // Input-change -> Personal Brand nudge: when a returning user (p3 already built)
+  // edits any input surface, mark the brand out of date. Fires the on-leave modal
+  // (via advance/nav) and the Personal Brand banner. Gated on outputs.p3 so the
+  // initial orientation never nags, on INPUT_EDIT_STEPS so only real input edits
+  // count (pr/loc/rep are also called on non-input steps), and on !isDemo.
+  const markInputEdited=()=>{if(!isDemo&&outputs.p3&&INPUT_EDIT_STEPS.has(step)){inputEditedRef.current=true;if(!pbNeedsUpdate)setPbNeedsUpdate(true)}}
+  const pr=(f,v)=>{setProfile(p=>({...p,[f]:v}));markInputEdited()}
+  const loc=(f,v)=>{setProfile(p=>({...p,loc:{...p.loc,[f]:v}}));markInputEdited()}
+  const rep=(f,v)=>{setProfile(p=>({...p,rep:{...p.rep,[f]:v}}));markInputEdited()}
   // Brief 2: every successful write to outputs.p3 also stamps the version
   // flag so the migration detector (isP3OldStyle) sees the freshly written
   // p3 as v2. Empty writes (clearing the slot) deliberately also clear the
@@ -4274,8 +4288,11 @@ export default function PivotEngine(){
     }
     return next
   }
-  const advance=(from,to)=>{markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
-  const nav=(to)=>{track('step_entered',{step:to});if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}setStep(to);setErr(null);window.scrollTo(0,0)}
+  // On leaving a changed input surface (returning user), nudge to update the
+  // Personal Brand. Skips when heading to p3 (they are going there to update).
+  const maybeInputStaleNudge=(from,to)=>{if(!isDemo&&INPUT_EDIT_STEPS.has(from)&&inputEditedRef.current&&to!=='p3'&&outputs.p3){inputEditedRef.current=false;setInputStaleModal({from})}}
+  const advance=(from,to)=>{maybeInputStaleNudge(from,to);markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
+  const nav=(to)=>{track('step_entered',{step:to});if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
   // Scroll new output into view AFTER generation completes. Every generate
   // path already scrolls to 0,0 on click (so the loading panel is visible);
   // none scroll after the API returns, leaving the user wherever they
@@ -4433,6 +4450,7 @@ export default function PivotEngine(){
     try{
       const {brand,structured}=await runP3TwoStage()
       out('p3',brand,{structured})
+      inputEditedRef.current=false;setPbNeedsUpdate(false)
     }catch(e){setErr(e.message)}
     finally{setLoading(false);setLoadingStage('');scrollToOutput('p3')}
   }
@@ -4447,6 +4465,7 @@ export default function PivotEngine(){
     try{
       const {brand,structured}=await runP3TwoStage(extraContext)
       out('p3',brand,{structured})
+      inputEditedRef.current=false;setPbNeedsUpdate(false)
       cascadeInvalidate('p3')
     }catch(e){setErr(e.message)}
     finally{setLoading(false);setLoadingStage('');scrollToOutput('p3')}
@@ -6719,7 +6738,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3"/>}
       {outputs.p3&&!loading&&<>
         {!isDemo&&sectionStaleUpstreams('p3').includes('resume')&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:'#1A2540',lineHeight:1.6,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
-          <span>You updated your resume since this was written. Refresh your Personal Brand so it builds on the new material. This rewrites it; any wording you refined will be regenerated.</span>
+          <span>You updated your resume since this was written. Refresh your Personal Brand so it builds on the new material. This rewrites it; any wording you refined will be regenerated. Your current version is saved, so you can restore it if you prefer it.</span>
+          <Btn small onClick={generateChain}><RotateCcw size={12}/>Refresh</Btn>
+        </div>}
+        {!isDemo&&pbNeedsUpdate&&!sectionStaleUpstreams('p3').includes('resume')&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:'#1A2540',lineHeight:1.6,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
+          <span>You've changed your inputs since this Personal Brand was written. Refresh it to build on the new material. Your current version is saved, so you can restore it if you prefer it.</span>
           <Btn small onClick={generateChain}><RotateCcw size={12}/>Refresh</Btn>
         </div>}
         {!isDemo&&!hasSeenCorrectionsIntro&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:'#1A2540',lineHeight:1.65,position:'relative'}}>
@@ -7698,6 +7721,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
         <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}>
           <Btn secondary onClick={()=>setAtCapModal(null)}>Cancel</Btn>
+        </div>
+      </div>
+    </div>}
+    {inputStaleModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:560,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Update your Personal Brand?</h2>
+        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:22}}>You changed your {INPUT_STEP_LABEL[inputStaleModal.from]||'inputs'}. Your Personal Brand won't reflect this until you refresh it. When you do, your current version is saved automatically, so you can restore it if you prefer it.</p>
+        <div style={{display:'flex',gap:10,justifyContent:'flex-end',flexWrap:'wrap'}}>
+          <Btn secondary onClick={()=>setInputStaleModal(null)}>Later</Btn>
+          <Btn onClick={()=>{setInputStaleModal(null);nav('p3');generateChain()}}>Update Personal Brand now</Btn>
         </div>
       </div>
     </div>}
