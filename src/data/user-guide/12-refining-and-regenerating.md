@@ -87,6 +87,8 @@ Sometimes the issue lives in an earlier input, not the current step. Some exampl
 
 Here is how to handle that.
 
+When you change an input after your Personal Brand is built, Reimagine reminds you: as you leave the input screen, a short prompt notes that the change will not show up until you refresh your Personal Brand, and offers to do it right then. Refreshing is safe, since your current version is saved and you can restore it if you prefer it. (This reminder appears only after your Personal Brand exists, so it never interrupts your first pass through orientation.)
+
 ### Step 1: Navigate back
 
 The left sidebar shows every step in the journey. Click any completed step to return to it. Your inputs and outputs are preserved as you navigate.
