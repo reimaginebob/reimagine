@@ -55,6 +55,8 @@ Refinement patterns that work well:
 
 Use **Start fresh** to clear your correction and regenerate from scratch.
 
+Either way, Reimagine keeps the version you had just before. If a refresh comes back weaker than what you had, click **Restore previous version** on the Personal Brand screen to switch back, and switch again if you change your mind. It keeps the most recent prior version, so you can always compare the two.
+
 ## When you are happy with it
 
 Click **Put It to Work** to advance to Phase 2: Apply Your Foundation. Personal Brand becomes the source of truth Reimagine uses to generate everything that follows. The dimensions you and Reimagine surfaced as worth examining (often scale, mission, or position in the value chain) are exactly what Phase 2's Put It to Work choice is designed to sharpen.
