@@ -169,7 +169,6 @@ export default function AdminDashboard() {
   })()
   const funnel = (payload && payload.panel_2_funnel) || []
   const nps = (payload && payload.panel_3_nps) || {}
-  const quality = (payload && payload.panel_4_quality_signals) || {}
   const health = (payload && payload.panel_5_system_health) || {}
   const income = (payload && payload.panel_6_income_usage) || {}
 
@@ -272,33 +271,6 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
-          </Panel>
-
-          {/* Panel 4: quality signals */}
-          <Panel title="Quality signals">
-            <div style={S.subSectionLabel}>Inferred regenerations per step</div>
-            <table style={S.table}>
-              <thead><tr><Th>Step</Th><Th right>Started</Th><Th right>Completed</Th><Th right>Regens</Th></tr></thead>
-              <tbody>
-                {(quality.inferred_regenerations || []).map((r) => (
-                  <tr key={r.step}>
-                    <Td>{stepLabel(r.step)}</Td><Td right>{r.started}</Td><Td right>{r.completed}</Td>
-                    <Td right><strong style={{ color: r.inferred_regenerations > 0 ? GOLDL : GRAY }}>{r.inferred_regenerations}</strong></Td>
-                  </tr>
-                ))}
-                {(quality.inferred_regenerations || []).length === 0 && <tr><Td colSpan={4} muted>No data in range.</Td></tr>}
-              </tbody>
-            </table>
-            <div style={S.subSectionLabel}>Bridge Story picks</div>
-            <table style={S.table}>
-              <thead><tr><Th>Block</Th><Th>Option</Th><Th right>Picks</Th></tr></thead>
-              <tbody>
-                {(quality.bridge_picks || []).map((b, i) => (
-                  <tr key={i}><Td>{b.block}</Td><Td>{b.option_index}</Td><Td right>{b.picks}</Td></tr>
-                ))}
-                {(quality.bridge_picks || []).length === 0 && <tr><Td colSpan={3} muted>No picks in range.</Td></tr>}
-              </tbody>
-            </table>
           </Panel>
 
           {/* Panel 5: system health */}
