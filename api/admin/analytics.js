@@ -111,12 +111,14 @@ async function loadAggregate(rangeInterval, adminEmails) {
              AND LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS op_started_users,
         (SELECT COALESCE(SUM(
            (SELECT COUNT(*)::int FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks','[]'::jsonb)) AS pb
-            WHERE pb->>'source' = 'door1')
+            WHERE pb->>'source' = 'door1'
+              AND (pb->>'createdAt')::timestamptz >= NOW() - (${rangeInterval})::interval)
         ), 0)::int FROM users
            WHERE LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS focus_playbooks_built,
         (SELECT COALESCE(SUM(
            (SELECT COUNT(*)::int FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks','[]'::jsonb)) AS pb
-            WHERE pb->>'source' = 'door2')
+            WHERE pb->>'source' = 'door2'
+              AND (pb->>'createdAt')::timestamptz >= NOW() - (${rangeInterval})::interval)
         ), 0)::int FROM users
            WHERE LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS op_playbooks_built
     `,
