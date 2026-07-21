@@ -107,7 +107,7 @@ async function loadAggregate(rangeInterval, adminEmails) {
              AND LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS focus_complete_users,
         (SELECT COUNT(*)::int FROM users
            WHERE ((profile_state->'done') ? 'op'
-                   OR (profile_state->'outputs'->>'op') IS NOT NULL)
+                   OR NULLIF(TRIM(profile_state->'outputs'->>'op'), '') IS NOT NULL)
              AND LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS op_started_users,
         (SELECT COALESCE(SUM(
            (SELECT COUNT(*)::int FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks','[]'::jsonb)) AS pb
@@ -142,21 +142,39 @@ async function loadAggregate(rangeInterval, adminEmails) {
       FROM magic_link_tokens
       WHERE LOWER(email) <> ALL(${adminEmails}::text[])
     `,
-    // Panel 2: funnel per step. Counts of unique session_id that fired each
-    // tracked event for each Focus step. session_id NULL is excluded so we
-    // do not count "anonymous bucket" as a session.
+    // Panel 2: funnel per step. Rebuilt to read real progress from
+    // users.profile_state after the analytics_events drain stopped filling.
+    // entered   = users who reached at least this step (furthest non-empty
+    //             output in canonical order)
+    // generated = users with a non-empty output for the step
+    // completed = users with the step flagged in profile_state.done
+    // All-time: profile progress is not timestamped per step, so the range
+    // pill does not narrow this panel.
     sql`
+      WITH steps AS (
+        SELECT * FROM unnest(${FUNNEL_STEP_IDS}::text[]) WITH ORDINALITY AS t(sid, ord)
+      ),
+      base AS (
+        SELECT id, profile_state FROM users
+        WHERE LOWER(email) <> ALL(${adminEmails}::text[])
+      ),
+      gen AS (
+        SELECT b.id, s.ord
+        FROM base b CROSS JOIN steps s
+        WHERE NULLIF(TRIM(b.profile_state->'outputs'->>s.sid), '') IS NOT NULL
+      ),
+      furthest AS (
+        SELECT id, MAX(ord) AS mx FROM gen GROUP BY id
+      )
       SELECT
-        event_data->>'step'           AS step,
-        event_name,
-        COUNT(DISTINCT session_id)::int AS sessions
-      FROM analytics_events
-      WHERE "timestamp" >= (EXTRACT(EPOCH FROM NOW() - (${rangeInterval})::interval) * 1000)::bigint
-        AND event_name IN ('step_entered', 'generation_started', 'section_completed')
-        AND event_data->>'step' = ANY(${FUNNEL_STEP_IDS})
-        AND session_id IS NOT NULL
-      GROUP BY event_data->>'step', event_name
+        s.sid AS step,
+        (SELECT COUNT(*)::int FROM furthest f WHERE f.mx >= s.ord)                                               AS entered,
+        (SELECT COUNT(*)::int FROM base b WHERE NULLIF(TRIM(b.profile_state->'outputs'->>s.sid), '') IS NOT NULL) AS generated,
+        (SELECT COUNT(*)::int FROM base b WHERE (b.profile_state->'done') ? s.sid)                               AS completed
+      FROM steps s
+      ORDER BY s.ord
     `,
+
     // Panel 4a: inferred regenerations per step. generation_started count
     // minus section_completed count per step (floored at 0). Coarse proxy;
     // see the design brief for the per-session inference we deliberately
@@ -305,24 +323,23 @@ async function loadAggregate(rangeInterval, adminEmails) {
   const np = npsBuckets[0] || { promoters: 0, passives: 0, detractors: 0, total: 0 }
   const inc = incomeUsage[0] || { users_with_income_output: 0, users_with_income_done: 0 }
 
-  // Reshape the funnel rows: { step -> { entered, generated, completed } }
+  // Funnel rows already carry entered / generated / completed per step from
+  // the profile_state query above. Map them in canonical FUNNEL_STEP_IDS
+  // order and derive drop-off.
   const funnelByStep = {}
-  for (const sid of FUNNEL_STEP_IDS) funnelByStep[sid] = { entered: 0, generated: 0, completed: 0 }
-  for (const row of funnelRows) {
-    if (!funnelByStep[row.step]) continue
-    if (row.event_name === 'step_entered')       funnelByStep[row.step].entered   = row.sessions
-    if (row.event_name === 'generation_started') funnelByStep[row.step].generated = row.sessions
-    if (row.event_name === 'section_completed')  funnelByStep[row.step].completed = row.sessions
-  }
-  const funnel = FUNNEL_STEP_IDS.map(sid => ({
-    step:      sid,
-    entered:   funnelByStep[sid].entered,
-    generated: funnelByStep[sid].generated,
-    completed: funnelByStep[sid].completed,
-    drop_off_rate: funnelByStep[sid].entered > 0
-      ? Number((1 - funnelByStep[sid].completed / funnelByStep[sid].entered).toFixed(3))
-      : null,
-  }))
+  for (const row of funnelRows) funnelByStep[row.step] = row
+  const funnel = FUNNEL_STEP_IDS.map(sid => {
+    const r = funnelByStep[sid] || { entered: 0, generated: 0, completed: 0 }
+    return {
+      step:      sid,
+      entered:   r.entered,
+      generated: r.generated,
+      completed: r.completed,
+      drop_off_rate: r.entered > 0
+        ? Number((1 - r.completed / r.entered).toFixed(3))
+        : null,
+    }
+  })
 
   // Inferred regenerations per step (started - completed, floored at 0).
   const regenerations = regenRows.map(r => ({
