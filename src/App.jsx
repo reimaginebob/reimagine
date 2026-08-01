@@ -11,7 +11,7 @@ import { findPersonalBrandTailBoundary, parsePersonalBrandTail, validatePersonal
 // their own .mjs module so they can be unit-tested without loading the
 // JSX-bearing App.jsx. stripCoachSpeak wraps the callClaude return chain;
 // applyContaminationPlaceholders runs in the voice gate recovery branch.
-import { stripCoachSpeak, applyContaminationPlaceholders, stripLogicFlipCadence, stripSincerityQualifiers, stripRoomsPlaceholder, stripMetaNarration } from "./text-strippers.mjs"
+import { stripCoachSpeak, applyContaminationPlaceholders, stripLogicFlipCadence, stripSincerityQualifiers, stripRoomsPlaceholder, stripMetaNarration, stripCoverLetterBoilerplate } from "./text-strippers.mjs"
 import { asText, formatSkills, buildSynthesisContext, buildUserProfileBlock } from "./profile-block.mjs"
 import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from "./corrections.js"
@@ -1150,23 +1150,22 @@ function bridgeStoryToProse(v){
 // inside the op case body so the footer gate (showPlaybookFooter) and the
 // inline "All five sections built" cue can share the same five-card definition.
 // Keys mirror the PR #114 / PR #115 op surface: p5, p6, p_res, p11, companyRead.
+// Counted op sections, in display order. Single source of truth for the "N of 6"
+// metric + the Save-as-PDF completion gates + the section rail. Interview Team
+// (panel) is intentionally NOT here — it is un-numbered and excluded from the count.
+const OP_COUNTED_KEYS=['companyRead','p5','p6','p_res','p_cover','p11']
+function _opSectionBuilt(sec,k){
+  const v=sec[k]
+  if(k==='p6')return !!(v&&bridgeStoryToProse(v).trim())
+  return !!(v&&v.content&&v.content.trim())
+}
 function _opAnyBuiltFor(record){
   if(!record||record.schemaVersion!==2||!record.sections)return false
-  const sec=record.sections
-  return ['p5','p6','p_res','p11','companyRead'].some(k=>{
-    const v=sec[k]
-    if(k==='p6')return !!(v&&bridgeStoryToProse(v).trim())
-    return !!(v&&v.content&&v.content.trim())
-  })
+  return OP_COUNTED_KEYS.some(k=>_opSectionBuilt(record.sections,k))
 }
 function _opAllBuiltFor(record){
   if(!record||record.schemaVersion!==2||!record.sections)return false
-  const sec=record.sections
-  return ['p5','p6','p_res','p11','companyRead'].every(k=>{
-    const v=sec[k]
-    if(k==='p6')return !!(v&&bridgeStoryToProse(v).trim())
-    return !!(v&&v.content&&v.content.trim())
-  })
+  return OP_COUNTED_KEYS.every(k=>_opSectionBuilt(record.sections,k))
 }
 // interviewPrepToProse (PR — op PDF export): markdown-flattens the p11
 // structured JSON for the hidden PDF assembled-doc block. Lifted from the p11
@@ -1803,6 +1802,11 @@ OUTPUT-GUARD (load-bearing): never compare the candidate to "most candidates," "
 // approach. In voice-allow for the same reason as AUDIENCE_ANCHORING (quotes
 // "most candidates" as a negative example).
 const AUDIENCE_PRIORITY_CLAUSE = (sel) => `weighted by what the audience hiring for ${sel} actually cares about when evaluating candidates: their function (recruiter, hiring manager, executive, board), the 3-5 specific decision criteria they apply for this kind of role and this industry, and which candidate signals they would foreground for those criteria. Refuse generic priorities ("strong communication skills," "team player") that could apply to any role. The audience-priority list is silent reasoning; do not emit it. The same OUTPUT-GUARD as AUDIENCE_ANCHORING applies: never compare the candidate to "most candidates" or any unnamed group, and never lecture about what "this role wants" in the output text.`;
+// Shared direct-outreach voice (Making Your Own Weather). Consumed by
+// P.p7_part3_regen and P.p_cover so the cover letter reads as the sibling of
+// the outreach template. The main P.p7 keeps its own inline copy for now —
+// unifying that ~50KB template literal is a separate, higher-risk refactor.
+const DIRECT_OUTREACH_VOICE='never condescending about what the company needs; no transactional language about their mission; no sales jargon ("repeatable sales process", "sales engine", "pipeline", "revenue growth"); no logic-flip constructions; no buzzwords ("architecting", "ecosystem", "leverage", "platform", "synergy", "navigate", "journey", "lean in", "double down", "circle back"). It should sound like someone who genuinely cares about what the company does.'
 const P={
   // Stage one (Personal Brand): the lean analysis. A short coach frame plus the
   // full raw inputs, run "free" against a safety-only system prompt. No
@@ -2247,7 +2251,7 @@ Use the strongest company from the list below as the example, following the Maki
 - Paragraph 3, why there might be a fit: connect their world to the candidate's; the ask is simply 15-30 minutes, not "please consider me for a role."
 Then a short personalization guide naming 3 elements to tailor per company.
 
-OUTREACH VOICE: never condescending about what the company needs; no transactional language about their mission; no sales jargon ("repeatable sales process", "sales engine", "pipeline", "revenue growth"); no logic-flip constructions; no buzzwords ("architecting", "ecosystem", "leverage", "platform", "synergy", "navigate", "journey", "lean in", "double down", "circle back"). It should sound like someone who genuinely cares about what the company does.
+OUTREACH VOICE: ${DIRECT_OUTREACH_VOICE}
 
 HIRING-EXECUTIVE CONTEXT (Part 1):
 ${part1Text||'(none)'}
@@ -2259,6 +2263,44 @@ USER FEEDBACK ON PART 3:
 ${(correctionText||'').trim()||'(no specific feedback; produce a stronger, more human version)'}
 
 OUTPUT: the outreach email and personalization guide as prose only. No JSON, no headers beyond the email itself, no preamble, no code fences.`,
+  p_cover:(pc,brand,bridgeStory,resumeRefresh,companyReadText,roleFit,jd,companyName,sel)=>`Write a short, modern cover letter draft for this person applying to a specific posting${sel?` (they are pursuing **${sel}**)`:''}. It is a first draft they will adapt: a strong starting point in their own voice, not a finished letter.
+
+This is the sibling of the direct-outreach email. Same Making Your Own Weather energy, adapted for the case where they are responding to a posting. THREE short paragraphs, 250-350 words total.
+- Opening (~50-75 words), a specific hook: their genuine connection to this role, this company, or the problem the role exists to solve, drawn from the posting or About This Company below. Never open with "I am writing to apply for" or "I am excited to".
+- Body (~150-200 words): the pivot narrative from the Bridge Story below, compressed and tuned to what THIS posting weights most. Anchor on ONE or TWO accomplishments the Resume Refresh already elevated, restated as narrative and interpreted for this role. Do not enumerate more than two accomplishments; this is not the resume in prose.
+- Close (~50-75 words): interest plus a specific next-step invitation (a conversation, a meeting). A conversational close, not a formal signoff.
+
+RESUME EQUALS EVIDENCE, COVER LETTER EQUALS MEANING. The resume lists the facts. This letter interprets one or two of them for this role and adds what the resume structurally cannot carry:
+- WHY: the motivation and the thematic connection to this company or role.
+- WHAT IS NEXT: the specific ask and the invitation to a conversation.
+- HUMAN CONTEXT: why this role, this company, matters to this person right now.
+If a reader reads the resume and then this letter, they should learn something new in the letter, not meet the resume again in prose form.
+
+FIDELITY: cite only evidence present in the resume / Resume Refresh below. Never invent a number, a title, a company, or a fact. The narrative frame MUST match the Bridge Story's frame below; do not tell a parallel story.
+
+VOICE: the person's own voice from their Personal Brand. ${DIRECT_OUTREACH_VOICE} No "Dear Hiring Manager", no "To Whom It May Concern", no "Thank you for considering my application", no "I look forward to hearing from you", no "I am writing to apply". These read as corporate distance, not warmth. No em dashes. No logic-flip cadence. No comparative standing against unnamed groups. Lead with the human; translate credentials into what they mean.
+
+COMPANY: ${companyName||'(unspecified)'}
+
+JOB POSTING:
+${(jd||'').slice(0,4000)||'(none)'}
+
+PERSONAL BRAND:
+${brand||'(not built yet; work from the posting and resume)'}
+
+BRIDGE STORY (the frame this letter's body must follow):
+${bridgeStory||'(not built yet)'}
+
+RESUME REFRESH (draw the one or two accomplishments from here):
+${resumeRefresh||'(not built yet)'}
+
+ABOUT THIS COMPANY (for the opening hook):
+${companyReadText||'(not built)'}
+
+WHERE THEY FIT (role framing):
+${roleFit||'(not built)'}
+
+OUTPUT: the cover letter body as prose only. No salutation line, no signature block, no headers, no preamble, no code fences.`,
   p11_question_regen:(pr,outs,sel,life,questionIdx,currentQuestion,otherQuestionTexts,correctionText,jdContext='')=>{const qType=(currentQuestion&&currentQuestion.type)||'behavioral';const qId=(currentQuestion&&currentQuestion.id)||('q'+(questionIdx+1));const behavioralShape='SHAPE: this question is behavioral. The regenerated version MUST include a complete star_breakdown with S, T, A, R sub-sections. S carries raw_material, relevance_bridge_draft, and to_strengthen, each a non-empty string. T, A, R each carry raw_material and to_strengthen, each a non-empty string. raw_material draws from the verbatim inputs below; do not invent specifics not in the inputs. to_strengthen names what specific addition would sharpen this STAR sub-section.';const nonBehavioralShape='SHAPE: this question is non_behavioral. Produce a non_behavioral question with a non-empty framing_recommendation only (no star_breakdown).';const starOutput='"star_breakdown": { "S": { "raw_material": "specific moment from inputs", "relevance_bridge_draft": "short opener bridging to the role", "to_strengthen": "what to add" }, "T": { "raw_material": "...", "to_strengthen": "..." }, "A": { "raw_material": "...", "to_strengthen": "..." }, "R": { "raw_material": "...", "to_strengthen": "..." } }';const nonBehavioralOutput='"framing_recommendation": "plain-language framing this person can use to answer"';return `You are regenerating ONE Interview Prep question for this person while preserving every OTHER question in the set untouched. They are pursuing: **${sel}**.\\n\\nQUESTION INDEX TO REGENERATE: ${questionIdx+1} (1-based)\\n\\nUSER FEEDBACK ON THIS QUESTION:\\n${(correctionText||'').trim()||'(no specific feedback; produce a sharper version that addresses obvious weaknesses)'}\\n\\nTHE CURRENT VERSION OF THIS QUESTION (do not repeat the same prompt; do not pull the same raw_material verbatim; bring a sharper angle that responds to the feedback above):\\n${JSON.stringify(currentQuestion,null,2)}\\n\\nTHE OTHER QUESTIONS IN THIS SET (do NOT duplicate the prompt of any of these; do NOT pull source material another question already uses):\\n${(otherQuestionTexts||[]).map((q,i)=>(i+1)+'. '+q).join('\\n')}\\n\\n${jdContext?'JD CONTEXT (scope this question to the specific opportunity, lane-independent):\\n'+jdContext+'\\n\\n':''}VOICE RULES (load-bearing):\\n- Never use "room" or "rooms" as a generic synonym for situation, conversation, or audience. Use situation, conversation, interview, screen, panel, or meeting.\\n- No logic-flip cadence ("not X, you Y" / "is not Z, it is W"). State the positive claim on its own.\\n- No comparative standing against unnamed groups ("most people", "many candidates", "where others X").\\n- No AI-coaching register ("sit with this", "lean into", "hold space for", "trust the process").\\n- No absolutism ("every", "always", "the most", "the only").\\n- No mind-reading ("your conviction that X" / "your mission is X" unless verbatim from raw signals).\\n- No slogan cadence ("X is the Y. Z is the W.").\\n\\n${qType==='behavioral'?behavioralShape:nonBehavioralShape}\\n\\nframework_thread: if a framework the candidate uses applies cleanly to this question, name it (one or two words). Otherwise null.\\n\\nINPUTS:\\n\\nPROFILE: ${asText(outs.p3)}\\n\\nRAW SIGNALS (verbatim; do not paraphrase back):\\nVALUES: ${pr.values||'not provided'}\\nPASSIONS AND CAUSES: ${pr.passions||'not provided'}\\nPRAISE THEY RECEIVE: ${pr.rep.memory||'not provided'}\\nWHO CALLS THEM IN EMERGENCY: ${pr.rep.emergency||'not provided'}\\nHOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${pr.rep.twoWords||'not provided'}\\nOTHER REPUTATION DATA: ${pr.rep.other||'not provided'}\\nLIFE-SHAPING EXPERIENCES: ${life||'not provided'}\\nASSESSMENT TYPE: ${pr.assessType||'not provided'}\\nASSESSMENT NOTES: ${pr.assess||'not provided'}\\nFRAMEWORKS THEY USE: ${Array.isArray(pr.frameworks)&&pr.frameworks.length?pr.frameworks.join(', '):'not provided'}\\n\\nOUTPUT REQUIRED: a single JSON object wrapping just the regenerated question under the key "question". Return ONLY the JSON. No preamble, no markdown code fences. Start with { and end with }.\\n\\n{\\n  "question": {\\n    "id": "${qId}",\\n    "question": "the new question prompt",\\n    "type": "${qType}",\\n    "framework_thread": null,\\n    ${qType==='behavioral'?starOutput:nonBehavioralOutput}\\n  }\\n}`},
   // Interview Panel web research (PR 4): one light, public-domain pass on a single
   // interviewer. Confirms identity, surfaces sourced public signal, stays a
@@ -5865,6 +5907,56 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
     }
   }
+  // Cover Letter (op-cover-letter brief 2026-06-29): sibling of the p7 outreach
+  // template, derived from the op Bridge Story + op Resume Refresh + Personal
+  // Brand. Its own function (not the generateOpSection dispatch) because it needs
+  // the async company-name resolution + graceful bail, mirroring
+  // generateOpCompanyRead. Manual build; never auto-chains from p5. Applies
+  // stripCoverLetterBoilerplate as the deterministic backstop for banned
+  // salutations/closings.
+  const generateOpCoverLetter=async(correctionText)=>{
+    const slotId=currentSavedSlotIdRef.current
+    if(!slotId||opSectionBuilding)return
+    const jd=(profile.jd||'').trim()
+    if(!jd){setOpSectionErrors(e=>({...e,p_cover:'Add a job description for this opportunity first.'}));return}
+    setOpSectionBuilding('p_cover');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,p_cover:null}))
+    const reqId=++opSectionReqRef.current
+    try{
+      const rec0=savedPlaybooks.find(r=>r.id===slotId)
+      let companyName=((rec0&&rec0.company)||'').trim()
+      if(!companyName){const meta=await inferJdMetadata(jd);companyName=(meta.company||'').trim()}
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      if(!companyName){
+        setOpSectionErrors(e=>({...e,p_cover:"We couldn't identify the company from this posting. Paste the full job description text — not just a link — then rebuild the Cover Letter."}))
+        return
+      }
+      const _s=(rec0&&rec0.sections)||{}
+      const opP6=(_s.p6&&bridgeStoryToProse(_s.p6).trim())?_s.p6:outputs.p6
+      const bridgeStory=bridgeStoryToProse(opP6)
+      const resumeRefresh=((_s.p_res&&_s.p_res.content)||'').trim()||asText(pc.resume)
+      const companyReadText=((_s.companyRead&&_s.companyRead.content)||'').trim()
+      const roleFit=((_s.p5&&_s.p5.content)||'').trim()
+      const brand=asText(outputs.p3)
+      const lv=opLaneValue(rec0)
+      const laneLabel=opLaneLabel(lv)
+      const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
+      const fn=()=>correctionsBlock(profile.corrections)+P.p_cover(pc,brand,bridgeStory,resumeRefresh,companyReadText,roleFit,jd,companyName,laneLabel)+corrTail
+      const r=await callClaudeWithVoiceGate(fn,{maxTokens:1600,voiceMode:'prose',profileBlock:buildUserProfileBlock(pc,{...outputs,p6:opP6}),step:'op-cover-letter'},{step:'op-cover-letter',onEvent:logVoiceEvent})
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      const cleaned=stripCoverLetterBoilerplate(typeof r==='string'?r:'')
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId)return rec
+        const sections={...(rec.sections||{})}
+        sections.p_cover={...(sections.p_cover||{}),content:cleaned,builtAt:new Date().toISOString(),builtLane:lv}
+        return{...rec,sections,updatedAt:new Date().toISOString()}
+      }))
+      setCurrentRoleSaved(false)
+    }catch(e){
+      if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,p_cover:e.message||'Generation failed. Try again.'}))
+    }finally{
+      if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
+    }
+  }
   // Interview Panel web research (PR 4): explicit, per-interviewer, user-initiated.
   // Single-flight (researchingIvId). Reuses the Company Read web-search + citation
   // gate via meta.step==='panel-interviewer-read'. Writes an unconfirmed research
@@ -5930,6 +6022,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     recordCorrection(cardKey,correctionText)
     if(cardKey==='companyRead'){
       generateOpCompanyRead(correctionText)
+    }else if(cardKey==='p_cover'){
+      generateOpCoverLetter(correctionText)
     }else{
       generateOpSection(cardKey,undefined,correctionText)
     }
@@ -7308,7 +7402,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // Prep, the output it feeds.
       const _panelPopulated=(()=>{const p=getOpPanel(_opRec);return !!((p.opportunity_context&&p.opportunity_context.trim())||p.interviewers.length)})()
       const opRailDone=['p5','p6','p_res','p11','companyRead'].filter(opCardDone).concat(_panelPopulated?['panel']:[])
-      const opSections=[{id:'companyRead',label:'About This Company',num:1},{id:'p5',label:'Where you fit',num:2},{id:'p6',label:'Bridge Story',num:3},{id:'p_res',label:'Resume Refresh',num:4},{id:'panel',label:'Interview Team'},{id:'p11',label:'Interview Prep',num:5}]
+      const opSections=[{id:'companyRead',label:'About This Company',num:1},{id:'p5',label:'Where you fit',num:2},{id:'p6',label:'Bridge Story',num:3},{id:'p_res',label:'Resume Refresh',num:4},{id:'p_cover',label:'Cover Letter',num:5},{id:'panel',label:'Interview Team'},{id:'p11',label:'Interview Prep',num:6}]
       // cards-only markDone criterion: legacy v1 (outputs.op truthy) OR any v2 card built
       if((outputs.op||_anyOpCardBuilt)&&!done.includes('op'))markDone('op')
       return <div>
@@ -7423,6 +7517,33 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </>,'section-p6')}
               {_simpleCard('p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize the competencies this role asks for. The rest of your resume can stay as it is.')}
               {(()=>{
+                // Cover Letter (op-cover-letter brief 2026-06-29): sibling of the p7
+                // outreach template, part of the application packet. Manual build.
+                // Non-blocking dependency soft-note: the strongest letter derives
+                // from the op Bridge Story + Resume Refresh (same-page, scroll) and
+                // the Personal Brand (nav). Build stays enabled either way.
+                const _covBuilt=!!(_sec.p_cover&&_sec.p_cover.content&&_sec.p_cover.content.trim())
+                const _covBusy=opSectionBuilding==='p_cover'&&opBuildingSlot===currentSavedSlotIdRef.current
+                const _needBridge=!(_sec.p6&&bridgeStoryToProse(_sec.p6).trim())
+                const _needResume=!(_sec.p_res&&_sec.p_res.content&&_sec.p_res.content.trim())
+                const _needBrand=!(outputs.p3&&asText(outputs.p3).trim())
+                return _cardWrap(<>
+                  {_head('Cover Letter','A short draft letter tuned to this posting: the same energy as your outreach, adapted for applying through a posting. Part of your application packet.',_covBuilt,()=>generateOpCoverLetter(),_covBusy?'Building…':_covBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
+                  {!isDemo&&!_covBuilt&&(_needBridge||_needResume||_needBrand)&&<div style={{marginTop:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:8,padding:'12px 14px',fontSize:15,color:'#1A2540',lineHeight:1.55}}>
+                    Building these first makes this cover letter stronger. It will still generate without them.
+                    <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>
+                      {_needBrand&&<Btn small secondary onClick={()=>nav('p3')}>Personal Brand</Btn>}
+                      {_needBridge&&<Btn small secondary onClick={()=>scrollToOutput('p6')}>Bridge Story ↑</Btn>}
+                      {_needResume&&<Btn small secondary onClick={()=>scrollToOutput('p_res')}>Resume Refresh ↑</Btn>}
+                    </div>
+                  </div>}
+                  {opSectionErrors.p_cover&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.p_cover}/></div>}
+                  {_covBusy&&<div style={{marginTop:14}}><Loading msg="Building Cover Letter…" step="p_cover"/></div>}
+                  {_covBuilt&&<div style={{marginTop:14}}>{_renderSection('p_cover',_sec.p_cover.content)}</div>}
+                  {_covBuilt&&!isDemo&&<RefineBox value={feedback.p_cover||''} onChange={v=>setFb('p_cover',v)} hint="Tell us what to refine on this card. Your existing card stays as-is until you submit." onRegenerate={v=>refineOpCard('p_cover',v)} onlyUpdateButton={true}/>}
+                </>,'section-p_cover')
+              })()}
+              {(()=>{
                 // Interview Panel editor — storage + UI only (no generation, no
                 // coach, no web research; those are later PRs). Reads/writes the
                 // active door2 record's panel via getOpPanel/updateOpPanel; the
@@ -7532,7 +7653,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   footer with an in-context affordance at the bottom of the
                   cards block. */}
               {!isDemo&&_opAllBuiltFor(_rec)&&<div data-print="hide" style={{marginTop:18,padding:'12px 16px',background:`${C.ok}12`,border:`1px solid ${C.ok}40`,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-                <div style={{fontSize:15,color:C.ok}}>All five sections built.</div>
+                <div style={{fontSize:15,color:C.ok}}>All six sections built.</div>
                 <Btn small secondary onClick={savePlaybookPdf}><Printer size={11}/>Save as PDF</Btn>
               </div>}
             </div>
@@ -7549,7 +7670,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               order; each card renders via its print-safe transform. */}
           {opIsV2&&_anyOpCardBuilt&&<div data-print="content" className="pe-print-opportunity" style={{display:'none'}}>
             <div className="pe-print-head"><div style={{fontSize:13,fontWeight:700,letterSpacing:'1px',color:'#C8924A',textTransform:'uppercase'}}>Reimagine · career.club</div><div style={{fontSize:26,fontWeight:700,fontFamily:'Georgia,serif',color:'#1A2540',marginTop:4}}>{(()=>{const t=(profile.jd||'').split('\n').find(l=>l.trim())||'Your Opportunity Playbook';return t.length>80?t.slice(0,80)+'…':t})()}</div></div>
-            {[{id:'companyRead',label:'About This Company'},{id:'p5',label:'The Role'},{id:'p6',label:'Bridge Story'},{id:'p_res',label:'Resume Refresh'},{id:'p11',label:'Interview Prep'}].filter(c=>opCardDone(c.id)).map(c=>{
+            {[{id:'companyRead',label:'About This Company'},{id:'p5',label:'The Role'},{id:'p6',label:'Bridge Story'},{id:'p_res',label:'Resume Refresh'},{id:'p_cover',label:'Cover Letter'},{id:'p11',label:'Interview Prep'}].filter(c=>opCardDone(c.id)).map(c=>{
               const card=_opSec[c.id]
               let body=null
               if(c.id==='p5')body=<MD text={card.content}/>
@@ -7557,6 +7678,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               else if(c.id==='p_res')body=<pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',margin:0}}>{(()=>{const j=parseResumeJSON(card.content);return j?renderResumeText(j):card.content})()}</pre>
               else if(c.id==='p11')body=<MD text={interviewPrepToProse(card.content)}/>
               else if(c.id==='companyRead')body=<MD text={card.content}/>
+              else if(c.id==='p_cover')body=<MD text={card.content}/>
               return <section key={c.id} className="pe-print-section">
                 <h2 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>{c.label}</h2>
                 {body}

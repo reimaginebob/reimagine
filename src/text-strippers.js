@@ -247,6 +247,21 @@ export function stripSincerityQualifiers(text) {
 // the em-dash ban; em dashes are now normal punctuation the model uses freely.)
 //
 // voice-allow
+// Cover-letter boilerplate stripper (op-cover-letter brief 2026-06-29). Deterministic
+// backstop for the salutation/closing phrases the cover-letter voice bans, since the
+// prompt directive binds only probabilistically. Removes standalone corporate
+// salutation lines and the two canned closings wherever they appear, then collapses
+// the blank lines left behind. Prose between them is untouched.
+export function stripCoverLetterBoilerplate(text) {
+  if (typeof text !== 'string' || !text) return text
+  let out = text
+  // Standalone salutation lines.
+  out = out.replace(/^\s*(Dear\s+(Hiring\s+Manager|Hiring\s+Team|Sir\s+or\s+Madam|Recruiter)|To\s+Whom\s+It\s+May\s+Concern)\s*[,:]?\s*$/gim, '')
+  // Canned closings, inline or standalone.
+  out = out.replace(/\s*(Thank you for considering my application|Thank you for your consideration|I look forward to hearing from you)[.!]?/gi, '')
+  out = out.replace(/\n{3,}/g, '\n\n').trim()
+  return out
+}
 export function stripRoomsPlaceholder(text) {
   if (typeof text !== 'string' || !text) return text
   let out = text
