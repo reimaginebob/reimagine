@@ -19,15 +19,16 @@ Use it when:
 
 ## What this module produces
 
-You paste a job description or upload it as a PDF. Reimagine creates an Opportunity Playbook scoped to that role with five sections. Two of them, The Role and About This Company, start building the moment you submit the posting, because they need nothing from you beyond the JD itself. The other three you build when you want them, in about 30 seconds each. Every section is saved with this opportunity:
+You paste a job description or upload it as a PDF. Reimagine creates an Opportunity Playbook scoped to that role with six sections. Two of them, The Role and About This Company, start building the moment you submit the posting, because they need nothing from you beyond the JD itself. The other four you build when you want them. Every section is saved with this opportunity:
 
 - **The Role** — an honest read on alignment with the direction you are pursuing, where the role stretches you, and the watch-outs you should know going in.
 - **Bridge Story** — a 30-second tell-me-about-yourself answer tuned to this role. Generate it, then refine it in the feedback box until it sounds like you saying it.
 - **Resume Refresh** — a repositioned summary and key accomplishments that emphasize the competencies this role asks for.
+- **Cover Letter** — a short draft letter tuned to this posting, in your own voice. It is the sibling of your Go-to-Market outreach: the same direct, human energy, adapted for when you are responding to a posting. It is part of your application packet with your Bridge Story and Resume Refresh, tuned so they read as one voice rather than repeating each other. It draws on those two, so building them first makes the letter stronger (it will still generate without them). It addresses the company by name, so it needs a posting Reimagine can identify the company from.
 - **Interview Prep** — the questions this role's interview cycle is most likely to ask, each with a structured answer (STAR) drawn from your own experience.
 - **About This Company** — a read on the company beyond what you would find on Glassdoor: news from the last 90 days, the employee voice, industry-specific signal (CMS Star Ratings for hospital systems, GitHub cadence for tech, FINRA filings for financial services, and similar), the leadership's public footprint, and watch-outs named honestly. Every numeric or named factual claim cites its source URL inline; the card uses live web search.
 
-Each section is independent. The Role and About This Company are already underway from the moment you submit; for the other three, build the ones that help most for the role you care about and leave the rest. A section rail on the left of the page lists the five sections; each entry shows a check once it is built, so you can see your progress at a glance. Click any entry to jump to it.
+Each section is independent. The Role and About This Company are already underway from the moment you submit; for the others, build the ones that help most for the role you care about and leave the rest. A section rail on the left of the page lists the sections; each entry shows a check once it is built, so you can see your progress at a glance. Click any entry to jump to it.
 
 ## How to find it
 
