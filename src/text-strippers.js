@@ -259,6 +259,10 @@ export function stripCoverLetterBoilerplate(text) {
   out = out.replace(/^\s*(Dear\s+(Hiring\s+Manager|Hiring\s+Team|Sir\s+or\s+Madam|Recruiter)|To\s+Whom\s+It\s+May\s+Concern)\s*[,:]?\s*$/gim, '')
   // Canned closings, inline or standalone.
   out = out.replace(/\s*(Thank you for considering my application|Thank you for your consideration|I look forward to hearing from you)[.!]?/gi, '')
+  // Em/en dashes: the prompt bans them but the model still emits them
+  // occasionally (observed on the first live gen, Operation HOPE, 2026-06-29).
+  // Normalize to a comma so the banned construction never reaches the user.
+  out = out.replace(/\s*[—–]\s*/g, ', ').replace(/,\s*,/g, ',')
   out = out.replace(/\n{3,}/g, '\n\n').trim()
   return out
 }

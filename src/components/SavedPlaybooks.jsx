@@ -38,14 +38,16 @@ const ROLE_OUTPUT_KEYS = ['p5','p6','p7','p8','p9','p11','p_res','income']
 
 function sectionsBuilt(rec) {
   if (rec.source === 'door2') {
-    // v2 records (cards-only architecture): count built per-card sections out of four.
+    // v2 records (cards-only architecture): count built per-card sections. Six
+    // counted cards, matching OP_COUNTED_KEYS in App.jsx (companyRead, p5, p6,
+    // p_res, p_cover, p11); Interview Team is un-numbered and excluded. (Older
+    // records simply have the new cards unbuilt.)
     if (rec.schemaVersion === 2 && rec.sections) {
       const sec = rec.sections
-      const p5  = !!(sec.p5  && sec.p5.content  && sec.p5.content.trim())
+      const done = k => !!(sec[k] && sec[k].content && sec[k].content.trim())
       const p6  = !!(sec.p6  && (typeof sec.p6 === 'string' ? sec.p6.trim() : (sec.p6.content?.trim() || sec.p6.bridge_story)))
-      const pr2 = !!(sec.p_res && sec.p_res.content && sec.p_res.content.trim())
-      const p11 = !!(sec.p11 && sec.p11.content && sec.p11.content.trim())
-      return { built: [p5, p6, pr2, p11].filter(Boolean).length, total: 4 }
+      const built = [done('companyRead'), done('p5'), p6, done('p_res'), done('p_cover'), done('p11')].filter(Boolean).length
+      return { built, total: 6 }
     }
     // Legacy v1 fallback: preserve the original 1-of-1 formula so older records
     // (created before the cards-only architecture) read sensibly in the dashboard.
