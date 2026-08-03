@@ -2263,44 +2263,46 @@ USER FEEDBACK ON PART 3:
 ${(correctionText||'').trim()||'(no specific feedback; produce a stronger, more human version)'}
 
 OUTPUT: the outreach email and personalization guide as prose only. No JSON, no headers beyond the email itself, no preamble, no code fences.`,
-  p_cover:(pc,brand,bridgeStory,resumeRefresh,companyReadText,roleFit,jd,companyName,sel)=>`Write a short, modern cover letter draft for this person applying to a specific posting${sel?` (they are pursuing **${sel}**)`:''}. It is a first draft they will adapt: a strong starting point in their own voice, not a finished letter.
+  p_cover:(pc,brand,resumeRefresh,companyReadText,roleFit,jd,companyName,candidateName,sel)=>`Write a cover letter draft for this person applying to a specific posting${sel?` (they are pursuing **${sel}**)`:''}. This is a peer-to-peer direct message, the sibling of the Making Your Own Weather outreach email. It is NOT an essay, NOT a manifesto, and NOT a compressed life story. A hiring manager reads it in fifteen seconds.
 
-This is the sibling of the direct-outreach email. Same Making Your Own Weather energy, adapted for the case where they are responding to a posting. THREE short paragraphs, 250-350 words total.
-- Opening (~50-75 words), a specific hook: their genuine connection to this role, this company, or the problem the role exists to solve, drawn from the posting or About This Company below. Never open with "I am writing to apply for" or "I am excited to".
-- Body (~150-200 words): the pivot narrative from the Bridge Story below, compressed and tuned to what THIS posting weights most. Anchor on ONE or TWO accomplishments the Resume Refresh already elevated, restated as narrative and interpreted for this role. Do not enumerate more than two accomplishments; this is not the resume in prose.
-- Close (~50-75 words): interest plus a specific next-step invitation (a conversation, a meeting). A conversational close, not a formal signoff.
+HARD LIMIT: 200 words for the body (the greeting and sign-off do not count). Aim for about 185. If you go over 200, cut until you are under it.
 
-RESUME EQUALS EVIDENCE, COVER LETTER EQUALS MEANING. The resume lists the facts. This letter interprets one or two of them for this role and adds what the resume structurally cannot carry:
-- WHY: the motivation and the thematic connection to this company or role.
-- WHAT IS NEXT: the specific ask and the invitation to a conversation.
-- HUMAN CONTEXT: why this role, this company, matters to this person right now.
-If a reader reads the resume and then this letter, they should learn something new in the letter, not meet the resume again in prose form.
+SHAPE: a greeting, then exactly THREE short paragraphs, then a sign-off.
 
-FIDELITY: cite only evidence present in the resume / Resume Refresh below. Never invent a number, a title, a company, or a fact. The narrative frame MUST match the Bridge Story's frame below; do not tell a parallel story.
+GREETING: "Dear Hiring Manager," unless the posting or the About This Company text below names the specific hiring manager for THIS role, in which case use "Dear <that name>,". Never address a practice leader, a CEO, or another senior figure who is not the hiring manager for this posting.
 
-VOICE: the person's own voice from their Personal Brand. ${DIRECT_OUTREACH_VOICE} No "Dear Hiring Manager", no "To Whom It May Concern", no "Thank you for considering my application", no "I look forward to hearing from you", no "I am writing to apply". These read as corporate distance, not warmth. No em dashes. No logic-flip cadence. No comparative standing against unnamed groups. Lead with the human; translate credentials into what they mean.
+PARAGRAPH 1 (2-3 sentences), why this role and why now. Open with what this team or practice actually does, in the posting's own terms, tied to ONE specific piece of the company's current direction from the About This Company text (a recent move, a stated priority, a shift they are making). Then name the role. Do NOT open with a personal thesis or a manifesto ("I have spent my career..."). Do NOT open with "I am writing to" or any stock phrase.
+
+PARAGRAPH 2 (2-3 sentences), how you fit. ONE accomplishment. Exactly one, not two, not three. Pull the single strongest one for THIS role from the Resume Refresh / resume below, with its real numbers. Frame what it demonstrates about how this person operates, the pattern, not just the fact. Then one sentence connecting that instinct to the value it would create in this role.
+
+PARAGRAPH 3 (2-3 sentences), the ask. Employer-centric: ask about THEIR work, their current client engagements, the team's focus, the problem they are solving now. Not "how this looks on my side" and not "how the firm thinks about X"; both are self-focused. Thank them for their time. If the resume below includes an email or phone, close with "You can reach me at <email> or <phone>."; never invent contact details.
+
+SIGN-OFF: "Best," on its own line, then the candidate's name: ${candidateName||'the name on the resume'}.
+
+FIVE-COMPANY TEST: the letter must contain at least one fact specific to ${companyName||'this company'}, drawn from the About This Company text or the posting, that could not survive swapping the company name for a competitor. Generic industry language fails this test.
+
+ANTI-RESTATE: the one accomplishment must FRAME a pattern (what it shows about how this person operates), not restate the resume bullet.
+
+VOICE: the person's own voice from their Personal Brand. ${DIRECT_OUTREACH_VOICE} No em dashes. No "not X, Y" logic-flip cadence; state the positive directly. Do not begin more than one sentence with "That's" or "That is". No comparative standing against unnamed groups. Lead with the human; translate credentials into what they mean.
 
 COMPANY: ${companyName||'(unspecified)'}
 
 JOB POSTING:
 ${(jd||'').slice(0,4000)||'(none)'}
 
-PERSONAL BRAND:
+ABOUT THIS COMPANY (the source for the specific current-direction fact in paragraph 1):
+${companyReadText||'(not built; use the posting for the specific fact)'}
+
+RESUME REFRESH / RESUME (the source for the single accomplishment in paragraph 2, and for contact details):
+${resumeRefresh||'(not built)'}
+
+PERSONAL BRAND (voice, and how this person frames their work):
 ${brand||'(not built yet; work from the posting and resume)'}
 
-BRIDGE STORY (the frame this letter's body must follow):
-${bridgeStory||'(not built yet)'}
-
-RESUME REFRESH (draw the one or two accomplishments from here):
-${resumeRefresh||'(not built yet)'}
-
-ABOUT THIS COMPANY (for the opening hook):
-${companyReadText||'(not built)'}
-
-WHERE THEY FIT (role framing):
+WHERE THEY FIT (role framing, optional support):
 ${roleFit||'(not built)'}
 
-OUTPUT: the cover letter body as prose only. No salutation line, no signature block, no headers, no preamble, no code fences.`,
+OUTPUT: the greeting, three paragraphs, and sign-off, as prose only. No headers, no preamble, no code fences.`,
   p11_question_regen:(pr,outs,sel,life,questionIdx,currentQuestion,otherQuestionTexts,correctionText,jdContext='')=>{const qType=(currentQuestion&&currentQuestion.type)||'behavioral';const qId=(currentQuestion&&currentQuestion.id)||('q'+(questionIdx+1));const behavioralShape='SHAPE: this question is behavioral. The regenerated version MUST include a complete star_breakdown with S, T, A, R sub-sections. S carries raw_material, relevance_bridge_draft, and to_strengthen, each a non-empty string. T, A, R each carry raw_material and to_strengthen, each a non-empty string. raw_material draws from the verbatim inputs below; do not invent specifics not in the inputs. to_strengthen names what specific addition would sharpen this STAR sub-section.';const nonBehavioralShape='SHAPE: this question is non_behavioral. Produce a non_behavioral question with a non-empty framing_recommendation only (no star_breakdown).';const starOutput='"star_breakdown": { "S": { "raw_material": "specific moment from inputs", "relevance_bridge_draft": "short opener bridging to the role", "to_strengthen": "what to add" }, "T": { "raw_material": "...", "to_strengthen": "..." }, "A": { "raw_material": "...", "to_strengthen": "..." }, "R": { "raw_material": "...", "to_strengthen": "..." } }';const nonBehavioralOutput='"framing_recommendation": "plain-language framing this person can use to answer"';return `You are regenerating ONE Interview Prep question for this person while preserving every OTHER question in the set untouched. They are pursuing: **${sel}**.\\n\\nQUESTION INDEX TO REGENERATE: ${questionIdx+1} (1-based)\\n\\nUSER FEEDBACK ON THIS QUESTION:\\n${(correctionText||'').trim()||'(no specific feedback; produce a sharper version that addresses obvious weaknesses)'}\\n\\nTHE CURRENT VERSION OF THIS QUESTION (do not repeat the same prompt; do not pull the same raw_material verbatim; bring a sharper angle that responds to the feedback above):\\n${JSON.stringify(currentQuestion,null,2)}\\n\\nTHE OTHER QUESTIONS IN THIS SET (do NOT duplicate the prompt of any of these; do NOT pull source material another question already uses):\\n${(otherQuestionTexts||[]).map((q,i)=>(i+1)+'. '+q).join('\\n')}\\n\\n${jdContext?'JD CONTEXT (scope this question to the specific opportunity, lane-independent):\\n'+jdContext+'\\n\\n':''}VOICE RULES (load-bearing):\\n- Never use "room" or "rooms" as a generic synonym for situation, conversation, or audience. Use situation, conversation, interview, screen, panel, or meeting.\\n- No logic-flip cadence ("not X, you Y" / "is not Z, it is W"). State the positive claim on its own.\\n- No comparative standing against unnamed groups ("most people", "many candidates", "where others X").\\n- No AI-coaching register ("sit with this", "lean into", "hold space for", "trust the process").\\n- No absolutism ("every", "always", "the most", "the only").\\n- No mind-reading ("your conviction that X" / "your mission is X" unless verbatim from raw signals).\\n- No slogan cadence ("X is the Y. Z is the W.").\\n\\n${qType==='behavioral'?behavioralShape:nonBehavioralShape}\\n\\nframework_thread: if a framework the candidate uses applies cleanly to this question, name it (one or two words). Otherwise null.\\n\\nINPUTS:\\n\\nPROFILE: ${asText(outs.p3)}\\n\\nRAW SIGNALS (verbatim; do not paraphrase back):\\nVALUES: ${pr.values||'not provided'}\\nPASSIONS AND CAUSES: ${pr.passions||'not provided'}\\nPRAISE THEY RECEIVE: ${pr.rep.memory||'not provided'}\\nWHO CALLS THEM IN EMERGENCY: ${pr.rep.emergency||'not provided'}\\nHOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${pr.rep.twoWords||'not provided'}\\nOTHER REPUTATION DATA: ${pr.rep.other||'not provided'}\\nLIFE-SHAPING EXPERIENCES: ${life||'not provided'}\\nASSESSMENT TYPE: ${pr.assessType||'not provided'}\\nASSESSMENT NOTES: ${pr.assess||'not provided'}\\nFRAMEWORKS THEY USE: ${Array.isArray(pr.frameworks)&&pr.frameworks.length?pr.frameworks.join(', '):'not provided'}\\n\\nOUTPUT REQUIRED: a single JSON object wrapping just the regenerated question under the key "question". Return ONLY the JSON. No preamble, no markdown code fences. Start with { and end with }.\\n\\n{\\n  "question": {\\n    "id": "${qId}",\\n    "question": "the new question prompt",\\n    "type": "${qType}",\\n    "framework_thread": null,\\n    ${qType==='behavioral'?starOutput:nonBehavioralOutput}\\n  }\\n}`},
   // Interview Panel web research (PR 4): one light, public-domain pass on a single
   // interviewer. Confirms identity, surfaces sourced public signal, stays a
@@ -5932,17 +5934,28 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       }
       const _s=(rec0&&rec0.sections)||{}
       const opP6=(_s.p6&&bridgeStoryToProse(_s.p6).trim())?_s.p6:outputs.p6
-      const bridgeStory=bridgeStoryToProse(opP6)
       const resumeRefresh=((_s.p_res&&_s.p_res.content)||'').trim()||asText(pc.resume)
       const companyReadText=((_s.companyRead&&_s.companyRead.content)||'').trim()
       const roleFit=((_s.p5&&_s.p5.content)||'').trim()
       const brand=asText(outputs.p3)
+      const candidateName=deriveDisplayName(profile.resume)
       const lv=opLaneValue(rec0)
       const laneLabel=opLaneLabel(lv)
       const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
-      const fn=()=>correctionsBlock(profile.corrections)+P.p_cover(pc,brand,bridgeStory,resumeRefresh,companyReadText,roleFit,jd,companyName,laneLabel)+corrTail
-      const r=await callClaudeWithVoiceGate(fn,{maxTokens:1600,voiceMode:'prose',profileBlock:buildUserProfileBlock(pc,{...outputs,p6:opP6}),step:'op-cover-letter'},{step:'op-cover-letter',onEvent:logVoiceEvent})
+      const opts={maxTokens:1600,voiceMode:'prose',profileBlock:buildUserProfileBlock(pc,{...outputs,p6:opP6}),step:'op-cover-letter'}
+      const meta={step:'op-cover-letter',onEvent:logVoiceEvent}
+      const _wc=s=>(String(s||'').trim().match(/\S+/g)||[]).length
+      const fn=()=>correctionsBlock(profile.corrections)+P.p_cover(pc,brand,resumeRefresh,companyReadText,roleFit,jd,companyName,candidateName,laneLabel)+corrTail
+      let r=await callClaudeWithVoiceGate(fn,opts,meta)
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      // Firm ~200-word cap: one retry if the model overshoots (reshape 2026-06-29
+      // — the first ship ran long and essay-like against Bob's short mockup).
+      if(_wc(r)>210){
+        const fn2=()=>fn()+`\n\nThe previous draft ran ${_wc(r)} words, which is too long. Rewrite it under 200 words, keeping the greeting, three short paragraphs, and the sign-off.`
+        const r2=await callClaudeWithVoiceGate(fn2,opts,meta)
+        if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+        if(typeof r2==='string'&&r2.trim())r=r2
+      }
       const cleaned=stripCoverLetterBoilerplate(typeof r==='string'?r:'')
       setSavedPlaybooks(prev=>prev.map(rec=>{
         if(rec.id!==slotId)return rec

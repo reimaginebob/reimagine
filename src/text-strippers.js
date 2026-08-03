@@ -247,23 +247,37 @@ export function stripSincerityQualifiers(text) {
 // the em-dash ban; em dashes are now normal punctuation the model uses freely.)
 //
 // voice-allow
-// Cover-letter boilerplate stripper (op-cover-letter brief 2026-06-29). Deterministic
-// backstop for the salutation/closing phrases the cover-letter voice bans, since the
-// prompt directive binds only probabilistically. Removes standalone corporate
-// salutation lines and the two canned closings wherever they appear, then collapses
-// the blank lines left behind. Prose between them is untouched.
+// Cover-letter anti-AI-tell stripper (op-cover-letter reshape 2026-06-29). The
+// reshaped letter KEEPS a greeting and sign-off, so this no longer removes
+// "Dear Hiring Manager" — it normalizes the archaic salutation variants to it,
+// strips stock openers/closers, and catches the AI tells (em dashes, "not X, Y"
+// logic flips, repeated "That's" openers) deterministically, since the prompt
+// directive binds only probabilistically. Prose between the hits is untouched.
 export function stripCoverLetterBoilerplate(text) {
   if (typeof text !== 'string' || !text) return text
   let out = text
-  // Standalone salutation lines.
-  out = out.replace(/^\s*(Dear\s+(Hiring\s+Manager|Hiring\s+Team|Sir\s+or\s+Madam|Recruiter)|To\s+Whom\s+It\s+May\s+Concern)\s*[,:]?\s*$/gim, '')
-  // Canned closings, inline or standalone.
-  out = out.replace(/\s*(Thank you for considering my application|Thank you for your consideration|I look forward to hearing from you)[.!]?/gi, '')
-  // Em/en dashes: the prompt bans them but the model still emits them
-  // occasionally (observed on the first live gen, Operation HOPE, 2026-06-29).
-  // Normalize to a comma so the banned construction never reaches the user.
+  // Salutation: keep "Dear Hiring Manager" / "Dear <Name>"; normalize the archaic
+  // variants to the modern default.
+  out = out.replace(/^\s*(To\s+Whom\s+It\s+May\s+Concern|Dear\s+(Sir\s+or\s+Madam|Recruiter|Hiring\s+Team))\s*[,:]?\s*$/gim, 'Dear Hiring Manager,')
+  // Banned stock openers: drop the whole sentence.
+  out = out.replace(/\b(I am writing to (express|apply|convey|share)|I would like to express|It is with (great\s+)?(enthusiasm|excitement|pleasure)|I am (thrilled|excited|delighted) to (apply|express|be))\b[^.!?]*[.!?]\s*/gi, '')
+  // Canned closers: soften the thank-you, drop the look-forward.
+  out = out.replace(/\bthank(s| you) for (considering|your consideration of) my application\b[.!]?/gi, 'Thanks for your time.')
+  out = out.replace(/\bI (look|am looking) forward to hearing (from you|back)\b[.!]?/gi, '')
+  // Em/en dashes -> comma (PR #267).
   out = out.replace(/\s*[—–]\s*/g, ', ').replace(/,\s*,/g, ',')
-  out = out.replace(/\n{3,}/g, '\n\n').trim()
+  // Trailing "…, not X" logic-flip tails -> drop the negation, keep the positive.
+  out = out.replace(/,\s*not\s+(less|more|fewer|just\s+[^.,;!?]+|the\s+\w+)(?=\s*[.,;!?])/gi, '')
+  // Shared logic-flip stripper handles the "not X, Y" / "it's not X, it's Y" class.
+  out = stripLogicFlipCadence(out)
+  // Repeated "That's"/"That is" sentence openers: keep the first, drop the opener
+  // on later ones and re-capitalize the next word.
+  let thatSeen = false
+  out = out.replace(/(^|[.!?]\s+)That(?:'s| is)\s+([a-z])/g, (m, pre, ch) => {
+    if (!thatSeen) { thatSeen = true; return m }
+    return pre + ch.toUpperCase()
+  })
+  out = out.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim()
   return out
 }
 export function stripRoomsPlaceholder(text) {
