@@ -1154,6 +1154,10 @@ function bridgeStoryToProse(v){
 // metric + the Save-as-PDF completion gates + the section rail. Interview Team
 // (panel) is intentionally NOT here — it is un-numbered and excluded from the count.
 const OP_COUNTED_KEYS=['companyRead','p5','p6','p_res','p_cover','p11']
+// Highest-frequency consultant / thought-leader register patterns for the Cover
+// Letter detection-and-retry backstop (voice-sweep 2026-06-29). Detection only —
+// the retry rewrites; these are multi-token structural patterns, not strippable.
+const OP_COVER_CONSULTANT_RE=[/\bsits at the (center|heart|intersection|nexus)\b/i,/\bat the (center|heart|intersection|nexus) of\b/i,/\boccupies the space\b/i,/\blives in the tension\b/i,/\bin the rooms? where\b/i,/\bat the table\b/i,/\bhow (it|this|that|\w+) lands\b/i,/\bhow (it|this|that|\w+) shows up\b/i,/\bwhere (it|this|that|\w+) lives\b/i,/\bthe (landscape|arena|terrain) of\b/i,/\bmoves the needle\b/i,/\braises the bar\b/i]
 function _opSectionBuilt(sec,k){
   const v=sec[k]
   if(k==='p6')return !!(v&&bridgeStoryToProse(v).trim())
@@ -2283,7 +2287,15 @@ FIVE-COMPANY TEST: the letter must contain at least one fact specific to ${compa
 
 ANTI-RESTATE: the one accomplishment must FRAME a pattern (what it shows about how this person operates), not restate the resume bullet.
 
-VOICE: the person's own voice from their Personal Brand. ${DIRECT_OUTREACH_VOICE} No em dashes. No "not X, Y" logic-flip cadence; state the positive directly. Do not begin more than one sentence with "That's" or "That is". No comparative standing against unnamed groups. Lead with the human; translate credentials into what they mean.
+VOICE: you are writing AS the candidate, not ABOUT the candidate. Write like a person who did the work, sending a direct email to another person who does adjacent work. One operator to another. If the candidate would not say this out loud to a peer over coffee, do not write it. It is the person's own voice from their Personal Brand. ${DIRECT_OUTREACH_VOICE}
+Explicitly avoid consultant-register, thought-leader, and MBA-speak:
+- No spatial metaphors: "sits at the center of", "at the intersection of", "occupies the space between", "lives in the tension of", "at the nexus of", "in the room(s) where", "at the table", "at the crossroads of", "at the heart of".
+- No evaluative distance: "how it lands", "where it lives", "how it shows up", "how it plays", "what it looks like on the ground", "how it holds up", "signals that X".
+- No abstract power nouns as scaffolding: "the space", "the tension", "the landscape", "the arena", "the terrain", "the piece that matters", "the thing that separates X from Y".
+- No performed expertise: "the actual work is", "the hard part is", "what most people miss", "the real X is Y", "moves the needle", "raises the bar".
+- No thought-leader openers: "There's a question most firms are asking right now", "In today's landscape", "As organizations increasingly", "In a world where".
+Use direct verbs for what happened. Use concrete nouns for the actual thing. Say what you did, say what the result was, say what the reader might want to talk about. Test: if a working professional you respect read this over your shoulder, would they say "wait, what does that actually mean?" If yes, rewrite before returning.
+Also: no em dashes; no "not X, Y" logic-flip cadence (state the positive directly); do not begin more than one sentence with "That's" or "That is"; no comparative standing against unnamed groups. Lead with the human; translate credentials into what they mean.
 
 COMPANY: ${companyName||'(unspecified)'}
 
@@ -5955,6 +5967,22 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         const r2=await callClaudeWithVoiceGate(fn2,opts,meta)
         if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
         if(typeof r2==='string'&&r2.trim())r=r2
+      }
+      // Consultant-register backstop (voice-sweep 2026-06-29): detect the highest-
+      // frequency consultant / thought-leader patterns and one-shot retry. Detection
+      // + retry, NOT strip — these are multi-token structural patterns and mechanical
+      // rewrites read worse. One retry; if a phrase survives, log it and return.
+      const _crHits=s=>{const out=[];for(const re of OP_COVER_CONSULTANT_RE){const m=String(s||'').match(re);if(m)out.push(m[0])}return out}
+      const _cr=_crHits(r)
+      if(_cr.length){
+        const fn3=()=>fn()+`\n\nThe previous draft used consultant-register phrasing: ${_cr.map(x=>`"${x}"`).join(', ')}. Rewrite those clauses in plain, direct language — say what happened and what it meant, one operator to another — and keep the whole letter under 200 words.`
+        const r3=await callClaudeWithVoiceGate(fn3,opts,meta)
+        if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+        if(typeof r3==='string'&&r3.trim()){
+          r=r3
+          const _still=_crHits(r)
+          if(_still.length&&typeof console!=='undefined'&&console.warn)console.warn('[op-cover-letter] consultant-register survived retry:',_still)
+        }
       }
       const cleaned=stripCoverLetterBoilerplate(typeof r==='string'?r:'')
       setSavedPlaybooks(prev=>prev.map(rec=>{
