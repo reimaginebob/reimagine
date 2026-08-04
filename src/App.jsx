@@ -3442,8 +3442,7 @@ const SUPPORT_PANEL_COPY={
   navLabel:'Support Reimagine',
   header:"Reimagine is free. It's not free to run.",
   body:[
-    "Every rewrite, every company match, every strategy session you generate in here runs on real infrastructure and real hours, and somebody has to cover that so it's still here for the next person who needs it. Right now, that somebody is me.",
-    "I built it free on purpose. I know what a job search does to a budget, and I didn't want a paywall standing between you and a plan, so there isn't one. That's not changing because things are tight for you right now, and for most people in a search, they are.",
+    "I built Reimagine free on purpose. I know what a job search does to a budget, and I didn't want a paywall standing between you and a plan, so there isn't one. That's not changing because things are tight for you right now, and for most people in a search, they are.",
     "If Reimagine's been useful and you've got room to give something back, it goes straight toward keeping this open for the next person who lands here with a resume and a bad week. If you don't have that room, use everything here anyway, that's what it's for. And if giving makes more sense once you've landed and you're back on a paycheck, that timing works fine too.",
   ],
   onceLabel:'Give once',
