@@ -3459,6 +3459,19 @@ const SUPPORT_PANEL_COPY={
   microline:'No pressure. No paywall. Ever.',
 }
 
+// One-time announcement that points returning users to the new Support
+// Reimagine sidebar entry. Purely informational — it does not ask for money
+// itself, it just says where the ask already lives. Copy sits next to
+// SUPPORT_PANEL_COPY so both are edited in one place. Shown once per user
+// (localStorage flag reimagine_support_announce_v1_dismissed, same convention
+// as the Interview Team announcement), returning users only, never on a first
+// visit. "Take a look" opens the existing Support panel; × just dismisses.
+const SUPPORT_ANNOUNCEMENT_COPY={
+  header:'There\'s now a way to support Reimagine.',
+  body:'If it\'s been useful, you can help keep it free for the next person, whenever you\'re ready. Look for Support Reimagine in the sidebar.',
+  cta:'Take a look',
+}
+
 // Support panel. Reuses the same overlay primitive as the feedback / migration
 // modals (fixed full-viewport scrim, dialog role, backdrop-click + × to close).
 // It is a pure overlay controlled by local Sidebar state, so opening it never
@@ -3492,9 +3505,13 @@ function SupportPanel({onClose}){
   </div>
 }
 
-function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
+function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0}){
   const navRef=useRef(null)
   const[supportOpen,setSupportOpen]=useState(false)
+  // App bumps openSupportReq to open the Support panel programmatically (the
+  // returning-user announcement's "Take a look" button routes here), mirroring
+  // the Chat openRequest pattern. Guard on truthy so the initial 0 is a no-op.
+  useEffect(()=>{if(openSupportReq)setSupportOpen(true)},[openSupportReq])
   const sidebarFirstRender=useRef(true)
   useEffect(()=>{
     if(sidebarFirstRender.current){sidebarFirstRender.current=false;return}
@@ -3877,6 +3894,15 @@ export default function PivotEngine(){
   // two overlays never stack. Defaults dismissed on a storage error (no flash).
   const[itAnnounceDismissed,setItAnnounceDismissed]=useState(()=>{try{return localStorage.getItem('reimagine_interview_team_v1_dismissed')==='1'}catch{return true}})
   const dismissItAnnounce=()=>{try{localStorage.setItem('reimagine_interview_team_v1_dismissed','1')}catch{};setItAnnounceDismissed(true)}
+  // One-time popup pointing returning users at the Support Reimagine sidebar
+  // entry. Same one-time-flag convention as the two announcements above; defaults
+  // dismissed on a storage error (no flash). supportOpenReq is a bump counter the
+  // "Take a look" button increments to open the Support panel (Sidebar consumes
+  // it via openSupportReq). Marked seen by either the CTA or the × — permanent.
+  const[supportAnnounceDismissed,setSupportAnnounceDismissed]=useState(()=>{try{return localStorage.getItem('reimagine_support_announce_v1_dismissed')==='1'}catch{return true}})
+  const dismissSupportAnnounce=()=>{try{localStorage.setItem('reimagine_support_announce_v1_dismissed','1')}catch{};setSupportAnnounceDismissed(true)}
+  const[supportOpenReq,setSupportOpenReq]=useState(0)
+  const takeLookSupport=()=>{dismissSupportAnnounce();setSupportOpenReq(n=>n+1)}
   const[deepExpanded,setDeepExpanded]=useState(false)
   const[hasProgress,setHasProgress]=useState(false)
   const[laneTab,setLaneTab]=useState(0)
@@ -7965,6 +7991,22 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     </div>}
+    {/* One-time Support Reimagine announcement. Returning users only
+        (hasProgress or any completed phase), after hydration settles so it
+        never flashes before saved state loads, and only until dismissed. Reuses
+        the Support-panel / feedback overlay primitive: backdrop-click and × both
+        dismiss with zero friction, "Take a look" additionally opens the Support
+        panel via the supportOpenReq bump. Any dismissal path marks it seen. */}
+    {!isDemo&&hydrationStable&&(hasProgress||done.length>0)&&!supportAnnounceDismissed&&<div data-print="hide" onClick={dismissSupportAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Support Reimagine announcement" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:480,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
+        <button onClick={dismissSupportAnnounce} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 14px',paddingRight:24,lineHeight:1.35}}>{SUPPORT_ANNOUNCEMENT_COPY.header}</h2>
+        <p style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:'0 0 22px'}}>{SUPPORT_ANNOUNCEMENT_COPY.body}</p>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <Btn onClick={takeLookSupport}>{SUPPORT_ANNOUNCEMENT_COPY.cta}</Btn>
+        </div>
+      </div>
+    </div>}
     {atCapModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:600,width:'100%',maxHeight:'80vh',display:'flex',flexDirection:'column',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>You're at {getSavedCap()} saved playbooks</h2>
@@ -8133,7 +8175,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {isDemo&&<div style={{pointerEvents:'none'}}>
             <Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog}/>
           </div>}
-          {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>to==='op'?addNewOpportunity():nav(to)} prog={prog} selectedLane={selectedLane} chosen={chosen}/>}
+          {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>to==='op'?addNewOpportunity():nav(to)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq}/>}
         </div>
         <div ref={contentColumnRef} data-print="content" style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
