@@ -3431,8 +3431,71 @@ function DemoUnavailable(){
     </div>
   </div>
 }
+// Support Reimagine — voluntary-support surface. Reimagine stays entirely
+// free; this is the one place a user can choose to give back. No paywall, no
+// gating; nothing else in the app keys off whether it is opened. All copy and
+// the Stripe payment links live in this single constant so a wording or amount
+// change is a one-line edit here, not a hunt through JSX. The links are plain
+// external donate.stripe.com checkout pages (each with its own thank-you
+// configured on Stripe's side) — no backend route, no success/return handling.
+const SUPPORT_PANEL_COPY={
+  navLabel:'Support Reimagine',
+  header:"Reimagine is free. It's not free to run.",
+  body:[
+    "Every rewrite, every company match, every strategy session you generate in here runs on real infrastructure and real hours, and somebody has to cover that so it's still here for the next person who needs it. Right now, that somebody is me.",
+    "I built it free on purpose. I know what a job search does to a budget, and I didn't want a paywall standing between you and a plan, so there isn't one. That's not changing because things are tight for you right now, and for most people in a search, they are.",
+    "If Reimagine's been useful and you've got room to give something back, it goes straight toward keeping this open for the next person who lands here with a resume and a bad week. If you don't have that room, use everything here anyway, that's what it's for. And if giving makes more sense once you've landed and you're back on a paycheck, that timing works fine too.",
+  ],
+  onceLabel:'Give once',
+  onceOptions:[
+    {label:'$20',url:'https://donate.stripe.com/8x214o2s90bP6ZfcxFcAo09'},
+    {label:'$50',url:'https://donate.stripe.com/6oUeVefeV4s56Zf7dlcAo0a'},
+    {label:'$100',url:'https://donate.stripe.com/eVq7sM1o5e2F6Zf1T1cAo0b'},
+    {label:'Other',url:'https://donate.stripe.com/8x2bJ26Ip8Il2IZ69hcAo0c'},
+  ],
+  monthlyLabel:'Give monthly',
+  monthlyOptions:[
+    {label:'$10/mo',url:'https://donate.stripe.com/cNi6oI3wd0bP5Vb8hpcAo0d'},
+  ],
+  microline:'No pressure. No paywall. Ever.',
+}
+
+// Support panel. Reuses the same overlay primitive as the feedback / migration
+// modals (fixed full-viewport scrim, dialog role, backdrop-click + × to close).
+// It is a pure overlay controlled by local Sidebar state, so opening it never
+// changes `step` — the user keeps their place. Amount links open Stripe in a
+// new tab. "Give once" and "Give monthly" are two separate labeled groups, not
+// a shared tier row: there is no monthly equivalent for each one-time amount,
+// so the layout must not imply parity between them.
+function SupportPanel({onClose}){
+  const K=SUPPORT_PANEL_COPY
+  const sectionLabelStyle={fontSize:13,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#718096',margin:'0 0 10px'}
+  const amountLinkStyle={display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'11px 20px',border:`1.5px solid ${C.gold}`,borderRadius:10,color:C.gold,fontSize:17,fontWeight:700,textDecoration:'none',fontFamily:'inherit',cursor:'pointer',background:'transparent'}
+  return <div data-print="hide" onClick={onClose} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+    <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label={K.navLabel} style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:560,width:'100%',maxHeight:'calc(100vh - 48px)',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
+      <button onClick={onClose} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
+      <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 18px',paddingRight:24,lineHeight:1.35}}>{K.header}</h2>
+      {K.body.map((para,i)=><p key={i} style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:i===0?'0 0 14px':'0 0 14px'}}>{para}</p>)}
+      <div style={{marginTop:22}}>
+        <div style={sectionLabelStyle}>{K.onceLabel}</div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
+          {K.onceOptions.map(o=><a key={o.label} href={o.url} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+        </div>
+      </div>
+      <div style={{marginTop:20}}>
+        <div style={sectionLabelStyle}>{K.monthlyLabel}</div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
+          {K.monthlyOptions.map(o=><a key={o.label} href={o.url} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+        </div>
+      </div>
+      <div style={{fontSize:14,color:'#718096',marginTop:20}}>{K.microline}</div>
+    </div>
+  </div>
+}
+
 function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
   const navRef=useRef(null)
+  const[supportOpen,setSupportOpen]=useState(false)
   const sidebarFirstRender=useRef(true)
   useEffect(()=>{
     if(sidebarFirstRender.current){sidebarFirstRender.current=false;return}
@@ -3447,6 +3510,22 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
   // render in either mode going forward; My Playbooks (PR3a dashboard)
   // supersedes it. hasPrereq predicate was removed in the same change:
   // the only steps it gated (p4, focus) no longer appear in PHASES.
+  // Always-on Support Reimagine entry. Rendered at the bottom of the rail in
+  // both sidebar shapes (dashboard and the linear PHASES flow), so it is
+  // visible on every phase and never gated by progress or completion. It does
+  // not route through onNav (its id is not a real step); it opens the support
+  // overlay via local state, leaving `step` untouched so the user keeps their
+  // place. In demo mode the whole rail is wrapped in pointerEvents:none by the
+  // caller, so the entry shows but is inert during the guided tour.
+  const supportItemStyle=(active)=>({padding:'12px 14px 12px 22px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:17,fontWeight:active?700:500,color:active?'#FFFFFF':'#F1F5F9',transition:'all 0.15s'})
+  const supportRail=<>
+    <div style={{height:1,background:'#0F1A30',margin:'14px 0 0'}}/>
+    <div data-support-nav onClick={()=>setSupportOpen(true)} style={supportItemStyle(supportOpen)}>
+      <Heart size={16}/>
+      <span style={{flex:1}}>{SUPPORT_PANEL_COPY.navLabel}</span>
+    </div>
+    {supportOpen&&<SupportPanel onClose={()=>setSupportOpen(false)}/>}
+  </>
   const personalBrandDone=done.includes('p3')
   if(personalBrandDone&&!isDemo){
     // Labels join from NAV_LABELS (src/nav-labels.js) — the single source the
@@ -3516,6 +3595,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
           <span style={{flex:1}}>{label}</span>
         </div>
       })}
+      {supportRail}
     </div>
   }
   // Progressive disclosure: Know Your Value (PHASES id 1) is hidden until
@@ -3533,6 +3613,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen}){
     <div style={{width:'100%',height:5,background:'#0F1A30',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:3,transition:'width 0.4s'}}/></div>
   </div>}
   {phasesToRender.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active,isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{NAV_LABELS[sid]}{sid==='focus'&&chosen?<span style={{display:'block',fontSize:13,fontWeight:400,color:'#8A9BB8',marginTop:2}}>{chosen}</span>:null}</span>{active&&<span style={{fontSize:14,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
+  {supportRail}
 </div>}
 
 const DEMO_TOUR=[
