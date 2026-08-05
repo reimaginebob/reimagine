@@ -2628,6 +2628,20 @@ function GtmOpeningsSignal({oc}){
     </ul>}
   </div>
 }
+// GtmCareersLink: prominent, clearly-labeled careers affordance on each GTM
+// card. The old link was a small gold URL tucked into the Email row, which read
+// as metadata rather than "there are (possibly matching) roles here." This is a
+// distinct chip with a briefcase icon that signals jobs. Points at the confirmed
+// careers/openings page when the sweep found one, else the homepage.
+function GtmCareersLink({company,oc}){
+  const info=careersLinkInfo(company,oc)
+  if(!info.href)return null
+  const confirmed=!!(oc&&oc.careersUrl&&/\/(careers|jobs)/i.test(oc.careersUrl))
+  return <a href={info.href} target="_blank" rel="noreferrer"
+    style={{display:'inline-flex',alignItems:'center',gap:7,marginTop:12,padding:'9px 15px',background:`${C.gold}1a`,border:`1px solid ${C.gold}66`,borderRadius:8,color:'#8A5410',fontSize:15,fontWeight:700,textDecoration:'none'}}>
+    <Briefcase size={15}/>{confirmed?'See open roles':'Careers page'}<ArrowUpRight size={14}/>
+  </a>
+}
 // GtmLearnMoreButton: full-width solid amber action on the GTM per-company
 // card. Per the rename-and-prominence PR, replaces the inline outline Build
 // affordance. Hover darkens one stop (#BA7517 → #854F0B). Module-scope so
@@ -6107,8 +6121,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {company.growth&&<div><strong>Growth signal:</strong> {company.growth}</div>}
             {(company.contact||company.contactLinkedIn)&&<div><strong>Contact:</strong> {company.contact}{company.contactLinkedIn&&<> · <a href={company.contactLinkedIn} target="_blank" rel="noreferrer" style={{color:C.gold}}>LinkedIn</a></>}</div>}
             {company.source&&<div><strong>Source:</strong> {company.source}</div>}
-            {(company.emailConvention||company.website)&&<div>{company.emailConvention&&<><strong>Email:</strong> {company.emailConvention}</>}{company.emailConvention&&company.website?' · ':''}{company.website&&(()=>{const ci=careersLinkInfo(company,oc);return <a href={ci.href} target="_blank" rel="noreferrer" style={{color:C.gold}}>{ci.label}</a>})()}</div>}
+            {company.emailConvention&&<div><strong>Email:</strong> {company.emailConvention}</div>}
           </div>
+          <GtmCareersLink company={company} oc={oc}/>
           <GtmOpeningsSignal oc={oc}/>
           {crError&&<div style={{marginTop:14}}><ErrBox msg={crError}/></div>}
         </div>
@@ -7470,8 +7485,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {company.growth&&<div><strong>Growth signal:</strong> {company.growth}</div>}
                   {(company.contact||company.contactLinkedIn)&&<div><strong>Contact:</strong> {company.contact}{company.contactLinkedIn&&<> · <a href={company.contactLinkedIn} target="_blank" rel="noreferrer" style={{color:C.gold}}>LinkedIn</a></>}</div>}
                   {company.source&&<div><strong>Source:</strong> {company.source}</div>}
-                  {(company.emailConvention||company.website)&&<div>{company.emailConvention&&<><strong>Email:</strong> {company.emailConvention}</>}{company.emailConvention&&company.website?' · ':''}{company.website&&(()=>{const ci=careersLinkInfo(company,oc);return <a href={ci.href} target="_blank" rel="noreferrer" style={{color:C.gold}}>{ci.label}</a>})()}</div>}
+                  {company.emailConvention&&<div><strong>Email:</strong> {company.emailConvention}</div>}
                 </div>
+                <GtmCareersLink company={company} oc={oc}/>
                 <GtmOpeningsSignal oc={oc}/>
                 {crError&&<div style={{marginTop:14}}><ErrBox msg={crError}/></div>}
               </div>
