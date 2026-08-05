@@ -50,11 +50,13 @@ const UA = 'Mozilla/5.0 (compatible; ReimagineCareersBot/1.0; +https://reimagine
 const OPENINGS_CAP = 40
 
 // Fetch with a hard timeout; resolve to null on any failure (never throw).
-async function safeFetch(url, { timeout = 7000, json = false } = {}) {
+async function safeFetch(url, { timeout = 7000, json = false, method = 'GET', body = null } = {}) {
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), timeout)
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: json ? 'application/json' : 'text/html,*/*' }, redirect: 'follow', signal: ctrl.signal })
+    const headers = { 'User-Agent': UA, Accept: json ? 'application/json' : 'text/html,*/*' }
+    if (body != null) headers['Content-Type'] = 'application/json'
+    const res = await fetch(url, { method, headers, body, redirect: 'follow', signal: ctrl.signal })
     if (!res.ok) return null
     return json ? await res.json() : await res.text()
   } catch {
@@ -80,12 +82,32 @@ const FINGERPRINTS = [
   { platform: 'greenhouse', re: /(?:boards|job-boards)\.greenhouse\.io\/(?:embed\/job_board\?for=)?([a-z0-9]+)|boards-api\.greenhouse\.io\/v1\/boards\/([a-z0-9]+)/i },
   { platform: 'lever', re: /jobs\.lever\.co\/([a-z0-9\-]+)/i },
   { platform: 'ashby', re: /jobs\.ashbyhq\.com\/([a-z0-9\-]+)/i },
-  { platform: 'workday', re: /([a-z0-9]+)\.(?:wd\d+\.)?myworkdayjobs\.com/i },
   { platform: 'smartrecruiters', re: /(?:careers|jobs)\.smartrecruiters\.com\/([A-Za-z0-9\-]+)/i },
 ]
 
+// Workday needs more than a slug: the CXS feed endpoint is keyed on
+// tenant + data-center (wdN) + site, all of which live in the careers-page's
+// myworkdayjobs.com URL (e.g. blackstone.wd1.myworkdayjobs.com/en-US/Blackstone_Careers).
+// The site MUST come from the real URL — a guessed site 404s (verified) — so
+// Workday is fingerprint-only, never slug-guessed.
+const WORKDAY_RE = /([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com(\/[A-Za-z0-9\-/_]*)?/i
+function parseWorkday(html) {
+  const m = html.match(WORKDAY_RE)
+  if (!m) return null
+  const tenant = m[1], wd = m[2], path = m[3] || ''
+  const segs = path.split('/').filter(Boolean)
+  let site = ''
+  for (let i = 0; i < segs.length; i++) {
+    if (/^[a-z]{2}-[A-Za-z]{2}$/.test(segs[i])) { site = segs[i + 1] || ''; break } // segment after a locale
+  }
+  if (!site && segs.length) site = segs[0]
+  return site ? { platform: 'workday', slug: tenant, wd, site } : null
+}
+
 function fingerprint(html) {
   if (!html) return null
+  const wd = parseWorkday(html) // Workday first: richer parse than the generic loop
+  if (wd) return wd
   for (const { platform, re } of FINGERPRINTS) {
     const m = html.match(re)
     if (m) {
@@ -119,7 +141,19 @@ async function fetchFeed(platform, slug) {
     if (!d || !Array.isArray(d.content)) return null
     return { openings: d.content.map(j => ({ title: j.name || '', location: (j.location && [j.location.city, j.location.country].filter(Boolean).join(', ')) || '', url: `https://jobs.smartrecruiters.com/${slug}/${j.id}` })) }
   }
-  return null // workday and anything else: not fetchable here
+  return null // workday handled separately (needs tenant+site); anything else not fetchable
+}
+
+// Workday CXS feed. Needs tenant + data-center (wdN) + site, all from
+// parseWorkday. POSTs the public jobs endpoint; maps postings to {title,
+// location, url}. Verified: the site must be the real one from the careers URL
+// (a guessed site 404s), which is why Workday is fingerprint-only.
+async function fetchWorkday(tenant, wd, site) {
+  const url = `https://${tenant}.${wd}.myworkdayjobs.com/wday/cxs/${tenant}/${site}/jobs`
+  const d = await safeFetch(url, { json: true, method: 'POST', body: JSON.stringify({ limit: 20, offset: 0, searchText: '', appliedFacets: {} }) })
+  if (!d || !Array.isArray(d.jobPostings)) return null
+  const host = `https://${tenant}.${wd}.myworkdayjobs.com/${site}`
+  return { openings: d.jobPostings.map(j => ({ title: (j.title || '').trim(), location: j.locationsText || '', url: j.externalPath ? host + j.externalPath : '' })) }
 }
 
 const CAREERS_PATHS = ['/careers', '/careers/', '/jobs', '/company/careers', '/about/careers', '/careers/jobs']
@@ -169,13 +203,15 @@ export default async function handler(req, res) {
   let feedFound = false
   let openings = []
   if (platform && slug) {
-    const feed = await fetchFeed(platform, slug)
+    const feed = platform === 'workday'
+      ? await fetchWorkday(slug, fp.wd, fp.site)
+      : await fetchFeed(platform, slug)
     if (feed) {
       feedFound = true // a real, corroborated feed answered (openings may still be [] = board empty)
       openings = feed.openings.filter(o => o.title).slice(0, OPENINGS_CAP)
     }
-    // platform === 'workday' (or a failed fetch) leaves feedFound false: careers
-    // link only, no openings claim — an honest "could not check".
+    // A failed fetch leaves feedFound false: careers link only, no openings
+    // claim — an honest "could not check".
   }
 
   return res.status(200).json({ homepage, careersUrl, platform, slug, feedFound, openings, company: name })
