@@ -37,7 +37,7 @@ Reimagine does live web research to identify a list of target companies that fit
 It produces four things:
 
 1. **The hiring executive profile**. Who you should be reaching, by title, organization type, and the business challenge they are accountable for solving.
-2. **A target company list**. 20 to 30 companies, prioritized by signs of growth (recent funding, acquisitions, expansion) and flagged or removed if they show signs of contraction (layoffs, hiring freezes, leadership departures). Each company includes a name, what they do in one sentence, industry, size, HQ, a one-sentence reason it fits, a growth signal, the contact person where Reimagine could find one (with the source cited so you can verify), and the likely email convention.
+2. **A target company list**. 10 companies to start (a **Find 10 More Companies** button pulls another batch of 10 whenever you want a bigger field), prioritized by signs of growth (recent funding, acquisitions, expansion) and flagged or removed if they show signs of contraction (layoffs, hiring freezes, leadership departures). Each company includes a name, what they do in one sentence, industry, size, HQ, a one-sentence reason it fits, a growth signal, the contact person where Reimagine could find one (with the source cited so you can verify), and the likely email convention.
 3. **An outreach template**. A complete three-paragraph email written in the *Making Your Own Weather* direct outreach format, plus a personalization guide so you can adapt it per company.
 4. **A LinkedIn signal tweak**. One specific headline recommendation positioned for this exact target.
 
@@ -59,7 +59,7 @@ Click **Build My Strategy** to generate. This step uses live web research and is
 
 ## What good looks like
 
-The target list should feel mostly right. Some companies will be exactly right, some will be close, and a few may be off. That is normal. The point of the list is to give you a starting field of 20 to 30, not a perfect 10. You will refine.
+The target list should feel mostly right. Some companies will be exactly right, some will be close, and a few may be off. That is normal. The list starts at 10 to keep the research fast and reliable, and a **Find 10 More Companies** button pulls another batch of 10 (optionally steered — "more early-stage startups," "companies in the Southeast") and adds them to the list. The point is a strong working field you keep building, not a perfect first ten. You will refine.
 
 The outreach template should sound like a real email from a peer, not a sales pitch. It should reference something specific about the company in the first paragraph. If the email reads as transactional or generic, refine it.
 
