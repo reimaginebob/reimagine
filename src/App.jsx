@@ -2670,6 +2670,34 @@ function GtmLearnMoreButton({companyName,busy,waiting,onClick}){
     {!disabled&&<ArrowRight size={18}/>}
   </button>
 }
+// GtmFindMoreBox: prominent "Find 10 More Companies" action under the target
+// list. The amber button is always visible and fires with no input (finding
+// more is the primary action); an optional collapsible field lets the user
+// steer the next batch. Mirrors GtmLearnMoreButton's prominence so the "get
+// more companies" affordance reads as a real button, not a buried expander.
+function GtmFindMoreBox({busy,error,onSubmit}){
+  const[hover,setHover]=useState(false)
+  const[showFocus,setShowFocus]=useState(false)
+  const[focus,setFocus]=useState('')
+  const bg=(!busy&&hover)?'#854F0B':'#BA7517'
+  return <div style={{margin:'18px 0'}}>
+    <button
+      onClick={()=>onSubmit(focus)}
+      disabled={busy}
+      onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
+      onFocus={()=>setHover(true)} onBlur={()=>setHover(false)}
+      style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,width:'100%',padding:'16px 20px',background:bg,border:'none',borderRadius:10,color:'#FFFFFF',fontSize:17,fontWeight:700,fontFamily:'inherit',cursor:busy?'default':'pointer',opacity:busy?0.7:1,transition:'background-color 0.15s ease'}}
+    >
+      {!busy&&<Plus size={18}/>}
+      <span>{busy?'Finding 10 more companies…':'Find 10 More Companies'}</span>
+    </button>
+    <div style={{marginTop:8,textAlign:'center'}}>
+      <button onClick={()=>setShowFocus(s=>!s)} style={{background:'none',border:'none',color:C.goldL,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{showFocus?'Hide':'Want to steer the next 10? (optional)'}</button>
+    </div>
+    {showFocus&&<textarea value={focus} onChange={e=>setFocus(e.target.value)} placeholder="For example: more early-stage startups, or companies in the Southeast." style={{...S.ta,minHeight:64,fontSize:15,marginTop:8}}/>}
+    {error&&<div style={{...S.err,marginTop:8}}>{error}</div>}
+  </div>
+}
 const ATTITUDE_QUOTES=[
   {text:"Everything can be taken from a person but one thing: the last of the human freedoms, to choose one's attitude in any given set of circumstances.",author:"Viktor Frankl"},
   {text:"He who has a why to live can bear almost any how.",author:"Viktor Frankl"},
@@ -6133,7 +6161,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       <div style={hdr}>Part 2 · Target companies</div>
       {renderGtmCompanyBlock(g.part_2_company_list)}
-      {regen2more&&<SubsectionRefineBox scopeKey="gtm-part2more" onSubmit={(t)=>regen2more(t)} busy={regeneratingP7Slot==='part2more'} error={p7SlotErrors['part2more']} label="Want more companies? We'll find 10 more and add them to the list." placeholder="Optional: steer the next 10 — for example, more early-stage startups, or companies in the Southeast." submitLabel="Find 10 More Companies" helperText="Adds 10 new companies to the list. Part 1 and the outreach stay."/>}
+      {regen2more&&<GtmFindMoreBox busy={regeneratingP7Slot==='part2more'} error={p7SlotErrors['part2more']} onSubmit={(t)=>regen2more(t)}/>}
       <div style={{...S.out,fontSize:15,color:C.goldL,fontStyle:'italic',lineHeight:1.6}}>For a deeper read on one company, use Learn More on its card.</div>
       <div style={S.out}>
         <div style={{...hdr,marginTop:0}}>Part 3 · Outreach template</div>
