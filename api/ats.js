@@ -150,7 +150,7 @@ async function fetchFeed(platform, slug) {
 // (a guessed site 404s), which is why Workday is fingerprint-only.
 async function fetchWorkday(tenant, wd, site) {
   const url = `https://${tenant}.${wd}.myworkdayjobs.com/wday/cxs/${tenant}/${site}/jobs`
-  const d = await safeFetch(url, { json: true, method: 'POST', body: JSON.stringify({ limit: 20, offset: 0, searchText: '', appliedFacets: {} }) })
+  const d = await safeFetch(url, { json: true, method: 'POST', body: JSON.stringify({ limit: OPENINGS_CAP, offset: 0, searchText: '', appliedFacets: {} }) })
   if (!d || !Array.isArray(d.jobPostings)) return null
   const host = `https://${tenant}.${wd}.myworkdayjobs.com/${site}`
   return { openings: d.jobPostings.map(j => ({ title: (j.title || '').trim(), location: j.locationsText || '', url: j.externalPath ? host + j.externalPath : '' })) }
