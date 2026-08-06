@@ -106,6 +106,14 @@ This is one of the most useful features in the whole tool. Open it in Excel, Goo
 
 A few people keep a "live" version of the CSV that they update as the search progresses, and a separate copy of the original Reimagine output for reference. That works well.
 
+## Roles open right now
+
+Right after Reimagine builds your company list, it quietly checks each company in the background for a job that is open **right now** and is a real match for the direction you chose — matched by function rather than exact title (a "Head of People" counts for a "Chief People Officer" search). This runs on its own; you do not click anything.
+
+When it finds one, a **green flag** appears at the top of that company's card: "A role that fits is open right now." Click it to see the specific role, a direct link to the posting, and a one-line note on why it fits. Companies without a current match stay quiet — no flag, no "nothing found" message. Most companies will not have a matching role open at any given moment, so the green flag is meant to feel like a find: when it shows up, there is a real opening to act on today.
+
+The check reads the open web, so it reflects what is actually posted now and updates as companies post new roles. It runs once per company and is saved with your playbook, so reopening the list is instant.
+
 ## Learn more about this company
 
 Each company in the list carries a full-width amber action button anchored to the bottom of the card, labeled **Learn more about [Company Name]** (the actual company name is substituted into the button copy). Click it for a focused read on that company beyond what you would find on Glassdoor: news from the last 90 days, the employee voice, industry-specific signal (CMS Star Ratings for hospital systems, GitHub cadence for tech, FINRA filings for financial services, and similar by sector), the leadership's public footprint, and watch-outs named honestly. Every numeric or named factual claim cites its source URL inline. The card uses live web search, so it takes roughly 30 to 60 seconds per click.
