@@ -5077,7 +5077,15 @@ export default function PivotEngine(){
     setSignupSubmitting(false)
   }
   const signOut=async()=>{
-    try{await fetch('/api/auth/logout',{method:'POST',credentials:'include'})}catch{}
+    // Verify the server actually cleared the session BEFORE we wipe local state
+    // and reload. Previously this swallowed any failure and reloaded regardless,
+    // which left the session alive (HttpOnly cookie + server row) while the UI
+    // looked signed out — so the next visit logged the user straight back in.
+    // Retry once, then surface an error rather than faking a signed-out state.
+    const attempt=async()=>{try{const r=await fetch('/api/auth/logout',{method:'POST',credentials:'include'});return r.ok}catch{return false}}
+    let ok=await attempt()
+    if(!ok)ok=await attempt()
+    if(!ok){alert('Could not sign out — check your connection and try again.');return}
     try{Object.keys(localStorage).forEach(k=>{if(k.startsWith('reimagine_')||k.startsWith('pe_'))localStorage.removeItem(k)})}catch{}
     // location.replace forces a synchronous navigation that does not leave
     // a history entry pointing back at the live React tree. Same pattern as
