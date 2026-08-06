@@ -1412,6 +1412,43 @@ function normalizeCompanyNameKey(name){
   if(typeof name!=='string')return ''
   return name.toLowerCase().replace(/&/g,' and ').replace(/\b(inc|llc|ltd|corp|co|company|group|holdings|plc|gmbh)\b/g,'').replace(/[^a-z0-9]/g,'').replace(/^the/,'')
 }
+// ── GTM "role open now" check (per-company web-search reasoning) ────────────
+// Durable cache key: homepage domain, else normalized name.
+function openingsKeyFor(company){
+  if(!company)return ''
+  const d=normalizeOpeningsDomain(company.website)
+  if(d)return 'dom:'+d
+  const n=normalizeCompanyNameKey(company.name)
+  return n?'name:'+n:''
+}
+// OPENINGS_MATCH_PROMPT: one web-search call per company. Claude confirms the
+// RIGHT company (via HQ/industry/website context, so same-named companies do not
+// collide — the failure mode that broke the ATS approach) and finds any
+// CURRENTLY OPEN role that is a FUNCTIONAL match for the chosen direction (not an
+// exact title). JSON only.
+const OPENINGS_MATCH_PROMPT=(company,role,laneLabel)=>`Check whether ONE specific company currently has an open job posting that is a FUNCTIONAL match for a target role. Search the web for this company's current openings.
+
+COMPANY: ${company.name||''}
+IDENTITY CONTEXT (research the RIGHT company, never a different company with a similar name): ${[company.hq&&('HQ '+company.hq),company.industry&&('industry '+company.industry),company.website&&('website '+company.website)].filter(Boolean).join('; ')||'(none)'}
+
+TARGET DIRECTION: ${role||'(unspecified)'}${laneLabel?' — lane: '+laneLabel:''}
+Match on FUNCTION, not exact title (the same function carries different titles at different companies). Only count roles that are CURRENTLY OPEN and accepting applications.
+
+Output JSON only, no preamble:
+{"company_confirmed":"<the exact company you researched>","match_count":<integer>,"matches":[{"title":"<open role title>","url":"<direct link if found, else empty string>","reason":"<one short plain sentence on why it is the same function>"}],"confidence":"high" or "medium" or "low"}
+If no currently open matching role exists, return match_count 0 and an empty matches array.`
+// findOpeningMatches: run the web-search call and parse. Safe-defaults to a
+// zero-match result on any failure so the sweep never blocks a card.
+async function findOpeningMatches(company,role,laneLabel){
+  try{
+    const raw=await callClaude(OPENINGS_MATCH_PROMPT(company,role,laneLabel),{webSearch:true,maxTokens:1500,temperature:0.2})
+    const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
+    if(a<0||b<=a)return{count:0,matches:[]}
+    const obj=JSON.parse(raw.slice(a,b+1))
+    const matches=(Array.isArray(obj.matches)?obj.matches:[]).map(m=>({title:(m.title||'').slice(0,160),url:typeof m.url==='string'?m.url:'',reason:(m.reason||'').slice(0,240)})).filter(m=>m.title)
+    return{count:matches.length,matches}
+  }catch(e){return{count:0,matches:[]}}
+}
 // detectMissingCitations (PR-1 Company Read). Conservative structural detector:
 // flags sentences containing specific factual claims (years, dollar amounts,
 // percentages, named role transitions) that lack an adjacent source URL OR an
@@ -2552,6 +2589,28 @@ function Btn({onClick,disabled,secondary,small,children,style={}}){const base=sm
 // of the parent _renderGtmCompanyCard helper (defining components inside a
 // render path would mint a new component type per render and unmount on every
 // update). Hover state lives in the button via useState.
+// GtmOpeningMatch: the green "a matching role is open right now" flag on a GTM
+// card. Treasure-hunt UX — renders ONLY when the background check found a
+// currently-open functional match; companies with no match stay silent (no
+// "nothing found" downer, no per-card "checking" noise). Reads only the cached
+// sweep result. Expands to the matched title(s), apply link, and one-line why.
+function GtmOpeningMatch({oc}){
+  const[open,setOpen]=useState(false)
+  if(!oc||oc.status!=='checked'||!(oc.count>0))return null
+  const matches=Array.isArray(oc.matches)?oc.matches:[]
+  const label=oc.count===1?'A role that fits is open right now':`${oc.count} roles that fit are open right now`
+  return <div style={{marginTop:12}}>
+    <button onClick={()=>setOpen(o=>!o)} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 15px',background:'#E4F6EA',border:'1.5px solid #1A7F5A',borderRadius:8,color:'#12603F',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+      <Sparkles size={16}/>{label}<span style={{fontWeight:400}}>{open?'▲':'▼'}</span>
+    </button>
+    {open&&matches.length>0&&<ul style={{margin:'10px 0 0',paddingLeft:18}}>
+      {matches.map((m,i)=><li key={i} style={{fontSize:14,color:'#2D3748',lineHeight:1.5,marginBottom:8}}>
+        {m.url?<a href={m.url} target="_blank" rel="noreferrer" style={{color:'#12603F',fontWeight:700}}>{m.title}</a>:<strong>{m.title}</strong>}
+        {m.reason?<div style={{color:'#4A5568'}}>{m.reason}</div>:null}
+      </li>)}
+    </ul>}
+  </div>
+}
 function GtmLearnMoreButton({companyName,busy,waiting,onClick}){
   const[hover,setHover]=useState(false)
   const disabled=busy||waiting
@@ -5713,6 +5772,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[gtmCompanyReadBuilding,setGtmCompanyReadBuilding]=useState(null)
   const[gtmCompanyReadErrors,setGtmCompanyReadErrors]=useState({})
   const gtmCompanyReadReqRef=useRef(0)
+  // GTM "role open now" sweep. openingsByKey is the render source of truth (works
+  // in demo); seeded from / mirrored into the saved door1 record's companyOpenings.
+  // Single-flight per durable key; openingsSweptRef gates the auto-trigger to one
+  // run per list. Fully independent of the click-only prose read (different state,
+  // different lock).
+  const[openingsByKey,setOpeningsByKey]=useState({})
+  const openingsSweepRef=useRef({inflight:new Set(),done:new Set()})
+  const openingsSweptRef=useRef('')
   // laneOverride (op surface cleanup brief 2026-05-29): when present, wins over
   // opLaneValue(rec0). Lets the auto-build path (submitOpRole) pass the inferred
   // lane directly through from runOpLaneInference's success path, sidestepping
@@ -5980,7 +6047,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const list=Array.isArray(companies)?companies:[]
     const _focusRec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')
     const _p7Busy=generatingSection==='p7'
+    ensureOpeningsSweep(list)
     const card=(company,idx)=>{
+      const oc=openingsByKey[openingsKeyFor(company)]
       const cached=_focusRec&&_focusRec.companyReads?_focusRec.companyReads[company.name]:null
       const crBuilt=!!(cached&&cached.content&&cached.content.trim())
       const crBusy=gtmCompanyReadBuilding===company.name
@@ -5988,6 +6057,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       return <div key={company.name+'-'+idx} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,marginBottom:14,overflow:'hidden'}}>
         <div style={{padding:'18px 22px'}}>
           <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:8}}>{company.name}</div>
+          <GtmOpeningMatch oc={oc}/>
           <div style={{display:'flex',flexDirection:'column',gap:6,fontSize:15,lineHeight:1.55,color:'#2D3748'}}>
             {company.what&&<div><strong>What they do:</strong> {company.what}</div>}
             {(company.industry||company.size||company.hq)&&<div>
@@ -6323,6 +6393,55 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }finally{
       if(reqId===gtmCompanyReadReqRef.current)setGtmCompanyReadBuilding(null)
     }
+  }
+  // ── GTM "role open now" sweep ──────────────────────────────────────────────
+  // Auto-fires when the list renders. For each company, one background web-search
+  // reasoning call finds any currently-open functional match (findOpeningMatches).
+  // Capped concurrency, each durable key once, results hard-cached in openingsByKey
+  // + the saved record so a re-open never re-fires. Only green matches surface;
+  // misses stay silent. Independent of gtmCompanyReadBuilding (the prose read).
+  const OPENINGS_CONCURRENCY=3
+  const sweepOneOpening=async(company)=>{
+    const key=openingsKeyFor(company)
+    if(!key)return
+    const s=openingsSweepRef.current
+    if(s.inflight.has(key)||s.done.has(key))return
+    s.inflight.add(key)
+    try{
+      const role=chosen||''
+      const laneLabel=selectedLane?laneLabelFor(selectedLane):''
+      const found=await findOpeningMatches(company,role,laneLabel)
+      const result={status:'checked',count:found.count,matches:found.matches,checkedAt:new Date().toISOString()}
+      s.done.add(key)
+      setOpeningsByKey(prev=>({...prev,[key]:result}))
+      const slotId=currentSavedSlotIdRef.current
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId||rec.source!=='door1')return rec
+        return{...rec,companyOpenings:{...(rec.companyOpenings||{}),[key]:result}}
+      }))
+    }catch(e){/* leave unmarked; a later sweep may retry this key */}
+    finally{s.inflight.delete(key)}
+  }
+  const sweepOpenings=async(companies)=>{
+    const queue=(Array.isArray(companies)?companies:[]).filter(c=>c&&openingsKeyFor(c))
+    const worker=async()=>{while(queue.length){await sweepOneOpening(queue.shift())}}
+    await Promise.all(Array.from({length:Math.min(OPENINGS_CONCURRENCY,queue.length||1)},worker))
+  }
+  const ensureOpeningsSweep=(companies)=>{
+    const list=(Array.isArray(companies)?companies:[]).filter(c=>c&&openingsKeyFor(c))
+    const sig=list.map(openingsKeyFor).join('|')
+    if(!sig||openingsSweptRef.current===sig)return
+    openingsSweptRef.current=sig
+    setTimeout(()=>{
+      const keys=new Set(list.map(openingsKeyFor))
+      const rec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')
+      const persisted=(rec&&rec.companyOpenings)||{}
+      setOpeningsByKey(prev=>{const next={};for(const k of keys){if(prev[k])next[k]=prev[k];else if(persisted[k])next[k]=persisted[k]}return next})
+      const s=openingsSweepRef.current
+      s.done=new Set([...keys].filter(k=>persisted[k]))
+      s.inflight=new Set()
+      sweepOpenings(list.filter(c=>!persisted[openingsKeyFor(c)]))
+    },0)
   }
   // generateOpBridgeStory (v3): adapts the role-level Bridge Story to this
   // specific company + JD via P.p6_op. Writes a plain string to
@@ -7270,7 +7389,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           const _p7Companies=parseCompanies(outputs.p7)
           const _focusRec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')
           const _p7Busy=generatingSection==='p7'
+          ensureOpeningsSweep(_p7Companies)
           const _renderGtmCompanyCard=(company,idx)=>{
+            const oc=openingsByKey[openingsKeyFor(company)]
             const cached=_focusRec&&_focusRec.companyReads?_focusRec.companyReads[company.name]:null
             const crBuilt=!!(cached&&cached.content&&cached.content.trim())
             const crBusy=gtmCompanyReadBuilding===company.name
@@ -7282,6 +7403,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             return <div key={company.name+'-'+idx} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,marginBottom:14,overflow:'hidden'}}>
               <div style={{padding:'18px 22px'}}>
                 <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:8}}>{company.name}</div>
+                <GtmOpeningMatch oc={oc}/>
                 <div style={{display:'flex',flexDirection:'column',gap:6,fontSize:15,lineHeight:1.55,color:'#2D3748'}}>
                   {company.what&&<div><strong>What they do:</strong> {company.what}</div>}
                   {(company.industry||company.size||company.hq)&&<div>
