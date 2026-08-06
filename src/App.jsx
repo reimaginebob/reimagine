@@ -1397,20 +1397,12 @@ function parseCompanies(text){
   }
   finalize();return companies
 }
-// ── GTM openings check: careers link + functional-fit signal ───────────────
-// Durable cache key for a target company. Prefers the homepage domain so a p7
-// regenerate that renames "Acme, Inc." -> "Acme" still maps to the same cached
-// openings; falls back to a normalized name when the company has no website.
+// ── GTM company de-dupe keys (used by the "Find 10 More" batch append) ──────
+// Homepage-domain key so a p7 regenerate that renames "Acme, Inc." -> "Acme"
+// still maps to the same company.
 function normalizeOpeningsDomain(website){
   if(typeof website!=='string'||!website.trim())return ''
   try{return new URL(/^https?:\/\//i.test(website)?website:'https://'+website.trim()).hostname.replace(/^www\./,'').toLowerCase()}catch(e){return ''}
-}
-function openingsKeyFor(company){
-  if(!company)return ''
-  const d=normalizeOpeningsDomain(company.website)
-  if(d)return 'dom:'+d
-  const n=(company.name||'').toLowerCase().replace(/[^a-z0-9]/g,'')
-  return n?'name:'+n:''
 }
 // De-dupe key for a company name: lowercase, drop legal suffixes + punctuation.
 // Used with normalizeOpeningsDomain (homepage domain) as a secondary key when
@@ -1419,56 +1411,6 @@ function openingsKeyFor(company){
 function normalizeCompanyNameKey(name){
   if(typeof name!=='string')return ''
   return name.toLowerCase().replace(/&/g,' and ').replace(/\b(inc|llc|ltd|corp|co|company|group|holdings|plc|gmbh)\b/g,'').replace(/[^a-z0-9]/g,'').replace(/^the/,'')
-}
-// careersLinkInfo: the careers/openings page when the server confirmed one, else
-// the homepage. Never a guessed or broken link.
-function careersLinkInfo(company,oc){
-  const href=(oc&&oc.careersUrl)||(company&&company.website)||''
-  const isCareers=!!(oc&&oc.careersUrl&&/\/(careers|jobs)/i.test(oc.careersUrl))
-  return{href,label:isCareers?'Careers page ↗':((company&&company.website)||href)}
-}
-// fetchAtsOpenings: POST to the server-side ATS proxy (browser can't call the
-// boards directly — CORS). Never throws; resolves to null on any failure so the
-// caller degrades to "could not check" (careers link only, no openings claim).
-async function fetchAtsOpenings(name,website){
-  try{
-    const res=await fetch('/api/ats',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,website})})
-    if(!res.ok)return null
-    return await res.json()
-  }catch(e){return null}
-}
-// SCREEN_OPENINGS_PROMPT: one focused call per company. Screens a real openings
-// list for FUNCTIONAL fit against the chosen role/lane — same function under a
-// different title counts (VP Customer Success ~ Head of Client Experience);
-// exact title match is neither required nor sufficient. JSON only.
-const SCREEN_OPENINGS_PROMPT=(role,laneLabel,openings)=>`You are screening a company's current job openings for FUNCTIONAL fit against a candidate's chosen direction. Output JSON only, no preamble.
-
-CANDIDATE'S CHOSEN ROLE/LANE: ${role||'(unspecified)'}${laneLabel?' — lane: '+laneLabel:''}
-
-Match on FUNCTION, not job title. The same function carries different titles at different companies (for example "VP Customer Success" and "Head of Client Experience" are the same function; "Chief People Officer" and "VP People" are the same function). A different-seniority version of the same function is a partial match worth including. A different function that merely shares a keyword is NOT a match.
-
-CURRENT OPENINGS (title — location):
-${openings.map((o,i)=>(i+1)+'. '+o.title+(o.location?' — '+o.location:'')).join('\n')}
-
-Return this exact shape:
-{"matches":[{"index":<1-based index from the list above>,"reason":"<one plain sentence on why this opening is the same function as the chosen role>"}]}
-
-Include only genuine functional matches. If none of the openings are a functional match, return {"matches":[]}. Do not invent openings that are not in the list.`
-// screenOpenings: run the fit-screen call and map matches back onto the openings
-// list (title/url/location). Safe-defaults to {count:0,matches:[]} on any parse
-// failure so a bad response never blocks the signal.
-async function screenOpenings(role,laneLabel,openings){
-  const empty={count:0,matches:[]}
-  if(!Array.isArray(openings)||openings.length===0)return empty
-  try{
-    const raw=await callClaude(SCREEN_OPENINGS_PROMPT(role,laneLabel,openings.slice(0,40)),{maxTokens:900,temperature:0.2})
-    const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
-    if(a<0||b<=a)return empty
-    const obj=JSON.parse(raw.slice(a,b+1))
-    if(!obj||!Array.isArray(obj.matches))return empty
-    const matches=obj.matches.map(m=>{const idx=(typeof m.index==='number'?m.index:parseInt(m.index,10))-1;const o=openings[idx];if(!o)return null;return{title:o.title,url:o.url,location:o.location,reason:typeof m.reason==='string'?m.reason.slice(0,240):''}}).filter(Boolean)
-    return{count:matches.length,matches}
-  }catch(e){return empty}
 }
 // detectMissingCitations (PR-1 Company Read). Conservative structural detector:
 // flags sentences containing specific factual claims (years, dollar amounts,
@@ -2603,31 +2545,6 @@ const S={
 }
 
 function Btn({onClick,disabled,secondary,small,children,style={}}){const base=small?S.sm:secondary?S.sec:S.btn;return <button style={{...base,opacity:disabled?0.5:1,...style}} onClick={onClick} disabled={disabled}>{children}</button>}
-// GtmOpeningsSignal: always-visible, no-click per-company openings signal on the
-// GTM card. Reads only the cached sweep result (openingsByKey / the saved
-// record) — never fetches. Four states: still checking, matches found
-// (expandable to the cached title/url/reason detail), checked-but-none, or a
-// feed we could not identify (renders nothing — careers link carries no claim).
-function GtmOpeningsSignal({oc}){
-  const[open,setOpen]=useState(false)
-  const muted={fontSize:14,color:'#718096',marginTop:8}
-  if(!oc)return <div style={muted}>Checking current openings…</div>
-  if(oc.status!=='checked')return null
-  if(!(oc.count>0))return <div style={muted}>Checked — nothing that looks like a match right now</div>
-  const matches=Array.isArray(oc.matches)?oc.matches:[]
-  return <div style={{marginTop:8}}>
-    <button onClick={()=>setOpen(o=>!o)} style={{background:'none',border:'none',padding:0,cursor:'pointer',color:'#1A7F5A',fontWeight:700,fontSize:14}}>
-      {oc.count} opening{oc.count>1?'s':''} that look like a match {open?'▲':'▼'}
-    </button>
-    {open&&matches.length>0&&<ul style={{margin:'8px 0 0',paddingLeft:18}}>
-      {matches.map((m,i)=><li key={i} style={{fontSize:14,color:'#2D3748',lineHeight:1.5,marginBottom:8}}>
-        {m.url?<a href={m.url} target="_blank" rel="noreferrer" style={{color:'#BA7517',fontWeight:600}}>{m.title}</a>:<strong>{m.title}</strong>}
-        {m.location?<span style={{color:'#718096'}}> · {m.location}</span>:null}
-        {m.reason?<div style={{color:'#4A5568'}}>{m.reason}</div>:null}
-      </li>)}
-    </ul>}
-  </div>
-}
 // GtmLearnMoreButton: full-width solid amber action on the GTM per-company
 // card. Per the rename-and-prominence PR, replaces the inline outline Build
 // affordance. Hover darkens one stop (#BA7517 → #854F0B). Module-scope so
@@ -5806,17 +5723,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[gtmCompanyReadBuilding,setGtmCompanyReadBuilding]=useState(null)
   const[gtmCompanyReadErrors,setGtmCompanyReadErrors]=useState({})
   const gtmCompanyReadReqRef=useRef(0)
-  // GTM openings sweep (careers link + functional-fit signal). openingsByKey is
-  // the render source of truth (works in demo, no saved record required); it is
-  // seeded from and mirrored into the saved door1 record's companyOpenings for
-  // persistence. The sweep ref tracks in-flight/done durable keys so each key
-  // runs once, and openingsSweptRef gates the auto-trigger to one run per list.
-  // This state is fully independent of gtmCompanyReadBuilding (the click-only
-  // prose read), so the eager sweep and a manual Learn More on the same company
-  // use different locks and can never double-fire or deadlock.
-  const[openingsByKey,setOpeningsByKey]=useState({})
-  const openingsSweepRef=useRef({inflight:new Set(),done:new Set()})
-  const openingsSweptRef=useRef('')
   // laneOverride (op surface cleanup brief 2026-05-29): when present, wins over
   // opLaneValue(rec0). Lets the auto-build path (submitOpRole) pass the inferred
   // lane directly through from runOpLaneInference's success path, sidestepping
@@ -6084,9 +5990,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const list=Array.isArray(companies)?companies:[]
     const _focusRec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')
     const _p7Busy=generatingSection==='p7'
-    ensureOpeningsSweep(list)
     const card=(company,idx)=>{
-      const oc=openingsByKey[openingsKeyFor(company)]
       const cached=_focusRec&&_focusRec.companyReads?_focusRec.companyReads[company.name]:null
       const crBuilt=!!(cached&&cached.content&&cached.content.trim())
       const crBusy=gtmCompanyReadBuilding===company.name
@@ -6107,9 +6011,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {company.growth&&<div><strong>Growth signal:</strong> {company.growth}</div>}
             {(company.contact||company.contactLinkedIn)&&<div><strong>Contact:</strong> {company.contact}{company.contactLinkedIn&&<> · <a href={company.contactLinkedIn} target="_blank" rel="noreferrer" style={{color:C.gold}}>LinkedIn</a></>}</div>}
             {company.source&&<div><strong>Source:</strong> {company.source}</div>}
-            {(company.emailConvention||company.website)&&<div>{company.emailConvention&&<><strong>Email:</strong> {company.emailConvention}</>}{company.emailConvention&&company.website?' · ':''}{company.website&&(()=>{const ci=careersLinkInfo(company,oc);return <a href={ci.href} target="_blank" rel="noreferrer" style={{color:C.gold}}>{ci.label}</a>})()}</div>}
+            {(company.emailConvention||company.website)&&<div>{company.emailConvention&&<><strong>Email:</strong> {company.emailConvention}</>}{company.emailConvention&&company.website?' · ':''}{company.website&&<a href={company.website} target="_blank" rel="noreferrer" style={{color:C.gold}}>{company.website}</a>}</div>}
           </div>
-          <GtmOpeningsSignal oc={oc}/>
           {crError&&<div style={{marginTop:14}}><ErrBox msg={crError}/></div>}
         </div>
         {crBuilt
@@ -6430,72 +6333,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }finally{
       if(reqId===gtmCompanyReadReqRef.current)setGtmCompanyReadBuilding(null)
     }
-  }
-  // ── GTM openings sweep ─────────────────────────────────────────────────────
-  // Resolve one company's careers page and, where a feed is corroborated, screen
-  // its current openings for functional fit. Writes to openingsByKey (render
-  // truth) and mirrors into the saved door1 record for persistence. Runs each
-  // durable key once (sweep ref), independent of the prose-read lock.
-  const SWEEP_CONCURRENCY=4
-  const sweepOneOpening=async(company)=>{
-    const key=openingsKeyFor(company)
-    if(!key)return
-    const s=openingsSweepRef.current
-    if(s.inflight.has(key)||s.done.has(key))return
-    s.inflight.add(key)
-    try{
-      const role=chosen||''
-      const laneLabel=selectedLane?laneLabelFor(selectedLane):''
-      const ats=await fetchAtsOpenings(company.name,company.website||'')
-      let result
-      if(!ats){
-        result={status:'unavailable',careersUrl:company.website||'',checkedAt:new Date().toISOString()}
-      }else if(!ats.feedFound){
-        result={status:'no-feed',careersUrl:ats.careersUrl||company.website||'',checkedAt:new Date().toISOString()}
-      }else{
-        const screened=Array.isArray(ats.openings)&&ats.openings.length>0?await screenOpenings(role,laneLabel,ats.openings):{count:0,matches:[]}
-        result={status:'checked',careersUrl:ats.careersUrl||company.website||'',count:screened.count,matches:screened.matches,totalOpen:(ats.openings||[]).length,checkedAt:new Date().toISOString()}
-      }
-      s.done.add(key)
-      setOpeningsByKey(prev=>({...prev,[key]:result}))
-      // Mirror into the saved door1 record so a reload/re-open never re-fires.
-      const slotId=currentSavedSlotIdRef.current
-      setSavedPlaybooks(prev=>prev.map(rec=>{
-        if(rec.id!==slotId||rec.source!=='door1')return rec
-        return{...rec,companyOpenings:{...(rec.companyOpenings||{}),[key]:result}}
-      }))
-    }catch(e){/* leave unmarked; a later sweep may retry this key */}
-    finally{s.inflight.delete(key)}
-  }
-  const sweepOpenings=async(companies)=>{
-    const queue=(Array.isArray(companies)?companies:[]).filter(c=>c&&openingsKeyFor(c))
-    const worker=async()=>{while(queue.length){await sweepOneOpening(queue.shift())}}
-    await Promise.all(Array.from({length:Math.min(SWEEP_CONCURRENCY,queue.length||1)},worker))
-  }
-  // ensureOpeningsSweep: called from the GTM list render. One sweep per unique
-  // company list (openingsSweptRef signature guard). Seeds openingsByKey from the
-  // saved record, prunes entries for companies no longer on the list (stale after
-  // a regenerate), then sweeps only the uncached companies. Deferred out of
-  // render via setTimeout so it never sets state during render.
-  const ensureOpeningsSweep=(companies)=>{
-    const list=(Array.isArray(companies)?companies:[]).filter(c=>c&&openingsKeyFor(c))
-    const sig=list.map(openingsKeyFor).join('|')
-    if(!sig||openingsSweptRef.current===sig)return
-    openingsSweptRef.current=sig
-    setTimeout(()=>{
-      const keys=new Set(list.map(openingsKeyFor))
-      const rec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')
-      const persisted=(rec&&rec.companyOpenings)||{}
-      setOpeningsByKey(prev=>{
-        const next={}
-        for(const k of keys){if(prev[k])next[k]=prev[k];else if(persisted[k])next[k]=persisted[k]}
-        return next
-      })
-      const s=openingsSweepRef.current
-      s.done=new Set([...keys].filter(k=>persisted[k]))
-      s.inflight=new Set()
-      sweepOpenings(list.filter(c=>!persisted[openingsKeyFor(c)]))
-    },0)
   }
   // generateOpBridgeStory (v3): adapts the role-level Bridge Story to this
   // specific company + JD via P.p6_op. Writes a plain string to
@@ -7443,9 +7280,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           const _p7Companies=parseCompanies(outputs.p7)
           const _focusRec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')
           const _p7Busy=generatingSection==='p7'
-          ensureOpeningsSweep(_p7Companies)
           const _renderGtmCompanyCard=(company,idx)=>{
-            const oc=openingsByKey[openingsKeyFor(company)]
             const cached=_focusRec&&_focusRec.companyReads?_focusRec.companyReads[company.name]:null
             const crBuilt=!!(cached&&cached.content&&cached.content.trim())
             const crBusy=gtmCompanyReadBuilding===company.name
@@ -7470,9 +7305,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {company.growth&&<div><strong>Growth signal:</strong> {company.growth}</div>}
                   {(company.contact||company.contactLinkedIn)&&<div><strong>Contact:</strong> {company.contact}{company.contactLinkedIn&&<> · <a href={company.contactLinkedIn} target="_blank" rel="noreferrer" style={{color:C.gold}}>LinkedIn</a></>}</div>}
                   {company.source&&<div><strong>Source:</strong> {company.source}</div>}
-                  {(company.emailConvention||company.website)&&<div>{company.emailConvention&&<><strong>Email:</strong> {company.emailConvention}</>}{company.emailConvention&&company.website?' · ':''}{company.website&&(()=>{const ci=careersLinkInfo(company,oc);return <a href={ci.href} target="_blank" rel="noreferrer" style={{color:C.gold}}>{ci.label}</a>})()}</div>}
+                  {(company.emailConvention||company.website)&&<div>{company.emailConvention&&<><strong>Email:</strong> {company.emailConvention}</>}{company.emailConvention&&company.website?' · ':''}{company.website&&<a href={company.website} target="_blank" rel="noreferrer" style={{color:C.gold}}>{company.website}</a>}</div>}
                 </div>
-                <GtmOpeningsSignal oc={oc}/>
                 {crError&&<div style={{marginTop:14}}><ErrBox msg={crError}/></div>}
               </div>
               {crBuilt

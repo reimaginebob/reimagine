@@ -97,20 +97,6 @@ This is one of the most useful features in the whole tool. Open it in Excel, Goo
 
 A few people keep a "live" version of the CSV that they update as the search progresses, and a separate copy of the original Reimagine output for reference. That works well.
 
-## Current openings at each company
-
-Each company card shows a link to that company's **careers page** where Reimagine can find one, so you can see who they are hiring in one click. When a specific careers page cannot be confirmed, the link goes to the company homepage instead — never a guessed or broken link.
-
-Just below that, a short line fills in on its own a few seconds after the list loads — you do not have to click anything. It reads the company's current job openings and tells you whether any of them look like a match for the direction you chose. The match is by **function, not job title**: the same job carries different titles at different companies (a "VP of Customer Success" at one company is a "Head of Client Experience" at another), and Reimagine looks past the wording to the underlying role.
-
-You will see one of three things:
-
-- **"3 openings that look like a match."** Click the count to expand the specific roles — each with its title, a direct link to apply, and a one-line reason it fits your direction.
-- **"Checked — nothing that looks like a match right now."** Reimagine found the company's openings and none of them line up with your direction today. This changes as companies post new roles.
-- **No line at all.** Reimagine could not find a public feed of this company's openings, so it makes no claim either way — you still get the careers-page link to check yourself.
-
-This is a reality check, not a filter. A company staying on your list with no current match is still worth the relationship-first outreach this phase is built around; the openings signal just tells you when there is also a posted role to point to today.
-
 ## Learn more about this company
 
 Each company in the list carries a full-width amber action button anchored to the bottom of the card, labeled **Learn more about [Company Name]** (the actual company name is substituted into the button copy). Click it for a focused read on that company beyond what you would find on Glassdoor: news from the last 90 days, the employee voice, industry-specific signal (CMS Star Ratings for hospital systems, GitHub cadence for tech, FINRA filings for financial services, and similar by sector), the leadership's public footprint, and watch-outs named honestly. Every numeric or named factual claim cites its source URL inline. The card uses live web search, so it takes roughly 30 to 60 seconds per click.
