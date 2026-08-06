@@ -3555,11 +3555,15 @@ function DemoUnavailable(){
 // configured on Stripe's side) — no backend route, no success/return handling.
 const SUPPORT_PANEL_COPY={
   navLabel:'Support Reimagine',
-  header:"Reimagine is free. It's not free to run.",
+  header:'Reimagine is free',
   body:[
-    "I built Reimagine free on purpose. I know what a job search does to a budget, and I didn't want a paywall standing between you and a plan, so there isn't one. That's not changing because things are tight for you right now, and for most people in a search, they are.",
-    "If Reimagine's been useful and you've got room to give something back, it goes straight toward keeping this open for the next person who lands here with a resume and a bad week. If you don't have that room, use everything here anyway, that's what it's for. And if giving makes more sense once you've landed and you're back on a paycheck, that timing works fine too.",
+    "If you are in job search and really feeling the pinch of not having a paycheck, please use Reimagine as much as you want with no expectation of payment. If you want to contribute after you've landed, that's great too.",
+    "If you are finding value in Reimagine and have the capacity to help make this service available to others, please consider supporting it here.",
+    "As you have probably read, AI tokens are expensive and a robust service like Reimagine is token-intensive, so every contribution helps pay it forward for the next person.",
   ],
+  // Anne Frank, from her Tales Book, 26 March 1944 ("Wie weggeeft zal nooit
+  // arm zijn"); this is the widely-used English rendering of that line.
+  quote:{text:'People who give will never be poor.',attribution:'Anne Frank'},
   onceLabel:'Give once',
   onceOptions:[
     {label:'$20',url:'https://donate.stripe.com/8x214o2s90bP6ZfcxFcAo09'},
@@ -3571,7 +3575,6 @@ const SUPPORT_PANEL_COPY={
   monthlyOptions:[
     {label:'$10/mo',url:'https://donate.stripe.com/cNi6oI3wd0bP5Vb8hpcAo0d'},
   ],
-  microline:'No pressure. No paywall. Ever.',
 }
 
 // One-time announcement that points returning users to the new Support
@@ -3601,8 +3604,12 @@ function SupportPanel({onClose}){
   return <div data-print="hide" onClick={onClose} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
     <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label={K.navLabel} style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:560,width:'100%',maxHeight:'calc(100vh - 48px)',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
       <button onClick={onClose} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
-      <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 18px',paddingRight:24,lineHeight:1.35}}>{K.header}</h2>
-      {K.body.map((para,i)=><p key={i} style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:i===0?'0 0 14px':'0 0 14px'}}>{para}</p>)}
+      <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 16px',paddingRight:24,lineHeight:1.35}}>{K.header}</h2>
+      {K.body.map((para,i)=><p key={i} style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:'0 0 14px'}}>{para}</p>)}
+      {K.quote&&<div style={{margin:'8px 0 0',padding:'2px 0 2px 16px',borderLeft:`3px solid ${C.gold}`}}>
+        <p style={{fontFamily:'Georgia,serif',fontStyle:'italic',fontSize:17,color:'#3D4A5C',lineHeight:1.55,margin:0}}>{`“${K.quote.text}”`}</p>
+        <p style={{fontSize:14,color:'#718096',margin:'6px 0 0'}}>{`— ${K.quote.attribution}`}</p>
+      </div>}
       <div style={{marginTop:22}}>
         <div style={sectionLabelStyle}>{K.onceLabel}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
@@ -3615,7 +3622,6 @@ function SupportPanel({onClose}){
           {K.monthlyOptions.map(o=><a key={o.label} href={o.url} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
         </div>
       </div>
-      <div style={{fontSize:14,color:'#718096',marginTop:20}}>{K.microline}</div>
     </div>
   </div>
 }
