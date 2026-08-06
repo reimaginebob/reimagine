@@ -65,6 +65,15 @@ The outreach template should sound like a real email from a peer, not a sales pi
 
 The LinkedIn headline tweak should make sense for the role you are pursuing. The first 50 to 70 characters matter most. That is what shows in search results and connection requests.
 
+## Adding more companies to your list
+
+The list starts with 10 companies to keep the research fast and reliable. Right below the list, the **Add more companies to your list** panel lets you build it out whenever you want. You can do either or both of two things:
+
+- **Get 10 more.** Click **Find 10 More Companies** and Reimagine researches another 10 that fit your direction and adds them to the list. Your existing companies stay; the new ones are checked against them, so you never get a duplicate. Click it as many times as you like.
+- **Steer the next 10.** Before you click, use the **"What should the next 10 focus on?"** field to point the search at what matters to you — for example "earlier-stage startups," "companies in the Southeast," or "mission-driven organizations." Leave it blank and the next 10 simply match the kind of companies already on your list.
+
+The Download CSV and everything else update to include the companies you add.
+
 ## How to refine
 
 This is the second-most-refined step in Reimagine, after Role Options. Common refinements:
@@ -75,7 +84,7 @@ This is the second-most-refined step in Reimagine, after Role Options. Common re
 - "Remove the companies that are over 5,000 employees."
 - "I want the email to lead with a specific point I can make about their recent funding round."
 
-Use **Update my strategy** to fold the changes in. Use **Show me a fresh set** to clear and start the research over.
+To re-rank or reshape the whole list, use the feedback box at the bottom of the Go-to-Market section — tell it what is off and it regenerates the section with your changes folded in. To add companies of a certain kind without redoing the rest, use the **Find 10 More Companies** panel described above and put your focus in its field.
 
 ## Download your company list as a spreadsheet
 

@@ -3030,7 +3030,7 @@ const LOADING_PREVIEWS = {
     'Writing your bridge story…',
   ],
   p7: [
-    'Twenty to thirty companies that fit your direction, with what they do, their industry, size, and headquarters',
+    'Ten companies that fit your direction to start, with what they do, their industry, size, and headquarters — plus a button to find ten more whenever you want',
     'A growth signal on each: recent funding, expansion, or new hires',
     'The specific hiring executive at each company, sourced from public signals you can verify',
     'A direct outreach approach from Making Your Own Weather, with a template you can adapt and send',
