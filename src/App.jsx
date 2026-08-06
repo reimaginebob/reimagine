@@ -2654,13 +2654,15 @@ function GtmLearnMoreButton({companyName,busy,waiting,onClick}){
 function GtmFindMoreBox({busy,error,onSubmit}){
   const[focus,setFocus]=useState('')
   return <div style={{margin:'18px 0',padding:'20px 22px',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10}}>
+    <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
     <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:6}}>Add more companies to your list</div>
     <div style={{fontSize:15,color:'#4A5568',lineHeight:1.55,marginBottom:14}}>Get 10 more companies. To make them a closer fit, describe what to focus on below — or leave it blank to match the list you already have.</div>
     <label style={{display:'block',fontSize:14,fontWeight:600,color:'#2D3748',marginBottom:6}}>What should the next 10 focus on? <span style={{fontWeight:400,color:'#718096'}}>(optional)</span></label>
     <input value={focus} onChange={e=>setFocus(e.target.value)} disabled={busy}
       placeholder="e.g. earlier-stage startups · companies in the Southeast · mission-driven organizations"
       style={{width:'100%',boxSizing:'border-box',padding:'11px 14px',fontSize:15,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:8,fontFamily:'inherit',outline:'none',marginBottom:14}}/>
-    <Btn onClick={()=>onSubmit(focus)} disabled={busy}><Plus size={16}/>{busy?'Finding 10 more…':'Find 10 More Companies'}</Btn>
+    <Btn onClick={()=>onSubmit(focus)} disabled={busy}>{busy?<Loader2 size={16} style={{animation:'spin 0.9s linear infinite'}}/>:<Plus size={16}/>}{busy?'Finding 10 more…':'Find 10 More Companies'}</Btn>
+    {busy&&<div style={{marginTop:10,fontSize:14,color:'#718096',lineHeight:1.5}}>Researching 10 more companies live — this can take a minute or two.</div>}
     {error&&<div style={{...S.err,marginTop:12}}>{error}</div>}
   </div>
 }
