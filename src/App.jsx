@@ -2587,32 +2587,22 @@ function GtmLearnMoreButton({companyName,busy,waiting,onClick}){
     {!disabled&&<ArrowRight size={18}/>}
   </button>
 }
-// GtmFindMoreBox: prominent "Find 10 More Companies" action under the target
-// list. The amber button is always visible and fires with no input (finding
-// more is the primary action); an optional collapsible field lets the user
-// steer the next batch. Mirrors GtmLearnMoreButton's prominence so the "get
-// more companies" affordance reads as a real button, not a buried expander.
+// GtmFindMoreBox: the "add more companies" action under the target list. A
+// plain bordered card (not another full-width gold bar — it was getting lost
+// among the gold Learn-more / Download-CSV affordances) that offers two things
+// clearly: fetch 10 more, and optionally steer them toward the user's interests
+// via an always-visible criteria field. Fires with the field blank.
 function GtmFindMoreBox({busy,error,onSubmit}){
-  const[hover,setHover]=useState(false)
-  const[showFocus,setShowFocus]=useState(false)
   const[focus,setFocus]=useState('')
-  const bg=(!busy&&hover)?'#854F0B':'#BA7517'
-  return <div style={{margin:'18px 0'}}>
-    <button
-      onClick={()=>onSubmit(focus)}
-      disabled={busy}
-      onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
-      onFocus={()=>setHover(true)} onBlur={()=>setHover(false)}
-      style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,width:'100%',padding:'16px 20px',background:bg,border:'none',borderRadius:10,color:'#FFFFFF',fontSize:17,fontWeight:700,fontFamily:'inherit',cursor:busy?'default':'pointer',opacity:busy?0.7:1,transition:'background-color 0.15s ease'}}
-    >
-      {!busy&&<Plus size={18}/>}
-      <span>{busy?'Finding 10 more companies…':'Find 10 More Companies'}</span>
-    </button>
-    <div style={{marginTop:8,textAlign:'center'}}>
-      <button onClick={()=>setShowFocus(s=>!s)} style={{background:'none',border:'none',color:C.goldL,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{showFocus?'Hide':'Want to steer the next 10? (optional)'}</button>
-    </div>
-    {showFocus&&<textarea value={focus} onChange={e=>setFocus(e.target.value)} placeholder="For example: more early-stage startups, or companies in the Southeast." style={{...S.ta,minHeight:64,fontSize:15,marginTop:8}}/>}
-    {error&&<div style={{...S.err,marginTop:8}}>{error}</div>}
+  return <div style={{margin:'18px 0',padding:'20px 22px',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10}}>
+    <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:6}}>Add more companies to your list</div>
+    <div style={{fontSize:15,color:'#4A5568',lineHeight:1.55,marginBottom:14}}>Get 10 more companies. To make them a closer fit, describe what to focus on below — or leave it blank to match the list you already have.</div>
+    <label style={{display:'block',fontSize:14,fontWeight:600,color:'#2D3748',marginBottom:6}}>What should the next 10 focus on? <span style={{fontWeight:400,color:'#718096'}}>(optional)</span></label>
+    <input value={focus} onChange={e=>setFocus(e.target.value)} disabled={busy}
+      placeholder="e.g. earlier-stage startups · companies in the Southeast · mission-driven organizations"
+      style={{width:'100%',boxSizing:'border-box',padding:'11px 14px',fontSize:15,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:8,fontFamily:'inherit',outline:'none',marginBottom:14}}/>
+    <Btn onClick={()=>onSubmit(focus)} disabled={busy}><Plus size={16}/>{busy?'Finding 10 more…':'Find 10 More Companies'}</Btn>
+    {error&&<div style={{...S.err,marginTop:12}}>{error}</div>}
   </div>
 }
 const ATTITUDE_QUOTES=[
