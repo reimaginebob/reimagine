@@ -208,47 +208,41 @@ p6: `A two-paragraph "tell me about yourself" she can use in interviews and meet
 
 "What I care about most in this work is that institutions can be reliable at the moments that matter, and hiring is one of those moments. The way a company welcomes someone is the moment it tells that person what kind of organization they have joined. I have stayed in healthcare for fourteen years because the stakes of getting that moment right are highest here. I am open to conversations about where that conviction goes next."`,
 
-// ─── P7: GO-TO-MARKET (25-company target list) ──────────────────────────
+// ─── P7: GO-TO-MARKET (10-company target list, current JSON format) ──────
 
-p7: `The list lives across the three Wide View lanes. Each name is a venue for the conviction, not a screening result. The point is to give the conviction options.
+p7: JSON.stringify({
+  quick_takeaway: `The people you are reaching are the founders and operating leaders of growth-stage digital health companies, the ones deciding right now how to scale from a few hundred people toward a few thousand while protecting clinical quality and culture. Ten companies fit that picture, most of them Series B through recently public, all of them adding people faster than the systems built to support them. The single most useful move this week: pick the two whose scaling stage most resembles the moment you built the referral engine and ran the Workday migration at Meridian, and send the note below.`,
+  part_1_hiring_executive: `At a growth-stage digital health company, from Series B through the first year public, the decision usually belongs to the CEO or COO rather than a sitting Chief People Officer, because at this stage the CPO seat is often the one being created. You are frequently the first true people leader, brought in when headcount has outrun systems that worked at 150 people and strain at 500. The challenge they own is the one you have already run: keep hiring velocity high and clinical and technical quality intact while the organization doubles, and build the offer, onboarding, and performance systems that make that repeatable.
 
-### Familiar Ground
+Your credibility comes from having done the demanding version at scale. Running talent acquisition for a 14,000-person integrated health system means you have already built what these companies are about to need, under more regulatory weight and higher clinical stakes than these companies carry today. Reach the CEO or COO directly; where a CPO already sits, that person is your peer and your warm path in.`,
+  part_2_company_list: [
+    { name: "Abridge", what: "AI clinical-documentation platform that turns patient-clinician conversations into structured notes inside Epic, Cerner, and athenahealth.", industry: "Healthcare AI / Clinical Workflow Automation", size: "About 588 employees, $550M raised (Series C, 2025)", hq: "Pittsburgh, PA", fit: "Scaling to 270-plus health systems including Johns Hopkins and Sutter, so the people infrastructure has to match the clinical deployment pace, the exact build you ran at Meridian.", growth: "Processing 100M-plus patient conversations in 2026, with a recent CTO hire from Notion signaling an executive build-out.", contact: "Julia Chou, Chief Operating Officer", contactLinkedIn: "", source: "Company leadership page", emailConvention: "firstname@abridge.com", website: "https://www.abridge.com" },
+    { name: "Notable Health", what: "AI agents that automate 1.4M-plus administrative workflows a day across intake, scheduling, prior authorizations, and care-gap closure.", industry: "Healthcare AI / Workflow Automation", size: "About 200 to 300 employees, $100M-plus raised (Series B, 2024)", hq: "San Mateo, CA", fit: "Serving 12,000-plus care sites and 32M-plus patients, which calls for workforce planning that anticipates deployment cycles.", growth: "Announced financial growth, expanded health-system partnerships, and public-sector presence in January 2026.", contact: "Pranay Kapadia, Co-Founder and CEO", contactLinkedIn: "", source: "Company leadership page", emailConvention: "firstname@notablehealth.com", website: "https://www.notablehealth.com" },
+    { name: "Ambience Healthcare", what: "AI platform for clinical documentation, coding, and revenue integrity, deployed across Houston Methodist and other systems.", industry: "Healthcare AI / Documentation and Revenue Cycle", size: "About 168 employees, $313M raised (Series C, 2025)", hq: "San Francisco, CA", fit: "A 2026 KLAS and CHIME Trailblazer winner whose rapid health-system deployments require clinical hiring at scale.", growth: "Live across 100-plus specialties, with a recent Chief Revenue Officer hire signaling commercial scale-up.", contact: "Michael Ng, Co-Founder and CEO", contactLinkedIn: "", source: "Company site and Crunchbase", emailConvention: "firstname@ambiencehealthcare.com", website: "https://www.ambiencehealthcare.com" },
+    { name: "Hinge Health", what: "Digital musculoskeletal care combining AI motion tracking, wearables, and virtual physical therapy.", industry: "Digital Health / Musculoskeletal Care", size: "About 1,700 employees, public (IPO May 2025)", hq: "San Francisco, CA", fit: "Post-IPO scaling for Fortune 500 employers and national health plans, a stage where the people systems either get built or break.", growth: "Went public in May 2025 at a $2.6B valuation with 77 percent gross margin and active hiring across functions.", contact: "Vincent Lim, Chief People Officer", contactLinkedIn: "", source: "Company leadership page", emailConvention: "firstname.lastname@hingehealth.com", website: "https://www.hingehealth.com" },
+    { name: "Omada Health", what: "Virtual chronic-disease management for prediabetes, diabetes, hypertension, and musculoskeletal care.", industry: "Digital Health / Chronic Disease Management", size: "About 500 to 1,000 employees, public (IPO 2025)", hq: "San Francisco, CA", fit: "Post-IPO and serving 1,800-plus enterprise customers, the stage where a first-rate people function earns its keep.", growth: "Went public in 2025 after revenue grew 38 percent in 2024 to $170M.", contact: "Nancy Vitale, Chief People Officer", contactLinkedIn: "", source: "LinkedIn", emailConvention: "firstname.lastname@omadahealth.com", website: "https://www.omadahealth.com" },
+    { name: "Qualified Health", what: "Enterprise platform for health systems to deploy and scale AI safely across clinical and operational work.", industry: "Healthcare AI / Enterprise Platform", size: "Size not confirmed, $125M Series B (March 2026)", hq: "Palo Alto, CA", fit: "Working with UTMB, Mercy, and University of Rochester Medicine, whose multi-year deployments require workforce planning.", growth: "Raised a $125M Series B led by NEA in March 2026 on rising demand from health systems.", contact: "Contact not identified", contactLinkedIn: "", source: "Press release", emailConvention: "", website: "https://www.qualifiedhealth.com" },
+    { name: "CodaMetrix", what: "AI contextual coding automation that turns clinical documentation into longitudinal patient records.", industry: "Healthcare AI / Revenue Cycle and Coding", size: "Size not confirmed", hq: "Boston, MA", fit: "Ranked first in the 2026 Best in KLAS autonomous-coding segment, with enterprise adoption that requires clinical and technical hiring at scale.", growth: "Launched the first contextual coding-automation platform in 2023, with a February 2026 KLAS ranking signaling traction.", contact: "Contact not identified", contactLinkedIn: "", source: "Industry report", emailConvention: "", website: "https://www.codametrix.com" },
+    { name: "Navina AI", what: "AI primary-care platform that gives clinicians patient-centric insights and decision support.", industry: "Healthcare AI / Primary and Value-Based Care", size: "Size not confirmed", hq: "New York, NY", fit: "Bringing on advisors like former Humana CEO Bruce Broussard to support growth across payers and providers, a build-out that reshapes hiring.", growth: "Advisory-board expansion signals commercial scale-up aligned with Medicare Advantage and ACO growth.", contact: "Contact not identified", contactLinkedIn: "", source: "Company careers page", emailConvention: "", website: "https://www.navina.ai" },
+    { name: "Curana Health", what: "Value-based primary care for Medicare Advantage and Medicaid, combining a medical group and a health plan.", industry: "Healthcare Services / Value-Based Care", size: "About 200 to 500 employees", hq: "Houston, TX", fit: "Scaling primary care and health-plan operations across states, with a Chief People Officer seat recently filled from Garner Health and Chewy.", growth: "Expanding across multiple states with leaders drawn from Intermountain, DaVita, and ChenMed.", contact: "Valentina Gissin, Chief People Officer", contactLinkedIn: "", source: "Company leadership page", emailConvention: "firstname.lastname@curanahealth.com", website: "https://www.curanahealth.com" },
+    { name: "Sword Health", what: "Digital physical therapy and musculoskeletal care with AI exercise programs and wearables.", industry: "Digital Health / Musculoskeletal Care", size: "About 500 to 1,000 employees, $300M-plus raised", hq: "New York, NY", fit: "A direct competitor to Hinge Health weighing a near-term IPO, the stage where people systems become a board-level topic.", growth: "Raised $110M in six months and is building value-based care models for musculoskeletal care.", contact: "Contact not identified", contactLinkedIn: "", source: "Industry reports", emailConvention: "", website: "https://www.swordhealth.com" }
+  ],
+  part_3_outreach_template: `Julia,
 
-1. Kaiser Permanente
-2. Ascension
-3. HCA Healthcare
-4. Northwell Health
-5. Sutter Health
-6. Atrium Health
-7. Piedmont Healthcare (Atlanta)
-8. Wellstar Health System (Georgia)
-9. Children's Healthcare of Atlanta
+I read that Abridge is now live across 270-plus health systems, including Johns Hopkins and Sutter, and that you recently brought on a CTO from Notion. That kind of clinical deployment pace usually arrives well before the people systems that have to support it, which is the gap I spend my time closing.
 
-### Informed Imagination
+I run talent acquisition for a 14,000-person integrated health system in Atlanta. I built our employee referral program from scratch and it now generates a third of all hires, and I moved us from Taleo to Workday across 300 hiring managers in eight weeks during the COVID surge. The thing people who have worked with me tend to say is that I am who you call when the hiring engine has to scale and hold clinical quality at the same time.
 
-10. Devoted Health
-11. Maven Clinic
-12. Headway
-13. Hinge Health
-14. Carbon Health
-15. Included Health
-16. Lyra Health
-17. Spring Health
-18. Color Health
+The reason I am writing is that the moment you are in, clinical deployment outrunning people infrastructure, is one I have built for before inside a slower, heavier institution. The ask is simple: could we find 15 to 30 minutes to compare notes on scaling people systems at your pace?
 
-### What's the Move
+Personalization guide, tailor three things per company:
+1. The opening signal: swap the deployment or funding fact for the most recent one specific to that company, such as a new health-system partnership, a funding round, or a leadership hire.
+2. The accomplishment: lead with the Meridian result that best matches their stage, the referral engine for a company that needs pipeline, the Workday migration for one mid-platform-change.
+3. The fit sentence: name the specific scaling tension that company is in, in their own words where you can find them.`,
+  part_4_linkedin_tweak: `Chief People Officer | Building the people systems growth-stage digital health scales on | Former VP Talent Acquisition, 14,000-person health system
 
-19. Pellio Health (the live JD on the table)
-20. Andreessen Horowitz Bio + Health (advisory to portfolio)
-21. General Catalyst Health Assurance (advisory to portfolio)
-22. The Carlyle Group, healthcare practice (portfolio CPO role)
-23. KKR Health Care Strategic Growth (portfolio CPO role)
-24. Emory or Georgia Tech (large university system, comparable stakes, different industry)
-25. Self-founded fractional practice with two or three anchor clients
-
-### Hedge
-
-This list is a starting position, not a screen. The familiar-ground names are where most of the active openings will be. The informed-imagination names are where the conviction has the highest per-decision leverage. The WTM names are where the conviction lives at a different altitude. The right move depends on which trade Sarah wants to make next.`,
+The first 50 to 70 characters carry the target. Leading with Chief People Officer states the direction you are moving toward instead of your current title, and growth-stage digital health is the phrase a founder or recruiter in this space searches. It announces the move before anyone opens the profile.`
+}),
 
 // ─── P8: LINKEDIN REMIX ─────────────────────────────────────────────────
 
