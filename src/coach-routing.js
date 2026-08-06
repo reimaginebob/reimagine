@@ -48,7 +48,7 @@ export const FEATURE_MAP = [
   { slug: 'bridge-story',         reach: 'focus-gated', labelId: 'p6',
     does: 'builds the "tell me about yourself" pitch for a chosen direction' },
   { slug: 'go-to-market',         reach: 'focus-gated', labelId: 'p7',
-    does: 'researches target companies live and drafts the outreach' },
+    does: 'researches target companies live, flags any with a role open right now that fits, and drafts the outreach' },
   { slug: 'linkedin-remix',       reach: 'focus-gated', labelId: 'p8',
     does: "rewrites the person's own LinkedIn profile for where they're headed" },
   { slug: 'resume-refresh',       reach: 'focus-gated', labelId: 'p_res',
