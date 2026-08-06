@@ -27,6 +27,7 @@ export const NAV_LABELS = {
   p5: 'The Role',
   p6: 'Your Bridge Story',
   p7: 'Go-to-Market',
+  recruiters: 'Recruiters for This Path',
   p8: 'LinkedIn Remix',
   p_res: 'Resume Refresh',
   p11: 'Interview Prep',
