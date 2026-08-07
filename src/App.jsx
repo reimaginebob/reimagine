@@ -1291,6 +1291,48 @@ async function inferJdMetadata(jd){
     return {company:s(obj.company),role:s(obj.role),location:s(obj.location)}
   }catch(e){return empty}
 }
+// Offer-letter parse (offer-letter-parse brief 2026-08-07). Structured extraction
+// of an uploaded/pasted offer into its constituent comp + employment terms. Keys
+// are deliberately all single-word so the underscore-key-drift failure mode (see
+// repairMangledJsonKeys) cannot occur here — no repair pass needed. PRIVACY: the
+// prompt is scoped to comp/terms only and told to ignore SSN, bank, address, DOB;
+// the caller never persists the raw letter text, only these extracted fields.
+const OFFER_JSON_KEYS=['base','bonus','equity','signon','relocation','title','level','start','pto','retirement','health','location','remote','reporting','deadline','contingencies','notes']
+const OFFER_PARSE_PROMPT=(text)=>`You are extracting the constituent terms of a job offer from the document text below, so a candidate can see the full package broken out. Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end with }.
+
+PRIVACY (load-bearing): extract ONLY compensation and employment terms. Do NOT read out, extract, or include any Social Security number, government ID, bank / routing / account number, home address, or date of birth — ignore them entirely even if they appear in the document.
+
+Return this exact shape (every key present; use an empty string for anything the document does not state — never guess or invent a value):
+{"base":"<annual base salary as stated, e.g. \\$125,000>","bonus":"<bonus target and structure, e.g. 15% of base target, paid annually>","equity":"<equity grant: type, amount, and vesting, e.g. 10,000 RSUs vesting over 4 years>","signon":"<sign-on or signing bonus>","relocation":"<relocation support>","title":"<job title>","level":"<level or grade, if stated>","start":"<start date>","pto":"<paid time off or vacation terms>","retirement":"<401(k) or retirement match>","health":"<health / insurance benefits summary>","location":"<work location>","remote":"<remote, hybrid, or onsite terms>","reporting":"<who the role reports to>","deadline":"<deadline to respond to the offer>","contingencies":"<any contingencies, e.g. background check, references, I-9>","notes":"<anything else compensation-relevant worth noting; keep short>"}
+
+Keep each value concise and faithful to the document — quote figures as written. If a term is stated but vague (e.g. equity "to be determined"), record it as written so the candidate can see it is unresolved.
+
+DOCUMENT:
+${(text||'').slice(0,14000)}`
+// parseOfferJSON: tolerant parser for the offer extraction. First-brace to last-
+// brace, JSON.parse, then coerce every known key to a trimmed capped string.
+// Returns null only when nothing parseable is found.
+function parseOfferJSON(raw){
+  if(!raw||typeof raw!=='string')return null
+  const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
+  if(a<0||b<0||b<=a)return null
+  let obj;try{obj=JSON.parse(raw.slice(a,b+1))}catch(e){return null}
+  if(!obj||typeof obj!=='object')return null
+  const s=v=>(typeof v==='string'?v.trim().slice(0,300):(v==null?'':String(v).trim().slice(0,300)))
+  const out={}
+  for(const k of OFFER_JSON_KEYS)out[k]=s(obj[k])
+  return out
+}
+// User-facing labels for the parsed offer fields — used by the editable readout
+// and to build the structured summary the negotiation prompt consumes.
+const OFFER_FIELD_LABELS={base:'Base salary',bonus:'Bonus',equity:'Equity',signon:'Sign-on bonus',relocation:'Relocation',title:'Title',level:'Level',start:'Start date',pto:'Paid time off',retirement:'Retirement match',health:'Health / benefits',location:'Location',remote:'Remote terms',reporting:'Reports to',deadline:'Response deadline',contingencies:'Contingencies',notes:'Other notes'}
+// offerSummaryFromStruct: flatten the non-empty parsed fields into one labeled
+// string the Offer & Negotiation prompt can place against the market range. Empty
+// string when nothing is filled in (caller falls back to the free-text offer).
+function offerSummaryFromStruct(offer){
+  if(!offer||typeof offer!=='object')return ''
+  return OFFER_JSON_KEYS.filter(k=>offer[k]&&String(offer[k]).trim()).map(k=>`${OFFER_FIELD_LABELS[k]}: ${String(offer[k]).trim()}`).join('. ')
+}
 // jdLooksLinkOnly (Karen Groll URL-only bug, 2026-06-29): true when the pasted
 // "JD" is dominated by a URL with almost no posting text — the user pasted a
 // LinkedIn / job link instead of the description. Strip URLs; if under ~40 chars
@@ -5701,7 +5743,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // each per-card RefineBox writes the user's last correction text into
     // record.feedback[cardKey] so a restored door2 record rehydrates the
     // textarea contents.
-    return{id,title,company:'',role:'',location:'',lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||'',p5:feedback.p5||'',p6:feedback.p6||'',p_res:feedback.p_res||'',p11:feedback.p11||'',companyRead:feedback.companyRead||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:'',p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}},panel:{interviewers:[],opportunity_context:''},savedNotes:[]}
+    return{id,title,company:'',role:'',location:'',lane:'specific',source:'door2',createdAt:ts,updatedAt:ts,outputs:{op:outputs.op||''},done:done.includes('op')?['op']:[],feedback:{op:feedback.op||'',p5:feedback.p5||'',p6:feedback.p6||'',p_res:feedback.p_res||'',p11:feedback.p11||'',companyRead:feedback.companyRead||''},upstream:buildUpstreamSnapshot(),jd:jdText||'',schemaVersion:2,opLane:null,sections:{p5:{content:'',builtAt:null},p6:'',p_res:{content:'',builtAt:null},p11:{content:'',builtAt:null},companyRead:{content:'',builtAt:null}},panel:{interviewers:[],opportunity_context:''},savedNotes:[],offerStage:{offer:null,updatedAt:null}}
   }
   // Interview Panel (door2): the user maintains a per-opportunity list of
   // interviewers plus an opportunity-level free-text context box. Storage only
@@ -5834,6 +5876,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[focusSalaryBusy,setFocusSalaryBusy]=useState(false)
   const[focusSalaryErr,setFocusSalaryErr]=useState(null)
   const[offerDrafts,setOfferDrafts]=useState({})
+  // Offer-letter parse (offer-letter-parse brief 2026-08-07): single-flight busy
+  // + error for the upload/paste → structured-offer extraction. offerPasteDrafts
+  // holds the per-slot paste-textarea text before it is parsed.
+  const[offerParsing,setOfferParsing]=useState(false)
+  const[offerParseError,setOfferParseError]=useState(null)
+  const[offerPasteDrafts,setOfferPasteDrafts]=useState({})
+  const[offerPasteOpen,setOfferPasteOpen]=useState({})
   // Interview Panel web research (PR 4): single-flight busy id, per-interviewer
   // error, and the inline edit buffer for a fetched research block.
   const[researchingIvId,setResearchingIvId]=useState(null)
@@ -6779,7 +6828,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       let location=((rec0&&rec0.location)||'').trim()
       if((!role||!location)&&jd){const meta=await inferJdMetadata(jd);if(!role)role=(meta.role||'').trim();if(!location)location=(meta.location||'').trim()}
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
-      const offerAmount=((offerDrafts[slotId]!==undefined?offerDrafts[slotId]:((rec0&&rec0.sections&&rec0.sections.offerNegotiation&&rec0.sections.offerNegotiation.offerAmount)||''))||'').trim()
+      // Prefer the structured offer (parsed from an uploaded/pasted letter) over the
+      // quick free-text field — it gives the prompt real components (base, bonus,
+      // equity, …) instead of a blob (offer-letter-parse brief 2026-08-07).
+      const _struct=(rec0&&rec0.offerStage&&rec0.offerStage.offer)||null
+      const _structSummary=offerSummaryFromStruct(_struct)
+      const offerAmount=_structSummary||((offerDrafts[slotId]!==undefined?offerDrafts[slotId]:((rec0&&rec0.sections&&rec0.sections.offerNegotiation&&rec0.sections.offerNegotiation.offerAmount)||''))||'').trim()
       const foundation=buildOpProfileSummary()
       // Evidence-based ask (offer-negotiation-v2 brief 2026-08-07): build the ROI
       // case from proof the user already wrote — the op Bridge Story (prose) and the
@@ -6806,6 +6860,41 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }finally{
       if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
     }
+  }
+  // Offer-letter parse (offer-letter-parse brief 2026-08-07). Takes an uploaded File
+  // or pasted text, extracts the text client-side (extractText handles PDF/docx/txt),
+  // runs the privacy-scoped OFFER_PARSE_PROMPT, and stores the structured result on
+  // rec.offerStage.offer (lazy-init; NO schemaVersion bump — the op surface guards on
+  // ===2). The raw letter text is never persisted — only the extracted fields.
+  const parseOfferLetter=async(fileOrText)=>{
+    const slotId=currentSavedSlotIdRef.current
+    if(!slotId||offerParsing)return
+    setOfferParsing(true);setOfferParseError(null)
+    try{
+      const text=typeof fileOrText==='string'?fileOrText:await extractText(fileOrText)
+      if(!text||!text.trim()||text.trim().length<40){setOfferParseError('We couldn\'t read enough text from that. Try pasting the offer text directly.');return}
+      const raw=await callClaude(OFFER_PARSE_PROMPT(text),{maxTokens:1200,temperature:0.1})
+      const offer=parseOfferJSON(raw)
+      if(!offer){setOfferParseError('We couldn\'t parse that into offer terms. Try pasting the key details directly.');return}
+      if(currentSavedSlotIdRef.current!==slotId)return
+      setSavedPlaybooks(prev=>prev.map(rec=>rec.id!==slotId?rec:{...rec,offerStage:{...(rec.offerStage||{}),offer,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}))
+      setOfferPasteOpen(o=>({...o,[slotId]:false}))
+      setCurrentRoleSaved(false)
+    }catch(e){
+      setOfferParseError(e.message||'Could not read that file. Try pasting the offer text instead.')
+    }finally{
+      setOfferParsing(false)
+    }
+  }
+  // Inline edit of one parsed offer field (the "fix anything we misread" affordance).
+  const updateOfferField=(slotId,key,value)=>{
+    setSavedPlaybooks(prev=>prev.map(rec=>{
+      if(rec.id!==slotId)return rec
+      const os=rec.offerStage||{offer:null,updatedAt:null}
+      const offer={...(os.offer||{}),[key]:value}
+      return{...rec,offerStage:{...os,offer,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}
+    }))
+    setCurrentRoleSaved(false)
   }
   // Compensation Read — Focus surface (comp-benchmarking brief 2026-08-07). Lives
   // inside Income Now. Inputs are the picked direction (chosen) + profile.loc. Uses
@@ -8838,6 +8927,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _onBusy=opSectionBuilding==='offerNegotiation'&&opBuildingSlot===_slot
                 const _compBuilt=!!(_sec.salaryRead&&_sec.salaryRead.content&&_sec.salaryRead.content.trim())
                 const _offerVal=offerDrafts[_slot]!==undefined?offerDrafts[_slot]:((_sec.offerNegotiation&&_sec.offerNegotiation.offerAmount)||'')
+                const _offer=(_rec&&_rec.offerStage&&_rec.offerStage.offer)||null
+                const _offerParsed=!!(_offer&&OFFER_JSON_KEYS.some(k=>_offer[k]&&String(_offer[k]).trim()))
                 return _cardWrap(<>
                   {_head('Offer & Negotiation','Where an offer sits against the sourced range, what to ask for, and the parts of the package a base-salary number hides. Built on your Compensation Read.',_onBuilt,()=>generateOpOfferNegotiation(),_onBusy?'Building…':_onBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                   {!_compBuilt&&<div style={{marginTop:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:8,padding:'12px 14px',fontSize:15,color:'#1A2540',lineHeight:1.55}}>Build the Compensation Read first — the negotiation guidance is anchored on its sourced range.<div style={{marginTop:8}}><Btn small secondary onClick={()=>scrollToOutput('salaryRead')}>Compensation Read ↑</Btn></div></div>}
@@ -8853,6 +8944,41 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     </div>
                     <div style={{fontSize:13,color:C.gray,marginTop:6,lineHeight:1.5}}>Enter your base, plus any bonus or equity. We'll place it against the sourced range. Stays private to your account.</div>
                   </div>
+                  {/* Offer-letter upload + editable readout (offer-letter-parse brief
+                      2026-08-07): upload/paste the actual letter, we break it into its
+                      constituent terms (privacy-scoped parse), and the structured offer
+                      feeds the negotiation guidance in place of the free-text blob. */}
+                  {!isDemo&&!_offerParsed&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                    <div style={{fontSize:15,fontWeight:700,color:'#1A2540',marginBottom:2}}>Or upload your offer letter</div>
+                    <div style={{fontSize:13,color:C.gray,marginBottom:10,lineHeight:1.5}}>We'll break it into its parts — base, bonus, equity, benefits, and the rest — so you can see the whole package and what's missing. We read only the compensation and employment terms, never personal identifiers, and we don't keep the document.</div>
+                    {offerParsing?<div style={{display:'flex',alignItems:'center',gap:8,fontSize:15,color:C.gray}}><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Reading your offer…</div>:<>
+                      {!offerPasteOpen[_slot]?<div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+                        <FileUpload label="Upload offer letter" hint="PDF, Word, or text" onFile={f=>parseOfferLetter(f)}/>
+                        <button type="button" onClick={()=>setOfferPasteOpen(o=>({...o,[_slot]:true}))} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',fontSize:15,padding:0}}>Or paste the text instead</button>
+                      </div>:<div>
+                        <textarea style={{...S.ta,minHeight:120,fontSize:15}} value={offerPasteDrafts[_slot]||''} onChange={e=>setOfferPasteDrafts(d=>({...d,[_slot]:e.target.value}))} placeholder="Paste your offer letter, or just the key terms, here…"/>
+                        <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
+                          <Btn small onClick={()=>parseOfferLetter(offerPasteDrafts[_slot]||'')} disabled={!String(offerPasteDrafts[_slot]||'').trim()}><Sparkles size={12}/>Parse offer</Btn>
+                          <Btn small secondary onClick={()=>setOfferPasteOpen(o=>({...o,[_slot]:false}))}>Cancel</Btn>
+                        </div>
+                      </div>}
+                    </>}
+                    {offerParseError&&<div style={{marginTop:10}}><ErrBox msg={offerParseError}/></div>}
+                  </div>}
+                  {!isDemo&&_offerParsed&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:4}}>
+                      <div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>What we found in your offer</div>
+                      <Btn small secondary onClick={()=>setSavedPlaybooks(prev=>prev.map(rec=>rec.id!==_slot?rec:{...rec,offerStage:{...(rec.offerStage||{}),offer:null},updatedAt:new Date().toISOString()}))}><X size={12}/>Clear</Btn>
+                    </div>
+                    <div style={{fontSize:13,color:C.gray,marginBottom:10,lineHeight:1.5}}>Fix anything we misread. Blank fields are terms the letter didn't mention — often the best things to ask about. This feeds the guidance above, and stays private to your account.</div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
+                      {OFFER_JSON_KEYS.map(k=><div key={k}>
+                        <label style={{fontSize:12,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,display:'block',marginBottom:3}}>{OFFER_FIELD_LABELS[k]}</label>
+                        <input style={{width:'100%',background:C.input,border:`1px solid ${(_offer[k]&&String(_offer[k]).trim())?C.border:C.gold+'55'}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_offer[k]||''} onChange={e=>updateOfferField(_slot,k,e.target.value)} placeholder="— not stated —"/>
+                      </div>)}
+                    </div>
+                    {_compBuilt&&<div style={{marginTop:12}}><Btn small onClick={()=>generateOpOfferNegotiation()} disabled={!!opSectionBuilding}>{_onBuilt?<><RotateCcw size={11}/>Update guidance with this offer</>:<><Sparkles size={12}/>Build guidance from this offer</>}</Btn></div>}
+                  </div>}
                   {opSectionErrors.offerNegotiation&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.offerNegotiation}/></div>}
                   {_onBusy&&<div style={{marginTop:14}}><Loading msg="Building Offer & Negotiation…" step="offerNegotiation"/></div>}
                   {_onBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.offerNegotiation.content}/></div>{_compDisclaimer}</div>}
