@@ -2987,6 +2987,25 @@ function GtmFindMoreBox({busy,error,onSubmit}){
     {error&&<div style={{...S.err,marginTop:12}}>{error}</div>}
   </div>
 }
+// Reshape the company list: gain-framed sibling to GtmFindMoreBox. Find More
+// ADDS; this REBUILDS the list around what the user is after (size, stage,
+// mission, geography), keeping Part 1 + the outreach. Promoted out of the old
+// collapsed refine box into a full card so the steering control is visible.
+function GtmReshapeBox({busy,error,onSubmit}){
+  const[focus,setFocus]=useState('')
+  return <div style={{margin:'18px 0',padding:'20px 22px',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10}}>
+    <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
+    <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:6}}>Want a different set of companies?</div>
+    <div style={{fontSize:15,color:'#4A5568',lineHeight:1.55,marginBottom:14}}>Tell us what you're after — size, stage, mission, geography — and we'll rebuild the list around it. Part 1 and the outreach stay.</div>
+    <label style={{display:'block',fontSize:14,fontWeight:600,color:'#2D3748',marginBottom:6}}>What should the list focus on?</label>
+    <input value={focus} onChange={e=>setFocus(e.target.value)} disabled={busy}
+      placeholder="e.g. mid-market instead of enterprise · lean toward the Southeast · closer to the mission angle"
+      style={{width:'100%',boxSizing:'border-box',padding:'11px 14px',fontSize:15,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:8,fontFamily:'inherit',outline:'none',marginBottom:14}}/>
+    <Btn onClick={()=>onSubmit(focus)} disabled={busy}>{busy?<Loader2 size={16} style={{animation:'spin 0.9s linear infinite'}}/>:<RotateCcw size={16}/>}{busy?'Rebuilding the list…':'Rebuild the list'}</Btn>
+    {busy&&<div style={{marginTop:10,fontSize:14,color:'#718096',lineHeight:1.5}}>Rebuilding your company list live — this can take a minute or two.</div>}
+    {error&&<div style={{...S.err,marginTop:12}}>{error}</div>}
+  </div>
+}
 const ATTITUDE_QUOTES=[
   {text:"Everything can be taken from a person but one thing: the last of the human freedoms, to choose one's attitude in any given set of circumstances.",author:"Viktor Frankl"},
   {text:"He who has a why to live can bear almost any how.",author:"Viktor Frankl"},
@@ -6510,7 +6529,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={hdr}>Part 2 · Target companies</div>
       {renderGtmCompanyBlock(g.part_2_company_list)}
       {regen2more&&<GtmFindMoreBox busy={regeneratingP7Slot==='part2more'} error={p7SlotErrors['part2more']} onSubmit={(t)=>regen2more(t)}/>}
-      {regen2fix&&<SubsectionRefineBox scopeKey="gtm-part2fix" onSubmit={(t)=>regen2fix(t)} busy={regeneratingP7Slot==='part2fix'} error={p7SlotErrors['part2fix']} label="Something off about these companies? Tell us what to fix and we'll redo the list." placeholder="e.g. drop the 5,000+ headcount names · these three miss the mission angle · lean mid-market" submitLabel="Redo the company list" helperText="Replaces the list with a corrected, re-ranked set. Part 1 and the outreach stay."/>}
+      {regen2fix&&<GtmReshapeBox busy={regeneratingP7Slot==='part2fix'} error={p7SlotErrors['part2fix']} onSubmit={(t)=>regen2fix(t)}/>}
       <div style={{...S.out,fontSize:15,color:C.goldL,fontStyle:'italic',lineHeight:1.6}}>For a deeper read on one company, use Learn More on its card.</div>
       <div style={S.out}>
         <div style={{...hdr,marginTop:0}}>Part 3 · Outreach template</div>
