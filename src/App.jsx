@@ -1496,10 +1496,10 @@ HONESTY RULES (load-bearing):
 - Do NOT return any email address or guessed contact path. Link to the person's or firm's own page only.
 
 NAME VERIFICATION (load-bearing — prevents stale, wrong, or namesake names):
-- The firm's OWN site is the source of truth for a person's CURRENT title. Name a person (a large-firm practice leader OR a boutique principal) only when the firm's own consultant/profile page confirms they hold the role now, and return that page as leaderProfileUrl.
-- When the firm's own page does NOT name a leader, run a LinkedIn-scoped search that INCLUDES THE FIRM NAME (e.g. site:linkedin.com "<firm>" "<practice>") to surface a candidate — always scope the query by the firm name so a common-name namesake is not mistaken for the right person — then CONFIRM that candidate on the firm's OWN page before naming them. If the firm's own page does not confirm the candidate, return the practice with NO name and confidence "low", even if LinkedIn suggests one.
-- Do NOT treat a third-party org-chart / aggregator page, or a stale ("since 20XX") listing, as confirmation of a CURRENT role. If the only evidence is third-party or stale, return no name.
-- If any current source shows the person now has a different employer (they have LEFT the firm), do NOT name them; return the practice with no name.
+- A named person must be confirmed as CURRENT by a FIRST-PARTY source, and leaderProfileUrl MUST BE that source. Two things count as first-party: (a) the firm's OWN consultant/profile page, or (b) the person's OWN LinkedIn profile (a linkedin.com/in/ URL) whose current employer is this firm. Use whichever you can verify and return it as leaderProfileUrl.
+- Firm-scope any LinkedIn search (e.g. site:linkedin.com "<firm>" "<practice>") so a common-name namesake at a different firm is not mistaken for the right person. If you cannot confirm a current person from either first-party source, return the firm/practice with NO name and confidence "low".
+- Do NOT treat a third-party org-chart / aggregator or contact-database page, a listicle, or a stale ("since 20XX") listing as confirmation of a CURRENT role. If that is your only evidence, return no name.
+- If any current source shows the person now has a different employer (they have LEFT the firm), do NOT name them; return the firm/practice with no name.
 
 ACTIVE SEARCH SIGNAL (opportunistic): if, in the same research, you find that a contact currently has a live, publicly listed search for THIS function at THIS seniority level (not merely a search somewhere in this industry, and not an unrelated role type), include it in openSearchSignal with a sourceUrl. A search for a different role type (e.g. a trade-association CEO when the target is a Chief Revenue Officer) is NOT a fit — omit it. If you find none, omit openSearchSignal entirely. Never guess one.
 
@@ -1513,6 +1513,23 @@ Return at most 6 matches total. If you can only stand behind 2, return 2. openSe
 // to an empty shortlist on any failure. Applies the fallback ladder at parse time:
 // a Tier-B match keeps leaderName ONLY when confidence 'high' AND a first-party
 // leaderProfileUrl; otherwise it degrades to practice-page-only.
+// recruiterLeaderConfirmed: a named person is first-party confirmed ONLY when the
+// profile URL is EITHER the person's own LinkedIn profile (linkedin.com/in/...) OR
+// on the firm's own domain (matching the firm/practice/source URL). Third-party
+// aggregators, org-chart sites, and listicles never confirm. High model
+// confidence is also required. (Bob's 2026-08-06 call: firm site OR their LinkedIn.)
+function recruiterLeaderConfirmed(m){
+  if(!m||m.confidence!=='high')return false
+  const u=typeof m.leaderProfileUrl==='string'?m.leaderProfileUrl:''
+  if(!/^https?:\/\//i.test(u))return false
+  const host=(s)=>{try{return new URL(s).hostname.replace(/^www\./,'').toLowerCase()}catch(e){return ''}}
+  const reg=(h)=>h.split('.').slice(-2).join('.')
+  const lh=host(u)
+  if(!lh)return false
+  if(/(^|\.)linkedin\.com$/.test(lh)&&/\/in\//i.test(u))return true
+  const firmHost=host(m.url||m.practiceUrl||m.sourceUrl||'')
+  return !!firmHost&&reg(lh)===reg(firmHost)
+}
 async function findRecruiterMatches(criteria){
   try{
     const raw=await callClaude(RECRUITERS_DISCOVERY_PROMPT(criteria),{webSearch:true,maxTokens:4000,temperature:0.2})
@@ -1532,9 +1549,10 @@ async function findRecruiterMatches(criteria){
           ?{description:(m.openSearchSignal.description||'').slice(0,240),sourceUrl:typeof m.openSearchSignal.sourceUrl==='string'?m.openSearchSignal.sourceUrl:''}
           :null,
       }
-      // Person confirmation gate applies to BOTH tiers: a name survives only at
-      // confidence 'high' WITH a first-party leaderProfileUrl; otherwise blanked.
-      const confirmed=m.confidence==='high'&&typeof m.leaderProfileUrl==='string'&&/^https?:\/\//.test(m.leaderProfileUrl)
+      // Person confirmation gate applies to BOTH tiers: a name survives only when
+      // first-party confirmed (firm domain OR the person's own linkedin.com/in/);
+      // otherwise the name is blanked and the row degrades to firm/practice-only.
+      const confirmed=recruiterLeaderConfirmed(m)
       const person={
         leaderName:confirmed?(m.leaderName||'').slice(0,120):'',
         leaderTitle:confirmed?(m.leaderTitle||'').slice(0,160):'',
@@ -2755,29 +2773,25 @@ function RecruiterMatchRow({m}){
   if(!m)return null
   const isPractice=m.kind==='practice'
   const named=!!m.leaderName
-  const firmUrl=isPractice?(m.practiceUrl||m.url||m.sourceUrl):(m.url||m.sourceUrl)
+  const pageUrl=isPractice?(m.practiceUrl||m.url||m.sourceUrl):(m.url||m.sourceUrl)
+  const pageLabel=isPractice?`Visit the ${m.practice?m.practice+' ':''}practice page`:`Visit ${m.firm}`
   return <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,marginBottom:14,padding:'16px 20px'}}>
     <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap',marginBottom:4}}>
       <span style={{fontSize:12,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:isPractice?'#5A4B8A':'#8A5E1C',background:isPractice?'#EDE9F7':'#FBF0DC',borderRadius:6,padding:'2px 8px'}}>{isPractice?'Large-firm practice':'Boutique'}</span>
       {isPractice&&m.practice&&<span style={{fontSize:13,color:C.gray}}>{m.practice} practice</span>}
     </div>
-    <div style={{fontSize:20,fontWeight:700,color:'#1A2540',margin:'2px 0'}}>
-      {firmUrl?<a href={firmUrl} target="_blank" rel="noreferrer" style={{color:'#1A2540'}}>{m.firm}</a>:m.firm}
-    </div>
+    <div style={{fontSize:20,fontWeight:700,color:'#1A2540',margin:'2px 0'}}>{m.firm}</div>
     {named&&<div style={{fontSize:15,color:'#2D3748',marginBottom:2}}>{m.leaderProfileUrl?<a href={m.leaderProfileUrl} target="_blank" rel="noreferrer" style={{color:C.goldL,fontWeight:600}}>{m.leaderName}</a>:<strong>{m.leaderName}</strong>}{m.leaderTitle?` — ${m.leaderTitle}`:''}</div>}
-    {isPractice&&!named&&<div style={{fontSize:13,color:C.gray,marginBottom:2,fontStyle:'italic'}}>We couldn't confirm the current practice leader from a first-party source — start at the practice page above.</div>}
+    {!named&&<div style={{fontSize:13,color:C.gray,marginBottom:2}}>No individual contact confirmed from a first-party source yet — the {isPractice?'practice':'firm'} page is the place to start.</div>}
     {m.specialty&&<div style={{fontSize:15,color:'#2D3748',lineHeight:1.55,marginTop:4}}>{m.specialty}</div>}
     {m.openSearchSignal&&<div style={{marginTop:10}}>
       <span style={{display:'inline-flex',alignItems:'center',gap:6,padding:'6px 12px',background:'#E4F6EA',border:'1.5px solid #1A7F5A',borderRadius:8,color:'#12603F',fontSize:14,fontWeight:700}}><Sparkles size={14}/>{isPractice?'This practice is running a search that fits right now':'This firm has a relevant search open now'}</span>
       {m.openSearchSignal.sourceUrl&&<a href={m.openSearchSignal.sourceUrl} target="_blank" rel="noreferrer" style={{fontSize:13,color:'#12603F',marginLeft:8}}>{m.openSearchSignal.description||'See the listing'}</a>}
     </div>}
+    {pageUrl&&<div style={{marginTop:10}}><a href={pageUrl} target="_blank" rel="noreferrer" style={{fontSize:15,color:C.goldL,fontWeight:600}}>{pageLabel} <span style={{fontWeight:400}}>↗</span></a></div>}
     {m.sourceUrl&&<div style={{fontSize:12,color:C.gray,marginTop:8}}>Source: <a href={m.sourceUrl} target="_blank" rel="noreferrer" style={{color:C.gray}}>{(()=>{try{return new URL(m.sourceUrl).hostname.replace(/^www\./,'')}catch{return 'link'}})()}</a></div>}
   </div>
 }
-// RecruitersCard: the whole bonus card body. Gated on `chosen`. One-time
-// retained-vs-contingency explainer, the criteria line, progressive match rows,
-// the honest short-list message, and the widening trade-off menu. Pure
-// presentation — all state/handlers come from the Focus render via props.
 // RecruitersFindMoreBox: mirrors GtmFindMoreBox exactly (same plain card, same
 // optional-focus field, same language) so "get more" is consistent across GTM
 // and this card. Fires with the field blank.
