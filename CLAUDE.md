@@ -198,6 +198,7 @@ Two notes on drift:
 ## 8. Standing engineering rules
 
 - **Pull before editing.** Workspace copies drift from main. Always sync before editing source files.
+- **Docs stay current with every feature change (no exceptions).** Any PR that adds, changes, or removes a user-facing capability updates, in the SAME PR: (1) the user guide (`src/data/user-guide/`) and (2) the My Coach feature catalog (`FEATURE_MAP` in `src/coach-routing.js`, then `npm run gen:coach-nav-map`). A stale Coach actively misinforms users (e.g., telling them a capability "isn't in the tool" after it shipped), which is worse than no answer. "Guide/coach later" is not a valid scope cut. Briefs must list these as affected files whenever the change is user-facing.
 - **App.jsx integrity.** Check line count and EOF closure before AND after every edit. Never ship a file that ends mid-tag.
 - **No effort estimates.** Engineer-days, weeks, hours, t-shirt sizes are not useful. Describe scope in terms of what it touches (files, surfaces, invariants).
 - **Batch updates during beta.** Don't push improvements continuously. Queue and ship in batches so user feedback maps to known builds.
