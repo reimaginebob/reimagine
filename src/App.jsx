@@ -8843,8 +8843,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {!_compBuilt&&<div style={{marginTop:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:8,padding:'12px 14px',fontSize:15,color:'#1A2540',lineHeight:1.55}}>Build the Compensation Read first — the negotiation guidance is anchored on its sourced range.<div style={{marginTop:8}}><Btn small secondary onClick={()=>scrollToOutput('salaryRead')}>Compensation Read ↑</Btn></div></div>}
                   <div style={{marginTop:14}}>
                     <label style={S.label}>Your offer, if you have one <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label>
-                    <input style={{width:'100%',maxWidth:340,background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box',display:'block'}} value={_offerVal} onChange={e=>setOfferDrafts(d=>({...d,[_slot]:e.target.value}))} placeholder="e.g. $150,000 base, or $150k + 15% bonus"/>
-                    <div style={{fontSize:13,color:C.gray,marginTop:6,lineHeight:1.5}}>Add a number to see where it lands against the sourced range. Stays private to your account.</div>
+                    {/* Apply affordance (offer-apply-affordance fix 2026-08-07): the typed
+                        offer had no submit control — it was only picked up by the card's
+                        header Build button, which reads as building the whole section, not
+                        applying this number. Inline button + Enter now apply it directly. */}
+                    <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                      <input style={{flex:'1 1 240px',maxWidth:340,background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_offerVal} onChange={e=>setOfferDrafts(d=>({...d,[_slot]:e.target.value}))} onKeyDown={e=>{if(e.key==='Enter'&&_compBuilt&&!opSectionBuilding&&String(_offerVal||'').trim())generateOpOfferNegotiation()}} placeholder="e.g. $150,000 base, or $150k + 15% bonus"/>
+                      <Btn small onClick={()=>generateOpOfferNegotiation()} disabled={!!opSectionBuilding||!_compBuilt||!String(_offerVal||'').trim()}>{_onBuilt?<><RotateCcw size={11}/>Update</>:<>See where it lands <ChevronRight size={13}/></>}</Btn>
+                    </div>
+                    <div style={{fontSize:13,color:C.gray,marginTop:6,lineHeight:1.5}}>Enter your base, plus any bonus or equity. We'll place it against the sourced range. Stays private to your account.</div>
                   </div>
                   {opSectionErrors.offerNegotiation&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.offerNegotiation}/></div>}
                   {_onBusy&&<div style={{marginTop:14}}><Loading msg="Building Offer & Negotiation…" step="offerNegotiation"/></div>}
