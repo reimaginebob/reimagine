@@ -7675,8 +7675,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {id:'p_res',label:NAV_LABELS.p_res,load:'Rewriting your resume for this direction…'},
         {id:'p8',label:NAV_LABELS.p8,load:'Drafting your LinkedIn updates…'},
         {id:'p7',label:NAV_LABELS.p7,load:'Researching companies and building outreach…'},
-        {id:'income',label:NAV_LABELS.income,load:'Building your Income Now plan…'},
         {id:'recruiters',label:NAV_LABELS.recruiters,load:'Finding recruiters who specialize in this path…'},
+        {id:'income',label:NAV_LABELS.income,load:'Building your Income Now plan…'},
       ]
       const laneLbl=laneLabelFor(selectedLane)
       // Track 2: each section assembles from outputs with its stale upstreams
@@ -7932,10 +7932,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {groupDivider(`Group ${gi+1} · ${g.label}`,C.gold)}
               {g.sectionIds.map(sid=>renderSection(focusById[sid],sectionNums[sid]))}
             </div>)}
-            <div>
-              {groupDivider('Bonus · Income Now',C.goldL)}
-              {renderSection(focusById.income)}
-            </div>
             {!isDemo&&<div>
               {groupDivider('Bonus · Recruiters for This Path',C.goldL)}
               <section style={{marginTop:8}}>
@@ -7951,6 +7947,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 />
               </section>
             </div>}
+            <div>
+              {groupDivider('Bonus · Income Now',C.goldL)}
+              {renderSection(focusById.income)}
+            </div>
           </>
         })()}
           </div>
