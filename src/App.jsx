@@ -1571,28 +1571,27 @@ async function findRecruiterMatches(criteria){
 // firm-scoped web-search call for ONE firm that came back with no confirmed
 // leader — find the CURRENT person who leads its relevant practice and confirm
 // them via a first-party source (firm page OR their own linkedin.com/in/).
-const RECRUITER_LEADER_LOOKUP_PROMPT=(firm,practice,c)=>`Find the CURRENT named leader at ONE executive-search firm of the practice MOST SPECIFIC to a candidate's target. Search the web.
+const RECRUITER_LEADER_LOOKUP_PROMPT=(firm,practice,c)=>`Find who currently leads a specific practice at one executive-search firm. Search the web.
 
 FIRM: ${firm}
-CANDIDATE TARGET: ${c.function||'a senior role'}${c.industry?' in '+c.industry:''}${practice?`\nSTARTING HINT (the firm's practice as first labeled — prefer a MORE SPECIFIC sub-practice if one fits the target better): ${practice}`:''}
+PRACTICE: ${practice||c.function||'the relevant practice'}
 
-Identify the firm's MOST SPECIFIC practice or sector that covers this exact target, then find who CURRENTLY leads it. Firms usually have a narrow sub-practice that fits better than the broad one — for example a "Health Tech" or "Digital Health" practice rather than a broad "Healthcare" practice, or a "Consumer / CPG" practice rather than a broad "Consumer" one. Search those specific names. Firm-scope every query (e.g. site:linkedin.com "${firm}" "<specific practice or title>") so a common-name namesake at a different firm is not mistaken for the right person.
+Search site:linkedin.com "${firm}" "${practice||c.function||''}" for the managing director, partner, or principal who currently leads it. Always include the firm name in the query so a same-named person at another firm is not mistaken for the right one.
 
-Confirm the person is CURRENT via a FIRST-PARTY source and return that as profileUrl: EITHER (a) the firm's OWN consultant/profile page, or (b) the person's OWN LinkedIn profile (a linkedin.com/in/ URL) whose current employer is ${firm}. Do NOT use third-party org-chart / aggregator sites, listicles, or stale ("since 20XX") listings. If you cannot confirm a current person from a first-party source, return empty fields.
+Confirm the person is CURRENT via a first-party source and return it as profileUrl: either the firm's OWN consultant/bio page, or the person's OWN LinkedIn profile (a linkedin.com/in/ URL) showing this firm as their current employer. Do not use third-party directory/aggregator pages, listicles, or stale ("since 20XX") listings. If you cannot confirm one, return empty fields.
 
 Output JSON only, no preamble:
-{"practice":"<the specific practice you used>","leaderName":"<name or empty>","leaderTitle":"<current title or empty>","profileUrl":"<first-party URL or empty>","confidence":"high|medium|low"}`
+{"leaderName":"<name or empty>","leaderTitle":"<current title or empty>","profileUrl":"<first-party URL or empty>","confidence":"high|medium|low"}`
 // findRecruiterLeader: run the gap-fill call and parse. Returns normalized leader
-// fields (leaderProfileUrl) + the specific practice it landed on, or null on
-// failure; the caller applies the same recruiterLeaderConfirmed gate before
-// accepting the name.
+// fields or null on failure; the caller applies the same recruiterLeaderConfirmed
+// gate before accepting the name.
 async function findRecruiterLeader(firm,practice,c){
   try{
     const raw=await callClaude(RECRUITER_LEADER_LOOKUP_PROMPT(firm,practice,c),{webSearch:true,maxTokens:1200,temperature:0.2})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<=a)return null
     const o=JSON.parse(raw.slice(a,b+1))
-    return{practice:(o.practice||'').slice(0,160),leaderName:(o.leaderName||'').slice(0,120),leaderTitle:(o.leaderTitle||'').slice(0,160),leaderProfileUrl:typeof o.profileUrl==='string'?o.profileUrl:'',confidence:o.confidence==='high'||o.confidence==='medium'||o.confidence==='low'?o.confidence:'low'}
+    return{leaderName:(o.leaderName||'').slice(0,120),leaderTitle:(o.leaderTitle||'').slice(0,160),leaderProfileUrl:typeof o.profileUrl==='string'?o.profileUrl:'',confidence:o.confidence==='high'||o.confidence==='medium'||o.confidence==='low'?o.confidence:'low'}
   }catch(e){return null}
 }
 // detectMissingCitations (PR-1 Company Read). Conservative structural detector:
@@ -6767,7 +6766,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         if(got&&got.leaderName&&recruiterLeaderConfirmed({confidence:got.confidence,leaderProfileUrl:got.leaderProfileUrl,url:m.url,practiceUrl:m.practiceUrl,sourceUrl:m.sourceUrl})){
           setSavedPlaybooks(prev=>prev.map(rec=>{
             if(rec.id!==slotId||rec.source!=='door1'||!rec.recruiters||!Array.isArray(rec.recruiters.matches))return rec
-            return{...rec,recruiters:{...rec.recruiters,matches:rec.recruiters.matches.map((mm,j)=>j===i?{...mm,practice:got.practice||mm.practice,leaderName:got.leaderName,leaderTitle:got.leaderTitle,leaderProfileUrl:got.leaderProfileUrl}:mm)}}
+            return{...rec,recruiters:{...rec.recruiters,matches:rec.recruiters.matches.map((mm,j)=>j===i?{...mm,leaderName:got.leaderName,leaderTitle:got.leaderTitle,leaderProfileUrl:got.leaderProfileUrl}:mm)}}
           }))
         }
       }}
