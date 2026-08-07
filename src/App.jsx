@@ -7987,7 +7987,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{display:'flex',gap:24,alignItems:'flex-start'}}>
           <PlaybookSectionRail
             sections={FOCUS_ORDER.map(s=>({id:s.id,label:s.label,num:(()=>{const m={};{let n=1;FOCUS_GROUPS.forEach(g=>g.sectionIds.forEach(sid=>{m[sid]=n++}))}return m[s.id]})(),isBonus:s.id==='income'}))}
-            done={done}
+            done={(()=>{const _rr=(savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')||{}).recruiters;return(_rr&&_rr.builtAt&&!done.includes('recruiters'))?[...done,'recruiters']:done})()}
             onJump={scrollToOutput}
             C={C}
           />
