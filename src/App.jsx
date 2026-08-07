@@ -7926,7 +7926,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             and prints hidden via data-print="hide" inside the component. */}
         <div style={{display:'flex',gap:24,alignItems:'flex-start'}}>
           <PlaybookSectionRail
-            sections={FOCUS_ORDER.map(s=>({id:s.id,label:s.label,num:(()=>{const m={};{let n=1;FOCUS_GROUPS.forEach(g=>g.sectionIds.forEach(sid=>{m[sid]=n++}))}return m[s.id]})(),isBonus:s.id==='income'||s.id==='recruiters'}))}
+            sections={FOCUS_ORDER.map(s=>({id:s.id,label:s.label,num:(()=>{const m={};{let n=1;FOCUS_GROUPS.forEach(g=>g.sectionIds.forEach(sid=>{m[sid]=n++}))}return m[s.id]})(),isBonus:s.id==='income'}))}
             done={done}
             onJump={scrollToOutput}
             C={C}
@@ -8031,8 +8031,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {g.sectionIds.map(sid=>renderSection(focusById[sid],sectionNums[sid]))}
             </div>)}
             {!isDemo&&<div>
-              {groupDivider('Bonus · Recruiters for This Path',C.goldL)}
-              <section style={{marginTop:8}}>
+              <section style={{marginTop:32}}>
                 <h2 id="section-recruiters" style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8,scrollMarginTop:80}}>Recruiters for This Path</h2>
                 <RecruitersCard
                   data={(savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')||{}).recruiters}
