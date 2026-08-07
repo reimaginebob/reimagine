@@ -25,13 +25,30 @@ const BORDER = '#E2E5EA'
 const ITALIC_UNDERSCORE = /(?<![A-Za-z0-9_])_([^_\s][^_]*?[^_\s])_(?![A-Za-z0-9_])/g
 export const normalizeItalicUnderscores = (s) => s.replace(ITALIC_UNDERSCORE, '*$1*')
 
+// Display label for a bare URL: the hostname without www, so an inline
+// "(source: https://www.salary.com/research/…/atlanta-ga)" renders as a short
+// clickable "salary.com" while the href keeps the full path for due diligence.
+function urlLabel(u){
+  try{return new URL(u).hostname.replace(/^www\./,'')}catch{return u}
+}
+
 function Inline({text}){
   // Normalize `_italic_` to `*italic*` first so the existing splitter handles
-  // both styles uniformly.
-  const parts=normalizeItalicUnderscores(text).split(/(\*\*[^*]+\*\*|\*[^*]+\*)/)
+  // both styles uniformly. Splitter also captures markdown links `[label](url)`
+  // and bare `https://…` URLs so citation sources render as real hyperlinks
+  // (they were plain text before — comp-read links fix 2026-08-07). The bare-URL
+  // class excludes `)` so "(source: https://…)" leaves the paren outside the link.
+  const parts=normalizeItalicUnderscores(text).split(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s<)]+)/)
   return <>{parts.map((p,i)=>{
     if(p.startsWith('**')&&p.endsWith('**'))return <strong key={i} style={{color:"#1A2540",fontWeight:600}}>{p.slice(2,-2)}</strong>
     if(p.startsWith('*')&&p.endsWith('*'))return <em key={i} style={{color:GOLD}}>{p.slice(1,-1)}</em>
+    const ml=p.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/)
+    if(ml)return <a key={i} href={ml[2]} target="_blank" rel="noopener noreferrer" style={{color:GOLD,textDecoration:'underline'}}>{ml[1]}</a>
+    if(/^https?:\/\//.test(p)){
+      const m=p.match(/^(https?:\/\/[^\s<)]*?)([.,;]?)$/)
+      const href=m?m[1]:p, tail=m?m[2]:''
+      return <span key={i}><a href={href} target="_blank" rel="noopener noreferrer" style={{color:GOLD,textDecoration:'underline'}}>{urlLabel(href)}</a>{tail}</span>
+    }
     return <span key={i}>{p}</span>
   })}</>
 }
