@@ -2760,7 +2760,9 @@ The output surfaces one or two findings the candidate would not have known to lo
 
 THE ROLE: ${jobTitle||'(unspecified)'}
 THE LOCATION: ${location||'(unspecified)'}
-${context&&String(context).trim()?`\nKNOWN CONTEXT FOR THIS SPECIFIC OPPORTUNITY (use it to narrow to the segment that matches — company size, industry, and region move senior-role pay a lot; anchor to this segment rather than reporting a national all-comers range):\n${String(context).trim()}\n`:''}
+${context&&String(context).trim()?`\nKNOWN CONTEXT FOR THIS SPECIFIC OPPORTUNITY (use it to narrow to the segment that matches — company size, industry, and region move senior-role pay a lot; anchor to this segment rather than reporting a national all-comers range):\n${String(context).trim()}\n
+ESTABLISH THE BASIS FIRST (this opportunity names a specific company): look up the company's approximate size from public sources — its LinkedIn company page shows an employee band (for example "1,001-5,000 employees"), and Crunchbase, the company's own About page, or recent news also carry headcount or stage. Then open your read by naming, in one short plain clause, the basis you are anchoring to: the company's size band (and where you found it, e.g. "per LinkedIn"), the industry, and the market. Give the range for THAT segment. If a correction below tells you the size, industry, or market differs from what you found, treat the correction as authoritative and re-anchor to it. If you genuinely cannot find the company's size, say so plainly and give the role-and-market range without a size anchor — never invent an employee count.
+`:''}
 ROLE IDENTITY GUARD (load-bearing): if THE ROLE above is blank or not a real job title, output exactly this single line and nothing else: "We could not identify a role to look up. Add a role title first."
 
 DISAMBIGUATE BEFORE SEARCHING: real job titles, especially longer or composite ones, often collide with an unrelated field that happens to share a word (for example, "Organizational Development Director" returns mostly nonprofit fundraising "Director of Development" postings, a different job entirely). Before searching, silently identify the single core function THE ROLE actually represents, in plain terms, and search using that clarified function plus the synonyms a job board would use for it. State your read of the role as the first sentence ONLY when THE ROLE was materially ambiguous or a composite title: "Read as: <plain function>, the closest standard title for this lookup." Skip this sentence entirely when THE ROLE is already a clean, standard job title.
@@ -2778,7 +2780,7 @@ FABRICATION GUARD:
 - Never pair "typically" or "usually" with a number that has no adjacent citation.
 - If genuinely no usable public compensation data surfaces after a real search, say so directly and stop: "Public salary sources didn't turn up usable data for this specific role and location. Try a broader location or a more common title for this field." Honest absence beats a fabricated range.
 
-OUTPUT STRUCTURE: one bolded headline sentence stating the range and/or typical figure across the RELEVANT sources, followed by two to four sentences of supporting prose naming those sources, the role disambiguation (only if applicable), a half-sentence noting any source set aside as a title-match mismatch (only if you set one aside), and any real disagreement among the relevant sources, each dollar figure cited inline. Target 60-120 words total. No bullet lists, no extra sections, no editorializing on whether the figure is good or bad for this direction.`,
+OUTPUT STRUCTURE: when a company basis was established, open with one short plain clause naming it (size band with source, industry, market), then the bolded headline sentence stating the range and/or typical figure across the RELEVANT sources; otherwise lead with the bolded headline. Follow with two to four sentences of supporting prose naming those sources, the role disambiguation (only if applicable), a half-sentence noting any source set aside as a title-match mismatch (only if you set one aside), and any real disagreement among the relevant sources, each dollar figure cited inline. Target 70-130 words total. No bullet lists, no extra sections, no editorializing on whether the figure is good or bad for this direction.`,
 
   // Offer & Negotiation (comp-benchmarking brief 2026-08-07). Opportunity-only.
   // v1 foundation Bob will enhance later. Built ON TOP of a salaryRead already in
@@ -8684,6 +8686,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {opSectionErrors.salaryRead&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.salaryRead}/></div>}
                   {_srBusy&&<div style={{marginTop:14}}><Loading msg="Building Compensation Read…" step="salaryRead"/></div>}
                   {_srBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.salaryRead.content}/></div>{_compDisclaimer}</div>}
+                  {/* Correction affordance (comp-read basis brief 2026-08-07): the read
+                      states the basis it anchored to (company size from LinkedIn/public
+                      sources, industry, market); this lets the user correct that basis
+                      and re-anchor. generateOpSalaryRead threads the text in as an
+                      authoritative correction. */}
+                  {_srBuilt&&!isDemo&&<RefineBox value={feedback.salaryRead||''} onChange={v=>setFb('salaryRead',v)} hint="Did we get the basis wrong — the company size, industry, or market? Tell us and we'll rebuild the estimate." placeholder="e.g. they're about 300 people, not enterprise… this is the healthcare division, not corporate… the market should be Denver, not remote-national" onRegenerate={v=>generateOpSalaryRead(v)} onlyUpdateButton={true}/>}
                 </>,'section-salaryRead')
               })()}
               {_simpleCard('p5','Where you fit, and how to make your case','What this job weights most, your strongest points with the one proof to lead with, the areas they may probe and how to handle them, and a one-line pitch.')}
