@@ -53,7 +53,7 @@ Click **Build My Strategy** to generate. This step uses live web research and is
 
 - **Quick Takeaway.** Who the hiring executive is, how many target companies were found, and the single most actionable thing to do this week.
 - **Part 1. The Hiring Executive.** A specific profile of who you are trying to reach.
-- **Part 2. Target Company List.** Each entry in a structured block: company name, what they do in one sentence, industry, size, HQ, why it fits, growth signal, contact person and title, source (website / LinkedIn / press release / news, so you can verify), and email convention. Each entry may also include a **"Why this might resonate for you"** line that names the specific connection between the company and something you said in Orientation, drawn from your passions, values, or life experiences. The line appears only when the connection is concrete; if no clear fit is visible from your inputs, Reimagine omits the line rather than inventing one. Where Reimagine could not find a specific contact, it will say "Contact not identified" rather than guess. A reminder above the list tells you to verify contact information before reaching out. Names sourced from public material can be out of date.
+- **Part 2. Target Company List.** Each entry in a structured block: company name, what they do in one sentence, industry, size, HQ, why it fits, growth signal, contact person and title, source (website / LinkedIn / press release / news, so you can verify), and email convention. Each entry may also include a **"Why this might resonate for you"** line that names the specific connection between the company and something you said in Orientation, drawn from your passions, values, or life experiences. The line appears only when the connection is concrete; if no clear fit is visible from your inputs, Reimagine omits the line rather than inventing one. When the company's own site does not name the hiring manager, Reimagine runs a background LinkedIn search to surface the most likely current decision-maker, and labels each contact by where the name came from ("confirmed via company site" or "likely — via LinkedIn"). It says "Contact not identified" only when even that search finds no one, rather than guessing. A reminder above the list tells you to verify contact information before reaching out. Names sourced from public material can be out of date.
 - **Part 3. Outreach Template.** A complete three-paragraph email using the strongest company as an example, plus a personalization guide.
 - **Part 4. LinkedIn Signal Tweak.** A recommended headline with reasoning.
 
@@ -133,6 +133,21 @@ A few practical notes for using what Reimagine gives you:
 - **The contact information is a starting point, not a guarantee.** Email conventions are inferred from public sources. Verify before you send. A wrong email goes nowhere.
 - **The growth signals were current as of the search.** Things change. If a company looks like a great fit, do a quick check on recent news before reaching out.
 - **The outreach template is one example.** Use the personalization guide to tailor the email per company. The first paragraph in particular should reference something specific to that company. A talk the executive gave, a recent product launch, a challenge their industry is facing.
+
+## Recruiters for This Path
+
+Directly under Go-to-Market sits a bonus card, **Recruiters for This Path**. Direct outreach reaches the people who own the problem you solve; this card covers the other route in — the executive-search recruiters who fill senior roles in your space.
+
+Click **Find recruiters for this path** and Reimagine researches, live, a short list of search firms that specialize in your function, industry, and level, in two kinds:
+
+- **Boutique / independent firms**, where the firm itself is the specialty. You are pointed at the firm and, where a first-party source confirms one, a specific principal there.
+- **Large-firm practices**, where the recommendation is the specific practice and its current named leader, rather than the firm in general.
+
+A person's name is shown only when it traces to a live, checkable source — the firm's own consultant page or the person's own LinkedIn profile. When that cannot be confirmed, the card points you to the practice page instead of guessing a name. Each contact shows where the name came from, a link to reach them, and, when a firm has a relevant search open right now, a green flag with the live listing.
+
+The card also gives you one outreach note you can adapt for each firm, and an **Add more recruiters to your list** panel that works like Find 10 More: get more contacts, or steer the next set toward a focus. A short note at the top explains the difference between retained and contingency search, so you know what to expect when you reach out.
+
+This is opt-in and built when you click it, and it is saved with your Focus Playbook. The list starts short on purpose — specialty search is a narrow world, and a short, accurate list beats a padded one.
 
 ## When you are happy with it
 

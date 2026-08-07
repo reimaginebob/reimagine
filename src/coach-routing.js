@@ -49,6 +49,8 @@ export const FEATURE_MAP = [
     does: 'builds the "tell me about yourself" pitch for a chosen direction' },
   { slug: 'go-to-market',         reach: 'focus-gated', labelId: 'p7',
     does: 'researches target companies live, flags any with a role open right now that fits, and drafts the outreach' },
+  { slug: 'recruiters',           reach: 'focus-gated', labelId: 'recruiters',
+    does: 'finds executive-search recruiters who specialize in the chosen function, industry, and level — boutique firms and named practice leaders at the big firms — with a note to reach out' },
   { slug: 'linkedin-remix',       reach: 'focus-gated', labelId: 'p8',
     does: "rewrites the person's own LinkedIn profile for where they're headed" },
   { slug: 'resume-refresh',       reach: 'focus-gated', labelId: 'p_res',
