@@ -1449,6 +1449,151 @@ async function findOpeningMatches(company,role,laneLabel){
     return{count:matches.length,matches}
   }catch(e){return{count:0,matches:[]}}
 }
+// ── Recruiters for This Path (executive-search contacts) ───────────────────
+// Reuses the PR #284 web-search resolution mechanic (one webSearch:true call,
+// structured JSON, safe-default on failure) applied to PEOPLE/FIRMS instead of
+// company openings. Discovery is one call returning a two-tier shortlist WITH
+// first-party citations + one reusable outreach template. Nothing is asserted
+// without a source — the fallback is "firm/practice page, no name," never a guess.
+// Durable cache key for a settled target: function + industry + seniority band.
+// Geography is deliberately excluded (geo is a "find more" focus, not part of the
+// match identity), so a geo-focused "find more" does not thrash the key.
+function recruitersSignatureFor(c){
+  if(!c)return ''
+  return [c.function||'',c.industry||'',c.seniority||''].map(s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'').trim()).join('|')
+}
+// Cheap, no-LLM seniority band from the chosen role-title string. Conservative:
+// defaults to 'senior leadership' when unsure, never fabricates a precise level.
+function inferSeniorityBand(title){
+  const t=(title||'').toLowerCase()
+  if(/\b(chief|c-?suite|cxo|ceo|cfo|coo|cto|cmo|cro|cpo|ciso|president)\b/.test(t))return 'C-suite'
+  if(/\bsvp|senior vice president|evp|executive vice president\b/.test(t))return 'SVP/EVP'
+  if(/\bvp|vice president|head of\b/.test(t))return 'VP'
+  if(/\b(director|principal|lead)\b/.test(t))return 'Director'
+  return 'senior leadership'
+}
+// RECRUITERS_DISCOVERY_PROMPT: one web-search call. Returns a SHORT, honest,
+// two-tier shortlist of executive-search contacts specialized in this exact
+// function+industry+seniority, each traceable to a first-party source. Boutique/
+// independent firms are pointed at directly; large generalist firms are returned
+// as a specific PRACTICE + its CURRENT named leader — only when a first-party
+// profile confirms the person (else name-less practice page). JSON only.
+const RECRUITERS_DISCOVERY_PROMPT=(c)=>`Find executive-search / retained-recruiter contacts who specialize in this exact target. Search the web and use only first-party or clearly authoritative sources.
+
+TARGET:
+- Function: ${c.function||'(unspecified)'}
+- Industry: ${c.industry||'(unspecified)'}
+- Seniority band: ${c.seniority||'senior leadership'}
+- Geography (a preference, NOT a hard filter — senior retained search is often national/global): ${c.geo||'(none given)'}${c.focus?`\n- FOCUS THIS SEARCH ON: ${c.focus}`:''}${(Array.isArray(c.exclude)&&c.exclude.length)?`\n- ALREADY SHOWN (do NOT return any of these firms again; find DIFFERENT ones): ${c.exclude.join('; ')}`:''}
+
+Return TWO tiers:
+- "boutique": independent / specialist firms where the firm itself IS the specialty. Point at the firm, and ALSO name a specific principal/consultant there when a first-party source confirms one (same person rules as NAME VERIFICATION below); if you cannot confirm a person, return the firm with no name.
+- "practice": large generalist firms (Korn Ferry, Heidrick & Struggles, Spencer Stuart, Russell Reynolds, DHR, Egon Zehnder, and peers). Here the recommendation is the SPECIFIC PRACTICE plus the CURRENT named practice leader — never the firm generically. Only name a person when a first-party page (the firm's own consultant profile) confirms their current title. If you cannot confirm a current person from a first-party source, return the practice with NO person named and set confidence "low".
+
+HONESTY RULES (load-bearing):
+- Specialty search is a narrow world. A short, correct list is the right answer. Do NOT pad the list to hit a number. Return only contacts you can stand behind for THIS function+industry+seniority.
+- Never invent a name, title, firm, or link. Every entry must carry a real sourceUrl you actually found.
+- Do NOT return any email address or guessed contact path. Link to the person's or firm's own page only.
+
+NAME VERIFICATION (load-bearing — prevents stale, wrong, or namesake names):
+- A named person must be confirmed as CURRENT by a FIRST-PARTY source, and leaderProfileUrl MUST BE that source. Two things count as first-party: (a) the firm's OWN consultant/profile page, or (b) the person's OWN LinkedIn profile (a linkedin.com/in/ URL) whose current employer is this firm. Use whichever you can verify and return it as leaderProfileUrl.
+- Firm-scope any LinkedIn search (e.g. site:linkedin.com "<firm>" "<practice>") so a common-name namesake at a different firm is not mistaken for the right person. If you cannot confirm a current person from either first-party source, return the firm/practice with NO name and confidence "low".
+- Do NOT treat a third-party org-chart / aggregator or contact-database page, a listicle, or a stale ("since 20XX") listing as confirmation of a CURRENT role. If that is your only evidence, return no name.
+- If any current source shows the person now has a different employer (they have LEFT the firm), do NOT name them; return the firm/practice with no name.
+
+ACTIVE SEARCH SIGNAL (opportunistic): if, in the same research, you find that a contact currently has a live, publicly listed search for THIS function at THIS seniority level (not merely a search somewhere in this industry, and not an unrelated role type), include it in openSearchSignal with a sourceUrl. A search for a different role type (e.g. a trade-association CEO when the target is a Chief Revenue Officer) is NOT a fit — omit it. If you find none, omit openSearchSignal entirely. Never guess one.
+
+Output JSON only, no preamble:
+{"criteria_echo":"<function; industry; seniority>","matches":[
+  {"kind":"boutique","firm":"<name>","leaderName":"<a principal/consultant there, or empty>","leaderTitle":"<their title, or empty>","leaderProfileUrl":"<first-party profile URL, or empty>","specialty":"<one plain sentence on what they specialize in and why it fits>","url":"<firm page>","sourceUrl":"<the page that establishes the specialty>","confidence":"high|medium|low","openSearchSignal":{"description":"<what is open>","sourceUrl":"<link>"}},
+  {"kind":"practice","firm":"<firm>","practice":"<practice name>","leaderName":"<current leader, or empty>","leaderTitle":"<their current title, or empty>","leaderProfileUrl":"<first-party profile URL, or empty>","practiceUrl":"<practice page>","specialty":"<one plain sentence on the practice's focus>","sourceUrl":"<first-party source>","confidence":"high|medium|low","openSearchSignal":null}
+]}
+Return at most 6 matches total. If you can only stand behind 2, return 2. openSearchSignal is optional per match; omit it or use null when there is nothing live to report.`
+// findRecruiterMatches: run the discovery web-search call and parse. Safe-defaults
+// to an empty shortlist on any failure. Applies the fallback ladder at parse time:
+// a Tier-B match keeps leaderName ONLY when confidence 'high' AND a first-party
+// leaderProfileUrl; otherwise it degrades to practice-page-only.
+// recruiterLeaderConfirmed: a named person is first-party confirmed ONLY when the
+// profile URL is EITHER the person's own LinkedIn profile (linkedin.com/in/...) OR
+// on the firm's own domain (matching the firm/practice/source URL). Third-party
+// aggregators, org-chart sites, and listicles never confirm. High model
+// confidence is also required. (Bob's 2026-08-06 call: firm site OR their LinkedIn.)
+function recruiterLeaderConfirmed(m){
+  if(!m||m.confidence!=='high')return false
+  const u=typeof m.leaderProfileUrl==='string'?m.leaderProfileUrl:''
+  if(!/^https?:\/\//i.test(u))return false
+  const host=(s)=>{try{return new URL(s).hostname.replace(/^www\./,'').toLowerCase()}catch(e){return ''}}
+  const reg=(h)=>h.split('.').slice(-2).join('.')
+  const lh=host(u)
+  if(!lh)return false
+  if(/(^|\.)linkedin\.com$/.test(lh)&&/\/in\//i.test(u))return true
+  const firmHost=host(m.url||m.practiceUrl||m.sourceUrl||'')
+  return !!firmHost&&reg(lh)===reg(firmHost)
+}
+async function findRecruiterMatches(criteria){
+  try{
+    const raw=await callClaude(RECRUITERS_DISCOVERY_PROMPT(criteria),{webSearch:true,maxTokens:4000,temperature:0.2})
+    const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
+    if(a<0||b<=a)return{matches:[]}
+    const obj=JSON.parse(raw.slice(a,b+1))
+    const arr=Array.isArray(obj.matches)?obj.matches:[]
+    const clean=arr.map(m=>{
+      const kind=m.kind==='practice'?'practice':'boutique'
+      const base={
+        kind,
+        firm:(m.firm||'').slice(0,120),
+        specialty:(m.specialty||'').slice(0,300),
+        url:typeof m.url==='string'?m.url:'',
+        sourceUrl:typeof m.sourceUrl==='string'?m.sourceUrl:'',
+        openSearchSignal:(m.openSearchSignal&&typeof m.openSearchSignal==='object'&&(m.openSearchSignal.description||'').trim())
+          ?{description:(m.openSearchSignal.description||'').slice(0,240),sourceUrl:typeof m.openSearchSignal.sourceUrl==='string'?m.openSearchSignal.sourceUrl:''}
+          :null,
+      }
+      // Person confirmation gate applies to BOTH tiers: a name survives only when
+      // first-party confirmed (firm domain OR the person's own linkedin.com/in/);
+      // otherwise the name is blanked and the row degrades to firm/practice-only.
+      const confirmed=recruiterLeaderConfirmed(m)
+      const person={
+        leaderName:confirmed?(m.leaderName||'').slice(0,120):'',
+        leaderTitle:confirmed?(m.leaderTitle||'').slice(0,160):'',
+        leaderProfileUrl:confirmed?m.leaderProfileUrl:'',
+      }
+      const conf=m.confidence==='high'||m.confidence==='medium'||m.confidence==='low'?m.confidence:'low'
+      if(kind==='practice'){
+        return{...base,...person,practice:(m.practice||'').slice(0,160),practiceUrl:typeof m.practiceUrl==='string'?m.practiceUrl:'',confidence:conf}
+      }
+      return{...base,...person,confidence:conf}
+    }).filter(m=>m.firm)
+    return{matches:clean.filter(m=>m.url||m.practiceUrl||m.sourceUrl)}
+  }catch(e){return{matches:[]}}
+}
+// RECRUITER_LEADER_LOOKUP_PROMPT: the gap-fill second pass. One focused,
+// firm-scoped web-search call for ONE firm that came back with no confirmed
+// leader — find the CURRENT person who leads its relevant practice and confirm
+// them via a first-party source (firm page OR their own linkedin.com/in/).
+const RECRUITER_LEADER_LOOKUP_PROMPT=(firm,practice,c)=>`Find who currently leads a specific practice at one executive-search firm. Search the web.
+
+FIRM: ${firm}
+PRACTICE: ${practice||c.function||'the relevant practice'}
+
+Search site:linkedin.com "${firm}" "${practice||c.function||''}" for the managing director, partner, or principal who currently leads it. Always include the firm name in the query so a same-named person at another firm is not mistaken for the right one.
+
+Confirm the person is CURRENT via a first-party source and return it as profileUrl: either the firm's OWN consultant/bio page, or the person's OWN LinkedIn profile (a linkedin.com/in/ URL) showing this firm as their current employer. Do not use third-party directory/aggregator pages, listicles, or stale ("since 20XX") listings. If you cannot confirm one, return empty fields.
+
+Output JSON only, no preamble:
+{"leaderName":"<name or empty>","leaderTitle":"<current title or empty>","profileUrl":"<first-party URL or empty>","confidence":"high|medium|low"}`
+// findRecruiterLeader: run the gap-fill call and parse. Returns normalized leader
+// fields or null on failure; the caller applies the same recruiterLeaderConfirmed
+// gate before accepting the name.
+async function findRecruiterLeader(firm,practice,c){
+  try{
+    const raw=await callClaude(RECRUITER_LEADER_LOOKUP_PROMPT(firm,practice,c),{webSearch:true,maxTokens:1200,temperature:0.2})
+    const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
+    if(a<0||b<=a)return null
+    const o=JSON.parse(raw.slice(a,b+1))
+    return{leaderName:(o.leaderName||'').slice(0,120),leaderTitle:(o.leaderTitle||'').slice(0,160),leaderProfileUrl:typeof o.profileUrl==='string'?o.profileUrl:'',confidence:o.confidence==='high'||o.confidence==='medium'||o.confidence==='low'?o.confidence:'low'}
+  }catch(e){return null}
+}
 // detectMissingCitations (PR-1 Company Read). Conservative structural detector:
 // flags sentences containing specific factual claims (years, dollar amounts,
 // percentages, named role transitions) that lack an adjacent source URL OR an
@@ -2340,6 +2485,27 @@ OUTPUT: return a SINGLE JSON object and nothing else — no preamble, no markdow
 }
 
 Each company object uses the same field meanings as the main list: name; what (one plain sentence); industry; size (band or "Size not confirmed"); hq (or "HQ not confirmed"); fit (one sentence, translation-anchored); growth (one sentence growth or contraction-warning signal); contact (name and title, or "Contact not identified"); contactLinkedIn (URL or empty); source (where sourced, with URL or page title); emailConvention (inferred format or empty); website (company URL or empty). Use empty strings for missing values, never null. Return exactly 10 companies, all new, none on the exclude list above.`,
+  // recruiter_outreach_template: ONE reusable outreach note the candidate edits
+  // per firm (not one per contact — mirrors GTM's part_3_outreach_template). Uses
+  // the first match as the worked example, then a short "personalize per firm"
+  // guide. Peer-to-peer, the candidate's own voice, shares DIRECT_OUTREACH_VOICE.
+  recruiter_outreach_template:(pc,brand,bridgeStory,matches,sel,laneLabel)=>`Write ONE reusable outreach note the candidate can adapt and send to any of the executive-search contacts they found. NOT one per contact — a single example the candidate edits per firm. Peer-to-peer, the candidate's own voice, the sibling of the Making Your Own Weather outreach email. A recruiter reads it in fifteen seconds.
+
+CANDIDATE DIRECTION: ${sel||'(unspecified)'}${laneLabel?` — lane: ${laneLabel}`:''}
+WRITE THE EXAMPLE TO THIS CONTACT (use the first): ${(()=>{const m=(Array.isArray(matches)&&matches[0])||{};return m.kind==='practice'?`${m.leaderName||'the practice leader'}${m.leaderTitle?`, ${m.leaderTitle}`:''} at ${m.firm||'the firm'}`:`${m.leaderName?m.leaderName+' at ':''}${m.firm||'the firm'}`})()}
+
+Ground the note in the candidate's Personal Brand and Bridge Story below: open by naming the shared function/industry/level fit in one line, connect one concrete thing from the candidate's background to the kind of searches this contact runs, and ask to be considered for relevant senior searches. Do NOT claim the recruiter is expecting them, do NOT imply any prior relationship, do NOT invent mutual contacts.
+
+Then add one line beginning "Personalize this per firm:" naming three things to swap for each contact (the person's name, the firm's specialty focus, and one detail specific to that firm).
+
+Length: 90-130 words for the note itself. Plain language. First person, the candidate's own voice.
+OUTREACH VOICE: ${DIRECT_OUTREACH_VOICE}
+
+PERSONAL BRAND:
+${asText(brand)}
+
+BRIDGE STORY:
+${asText(bridgeStory)}`,
   p_cover:(pc,brand,resumeRefresh,companyReadText,roleFit,jd,companyName,candidateName,sel)=>`Write a cover letter draft for this person applying to a specific posting${sel?` (they are pursuing **${sel}**)`:''}. This is a peer-to-peer direct message, the sibling of the Making Your Own Weather outreach email. It is NOT an essay, NOT a manifesto, and NOT a compressed life story. A hiring manager reads it in fifteen seconds.
 
 HARD LIMIT: 200 words for the body (the greeting and sign-off do not count). Aim for about 185. If you go over 200, cut until you are under it.
@@ -2622,6 +2788,82 @@ function GtmOpeningMatch({oc}){
         {m.reason?<div style={{color:'#4A5568'}}>{m.reason}</div>:null}
       </li>)}
     </ul>}
+  </div>
+}
+// RecruiterMatchRow: one recruiter match. Tier-aware. A name renders only when
+// the discovery pass confirmed it against a first-party source (findRecruiterMatches
+// already blanked unconfirmed names) — otherwise the practice page shows with no
+// person. Every factual line carries its source link. The green openSearchSignal
+// reuses the GtmOpeningMatch treatment. The outreach note is copyable and fills in
+// progressively (note===undefined = still writing; note==='' = skipped/failed).
+function RecruiterMatchRow({m}){
+  if(!m)return null
+  const isPractice=m.kind==='practice'
+  const named=!!m.leaderName
+  const pageUrl=isPractice?(m.practiceUrl||m.url||m.sourceUrl):(m.url||m.sourceUrl)
+  const pageLabel=isPractice?`Visit the ${m.practice?m.practice+' ':''}practice page`:`Visit ${m.firm}`
+  return <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,marginBottom:14,padding:'16px 20px'}}>
+    <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap',marginBottom:4}}>
+      <span style={{fontSize:12,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:isPractice?'#5A4B8A':'#8A5E1C',background:isPractice?'#EDE9F7':'#FBF0DC',borderRadius:6,padding:'2px 8px'}}>{isPractice?'Large-firm practice':'Boutique'}</span>
+      {isPractice&&m.practice&&<span style={{fontSize:13,color:C.gray}}>{m.practice} practice</span>}
+    </div>
+    <div style={{fontSize:20,fontWeight:700,color:'#1A2540',margin:'2px 0'}}>{m.firm}</div>
+    {named&&<div style={{fontSize:15,color:'#2D3748',marginBottom:2}}>{m.leaderProfileUrl?<a href={m.leaderProfileUrl} target="_blank" rel="noreferrer" style={{color:C.goldL,fontWeight:600}}>{m.leaderName}</a>:<strong>{m.leaderName}</strong>}{m.leaderTitle?` — ${m.leaderTitle}`:''}</div>}
+    {!named&&<div style={{fontSize:13,color:C.gray,marginBottom:2}}>No individual contact confirmed from a first-party source yet — the {isPractice?'practice':'firm'} page is the place to start.</div>}
+    {m.specialty&&<div style={{fontSize:15,color:'#2D3748',lineHeight:1.55,marginTop:4}}>{m.specialty}</div>}
+    {m.openSearchSignal&&<div style={{marginTop:10}}>
+      <span style={{display:'inline-flex',alignItems:'center',gap:6,padding:'6px 12px',background:'#E4F6EA',border:'1.5px solid #1A7F5A',borderRadius:8,color:'#12603F',fontSize:14,fontWeight:700}}><Sparkles size={14}/>{isPractice?'This practice is running a search that fits right now':'This firm has a relevant search open now'}</span>
+      {m.openSearchSignal.sourceUrl&&<a href={m.openSearchSignal.sourceUrl} target="_blank" rel="noreferrer" style={{fontSize:13,color:'#12603F',marginLeft:8}}>{m.openSearchSignal.description||'See the listing'}</a>}
+    </div>}
+    {pageUrl&&<div style={{marginTop:10}}><a href={pageUrl} target="_blank" rel="noreferrer" style={{fontSize:15,color:C.goldL,fontWeight:600}}>{pageLabel} <span style={{fontWeight:400}}>↗</span></a></div>}
+    {m.sourceUrl&&<div style={{fontSize:12,color:C.gray,marginTop:8}}>Source: <a href={m.sourceUrl} target="_blank" rel="noreferrer" style={{color:C.gray}}>{(()=>{try{return new URL(m.sourceUrl).hostname.replace(/^www\./,'')}catch{return 'link'}})()}</a></div>}
+  </div>
+}
+// RecruitersFindMoreBox: mirrors GtmFindMoreBox exactly (same plain card, same
+// optional-focus field, same language) so "get more" is consistent across GTM
+// and this card. Fires with the field blank.
+function RecruitersFindMoreBox({busy,onSubmit}){
+  const[focus,setFocus]=useState('')
+  return <div style={{margin:'18px 0 0',padding:'20px 22px',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10}}>
+    <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
+    <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:6}}>Add more recruiters to your list</div>
+    <div style={{fontSize:15,color:'#4A5568',lineHeight:1.55,marginBottom:14}}>Get more contacts. To make them a closer fit, describe what to focus on below — or leave it blank to match the list you already have.</div>
+    <label style={{display:'block',fontSize:14,fontWeight:600,color:'#2D3748',marginBottom:6}}>What should the next set focus on? <span style={{fontWeight:400,color:'#718096'}}>(optional)</span></label>
+    <input value={focus} onChange={e=>setFocus(e.target.value)} disabled={busy}
+      placeholder="e.g. boutiques only · firms in the Southeast · a specific sub-specialty"
+      style={{width:'100%',boxSizing:'border-box',padding:'11px 14px',fontSize:15,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:8,fontFamily:'inherit',outline:'none',marginBottom:14}}/>
+    <Btn onClick={()=>onSubmit(focus)} disabled={busy}>{busy?<Loader2 size={16} style={{animation:'spin 0.9s linear infinite'}}/>:<Plus size={16}/>}{busy?'Finding more…':'Find more recruiters'}</Btn>
+    {busy&&<div style={{marginTop:10,fontSize:14,color:'#718096',lineHeight:1.5}}>Researching more recruiters live — this can take a minute.</div>}
+  </div>
+}
+// RecruitersCard: the whole bonus card body. Gated on `chosen`. One-time
+// retained-vs-contingency explainer, the criteria line, firm-prominent match
+// rows, a single editable outreach template (like GTM's), and the GTM-style
+// "add more" box. Pure presentation — state/handlers come from the Focus render.
+function RecruitersCard({data,busy,chosen,onGenerate,onMore,onCopy,copied}){
+  if(!(chosen&&chosen.length>0))return <div>
+    <p style={S.sub}>Recruiters for This Path finds executive-search contacts who specialize in the direction you're exploring. Pick a direction in Career Paths first, then come back and we'll build the list.</p>
+  </div>
+  const matches=(data&&Array.isArray(data.matches))?data.matches:[]
+  const template=(data&&data.outreachTemplate)||''
+  const built=!!(data&&data.builtAt)
+  const c=(data&&data.criteria)||{}
+  return <div>
+    <p style={S.sub}>Executive-search contacts who specialize in your function, industry, and level.</p>
+    <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D',lineHeight:1.6}}>Two kinds of search firms will matter to you. <strong>Retained</strong> firms are hired and paid by the employer to fill a specific senior role; they work a few searches at a time and go deep on each. <strong>Contingency</strong> firms are paid only when they place someone, so they move faster and cast wider. Knowing which is which tells you what to expect when you reach out.</div>
+    {!built&&!busy&&<div style={S.row}><Btn disabled={busy} onClick={onGenerate}><Sparkles size={14}/>Find recruiters for this path</Btn></div>}
+    {busy&&matches.length===0&&<Loading msg="Finding recruiters who specialize in this path…" step="recruiters"/>}
+    {(built||matches.length>0)&&<>
+      {(c.function||c.industry||c.seniority)&&<div style={{fontSize:14,color:C.grayL,margin:'6px 0 14px'}}>Matching on: <strong>{[c.function,c.industry,c.seniority,c.geo].filter(Boolean).join(' · ')}</strong></div>}
+      {matches.map((m,i)=><RecruiterMatchRow key={(m.firm||'')+i} m={m}/>)}
+      {template&&<div style={{margin:'8px 0 4px',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'14px 16px'}}>
+        <div style={{fontSize:12,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>Outreach note — edit for each firm<Btn small onClick={()=>onCopy(template)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn></div>
+        <div style={{fontSize:15,color:'#2D3748',lineHeight:1.6,whiteSpace:'pre-wrap'}}>{template}</div>
+      </div>}
+      {busy&&built&&!template&&<div style={{fontSize:14,color:C.gray,margin:'6px 0'}}>Writing your outreach template…</div>}
+      {!busy&&matches.length===0&&<div style={{...S.note,background:C.input,border:`1px solid ${C.border}`,color:'#2D3748'}}>We couldn't confirm a specialist for this exact combination from a source we trust. Try the box below with a different focus and we'll look again.</div>}
+      {built&&<RecruitersFindMoreBox busy={busy} onSubmit={onMore}/>}
+    </>}
   </div>
 }
 function GtmLearnMoreButton({companyName,busy,waiting,onClick}){
@@ -5809,6 +6051,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[openingsByKey,setOpeningsByKey]=useState({})
   const openingsSweepRef=useRef({inflight:new Set(),done:new Set()})
   const openingsSweptRef=useRef('')
+  // Recruiters for This Path (bonus card). recruitersBuilding gates the lazy
+  // build; recruitersReqRef is a monotonic race guard so a stale result is
+  // discarded if the user switches direction mid-build. Data lives on the door1
+  // record as rec.recruiters {signature,criteria,matches,notes,builtAt}; read
+  // defensively (records built before this feature have no field).
+  const[recruitersBuilding,setRecruitersBuilding]=useState(false)
+  const recruitersReqRef=useRef(0)
   // laneOverride (op surface cleanup brief 2026-05-29): when present, wins over
   // opLaneValue(rec0). Lets the auto-build path (submitOpRole) pass the inferred
   // lane directly through from runOpLaneInference's success path, sidestepping
@@ -6472,6 +6721,71 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       sweepOpenings(list.filter(c=>!persisted[openingsKeyFor(c)]))
     },0)
   }
+  // ── Recruiters for This Path build ─────────────────────────────────────────
+  // Lazy, click-triggered (never auto-run). Phase 1: one web-search discovery
+  // call → two-tier shortlist with first-party citations (findRecruiterMatches
+  // applies the fallback ladder). Phase 2: a concurrency-capped pool writes one
+  // personalized outreach note per surviving match, each committed independently
+  // so rows fill in progressively. Everything hard-caches onto the door1 record.
+  const buildRecruiters=async(opts={})=>{
+    const slotId=currentSavedSlotIdRef.current
+    if(!(chosen&&chosen.length>0))return
+    if(recruitersBuilding||generatingSection)return
+    const reqId=++recruitersReqRef.current
+    setRecruitersBuilding(true)
+    try{
+      const rec0=savedPlaybooks.find(r=>r.id===slotId&&r.source==='door1')
+      const existing=(opts.more&&rec0&&rec0.recruiters&&Array.isArray(rec0.recruiters.matches))?rec0.recruiters.matches:[]
+      const industryKey=await inferIndustry({jd:chosen})
+      const criteria={
+        function:chosen,
+        industry:industryKey==='default'?'':industryKey,
+        seniority:inferSeniorityBand(chosen),
+        geo:[profile.loc.city,profile.loc.country].filter(Boolean).join(', '),
+      }
+      // Phase 1 — discovery. In "more" mode, pass the focus text + an exclude list
+      // of firms already shown so the model returns DIFFERENT ones, then append.
+      const found=await findRecruiterMatches({...criteria,focus:opts.focus||'',exclude:existing.map(m=>m.firm).filter(Boolean)})
+      if(reqId!==recruitersReqRef.current)return
+      const seen=new Set(existing.map(m=>normalizeCompanyNameKey(m.firm)))
+      const fresh=found.matches.filter(m=>{const k=normalizeCompanyNameKey(m.firm);if(!k||seen.has(k))return false;seen.add(k);return true})
+      const mergedMatches=opts.more?existing.concat(fresh):found.matches
+      const prevTemplate=(opts.more&&rec0&&rec0.recruiters&&rec0.recruiters.outreachTemplate)||''
+      const base={signature:recruitersSignatureFor(criteria),criteria,matches:mergedMatches,outreachTemplate:prevTemplate,builtAt:new Date().toISOString()}
+      setSavedPlaybooks(prev=>prev.map(rec=>(rec.id===slotId&&rec.source==='door1')?{...rec,recruiters:base}:rec))
+      // Phase 2 (concurrent): (a) gap-fill — for each firm with no confirmed name,
+      // one focused firm-scoped lookup for the leader of the MOST SPECIFIC practice
+      // for this target, gated the same way; (b) ONE reusable outreach template.
+      const brand=outputs.p3, bridge=outputs.p6, laneLabel=selectedLane?laneLabelFor(selectedLane):''
+      const GAP_CONCURRENCY=3
+      const gapQueue=mergedMatches.map((m,i)=>({m,i})).filter(x=>!x.m.leaderName&&(!opts.more||x.i>=existing.length))
+      const gapWorker=async()=>{while(gapQueue.length){
+        const {m,i}=gapQueue.shift()
+        const got=await findRecruiterLeader(m.firm,m.practice||'',criteria)
+        if(reqId!==recruitersReqRef.current)return
+        if(got&&got.leaderName&&recruiterLeaderConfirmed({confidence:got.confidence,leaderProfileUrl:got.leaderProfileUrl,url:m.url,practiceUrl:m.practiceUrl,sourceUrl:m.sourceUrl})){
+          setSavedPlaybooks(prev=>prev.map(rec=>{
+            if(rec.id!==slotId||rec.source!=='door1'||!rec.recruiters||!Array.isArray(rec.recruiters.matches))return rec
+            return{...rec,recruiters:{...rec.recruiters,matches:rec.recruiters.matches.map((mm,j)=>j===i?{...mm,leaderName:got.leaderName,leaderTitle:got.leaderTitle,leaderProfileUrl:got.leaderProfileUrl}:mm)}}
+          }))
+        }
+      }}
+      const templateTask=async()=>{
+        if(prevTemplate||!mergedMatches.length)return
+        let template=''
+        try{
+          const raw=await callClaude(P.recruiter_outreach_template(pc,brand,bridge,mergedMatches,chosen,laneLabel),{maxTokens:900,temperature:0.5,step:'recruiters'})
+          template=(typeof raw==='string'?raw:'').trim()
+        }catch(e){template=''}
+        if(reqId!==recruitersReqRef.current)return
+        setSavedPlaybooks(prev=>prev.map(rec=>(rec.id===slotId&&rec.source==='door1'&&rec.recruiters)?{...rec,recruiters:{...rec.recruiters,outreachTemplate:template}}:rec))
+      }
+      await Promise.all([...Array.from({length:Math.min(GAP_CONCURRENCY,gapQueue.length||1)},gapWorker),templateTask()])
+    }catch(e){/* leave whatever resolved; the card shows what it has */}
+    finally{if(reqId===recruitersReqRef.current)setRecruitersBuilding(false)}
+  }
+  const generateRecruiters=()=>buildRecruiters()
+  const moreRecruiters=(focusText)=>buildRecruiters({more:true,focus:(typeof focusText==='string'?focusText:'').trim()})
   // generateOpBridgeStory (v3): adapts the role-level Bridge Story to this
   // specific company + JD via P.p6_op. Writes a plain string to
   // rec.sections.p6. Refine arg folds correction text into the prompt.
@@ -7362,6 +7676,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {id:'p8',label:NAV_LABELS.p8,load:'Drafting your LinkedIn updates…'},
         {id:'p7',label:NAV_LABELS.p7,load:'Researching companies and building outreach…'},
         {id:'income',label:NAV_LABELS.income,load:'Building your Income Now plan…'},
+        {id:'recruiters',label:NAV_LABELS.recruiters,load:'Finding recruiters who specialize in this path…'},
       ]
       const laneLbl=laneLabelFor(selectedLane)
       // Track 2: each section assembles from outputs with its stale upstreams
@@ -7513,7 +7828,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             and prints hidden via data-print="hide" inside the component. */}
         <div style={{display:'flex',gap:24,alignItems:'flex-start'}}>
           <PlaybookSectionRail
-            sections={FOCUS_ORDER.map(s=>({id:s.id,label:s.label,num:(()=>{const m={};{let n=1;FOCUS_GROUPS.forEach(g=>g.sectionIds.forEach(sid=>{m[sid]=n++}))}return m[s.id]})(),isBonus:s.id==='income'}))}
+            sections={FOCUS_ORDER.map(s=>({id:s.id,label:s.label,num:(()=>{const m={};{let n=1;FOCUS_GROUPS.forEach(g=>g.sectionIds.forEach(sid=>{m[sid]=n++}))}return m[s.id]})(),isBonus:s.id==='income'||s.id==='recruiters'}))}
             done={done}
             onJump={scrollToOutput}
             C={C}
@@ -7621,6 +7936,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {groupDivider('Bonus · Income Now',C.goldL)}
               {renderSection(focusById.income)}
             </div>
+            {!isDemo&&<div>
+              {groupDivider('Bonus · Recruiters for This Path',C.goldL)}
+              <section style={{marginTop:8}}>
+                <h2 id="section-recruiters" style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8,scrollMarginTop:80}}>Recruiters for This Path</h2>
+                <RecruitersCard
+                  data={(savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')||{}).recruiters}
+                  busy={recruitersBuilding}
+                  chosen={chosen}
+                  onGenerate={generateRecruiters}
+                  onMore={moreRecruiters}
+                  onCopy={copy}
+                  copied={copied}
+                />
+              </section>
+            </div>}
           </>
         })()}
           </div>
