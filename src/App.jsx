@@ -2513,6 +2513,30 @@ OUTPUT: return a SINGLE JSON object and nothing else — no preamble, no markdow
 }
 
 Each company object uses the same field meanings as the main list: name; what (one plain sentence); industry; size (band or "Size not confirmed"); hq (or "HQ not confirmed"); fit (one sentence, translation-anchored); growth (one sentence growth or contraction-warning signal); contact (name and title, or "Contact not identified"); contactLinkedIn (URL or empty); source (where sourced, with URL or page title); emailConvention (inferred format or empty); website (company URL or empty). Use empty strings for missing values, never null. Return exactly 10 companies, all new, none on the exclude list above.`,
+  p7_part2_fix:(sel,part1Text,companyListText,correctionText)=>`Rebuild the target company list (PART 2) for someone pursuing **${sel}**, correcting it per the user's feedback below. Ground your choices in the candidate's profile provided above. Search the web for current, real companies and contacts.
+
+HIRING-EXECUTIVE CONTEXT (Part 1 — keep the list consistent with this read):
+${part1Text||'(none)'}
+
+THE CURRENT COMPANY LIST (this is the one to correct):
+${companyListText||'(none)'}
+
+WHAT THE USER SAYS IS OFF:
+${(correctionText||'').trim()||'(no specific feedback; produce a stronger, better-fitting list)'}
+
+Apply the feedback directly: drop the companies it flags, re-rank toward what it asks for, and add better-fitting replacements so the result stays a full set of about 10. Keep the companies the user did not object to unless the feedback implies otherwise. Prioritize companies showing growth (recent funding, acquisitions, expansion, headcount growth); flag or drop companies showing contraction. When a passion, value, or life-experience signal from the candidate's raw signals connects to a company, name that connection in the fit field using their language; never invent one.
+
+VOICE (load-bearing; a runtime gate scans the what/fit/growth fields): translation not praise — fit names where the candidate's capability transfers to this company, not a trait they already have. Directional and evidence-anchored; no typology labels; no AI-coaching register; no logic-flip cadence; no comparisons against unnamed groups.
+
+OUTPUT: return a SINGLE JSON object and nothing else — no preamble, no markdown code fences. Start with { and end with }. Reproduce each key name character-for-character including underscores. Use this exact shape:
+
+{
+  "companies": [
+    { "name": "...", "what": "...", "industry": "...", "size": "...", "hq": "...", "fit": "...", "growth": "...", "contact": "...", "contactLinkedIn": "...", "source": "...", "emailConvention": "...", "website": "..." }
+  ]
+}
+
+Each company object uses the same field meanings as the main list. Use empty strings for missing values, never null. Return about 10 companies as the corrected, re-ranked list.`,
   // recruiter_outreach_template: ONE reusable outreach note the candidate edits
   // per firm (not one per contact — mirrors GTM's part_3_outreach_template). Uses
   // the first match as the worked example, then a short "personalize per firm"
@@ -5319,6 +5343,40 @@ export default function PivotEngine(){
     }catch(e){setP7SlotErrors(prev=>({...prev,part2more:e.message||'Generation failed. Try again.'}))}
     finally{setRegeneratingP7Slot(null)}
   }
+  // "Fix the list": mirror the Part 1 / Part 3 regen loop, but REPLACE
+  // part_2_company_list with a corrected, re-ranked set built from the user's
+  // "what's off" feedback — a real correction affordance for the company list
+  // (its own slot 'part2fix'), distinct from the additive "Find 10 More".
+  const regenerateGtmPart2Fix=async(correctionText)=>{
+    if(regeneratingP7Slot!==null)return
+    const g=parseGtmJSON(outputs.p7)
+    if(!g)return
+    const existing=Array.isArray(g.part_2_company_list)?g.part_2_company_list:[]
+    const companyListText=existing.slice(0,100).map((c,i)=>(i+1)+'. '+((c&&c.name)||'')+((c&&c.fit)?' — '+c.fit:'')).join('\n')
+    setRegeneratingP7Slot('part2fix');setP7SlotErrors(e=>({...e,part2fix:null}))
+    try{
+      let fresh=null,refusal=''
+      for(let attempt=1;attempt<=3;attempt++){
+        const prompt=correctionsBlock(profile.corrections)+P.p7_part2_fix(chosen,g.part_1_hiring_executive||'',companyListText,correctionText||'')+(refusal?`\n\n${refusal}`:'')
+        const rawr=await callClaude(prompt,{webSearch:true,maxTokens:8000,profileBlock:buildUserProfileBlock(pc,outputs),step:'p7'})
+        const a=(rawr||'').indexOf('{'),b=(rawr||'').lastIndexOf('}')
+        if(a<0||b<=a){refusal='Return a single JSON object {"companies":[...]} only. No prose, no code fences.';continue}
+        let obj=null;try{obj=JSON.parse(rawr.slice(a,b+1))}catch(_){obj=null}
+        const cand=obj&&Array.isArray(obj.companies)?obj.companies:null
+        if(!cand||cand.length===0){refusal='Return a non-empty "companies" array in the exact JSON shape.';continue}
+        const vioText=cand.map(c=>[c&&c.what,c&&c.fit,c&&c.growth].filter(Boolean).join(' ')).join('\n')
+        const vio=detectVoiceViolations(vioText,{includeSoft:false})
+        if(vio.length){refusal='A voice rule was violated ('+vio[0].name+': "'+String(vio[0].match).slice(0,60)+'"). Rewrite to comply. Same JSON shape.';continue}
+        fresh=cand;break
+      }
+      if(!fresh){setP7SlotErrors(e=>({...e,part2fix:'We could not redo the list. Try again, or rephrase what is off.'}));return}
+      const list=fresh.filter(c=>c&&c.name).map(c=>({name:c.name||'',what:c.what||'',industry:c.industry||'',size:c.size||'',hq:c.hq||'',fit:c.fit||'',growth:c.growth||'',contact:c.contact||'',contactLinkedIn:c.contactLinkedIn||'',source:c.source||'',emailConvention:c.emailConvention||'',website:c.website||''}))
+      if(list.length===0){setP7SlotErrors(e=>({...e,part2fix:'That came back empty. Try again, or rephrase what is off.'}));return}
+      setOutputs(o=>{const obj=parseGtmJSON(o.p7);if(!obj)return o;return {...o,p7:JSON.stringify({...obj,part_2_company_list:list},null,2)}})
+      setCurrentRoleSaved(false)
+    }catch(e){setP7SlotErrors(prev=>({...prev,part2fix:e.message||'Generation failed. Try again.'}))}
+    finally{setRegeneratingP7Slot(null)}
+  }
   const copy=(text)=>{navigator.clipboard.writeText(stripMarkdown(text));setCopied(true);setTimeout(()=>setCopied(false),2000)}
   const submitEmailStep=async()=>{
     const em=signupForm.email.trim()
@@ -6437,6 +6495,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const regen1=isDemo?undefined:regenerateGtmPart1
     const regen3=isDemo?undefined:regenerateGtmPart3
     const regen2more=isDemo?undefined:regenerateGtmPart2More
+    const regen2fix=isDemo?undefined:regenerateGtmPart2Fix
     const hdr={fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5,margin:'22px 0 2px'}
     const copyAll=()=>{const L=[];if(g.quick_takeaway)L.push(g.quick_takeaway+'\n');if(g.part_1_hiring_executive)L.push('PART 1 - THE HIRING EXECUTIVE\n'+g.part_1_hiring_executive);(g.part_2_company_list||[]).forEach((c,i)=>{L.push('\n'+(i+1)+'. '+((c&&c.name)||'')+((c&&c.what)?' - '+c.what:'')+((c&&c.fit)?'\n   Why it fits: '+c.fit:'')+((c&&c.contact)?'\n   Contact: '+c.contact:''))});if(g.part_3_outreach_template)L.push('\nPART 3 - OUTREACH\n'+g.part_3_outreach_template);if(g.part_4_linkedin_tweak)L.push('\nPART 4 - LINKEDIN\n'+g.part_4_linkedin_tweak);copy(L.join('\n'))}
     return <>
@@ -6451,6 +6510,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={hdr}>Part 2 · Target companies</div>
       {renderGtmCompanyBlock(g.part_2_company_list)}
       {regen2more&&<GtmFindMoreBox busy={regeneratingP7Slot==='part2more'} error={p7SlotErrors['part2more']} onSubmit={(t)=>regen2more(t)}/>}
+      {regen2fix&&<SubsectionRefineBox scopeKey="gtm-part2fix" onSubmit={(t)=>regen2fix(t)} busy={regeneratingP7Slot==='part2fix'} error={p7SlotErrors['part2fix']} label="Something off about these companies? Tell us what to fix and we'll redo the list." placeholder="e.g. drop the 5,000+ headcount names · these three miss the mission angle · lean mid-market" submitLabel="Redo the company list" helperText="Replaces the list with a corrected, re-ranked set. Part 1 and the outreach stay."/>}
       <div style={{...S.out,fontSize:15,color:C.goldL,fontStyle:'italic',lineHeight:1.6}}>For a deeper read on one company, use Learn More on its card.</div>
       <div style={S.out}>
         <div style={{...hdr,marginTop:0}}>Part 3 · Outreach template</div>
