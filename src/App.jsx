@@ -1594,6 +1594,34 @@ async function findRecruiterLeader(firm,practice,c){
     return{leaderName:(o.leaderName||'').slice(0,120),leaderTitle:(o.leaderTitle||'').slice(0,160),leaderProfileUrl:typeof o.profileUrl==='string'?o.profileUrl:'',confidence:o.confidence==='high'||o.confidence==='medium'||o.confidence==='low'?o.confidence:'low'}
   }catch(e){return null}
 }
+// GTM contact gap-fill: when p7 leaves a company with no contact, run the plain
+// LinkedIn search a user would run and show whoever it finds. No high-confidence
+// gate — the source label (contactSourceNote) carries the certainty; a named
+// "likely — via LinkedIn" contact beats a dead end.
+const GTM_CONTACT_LOOKUP_PROMPT=(company,role,laneLabel)=>`Find the most likely current hiring decision-maker for a target role at one company — the person a candidate would reach out to. Search the web the way a person would.
+
+COMPANY: ${company.name||''}${company.website?` (${company.website})`:''}${company.industry?` — ${company.industry}`:''}
+TARGET ROLE the candidate is pursuing: ${role||'(unspecified)'}${laneLabel?` — lane: ${laneLabel}`:''}
+
+Run the search a person would run: site:linkedin.com "${company.name||''}" "<likely title>", trying the function head (for a People role: Chief People Officer, CHRO, Head of People, VP People) and the person the role reports to (CEO, COO). Return the best-fit CURRENT person you find at THIS company. Company-scope every query so a same-named person elsewhere is not mistaken for them.
+
+Prefer a real profile link — the person's own LinkedIn (linkedin.com/in/) or the company's own leadership page — and set source accordingly. Do not use a job posting, listicle, or third-party contact-database page as the link. If a plain search returns no plausible person at this company, return an empty name.
+
+Output JSON only, no preamble:
+{"contact":"<name or empty>","contactTitle":"<current title or empty>","contactLinkedIn":"<profile URL if found, else empty>","source":"LinkedIn | Company site"}`
+async function findGtmContact(company,role,laneLabel){
+  try{
+    const raw=await callClaude(GTM_CONTACT_LOOKUP_PROMPT(company,role,laneLabel),{webSearch:true,maxTokens:1200,temperature:0.2})
+    const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
+    if(a<0||b<=a)return null
+    const o=JSON.parse(raw.slice(a,b+1))
+    const name=(o.contact||'').trim()
+    if(!name)return null
+    const title=(o.contactTitle||'').trim(), li=typeof o.contactLinkedIn==='string'?o.contactLinkedIn:''
+    const source=/linkedin\.com/i.test(li)?'LinkedIn':(li?'Company site':'LinkedIn')
+    return{contact:title?`${name}, ${title}`:name,contactLinkedIn:li,source}
+  }catch(e){return null}
+}
 // detectMissingCitations (PR-1 Company Read). Conservative structural detector:
 // flags sentences containing specific factual claims (years, dollar amounts,
 // percentages, named role transitions) that lack an adjacent source URL OR an
@@ -2772,6 +2800,20 @@ function contactSourceNote(src){
   if(/linkedin/.test(s))return 'likely — via LinkedIn'
   if(/press|news|release/.test(s))return 'via press / news'
   return ''
+}
+// GtmContactLine: the contact line. Prefers the contact p7 already found; when p7
+// had none, shows whoever the background sweep found (findGtmContact) — labeled by
+// source via contactSourceNote. "Contact not identified" only when the search
+// itself came back empty. Never blanks a found name, never dead-ends.
+function GtmContactLine({company,cc}){
+  const p7=(company.contact&&!/not identified/i.test(company.contact))?{contact:company.contact,contactLinkedIn:company.contactLinkedIn,source:company.source}:null
+  const found=p7||((cc&&cc.status==='checked'&&cc.contact)?cc:null)
+  if(!found){
+    const msg=(cc&&cc.status==='checking')?'Finding a likely contact…':'Contact not identified'
+    return <div><strong>Contact:</strong> <span style={{color:C.gray}}>{msg}</span></div>
+  }
+  const note=contactSourceNote(found.source)
+  return <div><strong>Contact:</strong> {found.contact}{found.contactLinkedIn&&/^https?:\/\//i.test(found.contactLinkedIn)&&<> · <a href={found.contactLinkedIn} target="_blank" rel="noreferrer" style={{color:C.gold}}>LinkedIn</a></>}{note&&<span style={{color:C.gray,fontWeight:400,fontSize:13}}> · {note}</span>}</div>
 }
 function GtmOpeningMatch({oc}){
   const[open,setOpen]=useState(false)
@@ -6051,6 +6093,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[openingsByKey,setOpeningsByKey]=useState({})
   const openingsSweepRef=useRef({inflight:new Set(),done:new Set()})
   const openingsSweptRef=useRef('')
+  // GTM contact gap-fill sweep (parallel to the openings sweep). contactsByKey is
+  // the render source of truth; seeded from / mirrored into rec.companyContacts.
+  const[contactsByKey,setContactsByKey]=useState({})
+  const contactsSweepRef=useRef({inflight:new Set(),done:new Set()})
+  const contactsSweptRef=useRef('')
   // Recruiters for This Path (bonus card). recruitersBuilding gates the lazy
   // build; recruitersReqRef is a monotonic race guard so a stale result is
   // discarded if the user switches direction mid-build. Data lives on the door1
@@ -6326,6 +6373,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const _focusRec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')
     const _p7Busy=generatingSection==='p7'
     ensureOpeningsSweep(list)
+    ensureContactsSweep(list)
     const card=(company,idx)=>{
       const oc=openingsByKey[openingsKeyFor(company)]
       const cached=_focusRec&&_focusRec.companyReads?_focusRec.companyReads[company.name]:null
@@ -6347,7 +6395,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </div>}
             {company.fit&&<div><strong>Why it fits:</strong> {company.fit}</div>}
             {company.growth&&<div><strong>Growth signal:</strong> {company.growth}</div>}
-            {(company.contact||company.contactLinkedIn)&&<div><strong>Contact:</strong> {company.contact}{company.contactLinkedIn&&<> · <a href={company.contactLinkedIn} target="_blank" rel="noreferrer" style={{color:C.gold}}>LinkedIn</a></>}{company.contact&&(()=>{const _sn=contactSourceNote(company.source);return _sn?<span style={{color:C.gray,fontWeight:400,fontSize:13}}> · {_sn}</span>:null})()}</div>}
+            <GtmContactLine company={company} cc={contactsByKey[openingsKeyFor(company)]}/>
             {company.source&&<div><strong>Source:</strong> {company.source}</div>}
             {(company.emailConvention||company.website)&&<div>{company.emailConvention&&<><strong>Email:</strong> {company.emailConvention}</>}{company.emailConvention&&company.website?' · ':''}{company.website&&<a href={company.website} target="_blank" rel="noreferrer" style={{color:C.gold}}>{company.website}</a>}</div>}
           </div>
@@ -6719,6 +6767,55 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       s.done=new Set([...keys].filter(k=>persisted[k]))
       s.inflight=new Set()
       sweepOpenings(list.filter(c=>!persisted[openingsKeyFor(c)]))
+    },0)
+  }
+  // ── GTM contact gap-fill sweep ─────────────────────────────────────────────
+  // Auto-fires when the list renders. For each company p7 left WITHOUT a contact,
+  // one background call runs the plain LinkedIn search (findGtmContact) and shows
+  // whoever it finds — labeled by source. Capped concurrency, each key once, cached
+  // in contactsByKey + rec.companyContacts. Companies p7 already named are skipped.
+  const CONTACT_CONCURRENCY=3
+  const contactGap=(c)=>!!c&&!(c.contact&&!/not identified/i.test(c.contact))
+  const sweepOneContact=async(company)=>{
+    const key=openingsKeyFor(company)
+    if(!key)return
+    const s=contactsSweepRef.current
+    if(s.inflight.has(key)||s.done.has(key))return
+    s.inflight.add(key)
+    try{
+      const role=chosen||''
+      const laneLabel=selectedLane?laneLabelFor(selectedLane):''
+      const got=await findGtmContact(company,role,laneLabel)
+      const result=got?{status:'checked',contact:got.contact,contactLinkedIn:got.contactLinkedIn,source:got.source,checkedAt:new Date().toISOString()}:{status:'checked',contact:'',checkedAt:new Date().toISOString()}
+      s.done.add(key)
+      setContactsByKey(prev=>({...prev,[key]:result}))
+      const slotId=currentSavedSlotIdRef.current
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId||rec.source!=='door1')return rec
+        return{...rec,companyContacts:{...(rec.companyContacts||{}),[key]:result}}
+      }))
+    }catch(e){/* leave unmarked; a later sweep may retry this key */}
+    finally{s.inflight.delete(key)}
+  }
+  const sweepContacts=async(companies)=>{
+    const queue=(Array.isArray(companies)?companies:[]).filter(c=>c&&openingsKeyFor(c)&&contactGap(c))
+    const worker=async()=>{while(queue.length){await sweepOneContact(queue.shift())}}
+    await Promise.all(Array.from({length:Math.min(CONTACT_CONCURRENCY,queue.length||1)},worker))
+  }
+  const ensureContactsSweep=(companies)=>{
+    const list=(Array.isArray(companies)?companies:[]).filter(c=>c&&openingsKeyFor(c)&&contactGap(c))
+    const sig=list.map(openingsKeyFor).join('|')
+    if(!sig||contactsSweptRef.current===sig)return
+    contactsSweptRef.current=sig
+    setTimeout(()=>{
+      const keys=new Set(list.map(openingsKeyFor))
+      const rec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')
+      const persisted=(rec&&rec.companyContacts)||{}
+      setContactsByKey(prev=>{const next={};for(const k of keys){if(prev[k])next[k]=prev[k];else if(persisted[k])next[k]=persisted[k];else next[k]={status:'checking'}}return next})
+      const s=contactsSweepRef.current
+      s.done=new Set([...keys].filter(k=>persisted[k]))
+      s.inflight=new Set()
+      sweepContacts(list.filter(c=>!persisted[openingsKeyFor(c)]))
     },0)
   }
   // ── Recruiters for This Path build ─────────────────────────────────────────
@@ -7734,6 +7831,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           const _focusRec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')
           const _p7Busy=generatingSection==='p7'
           ensureOpeningsSweep(_p7Companies)
+          ensureContactsSweep(_p7Companies)
           const _renderGtmCompanyCard=(company,idx)=>{
             const oc=openingsByKey[openingsKeyFor(company)]
             const cached=_focusRec&&_focusRec.companyReads?_focusRec.companyReads[company.name]:null
@@ -7759,7 +7857,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   </div>}
                   {company.fit&&<div><strong>Why it fits:</strong> {company.fit}</div>}
                   {company.growth&&<div><strong>Growth signal:</strong> {company.growth}</div>}
-                  {(company.contact||company.contactLinkedIn)&&<div><strong>Contact:</strong> {company.contact}{company.contactLinkedIn&&<> · <a href={company.contactLinkedIn} target="_blank" rel="noreferrer" style={{color:C.gold}}>LinkedIn</a></>}{company.contact&&(()=>{const _sn=contactSourceNote(company.source);return _sn?<span style={{color:C.gray,fontWeight:400,fontSize:13}}> · {_sn}</span>:null})()}</div>}
+                  <GtmContactLine company={company} cc={contactsByKey[openingsKeyFor(company)]}/>
                   {company.source&&<div><strong>Source:</strong> {company.source}</div>}
                   {(company.emailConvention||company.website)&&<div>{company.emailConvention&&<><strong>Email:</strong> {company.emailConvention}</>}{company.emailConvention&&company.website?' · ':''}{company.website&&<a href={company.website} target="_blank" rel="noreferrer" style={{color:C.gold}}>{company.website}</a>}</div>}
                 </div>
