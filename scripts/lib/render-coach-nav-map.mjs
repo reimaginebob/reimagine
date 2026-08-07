@@ -8,7 +8,10 @@ import { FEATURE_MAP } from '../../src/coach-routing.js'
 import { NAV_LABELS } from '../../src/nav-labels.js'
 
 function labelFor(f) {
-  if (f.reach === 'community') return f.label
+  // An explicit `label` bypasses the NAV_LABELS join — used by community pointers
+  // and by features that live inside another surface as a card (Compensation Read,
+  // Offer & Negotiation) rather than as their own nav step.
+  if (f.label) return f.label
   const l = NAV_LABELS[f.labelId]
   if (!l) {
     throw new Error(
@@ -22,9 +25,10 @@ const line = f =>
   `- ${labelFor(f)} — ${f.does}.${f.where ? ` Pointer: ${f.where}.` : ''}  [slug: ${f.slug}]`
 
 export function renderCoachNavMap() {
-  const standalone = FEATURE_MAP.filter(f => f.reach === 'standalone')
-  const focus      = FEATURE_MAP.filter(f => f.reach === 'focus-gated')
-  const community  = FEATURE_MAP.filter(f => f.reach === 'community')
+  const standalone  = FEATURE_MAP.filter(f => f.reach === 'standalone')
+  const focus       = FEATURE_MAP.filter(f => f.reach === 'focus-gated')
+  const opportunity = FEATURE_MAP.filter(f => f.reach === 'opportunity-gated')
+  const community   = FEATURE_MAP.filter(f => f.reach === 'community')
   return [
     'REIMAGINE FEATURE MAP (what exists and where it lives — generated from the app, so these names match exactly what the person sees on screen):',
     '',
@@ -33,6 +37,9 @@ export function renderCoachNavMap() {
     '',
     `These live inside the Focus Playbook, reached through ${NAV_LABELS.laneSelect} once the person has picked a direction. Until they pick one, name the feature and say it is waiting in their Focus Playbook — do not pretend it is one click away:`,
     ...focus.map(line),
+    '',
+    `These live inside the ${NAV_LABELS.op}, reached once the person adds a live opportunity (paste or upload the job description). Name the feature and say where it lives; do not pretend it is one click away before they have added an opportunity:`,
+    ...opportunity.map(line),
     '',
     'These are community, not in-app tools — no screen, no button. Point to them in prose (especially when someone is carrying the search alone):',
     ...community.map(line),

@@ -74,15 +74,17 @@ eq('strips <verdict>none</verdict> element (arbitrary tag), feature null',
 // --- CANONICAL_FEATURE_SLUGS (the SELFCHECK vocabulary) ---
 ok('community slugs are in the canonical set',
   CANONICAL_FEATURE_SLUGS.includes('career-club-corner') && CANONICAL_FEATURE_SLUGS.includes('accountability-partner'))
-ok('CANONICAL_FEATURE_SLUGS has 13 entries', CANONICAL_FEATURE_SLUGS.length === 13)
+ok('CANONICAL_FEATURE_SLUGS has 15 entries', CANONICAL_FEATURE_SLUGS.length === 15)
 
 // --- FEATURE_MAP is the single structured source ---
 eq('CANONICAL_FEATURE_SLUGS derives from FEATURE_MAP (same order)',
   CANONICAL_FEATURE_SLUGS, FEATURE_MAP.map(f => f.slug))
-ok('every standalone/focus-gated labelId resolves in NAV_LABELS',
-  FEATURE_MAP.filter(f => f.reach !== 'community').every(f => typeof NAV_LABELS[f.labelId] === 'string'))
+ok('standalone/focus-gated features join a real NAV_LABELS label via labelId',
+  FEATURE_MAP.filter(f => f.reach === 'standalone' || f.reach === 'focus-gated').every(f => typeof NAV_LABELS[f.labelId] === 'string'))
 ok('community features carry an inline label + where (no NAV_LABELS join)',
   FEATURE_MAP.filter(f => f.reach === 'community').every(f => f.label && f.where && !f.labelId))
+ok('opportunity-gated features carry an inline label + where (card inside a surface, no NAV_LABELS join)',
+  FEATURE_MAP.filter(f => f.reach === 'opportunity-gated').every(f => f.label && f.where && !f.labelId))
 eq('role-options label is the render-true "Career Paths" (not stale "Role Options")',
   NAV_LABELS[FEATURE_MAP.find(f => f.slug === 'role-options').labelId], 'Career Paths')
 
