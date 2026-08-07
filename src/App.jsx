@@ -1297,13 +1297,17 @@ async function inferJdMetadata(jd){
 // repairMangledJsonKeys) cannot occur here — no repair pass needed. PRIVACY: the
 // prompt is scoped to comp/terms only and told to ignore SSN, bank, address, DOB;
 // the caller never persists the raw letter text, only these extracted fields.
-const OFFER_JSON_KEYS=['base','bonus','equity','signon','relocation','title','level','start','pto','retirement','health','location','remote','reporting','deadline','contingencies','notes']
+// Comprehensive field set (expanded 2026-08-07 per Bob: the parser must be prepared
+// to receive every element an offer might carry, even though any one offer will only
+// include a handful — the rest come back empty). All keys single-word so the
+// underscore-key-drift failure mode cannot occur.
+const OFFER_JSON_KEYS=['base','bonus','commission','signon','guarantee','equity','ltip','relocation','stipends','tuition','title','level','employment','start','reporting','pto','sick','parental','sabbatical','health','dental','retirement','hsa','insurance','deductible','premium','location','remote','deadline','contingencies','severance','restrictions','visa','notes']
 const OFFER_PARSE_PROMPT=(text)=>`You are extracting the constituent terms of a job offer from the document text below, so a candidate can see the full package broken out. Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end with }.
 
 PRIVACY (load-bearing): extract ONLY compensation and employment terms. Do NOT read out, extract, or include any Social Security number, government ID, bank / routing / account number, home address, or date of birth — ignore them entirely even if they appear in the document.
 
-Return this exact shape (every key present; use an empty string for anything the document does not state — never guess or invent a value):
-{"base":"<annual base salary as stated, e.g. \\$125,000>","bonus":"<bonus target and structure, e.g. 15% of base target, paid annually>","equity":"<equity grant: type, amount, and vesting, e.g. 10,000 RSUs vesting over 4 years>","signon":"<sign-on or signing bonus>","relocation":"<relocation support>","title":"<job title>","level":"<level or grade, if stated>","start":"<start date>","pto":"<paid time off or vacation terms>","retirement":"<401(k) or retirement match>","health":"<health / insurance benefits summary>","location":"<work location>","remote":"<remote, hybrid, or onsite terms>","reporting":"<who the role reports to>","deadline":"<deadline to respond to the offer>","contingencies":"<any contingencies, e.g. background check, references, I-9>","notes":"<anything else compensation-relevant worth noting; keep short>"}
+Return this exact shape. Every key MUST be present. Most offers only state a handful of these — use an empty string "" for every term the document does not state, and never guess or invent a value. Capture whatever IS present, wherever it appears in the document.
+{"base":"<annual base salary, e.g. \\$125,000>","bonus":"<annual/target bonus and structure, e.g. 15% of base target>","commission":"<commission or variable-pay plan, for sales roles>","signon":"<sign-on or signing bonus>","guarantee":"<any guaranteed or first-year-guaranteed pay>","equity":"<equity grant: type, amount, vesting, e.g. 10,000 RSUs over 4 years>","ltip":"<long-term incentive plan / options / performance units, if separate from equity above>","relocation":"<relocation support>","stipends":"<recurring stipends or allowances: wellness, home office, phone, car>","tuition":"<tuition reimbursement or professional-development budget>","title":"<job title>","level":"<level or grade>","employment":"<employment type: full-time, contract, at-will, fixed-term>","start":"<start date>","reporting":"<who the role reports to>","pto":"<paid time off / vacation>","sick":"<sick leave, if stated separately>","parental":"<parental / family leave>","sabbatical":"<sabbatical>","health":"<medical insurance summary>","dental":"<dental / vision, if stated>","retirement":"<401(k) or retirement match>","hsa":"<employer HSA / FSA contribution>","insurance":"<life / disability insurance>","deductible":"<health-plan deductible, if stated>","premium":"<employee premium share / cost, if stated>","location":"<work location>","remote":"<remote, hybrid, or onsite terms>","deadline":"<deadline to respond to the offer>","contingencies":"<contingencies: background check, references, I-9, drug test>","severance":"<severance terms, if stated>","restrictions":"<non-compete, non-solicit, clawback, or other restrictive covenants>","visa":"<visa / work-authorization sponsorship>","notes":"<anything else compensation-relevant worth noting; keep short>"}
 
 Keep each value concise and faithful to the document — quote figures as written. If a term is stated but vague (e.g. equity "to be determined"), record it as written so the candidate can see it is unresolved.
 
@@ -1325,7 +1329,7 @@ function parseOfferJSON(raw){
 }
 // User-facing labels for the parsed offer fields — used by the editable readout
 // and to build the structured summary the negotiation prompt consumes.
-const OFFER_FIELD_LABELS={base:'Base salary',bonus:'Bonus',equity:'Equity',signon:'Sign-on bonus',relocation:'Relocation',title:'Title',level:'Level',start:'Start date',pto:'Paid time off',retirement:'Retirement match',health:'Health / benefits',location:'Location',remote:'Remote terms',reporting:'Reports to',deadline:'Response deadline',contingencies:'Contingencies',notes:'Other notes'}
+const OFFER_FIELD_LABELS={base:'Base salary',bonus:'Bonus',commission:'Commission',signon:'Sign-on bonus',guarantee:'Guaranteed pay',equity:'Equity',ltip:'Long-term incentives',relocation:'Relocation',stipends:'Stipends / allowances',tuition:'Tuition / development',title:'Title',level:'Level',employment:'Employment type',start:'Start date',reporting:'Reports to',pto:'Paid time off',sick:'Sick leave',parental:'Parental leave',sabbatical:'Sabbatical',health:'Medical insurance',dental:'Dental / vision',retirement:'Retirement match',hsa:'HSA / FSA contribution',insurance:'Life / disability',deductible:'Deductible',premium:'Premium share',location:'Location',remote:'Remote terms',deadline:'Response deadline',contingencies:'Contingencies',severance:'Severance',restrictions:'Non-compete / clawback',visa:'Visa sponsorship',notes:'Other notes'}
 // offerSummaryFromStruct: flatten the non-empty parsed fields into one labeled
 // string the Offer & Negotiation prompt can place against the market range. Empty
 // string when nothing is filled in (caller falls back to the free-text offer).
@@ -5883,6 +5887,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[offerParseError,setOfferParseError]=useState(null)
   const[offerPasteDrafts,setOfferPasteDrafts]=useState({})
   const[offerPasteOpen,setOfferPasteOpen]=useState({})
+  // Which not-stated offer fields the user has revealed to fill in (per slot). With
+  // ~34 possible fields, the readout shows the filled ones as inputs and the rest as
+  // compact "+ add" chips; clicking a chip reveals its input.
+  const[revealedOfferFields,setRevealedOfferFields]=useState({})
   // Interview Panel web research (PR 4): single-flight busy id, per-interviewer
   // error, and the inline edit buffer for a fetched research block.
   const[researchingIvId,setResearchingIvId]=useState(null)
@@ -8970,14 +8978,27 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>What we found in your offer</div>
                       <Btn small secondary onClick={()=>setSavedPlaybooks(prev=>prev.map(rec=>rec.id!==_slot?rec:{...rec,offerStage:{...(rec.offerStage||{}),offer:null},updatedAt:new Date().toISOString()}))}><X size={12}/>Clear</Btn>
                     </div>
-                    <div style={{fontSize:13,color:C.gray,marginBottom:10,lineHeight:1.5}}>Fix anything we misread. Blank fields are terms the letter didn't mention — often the best things to ask about. This feeds the guidance above, and stays private to your account.</div>
-                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
-                      {OFFER_JSON_KEYS.map(k=><div key={k}>
-                        <label style={{fontSize:12,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,display:'block',marginBottom:3}}>{OFFER_FIELD_LABELS[k]}</label>
-                        <input style={{width:'100%',background:C.input,border:`1px solid ${(_offer[k]&&String(_offer[k]).trim())?C.border:C.gold+'55'}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_offer[k]||''} onChange={e=>updateOfferField(_slot,k,e.target.value)} placeholder="— not stated —"/>
-                      </div>)}
-                    </div>
-                    {_compBuilt&&<div style={{marginTop:12}}><Btn small onClick={()=>generateOpOfferNegotiation()} disabled={!!opSectionBuilding}>{_onBuilt?<><RotateCcw size={11}/>Update guidance with this offer</>:<><Sparkles size={12}/>Build guidance from this offer</>}</Btn></div>}
+                    <div style={{fontSize:13,color:C.gray,marginBottom:10,lineHeight:1.5}}>Fix anything we misread. The terms the letter didn't mention are listed below as things to ask about — click one to add it. This feeds the guidance above, and stays private to your account.</div>
+                    {(()=>{
+                      const _revealed=revealedOfferFields[_slot]||[]
+                      const _shown=OFFER_JSON_KEYS.filter(k=>(_offer[k]&&String(_offer[k]).trim())||_revealed.includes(k))
+                      const _missing=OFFER_JSON_KEYS.filter(k=>!_shown.includes(k))
+                      return <>
+                        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
+                          {_shown.map(k=><div key={k}>
+                            <label style={{fontSize:12,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,display:'block',marginBottom:3}}>{OFFER_FIELD_LABELS[k]}</label>
+                            <input autoFocus={_revealed.includes(k)&&!(_offer[k]&&String(_offer[k]).trim())} style={{width:'100%',background:C.input,border:`1px solid ${(_offer[k]&&String(_offer[k]).trim())?C.border:C.gold+'55'}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_offer[k]||''} onChange={e=>updateOfferField(_slot,k,e.target.value)} placeholder="— not stated —"/>
+                          </div>)}
+                        </div>
+                        {_missing.length>0&&<div style={{marginTop:12}}>
+                          <div style={{fontSize:12,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,marginBottom:6}}>Not in your offer — worth asking about</div>
+                          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                            {_missing.map(k=><button key={k} type="button" onClick={()=>setRevealedOfferFields(r=>({...r,[_slot]:[...(r[_slot]||[]),k]}))} style={{background:`${C.gold}12`,border:`1px solid ${C.gold}44`,borderRadius:16,padding:'4px 11px',fontSize:13,color:'#1A2540',cursor:'pointer',fontFamily:'inherit'}}>+ {OFFER_FIELD_LABELS[k]}</button>)}
+                          </div>
+                        </div>}
+                      </>
+                    })()}
+                    {_compBuilt&&<div style={{marginTop:14}}><Btn small onClick={()=>generateOpOfferNegotiation()} disabled={!!opSectionBuilding}>{_onBuilt?<><RotateCcw size={11}/>Update guidance with this offer</>:<><Sparkles size={12}/>Build guidance from this offer</>}</Btn></div>}
                   </div>}
                   {opSectionErrors.offerNegotiation&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.offerNegotiation}/></div>}
                   {_onBusy&&<div style={{marginTop:14}}><Loading msg="Building Offer & Negotiation…" step="offerNegotiation"/></div>}
