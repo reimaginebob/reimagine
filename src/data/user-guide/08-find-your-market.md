@@ -84,7 +84,10 @@ This is the second-most-refined step in Reimagine, after Role Options. Common re
 - "Remove the companies that are over 5,000 employees."
 - "I want the email to lead with a specific point I can make about their recent funding round."
 
-To re-rank or reshape the whole list, use the feedback box at the bottom of the Go-to-Market section — tell it what is off and it regenerates the section with your changes folded in. To add companies of a certain kind without redoing the rest, use the **Find 10 More Companies** panel described above and put your focus in its field.
+There are two distinct ways to change the list, right under it:
+
+- **Redo the whole list.** Use the **Redo the company list** box — tell it what is off ("drop the 5,000+ headcount names," "these three miss the mission angle," "lean mid-market") and Reimagine rebuilds the list as a corrected, re-ranked set with your feedback folded in. Part 1 (the hiring executive) and the outreach template stay as they are.
+- **Add more without redoing.** Use the **Find 10 More Companies** panel described above and put your focus in its field; it appends a fresh batch and leaves the companies you already have in place.
 
 ## Download your company list as a spreadsheet
 
