@@ -32,6 +32,7 @@ If something is not working the way you expect, check **Chapter 14: FAQ and Trou
 11. [Bonus. Income Now](11-income-now.md)
 11b. [Add an Opportunity](11b-upload-a-live-opportunity.md)
 11c. [My Coach](11c-my-coach.md)
+11d. [Negotiating an Offer](11d-negotiating-an-offer.md)
 
 **Working with the tool**
 

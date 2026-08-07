@@ -2784,7 +2784,7 @@ OUTPUT STRUCTURE: one bolded headline sentence stating the range and/or typical 
   // URLs), so it is NOT routed through the citation gate — the candidate's own
   // offer figure has no source and would false-trip it. Only engages once the
   // candidate is already pursuing/holding an offer, so it stays clear of steering.
-  offerNegotiation:(jobTitle,location,compReadText,offerAmount,foundation)=>`You are producing an Offer & Negotiation module for a candidate who is evaluating or holding an offer for a specific role. This is practical preparation for a compensation conversation the candidate has already decided to have. Never advise on whether to take the role or whether the pay is good enough to pursue; the candidate has already chosen to pursue it.
+  offerNegotiation:(jobTitle,location,compReadText,offerAmount,foundation,proofPoints)=>`You are producing an Offer & Negotiation module for a candidate who is evaluating or holding an offer for a specific role. This is practical preparation for a compensation conversation the candidate has already decided to have. Never advise on whether to take the role or whether the pay is good enough to pursue; the candidate has already chosen to pursue it.
 
 THE ROLE: ${jobTitle||'(unspecified)'}
 THE LOCATION: ${location||'(unspecified)'}
@@ -2792,6 +2792,9 @@ ${offerAmount&&String(offerAmount).trim()?"THE OFFER ON THE TABLE (the candidate
 
 THE COMPENSATION READ ALREADY BUILT FOR THIS ROLE (sourced public salary data, with source URLs — this is your only source of market numbers; reuse its figures and their URLs, never introduce a market number that is not already sourced here):
 ${compReadText||'(not built)'}
+
+THE CANDIDATE'S OWN PROOF (accomplishments and story they already wrote — use ONE concrete item to build the ROI case; never invent, never restate the whole thing):
+${proofPoints||'(none provided — anchor the ask on the range and role scope alone)'}
 
 SOURCING RULES (load-bearing):
 - Every market dollar figure you state MUST reuse a figure and its adjacent source URL from the compensation read above. Do not introduce a market number that is not already sourced there.
@@ -2802,14 +2805,15 @@ VOICE RULES (load-bearing):
 - Plain and direct, one operator to another. No AI-coaching register, no comparative standing against unnamed groups, no logic-flip cadence, no typology labels, no sincerity qualifiers.
 - Surface the insight: each part opens with a bolded headline a 7-second scan catches.
 - Practical and specific to this role and market, not generic negotiation platitudes.
+- Evidence, never entitlement. Never "you deserve more" or "you are worth more" as an assertion. The case is always: here is what this person did, here is what it returns, here is the number that reflects it.
 
 OUTPUT STRUCTURE (produce these three parts in order, each with a bolded headline; keep the whole module tight, 150-250 words):
 
 **Where the offer sits.** ${offerAmount&&String(offerAmount).trim()?"Place the candidate's stated offer against the sourced public range plainly (for example, near the lower end, mid-range, or above what public sources report), citing the range with its source URL. State the gap or the headroom in plain terms. Do not tell them whether to accept.":'The candidate has not entered an offer figure yet. In one sentence, invite them to add their number to see where it lands against the sourced range, then give the rest of the guidance against the range itself.'}
 
-**What to ask for, and how.** Name a specific target or range to anchor on, drawn from the compensation read with its source URL, and one plain sentence on how to frame the ask (anchor toward the upper end of the sourced range, tie the number to the scope of the role). Keep it to what the sourced data supports.
+**What to ask for, and how — as an evidence case.** Name a specific target or range to anchor on, drawn from the compensation read with its source URL. Then build the ask from THIS person's own proof: draw ONE concrete accomplishment from the proof above and show, in one plain sentence, how it justifies the number (the ROI case — the return the work produced, tied to the ask). Frame is always evidence, never entitlement. Anchor toward the upper end of the sourced range and tie it to the scope of the role. If no proof was provided, anchor on the range and scope alone.
 
-**Look beyond base.** Two to three sentences on the parts of the package a base-salary number hides: bonus, equity or long-term incentives, sign-on, benefits, and the reality that public sources report base pay and total compensation very differently. Where the compensation read named a base-versus-total-comp gap with a source, reuse it.`,
+**On total comp, not just base.** One or two sentences tying THIS offer to the full package: if the compensation read named a base-versus-total-comp gap with a source, reuse it; otherwise note in one line that base is only part of the picture and point the reader to the Total Compensation Checklist on this card. Do not enumerate the checklist items here.`,
 
 }
 // voice-allow-end
@@ -6763,8 +6767,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       const offerAmount=((offerDrafts[slotId]!==undefined?offerDrafts[slotId]:((rec0&&rec0.sections&&rec0.sections.offerNegotiation&&rec0.sections.offerNegotiation.offerAmount)||''))||'').trim()
       const foundation=buildOpProfileSummary()
+      // Evidence-based ask (offer-negotiation-v2 brief 2026-08-07): build the ROI
+      // case from proof the user already wrote — the op Bridge Story (prose) and the
+      // op Interview Prep STAR accomplishments (proseified from the p11 JSON). Both
+      // are the user's own content, not market claims, so this stays off the citation
+      // gate. Length-capped to keep the prompt lean; absent gracefully.
+      const _bridge=(rec0&&rec0.sections&&rec0.sections.p6)?bridgeStoryToProse(rec0.sections.p6).trim():''
+      const _star=((rec0&&rec0.sections&&rec0.sections.p11&&rec0.sections.p11.content)||'').trim()
+      const _starProse=_star?(interviewPrepToProse(_star)||_star).trim():''
+      const proofPoints=[_bridge&&('BRIDGE STORY:\n'+_bridge),_starProse&&('ACCOMPLISHMENTS FROM INTERVIEW PREP:\n'+_starProse)].filter(Boolean).join('\n\n').slice(0,1500)
       const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
-      const fn=()=>correctionsBlock(profile.corrections)+P.offerNegotiation(role,location,compRead,offerAmount,foundation)+corrTail
+      const fn=()=>correctionsBlock(profile.corrections)+P.offerNegotiation(role,location,compRead,offerAmount,foundation,proofPoints)+corrTail
       const r=await callClaudeWithVoiceGate(fn,{maxTokens:1600},{step:'op-offer-negotiation',onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       setSavedPlaybooks(prev=>prev.map(rec=>{
@@ -8816,6 +8829,36 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {opSectionErrors.offerNegotiation&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.offerNegotiation}/></div>}
                   {_onBusy&&<div style={{marginTop:14}}><Loading msg="Building Offer & Negotiation…" step="offerNegotiation"/></div>}
                   {_onBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.offerNegotiation.content}/></div>{_compDisclaimer}</div>}
+                  {/* Static reference (offer-negotiation-v2 brief 2026-08-07): stable
+                      content from the Career Club Corner negotiation sessions, written
+                      once, no generation. Always available on this card. */}
+                  <div style={{marginTop:18,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
+                    <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:4}}>Total compensation checklist</div>
+                    <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginBottom:8}}>An offer is more than base. Before you respond, get the full picture — ask about each of these.</div>
+                    <ul style={{margin:'0 0 0 20px',padding:0,fontSize:15,color:'#33405C',lineHeight:1.7}}>
+                      <li>Base salary</li>
+                      <li>Bonus — and what it has actually paid out in recent years, not just the target percentage</li>
+                      <li>Sign-on or signing bonus</li>
+                      <li>Title, and the level and scope it signals</li>
+                      <li>Equity or long-term incentives</li>
+                      <li>Retirement — the match rate and the vesting schedule</li>
+                      <li>Health benefits in detail — deductible, premium split, what is actually covered, not just "we offer a plan"</li>
+                      <li>Tuition reimbursement or a professional development budget</li>
+                      <li>Paid time off — and, if it is "unlimited," what people actually take</li>
+                      <li>Work location, commute, and remote terms</li>
+                      <li>Anything non-standard worth asking for — someone once negotiated recurring time with a senior leader; comp is not only cash</li>
+                    </ul>
+                  </div>
+                  <div style={{marginTop:16}}>
+                    <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:4}}>Negotiation scripts</div>
+                    <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginBottom:8}}>A few lines that do a lot of work in the conversation.</div>
+                    <ul style={{margin:'0 0 0 20px',padding:0,fontSize:15,color:'#33405C',lineHeight:1.7}}>
+                      <li>Instead of "what were you making before," ask: <strong>"Can you share the budget for this role?"</strong></li>
+                      <li>Share a range, then go quiet. Don't rush to fill the pause.</li>
+                      <li>Close with <strong>"Would that be fair?"</strong> — or its quieter inversion, <strong>"Would that be unfair?"</strong></li>
+                    </ul>
+                  </div>
+                  <div style={{marginTop:16,fontSize:14,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Some offer situations don't have a universal script — severance timing, a take-it-or-leave-it or algorithm-set offer, reading a company's layoff history before you push. Those are worth a real conversation with your Coach.</div>
                 </>,'section-offerNegotiation')
               })()}
               {/* About This Company moved to the top of the cards (item F round 2): it

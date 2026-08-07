@@ -68,7 +68,7 @@ export const FEATURE_MAP = [
     does: 'gives a sourced pay range for a role and market, triangulated across public salary sites and cited so the person can check it themselves',
     where: 'inside the Opportunity Playbook, and inside Income Now once a direction is picked' },
   { slug: 'offer-negotiation',    reach: 'opportunity-gated', label: 'Offer & Negotiation',
-    does: 'places an offer against the sourced range, frames what to ask for, and names the parts of a package a base-salary number hides',
+    does: 'places an offer against the sourced range, frames the ask as an evidence case from the person\'s own accomplishments, and carries a static total-compensation checklist plus negotiation scripts; judgment calls (severance timing, algorithmic offers, reading layoff history, who to talk to) route here to Coach',
     where: 'inside the Opportunity Playbook, built on the Compensation Read' },
 
   // Community resources — surfaced in prose only (especially on discouragement
