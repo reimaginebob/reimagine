@@ -2862,6 +2862,26 @@ function GtmOpeningMatch({oc}){
 // person. Every factual line carries its source link. The green openSearchSignal
 // reuses the GtmOpeningMatch treatment. The outreach note is copyable and fills in
 // progressively (note===undefined = still writing; note==='' = skipped/failed).
+// downloadRecruitersCsv: export the recruiter shortlist as a spreadsheet, mirroring
+// the GTM company-list CSV. List only — the outreach note is one editable template,
+// not a per-row column.
+function downloadRecruitersCsv(matches,chosen){
+  const list=Array.isArray(matches)?matches:[]
+  if(list.length===0)return
+  const esc=s=>`"${String(s==null?'':s).replace(/"/g,'""')}"`
+  const header='Firm,Tier,Practice,Contact,Contact title,Contact profile,Specialty,Search open now,Source,Firm/practice page'
+  const rows=list.map(m=>{
+    const tier=m.kind==='practice'?'Large-firm practice':'Boutique'
+    const page=m.kind==='practice'?(m.practiceUrl||m.url||''):(m.url||'')
+    const open=m.openSearchSignal?((m.openSearchSignal.description||'')+(m.openSearchSignal.sourceUrl?(' — '+m.openSearchSignal.sourceUrl):'')):''
+    return [m.firm,tier,m.practice||'',m.leaderName||'',m.leaderTitle||'',m.leaderProfileUrl||'',m.specialty||'',open,m.sourceUrl||'',page].map(esc).join(',')
+  })
+  const csv=header+'\n'+rows.join('\n')
+  const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url
+  const roleSlug=(chosen||'target').replace(/[^a-zA-Z0-9 ]/g,'').trim().split(' ').slice(0,4).join('-')||'path'
+  a.download=`recruiters_${roleSlug}_${new Date().toISOString().slice(0,10)}.csv`
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)
+}
 function RecruiterMatchRow({m}){
   if(!m)return null
   const isPractice=m.kind==='practice'
@@ -2922,13 +2942,17 @@ function RecruitersCard({data,busy,chosen,onGenerate,onMore,onCopy,copied}){
     {(built||matches.length>0)&&<>
       {(c.function||c.industry||c.seniority)&&<div style={{fontSize:14,color:C.grayL,margin:'6px 0 14px'}}>Matching on: <strong>{[c.function,c.industry,c.seniority,c.geo].filter(Boolean).join(' · ')}</strong></div>}
       {matches.map((m,i)=><RecruiterMatchRow key={(m.firm||'')+i} m={m}/>)}
+      {matches.length>0&&<div data-print="hide" style={{display:'flex',gap:8,margin:'2px 0 14px'}}>
+        <Btn small secondary onClick={()=>downloadRecruitersCsv(matches,chosen)}><Download size={12}/>Download CSV</Btn>
+        <Btn small secondary onClick={()=>window.print()}><Printer size={12}/>Print</Btn>
+      </div>}
       {template&&<div style={{margin:'8px 0 4px',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'14px 16px'}}>
         <div style={{fontSize:12,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>Outreach note — edit for each firm<Btn small onClick={()=>onCopy(template)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn></div>
         <div style={{fontSize:15,color:'#2D3748',lineHeight:1.6,whiteSpace:'pre-wrap'}}>{template}</div>
       </div>}
       {busy&&built&&!template&&<div style={{fontSize:14,color:C.gray,margin:'6px 0'}}>Writing your outreach template…</div>}
       {!busy&&matches.length===0&&<div style={{...S.note,background:C.input,border:`1px solid ${C.border}`,color:'#2D3748'}}>We couldn't confirm a specialist for this exact combination from a source we trust. Try the box below with a different focus and we'll look again.</div>}
-      {built&&<RecruitersFindMoreBox busy={busy} onSubmit={onMore}/>}
+      {built&&<div data-print="hide"><RecruitersFindMoreBox busy={busy} onSubmit={onMore}/></div>}
     </>}
   </div>
 }

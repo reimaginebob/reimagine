@@ -150,6 +150,8 @@ A person's name is shown only when it traces to a live, checkable source — the
 
 The card also gives you one outreach note you can adapt for each firm, and an **Add more recruiters to your list** panel that works like Find 10 More: get more contacts, or steer the next set toward a focus. A short note at the top explains the difference between retained and contingency search, so you know what to expect when you reach out.
 
+Once the list is built, **Download CSV** saves it as a spreadsheet (firm, tier, contact and title, specialty, links, source, and any search open now) and **Print** sends the list to your printer or a PDF — the same controls the company list has.
+
 This is opt-in and built when you click it, and it is saved with your Focus Playbook. The list starts short on purpose — specialty search is a narrow world, and a short, accurate list beats a padded one.
 
 ## When you are happy with it
