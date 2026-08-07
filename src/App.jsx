@@ -2756,11 +2756,11 @@ The output surfaces one or two findings the candidate would not have known to lo
   // on companyRead. Shared verbatim across the Focus Playbook (Income Now) and the
   // Opportunity Playbook. Downstream negotiation input, never upstream steering —
   // the no-editorializing rule is the one most likely to drift on later edits.
-  salaryRead:(jobTitle,location)=>`You are producing a compensation read for a specific role and location the candidate is evaluating. This is a downstream negotiation input, never a signal for whether to pursue the direction. Do not editorialize on whether the figure is good, competitive, or worth pursuing.
+  salaryRead:(jobTitle,location,context)=>`You are producing a compensation read for a specific role and location the candidate is evaluating. This is a downstream negotiation input, never a signal for whether to pursue the direction. Do not editorialize on whether the figure is good, competitive, or worth pursuing.
 
 THE ROLE: ${jobTitle||'(unspecified)'}
 THE LOCATION: ${location||'(unspecified)'}
-
+${context&&String(context).trim()?`\nKNOWN CONTEXT FOR THIS SPECIFIC OPPORTUNITY (use it to narrow to the segment that matches — company size, industry, and region move senior-role pay a lot; anchor to this segment rather than reporting a national all-comers range):\n${String(context).trim()}\n`:''}
 ROLE IDENTITY GUARD (load-bearing): if THE ROLE above is blank or not a real job title, output exactly this single line and nothing else: "We could not identify a role to look up. Add a role title first."
 
 DISAMBIGUATE BEFORE SEARCHING: real job titles, especially longer or composite ones, often collide with an unrelated field that happens to share a word (for example, "Organizational Development Director" returns mostly nonprofit fundraising "Director of Development" postings, a different job entirely). Before searching, silently identify the single core function THE ROLE actually represents, in plain terms, and search using that clarified function plus the synonyms a job board would use for it. State your read of the role as the first sentence ONLY when THE ROLE was materially ambiguous or a composite title: "Read as: <plain function>, the closest standard title for this lookup." Skip this sentence entirely when THE ROLE is already a clean, standard job title.
@@ -2769,14 +2769,16 @@ SEARCH AND TRIANGULATE: search at least two to three independent public salary s
 
 CITATION DISCIPLINE (load-bearing, a runtime gate enforces this): every dollar figure MUST carry an adjacent source URL in the same sentence, as plain text, for example "(source: https://...)". Never state a number without its source next to it.
 
-WHEN SOURCES DISAGREE: public salary sources for the same role and location routinely disagree, sometimes by a wide margin. Do not average them into one falsely precise number. Name the actual range across sources plainly, for example "Public sources range from $X (BuiltIn) to $Y (Salary.com) for this role in this market." A wide, honestly reported spread is more useful than a single confident-sounding number that hides real disagreement.
+SCREEN FOR RELEVANCE BEFORE YOU REPORT A RANGE (load-bearing): a salary site returning a number under this title does not make it a real data point for this role. A figure that is implausible for the role's actual seniority is almost always a title-match failure — the source has aggregated a different, mislabeled population (for example, a site reporting sub-six-figure pay for a C-suite chief officer is capturing HR managers or directors, not chief officers). First fix the role's true seniority tier. Then set aside any source whose central figure is implausible for that tier, and build the range from the sources that actually match the role. This is different from legitimate variation: real pay genuinely moves with company size, industry, and equity, and that spread is worth reporting — but a number that reflects a mismatched role is noise, not variation, and does not belong in the range.
+
+WHEN RELEVANT SOURCES STILL DISAGREE: among the sources that match the role, disagreement is real. Do not average them into one falsely precise number. Name the range across the relevant sources plainly, for example "Public sources range from $X (BuiltIn) to $Y (Salary.com) for this role in this market." If you set a source aside as a title-match mismatch, say so in half a sentence and why, for example "one source reporting near $100k reflects manager-level postings mislabeled under this title, so it is set aside." A tight range across relevant sources beats a wide one padded with mismatched roles.
 
 FABRICATION GUARD:
 - Never state a figure you cannot trace to a specific source found in this search.
 - Never pair "typically" or "usually" with a number that has no adjacent citation.
 - If genuinely no usable public compensation data surfaces after a real search, say so directly and stop: "Public salary sources didn't turn up usable data for this specific role and location. Try a broader location or a more common title for this field." Honest absence beats a fabricated range.
 
-OUTPUT STRUCTURE: one bolded headline sentence stating the range and/or typical figure, followed by two to four sentences of supporting prose naming the sources, the role disambiguation (only if applicable), and any real disagreement across sources, each dollar figure cited inline. Target 60-120 words total. No bullet lists, no extra sections, no editorializing on whether the figure is good or bad for this direction.`,
+OUTPUT STRUCTURE: one bolded headline sentence stating the range and/or typical figure across the RELEVANT sources, followed by two to four sentences of supporting prose naming those sources, the role disambiguation (only if applicable), a half-sentence noting any source set aside as a title-match mismatch (only if you set one aside), and any real disagreement among the relevant sources, each dollar figure cited inline. Target 60-120 words total. No bullet lists, no extra sections, no editorializing on whether the figure is good or bad for this direction.`,
 
   // Offer & Negotiation (comp-benchmarking brief 2026-08-07). Opportunity-only.
   // v1 foundation Bob will enhance later. Built ON TOP of a salaryRead already in
@@ -6729,8 +6731,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         setOpSectionErrors(e=>({...e,salaryRead:"We couldn't identify the role from this posting. Paste the full job description text — not just a link — then rebuild the Compensation Read."}))
         return
       }
+      // Known-context block (comp-read outlier/context brief 2026-08-07): on the
+      // Opportunity surface we know the company, often the industry, and the JD —
+      // feed them so the read anchors to the right segment (company size + industry
+      // move senior-role pay a lot) instead of a national all-comers range. Industry
+      // is reused from the About This Company read when built (no extra inferIndustry
+      // call); the JD slice carries size/seniority signal. Focus (door1) passes none.
+      const _company=((rec0&&rec0.company)||'').trim()
+      const _industry=((rec0&&rec0.sections&&rec0.sections.companyRead&&rec0.sections.companyRead.industry)||'').trim()
+      const _jdSlice=jd?jd.slice(0,1200):''
+      const context=[_company&&('Company: '+_company),_industry&&('Industry: '+_industry),_jdSlice&&('From the job posting (read for company size, seniority level, and scope signals): '+_jdSlice)].filter(Boolean).join('\n')
       const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
-      const fn=()=>correctionsBlock(profile.corrections)+P.salaryRead(role,location)+corrTail
+      const fn=()=>correctionsBlock(profile.corrections)+P.salaryRead(role,location,context)+corrTail
       const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:2000},{step:'op-salary-read',onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       setSavedPlaybooks(prev=>prev.map(rec=>{
