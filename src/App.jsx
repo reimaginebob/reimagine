@@ -709,7 +709,13 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
   // panel-interviewer-read (PR 4) reuses the same citation + fabrication gate as
   // Company Read: every claim about a third party needs an inline source or an
   // explicit hedge, and the fabrication-template detector applies too.
-  const isCompanyRead = meta.step === 'op-company-read' || meta.step === 'gtm-company-read' || meta.step === 'panel-interviewer-read'
+  // op-salary-read / door1-salary-read (comp-benchmarking brief 2026-08-07) reuse
+  // the same citation + fabrication gate: every dollar figure needs an adjacent
+  // source URL or the claim regenerates. offer-negotiation is intentionally NOT
+  // here — it restates the candidate's own uncited offer figure, which would
+  // false-trip the numeric-claim detector; its market numbers come pre-cited from
+  // the salary read it is built on.
+  const isCompanyRead = meta.step === 'op-company-read' || meta.step === 'gtm-company-read' || meta.step === 'panel-interviewer-read' || meta.step === 'op-salary-read' || meta.step === 'door1-salary-read'
   if (isCompanyRead) {
     let crResult = await runVoiceAndDimPhases(promptFn)
     for (let crAttempt = 0; crAttempt <= CR_MAX_RETRIES; crAttempt++) {
@@ -2744,6 +2750,66 @@ Each bullet: state the negative signal plainly. Name the source. State the impli
 
 WHAT GOOD LOOKS LIKE:
 The output surfaces one or two findings the candidate would not have known to look for. Industry-specific signal carries weight, not hand-waved or omitted. Watch-outs are stated honestly. Every number, percentage, year reference, and named transition has an adjacent URL. The Glassdoor-reflexive read does not appear here; the candidate already checked Glassdoor before opening Reimagine.`,
+
+  // Compensation Read (comp-benchmarking brief 2026-08-07). Search-based, no API:
+  // reuses the {webSearch:true} Claude call + the citation/fabrication gate proven
+  // on companyRead. Shared verbatim across the Focus Playbook (Income Now) and the
+  // Opportunity Playbook. Downstream negotiation input, never upstream steering —
+  // the no-editorializing rule is the one most likely to drift on later edits.
+  salaryRead:(jobTitle,location)=>`You are producing a compensation read for a specific role and location the candidate is evaluating. This is a downstream negotiation input, never a signal for whether to pursue the direction. Do not editorialize on whether the figure is good, competitive, or worth pursuing.
+
+THE ROLE: ${jobTitle||'(unspecified)'}
+THE LOCATION: ${location||'(unspecified)'}
+
+ROLE IDENTITY GUARD (load-bearing): if THE ROLE above is blank or not a real job title, output exactly this single line and nothing else: "We could not identify a role to look up. Add a role title first."
+
+DISAMBIGUATE BEFORE SEARCHING: real job titles, especially longer or composite ones, often collide with an unrelated field that happens to share a word (for example, "Organizational Development Director" returns mostly nonprofit fundraising "Director of Development" postings, a different job entirely). Before searching, silently identify the single core function THE ROLE actually represents, in plain terms, and search using that clarified function plus the synonyms a job board would use for it. State your read of the role as the first sentence ONLY when THE ROLE was materially ambiguous or a composite title: "Read as: <plain function>, the closest standard title for this lookup." Skip this sentence entirely when THE ROLE is already a clean, standard job title.
+
+SEARCH AND TRIANGULATE: search at least two to three independent public salary sources for this role and location (for example Glassdoor, BuiltIn, Salary.com, PayScale, ZipRecruiter, Levels.fyi for tech-specific roles, LinkedIn Salary, or BLS wage data for the closest standard occupation). Do not rely on a single source.
+
+CITATION DISCIPLINE (load-bearing, a runtime gate enforces this): every dollar figure MUST carry an adjacent source URL in the same sentence, as plain text, for example "(source: https://...)". Never state a number without its source next to it.
+
+WHEN SOURCES DISAGREE: public salary sources for the same role and location routinely disagree, sometimes by a wide margin. Do not average them into one falsely precise number. Name the actual range across sources plainly, for example "Public sources range from $X (BuiltIn) to $Y (Salary.com) for this role in this market." A wide, honestly reported spread is more useful than a single confident-sounding number that hides real disagreement.
+
+FABRICATION GUARD:
+- Never state a figure you cannot trace to a specific source found in this search.
+- Never pair "typically" or "usually" with a number that has no adjacent citation.
+- If genuinely no usable public compensation data surfaces after a real search, say so directly and stop: "Public salary sources didn't turn up usable data for this specific role and location. Try a broader location or a more common title for this field." Honest absence beats a fabricated range.
+
+OUTPUT STRUCTURE: one bolded headline sentence stating the range and/or typical figure, followed by two to four sentences of supporting prose naming the sources, the role disambiguation (only if applicable), and any real disagreement across sources, each dollar figure cited inline. Target 60-120 words total. No bullet lists, no extra sections, no editorializing on whether the figure is good or bad for this direction.`,
+
+  // Offer & Negotiation (comp-benchmarking brief 2026-08-07). Opportunity-only.
+  // v1 foundation Bob will enhance later. Built ON TOP of a salaryRead already in
+  // hand: its only market numbers come from that sourced read (reuse its figures +
+  // URLs), so it is NOT routed through the citation gate — the candidate's own
+  // offer figure has no source and would false-trip it. Only engages once the
+  // candidate is already pursuing/holding an offer, so it stays clear of steering.
+  offerNegotiation:(jobTitle,location,compReadText,offerAmount,foundation)=>`You are producing an Offer & Negotiation module for a candidate who is evaluating or holding an offer for a specific role. This is practical preparation for a compensation conversation the candidate has already decided to have. Never advise on whether to take the role or whether the pay is good enough to pursue; the candidate has already chosen to pursue it.
+
+THE ROLE: ${jobTitle||'(unspecified)'}
+THE LOCATION: ${location||'(unspecified)'}
+${offerAmount&&String(offerAmount).trim()?"THE OFFER ON THE TABLE (the candidate's own figure, provided by them): "+String(offerAmount).trim():'THE OFFER ON THE TABLE: (not provided)'}
+
+THE COMPENSATION READ ALREADY BUILT FOR THIS ROLE (sourced public salary data, with source URLs — this is your only source of market numbers; reuse its figures and their URLs, never introduce a market number that is not already sourced here):
+${compReadText||'(not built)'}
+
+SOURCING RULES (load-bearing):
+- Every market dollar figure you state MUST reuse a figure and its adjacent source URL from the compensation read above. Do not introduce a market number that is not already sourced there.
+- The candidate's own offer figure is theirs; state it plainly, with no citation.
+- Never invent a market number, a percentile, or a benchmark. If the compensation read did not surface a usable range, say so and keep the guidance qualitative.
+
+VOICE RULES (load-bearing):
+- Plain and direct, one operator to another. No AI-coaching register, no comparative standing against unnamed groups, no logic-flip cadence, no typology labels, no sincerity qualifiers.
+- Surface the insight: each part opens with a bolded headline a 7-second scan catches.
+- Practical and specific to this role and market, not generic negotiation platitudes.
+
+OUTPUT STRUCTURE (produce these three parts in order, each with a bolded headline; keep the whole module tight, 150-250 words):
+
+**Where the offer sits.** ${offerAmount&&String(offerAmount).trim()?"Place the candidate's stated offer against the sourced public range plainly (for example, near the lower end, mid-range, or above what public sources report), citing the range with its source URL. State the gap or the headroom in plain terms. Do not tell them whether to accept.":'The candidate has not entered an offer figure yet. In one sentence, invite them to add their number to see where it lands against the sourced range, then give the rest of the guidance against the range itself.'}
+
+**What to ask for, and how.** Name a specific target or range to anchor on, drawn from the compensation read with its source URL, and one plain sentence on how to frame the ask (anchor toward the upper end of the sourced range, tie the number to the scope of the role). Keep it to what the sourced data supports.
+
+**Look beyond base.** Two to three sentences on the parts of the package a base-salary number hides: bonus, equity or long-term incentives, sign-on, benefits, and the reality that public sources report base pay and total compensation very differently. Where the compensation read named a base-versus-total-comp gap with a source, reuse it.`,
 
 }
 // voice-allow-end
@@ -5750,6 +5816,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[opBuildingSlot,setOpBuildingSlot]=useState(null)
   const[opSectionErrors,setOpSectionErrors]=useState({})
   const opSectionReqRef=useRef(0)
+  // Compensation Read (comp-benchmarking brief 2026-08-07). Opportunity persists on
+  // the record (rec.sections.salaryRead / rec.sections.offerNegotiation). The Focus
+  // surface (Income Now) uses a transient per-direction cache — cleared implicitly
+  // by the direction guard (focusSalary.direction===chosen), rebuilt on demand.
+  // offerDrafts holds the per-slot offer figure typed into the Offer & Negotiation
+  // card before building; the figure actually used is persisted on the record.
+  const[focusSalary,setFocusSalary]=useState(null)
+  const[focusSalaryBusy,setFocusSalaryBusy]=useState(false)
+  const[focusSalaryErr,setFocusSalaryErr]=useState(null)
+  const[offerDrafts,setOfferDrafts]=useState({})
   // Interview Panel web research (PR 4): single-flight busy id, per-interviewer
   // error, and the inline edit buffer for a fetched research block.
   const[researchingIvId,setResearchingIvId]=useState(null)
@@ -6626,6 +6702,128 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }finally{
       if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
     }
+  }
+  // Compensation Read — Opportunity surface (comp-benchmarking brief 2026-08-07).
+  // Modeled on generateOpCompanyRead: same opSectionBuilding / opBuildingSlot /
+  // opSectionErrors state, same request-race guard, same webSearch + citation gate
+  // (via step:'op-salary-read'). Inputs are rec.role / rec.location (populated by
+  // inferJdMetadata on JD upload); falls back to a fresh inferJdMetadata when the
+  // record's fields are still empty. Caches to rec.sections.salaryRead.
+  const generateOpSalaryRead=async(correctionText)=>{
+    const slotId=currentSavedSlotIdRef.current
+    if(!slotId||opSectionBuilding)return
+    setOpSectionBuilding('salaryRead');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,salaryRead:null}))
+    const reqId=++opSectionReqRef.current
+    try{
+      const rec0=savedPlaybooks.find(r=>r.id===slotId)
+      const jd=(profile.jd||'').trim()
+      let role=((rec0&&rec0.role)||'').trim()
+      let location=((rec0&&rec0.location)||'').trim()
+      if((!role||!location)&&jd){const meta=await inferJdMetadata(jd);if(!role)role=(meta.role||'').trim();if(!location)location=(meta.location||'').trim()}
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      if(!role){
+        setOpSectionErrors(e=>({...e,salaryRead:"We couldn't identify the role from this posting. Paste the full job description text — not just a link — then rebuild the Compensation Read."}))
+        return
+      }
+      const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
+      const fn=()=>correctionsBlock(profile.corrections)+P.salaryRead(role,location)+corrTail
+      const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:2000},{step:'op-salary-read',onEvent:logVoiceEvent})
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId)return rec
+        const sections={...(rec.sections||{})}
+        sections.salaryRead={...(sections.salaryRead||{}),content:r,builtAt:new Date().toISOString(),role,location}
+        return{...rec,sections,updatedAt:new Date().toISOString()}
+      }))
+      setCurrentRoleSaved(false)
+    }catch(e){
+      if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,salaryRead:e.message||'Generation failed. Try again.'}))
+    }finally{
+      if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
+    }
+  }
+  // Offer & Negotiation — Opportunity surface (comp-benchmarking brief 2026-08-07).
+  // Built on the salaryRead already in hand (gated on it below), so its market
+  // numbers arrive pre-cited; NOT routed through the citation gate because it
+  // restates the candidate's own uncited offer figure. offerDrafts[slotId] carries
+  // the user-typed offer; the used value is persisted on the record. v1 foundation.
+  const generateOpOfferNegotiation=async(correctionText)=>{
+    const slotId=currentSavedSlotIdRef.current
+    if(!slotId||opSectionBuilding)return
+    const rec0=savedPlaybooks.find(r=>r.id===slotId)
+    const compRead=((rec0&&rec0.sections&&rec0.sections.salaryRead&&rec0.sections.salaryRead.content)||'').trim()
+    if(!compRead){setOpSectionErrors(e=>({...e,offerNegotiation:'Build the Compensation Read first — the negotiation guidance is anchored on its sourced range.'}));return}
+    setOpSectionBuilding('offerNegotiation');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,offerNegotiation:null}))
+    const reqId=++opSectionReqRef.current
+    try{
+      const jd=(profile.jd||'').trim()
+      let role=((rec0&&rec0.role)||'').trim()
+      let location=((rec0&&rec0.location)||'').trim()
+      if((!role||!location)&&jd){const meta=await inferJdMetadata(jd);if(!role)role=(meta.role||'').trim();if(!location)location=(meta.location||'').trim()}
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      const offerAmount=((offerDrafts[slotId]!==undefined?offerDrafts[slotId]:((rec0&&rec0.sections&&rec0.sections.offerNegotiation&&rec0.sections.offerNegotiation.offerAmount)||''))||'').trim()
+      const foundation=buildOpProfileSummary()
+      const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
+      const fn=()=>correctionsBlock(profile.corrections)+P.offerNegotiation(role,location,compRead,offerAmount,foundation)+corrTail
+      const r=await callClaudeWithVoiceGate(fn,{maxTokens:1600},{step:'op-offer-negotiation',onEvent:logVoiceEvent})
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId)return rec
+        const sections={...(rec.sections||{})}
+        sections.offerNegotiation={...(sections.offerNegotiation||{}),content:r,builtAt:new Date().toISOString(),offerAmount}
+        return{...rec,sections,updatedAt:new Date().toISOString()}
+      }))
+      setCurrentRoleSaved(false)
+    }catch(e){
+      if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,offerNegotiation:e.message||'Generation failed. Try again.'}))
+    }finally{
+      if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
+    }
+  }
+  // Compensation Read — Focus surface (comp-benchmarking brief 2026-08-07). Lives
+  // inside Income Now. Inputs are the picked direction (chosen) + profile.loc. Uses
+  // a transient per-direction cache guarded by focusSalary.direction===chosen so a
+  // direction switch never shows a stale read. Same webSearch + citation gate as
+  // the Opportunity read (step:'door1-salary-read').
+  const generateDoor1SalaryRead=async(correctionText)=>{
+    if(!(chosen&&chosen.length>0)||focusSalaryBusy)return
+    const loc=profile.loc||{}
+    const location=((loc.city&&loc.city.trim())?loc.city.trim()+(loc.country?', '+loc.country:''):(loc.country||'')).trim()
+    const direction=chosen
+    setFocusSalaryBusy(true);setFocusSalaryErr(null)
+    try{
+      const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
+      const fn=()=>correctionsBlock(profile.corrections)+P.salaryRead(direction,location)+corrTail
+      const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:2000},{step:'door1-salary-read',onEvent:logVoiceEvent})
+      setFocusSalary({direction,location,content:r,builtAt:new Date().toISOString()})
+    }catch(e){
+      setFocusSalaryErr(e.message||'Generation failed. Try again.')
+    }finally{
+      setFocusSalaryBusy(false)
+    }
+  }
+  // Shared Compensation Read card for the Focus surface — rendered both in the
+  // standalone Income Now surface and the in-focus Income Now section so the module
+  // carries it wherever the user meets it. Disclaimer is fixed UI copy (not model
+  // output), consistent with the Opportunity cards.
+  const focusSalaryCard=()=>{
+    if(!(chosen&&chosen.length>0))return null
+    const built=!!(focusSalary&&focusSalary.direction===chosen&&focusSalary.content&&focusSalary.content.trim())
+    return <div style={{marginTop:24,background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+        <div style={{flex:1,minWidth:220}}>
+          <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>Compensation Read</div>
+          <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4}}>A sourced pay range for this direction in your market, triangulated across public salary sites with links to check yourself. A starting point for your own research, not a verdict.</div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          {built&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:14,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
+          <Btn small secondary={built} onClick={()=>generateDoor1SalaryRead()} disabled={focusSalaryBusy}>{focusSalaryBusy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>}</Btn>
+        </div>
+      </div>
+      {focusSalaryErr&&<div style={{marginTop:10}}><ErrBox msg={focusSalaryErr}/></div>}
+      {focusSalaryBusy&&<div style={{marginTop:14}}><Loading msg="Building Compensation Read…" step="salaryRead"/></div>}
+      {built&&<div style={{marginTop:14}}><div style={S.out}><MD text={focusSalary.content}/></div><div style={{marginTop:10,fontSize:13,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Compensation figures come from public salary sources, which routinely disagree and can lag the market. Treat this as a starting range for your own research, not a definitive number — click through to the sources and weigh them against your specific company, level, and total package.</div></div>}
+    </div>
   }
   // Cover Letter (op-cover-letter brief 2026-06-29): sibling of the p7 outreach
   // template, derived from the op Bridge Story + op Resume Refresh + Personal
@@ -7902,7 +8100,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         if(id==='p6'){const rawP6=typeof outputs.p6==='string'?outputs.p6:(outputs.p6?bridgeStoryToProse(outputs.p6):'');const hasCoaching=typeof rawP6==='string'&&rawP6.includes('---COACHING NOTE---');const parts=hasCoaching?rawP6.split('---COACHING NOTE---').map(s=>s.trim()):[rawP6,''];const storyPart=parts[0]||'';const coachingPart=parts[1]||'';return <><OutPanel text={storyPart} onCopy={copy} copied={copied}/>{hasCoaching&&coachingPart&&<div data-print="content" style={{margin:'16px 0 24px',padding:'18px 22px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,fontStyle:'italic',color:C.cream,lineHeight:1.65,fontSize:16}}><MD text={coachingPart}/></div>}{!isDemo&&<RefineBox guard={submitCorrection} sectionId="p6" value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? Tell us what to adjust: the opening, the tone, which part of your background to lead with, or how you want to close." placeholder="e.g. The opening does not feel personal enough… I want to lead with my sustainability work instead… the ending needs to connect more directly to the role…" onRegenerate={v=>refineSec('p6',v)}/>}</>}
         if(id==='p9')return <>{!isDemo&&<CoachingCallout><strong style={{color:'#1A2540'}}>How to use this</strong><p style={{margin:'8px 0 0'}}>This section gives you the vocabulary, frameworks, and thought leaders that signal credibility in this space. Use it to prep for conversations and to find people to follow on LinkedIn.</p></CoachingCallout>}<OutPanel text={outputs.p9} onCopy={copy} copied={copied}/></>
         if(id==='p8')return <>{renderLinkedInRemix(outputs.p8)}{!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your LinkedIn profile. Open LinkedIn in another tab and apply the changes yourself.</div>}</>
-        if(id==='income')return <><div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div><OutPanel text={outputs.income} onCopy={copy} copied={copied}/></>
+        if(id==='income')return <><div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div><OutPanel text={outputs.income} onCopy={copy} copied={copied}/>{focusSalaryCard()}</>
         if(id==='p_res'){
           const resumeJson=outputs.p_res?parseResumeJSON(outputs.p_res):null
           const resumeText=resumeJson?renderResumeText(resumeJson):''
@@ -8223,6 +8421,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
           <RefineBox guard={submitCorrection} sectionId="income" value={feedback.income} onChange={v=>setFb('income',v)} hint="Tell us what to refine here." placeholder="" onRegenerate={v=>refineIncome(v)}/>
         </>}
+        {focusSalaryCard()}
       </div>
     }
     case'complete':{
@@ -8334,8 +8533,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // interviewer) rather than "built". It sits immediately before Interview
       // Prep, the output it feeds.
       const _panelPopulated=(()=>{const p=getOpPanel(_opRec);return !!((p.opportunity_context&&p.opportunity_context.trim())||p.interviewers.length)})()
-      const opRailDone=['p5','p6','p_res','p11','companyRead'].filter(opCardDone).concat(_panelPopulated?['panel']:[])
-      const opSections=[{id:'companyRead',label:'About This Company',num:1},{id:'p5',label:'Where you fit',num:2},{id:'p6',label:'Bridge Story',num:3},{id:'p_res',label:'Resume Refresh',num:4},{id:'p_cover',label:'Cover Letter',num:5},{id:'panel',label:'Interview Team'},{id:'p11',label:'Interview Prep',num:6}]
+      const opRailDone=['p5','p6','p_res','p11','companyRead','salaryRead','offerNegotiation'].filter(opCardDone).concat(_panelPopulated?['panel']:[])
+      const opSections=[{id:'companyRead',label:'About This Company',num:1},{id:'salaryRead',label:'Compensation'},{id:'p5',label:'Where you fit',num:2},{id:'p6',label:'Bridge Story',num:3},{id:'p_res',label:'Resume Refresh',num:4},{id:'p_cover',label:'Cover Letter',num:5},{id:'panel',label:'Interview Team'},{id:'p11',label:'Interview Prep',num:6},{id:'offerNegotiation',label:'Offer & Negotiation'}]
       // cards-only markDone criterion: legacy v1 (outputs.op truthy) OR any v2 card built
       if((outputs.op||_anyOpCardBuilt)&&!done.includes('op'))markDone('op')
       return <div>
@@ -8384,6 +8583,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               return <div style={S.out}><MD text={content}/></div>
             }
             const _cardWrap=(children,id)=><div id={id} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px',marginBottom:14,scrollMarginTop:80}}>{children}</div>
+            // Compensation disclaimer (comp-benchmarking brief 2026-08-07): fixed UI
+            // copy under any comp figure, not model output. Shown once per card.
+            const _compDisclaimer=<div style={{marginTop:10,fontSize:13,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Compensation figures come from public salary sources, which routinely disagree and can lag the market. Treat this as a starting range for your own research, not a definitive number — click through to the sources and weigh them against your specific company, level, and total package.</div>
             const _head=(label,sub,built,onBuild,buildLabel)=><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
               <div style={{flex:1,minWidth:220}}>
                 <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>{label}</div>
@@ -8444,6 +8646,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       Rebuild button already covers the clean-slate regen path. */}
                   {_crBuilt&&!isDemo&&<RefineBox value={feedback.companyRead||''} onChange={v=>setFb('companyRead',v)} hint="Tell us what to refine on this card. Your existing card stays as-is until you submit." onRegenerate={v=>refineOpCard('companyRead',v)} onlyUpdateButton={true}/>}
                 </>,'section-companyRead')
+              })()}
+              {(()=>{
+                // Compensation Read (comp-benchmarking brief 2026-08-07): sourced pay
+                // range for this role + market. Grouped with About This Company —
+                // both are web-search lookup/reference cards, not personalized
+                // synthesis. Feeds the Offer & Negotiation card below.
+                const _srBuilt=!!(_sec.salaryRead&&_sec.salaryRead.content&&_sec.salaryRead.content.trim())
+                const _srBusy=opSectionBuilding==='salaryRead'&&opBuildingSlot===currentSavedSlotIdRef.current
+                return _cardWrap(<>
+                  {_head('Compensation Read','A sourced pay range for this role and market, triangulated across public salary sites with links to check yourself. A starting point for your own research, not a verdict.',_srBuilt,()=>generateOpSalaryRead(),_srBusy?'Building…':_srBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
+                  {opSectionErrors.salaryRead&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.salaryRead}/></div>}
+                  {_srBusy&&<div style={{marginTop:14}}><Loading msg="Building Compensation Read…" step="salaryRead"/></div>}
+                  {_srBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.salaryRead.content}/></div>{_compDisclaimer}</div>}
+                </>,'section-salaryRead')
               })()}
               {_simpleCard('p5','Where you fit, and how to make your case','What this job weights most, your strongest points with the one proof to lead with, the areas they may probe and how to handle them, and a one-line pitch.')}
               {(()=>{const _pfBuilt=!!(_sec.p5&&_sec.p5.content&&_sec.p5.content.trim());return _pfBuilt&&!isDemo?<div style={{marginTop:-4,marginBottom:14}}><Btn small secondary onClick={()=>openCoachWith(`Help me talk through how I fit and how to position myself for ${_rec.title||'this role'}.`)}><MessageCircle size={13}/>Talk it through with My Coach</Btn></div>:null})()}
@@ -8578,6 +8794,30 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 </>,'section-panel')
               })()}
               {_simpleCard('p11','Interview Prep','Ten to twelve questions this role\'s interview cycle is most likely to ask, each with a STAR story drawn from your own background.')}
+              {(()=>{
+                // Offer & Negotiation (comp-benchmarking brief 2026-08-07): last step
+                // of the packet, matching the real timeline (you negotiate after the
+                // interviews). Built on the Compensation Read — soft-blocked with a
+                // pointer when that isn't built yet. The offer field is optional; a
+                // number lets the read place it against the sourced range. v1.
+                const _slot=currentSavedSlotIdRef.current
+                const _onBuilt=!!(_sec.offerNegotiation&&_sec.offerNegotiation.content&&_sec.offerNegotiation.content.trim())
+                const _onBusy=opSectionBuilding==='offerNegotiation'&&opBuildingSlot===_slot
+                const _compBuilt=!!(_sec.salaryRead&&_sec.salaryRead.content&&_sec.salaryRead.content.trim())
+                const _offerVal=offerDrafts[_slot]!==undefined?offerDrafts[_slot]:((_sec.offerNegotiation&&_sec.offerNegotiation.offerAmount)||'')
+                return _cardWrap(<>
+                  {_head('Offer & Negotiation','Where an offer sits against the sourced range, what to ask for, and the parts of the package a base-salary number hides. Built on your Compensation Read.',_onBuilt,()=>generateOpOfferNegotiation(),_onBusy?'Building…':_onBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
+                  {!_compBuilt&&<div style={{marginTop:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:8,padding:'12px 14px',fontSize:15,color:'#1A2540',lineHeight:1.55}}>Build the Compensation Read first — the negotiation guidance is anchored on its sourced range.<div style={{marginTop:8}}><Btn small secondary onClick={()=>scrollToOutput('salaryRead')}>Compensation Read ↑</Btn></div></div>}
+                  <div style={{marginTop:14}}>
+                    <label style={S.label}>Your offer, if you have one <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label>
+                    <input style={{width:'100%',maxWidth:340,background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box',display:'block'}} value={_offerVal} onChange={e=>setOfferDrafts(d=>({...d,[_slot]:e.target.value}))} placeholder="e.g. $150,000 base, or $150k + 15% bonus"/>
+                    <div style={{fontSize:13,color:C.gray,marginTop:6,lineHeight:1.5}}>Add a number to see where it lands against the sourced range. Stays private to your account.</div>
+                  </div>
+                  {opSectionErrors.offerNegotiation&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.offerNegotiation}/></div>}
+                  {_onBusy&&<div style={{marginTop:14}}><Loading msg="Building Offer & Negotiation…" step="offerNegotiation"/></div>}
+                  {_onBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.offerNegotiation.content}/></div>{_compDisclaimer}</div>}
+                </>,'section-offerNegotiation')
+              })()}
               {/* About This Company moved to the top of the cards (item F round 2): it
                   precedes the team/positioning so reading the company can spark the
                   user's own context. See the companyRead card above _simpleCard('p5'). */}
@@ -8615,7 +8855,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               order; each card renders via its print-safe transform. */}
           {opIsV2&&_anyOpCardBuilt&&<div data-print="content" className="pe-print-opportunity" style={{display:'none'}}>
             <div className="pe-print-head"><div style={{fontSize:13,fontWeight:700,letterSpacing:'1px',color:'#C8924A',textTransform:'uppercase'}}>Reimagine · career.club</div><div style={{fontSize:26,fontWeight:700,fontFamily:'Georgia,serif',color:'#1A2540',marginTop:4}}>{(()=>{const t=(profile.jd||'').split('\n').find(l=>l.trim())||'Your Opportunity Playbook';return t.length>80?t.slice(0,80)+'…':t})()}</div></div>
-            {[{id:'companyRead',label:'About This Company'},{id:'p5',label:'The Role'},{id:'p6',label:'Bridge Story'},{id:'p_res',label:'Resume Refresh'},{id:'p_cover',label:'Cover Letter'},{id:'p11',label:'Interview Prep'}].filter(c=>opCardDone(c.id)).map(c=>{
+            {[{id:'companyRead',label:'About This Company'},{id:'salaryRead',label:'Compensation Read'},{id:'p5',label:'The Role'},{id:'p6',label:'Bridge Story'},{id:'p_res',label:'Resume Refresh'},{id:'p_cover',label:'Cover Letter'},{id:'p11',label:'Interview Prep'},{id:'offerNegotiation',label:'Offer & Negotiation'}].filter(c=>opCardDone(c.id)).map(c=>{
               const card=_opSec[c.id]
               let body=null
               if(c.id==='p5')body=<MD text={card.content}/>
@@ -8623,6 +8863,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               else if(c.id==='p_res')body=<pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',margin:0}}>{(()=>{const j=parseResumeJSON(card.content);return j?renderResumeText(j):card.content})()}</pre>
               else if(c.id==='p11')body=<MD text={interviewPrepToProse(card.content)}/>
               else if(c.id==='companyRead')body=<MD text={card.content}/>
+              else if(c.id==='salaryRead')body=<MD text={card.content}/>
+              else if(c.id==='offerNegotiation')body=<MD text={card.content}/>
               else if(c.id==='p_cover')body=<MD text={card.content}/>
               return <section key={c.id} className="pe-print-section">
                 <h2 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>{c.label}</h2>

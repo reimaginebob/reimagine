@@ -60,6 +60,17 @@ export const FEATURE_MAP = [
   { slug: 'industry-background',  reach: 'focus-gated', labelId: 'p9',
     does: "builds fluency in a new sector's language and players" },
 
+  // Compensation benchmarking (comp-benchmarking brief 2026-08-07). These live
+  // inside a surface as cards, not as their own nav step, so they carry an explicit
+  // `label` (no NAV_LABELS join) and a `where` pointer. Compensation Read also
+  // appears in Income Now for a chosen direction; Offer & Negotiation is built on it.
+  { slug: 'compensation-read',    reach: 'opportunity-gated', label: 'Compensation Read',
+    does: 'gives a sourced pay range for a role and market, triangulated across public salary sites and cited so the person can check it themselves',
+    where: 'inside the Opportunity Playbook, and inside Income Now once a direction is picked' },
+  { slug: 'offer-negotiation',    reach: 'opportunity-gated', label: 'Offer & Negotiation',
+    does: 'places an offer against the sourced range, frames what to ask for, and names the parts of a package a base-salary number hides',
+    where: 'inside the Opportunity Playbook, built on the Compensation Read' },
+
   // Community resources — surfaced in prose only (especially on discouragement
   // turns when someone is carrying the search alone). No step. The Corner pointer
   // is always "register at career.club", never an in-app screen.
