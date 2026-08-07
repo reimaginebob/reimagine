@@ -1567,6 +1567,34 @@ async function findRecruiterMatches(criteria){
     return{matches:clean.filter(m=>m.url||m.practiceUrl||m.sourceUrl)}
   }catch(e){return{matches:[]}}
 }
+// RECRUITER_LEADER_LOOKUP_PROMPT: the gap-fill second pass. One focused,
+// firm-scoped web-search call for ONE firm that came back with no confirmed
+// leader — find the CURRENT person who leads its relevant practice and confirm
+// them via a first-party source (firm page OR their own linkedin.com/in/).
+const RECRUITER_LEADER_LOOKUP_PROMPT=(firm,practice,c)=>`Find the CURRENT named leader at ONE executive-search firm of the practice MOST SPECIFIC to a candidate's target. Search the web.
+
+FIRM: ${firm}
+CANDIDATE TARGET: ${c.function||'a senior role'}${c.industry?' in '+c.industry:''}${practice?`\nSTARTING HINT (the firm's practice as first labeled — prefer a MORE SPECIFIC sub-practice if one fits the target better): ${practice}`:''}
+
+Identify the firm's MOST SPECIFIC practice or sector that covers this exact target, then find who CURRENTLY leads it. Firms usually have a narrow sub-practice that fits better than the broad one — for example a "Health Tech" or "Digital Health" practice rather than a broad "Healthcare" practice, or a "Consumer / CPG" practice rather than a broad "Consumer" one. Search those specific names. Firm-scope every query (e.g. site:linkedin.com "${firm}" "<specific practice or title>") so a common-name namesake at a different firm is not mistaken for the right person.
+
+Confirm the person is CURRENT via a FIRST-PARTY source and return that as profileUrl: EITHER (a) the firm's OWN consultant/profile page, or (b) the person's OWN LinkedIn profile (a linkedin.com/in/ URL) whose current employer is ${firm}. Do NOT use third-party org-chart / aggregator sites, listicles, or stale ("since 20XX") listings. If you cannot confirm a current person from a first-party source, return empty fields.
+
+Output JSON only, no preamble:
+{"practice":"<the specific practice you used>","leaderName":"<name or empty>","leaderTitle":"<current title or empty>","profileUrl":"<first-party URL or empty>","confidence":"high|medium|low"}`
+// findRecruiterLeader: run the gap-fill call and parse. Returns normalized leader
+// fields (leaderProfileUrl) + the specific practice it landed on, or null on
+// failure; the caller applies the same recruiterLeaderConfirmed gate before
+// accepting the name.
+async function findRecruiterLeader(firm,practice,c){
+  try{
+    const raw=await callClaude(RECRUITER_LEADER_LOOKUP_PROMPT(firm,practice,c),{webSearch:true,maxTokens:1200,temperature:0.2})
+    const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
+    if(a<0||b<=a)return null
+    const o=JSON.parse(raw.slice(a,b+1))
+    return{practice:(o.practice||'').slice(0,160),leaderName:(o.leaderName||'').slice(0,120),leaderTitle:(o.leaderTitle||'').slice(0,160),leaderProfileUrl:typeof o.profileUrl==='string'?o.profileUrl:'',confidence:o.confidence==='high'||o.confidence==='medium'||o.confidence==='low'?o.confidence:'low'}
+  }catch(e){return null}
+}
 // detectMissingCitations (PR-1 Company Read). Conservative structural detector:
 // flags sentences containing specific factual claims (years, dollar amounts,
 // percentages, named role transitions) that lack an adjacent source URL OR an
@@ -6726,18 +6754,34 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const prevTemplate=(opts.more&&rec0&&rec0.recruiters&&rec0.recruiters.outreachTemplate)||''
       const base={signature:recruitersSignatureFor(criteria),criteria,matches:mergedMatches,outreachTemplate:prevTemplate,builtAt:new Date().toISOString()}
       setSavedPlaybooks(prev=>prev.map(rec=>(rec.id===slotId&&rec.source==='door1')?{...rec,recruiters:base}:rec))
-      // Phase 2 — ONE reusable outreach template (not per match). Generated once;
-      // "find more" keeps the existing template rather than rewriting it.
-      if(!prevTemplate&&mergedMatches.length){
-        const brand=outputs.p3, bridge=outputs.p6, laneLabel=selectedLane?laneLabelFor(selectedLane):''
+      // Phase 2 (concurrent): (a) gap-fill — for each firm with no confirmed name,
+      // one focused firm-scoped lookup for the leader of the MOST SPECIFIC practice
+      // for this target, gated the same way; (b) ONE reusable outreach template.
+      const brand=outputs.p3, bridge=outputs.p6, laneLabel=selectedLane?laneLabelFor(selectedLane):''
+      const GAP_CONCURRENCY=3
+      const gapQueue=mergedMatches.map((m,i)=>({m,i})).filter(x=>!x.m.leaderName&&(!opts.more||x.i>=existing.length))
+      const gapWorker=async()=>{while(gapQueue.length){
+        const {m,i}=gapQueue.shift()
+        const got=await findRecruiterLeader(m.firm,m.practice||'',criteria)
+        if(reqId!==recruitersReqRef.current)return
+        if(got&&got.leaderName&&recruiterLeaderConfirmed({confidence:got.confidence,leaderProfileUrl:got.leaderProfileUrl,url:m.url,practiceUrl:m.practiceUrl,sourceUrl:m.sourceUrl})){
+          setSavedPlaybooks(prev=>prev.map(rec=>{
+            if(rec.id!==slotId||rec.source!=='door1'||!rec.recruiters||!Array.isArray(rec.recruiters.matches))return rec
+            return{...rec,recruiters:{...rec.recruiters,matches:rec.recruiters.matches.map((mm,j)=>j===i?{...mm,practice:got.practice||mm.practice,leaderName:got.leaderName,leaderTitle:got.leaderTitle,leaderProfileUrl:got.leaderProfileUrl}:mm)}}
+          }))
+        }
+      }}
+      const templateTask=async()=>{
+        if(prevTemplate||!mergedMatches.length)return
         let template=''
         try{
           const raw=await callClaude(P.recruiter_outreach_template(pc,brand,bridge,mergedMatches,chosen,laneLabel),{maxTokens:900,temperature:0.5,step:'recruiters'})
           template=(typeof raw==='string'?raw:'').trim()
         }catch(e){template=''}
         if(reqId!==recruitersReqRef.current)return
-        setSavedPlaybooks(prev=>prev.map(rec=>(rec.id===slotId&&rec.source==='door1')?{...rec,recruiters:{...(rec.recruiters||base),outreachTemplate:template}}:rec))
+        setSavedPlaybooks(prev=>prev.map(rec=>(rec.id===slotId&&rec.source==='door1'&&rec.recruiters)?{...rec,recruiters:{...rec.recruiters,outreachTemplate:template}}:rec))
       }
+      await Promise.all([...Array.from({length:Math.min(GAP_CONCURRENCY,gapQueue.length||1)},gapWorker),templateTask()])
     }catch(e){/* leave whatever resolved; the card shows what it has */}
     finally{if(reqId===recruitersReqRef.current)setRecruitersBuilding(false)}
   }
