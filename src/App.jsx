@@ -2942,6 +2942,42 @@ RULES:
 
 OUTPUT: one bolded headline sentence summarizing how the offer lines up overall, then one short line per stated priority as a "- " list, each naming the priority and how the offer measures against it. Keep it tight, 90-160 words. Never state whether to accept or reject.`,
 
+  // Negotiation checklist (offer-checklist 2026-08-08). A print/PDF-ready artifact
+  // for the compensation conversation and a reusable follow-up email. Condenses the
+  // analysis + priorities check + unstated terms the user ALREADY has into checkable
+  // items — consistent with what they read, not a fresh re-derivation. Own offer,
+  // not citation-gated.
+  negotiationChecklist:(jobTitle,offerText,negotiationText,priorityText,blanksText)=>`You are turning a candidate's Offer & Negotiation analysis into a tight, take-to-the-table checklist of talking points for their compensation conversation and any follow-up they send. CONDENSE what is below — do not introduce new asks, numbers, or claims the analysis did not make. Never advise whether to accept; that is their call.
+
+THE ROLE: ${jobTitle||'(unspecified)'}
+
+THE OFFER (the candidate's own terms):
+${offerText||'(not provided)'}
+
+THE OFFER & NEGOTIATION ANALYSIS ALREADY SHOWN TO THEM (the source for the asks and watch-outs — condense from this, stay consistent with it):
+${negotiationText||'(not built)'}
+
+HOW IT READ AGAINST THEIR PRIORITIES (source for what to confirm):
+${priorityText||'(not built)'}
+
+TERMS THE LETTER DID NOT STATE (natural things to confirm):
+${blanksText||'(none flagged)'}
+
+VOICE: plain and direct, one operator to another. No AI-coaching register, no comparative standing against unnamed groups, no logic-flip cadence, no typology labels, no sincerity qualifiers. Evidence, never entitlement.
+
+OUTPUT (markdown). Every item under the first three headers MUST be a "- " bullet, one line each — this prints as a checklist:
+
+## Confirm before you decide
+- The material watch-outs and unstated terms to clarify (an equity hurdle's mechanics, travel expectations, a remote provision, a bonus's payout date and forfeiture, and the like), drawn from the analysis and the unstated terms above.
+
+## Ask for
+- The two or three prioritized asks from the analysis, each on one line: the specific target, then in quotes the one sentence they can say to make it.
+
+## Get in writing
+- The terms worth locking into the written offer (a guaranteed bonus, severance, start date, title and scope, anything agreed verbally).
+
+Keep the whole thing tight — a page they can glance at across the table or paste into a follow-up. No preamble, no closing advice, just the three lists.`,
+
 }
 // voice-allow-end
 
@@ -4405,6 +4441,52 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,san
 .close{border-left:2px solid #C8924A;padding-left:14px;margin-top:6px;page-break-inside:avoid}.close .b{font-size:12px;line-height:1.6;white-space:pre-wrap}
 .foot{margin-top:24px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:9px;color:#94A3B8}</style></head><body><div class="wrap">
 <div class="head"><div><span class="badge">Reimagine by Career Club</span><div class="nm">${name?esc(name)+' · ':''}Personal Brand</div></div><div class="dt">${esc(date)}</div></div>
+${body}
+<div class="foot">Reimagine by Career Club · career.club · ${esc(date)}</div>
+</div></body></html>`
+  const w=window.open('','_blank')
+  if(w){w.document.write(html);w.document.close();setTimeout(()=>{try{w.print()}catch{}},400)}
+}
+
+// Negotiation checklist print/PDF (offer-checklist 2026-08-08). Opens a clean,
+// branded, isolated document in a new window and prints it — the same pattern as
+// the Personal Brand PDF, so it never fights the app's inline styles. The checklist
+// markdown uses "## " headers and "- " bullets; bullets render as printable ☐ items.
+function checklistMdToHtml(md){
+  const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
+  const inline=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+  const lines=String(md||'').split('\n')
+  let html='',inList=false
+  const closeList=()=>{if(inList){html+='</div>';inList=false}}
+  for(const raw of lines){
+    const line=raw.trim()
+    if(!line){closeList();continue}
+    if(/^#{1,3}\s+/.test(line)){closeList();html+=`<h2>${inline(line.replace(/^#{1,3}\s+/,''))}</h2>`;continue}
+    if(/^[-*]\s+/.test(line)){if(!inList){html+='<div class="items">';inList=true}html+=`<div class="item"><span class="box">☐</span><span>${inline(line.replace(/^[-*]\s+/,''))}</span></div>`;continue}
+    closeList();html+=`<p>${inline(line)}</p>`
+  }
+  closeList()
+  return html
+}
+function printNegotiationChecklist(content,jobTitle){
+  const esc=s=>String(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
+  const date=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})
+  const body=checklistMdToHtml(content)
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Negotiation checklist</title><style>
+*{box-sizing:border-box}body{margin:0;font-family:Georgia,'Times New Roman',serif;color:#1A2540;background:#fff}
+.wrap{max-width:720px;margin:0 auto;padding:40px 44px}
+.badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#C8924A}
+.head{border-bottom:2px solid #C8924A;padding-bottom:10px;margin-bottom:20px}
+.head .nm{font-size:20px;font-weight:700;margin-top:6px}.head .dt{font-size:11px;color:#64748B;margin-top:2px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#1A2540;border-bottom:1px solid #E2E5EA;padding-bottom:5px;margin:22px 0 10px}
+.items{display:flex;flex-direction:column;gap:9px}
+.item{display:flex;gap:10px;font-size:13px;line-height:1.5;page-break-inside:avoid}
+.item .box{color:#C8924A;font-size:15px;line-height:1.25}
+p{font-size:13px;line-height:1.6;margin:8px 0}
+.foot{margin-top:26px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:9px;color:#94A3B8}
+@page{size:letter;margin:0.7in}
+</style></head><body><div class="wrap">
+<div class="head"><span class="badge">Reimagine by Career Club</span><div class="nm">Negotiation checklist${jobTitle?' · '+esc(jobTitle):''}</div><div class="dt">${esc(date)}</div></div>
 ${body}
 <div class="foot">Reimagine by Career Club · career.club · ${esc(date)}</div>
 </div></body></html>`
@@ -7047,6 +7129,44 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
     }
   }
+  // Negotiation checklist (offer-checklist 2026-08-08). Condenses the offer, the
+  // negotiation analysis, the priorities check, and the unstated terms into a
+  // print/PDF-ready set of talking points. Requires the analysis (it is the source);
+  // cached on rec.offerStage.checklist (lazy, no schemaVersion bump). Not citation-
+  // gated — it restates the candidate's own asks, no new market numbers.
+  const generateOpNegotiationChecklist=async(correctionText)=>{
+    const slotId=currentSavedSlotIdRef.current
+    if(!slotId||opSectionBuilding)return
+    const rec0=savedPlaybooks.find(r=>r.id===slotId)
+    const _neg=((rec0&&rec0.sections&&rec0.sections.offerNegotiation&&rec0.sections.offerNegotiation.content)||'').trim()
+    if(!_neg){setOpSectionErrors(e=>({...e,checklist:'Build the Offer & Negotiation analysis first — the checklist is built from it.'}));return}
+    setOpSectionBuilding('checklist');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,checklist:null}))
+    const reqId=++opSectionReqRef.current
+    try{
+      const jd=(profile.jd||'').trim()
+      let role=((rec0&&rec0.role)||'').trim()
+      if(!role&&jd){const meta=await inferJdMetadata(jd);role=(meta.role||'').trim()}
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      const _struct=(rec0&&rec0.offerStage&&rec0.offerStage.offer)||null
+      const offerText=offerSummaryFromStruct(_struct)||((offerDrafts[slotId]!==undefined?offerDrafts[slotId]:'')||'').trim()
+      const priorityText=((rec0&&rec0.offerStage&&rec0.offerStage.priorityCheck&&rec0.offerStage.priorityCheck.content)||'').trim()
+      const blanks=_struct?OFFER_JSON_KEYS.filter(k=>!(_struct[k]&&String(_struct[k]).trim())).map(k=>OFFER_FIELD_LABELS[k]).join(', '):''
+      const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
+      const fn=()=>correctionsBlock(profile.corrections)+P.negotiationChecklist(role,offerText,_neg,priorityText,blanks)+corrTail
+      const r=await callClaudeWithVoiceGate(fn,{maxTokens:1400},{step:'op-negotiation-checklist',onEvent:logVoiceEvent})
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId)return rec
+        const os=rec.offerStage||{offer:null,updatedAt:null}
+        return{...rec,offerStage:{...os,checklist:{content:r,builtAt:new Date().toISOString()}},updatedAt:new Date().toISOString()}
+      }))
+      setCurrentRoleSaved(false)
+    }catch(e){
+      if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,checklist:e.message||'Generation failed. Try again.'}))
+    }finally{
+      if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
+    }
+  }
   // Offer-letter parse (offer-letter-parse brief 2026-08-07). Takes an uploaded File
   // or pasted text, extracts the text client-side (extractText handles PDF/docx/txt),
   // runs the privacy-scoped OFFER_PARSE_PROMPT, and stores the structured result on
@@ -9495,6 +9615,32 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       {opSectionErrors.priorityCheck&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.priorityCheck}/></div>}
                       {_pcBusy&&<div style={{marginTop:14}}><Loading msg="Checking against your priorities…" step="priorityCheck"/></div>}
                       {_pcBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_pc.content}/></div></div>}
+                    </div>
+                  })()}
+                  {/* Negotiation checklist (offer-checklist 2026-08-08): a print/PDF-ready
+                      set of talking points condensed from the analysis + priorities. */}
+                  {!isDemo&&(_offerParsed||String(_offerVal||'').trim())&&(()=>{
+                    const _cl=(_rec&&_rec.offerStage&&_rec.offerStage.checklist)||null
+                    const _clBuilt=!!(_cl&&_cl.content&&_cl.content.trim())
+                    const _clBusy=opSectionBuilding==='checklist'&&opBuildingSlot===_slot
+                    return <div style={{marginTop:18,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                        <div style={{flex:1,minWidth:220}}>
+                          <div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>Your talking points</div>
+                          <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginTop:4}}>A tight checklist to take into the conversation or paste into a follow-up — what to confirm, what to ask for (with the words to use), and what to get in writing. Drawn from your analysis and priorities check, and printable.</div>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:10}}>
+                          {_clBuilt&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:14,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
+                          <Btn small secondary={_clBuilt} onClick={()=>generateOpNegotiationChecklist()} disabled={!!opSectionBuilding||!_onBuilt}>{_clBusy?'Building…':_clBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Prepare for the conversation</>}</Btn>
+                        </div>
+                      </div>
+                      {!_onBuilt&&<div style={{marginTop:10,fontSize:13,color:C.gray,lineHeight:1.5}}>Build the Offer & Negotiation analysis above first — your talking points are drawn from it.</div>}
+                      {opSectionErrors.checklist&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.checklist}/></div>}
+                      {_clBusy&&<div style={{marginTop:14}}><Loading msg="Pulling your talking points together…" step="checklist"/></div>}
+                      {_clBuilt&&<div style={{marginTop:14}}>
+                        <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:10}}><Btn small secondary onClick={()=>printNegotiationChecklist(_cl.content,(_rec&&_rec.role)||'')}><Printer size={11}/>Print / Save as PDF</Btn></div>
+                        <div style={S.out}><MD text={_cl.content}/></div>
+                      </div>}
                     </div>
                   })()}
                   {/* Static reference (offer-negotiation-v2 brief 2026-08-07): stable
