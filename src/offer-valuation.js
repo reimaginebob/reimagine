@@ -37,12 +37,29 @@ export function parseMoney(v) {
 // priced here — they are situational ("only if you use care") and belong in a
 // caveat, not the firm number.
 const ADD_LABELS = { retirement: '401(k) match', hsa: 'HSA / FSA', pto: 'PTO value' }
+
+// Employer 401(k) match is usually stated as a PERCENT of base ("3% match") —
+// that is how offers present it and how people think about it — so accept a
+// percentage and convert it to dollars against base, or take a plain dollar
+// figure. A bare percent with no base to apply it to returns null (can't resolve
+// it), which keeps the field honest rather than silently reading "3%" as $3.
+export function matchDollars(value, base) {
+  if (value == null || String(value).trim() === '') return null
+  const s = String(value)
+  if (s.includes('%')) {
+    const m = s.match(/(\d+(?:\.\d+)?)\s*%/)
+    if (!m) return null
+    return base != null ? Math.round(base * parseFloat(m[1]) / 100) : null
+  }
+  return parseMoney(s)
+}
+
 export function monetizeBenefits(offer, benefits) {
   const b = benefits || {}
   const base = parseMoney(offer && offer.base)
   const ptoDays = parseMoney(b.ptoDays)
   const adds = {
-    retirement: parseMoney(b.employerRetirementAnnual),
+    retirement: matchDollars(b.employerRetirementAnnual, base),
     hsa: parseMoney(b.employerHSAAnnual),
     pto: (base != null && ptoDays != null) ? Math.round((base / 260) * ptoDays) : null,
   }

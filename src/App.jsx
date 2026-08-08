@@ -1337,7 +1337,7 @@ const OFFER_FIELD_LABELS={base:'Base salary',bonus:'Bonus',commission:'Commissio
 // as text; these are the clean inputs the monetization formulas (reference doc Part 2)
 // need. Stored on rec.offerStage.benefits (lazy, no schema bump); optional, non-blocking.
 const OFFER_BENEFIT_KEYS=['employeePremiumMonthly','deductible','employerRetirementAnnual','employerHSAAnnual','ptoDays']
-const OFFER_BENEFIT_LABELS={employeePremiumMonthly:'Your health premium ($/month)',deductible:'Annual deductible ($)',employerRetirementAnnual:'Employer 401(k) match ($/yr)',employerHSAAnnual:'Employer HSA / FSA contribution ($/yr)',ptoDays:'Paid time off (days)'}
+const OFFER_BENEFIT_LABELS={employeePremiumMonthly:'Your health premium ($/month)',deductible:'Annual deductible ($)',employerRetirementAnnual:'Employer 401(k) match (% of base or $/yr)',employerHSAAnnual:'Employer HSA / FSA contribution ($/yr)',ptoDays:'Paid time off (days)'}
 // offerSummaryFromStruct: flatten the non-empty parsed fields into one labeled
 // string the Offer & Negotiation prompt can place against the market range. Empty
 // string when nothing is filled in (caller falls back to the free-text offer).
@@ -5962,6 +5962,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // 2026-08-08). Default collapsed: the table is a parse-validation aid ("it's all
   // here if you want to inspect"), not the main event — the negotiation guidance is.
   const[offerTableOpen,setOfferTableOpen]=useState({})
+  // Snapshot of the benefits inputs at the last time the user pressed Calculate on
+  // the benefits panel, per slot (offer-benefits-calc 2026-08-08). The panel shows
+  // its computed net-benefits result only when the current inputs match this
+  // snapshot; a change flips it to "press Calculate to update" — the same explicit
+  // activation the bonus control uses, so filling fields in never reads as "nothing
+  // happened." undefined = not yet calculated.
+  const[benefitsCalced,setBenefitsCalced]=useState({})
   const[showOfferCompare,setShowOfferCompare]=useState(false)
   // Which not-stated offer fields the user has revealed to fill in (per slot). With
   // ~34 possible fields, the readout shows the filled ones as inputs and the rest as
@@ -9263,15 +9270,36 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {/* Benefits intake (offer-benefits-intake brief 2026-08-07, Phase 3a). */}
                   {!isDemo&&(_offerParsed||String(_offerVal||'').trim())&&offerPackageOpen[_slot]&&(()=>{
                     const _ben=(_rec&&_rec.offerStage&&_rec.offerStage.benefits)||{}
+                    const _o=(_rec&&_rec.offerStage&&_rec.offerStage.offer)||{}
+                    const _snap=JSON.stringify(_ben)
+                    const _calced=benefitsCalced[_slot]!==undefined
+                    const _dirty=_calced&&benefitsCalced[_slot]!==_snap
+                    const _anyBen=OFFER_BENEFIT_KEYS.some(k=>_ben[k]&&String(_ben[k]).trim())
+                    const _mv=monetizeBenefits(_o,_ben)
+                    const _tc=totalCompModel(_o,_ben)
+                    const _bm2=n=>n==null?'—':'$'+Math.round(n).toLocaleString()
+                    const _btn2={padding:'7px 16px',borderRadius:6,border:`1.5px solid ${C.gold}`,background:C.gold,color:'#1A2540',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'inherit'}
                     return <div style={{marginTop:14}}>
                       <div style={{fontSize:15,fontWeight:700,color:'#1A2540',marginBottom:2}}>Benefits</div>
-                      <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>The parts of a package that move your real take-home: what you pay for health each month (it comes straight out of your check), weighed against the money that comes back to you — a 401(k) match, an employer HSA, and your PTO. These can swing which offer is the better deal even when the salaries look close. Add whatever numbers you have; anything you skip simply won't be counted.</div>
+                      <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>The parts of a package that move your real take-home: what you pay for health each month (it comes straight out of your check), weighed against the money that comes back to you — a 401(k) match, an employer HSA, and your PTO. These can swing which offer is the better deal even when the salaries look close. Enter each the way your offer states it — a 401(k) match as a percent of base is fine. Add whatever numbers you have; anything you skip simply won't be counted.</div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
                         {OFFER_BENEFIT_KEYS.map(k=><div key={k}>
                           <label style={{fontSize:12,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,display:'block',marginBottom:3}}>{OFFER_BENEFIT_LABELS[k]}</label>
                           <input style={{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_ben[k]||''} onChange={e=>updateOfferBenefit(_slot,k,e.target.value)} placeholder="—"/>
                         </div>)}
                       </div>
+                      {_anyBen&&<div style={{marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                        <button type="button" onClick={()=>setBenefitsCalced(s=>({...s,[_slot]:_snap}))} style={_btn2}>Calculate</button>
+                        {_dirty&&<span style={{color:C.gold,fontWeight:600,fontSize:14}}>press Calculate to update</span>}
+                      </div>}
+                      {_anyBen&&_calced&&!_dirty&&<div style={{marginTop:12}}>
+                        {_mv.net!=null
+                          ?<div style={{fontSize:15,color:'#1A2540'}}>These benefits are worth <strong style={{fontSize:20,fontWeight:800}}>{_bm2(_mv.net)}/yr</strong> to you, net of what you pay for health.
+                            <div style={{fontSize:13,color:C.gray,marginTop:4,lineHeight:1.5}}>{[_mv.adds.retirement!=null&&`401(k) match ${_bm2(_mv.adds.retirement)}`,_mv.adds.hsa!=null&&`HSA ${_bm2(_mv.adds.hsa)}`,_mv.adds.pto!=null&&`PTO value ${_bm2(_mv.adds.pto)}`,_mv.premiumAnnual!=null&&`minus health premium ${_bm2(_mv.premiumAnnual)}`].filter(Boolean).join(' · ')}</div>
+                          </div>
+                          :<div style={{fontSize:14,color:C.gray}}>Add a premium, a 401(k) match, an HSA, or PTO above to price these — a deductible alone doesn't change your take-home.</div>}
+                        {_tc.firstYear!=null&&<div style={{marginTop:8,fontSize:14,color:'#1A2540'}}>With base and bonus, your first-year total comes to about <strong>{_bm2(_tc.firstYear)}</strong> <span style={{color:C.gray,fontWeight:400}}>(equity excluded).</span></div>}
+                      </div>}
                     </div>
                   })()}
                   {/* Model your bonus (offer-comparison Phase 4a 2026-08-07): the user

@@ -1,5 +1,5 @@
 // Unit test for src/offer-valuation.js (parseMoney + monetizeBenefits, net-pay frame).
-import { parseMoney, monetizeBenefits, parseBonus, bonusModel, totalCompModel } from '../src/offer-valuation.js'
+import { parseMoney, monetizeBenefits, parseBonus, bonusModel, totalCompModel, matchDollars } from '../src/offer-valuation.js'
 
 let pass = 0, fail = 0
 const ok = (name, cond) => { if (cond) { pass++ } else { fail++; console.error(`FAIL: ${name}`) } }
@@ -90,6 +90,19 @@ const tcNoBase = totalCompModel({ bonus: '10%' }, {})
 eq('totalComp base unknown -> firstYear null', tcNoBase.firstYear, null)
 eq('totalComp base unknown -> steadyState null', tcNoBase.steadyState, null)
 eq('totalComp base unknown -> no components', tcNoBase.components.length, 0)
+
+// matchDollars — 401(k) match stated as a percent of base (how offers present it)
+eq('matchDollars 3% of 100k = 3000', matchDollars('3%', 100000), 3000)
+eq('matchDollars "3 %" tolerant of space', matchDollars('3 %', 100000), 3000)
+eq('matchDollars 4.5% of 200k = 9000', matchDollars('4.5%', 200000), 9000)
+eq('matchDollars plain dollar passes through', matchDollars('$4,500', 100000), 4500)
+eq('matchDollars percent with no base -> null (not a bogus number)', matchDollars('3%', null), null)
+eq('matchDollars empty -> null', matchDollars('', 100000), null)
+// the bug this fixes: "3%" must NOT read as $3
+ok('matchDollars never reads 3% as $3', matchDollars('3%', 100000) !== 3)
+// monetizeBenefits picks up the percent match against base
+const mPct = monetizeBenefits({ base: '$100,000' }, { employerRetirementAnnual: '3%' })
+eq('monetizeBenefits retirement from 3% of base = 3000', mPct.adds.retirement, 3000)
 
 if (fail > 0) { console.error(`\ntest-monetize-benefits: ${fail} of ${pass + fail} checks failed.`); process.exit(1) }
 console.log(`test-monetize-benefits: OK (${pass} checks passed)`)
