@@ -2865,6 +2865,27 @@ OUTPUT STRUCTURE (produce these three parts in order, each with a bolded headlin
 
 **On total comp, not just base.** One or two sentences tying THIS offer to the full package: if the compensation read named a base-versus-total-comp gap with a source, reuse it; otherwise note in one line that base is only part of the picture and point the reader to the Total Compensation Checklist on this card. Do not enumerate the checklist items here.`,
 
+  // Priorities Check (offerstage-priorities-check brief 2026-08-07). Reads a logged
+  // offer against the five Practical Priorities the person set in Orientation.
+  // Informational, agency-preserving — never a take-it/leave-it verdict. Not
+  // citation-gated (own offer vs own stated priorities).
+  priorityCheck:(offerText,priorities,companyContext)=>`You are checking how a specific job offer lines up against what this candidate said mattered to them, before they saw any offer. This is informational: show how the offer measures against each priority they stated. NEVER advise whether to take or reject the offer — that decision is theirs.
+
+THE OFFER ON THE TABLE:
+${offerText||'(no offer details provided)'}
+
+WHAT THE CANDIDATE SAID MATTERED (their Practical Priorities; address ONLY the ones with a value — skip any marked "(not set)"):
+${priorities}
+${companyContext?'\nABOUT THE COMPANY (use for the deal-breaker, ownership, size, and stability checks):\n'+companyContext+'\n':''}
+RULES:
+- Address ONLY the priorities the candidate actually stated. Do not invent priorities they did not name.
+- Compare plainly. For the compensation floor, weigh the offer's base plus any sign-on or bonus against the floor and say whether it clears it. For commute/remote, compare the offer's location and remote terms against the requirement. For stability vs upside, use the company signal if present. For deal-breakers, check the offer and company against each named deal-breaker and flag any that appears to be hit — as something to confirm, never as a verdict.
+- Lead with any deal-breaker hit or hard conflict (comp under the floor, a remote requirement not met). Then the rest.
+- If a check needs company information that is not provided, say what to confirm rather than guessing.
+- Plain and direct. No AI-coaching register, no comparative standing against unnamed groups, no logic-flip cadence, no typology labels, no sincerity qualifiers.
+
+OUTPUT: one bolded headline sentence summarizing how the offer lines up overall, then one short line per stated priority as a "- " list, each naming the priority and how the offer measures against it. Keep it tight, 90-160 words. Never state whether to accept or reject.`,
+
 }
 // voice-allow-end
 
@@ -6874,6 +6895,41 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
     }
   }
+  // Priorities Check (offerstage-priorities-check brief 2026-08-07). Reads a logged
+  // offer against the five Practical Priorities the person set in Orientation. This
+  // is where compFloor + workReq do their real work — read directly from profile,
+  // never through the exploration prompt path. Not citation-gated. Cached lazily on
+  // rec.offerStage.priorityCheck (no schemaVersion bump).
+  const generateOpPriorityCheck=async(correctionText)=>{
+    const slotId=currentSavedSlotIdRef.current
+    if(!slotId||opSectionBuilding)return
+    const rec0=savedPlaybooks.find(r=>r.id===slotId)
+    const _struct=(rec0&&rec0.offerStage&&rec0.offerStage.offer)||null
+    const offerText=offerSummaryFromStruct(_struct)||((offerDrafts[slotId]!==undefined?offerDrafts[slotId]:((rec0&&rec0.sections&&rec0.sections.offerNegotiation&&rec0.sections.offerNegotiation.offerAmount)||''))||'').trim()
+    if(!offerText){setOpSectionErrors(e=>({...e,priorityCheck:'Add your offer above first — upload the letter or type the numbers — then check it against your priorities.'}));return}
+    const _prio=[['Compensation floor',profile.compFloor],['Commute or remote needs',profile.workReq],['How much benefits weigh',profile.benefitsWeight],['Stability vs upside',profile.riskTolerance],['Hard deal-breakers',profile.dealBreakers]]
+    if(!_prio.some(([,v])=>v&&String(v).trim())){setOpSectionErrors(e=>({...e,priorityCheck:"You haven't set any priorities yet. Add them in the Practical Priorities step of Orientation, then come back."}));return}
+    const priorities=_prio.map(([lbl,v])=>`${lbl}: ${v&&String(v).trim()?String(v).trim():'(not set)'}`).join('\n')
+    setOpSectionBuilding('priorityCheck');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,priorityCheck:null}))
+    const reqId=++opSectionReqRef.current
+    try{
+      const companyContext=((rec0&&rec0.sections&&rec0.sections.companyRead&&rec0.sections.companyRead.content)||'').trim().slice(0,1500)
+      const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
+      const fn=()=>correctionsBlock(profile.corrections)+P.priorityCheck(offerText,priorities,companyContext)+corrTail
+      const r=await callClaudeWithVoiceGate(fn,{maxTokens:1400},{step:'op-priority-check',onEvent:logVoiceEvent})
+      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId)return rec
+        const os=rec.offerStage||{offer:null,updatedAt:null}
+        return{...rec,offerStage:{...os,priorityCheck:{content:r,builtAt:new Date().toISOString()}},updatedAt:new Date().toISOString()}
+      }))
+      setCurrentRoleSaved(false)
+    }catch(e){
+      if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,priorityCheck:e.message||'Generation failed. Try again.'}))
+    }finally{
+      if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
+    }
+  }
   // Offer-letter parse (offer-letter-parse brief 2026-08-07). Takes an uploaded File
   // or pasted text, extracts the text client-side (extractText handles PDF/docx/txt),
   // runs the privacy-scoped OFFER_PARSE_PROMPT, and stores the structured result on
@@ -9022,6 +9078,31 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {opSectionErrors.offerNegotiation&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.offerNegotiation}/></div>}
                   {_onBusy&&<div style={{marginTop:14}}><Loading msg="Building Offer & Negotiation…" step="offerNegotiation"/></div>}
                   {_onBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.offerNegotiation.content}/></div>{_compDisclaimer}</div>}
+                  {/* Priorities Check (offerstage-priorities-check brief 2026-08-07):
+                      how this offer lines up against the person's stated Practical
+                      Priorities. Only shown once an offer exists to check. */}
+                  {!isDemo&&(_offerParsed||String(_offerVal||'').trim())&&(()=>{
+                    const _pc=(_rec&&_rec.offerStage&&_rec.offerStage.priorityCheck)||null
+                    const _pcBuilt=!!(_pc&&_pc.content&&_pc.content.trim())
+                    const _pcBusy=opSectionBuilding==='priorityCheck'&&opBuildingSlot===_slot
+                    const _hasPrio=['compFloor','workReq','benefitsWeight','riskTolerance','dealBreakers'].some(k=>profile[k]&&String(profile[k]).trim())
+                    return <div style={{marginTop:18,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                        <div style={{flex:1,minWidth:220}}>
+                          <div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>Priorities Check</div>
+                          <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginTop:4}}>How this offer lines up with what you said mattered back in Orientation — your comp floor, deal-breakers, remote needs, and the rest. It flags conflicts and anything worth confirming, so you can raise them before you decide. It won't tell you whether to accept; that call is yours.</div>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:10}}>
+                          {_pcBuilt&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:14,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
+                          <Btn small secondary={_pcBuilt} onClick={()=>generateOpPriorityCheck()} disabled={!!opSectionBuilding||!_hasPrio}>{_pcBusy?'Checking…':_pcBuilt?<><RotateCcw size={11}/>Recheck</>:<><Sparkles size={12}/>Check my priorities</>}</Btn>
+                        </div>
+                      </div>
+                      {!_hasPrio&&<div style={{marginTop:10,fontSize:13,color:C.gray,lineHeight:1.5}}>You haven't set any priorities yet. Add them in the <button type="button" onClick={()=>nav('priorities')} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:13,fontFamily:'inherit'}}>Practical Priorities</button> step, then check.</div>}
+                      {opSectionErrors.priorityCheck&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.priorityCheck}/></div>}
+                      {_pcBusy&&<div style={{marginTop:14}}><Loading msg="Checking against your priorities…" step="priorityCheck"/></div>}
+                      {_pcBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_pc.content}/></div></div>}
+                    </div>
+                  })()}
                   {/* Static reference (offer-negotiation-v2 brief 2026-08-07): stable
                       content from the Career Club Corner negotiation sessions, written
                       once, no generation. Always available on this card. */}
