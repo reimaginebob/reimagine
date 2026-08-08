@@ -27,7 +27,7 @@ import SavedPlaybooks from "./components/SavedPlaybooks"
 import PlaybookSectionRail from "./components/PlaybookSectionRail"
 import SpeechBtn, { hasSpeech } from "./components/SpeechBtn"
 import MD, { normalizeItalicUnderscores } from "./components/MD"
-import { parseMoney, monetizeBenefits, bonusModel } from "./offer-valuation"
+import { parseMoney, monetizeBenefits, bonusModel, totalCompModel } from "./offer-valuation"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
 import QuickStart from "./QuickStart"
@@ -2841,6 +2841,8 @@ CITATION DISCIPLINE (load-bearing, a runtime gate enforces this): every dollar f
 
 SCREEN FOR RELEVANCE BEFORE YOU REPORT A RANGE (load-bearing): a salary site returning a number under this title does not make it a real data point for this role. A figure that is implausible for the role's actual seniority is almost always a title-match failure — the source has aggregated a different, mislabeled population (for example, a site reporting sub-six-figure pay for a C-suite chief officer is capturing HR managers or directors, not chief officers). First fix the role's true seniority tier. Then set aside any source whose central figure is implausible for that tier, and build the range from the sources that actually match the role. This is different from legitimate variation: real pay genuinely moves with company size, industry, and equity, and that spread is worth reporting — but a number that reflects a mismatched role is noise, not variation, and does not belong in the range.
 
+SENIOR / OFFICER TIER (load-bearing when THE ROLE is a C-suite officer, executive, or other senior leadership title): generic salary aggregators (ZipRecruiter, PayScale, and the like) systematically UNDER-capture officer pay at a real organization, because they pool the title with far-smaller employers and with sub-officer roles that merely share a word. This is not an outlier to set aside — it is the whole generic segment sitting at the wrong tier. For a senior or officer role at a specific, sizable, or prominent organization, go instead to the sources that actually price officers: for a NONPROFIT, IRS Form 990 officer-compensation filings via ProPublica Nonprofit Explorer for THIS organization and for comparable organizations by budget and headcount; for a PUBLIC company, DEF 14A / SEC proxy statements naming officer pay at the company and its peers; and recognized executive-compensation surveys for the sector where available. Anchor the range on that peer set and cite each figure inline. If only generic-aggregator data surfaces, report it but label it a floor for this seniority, not the market rate.
+
 WHEN RELEVANT SOURCES STILL DISAGREE: among the sources that match the role, disagreement is real. Do not average them into one falsely precise number. Name the range across the relevant sources plainly, for example "Public sources range from $X (BuiltIn) to $Y (Salary.com) for this role in this market." If you set a source aside as a title-match mismatch, say so in half a sentence and why, for example "one source reporting near $100k reflects manager-level postings mislabeled under this title, so it is set aside." A tight range across relevant sources beats a wide one padded with mismatched roles.
 
 FABRICATION GUARD:
@@ -2856,39 +2858,48 @@ OUTPUT STRUCTURE: when a company basis was established, open with one short plai
   // URLs), so it is NOT routed through the citation gate — the candidate's own
   // offer figure has no source and would false-trip it. Only engages once the
   // candidate is already pursuing/holding an offer, so it stays clear of steering.
-  offerNegotiation:(jobTitle,location,compReadText,offerAmount,foundation,proofPoints)=>`You are producing an Offer & Negotiation module for a candidate who is evaluating or holding an offer for a specific role. This is practical preparation for a compensation conversation the candidate has already decided to have. Never advise on whether to take the role or whether the pay is good enough to pursue; the candidate has already chosen to pursue it.
+  offerNegotiation:(jobTitle,location,compReadText,offerAmount,foundation,proofPoints,companyReadText,totalCompText)=>`You are a seasoned executive compensation advisor preparing a candidate for a compensation conversation they have already decided to have. Produce a sharp, specific Offer & Negotiation analysis. Never advise whether to take the role or whether the pay is good enough; that choice is already made.
 
 THE ROLE: ${jobTitle||'(unspecified)'}
 THE LOCATION: ${location||'(unspecified)'}
-${offerAmount&&String(offerAmount).trim()?"THE OFFER ON THE TABLE (the candidate's own figure, provided by them): "+String(offerAmount).trim():'THE OFFER ON THE TABLE: (not provided)'}
 
-THE COMPENSATION READ ALREADY BUILT FOR THIS ROLE (sourced public salary data, with source URLs — this is your only source of market numbers; reuse its figures and their URLs, never introduce a market number that is not already sourced here):
+THE OFFER ON THE TABLE (the candidate's own figures, parsed from their letter — every field they gave; a blank field is a term the letter did not mention, and is often the best thing to ask about):
+${offerAmount&&String(offerAmount).trim()?String(offerAmount).trim():'(not provided — invite the candidate to add their offer to unlock the full analysis, then work from the market read and role scope alone)'}
+
+COMPUTED TOTAL COMPENSATION (arithmetic on the candidate's OWN figures above — not market data, needs no citation; use these numbers verbatim when you quantify the package):
+${totalCompText||'(base not provided, so no total was computed — keep the package discussion qualitative)'}
+
+THE COMPENSATION READ ALREADY BUILT FOR THIS ROLE (sourced public salary data, with source URLs):
 ${compReadText||'(not built)'}
 
-THE CANDIDATE'S OWN PROOF (accomplishments and story they already wrote — use ONE concrete item to build the ROI case; never invent, never restate the whole thing):
-${proofPoints||'(none provided — anchor the ask on the range and role scope alone)'}
+WHAT WE KNOW ABOUT THE ORGANIZATION (from the About This Company read; MAY include this employer's or peer organizations' ACTUAL executive compensation from public filings — IRS Form 990 for nonprofits, DEF 14A proxy statements for public companies — each with a source URL):
+${companyReadText||'(not built)'}
+
+THE CANDIDATE'S OWN PROOF (accomplishments and story they already wrote — draw on concrete items to build the ROI case; never invent, never restate wholesale):
+${proofPoints||'(none provided — anchor the asks on role scope and the market read alone)'}
 
 SOURCING RULES (load-bearing):
-- Every market dollar figure you state MUST reuse a figure and its adjacent source URL from the compensation read above. Do not introduce a market number that is not already sourced there.
-- The candidate's own offer figure is theirs; state it plainly, with no citation.
-- Never invent a market number, a percentile, or a benchmark. If the compensation read did not surface a usable range, say so and keep the guidance qualitative.
+- Every MARKET dollar figure MUST reuse a figure and its adjacent source URL from the Compensation Read or the organization read above. Never introduce a market number, percentile, or benchmark that is not already sourced in one of them.
+- The candidate's own offer figures and the computed totals are theirs; state them plainly, no citation.
+- If neither read surfaced a usable benchmark for a role at this seniority, say so and keep that part qualitative — do not fabricate one.
+
+COMPENSATION KNOWLEDGE TO APPLY (reason WITH this; never lecture the reader about it):
+- For a SENIOR or C-SUITE / OFFICER role, generic salary-aggregator ranges under-capture the real peer set. Treat such a range as a floor. If the organization read surfaced actual officer compensation (990 or proxy figures for this employer or its peers), anchor the read on THAT, cited — it is the relevant comparison for a senior role.
+- The high-leverage terms at senior levels are rarely base alone: severance and change-in-control protection; equity type, vesting schedule, and acceleration on a change of control; a guaranteed first-year bonus put IN WRITING; deferred compensation (for a nonprofit, a 457(b) or SERP; for a public company, RSU vesting and clawback terms); indemnification and D&O coverage; a defined early-review or raise timeline; and title, reporting line, and scope.
+- Read the offer against its ORGANIZATION TYPE. Equity at a traditional nonprofit is unusual — if it appears, name that and turn it into a question (real equity, phantom/appreciation units, or a for-profit affiliate?). A guaranteed bonus is a strength to lock in writing. Match the deferred-comp and protection levers to the org type.
 
 VOICE RULES (load-bearing):
 - Plain and direct, one operator to another. No AI-coaching register, no comparative standing against unnamed groups, no logic-flip cadence, no typology labels, no sincerity qualifiers.
-- Surface the insight: each part opens with a bolded headline a 7-second scan catches.
-- Practical and specific to this role and market, not generic negotiation platitudes.
-- Evidence, never entitlement. Never "you deserve more" or "you are worth more" as an assertion. The case is always: here is what this person did, here is what it returns, here is the number that reflects it.
+- Each part opens with a bolded headline a 7-second scan catches. Specific to THIS offer and market, never generic negotiation platitudes.
+- Evidence, never entitlement. Never "you deserve more" as an assertion. The case is always: here is what this person did, here is what it returns, here is the term that reflects it.
 
-OUTPUT STRUCTURE (produce these three parts in order, each with a bolded headline; keep the whole module tight, 150-250 words):
+OUTPUT STRUCTURE (three parts, each a bolded headline; be thorough but tight — aim 350-500 words):
 
-**Where the offer sits.** ${offerAmount&&String(offerAmount).trim()?"Place the candidate's stated offer against the sourced public range plainly (near the lower end, mid-range, or above what public sources report), citing the range with its source URL. State the gap or the headroom honestly. LOAD-BEARING: if the offer sits at or above the top of the sourced range, say so plainly AND note that the public figures most likely do not capture a role at this seniority or an organization at this scale — never imply the offer is inflated, too generous, or that they should expect less than they were offered. Do not tell them whether to accept.":'The candidate has not entered an offer figure yet. In one sentence, invite them to add their number to see where it lands against the sourced range, then give the rest of the guidance against the range itself.'}
+**Where the offer sits.** ${offerAmount&&String(offerAmount).trim()?'Place the base against the BEST available benchmark. If the organization read surfaced real officer compensation for this employer or its peers, anchor there and cite it — that is the relevant peer set for a senior role. Otherwise place the base against the sourced public range, citing it with its URL. If the base sits at or above the top of a GENERIC range, do not imply it is inflated or that they should expect less — explain that generic aggregator data does not capture a role at this seniority or an organization at this scale, and reach for the officer-comp figures if either read provided any. State the gap or headroom honestly. Do not tell them whether to accept.':'The candidate has not entered an offer yet — in one sentence invite them to add it, then continue against the market read.'}
 
-**What to ask for, and how — as an evidence case.** This turns entirely on where the offer already sits, and you must NEVER propose a target below the candidate's current offer — anchoring at a number lower than what they already hold is nonsensical.
-- If the offer is BELOW or WITHIN the sourced range: anchor the ask toward the upper end of the range, cite it, and build the case from ONE concrete accomplishment in the proof above (the ROI case — the return the work produced, tied to the number).
-- If the offer already MEETS OR EXCEEDS the top of the sourced range: do NOT anchor on the range — it is below the offer, so asking for it would be asking for less. Say the base is already strong against public data, then, only if the candidate wants to push, point the ask at the levers that still have room — sign-on, equity, title and scope, a defined early-review or raise timeline, benefits, or the total package — each tied to the candidate's proof. Do not manufacture a base-salary number here.
-Frame is always evidence, never entitlement. If no proof was provided, make the same structural case without it.
+**What to ask for — the levers with room.** Work element-by-element through the parsed offer. Name what is already strong; then name the TWO OR THREE highest-leverage terms this specific offer leaves open, thin, or unusual — drawing on the compensation knowledge above and the organization type. For each, give: the specific target, the ROI case built from ONE concrete accomplishment in the proof, and the exact sentence the candidate can say to make the ask. NEVER propose a base below the current offer; if the base already exceeds the market read, point every ask at non-base levers. Turn anything unusual for this organization type into a concrete question to raise. Prefer a short bulleted list of the prioritized asks over dense prose.
 
-**On total comp, not just base.** One or two sentences tying THIS offer to the full package: if the compensation read named a base-versus-total-comp gap with a source, reuse it; otherwise note in one line that base is only part of the picture and point the reader to the Total Compensation Checklist on this card. Do not enumerate the checklist items here.`,
+**The package, quantified.** Use the COMPUTED TOTAL COMPENSATION figures to state the real first-year and steady-state numbers plainly — the actual totals, never "significantly higher." Name the one-time items (sign-on, relocation) as year-one-only so the recurring picture is honest. State that equity is held OUT of these totals as a separate, speculative line to weigh with a Coach. Close by pointing to the Total Compensation Checklist on this card for anything not yet priced.`,
 
   // Priorities Check (offerstage-priorities-check brief 2026-08-07). Reads a logged
   // offer against the five Practical Priorities the person set in Orientation.
@@ -5949,6 +5960,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // Whether the "View job description" modal is open (jd-retrieve 2026-08-07).
   // The JD is already stored per record (rec.jd); this is a read-only retrieval.
   const[jdModalOpen,setJdModalOpen]=useState(false)
+  // Whether the parsed-offer table is expanded, per slot (offer-table-twisty
+  // 2026-08-08). Default collapsed: the table is a parse-validation aid ("it's all
+  // here if you want to inspect"), not the main event — the negotiation guidance is.
+  const[offerTableOpen,setOfferTableOpen]=useState({})
   const[showOfferCompare,setShowOfferCompare]=useState(false)
   // Which not-stated offer fields the user has revealed to fill in (per slot). With
   // ~34 possible fields, the readout shows the filled ones as inputs and the rest as
@@ -6915,9 +6930,25 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const _star=((rec0&&rec0.sections&&rec0.sections.p11&&rec0.sections.p11.content)||'').trim()
       const _starProse=_star?(interviewPrepToProse(_star)||_star).trim():''
       const proofPoints=[_bridge&&('BRIDGE STORY:\n'+_bridge),_starProse&&('ACCOMPLISHMENTS FROM INTERVIEW PREP:\n'+_starProse)].filter(Boolean).join('\n\n').slice(0,1500)
+      // The About This Company read is passed in so the negotiation can anchor a
+      // senior-role benchmark on the employer's / peers' ACTUAL officer comp when
+      // the read surfaced it (990 for nonprofits, DEF 14A for public cos) instead
+      // of a generic aggregator range (offer-negotiation-executive 2026-08-08).
+      const companyReadText=((rec0&&rec0.sections&&rec0.sections.companyRead&&rec0.sections.companyRead.content)||'').trim().slice(0,2000)
+      // Total comp is arithmetic on the candidate's OWN figures (not market), so
+      // the section can state real first-year / steady-state numbers instead of
+      // punting to the checklist. Equity stays excluded (speculative).
+      const _tc=totalCompModel(_struct||{},(rec0&&rec0.offerStage&&rec0.offerStage.benefits)||{})
+      const _tcMoney=n=>n==null?null:'$'+Math.round(n).toLocaleString()
+      const totalCompText=_tc.firstYear!=null?[
+        `First-year total (cash + benefits, equity excluded): ${_tcMoney(_tc.firstYear)}`,
+        `Steady-state annual (base + modeled bonus + benefits, equity excluded): ${_tcMoney(_tc.steadyState)}`,
+        'Components — '+_tc.components.map(c=>`${c.label} ${_tcMoney(c.amount)} (${c.cadence})`).join('; '),
+        _tc.equityText?`Equity held OUT of these totals (speculative, weigh with Coach): ${_tc.equityText}`:''
+      ].filter(Boolean).join('\n'):''
       const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
-      const fn=()=>correctionsBlock(profile.corrections)+P.offerNegotiation(role,location,compRead,offerAmount,foundation,proofPoints)+corrTail
-      const r=await callClaudeWithVoiceGate(fn,{maxTokens:1600},{step:'op-offer-negotiation',onEvent:logVoiceEvent})
+      const fn=()=>correctionsBlock(profile.corrections)+P.offerNegotiation(role,location,compRead,offerAmount,foundation,proofPoints,companyReadText,totalCompText)+corrTail
+      const r=await callClaudeWithVoiceGate(fn,{maxTokens:2400},{step:'op-offer-negotiation',onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       setSavedPlaybooks(prev=>prev.map(rec=>{
         if(rec.id!==slotId)return rec
@@ -9185,11 +9216,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     {offerParseError&&<div style={{marginTop:10}}><ErrBox msg={offerParseError}/></div>}
                   </div>}
                   {!isDemo&&_offerParsed&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:4}}>
-                      <div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>What we found in your offer</div>
-                      <Btn small secondary onClick={()=>setSavedPlaybooks(prev=>prev.map(rec=>rec.id!==_slot?rec:{...rec,offerStage:{...(rec.offerStage||{}),offer:null},updatedAt:new Date().toISOString()}))}><X size={12}/>Clear</Btn>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+                      <button type="button" onClick={()=>setOfferTableOpen(o=>({...o,[_slot]:!o[_slot]}))} aria-expanded={!!offerTableOpen[_slot]} style={{display:'flex',alignItems:'center',gap:8,background:'transparent',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                        {offerTableOpen[_slot]?<ChevronUp size={16} color="#1A2540"/>:<ChevronDown size={16} color="#1A2540"/>}
+                        <span style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>What we found in your offer</span>
+                      </button>
+                      {offerTableOpen[_slot]&&<Btn small secondary onClick={()=>setSavedPlaybooks(prev=>prev.map(rec=>rec.id!==_slot?rec:{...rec,offerStage:{...(rec.offerStage||{}),offer:null},updatedAt:new Date().toISOString()}))}><X size={12}/>Clear</Btn>}
                     </div>
-                    <div style={{fontSize:13,color:C.gray,marginBottom:10,lineHeight:1.5}}>Fix anything we misread. The terms the letter didn't mention are listed below as things to ask about — click one to add it. This feeds the guidance above, and stays private to your account.</div>
+                    {!offerTableOpen[_slot]&&<div style={{fontSize:13,color:C.gray,marginTop:4,lineHeight:1.5}}>The full parsed offer is saved — it's all here if you want to inspect or correct the terms.</div>}
+                    {offerTableOpen[_slot]&&<><div style={{fontSize:13,color:C.gray,margin:'8px 0 10px',lineHeight:1.5}}>Fix anything we misread. The terms the letter didn't mention are listed below as things to ask about — click one to add it. This feeds the guidance above, and stays private to your account.</div>
                     {(()=>{
                       const _revealed=revealedOfferFields[_slot]||[]
                       const _shown=OFFER_JSON_KEYS.filter(k=>(_offer[k]&&String(_offer[k]).trim())||_revealed.includes(k))
@@ -9209,7 +9244,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         </div>}
                       </>
                     })()}
-                    {_compBuilt&&<div style={{marginTop:6,fontSize:13,color:C.gray,lineHeight:1.5}}>Edited something here? Use <strong>Build</strong> / <strong>Rebuild</strong> at the top of this card to refresh the negotiation guidance from these numbers.</div>}
+                    {_compBuilt&&<div style={{marginTop:6,fontSize:13,color:C.gray,lineHeight:1.5}}>Edited something here? Use <strong>Build</strong> / <strong>Rebuild</strong> at the top of this card to refresh the negotiation guidance from these numbers.</div>}</>}
                   </div>}
                   {opSectionErrors.offerNegotiation&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.offerNegotiation}/></div>}
                   {_onBusy&&<div style={{marginTop:14}}><Loading msg="Building Offer & Negotiation…" step="offerNegotiation"/></div>}
