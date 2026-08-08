@@ -27,7 +27,7 @@ import SavedPlaybooks from "./components/SavedPlaybooks"
 import PlaybookSectionRail from "./components/PlaybookSectionRail"
 import SpeechBtn, { hasSpeech } from "./components/SpeechBtn"
 import MD, { normalizeItalicUnderscores } from "./components/MD"
-import { parseMoney, monetizeBenefits } from "./offer-valuation"
+import { parseMoney, monetizeBenefits, bonusModel } from "./offer-valuation"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
 import QuickStart from "./QuickStart"
@@ -6997,10 +6997,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const data=offers.map(r=>{
       const o=r.offerStage.offer||{}
       const ben=monetizeBenefits(o,r.offerStage.benefits||{})
+      const bm=bonusModel(o,r.offerStage.benefits||{})
       const pcRaw=(r.offerStage.priorityCheck&&r.offerStage.priorityCheck.content)||''
       const pcM=pcRaw.match(/\*\*(.+?)\*\*/)
       const pcHead=pcM?pcM[1]:(pcRaw.split('\n').find(l=>l.trim())||'').replace(/[*#>-]/g,'').trim()
-      return {r,o,base:parseMoney(o.base),ben,pcHead}
+      return {r,o,base:parseMoney(o.base),ben,bm,pcHead}
     })
     const cell={padding:'10px 14px',borderBottom:`1px solid ${C.border}`,fontSize:15,color:'#1A2540',verticalAlign:'top',minWidth:180}
     const labelCell={...cell,fontWeight:700,color:C.grayL,fontSize:13,textTransform:'uppercase',letterSpacing:0.5,minWidth:150,background:C.bg}
@@ -7017,7 +7018,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {strRow('Base salary',d=>d.base!=null?money(d.base):(d.o.base||null))}
             <tr><td style={labelCell}>Benefits, net of what you pay</td>{data.map(d=><td key={d.r.id} style={cell}>{d.ben.net!=null?<><strong style={{color:d.ben.net<0?C.err:'#1A2540'}}>{d.ben.net<0?'−'+money(-d.ben.net):'+'+money(d.ben.net)}/yr</strong><div style={{fontSize:12,color:C.gray,marginTop:3}}>{d.ben.addTotal>0?'+'+money(d.ben.addTotal)+' match/HSA/PTO':''}{d.ben.premiumAnnual?(d.ben.addTotal>0?', ':'')+'−'+money(d.ben.premiumAnnual)+' premium':''}{d.ben.missing.length?<div style={{marginTop:2}}>Not counted: {d.ben.missing.join(', ')}</div>:null}</div></>:<span style={{color:C.gray}}>Not priced in — add numbers under “Price your benefits” on this offer</span>}</td>)}</tr>
             <tr style={{background:`${C.gold}0C`}}><td style={{...labelCell,background:`${C.gold}14`}}>Cash + benefits you can bank on</td>{data.map(d=><td key={d.r.id} style={{...cell,fontWeight:700}}>{(d.base!=null&&d.ben.net!=null)?money(d.base+d.ben.net):(d.base!=null?money(d.base):<span style={{color:C.gray,fontWeight:400}}>—</span>)}</td>)}</tr>
-            {strRow('Bonus',d=>d.o.bonus)}
+            <tr><td style={labelCell}>Bonus (modeled)</td>{data.map(d=><td key={d.r.id} style={cell}>{d.bm.framing&&d.bm.modeled!=null?<><span style={{color:'#5A6577'}}>{money(d.bm.modeled)}</span><div style={{fontSize:12,color:C.gray,marginTop:2}}>{d.bm.framing==='pct'?`at ${d.bm.attainment}% attainment (target ${money(d.bm.targetValue)})`:'your expected'}</div></>:(d.o.bonus||<span style={{color:C.gray}}>—</span>)}</td>)}</tr>
+            <tr><td style={{...labelCell,fontSize:12}}>With bonus, if you hit it</td>{data.map(d=><td key={d.r.id} style={{...cell,color:'#5A6577'}}>{(d.base!=null&&d.ben.net!=null&&d.bm.modeled!=null)?money(d.base+d.ben.net+d.bm.modeled):<span style={{color:C.gray}}>—</span>}</td>)}</tr>
             {strRow('Sign-on',d=>d.o.signon)}
             {strRow('Equity',d=>d.o.equity)}
             {strRow('Paid time off',d=>d.o.pto)}
@@ -9165,6 +9167,30 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         </div>
                         <div style={{marginTop:8}}><button type="button" onClick={()=>setOfferBenefitsOpen(o=>({...o,[_slot]:false}))} style={{background:'none',border:'none',color:C.gray,fontWeight:600,cursor:'pointer',padding:0,fontSize:14,fontFamily:'inherit'}}>Done</button></div>
                       </>}
+                    </div>
+                  })()}
+                  {/* Model your bonus (offer-comparison Phase 4a 2026-08-07): the user
+                      drives the number — attainment % for a percent-of-base bonus, or an
+                      expected dollar for a dollar/commission bonus — and sees the payout.
+                      Kept separate from the firm "you can bank on" figure. */}
+                  {!isDemo&&(_offerParsed||String(_offerVal||'').trim())&&(()=>{
+                    const _o=(_rec&&_rec.offerStage&&_rec.offerStage.offer)||{}
+                    const _ben=(_rec&&_rec.offerStage&&_rec.offerStage.benefits)||{}
+                    const _bm=bonusModel(_o,_ben)
+                    if(_bm.framing==null)return null
+                    const _m=n=>n==null?'—':'$'+Math.round(n).toLocaleString()
+                    const _binp={width:90,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}
+                    const _base=parseMoney(_o.base),_net=monetizeBenefits(_o,_ben).net
+                    return <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                      <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:2}}>Model your bonus</div>
+                      {_bm.framing==='pct'?<>
+                        <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>Your target is {_bm.targetPct}% of base{_bm.targetValue!=null?` (${_m(_bm.targetValue)} at 100%)`:''}. Target is the optimistic case — teams often land lower, so it's worth asking your hiring manager what this one actually hits. Change the number to see the payout at any level.</div>
+                        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:15,color:'#1A2540'}}>At <input style={_binp} value={_ben.bonusAttainment!==undefined?_ben.bonusAttainment:'100'} onChange={e=>updateOfferBenefit(_slot,'bonusAttainment',e.target.value)}/> % attainment, that's <strong>{_m(_bm.modeled)}</strong>.</div>
+                      </>:<>
+                        <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>{_bm.targetValue!=null?`Your stated target is ${_m(_bm.targetValue)}.`:'This reads as a variable or commission bonus, which base pay can\'t predict.'} Enter what you realistically expect to see.</div>
+                        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:15,color:'#1A2540'}}>Expected bonus $ <input style={{..._binp,width:120}} value={_ben.bonusExpected!==undefined?_ben.bonusExpected:(_bm.targetValue!=null?String(_bm.targetValue):'')} onChange={e=>updateOfferBenefit(_slot,'bonusExpected',e.target.value)} placeholder="e.g. 6000"/></div>
+                      </>}
+                      {_bm.modeled!=null&&_base!=null&&<div style={{marginTop:12,fontSize:14,color:'#1A2540'}}>With this bonus, cash + benefits + bonus ≈ <strong>{_m(_base+(_net||0)+_bm.modeled)}</strong> <span style={{color:C.gray,fontWeight:400}}>— if you hit it. The firmer number to lean on is the {_m(_base+(_net||0))} you can bank on without it.</span></div>}
                     </div>
                   })()}
                   {/* Priorities Check (offerstage-priorities-check brief 2026-08-07):

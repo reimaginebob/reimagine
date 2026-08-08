@@ -1,5 +1,5 @@
 // Unit test for src/offer-valuation.js (parseMoney + monetizeBenefits, net-pay frame).
-import { parseMoney, monetizeBenefits } from '../src/offer-valuation.js'
+import { parseMoney, monetizeBenefits, parseBonus, bonusModel } from '../src/offer-valuation.js'
 
 let pass = 0, fail = 0
 const ok = (name, cond) => { if (cond) { pass++ } else { fail++; console.error(`FAIL: ${name}`) } }
@@ -46,6 +46,30 @@ eq('employer contribution ignored -> net 0', withEmployerNoise.net, 0)
 const empty = monetizeBenefits({ base: '$150,000' }, {})
 eq('empty net null', empty.net, null)
 eq('empty priced false', empty.priced, false)
+
+// parseBonus framing
+eq('parseBonus percent of base', parseBonus('15% of base target, paid annually', 100000).framing, 'pct')
+eq('parseBonus percent target dollar', parseBonus('15% of base target', 100000).targetDollar, 15000)
+eq('parseBonus dollar target', parseBonus('$10,000 target', 100000).framing, 'dollar')
+eq('parseBonus dollar target value', parseBonus('$10,000 target', 100000).targetDollar, 10000)
+eq('parseBonus commission -> dollar/no target', parseBonus('1% of net new ARR, uncapped', 100000).framing, 'dollar')
+eq('parseBonus commission target null', parseBonus('1% of net new ARR', 100000).targetDollar, null)
+eq('parseBonus empty -> null', parseBonus('', 100000).framing, null)
+
+// bonusModel — percent framing, user drives attainment
+const pctDefault = bonusModel({ base: '$100,000', bonus: '15% of base target' }, {})
+eq('pct default attainment 100', pctDefault.attainment, 100)
+eq('pct modeled at target = 15000', pctDefault.modeled, 15000)
+const pctHalf = bonusModel({ base: '$100,000', bonus: '15% of base target' }, { bonusAttainment: '50' })
+eq('pct modeled at 50% attainment = 7500', pctHalf.modeled, 7500)
+eq('pct targetValue stays 15000', pctHalf.targetValue, 15000)
+// dollar framing — user drives expected dollar
+const dollarDefault = bonusModel({ base: '$100,000', bonus: '$10,000 target' }, {})
+eq('dollar default modeled = target', dollarDefault.modeled, 10000)
+const dollarOverride = bonusModel({ base: '$100,000', bonus: '$10,000 target' }, { bonusExpected: '6000' })
+eq('dollar modeled = user expected', dollarOverride.modeled, 6000)
+// no bonus -> framing null
+eq('no bonus -> framing null', bonusModel({ base: '$100,000', bonus: '' }, {}).framing, null)
 
 if (fail > 0) { console.error(`\ntest-monetize-benefits: ${fail} of ${pass + fail} checks failed.`); process.exit(1) }
 console.log(`test-monetize-benefits: OK (${pass} checks passed)`)
