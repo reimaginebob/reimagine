@@ -28,6 +28,7 @@ import PlaybookSectionRail from "./components/PlaybookSectionRail"
 import SpeechBtn, { hasSpeech } from "./components/SpeechBtn"
 import MD, { normalizeItalicUnderscores } from "./components/MD"
 import { parseMoney, monetizeBenefits, bonusModel, totalCompModel } from "./offer-valuation"
+import { COMP_KNOWLEDGE } from "./comp-knowledge"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
 import QuickStart from "./QuickStart"
@@ -2883,10 +2884,7 @@ SOURCING RULES (load-bearing):
 - The candidate's own offer figures and the computed totals are theirs; state them plainly, no citation.
 - If neither read surfaced a usable benchmark for a role at this seniority, say so and keep that part qualitative — do not fabricate one.
 
-COMPENSATION KNOWLEDGE TO APPLY (reason WITH this; never lecture the reader about it):
-- For a SENIOR or C-SUITE / OFFICER role, generic salary-aggregator ranges under-capture the real peer set. Treat such a range as a floor. If the organization read surfaced actual officer compensation (990 or proxy figures for this employer or its peers), anchor the read on THAT, cited — it is the relevant comparison for a senior role.
-- The high-leverage terms at senior levels are rarely base alone: severance and change-in-control protection; equity type, vesting schedule, and acceleration on a change of control; a guaranteed first-year bonus put IN WRITING; deferred compensation (for a nonprofit, a 457(b) or SERP; for a public company, RSU vesting and clawback terms); indemnification and D&O coverage; a defined early-review or raise timeline; and title, reporting line, and scope.
-- Read the offer against its ORGANIZATION TYPE. Equity at a traditional nonprofit is unusual — if it appears, name that and turn it into a question (real equity, phantom/appreciation units, or a for-profit affiliate?). A guaranteed bonus is a strength to lock in writing. Match the deferred-comp and protection levers to the org type.
+${COMP_KNOWLEDGE}
 
 VOICE RULES (load-bearing):
 - Plain and direct, one operator to another. No AI-coaching register, no comparative standing against unnamed groups, no logic-flip cadence, no typology labels, no sincerity qualifiers.
