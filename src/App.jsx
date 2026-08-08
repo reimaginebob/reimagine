@@ -5946,6 +5946,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // that resolves after the user switched opportunities. Build of p6 (Bridge
   // Story) lands in a follow-up; this covers the three prose sections.
   const[opSectionBuilding,setOpSectionBuilding]=useState(null)
+  // Snap the view to a section the moment its build starts, so the progress
+  // indicator is never off-screen (work-visibility 2026-08-08). One effect per
+  // build-state covers every path uniformly — the op card builds (About This
+  // Company, Compensation Read, Where You Fit, Bridge Story, Resume Refresh,
+  // Cover Letter, Interview Prep, Offer & Negotiation, Priority Check) and the
+  // focus-section builds. The section anchors (id="section-<key>") already exist;
+  // before this, an Update could look like nothing happened because the spinner
+  // sat above or below the user's scroll position. Inlined (not scrollToOutput)
+  // so the effect's only dep is the build-state, not a per-render function.
+  useEffect(()=>{const k=opSectionBuilding;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})},[opSectionBuilding])
+  useEffect(()=>{const k=generatingSection;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})},[generatingSection])
   // Record id the in-flight op build belongs to. Scopes the spinner/busy reads so a
   // record switched to mid-build does not show the building record's spinner. Set/cleared
   // alongside opSectionBuilding; the guards and the Build-button disabled stay global.
