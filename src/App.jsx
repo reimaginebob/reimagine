@@ -9413,7 +9413,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     </div>
                   </div>}
                   {!_compBuilt&&<div style={{marginTop:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:8,padding:'12px 14px',fontSize:15,color:'#1A2540',lineHeight:1.55}}>Build the Compensation Read first — the negotiation guidance is anchored on its sourced range.<div style={{marginTop:8}}><Btn small secondary onClick={()=>scrollToOutput('salaryRead')}>Compensation Read ↑</Btn></div></div>}
-                  <div style={{marginTop:14}}>
+                  {!_offerParsed&&<div style={{marginTop:14}}>
                     <label style={S.label}>Your offer, if you have one <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label>
                     {/* Apply affordance (offer-apply-affordance fix 2026-08-07): the typed
                         offer had no submit control — it was only picked up by the card's
@@ -9424,7 +9424,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <Btn small onClick={()=>generateOpOfferNegotiation()} disabled={!!opSectionBuilding||!_compBuilt||!String(_offerVal||'').trim()}>{_onBuilt?<><RotateCcw size={11}/>Update</>:<>See where it lands <ChevronRight size={13}/></>}</Btn>
                     </div>
                     <div style={{fontSize:15,color:C.gray,marginTop:6,lineHeight:1.5}}>Enter your base, plus any bonus or equity. We'll place it against the sourced range. Stays private to your account.</div>
-                  </div>
+                  </div>}
                   {/* Offer-letter upload + editable readout (offer-letter-parse brief
                       2026-08-07): upload/paste the actual letter, we break it into its
                       constituent terms (privacy-scoped parse), and the structured offer
@@ -9505,11 +9505,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {opSectionErrors.offerNegotiation&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.offerNegotiation}/></div>}
                   {_onBusy&&<div style={{marginTop:14}}><Loading msg="Building Offer & Negotiation…" step="offerNegotiation"/></div>}
                   {_onBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.offerNegotiation.content}/></div>{_compDisclaimer}</div>}
-                  {/* Trade-off dialogue handoff (offer-tradeoff-dialogue 2026-08-08): the
-                      analysis surfaces the trade-offs; the back-and-forth to work them
-                      through lives in My Coach, which holds the offer, priorities, and the
-                      same comp framework. Seeds a warm opener so Coach dives straight in. */}
-                  {_onBuilt&&<div style={{marginTop:12}}><Btn small secondary onClick={()=>openCoachWith(`Walk me through the key trade-offs in my ${_rec&&_rec.title?_rec.title:'offer'} one at a time — for each, tell me what I'd gain and what I'd give up given my priorities, ask where I lean, then move to the next, so I can figure out what matters most to me. Don't decide for me.`)}><MessageCircle size={13}/>Talk through the trade-offs with My Coach</Btn></div>}
+                  {/* Stale-analysis nudge (offer-card-review 2026-08-08): if the offer or
+                      benefits changed after this analysis was built, prompt a rebuild so the
+                      analysis — and the talking points that cascade from it — stay current. */}
+                  {_onBuilt&&!_onBusy&&(()=>{
+                    const _b=_sec.offerNegotiation&&_sec.offerNegotiation.builtAt
+                    const _u=_rec&&_rec.offerStage&&_rec.offerStage.updatedAt
+                    if(!(_b&&_u&&new Date(_u)>new Date(_b)))return null
+                    return <div style={{marginTop:12,background:`${C.gold}18`,border:`1.5px solid ${C.gold}`,borderRadius:8,padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                      <span style={{fontSize:15,color:'#1A2540',fontWeight:600}}>You've changed the offer since this was built — rebuild to bring the analysis and your talking points up to date.</span>
+                      <Btn small prominent onClick={()=>generateOpOfferNegotiation()} disabled={!!opSectionBuilding}><RotateCcw size={11}/>Rebuild</Btn>
+                    </div>
+                  })()}
                   {/* Sharpen the ROI case (offer-forward-roi 2026-08-08): the strongest
                       ask is the forward value the person will create for THIS employer,
                       not a past STAR story. Optional; when filled and rebuilt it becomes
@@ -9666,8 +9673,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       content from the Career Club Corner negotiation sessions, written
                       once, no generation. Always available on this card. */}
                   <div style={{marginTop:18,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
-                    {!offerRefOpen[_slot]?<button type="button" onClick={()=>setOfferRefOpen(o=>({...o,[_slot]:true}))} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit'}}>Negotiation reference — the total-comp checklist and scripts ▾</button>:<>
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>Negotiation reference</div><button type="button" onClick={()=>setOfferRefOpen(o=>({...o,[_slot]:false}))} style={{background:'none',border:'none',color:C.gray,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit'}}>Hide</button></div>
+                    {!offerRefOpen[_slot]?<button type="button" onClick={()=>setOfferRefOpen(o=>({...o,[_slot]:true}))} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit'}}>General reference — a standard total-comp checklist and negotiation scripts ▾</button>:<>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>General reference</div><button type="button" onClick={()=>setOfferRefOpen(o=>({...o,[_slot]:false}))} style={{background:'none',border:'none',color:C.gray,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit'}}>Hide</button></div>
                       <div style={{fontSize:15,fontWeight:700,color:'#1A2540',margin:'10px 0 4px'}}>Total compensation checklist</div>
                       <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginBottom:8}}>An offer is more than base. Before you respond, get the full picture — ask about each of these.</div>
                       <ul style={{margin:'0 0 0 20px',padding:0,fontSize:15,color:'#33405C',lineHeight:1.7}}>
@@ -9693,6 +9700,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     </>}
                   </div>
                   <div style={{marginTop:16,fontSize:15,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Some offer situations don't have a universal script — severance timing, a take-it-or-leave-it or algorithm-set offer, reading a company's layoff history before you push. Those are worth a real conversation with your Coach.</div>
+                  {/* Trade-off dialogue hand-off — the last step (offer-card-review 2026-08-08):
+                      once they've read the analysis, sharpened it, and have their talking
+                      points, the back-and-forth to weigh the trade-offs lives in My Coach. */}
+                  {_onBuilt&&<div style={{marginTop:18,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
+                    <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginBottom:8}}>Ready to weigh it? Talk the trade-offs through with your Coach — who holds this offer, your priorities, and the same reasoning — one at a time.</div>
+                    <Btn small secondary onClick={()=>openCoachWith(`Walk me through the key trade-offs in my ${_rec&&_rec.title?_rec.title:'offer'} one at a time — for each, tell me what I'd gain and what I'd give up given my priorities, ask where I lean, then move to the next, so I can figure out what matters most to me. Don't decide for me.`)}><MessageCircle size={13}/>Talk through the trade-offs with My Coach</Btn>
+                  </div>}
                 </>,'section-offerNegotiation')
               })()}
               {/* About This Company moved to the top of the cards (item F round 2): it
