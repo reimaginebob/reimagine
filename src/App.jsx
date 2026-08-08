@@ -5925,6 +5925,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[offerPasteOpen,setOfferPasteOpen]=useState({})
   const[offerPackageOpen,setOfferPackageOpen]=useState({})
   const[offerRefOpen,setOfferRefOpen]=useState({})
+  // Draft value for the "Model your bonus" input, per slot (offer-bonus-calc-button
+  // 2026-08-07). The bonus payout is NOT recomputed on keystroke — the user sets the
+  // number and clicks Calculate, which commits the draft to the persisted benefits
+  // (bonusAttainment / bonusExpected) so the payout updates as a deliberate result.
+  // undefined for a slot means "show the persisted/default value in the field".
+  const[bonusCalcDraft,setBonusCalcDraft]=useState({})
   const[showOfferCompare,setShowOfferCompare]=useState(false)
   // Which not-stated offer fields the user has revealed to fill in (per slot). With
   // ~34 possible fields, the readout shows the filled ones as inputs and the rest as
@@ -9213,16 +9219,31 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     const _m=n=>n==null?'—':'$'+Math.round(n).toLocaleString()
                     const _binp={width:90,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}
                     const _base=parseMoney(_o.base),_net=monetizeBenefits(_o,_ben).net
+                    // Calculate-button mechanic (offer-bonus-calc-button 2026-08-07):
+                    // the input is a DRAFT; the payout only recomputes when the user
+                    // clicks Calculate (or presses Enter), which commits the draft to
+                    // the persisted benefits. Deliberate action -> visible result,
+                    // instead of a silent per-keystroke update the user couldn't tell
+                    // was working.
+                    const _key=_bm.framing==='pct'?'bonusAttainment':'bonusExpected'
+                    const _applied=_bm.framing==='pct'
+                      ?(_ben.bonusAttainment!==undefined?_ben.bonusAttainment:'100')
+                      :(_ben.bonusExpected!==undefined?_ben.bonusExpected:(_bm.targetValue!=null?String(_bm.targetValue):''))
+                    const _draft=bonusCalcDraft[_slot]!==undefined?bonusCalcDraft[_slot]:_applied
+                    const _dirty=String(_draft)!==String(_applied)
+                    const _calc=()=>updateOfferBenefit(_slot,_key,_draft)
+                    const _btn={padding:'7px 16px',borderRadius:6,border:`1.5px solid ${C.gold}`,background:C.gold,color:'#1A2540',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'inherit'}
                     return <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                       <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:2}}>Model your bonus</div>
                       {_bm.framing==='pct'?<>
-                        <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>Your target is {_bm.targetPct}% of base{_bm.targetValue!=null?` (${_m(_bm.targetValue)} at 100%)`:''}. Target is the optimistic case — teams often land lower, so it's worth asking your hiring manager what this one actually hits. Change the number to see the payout at any level.</div>
-                        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:15,color:'#1A2540'}}>At <input style={_binp} value={_ben.bonusAttainment!==undefined?_ben.bonusAttainment:'100'} onChange={e=>updateOfferBenefit(_slot,'bonusAttainment',e.target.value)}/> % attainment, that's <strong>{_m(_bm.modeled)}</strong>.</div>
+                        <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>Your target is {_bm.targetPct}% of base{_bm.targetValue!=null?` (${_m(_bm.targetValue)} at 100%)`:''}. Target is the optimistic case — teams often land lower, so it's worth asking your hiring manager what this one actually hits. Set the attainment you expect, then press Calculate.</div>
+                        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:15,color:'#1A2540'}}>At <input style={_binp} value={_draft} onChange={e=>setBonusCalcDraft(d=>({...d,[_slot]:e.target.value}))} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();_calc()}}}/> % attainment <button type="button" onClick={_calc} style={_btn}>Calculate</button></div>
                       </>:<>
-                        <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>{_bm.targetValue!=null?`Your stated target is ${_m(_bm.targetValue)}.`:'This reads as a variable or commission bonus, which base pay can\'t predict.'} Enter what you realistically expect to see.</div>
-                        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:15,color:'#1A2540'}}>Expected bonus $ <input style={{..._binp,width:120}} value={_ben.bonusExpected!==undefined?_ben.bonusExpected:(_bm.targetValue!=null?String(_bm.targetValue):'')} onChange={e=>updateOfferBenefit(_slot,'bonusExpected',e.target.value)} placeholder="e.g. 6000"/></div>
+                        <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>{_bm.targetValue!=null?`Your stated target is ${_m(_bm.targetValue)}.`:'This reads as a variable or commission bonus, which base pay can\'t predict.'} Enter what you realistically expect, then press Calculate.</div>
+                        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:15,color:'#1A2540'}}>Expected bonus $ <input style={{..._binp,width:120}} value={_draft} onChange={e=>setBonusCalcDraft(d=>({...d,[_slot]:e.target.value}))} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();_calc()}}} placeholder="e.g. 6000"/> <button type="button" onClick={_calc} style={_btn}>Calculate</button></div>
                       </>}
-                      {_bm.modeled!=null&&_base!=null&&<div style={{marginTop:12,fontSize:14,color:'#1A2540'}}>With this bonus, cash + benefits + bonus ≈ <strong>{_m(_base+(_net||0)+_bm.modeled)}</strong> <span style={{color:C.gray,fontWeight:400}}>— if you hit it. The firmer number to lean on is the {_m(_base+(_net||0))} you can bank on without it.</span></div>}
+                      <div style={{marginTop:12,fontSize:15,color:'#1A2540'}}>Payout: <strong style={{fontSize:22,fontWeight:800}}>{_m(_bm.modeled)}</strong>{_dirty&&<span style={{color:C.gold,fontWeight:600,marginLeft:8}}>press Calculate to update</span>}</div>
+                      {_bm.modeled!=null&&_base!=null&&!_dirty&&<div style={{marginTop:8,fontSize:14,color:'#1A2540'}}>With this bonus, cash + benefits + bonus ≈ <strong>{_m(_base+(_net||0)+_bm.modeled)}</strong> <span style={{color:C.gray,fontWeight:400}}>— if you hit it. The firmer number to lean on is the {_m(_base+(_net||0))} you can bank on without it.</span></div>}
                     </div>
                   })()}
                   {/* How to read the equity (offer-comparison Phase 4b 2026-08-07): the
