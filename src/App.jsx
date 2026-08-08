@@ -1346,24 +1346,46 @@ function offerSummaryFromStruct(offer){
   return OFFER_JSON_KEYS.filter(k=>offer[k]&&String(offer[k]).trim()).map(k=>`${OFFER_FIELD_LABELS[k]}: ${String(offer[k]).trim()}`).join('. ')
 }
 // Field-level diff between the prior parsed offer and the current one, for the
-// "what changed since your previous offer" view after an updated letter is
-// uploaded (offer-update 2026-08-08). Each entry is display-ready; money fields
-// carry a signed delta, others just old -> new / new / removed.
+// "what changed since your previous offer" view (offer-update 2026-08-08; rewritten
+// 2026-08-08 for correctness + density). Most OFFER_JSON_KEYS are DESCRIPTIVE TEXT
+// the parser re-phrases on every parse, so a naive per-field diff floods the view
+// with re-wordings, and running parseMoney over that text grabs an incidental
+// number and prints nonsense deltas ("Dental: $100 -> $100,000,000"). So we show
+// only the material, mostly-quantifiable moves — the negotiation outcome — and
+// suppress the boilerplate: a dollar delta ONLY for the monetary fields,
+// equity by its leading percentage, PTO by day count, and a few short discrete
+// fields as plain text. Everything else is intentionally not diffed here (the full
+// parsed offer stays inspectable in the "What we found" table).
+const OFFER_MONEY_KEYS=['base','bonus','commission','signon','guarantee','relocation','ltip','stipends','tuition']
+const OFFER_MATERIAL_KEYS=['title','level','start']
+const _firstPct=s=>{const m=/(\d+(?:\.\d+)?)\s*%/.exec(String(s||''));return m?parseFloat(m[1]):null}
+const _firstNum=s=>{const m=/(\d+(?:\.\d+)?)/.exec(String(s||''));return m?parseFloat(m[1]):null}
 function offerChangeList(prior,current){
   if(!prior||!current)return []
   const money=n=>'$'+Math.round(n).toLocaleString()
   const out=[]
-  for(const k of OFFER_JSON_KEYS){
-    const a=(prior[k]&&String(prior[k]).trim())||''
-    const b=(current[k]&&String(current[k]).trim())||''
+  // Monetary fields: a signed dollar delta, only when the amount actually moved.
+  // A field whose number is unchanged but whose surrounding terms were re-worded
+  // is deliberately NOT shown here — that is re-parse noise, not a headline change.
+  for(const k of OFFER_MONEY_KEYS){
+    const an=parseMoney(prior[k]),bn=parseMoney(current[k])
+    if(an!=null&&bn!=null&&an!==bn){const d=bn-an;out.push({label:OFFER_FIELD_LABELS[k],from:money(an),to:money(bn),delta:(d>=0?'+':'−')+money(Math.abs(d)),up:d>=0})}
+    else if(an==null&&bn!=null){out.push({label:OFFER_FIELD_LABELS[k],to:money(bn),isNew:true})}
+    else if(an!=null&&bn==null){out.push({label:OFFER_FIELD_LABELS[k],from:money(an),removed:true})}
+  }
+  // Equity: compare the leading percentage (0.60% -> 0.75%), ignoring the long PIU
+  // description that re-phrases on every parse.
+  const ea=_firstPct(prior.equity),eb=_firstPct(current.equity)
+  if(ea!=null&&eb!=null&&ea!==eb)out.push({label:'Equity',from:ea+'%',to:eb+'%'})
+  // PTO: compare the day count when both give one.
+  const pa=_firstNum(prior.pto),pb=_firstNum(current.pto)
+  if(pa!=null&&pb!=null&&pa!==pb)out.push({label:'Paid time off',from:pa+' days',to:pb+' days'})
+  // Short discrete fields: plain old -> new when they change (low re-phrasing risk).
+  for(const k of OFFER_MATERIAL_KEYS){
+    const a=(prior[k]&&String(prior[k]).trim())||'',b=(current[k]&&String(current[k]).trim())||''
     if(a===b)continue
-    const an=parseMoney(a),bn=parseMoney(b)
-    if(an!=null&&bn!=null&&an!==bn){
-      const d=bn-an
-      out.push({label:OFFER_FIELD_LABELS[k],from:money(an),to:money(bn),delta:(d>=0?'+':'−')+money(Math.abs(d)),up:d>=0})
-    }else if(!a&&b){out.push({label:OFFER_FIELD_LABELS[k],to:b,isNew:true})}
-    else if(a&&!b){out.push({label:OFFER_FIELD_LABELS[k],from:a,removed:true})}
-    else{out.push({label:OFFER_FIELD_LABELS[k],from:a,to:b})}
+    if(!a&&b)out.push({label:OFFER_FIELD_LABELS[k],to:b,isNew:true})
+    else if(a&&b)out.push({label:OFFER_FIELD_LABELS[k],from:a,to:b})
   }
   return out
 }

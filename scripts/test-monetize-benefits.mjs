@@ -14,6 +14,13 @@ eq('parseMoney number passthrough', parseMoney(5000), 5000)
 eq('parseMoney empty -> null', parseMoney(''), null)
 eq('parseMoney junk -> null', parseMoney('to be determined'), null)
 eq('parseMoney null -> null', parseMoney(null), null)
+// Regression: a trailing word ending in k/m must NOT be read as a multiplier.
+eq('parseMoney "$40,000 lump sum" is 40000 not 40B', parseMoney('$40,000 lump sum'), 40000)
+eq('parseMoney "$100,000 repayable in full" is 100000', parseMoney('$100,000 repayable in full'), 100000)
+eq('parseMoney "$1.5 M annual" scales (space before M)', parseMoney('$1.5 M annual'), 1500000)
+eq('parseMoney "$200k OTE" scales', parseMoney('$200k OTE'), 200000)
+eq('parseMoney "150 k" scales with a space', parseMoney('150 k'), 150000)
+eq('parseMoney "410,000,000 hurdle" no false multiplier', parseMoney('410,000,000 hurdle'), 410000000)
 
 // Net benefits — full package (adds minus your premium)
 const full = monetizeBenefits(

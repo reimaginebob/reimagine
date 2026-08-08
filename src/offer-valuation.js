@@ -15,14 +15,17 @@
 export function parseMoney(v) {
   if (v == null) return null
   if (typeof v === 'number') return isFinite(v) ? v : null
-  let s = String(v).trim().toLowerCase().replace(/[$,\s]/g, '')
-  if (!s) return null
-  let mult = 1
-  if (/k$/.test(s)) { mult = 1e3; s = s.replace(/k$/, '') }
-  else if (/m$/.test(s)) { mult = 1e6; s = s.replace(/m$/, '') }
-  const m = s.match(/-?\d+(\.\d+)?/)
+  // Keep spaces (drop only $ and thousands commas) so a k/m multiplier is only
+  // honored when it sits immediately after the number as its own token — "150k"
+  // and "$1.5 M" scale, but "$40,000 lump sum" does NOT become $40B just because
+  // "lump sum" ends in an m (the bug this replaced).
+  const s = String(v).trim().toLowerCase().replace(/[$,]/g, '')
+  const m = s.match(/-?\d+(?:\.\d+)?/)
   if (!m) return null
-  const n = parseFloat(m[0]) * mult
+  let n = parseFloat(m[0])
+  const after = s.slice(m.index + m[0].length)
+  if (/^\s*k\b/.test(after)) n *= 1e3
+  else if (/^\s*m\b/.test(after)) n *= 1e6
   return isFinite(n) ? n : null
 }
 
