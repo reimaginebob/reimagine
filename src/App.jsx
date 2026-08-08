@@ -7051,6 +7051,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const rec0=savedPlaybooks.find(r=>r.id===slotId)
     const compRead=((rec0&&rec0.sections&&rec0.sections.salaryRead&&rec0.sections.salaryRead.content)||'').trim()
     if(!compRead){setOpSectionErrors(e=>({...e,offerNegotiation:'Build the Compensation Read first — the negotiation guidance is anchored on its sourced range.'}));return}
+    // The talking-points checklist is condensed FROM this analysis, so if the user
+    // already built it, refresh it whenever the analysis rebuilds — otherwise an
+    // offer change would leave stale talking points (offer-checklist-autorefresh
+    // 2026-08-08). Only refresh an existing one; never create it unasked.
+    const _hadChecklist=!!((rec0&&rec0.offerStage&&rec0.offerStage.checklist&&rec0.offerStage.checklist.content&&String(rec0.offerStage.checklist.content).trim()))
+    let _newNeg=null
     setOpSectionBuilding('offerNegotiation');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,offerNegotiation:null}))
     const reqId=++opSectionReqRef.current
     try{
@@ -7114,6 +7120,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const fn=()=>correctionsBlock(profile.corrections)+P.offerNegotiation(role,location,compRead,offerAmount,foundation,proofPoints,companyReadText,totalCompText,priorities,valueCase)+corrTail
       const r=await callClaudeWithVoiceGate(fn,{maxTokens:2600},{step:'op-offer-negotiation',onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
+      _newNeg=r
       setSavedPlaybooks(prev=>prev.map(rec=>{
         if(rec.id!==slotId)return rec
         const sections={...(rec.sections||{})}
@@ -7126,17 +7133,23 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }finally{
       if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
     }
+    // After the analysis lands, refresh the talking points from the FRESH content
+    // (passed as an override) if they had already been built, so they stay in sync.
+    if(_newNeg&&_hadChecklist&&currentSavedSlotIdRef.current===slotId){generateOpNegotiationChecklist(undefined,_newNeg)}
   }
   // Negotiation checklist (offer-checklist 2026-08-08). Condenses the offer, the
   // negotiation analysis, the priorities check, and the unstated terms into a
   // print/PDF-ready set of talking points. Requires the analysis (it is the source);
   // cached on rec.offerStage.checklist (lazy, no schemaVersion bump). Not citation-
   // gated — it restates the candidate's own asks, no new market numbers.
-  const generateOpNegotiationChecklist=async(correctionText)=>{
+  const generateOpNegotiationChecklist=async(correctionText,overrideNeg)=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||opSectionBuilding)return
     const rec0=savedPlaybooks.find(r=>r.id===slotId)
-    const _neg=((rec0&&rec0.sections&&rec0.sections.offerNegotiation&&rec0.sections.offerNegotiation.content)||'').trim()
+    // overrideNeg lets an analysis rebuild pass its FRESH content so the talking
+    // points condense the new analysis, not the stale one still in state (offer-
+    // checklist-autorefresh 2026-08-08).
+    const _neg=(overrideNeg!==undefined?overrideNeg:((rec0&&rec0.sections&&rec0.sections.offerNegotiation&&rec0.sections.offerNegotiation.content)||'')).trim()
     if(!_neg){setOpSectionErrors(e=>({...e,checklist:'Build the Offer & Negotiation analysis first — the checklist is built from it.'}));return}
     setOpSectionBuilding('checklist');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,checklist:null}))
     const reqId=++opSectionReqRef.current
