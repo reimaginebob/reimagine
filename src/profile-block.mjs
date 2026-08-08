@@ -73,9 +73,9 @@ PASSIONS AND CAUSES: ${pr.passions||'not provided'}
 tolerance from the Priorities Orientation step shape GTM ranking (P.p7). The other
 three fields (compFloor, workReq, benefitsWeight) are intentionally NOT here — they
 must not enter the prompt path, they do their work at offerStage in Phase 2.
-REMINDER FOR PHASE 2: api/coach.js keeps its OWN hand-mirrored profile block; these
-two fields are not there yet. When offerStage lands (Phase 2), mirror them into
-api/coach.js so My Coach can reason about the person's stated non-negotiables. */ `HARD DEAL-BREAKERS: ${pr.dealBreakers||'not provided'}
+api/coach.js keeps its OWN hand-mirrored profile block; these two fields were mirrored
+there in Phase 2 (offerstage-priorities-check) so My Coach reasons about them too —
+keep the two copies in sync. */ `HARD DEAL-BREAKERS: ${pr.dealBreakers||'not provided'}
 RISK TOLERANCE (stability vs upside): ${pr.riskTolerance||'not provided'}
 PRAISE THEY RECEIVE: ${pr.rep.memory||'not provided'}
 WHO CALLS THEM IN EMERGENCY: ${pr.rep.emergency||'not provided'}

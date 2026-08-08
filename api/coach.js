@@ -82,6 +82,8 @@ function buildCoachProfileSlice(state) {
     "RAW SIGNALS (this person's own words from orientation; do not paraphrase back to them as if they were your idea):",
     `VALUES: ${txt(pr.values) || 'not provided'}`,
     `PASSIONS AND CAUSES: ${txt(pr.passions) || 'not provided'}`,
+    `HARD DEAL-BREAKERS: ${txt(pr.dealBreakers) || 'not provided'}`,
+    `RISK TOLERANCE (stability vs upside): ${txt(pr.riskTolerance) || 'not provided'}`,
     `PRAISE THEY RECEIVE: ${txt(rep.memory) || 'not provided'}`,
     `WHO CALLS THEM IN EMERGENCY: ${txt(rep.emergency) || 'not provided'}`,
     `HOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${txt(rep.twoWords) || 'not provided'}`,
