@@ -2903,7 +2903,7 @@ OUTPUT STRUCTURE: when a company basis was established, open with one short plai
   // URLs), so it is NOT routed through the citation gate — the candidate's own
   // offer figure has no source and would false-trip it. Only engages once the
   // candidate is already pursuing/holding an offer, so it stays clear of steering.
-  offerNegotiation:(jobTitle,location,compReadText,offerAmount,foundation,proofPoints,companyReadText,totalCompText,priorities)=>`You are a seasoned executive compensation advisor preparing a candidate for a compensation conversation they have already decided to have. Produce a sharp, specific Offer & Negotiation analysis. Never advise whether to take the role or whether the pay is good enough; that choice is already made.
+  offerNegotiation:(jobTitle,location,compReadText,offerAmount,foundation,proofPoints,companyReadText,totalCompText,priorities,valueCase)=>`You are a seasoned executive compensation advisor preparing a candidate for a compensation conversation they have already decided to have. Produce a sharp, specific Offer & Negotiation analysis. Never advise whether to take the role or whether the pay is good enough; that choice is already made.
 
 THE ROLE: ${jobTitle||'(unspecified)'}
 THE LOCATION: ${location||'(unspecified)'}
@@ -2920,8 +2920,11 @@ ${compReadText||'(not built)'}
 WHAT WE KNOW ABOUT THE ORGANIZATION (from the About This Company read; MAY include this employer's or peer organizations' ACTUAL executive compensation from public filings — IRS Form 990 for nonprofits, DEF 14A proxy statements for public companies — each with a source URL):
 ${companyReadText||'(not built)'}
 
-THE CANDIDATE'S OWN PROOF (accomplishments and story they already wrote — draw on concrete items to build the ROI case; never invent, never restate wholesale):
-${proofPoints||'(none provided — anchor the asks on role scope and the market read alone)'}
+THE VALUE THE CANDIDATE EXPECTS TO CREATE HERE (their OWN words — the forward-looking impact they intend to have at THIS employer, ideally quantified: money made, money saved, risk mitigated. This is the SPINE of the ROI case when present):
+${valueCase&&String(valueCase).trim()?String(valueCase).trim():'(not provided — reason the forward value from the role and the JD, quantify where you can, and explicitly invite them to add their own numbers; do NOT substitute a past accomplishment for the forward case)'}
+
+THE CANDIDATE'S PAST PROOF (accomplishments and story they already wrote — use ONLY as evidence they CAN deliver the forward value above, never as the case itself; never invent, never restate wholesale):
+${proofPoints||'(none provided)'}
 
 THE CANDIDATE'S PRACTICAL PRIORITIES (what they said mattered before they saw any offer — their compensation floor, commute/remote needs, how much benefits weigh, stability-vs-upside lean, and hard deal-breakers; address ONLY the ones with a value, skip any marked "(not set)"):
 ${priorities&&String(priorities).trim()?String(priorities).trim():'(none set — omit the priorities part of the output entirely)'}
@@ -2946,7 +2949,7 @@ OUTPUT STRUCTURE (each part a bolded headline; the priorities part appears only 
 
 **The trade-offs to weigh.** This is the heart of the read — reason in PUTS AND TAKES, not element by element. Surface EVERY trade-off that would genuinely shape THIS decision — as many as this specific offer and this specific person truly present. Do NOT ration to a fixed number, and never drop a material trade-off to save space; equally, do not pad with trivia. The test for including one: would a sharp advisor who knew this person and knew offers raise it? If yes, it belongs. Draw on the TRADE-OFFS principles above and their risk lean and priorities. The kinds of trade to look for (surface the ones this offer actually presents, and any others that matter): trading a one-time sign-on for base that compounds into every future raise; how much of the at-risk equity or bonus bet to carry given their stability-vs-upside lean; whether the money offsets a term that cuts against a priority they named (travel, remote, a deal-breaker); firmer-now vs. promised-later (a base bump vs. an early-review); title/level for the next move vs. cash today. For each trade, say plainly what they gain, what they give up, and what the call hinges on (their risk appetite, their financial cushion, how much the priority matters to them) — and NEVER decide it for them. Close this part by inviting them to talk these trade-offs through with their coach, who holds their full picture and can work them one at a time.
 
-**What to ask for.** Negotiating capital is finite, so treat the asks as a sequenced portfolio, not a checklist: lead with the highest-leverage move, and name what to pivot to if it is held (a guaranteed bonus, a bigger sign-on, equity acceleration, an early-review timeline, title). For each, give the specific target, the ROI case from ONE concrete accomplishment in the proof, and the exact sentence the candidate can say. NEVER propose a base below the current offer; if the base already exceeds the market read, aim every ask at non-base levers. Turn anything unusual for the organization type into a concrete question to raise.`,
+**What to ask for.** Negotiating capital is finite, so treat the asks as a sequenced portfolio, not a checklist: lead with the highest-leverage move, and name what to pivot to if it is held (a guaranteed bonus, a bigger sign-on, equity acceleration, an early-review timeline, title). Build the case FORWARD: the argument for more is the value the candidate will create for THIS employer — money made, money saved, risk mitigated — drawn from their value case above and the role, with a past win used only as proof they can deliver it, never as the argument. Quantify the forward value where you can; where the number is not in hand, name the number that would make the case and invite them to add it — do not fall back on a STAR story as the whole case. For each ask, give the specific target, that forward ROI, and the exact sentence the candidate can say. NEVER propose a base below the current offer; if the base already exceeds the market read, aim every ask at non-base levers. Turn anything unusual for the organization type into a concrete question to raise.`,
 
   // Negotiation checklist (offer-checklist 2026-08-08). A print/PDF-ready artifact
   // for the compensation conversation and a reusable follow-up email. Condenses the
@@ -6060,6 +6063,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[focusSalaryBusy,setFocusSalaryBusy]=useState(false)
   const[focusSalaryErr,setFocusSalaryErr]=useState(null)
   const[offerDrafts,setOfferDrafts]=useState({})
+  // Draft text for the "your forward value case" input, per slot (offer-forward-roi
+  // 2026-08-08). Held local while typing; persisted to offerStage.valueCase on blur
+  // so a keystroke doesn't rewrite the whole saved record. The analysis reads the
+  // persisted value on rebuild.
+  const[valueCaseDrafts,setValueCaseDrafts]=useState({})
   // Offer-letter parse (offer-letter-parse brief 2026-08-07): single-flight busy
   // + error for the upload/paste → structured-offer extraction. offerPasteDrafts
   // holds the per-slot paste-textarea text before it is parsed.
@@ -7036,7 +7044,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // numbers arrive pre-cited; NOT routed through the citation gate because it
   // restates the candidate's own uncited offer figure. offerDrafts[slotId] carries
   // the user-typed offer; the used value is persisted on the record. v1 foundation.
-  const generateOpOfferNegotiation=async(correctionText,overrideOffer)=>{
+  const generateOpOfferNegotiation=async(correctionText,overrideOffer,overrideValueCase)=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||opSectionBuilding)return
     const rec0=savedPlaybooks.find(r=>r.id===slotId)
@@ -7095,8 +7103,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // the same place the old check used them. Address only the ones with a value.
       const _prio=[['Compensation floor',profile.compFloor],['Commute or remote needs',profile.workReq],['How much benefits weigh',profile.benefitsWeight],['Stability vs upside',profile.riskTolerance],['Hard deal-breakers',profile.dealBreakers]]
       const priorities=_prio.some(([,v])=>v&&String(v).trim())?_prio.map(([lbl,v])=>`${lbl}: ${v&&String(v).trim()?String(v).trim():'(not set)'}`).join('\n'):''
+      // Forward-looking value the candidate expects to create here (their own words,
+      // optional). When present it is the SPINE of the ROI case, replacing the reflex
+      // of falling back on a past STAR story (offer-forward-roi 2026-08-08). The
+      // override lets the "Rebuild with my value case" button pass the fresh draft,
+      // sidestepping the stale-closure delay before the write commits.
+      const valueCase=(overrideValueCase!==undefined?overrideValueCase:((rec0&&rec0.offerStage&&rec0.offerStage.valueCase)||'')).trim()
       const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
-      const fn=()=>correctionsBlock(profile.corrections)+P.offerNegotiation(role,location,compRead,offerAmount,foundation,proofPoints,companyReadText,totalCompText,priorities)+corrTail
+      const fn=()=>correctionsBlock(profile.corrections)+P.offerNegotiation(role,location,compRead,offerAmount,foundation,proofPoints,companyReadText,totalCompText,priorities,valueCase)+corrTail
       const r=await callClaudeWithVoiceGate(fn,{maxTokens:2600},{step:'op-offer-negotiation',onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       setSavedPlaybooks(prev=>prev.map(rec=>{
@@ -7237,6 +7251,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const os=rec.offerStage||{offer:null,updatedAt:null}
       const offer={...(os.offer||{}),[key]:value}
       return{...rec,offerStage:{...os,offer,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}
+    }))
+    setCurrentRoleSaved(false)
+  }
+  // Persist the forward value case to rec.offerStage.valueCase (offer-forward-roi
+  // 2026-08-08). Called on blur, not per keystroke.
+  const updateOfferValueCase=(slotId,value)=>{
+    setSavedPlaybooks(prev=>prev.map(rec=>{
+      if(rec.id!==slotId)return rec
+      const os=rec.offerStage||{offer:null,updatedAt:null}
+      return{...rec,offerStage:{...os,valueCase:value,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}
     }))
     setCurrentRoleSaved(false)
   }
@@ -9471,6 +9495,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       through lives in My Coach, which holds the offer, priorities, and the
                       same comp framework. Seeds a warm opener so Coach dives straight in. */}
                   {_onBuilt&&<div style={{marginTop:12}}><Btn small secondary onClick={()=>openCoachWith(`Walk me through the key trade-offs in my ${_rec&&_rec.title?_rec.title:'offer'} one at a time — for each, tell me what I'd gain and what I'd give up given my priorities, ask where I lean, then move to the next, so I can figure out what matters most to me. Don't decide for me.`)}><MessageCircle size={13}/>Talk through the trade-offs with My Coach</Btn></div>}
+                  {/* Sharpen the ROI case (offer-forward-roi 2026-08-08): the strongest
+                      ask is the forward value the person will create for THIS employer,
+                      not a past STAR story. Optional; when filled and rebuilt it becomes
+                      the spine of the analysis's ROI case. Their own words. */}
+                  {_onBuilt&&(()=>{
+                    const _vcApplied=(_rec&&_rec.offerStage&&_rec.offerStage.valueCase)||''
+                    const _vc=valueCaseDrafts[_slot]!==undefined?valueCaseDrafts[_slot]:_vcApplied
+                    const _company=(_rec&&_rec.company&&String(_rec.company).trim())||'this company'
+                    return <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                      <div style={{fontSize:15,fontWeight:700,color:'#1A2540',marginBottom:2}}>Sharpen the ROI case — your value to them</div>
+                      <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:8}}>The strongest ask isn't what you did before — it's what you'll do for them. In a sentence or two: how will you create value at {_company}? What will you make or save, what risk will you reduce? Draw on the role and what you worked through in your interview prep. Rebuild and the analysis will lead with your case.</div>
+                      <textarea style={{...S.ta,minHeight:80,fontSize:15}} value={_vc} onChange={e=>setValueCaseDrafts(d=>({...d,[_slot]:e.target.value}))} onBlur={()=>{if((valueCaseDrafts[_slot]||'')!==_vcApplied)updateOfferValueCase(_slot,valueCaseDrafts[_slot]||'')}} placeholder="e.g. Cut first-year voluntary turnover, saving ~$X in replacement cost; de-risk the people side of the [growth initiative]; build the retention infrastructure to scale headcount from A to B."/>
+                      <div style={{marginTop:8}}><Btn small onClick={()=>{const v=valueCaseDrafts[_slot]!==undefined?valueCaseDrafts[_slot]:_vcApplied;if(v!==_vcApplied)updateOfferValueCase(_slot,v);generateOpOfferNegotiation(undefined,undefined,v)}} disabled={!!opSectionBuilding||!String(_vc||'').trim()}>{opSectionBuilding==='offerNegotiation'?'Rebuilding…':<><RotateCcw size={11}/>Rebuild with my value case</>}</Btn></div>
+                    </div>
+                  })()}
                   {/* Price the full package (card-clarity 2026-08-07): one expander that
                       folds the benefits, bonus, and equity inputs together, collapsed by
                       default so the card stays short. The three blocks below are each
