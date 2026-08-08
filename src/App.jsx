@@ -27,6 +27,7 @@ import SavedPlaybooks from "./components/SavedPlaybooks"
 import PlaybookSectionRail from "./components/PlaybookSectionRail"
 import SpeechBtn, { hasSpeech } from "./components/SpeechBtn"
 import MD, { normalizeItalicUnderscores } from "./components/MD"
+import { parseMoney, monetizeBenefits } from "./offer-valuation"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
 import QuickStart from "./QuickStart"
@@ -5920,6 +5921,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[offerPasteDrafts,setOfferPasteDrafts]=useState({})
   const[offerPasteOpen,setOfferPasteOpen]=useState({})
   const[offerBenefitsOpen,setOfferBenefitsOpen]=useState({})
+  const[showOfferCompare,setShowOfferCompare]=useState(false)
   // Which not-stated offer fields the user has revealed to fill in (per slot). With
   // ~34 possible fields, the readout shows the filled ones as inputs and the rest as
   // compact "+ add" chips; clicking a chip reveals its input.
@@ -6982,6 +6984,49 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       return{...rec,offerStage:{...os,benefits,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}
     }))
     setCurrentRoleSaved(false)
+  }
+  // Multi-offer comparison view (offer-benefits-intake brief 2026-08-07, Phase 3b,
+  // scope A). Lines up logged offers side by side. Benefits value is its OWN line
+  // (never blended into a single total — Bob's load-bearing rule); base+benefits is a
+  // transparent sum; other cash components show as parsed strings; the priorities-check
+  // headline pulls in per offer. Informational only — no ranking, no verdict.
+  const offerComparable=(r)=>!!(r&&r.source==='door2'&&r.offerStage&&r.offerStage.offer&&String(r.offerStage.offer.base||'').trim())
+  const offerCompareView=()=>{
+    const offers=savedPlaybooks.filter(offerComparable)
+    const money=n=>n==null?null:'$'+Math.round(n).toLocaleString()
+    const data=offers.map(r=>{
+      const o=r.offerStage.offer||{}
+      const ben=monetizeBenefits(o,r.offerStage.benefits||{})
+      const pcRaw=(r.offerStage.priorityCheck&&r.offerStage.priorityCheck.content)||''
+      const pcM=pcRaw.match(/\*\*(.+?)\*\*/)
+      const pcHead=pcM?pcM[1]:(pcRaw.split('\n').find(l=>l.trim())||'').replace(/[*#>-]/g,'').trim()
+      return {r,o,base:parseMoney(o.base),ben,pcHead}
+    })
+    const cell={padding:'10px 14px',borderBottom:`1px solid ${C.border}`,fontSize:15,color:'#1A2540',verticalAlign:'top',minWidth:180}
+    const labelCell={...cell,fontWeight:700,color:C.grayL,fontSize:13,textTransform:'uppercase',letterSpacing:0.5,minWidth:150,background:C.bg}
+    const strRow=(label,pick)=><tr><td style={labelCell}>{label}</td>{data.map(d=><td key={d.r.id} style={cell}>{pick(d)||<span style={{color:C.gray}}>—</span>}</td>)}</tr>
+    return <div>
+      <div style={{marginBottom:14}}><Btn secondary small onClick={()=>setShowOfferCompare(false)}><ArrowLeft size={13}/>Back to My Playbooks</Btn></div>
+      <h1 style={{...S.title,marginBottom:6}}>Compare offers</h1>
+      <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 6px',maxWidth:760}}>Your logged offers side by side. Benefits value sits on its own line — a strong package can be worth several thousand dollars a year even at the same salary, so it stays visible rather than folded into one number. This is for your own weighing; Reimagine doesn't rank the offers or say which to take.</p>
+      <div style={{fontSize:13,color:C.gray,fontStyle:'italic',margin:'0 0 16px'}}>Priced benefits are estimates from the numbers you entered on each offer.</div>
+      <div style={{overflowX:'auto',border:`1px solid ${C.border}`,borderRadius:10}}>
+        <table style={{borderCollapse:'collapse',width:'100%',background:'#FFFFFF'}}>
+          <thead><tr><td style={{...labelCell,background:'#F1F3F6'}}></td>{data.map(d=><td key={d.r.id} style={{...cell,fontWeight:700,fontSize:16,color:'#1A2540',background:'#F1F3F6'}}>{d.r.title||d.o.title||'Offer'}</td>)}</tr></thead>
+          <tbody>
+            {strRow('Base salary',d=>d.base!=null?money(d.base):(d.o.base||null))}
+            <tr><td style={labelCell}>Benefits value</td>{data.map(d=><td key={d.r.id} style={cell}>{d.ben.total!=null?<><strong>{money(d.ben.total)}/yr</strong>{d.ben.missing.length?<div style={{fontSize:12,color:C.gray,marginTop:3}}>Not priced: {d.ben.missing.join(', ')}</div>:null}</>:<span style={{color:C.gray}}>Not priced in — add numbers under “Price your benefits” on this offer</span>}</td>)}</tr>
+            <tr style={{background:`${C.gold}0C`}}><td style={{...labelCell,background:`${C.gold}14`}}>Base + benefits value</td>{data.map(d=><td key={d.r.id} style={{...cell,fontWeight:700}}>{(d.base!=null&&d.ben.total!=null)?money(d.base+d.ben.total):<span style={{color:C.gray,fontWeight:400}}>—</span>}</td>)}</tr>
+            {strRow('Bonus',d=>d.o.bonus)}
+            {strRow('Sign-on',d=>d.o.signon)}
+            {strRow('Equity',d=>d.o.equity)}
+            {strRow('Paid time off',d=>d.o.pto)}
+            {strRow('Remote terms',d=>d.o.remote)}
+            <tr><td style={labelCell}>Against your priorities</td>{data.map(d=><td key={d.r.id} style={cell}>{d.pcHead||<span style={{color:C.gray}}>Not checked yet</span>}</td>)}</tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   }
   // Compensation Read — Focus surface (comp-benchmarking brief 2026-08-07). Lives
   // inside Income Now. Inputs are the picked direction (chosen) + profile.loc. Uses
@@ -8601,13 +8646,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} onSeedConsumed={()=>setCoachSeed('')} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity}/>
     </div>
-    case'mylib':return <div>
+    case'mylib':{
+      const _comparable=savedPlaybooks.filter(offerComparable)
+      if(showOfferCompare&&_comparable.length>=2)return offerCompareView()
+      return <div>
       <div style={{marginBottom:8}}>
         <h1 style={{...S.title,marginBottom:6}}>My Playbooks</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {savedPlaybooks.length} of {getSavedCap()} saved.</p>
       </div>
+      {_comparable.length>=2&&<div style={{margin:'0 0 16px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({_comparable.length}) <ChevronRight size={14}/></Btn></div>}
       <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity}/>
     </div>
+    }
     case'income':{
       // Standalone Income Now surface. Two states gated strictly on `chosen`
       // (the income prompt is predicated on the picked direction): a friendly

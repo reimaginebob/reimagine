@@ -77,6 +77,8 @@ Use the Refine box on the section you want to change. The corrections you submit
 
 Each opportunity is saved on its own, with whichever sections you have built. You can come back to it later and find it where you left it, and you can work several opportunities at once without one replacing another. In My Playbooks, your opportunities appear together under **Opportunity Playbooks**, listed separately from your direction-level **Focus Playbooks**. The section count on each card ("2 of 4 sections built") shows you at a glance how far along that opportunity is.
 
+When you have logged an offer on two or more opportunities, a **Compare offers** button appears in My Playbooks. It lines the offers up side by side, with the priced value of each benefits package on its own line rather than blended into a single number — a strong package can be worth several thousand dollars a year even at identical salary. Anything you didn't price shows as "not priced in," and the comparison never ranks the offers or tells you which to take; it just puts the full picture in front of you.
+
 Opportunities you saved before this update keep their original shape: the full ten-section playbook, exactly as you built it, with its own Refine box. Nothing you did is lost. New opportunities you start from here use the five-section shape described above. If you want the five-section shape for an older opportunity, paste its job description again through Add an Opportunity and build the sections you need.
 
 ## Save as PDF
