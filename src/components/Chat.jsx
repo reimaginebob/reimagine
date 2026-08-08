@@ -248,40 +248,40 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             <div data-print="hide" style={{ marginTop: 5, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <button onClick={() => rate(i, m.id, 1)} aria-pressed={m.rating === 1} aria-label="Helpful"
-                  style={{ background: m.rating === 1 ? '#E8F1EA' : 'transparent', border: `1px solid ${m.rating === 1 ? '#4A9E72' : '#D8DEE8'}`, color: m.rating === 1 ? '#2F7D54' : '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ background: m.rating === 1 ? '#E8F1EA' : 'transparent', border: `1px solid ${m.rating === 1 ? '#4A9E72' : '#D8DEE8'}`, color: m.rating === 1 ? '#2F7D54' : '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Helpful
                 </button>
                 <button onClick={() => rate(i, m.id, -1)} aria-pressed={m.rating === -1} aria-label="Not helpful"
-                  style={{ background: m.rating === -1 ? '#FBEBE8' : 'transparent', border: `1px solid ${m.rating === -1 ? '#C0432F' : '#D8DEE8'}`, color: m.rating === -1 ? '#C0432F' : '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ background: m.rating === -1 ? '#FBEBE8' : 'transparent', border: `1px solid ${m.rating === -1 ? '#C0432F' : '#D8DEE8'}`, color: m.rating === -1 ? '#C0432F' : '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Not helpful
                 </button>
                 <button onClick={() => { try { navigator.clipboard && navigator.clipboard.writeText(m.content) } catch {} ; setCopiedId(m.id) }} aria-label="Copy reply"
-                  style={{ background: 'transparent', border: '1px solid #D8DEE8', color: copiedId === m.id ? '#2F7D54' : '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ background: 'transparent', border: '1px solid #D8DEE8', color: copiedId === m.id ? '#2F7D54' : '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {copiedId === m.id ? 'Copied' : 'Copy'}
                 </button>
                 {coachSaveTarget && (savedAs && savedAs.id === m.id
-                  ? <span style={{ fontSize: 12, color: '#2F7D54' }}>Saved to {savedAs.title}</span>
+                  ? <span style={{ fontSize: 15, color: '#2F7D54' }}>Saved to {savedAs.title}</span>
                   : <button onClick={() => { const title = onSaveNote && onSaveNote(m.content); if (title) setSavedAs({ id: m.id, title }) }} aria-label="Save to this opportunity"
-                      style={{ background: 'transparent', border: '1px solid #D8DEE8', color: '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      style={{ background: 'transparent', border: '1px solid #D8DEE8', color: '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
                       Save to this opportunity
                     </button>)}
                 {m.rating && commentFor !== m.id && (
                   <button onClick={() => { setCommentFor(m.id); setCommentDraft(m.ratingComment || '') }}
-                    style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
+                    style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
                     {m.ratingComment ? 'Edit note' : 'Add a note'}
                   </button>
                 )}
-                {m.ratingComment && commentFor !== m.id && <span style={{ fontSize: 12, color: '#8A9BB8' }}>note saved</span>}
+                {m.ratingComment && commentFor !== m.id && <span style={{ fontSize: 15, color: '#8A9BB8' }}>note saved</span>}
               </div>
               {commentFor === m.id && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: '85%' }}>
                   <textarea ref={noteTaRef} value={commentDraft} onChange={e => setCommentDraft(e.target.value)} maxLength={2000} rows={2}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment(i, m.id) } }}
                     placeholder={m.rating === -1 ? 'What was off? A sentence helps us improve your coach.' : 'Glad it helped. What worked? (optional)'}
-                    style={{ border: '1px solid #D8DEE8', borderRadius: 8, padding: '8px 10px', fontSize: 14, fontFamily: 'inherit', color: '#1A2540', resize: 'vertical' }} />
+                    style={{ border: '1px solid #D8DEE8', borderRadius: 8, padding: '8px 10px', fontSize: 15, fontFamily: 'inherit', color: '#1A2540', resize: 'vertical' }} />
                   <div ref={noteActionsRef} style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => sendComment(i, m.id)} style={{ background: C.gold, color: '#fff', border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Send</button>
-                    <button onClick={() => setCommentFor(null)} style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Skip</button>
+                    <button onClick={() => sendComment(i, m.id)} style={{ background: C.gold, color: '#fff', border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Send</button>
+                    <button onClick={() => setCommentFor(null)} style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>Skip</button>
                   </div>
                 </div>
               )}
@@ -337,7 +337,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '10px 18px 0' }}>
           <button
             onClick={() => setMessages([INTRO_MSG])}
-            style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
             aria-label="Clear conversation"
           >
             Clear
@@ -364,7 +364,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               color: C.gold,
               padding: '6px 12px',
               borderRadius: 16,
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: 600,
               boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
               animation: 'pe-chat-pulse-fade 2s ease-in-out infinite',
@@ -409,7 +409,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button
             onClick={() => setMessages([INTRO_MSG])}
-            style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
             aria-label="Clear conversation"
           >
             Clear
