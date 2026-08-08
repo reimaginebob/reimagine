@@ -5923,7 +5923,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[offerParseError,setOfferParseError]=useState(null)
   const[offerPasteDrafts,setOfferPasteDrafts]=useState({})
   const[offerPasteOpen,setOfferPasteOpen]=useState({})
-  const[offerBenefitsOpen,setOfferBenefitsOpen]=useState({})
+  const[offerPackageOpen,setOfferPackageOpen]=useState({})
   const[offerRefOpen,setOfferRefOpen]=useState({})
   const[showOfferCompare,setShowOfferCompare]=useState(false)
   // Which not-stated offer fields the user has revealed to fill in (per slot). With
@@ -9153,32 +9153,38 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {opSectionErrors.offerNegotiation&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.offerNegotiation}/></div>}
                   {_onBusy&&<div style={{marginTop:14}}><Loading msg="Building Offer & Negotiation…" step="offerNegotiation"/></div>}
                   {_onBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.offerNegotiation.content}/></div>{_compDisclaimer}</div>}
-                  {/* Benefits intake (offer-benefits-intake brief 2026-08-07, Phase 3a):
-                      optional numeric benefits fields so the future comparison can price
-                      them. Non-blocking; only shown once an offer exists. */}
+                  {/* Price the full package (card-clarity 2026-08-07): one expander that
+                      folds the benefits, bonus, and equity inputs together, collapsed by
+                      default so the card stays short. The three blocks below are each
+                      gated on offerPackageOpen. */}
                   {!isDemo&&(_offerParsed||String(_offerVal||'').trim())&&(()=>{
-                    const _ben=(_rec&&_rec.offerStage&&_rec.offerStage.benefits)||{}
-                    const _open=!!offerBenefitsOpen[_slot]
-                    const _anyBen=OFFER_BENEFIT_KEYS.some(k=>_ben[k]&&String(_ben[k]).trim())
+                    const _b=(_rec&&_rec.offerStage&&_rec.offerStage.benefits)||{}
+                    const _any=OFFER_BENEFIT_KEYS.some(k=>_b[k]&&String(_b[k]).trim())||!!(_b.bonusAttainment||_b.bonusExpected||_b.companyStage||_b.equityPaperValue)
                     return <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
-                      {!_open?<button type="button" onClick={()=>setOfferBenefitsOpen(o=>({...o,[_slot]:true}))} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6}}>Price your benefits (optional){_anyBen&&<Check size={13}/>}</button>:<>
-                        <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:2}}>Price your benefits</div>
-                        <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>The parts of a package that move your real take-home: what you pay for health each month (it comes straight out of your check), weighed against the money that comes back to you — a 401(k) match, an employer HSA, and your PTO. These can swing which offer is the better deal even when the salaries look close. Add whatever numbers you have; anything you skip simply won't be counted.</div>
-                        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
-                          {OFFER_BENEFIT_KEYS.map(k=><div key={k}>
-                            <label style={{fontSize:12,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,display:'block',marginBottom:3}}>{OFFER_BENEFIT_LABELS[k]}</label>
-                            <input style={{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_ben[k]||''} onChange={e=>updateOfferBenefit(_slot,k,e.target.value)} placeholder="—"/>
-                          </div>)}
-                        </div>
-                        <div style={{marginTop:8}}><button type="button" onClick={()=>setOfferBenefitsOpen(o=>({...o,[_slot]:false}))} style={{background:'none',border:'none',color:C.gray,fontWeight:600,cursor:'pointer',padding:0,fontSize:14,fontFamily:'inherit'}}>Done</button></div>
-                      </>}
+                      {!offerPackageOpen[_slot]
+                        ?<button type="button" onClick={()=>setOfferPackageOpen(o=>({...o,[_slot]:true}))} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6}}>Price the full package — benefits, bonus, equity (optional){_any&&<Check size={13}/>} ▾</button>
+                        :<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>Price the full package</div><button type="button" onClick={()=>setOfferPackageOpen(o=>({...o,[_slot]:false}))} style={{background:'none',border:'none',color:C.gray,fontWeight:600,cursor:'pointer',padding:0,fontSize:13,fontFamily:'inherit'}}>Hide</button></div>}
+                    </div>
+                  })()}
+                  {/* Benefits intake (offer-benefits-intake brief 2026-08-07, Phase 3a). */}
+                  {!isDemo&&(_offerParsed||String(_offerVal||'').trim())&&offerPackageOpen[_slot]&&(()=>{
+                    const _ben=(_rec&&_rec.offerStage&&_rec.offerStage.benefits)||{}
+                    return <div style={{marginTop:14}}>
+                      <div style={{fontSize:15,fontWeight:700,color:'#1A2540',marginBottom:2}}>Benefits</div>
+                      <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>The parts of a package that move your real take-home: what you pay for health each month (it comes straight out of your check), weighed against the money that comes back to you — a 401(k) match, an employer HSA, and your PTO. These can swing which offer is the better deal even when the salaries look close. Add whatever numbers you have; anything you skip simply won't be counted.</div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
+                        {OFFER_BENEFIT_KEYS.map(k=><div key={k}>
+                          <label style={{fontSize:12,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,display:'block',marginBottom:3}}>{OFFER_BENEFIT_LABELS[k]}</label>
+                          <input style={{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_ben[k]||''} onChange={e=>updateOfferBenefit(_slot,k,e.target.value)} placeholder="—"/>
+                        </div>)}
+                      </div>
                     </div>
                   })()}
                   {/* Model your bonus (offer-comparison Phase 4a 2026-08-07): the user
                       drives the number — attainment % for a percent-of-base bonus, or an
                       expected dollar for a dollar/commission bonus — and sees the payout.
                       Kept separate from the firm "you can bank on" figure. */}
-                  {!isDemo&&(_offerParsed||String(_offerVal||'').trim())&&(()=>{
+                  {!isDemo&&offerPackageOpen[_slot]&&(_offerParsed||String(_offerVal||'').trim())&&(()=>{
                     const _o=(_rec&&_rec.offerStage&&_rec.offerStage.offer)||{}
                     const _ben=(_rec&&_rec.offerStage&&_rec.offerStage.benefits)||{}
                     const _bm=bonusModel(_o,_ben)
@@ -9203,7 +9209,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       equity can be worth zero. A stage selector changes the honest framing;
                       any paper value the user was told is shown as paper, not expected; the
                       whole thing is quarantined from every total. */}
-                  {!isDemo&&(()=>{
+                  {!isDemo&&offerPackageOpen[_slot]&&(()=>{
                     const _o=(_rec&&_rec.offerStage&&_rec.offerStage.offer)||{}
                     if(!(_o.equity&&String(_o.equity).trim()))return null
                     const _ben=(_rec&&_rec.offerStage&&_rec.offerStage.benefits)||{}
