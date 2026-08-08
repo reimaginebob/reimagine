@@ -7063,6 +7063,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const offer=parseOfferJSON(raw)
       if(!offer){setOfferParseError('We couldn\'t parse that into offer terms. Try pasting the key details directly.');return}
       if(currentSavedSlotIdRef.current!==slotId)return
+      // Pre-fill the benefits panel from the terms we just parsed, so the user
+      // doesn't re-enter what the letter already states (offer-benefits-seed
+      // 2026-08-08). Only fields that map cleanly: the 401(k) match (accepts a
+      // percent), the employer HSA, the deductible, and PTO days when the letter
+      // gives a plain day count ("Unlimited" or "4 weeks" is left for the user).
+      // The monthly premium the user pays is not in the letter, so it stays blank.
+      const _ptoM=/^\s*(\d+)\s*(days?)?\s*$/i.exec(String((offer&&offer.pto)||'').trim())
+      const benefitsSeed={
+        employerRetirementAnnual:(offer&&offer.retirement&&String(offer.retirement).trim())||'',
+        employerHSAAnnual:(offer&&offer.hsa&&String(offer.hsa).trim())||'',
+        deductible:(offer&&offer.deductible&&String(offer.deductible).trim())||'',
+        ptoDays:_ptoM?_ptoM[1]:''
+      }
       // Capture the offer being replaced as priorOffer, but ONLY when there was a
       // real one already — that makes this an UPDATE (company came back with a
       // better letter) and powers the "what changed" delta. A first upload leaves
@@ -7073,7 +7086,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         const os=rec.offerStage||{}
         const prevOffer=os.offer||null
         const priorOffer=(prevOffer&&OFFER_JSON_KEYS.some(k=>prevOffer[k]&&String(prevOffer[k]).trim()))?prevOffer:null
-        return{...rec,offerStage:{...os,offer,priorOffer,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}
+        // Merge the seed into benefits, filling blanks only — never clobber a value
+        // the user already entered.
+        const benefits={...(os.benefits||{})}
+        for(const[k,v]of Object.entries(benefitsSeed)){if(v&&!(benefits[k]&&String(benefits[k]).trim()))benefits[k]=v}
+        return{...rec,offerStage:{...os,offer,priorOffer,benefits,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}
       }))
       setOfferPasteOpen(o=>({...o,[slotId]:false}))
       setOfferUpdateOpen(o=>({...o,[slotId]:false}))
