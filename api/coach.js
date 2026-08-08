@@ -156,12 +156,24 @@ function buildCoachProfileSlice(state) {
 // rather than asking the user to paste it. Stateless: the in-focus record is
 // re-derived from the transcript each turn (current message + a short look-back),
 // no persisted "record in focus" state. One record, one extra section, capped.
-const EXPANSION_CAP = 6000
+// Per-turn budget for the in-focus record. The intent-matched section gets the
+// bigger cap; the rest of the built sections come in smaller so the coach has the
+// WHOLE opportunity in view (not one keyhole slice), while total stays bounded.
+const FOCUS_SECTION_CAP = 3000
+const FOCUS_INTENT_CAP = 6000
+const FOCUS_TOTAL_CAP = 15000
 const INTENT_SECTION = {
   door2: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'companyRead' },
   door1: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'p7', linkedin: 'p8', industry: 'p9', outreach: 'p7', income: 'income' },
 }
-const SECTION_NAME = { p5: 'WHERE YOU FIT', p6: 'BRIDGE STORY', p_res: 'RESUME REFRESH', p11: 'INTERVIEW PREP', companyRead: 'ABOUT THIS COMPANY', p7: 'GO-TO-MARKET', p8: 'LINKEDIN REMIX', p9: 'INDUSTRY BACKGROUND', income: 'INCOME NOW' }
+// The coaching-relevant sections to surface for the in-focus record, in priority
+// order. The offer, benefits, Compensation Read and priorities check for a record
+// with a logged offer are handled separately under LOGGED OFFERS.
+const FOCUS_SECTIONS = {
+  door2: ['p5', 'companyRead', 'salaryRead', 'p6', 'p11', 'p_res', 'p_cover'],
+  door1: ['p5', 'p6', 'p11', 'p9', 'p_res', 'income', 'p7', 'p8'],
+}
+const SECTION_NAME = { p5: 'WHERE YOU FIT', p6: 'BRIDGE STORY', p_res: 'RESUME REFRESH', p_cover: 'COVER LETTER', p11: 'INTERVIEW PREP', companyRead: 'ABOUT THIS COMPANY', salaryRead: 'COMPENSATION READ', p7: 'GO-TO-MARKET', p8: 'LINKEDIN REMIX', p9: 'INDUSTRY BACKGROUND', income: 'INCOME NOW' }
 
 function detectIntent(message) {
   const m = (typeof message === 'string' ? message : '').toLowerCase()
@@ -258,34 +270,40 @@ function buildPlaybookExpansion(record, intent) {
   if (!record) return ''
   const title = record.title || 'untitled'
   const door2 = record.source === 'door2'
-  const cap = s => (s || '').slice(0, EXPANSION_CAP)
   const parts = [`IN FOCUS — "${title}" (the saved playbook this conversation is about; read-only — you can reason about it, not change it):`]
   if (door2) {
-    const jd = cap(record.jd).trim()
+    const jd = (record.jd || '').slice(0, 4000).trim()
     if (jd) parts.push(`JOB DESCRIPTION:\n${jd}`)
-    const p5 = cap(recordSectionText(record, 'p5')).trim()
-    parts.push(`WHERE YOU FIT:\n${p5 || '(not built yet)'}`)
   } else {
     const laneLabel = LANE_LABELS[record.lane] || record.lane || ''
     parts.push(`DIRECTION: ${title}${laneLabel ? ` (${laneLabel})` : ''}`)
-    const p5 = cap(recordSectionText(record, 'p5')).trim()
-    parts.push(`WHERE YOU FIT:\n${p5 || '(not built yet)'}`)
   }
+  const candidates = door2 ? FOCUS_SECTIONS.door2 : FOCUS_SECTIONS.door1
+  // Manifest: what's built vs not, so the coach knows what it holds and points the
+  // person to build what is missing rather than inventing it.
+  const built = candidates.filter(k => recordSectionText(record, k).trim())
+  const notBuilt = candidates.filter(k => !recordSectionText(record, k).trim())
+  parts.push(`WHAT IS BUILT ON THIS PLAYBOOK: ${built.length ? built.map(k => SECTION_NAME[k] || k).join(', ') : 'nothing yet'}.${notBuilt.length ? ` Not built yet (point them to build these rather than inventing the content): ${notBuilt.map(k => SECTION_NAME[k] || k).join(', ')}.` : ''}`)
+  // Surface the built sections themselves — the intent-matched one first and larger,
+  // then the rest smaller, so the coach reasons from the whole opportunity, not one
+  // slice. Stop at the total budget.
   const map = door2 ? INTENT_SECTION.door2 : INTENT_SECTION.door1
-  const key = intent && map[intent]
-  if (key && key !== 'p5') {
-    const txt = cap(recordSectionText(record, key)).trim()
-    const name = SECTION_NAME[key] || key.toUpperCase()
-    parts.push(txt
-      ? `${name}:\n${txt}`
-      : `${name}: not built yet — point the person to build it in Reimagine rather than inventing its content.`)
+  const first = intent && map[intent]
+  const ordered = [first, ...candidates.filter(k => k !== first)].filter(Boolean)
+  let used = 0
+  for (const k of ordered) {
+    if (used >= FOCUS_TOTAL_CAP) break
+    const full = recordSectionText(record, k).trim()
+    if (!full) continue
+    const slice = full.slice(0, k === first ? FOCUS_INTENT_CAP : FOCUS_SECTION_CAP)
+    used += slice.length
+    parts.push(`${SECTION_NAME[k] || k.toUpperCase()}:\n${slice}`)
   }
-  // Interview Panel (PR 3): on an interview-intent turn for the in-focus
-  // opportunity, fold in the panel so the coach can prep the person per person.
-  // Read-only and scoped — only the in-focus door2 record, only on this intent.
+  // Interview Panel (PR 3): on an interview-intent turn for the in-focus opportunity,
+  // fold in the panel so the coach can prep the person per person.
   if (door2 && intent === 'interview') {
     const panelText = buildPanelSlice(record)
-    if (panelText) parts.push(`INTERVIEW PANEL (the people the person expects to meet, with their own notes on each — read-only; reason about it, do not change it):\n${cap(panelText)}`)
+    if (panelText) parts.push(`INTERVIEW PANEL (the people the person expects to meet, with their own notes on each — read-only; reason about it, do not change it):\n${panelText.slice(0, 4000)}`)
   }
   return parts.join('\n\n')
 }
