@@ -7076,10 +7076,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // punting to the checklist. Equity stays excluded (speculative).
       const _tc=totalCompModel(_struct||{},(rec0&&rec0.offerStage&&rec0.offerStage.benefits)||{})
       const _tcMoney=n=>n==null?null:'$'+Math.round(n).toLocaleString()
+      // One-time sums + the deterministic break-even for a sign-on<->base trade, so
+      // the model reasons from real math instead of a slogan (it once suggested
+      // trading a $100k sign-on for $5k of base — a 20-year break-even; offer-
+      // tradeoff-breakeven 2026-08-08). Break-even base increase = one-time / years.
+      const _oneTime=(_tc.signon||0)+(_tc.relocation||0)
+      const _breakEven=_oneTime>0?`One-time sums that disappear after year one: ${_tcMoney(_oneTime)}${_tc.signon?` (sign-on ${_tcMoney(_tc.signon)}${_tc.relocation?`, relocation ${_tcMoney(_tc.relocation)}`:''})`:''}. BREAK-EVEN for trading these down for base: the annual base increase that recovers them is one-time ÷ years — about ${_tcMoney(Math.round(_oneTime/3))}/yr to break even in 3 years, ${_tcMoney(Math.round(_oneTime/5))}/yr in 5 years. Use these real numbers to judge any sign-on-for-base trade; a base bump far below the 5-year figure is NOT worth giving up the one-time cash.`:''
       const totalCompText=_tc.firstYear!=null?[
         `First-year total (cash + benefits, equity excluded): ${_tcMoney(_tc.firstYear)}`,
         `Steady-state annual (base + modeled bonus + benefits, equity excluded): ${_tcMoney(_tc.steadyState)}`,
         'Components — '+_tc.components.map(c=>`${c.label} ${_tcMoney(c.amount)} (${c.cadence})`).join('; '),
+        _breakEven,
         _tc.equityText?`Equity held OUT of these totals (speculative, weigh with Coach): ${_tc.equityText}`:''
       ].filter(Boolean).join('\n'):''
       // Practical Priorities are folded INTO the analysis now (the standalone
