@@ -1335,8 +1335,8 @@ const OFFER_FIELD_LABELS={base:'Base salary',bonus:'Bonus',commission:'Commissio
 // layer the future comparison view (Phase 3b) prices — the parser captures benefits
 // as text; these are the clean inputs the monetization formulas (reference doc Part 2)
 // need. Stored on rec.offerStage.benefits (lazy, no schema bump); optional, non-blocking.
-const OFFER_BENEFIT_KEYS=['employerPremiumAnnual','employeePremiumAnnual','deductible','employerRetirementAnnual','employerHSAAnnual','ptoDays']
-const OFFER_BENEFIT_LABELS={employerPremiumAnnual:'Employer pays toward premium ($/yr)',employeePremiumAnnual:'You pay toward premium ($/yr)',deductible:'Annual deductible ($)',employerRetirementAnnual:'Employer 401(k) match ($/yr)',employerHSAAnnual:'Employer HSA / FSA contribution ($/yr)',ptoDays:'Paid time off (days)'}
+const OFFER_BENEFIT_KEYS=['employeePremiumMonthly','deductible','employerRetirementAnnual','employerHSAAnnual','ptoDays']
+const OFFER_BENEFIT_LABELS={employeePremiumMonthly:'Your health premium ($/month)',deductible:'Annual deductible ($)',employerRetirementAnnual:'Employer 401(k) match ($/yr)',employerHSAAnnual:'Employer HSA / FSA contribution ($/yr)',ptoDays:'Paid time off (days)'}
 // offerSummaryFromStruct: flatten the non-empty parsed fields into one labeled
 // string the Offer & Negotiation prompt can place against the market range. Empty
 // string when nothing is filled in (caller falls back to the free-text offer).
@@ -7008,15 +7008,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     return <div>
       <div style={{marginBottom:14}}><Btn secondary small onClick={()=>setShowOfferCompare(false)}><ArrowLeft size={13}/>Back to My Playbooks</Btn></div>
       <h1 style={{...S.title,marginBottom:6}}>Compare offers</h1>
-      <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 6px',maxWidth:760}}>Your logged offers side by side. Benefits value sits on its own line — a strong package can be worth several thousand dollars a year even at the same salary, so it stays visible rather than folded into one number. This is for your own weighing; Reimagine doesn't rank the offers or say which to take.</p>
+      <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 6px',maxWidth:760}}>Your logged offers side by side. The “you can bank on” line is the firm money — base, plus the benefits that come back to you (401(k) match, HSA, PTO), minus what you pay for health — so an offer with a higher salary but a costlier health plan doesn't look better than it is. Bonus and equity sit below on their own lines, because what they're really worth depends on attainment and on an exit no one can predict. This is for your own weighing; Reimagine doesn't rank the offers or say which to take.</p>
       <div style={{fontSize:13,color:C.gray,fontStyle:'italic',margin:'0 0 16px'}}>Priced benefits are estimates from the numbers you entered on each offer.</div>
       <div style={{overflowX:'auto',border:`1px solid ${C.border}`,borderRadius:10}}>
         <table style={{borderCollapse:'collapse',width:'100%',background:'#FFFFFF'}}>
           <thead><tr><td style={{...labelCell,background:'#F1F3F6'}}></td>{data.map(d=><td key={d.r.id} style={{...cell,fontWeight:700,fontSize:16,color:'#1A2540',background:'#F1F3F6'}}>{d.r.title||d.o.title||'Offer'}</td>)}</tr></thead>
           <tbody>
             {strRow('Base salary',d=>d.base!=null?money(d.base):(d.o.base||null))}
-            <tr><td style={labelCell}>Benefits value</td>{data.map(d=><td key={d.r.id} style={cell}>{d.ben.total!=null?<><strong>{money(d.ben.total)}/yr</strong>{d.ben.missing.length?<div style={{fontSize:12,color:C.gray,marginTop:3}}>Not priced: {d.ben.missing.join(', ')}</div>:null}</>:<span style={{color:C.gray}}>Not priced in — add numbers under “Price your benefits” on this offer</span>}</td>)}</tr>
-            <tr style={{background:`${C.gold}0C`}}><td style={{...labelCell,background:`${C.gold}14`}}>Base + benefits value</td>{data.map(d=><td key={d.r.id} style={{...cell,fontWeight:700}}>{(d.base!=null&&d.ben.total!=null)?money(d.base+d.ben.total):<span style={{color:C.gray,fontWeight:400}}>—</span>}</td>)}</tr>
+            <tr><td style={labelCell}>Benefits, net of what you pay</td>{data.map(d=><td key={d.r.id} style={cell}>{d.ben.net!=null?<><strong style={{color:d.ben.net<0?C.err:'#1A2540'}}>{d.ben.net<0?'−'+money(-d.ben.net):'+'+money(d.ben.net)}/yr</strong><div style={{fontSize:12,color:C.gray,marginTop:3}}>{d.ben.addTotal>0?'+'+money(d.ben.addTotal)+' match/HSA/PTO':''}{d.ben.premiumAnnual?(d.ben.addTotal>0?', ':'')+'−'+money(d.ben.premiumAnnual)+' premium':''}{d.ben.missing.length?<div style={{marginTop:2}}>Not counted: {d.ben.missing.join(', ')}</div>:null}</div></>:<span style={{color:C.gray}}>Not priced in — add numbers under “Price your benefits” on this offer</span>}</td>)}</tr>
+            <tr style={{background:`${C.gold}0C`}}><td style={{...labelCell,background:`${C.gold}14`}}>Cash + benefits you can bank on</td>{data.map(d=><td key={d.r.id} style={{...cell,fontWeight:700}}>{(d.base!=null&&d.ben.net!=null)?money(d.base+d.ben.net):(d.base!=null?money(d.base):<span style={{color:C.gray,fontWeight:400}}>—</span>)}</td>)}</tr>
             {strRow('Bonus',d=>d.o.bonus)}
             {strRow('Sign-on',d=>d.o.signon)}
             {strRow('Equity',d=>d.o.equity)}
@@ -9156,7 +9156,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     return <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                       {!_open?<button type="button" onClick={()=>setOfferBenefitsOpen(o=>({...o,[_slot]:true}))} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6}}>Price your benefits (optional){_anyBen&&<Check size={13}/>}</button>:<>
                         <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:2}}>Price your benefits</div>
-                        <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>Benefits can be worth several thousand dollars a year even at the same salary — a low deductible, a strong 401(k) match, or richer PTO all add up. Add whatever numbers you have and leave the rest blank. Nothing here is required; anything you skip simply won't be priced in.</div>
+                        <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>The parts of a package that move your real take-home: what you pay for health each month (it comes straight out of your check), weighed against the money that comes back to you — a 401(k) match, an employer HSA, and your PTO. These can swing which offer is the better deal even when the salaries look close. Add whatever numbers you have; anything you skip simply won't be counted.</div>
                         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
                           {OFFER_BENEFIT_KEYS.map(k=><div key={k}>
                             <label style={{fontSize:12,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,display:'block',marginBottom:3}}>{OFFER_BENEFIT_LABELS[k]}</label>
