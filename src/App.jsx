@@ -7228,10 +7228,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         const os=rec.offerStage||{}
         const prevOffer=os.offer||null
         const priorOffer=(prevOffer&&OFFER_JSON_KEYS.some(k=>prevOffer[k]&&String(prevOffer[k]).trim()))?prevOffer:null
-        // Merge the seed into benefits, filling blanks only — never clobber a value
-        // the user already entered.
+        // The offer letter is authoritative for the terms it states, so a value the
+        // letter carries WINS over whatever is in the field — uploading an updated
+        // letter refreshes these to the letter's numbers (offer-benefits-seed-
+        // overwrite 2026-08-08). A field the letter does not state is left as-is, so
+        // the one benefit the letter never carries — the user's own monthly premium —
+        // is never touched (it isn't in the seed), and a PTO stated as "Unlimited"
+        // (no day count) leaves the user's estimate alone.
         const benefits={...(os.benefits||{})}
-        for(const[k,v]of Object.entries(benefitsSeed)){if(v&&!(benefits[k]&&String(benefits[k]).trim()))benefits[k]=v}
+        for(const[k,v]of Object.entries(benefitsSeed)){if(v)benefits[k]=v}
         return{...rec,offerStage:{...os,offer,priorOffer,benefits,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}
       }))
       setOfferPasteOpen(o=>({...o,[slotId]:false}))
