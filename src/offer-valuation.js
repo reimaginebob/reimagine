@@ -102,4 +102,40 @@ export function bonusModel(offer, benefits) {
   return { framing: 'dollar', targetValue: p.targetDollar, expected: expected != null ? expected : p.targetDollar, modeled }
 }
 
+// totalCompModel: assemble first-year and steady-state cash+benefits totals from
+// the candidate's OWN parsed offer figures (offer-total-comp 2026-08-08). These
+// are the candidate's numbers, never market data, so nothing here is a sourced
+// benchmark. Equity is deliberately EXCLUDED from every total (speculative,
+// quarantined — same rule as the comparison view) and reported separately as
+// text. One-time items (sign-on, relocation) count in first-year only. A first-
+// year guarantee, when present, supersedes the modeled bonus for year one;
+// steady-state uses the modeled bonus. Returns null totals when base is unknown,
+// so callers stay qualitative rather than show a misleading number.
+export function totalCompModel(offer, benefits) {
+  const o = offer || {}
+  const base = parseMoney(o.base)
+  const net = monetizeBenefits(o, benefits).net
+  const bm = bonusModel(o, benefits)
+  const modeledBonus = bm.modeled != null ? bm.modeled : null
+  const guarantee = parseMoney(o.guarantee)
+  const signon = parseMoney(o.signon)
+  const relocation = parseMoney(o.relocation)
+  const stipends = parseMoney(o.stipends)
+  const tuition = parseMoney(o.tuition)
+  const equityText = (o.equity && String(o.equity).trim()) || null
+  const firstYearBonus = guarantee != null ? guarantee : modeledBonus
+  const recurringAdds = (net || 0) + (stipends || 0) + (tuition || 0)
+  const components = []
+  if (base != null) components.push({ label: 'Base salary', amount: base, cadence: 'annual' })
+  if (firstYearBonus != null) components.push({ label: guarantee != null ? 'Guaranteed year-1 bonus' : 'Bonus (modeled)', amount: firstYearBonus, cadence: 'year 1' })
+  if (net != null) components.push({ label: 'Benefits, net of your health cost', amount: net, cadence: 'annual' })
+  if (stipends != null) components.push({ label: 'Stipends / allowances', amount: stipends, cadence: 'annual' })
+  if (tuition != null) components.push({ label: 'Tuition / development', amount: tuition, cadence: 'annual' })
+  if (signon != null) components.push({ label: 'Sign-on bonus', amount: signon, cadence: 'one-time' })
+  if (relocation != null) components.push({ label: 'Relocation', amount: relocation, cadence: 'one-time' })
+  const firstYear = base == null ? null : base + (firstYearBonus || 0) + recurringAdds + (signon || 0) + (relocation || 0)
+  const steadyState = base == null ? null : base + (modeledBonus || 0) + recurringAdds
+  return { base, net, modeledBonus, guarantee, signon, relocation, stipends, tuition, equityText, firstYear, steadyState, components }
+}
+
 export { ADD_LABELS }

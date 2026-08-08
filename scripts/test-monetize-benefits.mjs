@@ -1,5 +1,5 @@
 // Unit test for src/offer-valuation.js (parseMoney + monetizeBenefits, net-pay frame).
-import { parseMoney, monetizeBenefits, parseBonus, bonusModel } from '../src/offer-valuation.js'
+import { parseMoney, monetizeBenefits, parseBonus, bonusModel, totalCompModel } from '../src/offer-valuation.js'
 
 let pass = 0, fail = 0
 const ok = (name, cond) => { if (cond) { pass++ } else { fail++; console.error(`FAIL: ${name}`) } }
@@ -70,6 +70,26 @@ const dollarOverride = bonusModel({ base: '$100,000', bonus: '$10,000 target' },
 eq('dollar modeled = user expected', dollarOverride.modeled, 6000)
 // no bonus -> framing null
 eq('no bonus -> framing null', bonusModel({ base: '$100,000', bonus: '' }, {}).framing, null)
+
+// totalCompModel — full CHRO-style package. base 365k, guaranteed year-1 bonus 73k,
+// 20% modeled bonus (=73k), sign-on 100k, relo 25k, equity excluded; benefits net =
+// 401k match 15k + PTO (365000/260*25=35096) - premium (400*12=4800) = 45296.
+const tcOffer = { base: '$365,000', bonus: '20% target', guarantee: '$73,000 guaranteed 2026', signon: '$100,000', relocation: '$25,000', equity: '0.60%' }
+const tcBen = { employeePremiumMonthly: '400', employerRetirementAnnual: '15000', ptoDays: '25' }
+const tc = totalCompModel(tcOffer, tcBen)
+eq('totalComp firstYear (base+guar+net+signon+relo)', tc.firstYear, 365000 + 73000 + 45296 + 100000 + 25000)
+eq('totalComp steadyState (base+modeledBonus+net, no one-time)', tc.steadyState, 365000 + 73000 + 45296)
+eq('totalComp equity held out as text', tc.equityText, '0.60%')
+ok('totalComp equity never summed into a total', !String(tc.firstYear).includes('.') && tc.firstYear === 608296)
+// guarantee supersedes modeled bonus for year one; steady-state uses modeled
+const tcNoGuar = totalCompModel({ base: '$200,000', bonus: '10% target' }, {})
+eq('totalComp no benefits -> firstYear = base + modeled bonus', tcNoGuar.firstYear, 200000 + 20000)
+eq('totalComp no benefits net excluded (null)', tcNoGuar.net, null)
+// base unknown -> null totals (qualitative fallback), no fabricated number
+const tcNoBase = totalCompModel({ bonus: '10%' }, {})
+eq('totalComp base unknown -> firstYear null', tcNoBase.firstYear, null)
+eq('totalComp base unknown -> steadyState null', tcNoBase.steadyState, null)
+eq('totalComp base unknown -> no components', tcNoBase.components.length, 0)
 
 if (fail > 0) { console.error(`\ntest-monetize-benefits: ${fail} of ${pass + fail} checks failed.`); process.exit(1) }
 console.log(`test-monetize-benefits: OK (${pass} checks passed)`)
