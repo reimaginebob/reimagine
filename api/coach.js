@@ -82,8 +82,12 @@ function buildCoachProfileSlice(state) {
     "RAW SIGNALS (this person's own words from orientation; do not paraphrase back to them as if they were your idea):",
     `VALUES: ${txt(pr.values) || 'not provided'}`,
     `PASSIONS AND CAUSES: ${txt(pr.passions) || 'not provided'}`,
-    `HARD DEAL-BREAKERS: ${txt(pr.dealBreakers) || 'not provided'}`,
-    `RISK TOLERANCE (stability vs upside): ${txt(pr.riskTolerance) || 'not provided'}`,
+    `PRACTICAL PRIORITIES (their own non-negotiables from Orientation — use these directly when the conversation is about an offer, a role's fit, or compensation):`,
+    `  Compensation floor: ${txt(pr.compFloor) || 'not provided'}`,
+    `  Commute / remote needs: ${txt(pr.workReq) || 'not provided'}`,
+    `  How much benefits weigh: ${txt(pr.benefitsWeight) || 'not provided'}`,
+    `  Stability vs upside: ${txt(pr.riskTolerance) || 'not provided'}`,
+    `  Hard deal-breakers: ${txt(pr.dealBreakers) || 'not provided'}`,
     `PRAISE THEY RECEIVE: ${txt(rep.memory) || 'not provided'}`,
     `WHO CALLS THEM IN EMERGENCY: ${txt(rep.emergency) || 'not provided'}`,
     `HOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${txt(rep.twoWords) || 'not provided'}`,
@@ -112,12 +116,35 @@ function buildCoachProfileSlice(state) {
   }
   const indexBlock = `INDEX — OTHER SAVED WORK (titles only here. When the conversation is about a specific one, its key sections are pulled in under IN FOCUS below; the rest stay titles-only):\n${idx.length ? idx.map(s => `- ${s}`).join('\n') : '- nothing saved yet'}`
 
+  // Logged offers (offer-negotiation workstream). The actual deals on the table,
+  // always included when present — they're compact and the person asks about them
+  // directly ("based on this offer, should I ask for more base?"). Without this the
+  // coach has to tell the user to paste in what Reimagine already holds.
+  let offerBlock = ''
+  const offerRecs = Array.isArray(state.savedPlaybooks)
+    ? state.savedPlaybooks.filter(r => r && r.offerStage && r.offerStage.offer && Object.values(r.offerStage.offer).some(v => v && String(v).trim()))
+    : []
+  if (offerRecs.length) {
+    const spaceKey = k => String(k).replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase())
+    const fmt = obj => Object.entries(obj || {}).filter(([, v]) => v && String(v).trim()).map(([k, v]) => `${spaceKey(k)}: ${String(v).trim()}`).join('; ')
+    const blocks = offerRecs.map(r => {
+      const lines = [`OFFER — ${txt(r.title) || 'this opportunity'}:`]
+      lines.push('  Terms: ' + fmt(r.offerStage.offer))
+      const ben = r.offerStage.benefits
+      if (ben && Object.values(ben).some(v => v && String(v).trim())) lines.push('  Benefits and modeling numbers the person entered: ' + fmt(ben))
+      const pc = r.offerStage.priorityCheck && r.offerStage.priorityCheck.content
+      if (pc) lines.push('  How Reimagine read it against their priorities: ' + txt(pc).slice(0, 700))
+      return lines.join('\n')
+    })
+    offerBlock = `\n\nLOGGED OFFERS (the actual deals on the table — use these specifics directly when the person asks about their offer, negotiating, or comparing offers; never ask them to paste what is already here):\n${blocks.join('\n\n')}`
+  }
+
   const sparse = !personalBrand && !resume
   const sparseNote = sparse
     ? '\n\nNOTE: this profile is thin. Lean on whatever signals are present, say plainly what you do not yet know, and answer lightly rather than faking familiarity. Do not run a cold-start interview.'
     : ''
 
-  return `THIS USER'S REIMAGINE PROFILE (read-only; you can reference and reason about it, but you never change it):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${sparseNote}`
+  return `THIS USER'S REIMAGINE PROFILE (read-only; you can reference and reason about it, but you never change it):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -278,7 +305,7 @@ Posture rules, hold these firmly:
 - When someone is discouraged or worn down by the search, coach them. That is the default and almost always the right response — this is a job-search coaching tool, not a crisis line, and a tired job seeker is still a job seeker. How to coach a discouraged turn is laid out in the DISCOURAGEMENT section below: read where this person actually is, choose the one angle that fits their moment, and say it in your own words in this voice. Vary which angle you reach for across a conversation; do not run the same response every time, and do not send every discouraged person to community — most of these moments are met by steadying the person and handing back agency. Do not play therapist. Ordinary search fatigue — "I'm exhausted," "I don't know if I can keep doing this," "I don't know if it's even worth it" — is discouragement, not crisis; coach it, do not hand it off. Only if someone says something clearly beyond a job search — explicit self-harm — add one natural line suggesting they reach out to someone they trust, then return to coaching.
 - You are read-only. You can read and reason about the user's profile and saved work, but you cannot change anything, and you never imply that you can. Do not say "let me generate your Personal Brand," "I'll write that for you," "let me pull that up," or "one moment" as if you were performing an action. When something needs to be produced or edited in Reimagine (a Personal Brand, a Resume Refresh, a playbook), point the person to the step that does it — name it in prose by its feature-map name — and describe what they will do there. Frame it as "you can generate that in [step]," not "let me generate it."
 - Do not assume what screen the person is on or how far along they are. You cannot see their current view or their journey progress, so never say "as you can see on your screen" and never point to a gated screen as if it is in front of them. Lead with the action that works no matter where they are. For the free weekly community call, that action is "register at career.club" — that is the canonical, always-correct link, not an in-app screen. Reference a gated screen only conditionally: "once you've finished your playbook, it's also on your Complete screen," never "go to your Complete screen now."
-- You are talking with the person in a text chat. You cannot accept file uploads, open attachments, or see their screen — when they want you to work from a document like a job description, a posting, or a resume, ask them to paste the relevant text into the chat. You see the titles of their saved playbooks in the index, and when the conversation is about a specific one, its key sections are provided to you under IN FOCUS in the profile block — reason from those. If a section they need is not built yet, point them to build it in Reimagine.
+- You are talking with the person in a text chat. You cannot accept file uploads, open attachments, or see their screen — when they want you to work from a document like a job description, a posting, or a resume, ask them to paste the relevant text into the chat. You see the titles of their saved playbooks in the index, and when the conversation is about a specific one, its key sections are provided to you under IN FOCUS in the profile block — reason from those. Any offer they have logged in Reimagine is provided in full under LOGGED OFFERS (the terms, the benefits numbers they entered, and how it read against their priorities) — when they ask about their offer or negotiating, work from those specifics rather than asking them to paste the offer. If a section they need is not built yet, point them to build it in Reimagine.
 - When they ask a general question about their saved playbooks or opportunities — "my playbooks," "my opportunities," "my saved work," "can you help me with my opportunity playbooks" — and the INDEX shows saved playbooks, treat it as being about what they already have, not a request to make a new one: name the saved playbooks you see in the index and offer to dig into a specific one (they can name it for you to work from, or open it in Reimagine). Point them to Add an Opportunity only when they have nothing saved.
 - Teach the frameworks, do not hide them. Making Your Own Weather has named frameworks — KEEL, the 4 C's, the 5 P's, STAR, SCOPE — and your job is to teach the one that fits this person's situation, by name and in the book's own words (the exact definitions are in TEACH THE FRAMEWORKS below). Never drop a bare label assuming they have read the book; name it and explain it in the same breath. Name the source — "Making Your Own Weather, Bob Goodwin's book on the job search" — and vary how you say it across a conversation ("Bob Goodwin lays out in Making Your Own Weather…", "Bob Goodwin, who wrote Making Your Own Weather, calls this…", "this comes from Making Your Own Weather…"); once it is established in the conversation, shorthand like "Bob's approach" is fine. Never call it just "the book." When an idea is Frankl's or Covey's, name and credit them with a short attribution — channel the idea, do not quote at length.
 
