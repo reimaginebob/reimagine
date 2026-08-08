@@ -6861,7 +6861,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // numbers arrive pre-cited; NOT routed through the citation gate because it
   // restates the candidate's own uncited offer figure. offerDrafts[slotId] carries
   // the user-typed offer; the used value is persisted on the record. v1 foundation.
-  const generateOpOfferNegotiation=async(correctionText)=>{
+  const generateOpOfferNegotiation=async(correctionText,overrideOffer)=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||opSectionBuilding)return
     const rec0=savedPlaybooks.find(r=>r.id===slotId)
@@ -6878,7 +6878,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // Prefer the structured offer (parsed from an uploaded/pasted letter) over the
       // quick free-text field — it gives the prompt real components (base, bonus,
       // equity, …) instead of a blob (offer-letter-parse brief 2026-08-07).
-      const _struct=(rec0&&rec0.offerStage&&rec0.offerStage.offer)||null
+      const _struct=overrideOffer||((rec0&&rec0.offerStage&&rec0.offerStage.offer)||null)
       const _structSummary=offerSummaryFromStruct(_struct)
       const offerAmount=_structSummary||((offerDrafts[slotId]!==undefined?offerDrafts[slotId]:((rec0&&rec0.sections&&rec0.sections.offerNegotiation&&rec0.sections.offerNegotiation.offerAmount)||''))||'').trim()
       const foundation=buildOpProfileSummary()
@@ -6913,11 +6913,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // is where compFloor + workReq do their real work — read directly from profile,
   // never through the exploration prompt path. Not citation-gated. Cached lazily on
   // rec.offerStage.priorityCheck (no schemaVersion bump).
-  const generateOpPriorityCheck=async(correctionText)=>{
+  const generateOpPriorityCheck=async(correctionText,overrideOffer)=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||opSectionBuilding)return
     const rec0=savedPlaybooks.find(r=>r.id===slotId)
-    const _struct=(rec0&&rec0.offerStage&&rec0.offerStage.offer)||null
+    const _struct=overrideOffer||((rec0&&rec0.offerStage&&rec0.offerStage.offer)||null)
     const offerText=offerSummaryFromStruct(_struct)||((offerDrafts[slotId]!==undefined?offerDrafts[slotId]:((rec0&&rec0.sections&&rec0.sections.offerNegotiation&&rec0.sections.offerNegotiation.offerAmount)||''))||'').trim()
     if(!offerText){setOpSectionErrors(e=>({...e,priorityCheck:'Add your offer above first — upload the letter or type the numbers — then check it against your priorities.'}));return}
     const _prio=[['Compensation floor',profile.compFloor],['Commute or remote needs',profile.workReq],['How much benefits weigh',profile.benefitsWeight],['Stability vs upside',profile.riskTolerance],['Hard deal-breakers',profile.dealBreakers]]
@@ -6962,6 +6962,27 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       setSavedPlaybooks(prev=>prev.map(rec=>rec.id!==slotId?rec:{...rec,offerStage:{...(rec.offerStage||{}),offer,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}))
       setOfferPasteOpen(o=>({...o,[slotId]:false}))
       setCurrentRoleSaved(false)
+      // Auto-refresh the offer-dependent analyses (offer-autorun 2026-08-07). A new
+      // offer letter makes the Offer & Negotiation guidance and the Priorities Check
+      // stale — they both read the offer — so re-run them instead of making the user
+      // press two buttons on content we KNOW is out of date. Fire-and-forget so the
+      // parsed readout appears immediately; the two builds sequence themselves (op
+      // sections are single-flight) and each gets the freshly parsed offer passed in,
+      // since this closure's savedPlaybooks hasn't flushed the new offer yet. The
+      // Compensation Read is intentionally NOT re-run: it's market data keyed to the
+      // role/company, not the offer, so a new offer doesn't make it stale. Negotiation
+      // only runs when a Compensation Read exists (it's anchored on that range);
+      // Priorities Check only when the person has set priorities — matching each
+      // build's own precondition, so the auto-run never surfaces a precondition error.
+      const _recNow=savedPlaybooks.find(r=>r.id===slotId)
+      const _hasCompRead=!!(((_recNow&&_recNow.sections&&_recNow.sections.salaryRead&&_recNow.sections.salaryRead.content)||'').trim())
+      const _hasPriorities=[profile.compFloor,profile.workReq,profile.benefitsWeight,profile.riskTolerance,profile.dealBreakers].some(v=>v&&String(v).trim())
+      ;(async()=>{
+        try{
+          if(_hasCompRead)await generateOpOfferNegotiation(undefined,offer)
+          if(_hasPriorities)await generateOpPriorityCheck(undefined,offer)
+        }catch{/* each build surfaces its own error state; nothing to add here */}
+      })()
     }catch(e){
       setOfferParseError(e.message||'Could not read that file. Try pasting the offer text instead.')
     }finally{
