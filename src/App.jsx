@@ -1345,6 +1345,28 @@ function offerSummaryFromStruct(offer){
   if(!offer||typeof offer!=='object')return ''
   return OFFER_JSON_KEYS.filter(k=>offer[k]&&String(offer[k]).trim()).map(k=>`${OFFER_FIELD_LABELS[k]}: ${String(offer[k]).trim()}`).join('. ')
 }
+// Field-level diff between the prior parsed offer and the current one, for the
+// "what changed since your previous offer" view after an updated letter is
+// uploaded (offer-update 2026-08-08). Each entry is display-ready; money fields
+// carry a signed delta, others just old -> new / new / removed.
+function offerChangeList(prior,current){
+  if(!prior||!current)return []
+  const money=n=>'$'+Math.round(n).toLocaleString()
+  const out=[]
+  for(const k of OFFER_JSON_KEYS){
+    const a=(prior[k]&&String(prior[k]).trim())||''
+    const b=(current[k]&&String(current[k]).trim())||''
+    if(a===b)continue
+    const an=parseMoney(a),bn=parseMoney(b)
+    if(an!=null&&bn!=null&&an!==bn){
+      const d=bn-an
+      out.push({label:OFFER_FIELD_LABELS[k],from:money(an),to:money(bn),delta:(d>=0?'+':'−')+money(Math.abs(d)),up:d>=0})
+    }else if(!a&&b){out.push({label:OFFER_FIELD_LABELS[k],to:b,isNew:true})}
+    else if(a&&!b){out.push({label:OFFER_FIELD_LABELS[k],from:a,removed:true})}
+    else{out.push({label:OFFER_FIELD_LABELS[k],from:a,to:b})}
+  }
+  return out
+}
 // jdLooksLinkOnly (Karen Groll URL-only bug, 2026-06-29): true when the pasted
 // "JD" is dominated by a URL with almost no posting text — the user pasted a
 // LinkedIn / job link instead of the description. Strip URLs; if under ~40 chars
@@ -5969,6 +5991,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // activation the bonus control uses, so filling fields in never reads as "nothing
   // happened." undefined = not yet calculated.
   const[benefitsCalced,setBenefitsCalced]=useState({})
+  // Whether the "upload an updated offer" flow is open on an already-parsed offer,
+  // per slot (offer-update 2026-08-08). The company comes back with an improved
+  // letter after the user negotiates; this reopens the parse UI to replace the
+  // terms (keeping the prior version for the "what changed" delta) without the
+  // user having to Clear first.
+  const[offerUpdateOpen,setOfferUpdateOpen]=useState({})
   const[showOfferCompare,setShowOfferCompare]=useState(false)
   // Which not-stated offer fields the user has revealed to fill in (per slot). With
   // ~34 possible fields, the readout shows the filled ones as inputs and the rest as
@@ -7019,8 +7047,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const offer=parseOfferJSON(raw)
       if(!offer){setOfferParseError('We couldn\'t parse that into offer terms. Try pasting the key details directly.');return}
       if(currentSavedSlotIdRef.current!==slotId)return
-      setSavedPlaybooks(prev=>prev.map(rec=>rec.id!==slotId?rec:{...rec,offerStage:{...(rec.offerStage||{}),offer,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}))
+      // Capture the offer being replaced as priorOffer, but ONLY when there was a
+      // real one already — that makes this an UPDATE (company came back with a
+      // better letter) and powers the "what changed" delta. A first upload leaves
+      // priorOffer null. Single-step history: priorOffer is always the immediately
+      // preceding version (offer-update 2026-08-08).
+      setSavedPlaybooks(prev=>prev.map(rec=>{
+        if(rec.id!==slotId)return rec
+        const os=rec.offerStage||{}
+        const prevOffer=os.offer||null
+        const priorOffer=(prevOffer&&OFFER_JSON_KEYS.some(k=>prevOffer[k]&&String(prevOffer[k]).trim()))?prevOffer:null
+        return{...rec,offerStage:{...os,offer,priorOffer,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}
+      }))
       setOfferPasteOpen(o=>({...o,[slotId]:false}))
+      setOfferUpdateOpen(o=>({...o,[slotId]:false}))
       setCurrentRoleSaved(false)
       // Auto-refresh the offer-dependent analyses (offer-autorun 2026-08-07). A new
       // offer letter makes the Offer & Negotiation guidance and the Priorities Check
@@ -9203,9 +9243,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       2026-08-07): upload/paste the actual letter, we break it into its
                       constituent terms (privacy-scoped parse), and the structured offer
                       feeds the negotiation guidance in place of the free-text blob. */}
-                  {!isDemo&&!_offerParsed&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
-                    <div style={{fontSize:15,fontWeight:700,color:'#1A2540',marginBottom:2}}>Or upload your offer letter</div>
-                    <div style={{fontSize:13,color:C.gray,marginBottom:10,lineHeight:1.5}}>We'll break it into its parts — base, bonus, equity, benefits, and the rest — so you can see the whole package and what's missing. We read only the compensation and employment terms, never personal identifiers, and we don't keep the document.</div>
+                  {!isDemo&&(!_offerParsed||offerUpdateOpen[_slot])&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:2}}>
+                      <div style={{fontSize:15,fontWeight:700,color:'#1A2540'}}>{offerUpdateOpen[_slot]?'Upload your updated offer letter':'Or upload your offer letter'}</div>
+                      {offerUpdateOpen[_slot]&&<Btn small secondary onClick={()=>{setOfferUpdateOpen(o=>({...o,[_slot]:false}));setOfferParseError(null)}}>Cancel</Btn>}
+                    </div>
+                    <div style={{fontSize:13,color:C.gray,marginBottom:10,lineHeight:1.5}}>{offerUpdateOpen[_slot]?"Negotiated a better deal? Upload the new letter — it replaces the current terms, re-runs your guidance, and shows you what changed. We read only the compensation and employment terms, never personal identifiers, and we don't keep the document.":"We'll break it into its parts — base, bonus, equity, benefits, and the rest — so you can see the whole package and what's missing. We read only the compensation and employment terms, never personal identifiers, and we don't keep the document."}</div>
                     {offerParsing?<div style={{display:'flex',alignItems:'center',gap:8,fontSize:15,color:C.gray}}><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Reading your offer…</div>:<>
                       {!offerPasteOpen[_slot]?<div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
                         <FileUpload label="Upload offer letter" hint="PDF, Word, or text" onFile={f=>parseOfferLetter(f)}/>
@@ -9220,13 +9263,35 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     </>}
                     {offerParseError&&<div style={{marginTop:10}}><ErrBox msg={offerParseError}/></div>}
                   </div>}
+                  {/* Updated-offer affordance + what-changed delta (offer-update
+                      2026-08-08): the company comes back with a better letter after
+                      the user negotiates. Upload it here (replaces the terms, keeps
+                      the prior version), and show the win. Only in the parsed state
+                      and when not mid-update. */}
+                  {!isDemo&&_offerParsed&&!offerUpdateOpen[_slot]&&(()=>{
+                    const _prior=(_rec&&_rec.offerStage&&_rec.offerStage.priorOffer)||null
+                    const _changes=offerChangeList(_prior,_offer)
+                    const _bn=(_rec&&_rec.offerStage&&_rec.offerStage.benefits)||{}
+                    const _md=n=>n==null?null:'$'+Math.round(n).toLocaleString()
+                    const _tcA=_prior?totalCompModel(_prior,_bn):null
+                    const _tcB=totalCompModel(_offer,_bn)
+                    return <div style={{marginTop:14}}>
+                      {_changes.length>0&&<div style={{marginBottom:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:10,padding:'12px 14px'}}>
+                        <div style={{fontSize:15,fontWeight:700,color:'#1A2540',marginBottom:6}}>What changed since your previous offer</div>
+                        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                          {_changes.map((c,i)=><div key={i} style={{fontSize:14,color:'#1A2540',lineHeight:1.5}}><strong>{c.label}:</strong> {c.isNew?<>added <strong>{c.to}</strong></>:c.removed?<>removed <span style={{color:C.gray}}>(was {c.from})</span></>:c.delta?<>{c.from} → <strong>{c.to}</strong> <span style={{color:c.up?'#2E7D32':'#B23120',fontWeight:700}}>({c.delta})</span></>:<>{c.from} → <strong>{c.to}</strong></>}</div>)}
+                        </div>
+                        {_tcA&&_tcA.firstYear!=null&&_tcB.firstYear!=null&&_tcA.firstYear!==_tcB.firstYear&&(()=>{const d=_tcB.firstYear-_tcA.firstYear;return <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${C.gold}33`,fontSize:14,color:'#1A2540'}}>First-year total: {_md(_tcA.firstYear)} → <strong>{_md(_tcB.firstYear)}</strong> <span style={{color:d>=0?'#2E7D32':'#B23120',fontWeight:700}}>({d>=0?'+':'−'}{_md(Math.abs(d))})</span></div>})()}
+                      </div>}
+                      <Btn small secondary onClick={()=>setOfferUpdateOpen(o=>({...o,[_slot]:true}))}><Upload size={13}/> Upload an updated offer</Btn>
+                    </div>
+                  })()}
                   {!isDemo&&_offerParsed&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
                       <button type="button" onClick={()=>setOfferTableOpen(o=>({...o,[_slot]:!o[_slot]}))} aria-expanded={!!offerTableOpen[_slot]} style={{display:'flex',alignItems:'center',gap:8,background:'transparent',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
                         {offerTableOpen[_slot]?<ChevronUp size={16} color="#1A2540"/>:<ChevronDown size={16} color="#1A2540"/>}
                         <span style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>What we found in your offer</span>
                       </button>
-                      {offerTableOpen[_slot]&&<Btn small secondary onClick={()=>setSavedPlaybooks(prev=>prev.map(rec=>rec.id!==_slot?rec:{...rec,offerStage:{...(rec.offerStage||{}),offer:null},updatedAt:new Date().toISOString()}))}><X size={12}/>Clear</Btn>}
                     </div>
                     {!offerTableOpen[_slot]&&<div style={{fontSize:13,color:C.gray,marginTop:4,lineHeight:1.5}}>The full parsed offer is saved — it's all here if you want to inspect or correct the terms.</div>}
                     {offerTableOpen[_slot]&&<><div style={{fontSize:13,color:C.gray,margin:'8px 0 10px',lineHeight:1.5}}>Fix anything we misread. The terms the letter didn't mention are listed below as things to ask about — click one to add it. This feeds the guidance above, and stays private to your account.</div>
