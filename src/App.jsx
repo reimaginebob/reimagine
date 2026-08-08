@@ -3133,11 +3133,11 @@ function RecruiterMatchRow({m}){
   return <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,marginBottom:14,padding:'16px 20px'}}>
     <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap',marginBottom:4}}>
       <span style={{fontSize:12,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:isPractice?'#5A4B8A':'#8A5E1C',background:isPractice?'#EDE9F7':'#FBF0DC',borderRadius:6,padding:'2px 8px'}}>{isPractice?'Large-firm practice':'Boutique'}</span>
-      {isPractice&&m.practice&&<span style={{fontSize:13,color:C.gray}}>{m.practice} practice</span>}
+      {isPractice&&m.practice&&<span style={{fontSize:15,color:C.gray}}>{m.practice} practice</span>}
     </div>
     <div style={{fontSize:20,fontWeight:700,color:'#1A2540',margin:'2px 0'}}>{m.firm}</div>
     {named&&<div style={{fontSize:15,color:'#2D3748',marginBottom:2}}>{m.leaderProfileUrl?<a href={m.leaderProfileUrl} target="_blank" rel="noreferrer" style={{color:C.goldL,fontWeight:600}}>{m.leaderName}</a>:<strong>{m.leaderName}</strong>}{m.leaderTitle?` — ${m.leaderTitle}`:''}</div>}
-    {!named&&<div style={{fontSize:13,color:C.gray,marginBottom:2}}>No individual contact confirmed from a first-party source yet — the {isPractice?'practice':'firm'} page is the place to start.</div>}
+    {!named&&<div style={{fontSize:15,color:C.gray,marginBottom:2}}>No individual contact confirmed from a first-party source yet — the {isPractice?'practice':'firm'} page is the place to start.</div>}
     {m.specialty&&<div style={{fontSize:15,color:'#2D3748',lineHeight:1.55,marginTop:4}}>{m.specialty}</div>}
     {m.openSearchSignal&&<div style={{marginTop:10}}>
       <span style={{display:'inline-flex',alignItems:'center',gap:6,padding:'6px 12px',background:'#E4F6EA',border:'1.5px solid #1A7F5A',borderRadius:8,color:'#12603F',fontSize:14,fontWeight:700}}><Sparkles size={14}/>{isPractice?'This practice is running a search that fits right now':'This firm has a relevant search open now'}</span>
@@ -4035,7 +4035,7 @@ function SubsectionRefineBox({scopeKey,onSubmit,busy,error,label,placeholder,sub
       <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={placeholder||''} style={{...S.ta,minHeight:84,fontSize:15,marginBottom:8}} aria-label="What to refine in this block"/>
       <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
         <Btn small disabled={busy} onClick={()=>{onSubmit(text)}}><RotateCcw size={12}/>{busy?'Regenerating…':(submitLabel||'Regenerate this block')}</Btn>
-        <span style={{fontSize:13,color:C.gray,fontStyle:'italic'}}>{helperText||'Only this block changes.'}</span>
+        <span style={{fontSize:15,color:C.gray,fontStyle:'italic'}}>{helperText||'Only this block changes.'}</span>
       </div>
       {error&&<div style={{...S.err,marginTop:8}}>{error}</div>}
     </div>}
@@ -6427,7 +6427,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(phase==='skeleton'){const fromLinkedin=b.source==='linkedin'&&employers.some(e=>e.company||(e.titles||[]).some(t=>t.title));return <div>
       {hdr('Phase 0 · Orientation','Where have you worked?',fromLinkedin?'We laid out your history from LinkedIn below. Check that your companies, titles, and dates look right, and fix anything that came through wrong.':'Start with your most recent role and work back. We just need the basics here; the good stuff comes next.')}
       {builderErrors['linkedin-parse']&&<div style={{...S.note,marginBottom:14}}>{builderErrors['linkedin-parse']}</div>}
-      {b.source==='linkedin'&&b.linkedinRaw&&<details style={{marginBottom:14}}><summary style={{cursor:'pointer',color:C.gold,fontWeight:600}}>What we read from your LinkedIn file</summary><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:13,color:C.gray,maxHeight:220,overflow:'auto',marginTop:8}}>{b.linkedinRaw}</pre><div style={{fontSize:13,color:C.gray}}>This is the raw text we read, kept here for reference. Your roles are in the fields below.</div></details>}
+      {b.source==='linkedin'&&b.linkedinRaw&&<details style={{marginBottom:14}}><summary style={{cursor:'pointer',color:C.gold,fontWeight:600}}>What we read from your LinkedIn file</summary><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,color:C.gray,maxHeight:220,overflow:'auto',marginTop:8}}>{b.linkedinRaw}</pre><div style={{fontSize:15,color:C.gray}}>This is the raw text we read, kept here for reference. Your roles are in the fields below.</div></details>}
       {employers.map((e,i)=><div key={i} style={S.card}>
         <div style={S.field}><label style={S.label}>Company</label><input style={iS} value={e.company||''} onChange={ev=>updEmployer(i,{company:ev.target.value})} placeholder="Company name"/></div>
         <div style={S.field}><label style={S.label}>What the company does and its size</label><input style={iS} value={e.context||''} onChange={ev=>updEmployer(i,{context:ev.target.value})} placeholder="e.g. regional logistics firm, ~$200M revenue"/></div>
@@ -6487,7 +6487,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {(bl.experience||[]).map((role,ri)=><div key={ri} style={S.card}>
         <div style={{fontWeight:700,color:'#1A2540',fontSize:17}}>{role.company||'Company'}</div>
         <div style={{fontSize:14,color:C.gray,marginBottom:4}}>{(role.titles||[]).map(t=>`${t.title||''}${t.dates?` · ${t.dates}`:''}`).filter(Boolean).join('  |  ')||role.title||''}</div>
-        {role.context&&<div style={{fontSize:13,color:C.gray,fontStyle:'italic',marginBottom:8}}>{role.context}</div>}
+        {role.context&&<div style={{fontSize:15,color:C.gray,fontStyle:'italic',marginBottom:8}}>{role.context}</div>}
         {(role.bullets||[]).map((bt,bi)=><div key={bi} style={{marginBottom:10}}>
           <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
             <span style={{color:C.gold,marginTop:10}}>•</span>
@@ -7298,7 +7298,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{marginBottom:14}}><Btn secondary small onClick={()=>setShowOfferCompare(false)}><ArrowLeft size={13}/>Back to My Playbooks</Btn></div>
       <h1 style={{...S.title,marginBottom:6}}>Compare offers</h1>
       <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 6px',maxWidth:760}}>Your logged offers side by side. The “you can bank on” line is the firm money — base, plus the benefits that come back to you (401(k) match, HSA, PTO), minus what you pay for health — so an offer with a higher salary but a costlier health plan doesn't look better than it is. Bonus and equity sit below on their own lines, because what they're really worth depends on attainment and on an exit no one can predict. This is for your own weighing; Reimagine doesn't rank the offers or say which to take.</p>
-      <div style={{fontSize:13,color:C.gray,fontStyle:'italic',margin:'0 0 16px'}}>Priced benefits are estimates from the numbers you entered on each offer.</div>
+      <div style={{fontSize:15,color:C.gray,fontStyle:'italic',margin:'0 0 16px'}}>Priced benefits are estimates from the numbers you entered on each offer.</div>
       <div style={{overflowX:'auto',border:`1px solid ${C.border}`,borderRadius:10}}>
         <table style={{borderCollapse:'collapse',width:'100%',background:'#FFFFFF'}}>
           <thead><tr><td style={{...labelCell,background:'#F1F3F6'}}></td>{data.map(d=><td key={d.r.id} style={{...cell,fontWeight:700,fontSize:16,color:'#1A2540',background:'#F1F3F6'}}>{d.r.title||d.o.title||'Offer'}</td>)}</tr></thead>
@@ -7315,7 +7315,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </tbody>
         </table>
       </div>
-      <div style={{fontSize:13,color:C.gray,lineHeight:1.6,marginTop:12,maxWidth:820}}>Bonus shows at the level you modeled on each offer. Equity is held at $0 in every total on purpose — a private grant can be worth nothing, so counting it would flatter the offer. Where an offer's real edge rests on its equity, that's the piece to weigh with your Coach, who can reason about your specific situation.</div>
+      <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:12,maxWidth:820}}>Bonus shows at the level you modeled on each offer. Equity is held at $0 in every total on purpose — a private grant can be worth nothing, so counting it would flatter the offer. Where an offer's real edge rests on its equity, that's the piece to weigh with your Coach, who can reason about your specific situation.</div>
     </div>
   }
   // Compensation Read — Focus surface (comp-benchmarking brief 2026-08-07). Lives
@@ -7360,7 +7360,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       {focusSalaryErr&&<div style={{marginTop:10}}><ErrBox msg={focusSalaryErr}/></div>}
       {focusSalaryBusy&&<div style={{marginTop:14}}><Loading msg="Building Compensation Read…" step="salaryRead"/></div>}
-      {built&&<div style={{marginTop:14}}><div style={S.out}><MD text={focusSalary.content}/></div><div style={{marginTop:10,fontSize:13,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Compensation figures come from public salary sources, which routinely disagree and can lag the market. Treat this as a starting range for your own research, not a definitive number — click through to the sources and weigh them against your specific company, level, and total package.</div></div>}
+      {built&&<div style={{marginTop:14}}><div style={S.out}><MD text={focusSalary.content}/></div><div style={{marginTop:10,fontSize:15,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Compensation figures come from public salary sources, which routinely disagree and can lag the market. Treat this as a starting range for your own research, not a definitive number — click through to the sources and weigh them against your specific company, level, and total package.</div></div>}
     </div>
   }
   // Cover Letter (op-cover-letter brief 2026-06-29): sibling of the p7 outreach
@@ -8310,7 +8310,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 22px',background:C.gold,borderRadius:8,color:'white',fontSize:17,fontWeight:700,textDecoration:'none'}}>Take the Free Affintus Assessment →</a>
         </div>
         <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
-          {[['Already have CliftonStrengths?','Upload or paste below'],['DiSC, MBTI, Hogan, PI?','Any format works'],['Something else?','We can read it']].map(([n,l])=><div key={n} style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 14px'}}><div style={{fontWeight:600,color:C.cream,fontSize:14,marginBottom:2}}>{n}</div><div style={{fontSize:15,color:C.gray}}>{l}</div></div>)}
+          {[['Already have CliftonStrengths?','Upload or paste below'],['DiSC, MBTI, Hogan, PI?','Any format works'],['Something else?','We can read it']].map(([n,l])=><div key={n} style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 14px'}}><div style={{fontWeight:600,color:C.cream,fontSize:16,marginBottom:2}}>{n}</div><div style={{fontSize:15,color:C.gray}}>{l}</div></div>)}
         </div>
         <div style={{marginBottom:16}}>
           <p style={S.helperText}>Affintus, CliftonStrengths, Hogan, DiSC, MBTI, Enneagram, PI. You can upload multiple assessments if you have more than one; each gets added to the text below with a divider line so Reimagine can read them as distinct sources.</p>
@@ -9142,7 +9142,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const _cardWrap=(children,id)=><div id={id} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px',marginBottom:14,scrollMarginTop:80}}>{children}</div>
             // Compensation disclaimer (comp-benchmarking brief 2026-08-07): fixed UI
             // copy under any comp figure, not model output. Shown once per card.
-            const _compDisclaimer=<div style={{marginTop:10,fontSize:13,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Compensation figures come from public salary sources, which routinely disagree and can lag the market. Treat this as a starting range for your own research, not a definitive number — click through to the sources and weigh them against your specific company, level, and total package.</div>
+            const _compDisclaimer=<div style={{marginTop:10,fontSize:15,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Compensation figures come from public salary sources, which routinely disagree and can lag the market. Treat this as a starting range for your own research, not a definitive number — click through to the sources and weigh them against your specific company, level, and total package.</div>
             const _head=(label,sub,built,onBuild,buildLabel)=><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
               <div style={{flex:1,minWidth:220}}>
                 <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>{label}</div>
@@ -9326,7 +9326,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{flex:2,minWidth:160}}><label style={S.label}>Function <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.function||''} onChange={e=>_updIv(iv.id,{function:e.target.value})} placeholder="e.g. Product"/></div>
                     </div>
                     <div style={S.field}><label style={S.label}>LinkedIn URL <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.linkedin_url||''} onChange={e=>_updIv(iv.id,{linkedin_url:e.target.value})} placeholder="https://www.linkedin.com/in/…"/></div>
-                    <div style={{...S.field,marginBottom:0}}><label style={S.label}>What you have learned <span style={_optTag}>(optional)</span></label><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,fontSize:16,flex:1}} value={iv.learned_note||''} onChange={e=>_updIv(iv.id,{learned_note:e.target.value})} placeholder="What you know about this person and what they care about, in your own words."/>{hasSpeech&&<SpeechBtn onResult={t=>_updIv(iv.id,{learned_note:(iv.learned_note||'')+t})}/>}</div><div style={{fontSize:13,color:C.gray,marginTop:6,lineHeight:1.5}}>This is what most shapes this person's Interview Prep. A sentence on what they care about does more than their title.</div></div>
+                    <div style={{...S.field,marginBottom:0}}><label style={S.label}>What you have learned <span style={_optTag}>(optional)</span></label><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,fontSize:16,flex:1}} value={iv.learned_note||''} onChange={e=>_updIv(iv.id,{learned_note:e.target.value})} placeholder="What you know about this person and what they care about, in your own words."/>{hasSpeech&&<SpeechBtn onResult={t=>_updIv(iv.id,{learned_note:(iv.learned_note||'')+t})}/>}</div><div style={{fontSize:15,color:C.gray,marginTop:6,lineHeight:1.5}}>This is what most shapes this person's Interview Prep. A sentence on what they care about does more than their title.</div></div>
                     {(()=>{
                       // Per-interviewer web research (PR 4): explicit, user-initiated; nothing
                       // is sent until the button is clicked. Result is shown as an unconfirmed
@@ -9339,7 +9339,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       if(rBusy)return wrap(<div style={{display:'flex',alignItems:'center',gap:8,fontSize:15,color:C.gray}}><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Searching public sources…</div>)
                       if(!research)return wrap(<>
                         <Btn small secondary onClick={()=>generateInterviewerResearch(iv.id)} disabled={!!researchingIvId}><Search size={13}/>Research this person on the web</Btn>
-                        <div style={{fontSize:13,color:C.gray,marginTop:6,lineHeight:1.5}}>Optional. Searches public sources and shows what it finds as a draft for you to confirm. Nothing is sent until you click.</div>
+                        <div style={{fontSize:15,color:C.gray,marginTop:6,lineHeight:1.5}}>Optional. Searches public sources and shows what it finds as a draft for you to confirm. Nothing is sent until you click.</div>
                         {rErr&&<div style={{marginTop:8}}><ErrBox msg={rErr}/></div>}
                       </>)
                       if(rEditing)return wrap(<>
@@ -9409,7 +9409,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <input style={{flex:'1 1 240px',maxWidth:340,background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 13px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_offerVal} onChange={e=>setOfferDrafts(d=>({...d,[_slot]:e.target.value}))} onKeyDown={e=>{if(e.key==='Enter'&&_compBuilt&&!opSectionBuilding&&String(_offerVal||'').trim())generateOpOfferNegotiation()}} placeholder="e.g. $150,000 base, or $150k + 15% bonus"/>
                       <Btn small onClick={()=>generateOpOfferNegotiation()} disabled={!!opSectionBuilding||!_compBuilt||!String(_offerVal||'').trim()}>{_onBuilt?<><RotateCcw size={11}/>Update</>:<>See where it lands <ChevronRight size={13}/></>}</Btn>
                     </div>
-                    <div style={{fontSize:13,color:C.gray,marginTop:6,lineHeight:1.5}}>Enter your base, plus any bonus or equity. We'll place it against the sourced range. Stays private to your account.</div>
+                    <div style={{fontSize:15,color:C.gray,marginTop:6,lineHeight:1.5}}>Enter your base, plus any bonus or equity. We'll place it against the sourced range. Stays private to your account.</div>
                   </div>
                   {/* Offer-letter upload + editable readout (offer-letter-parse brief
                       2026-08-07): upload/paste the actual letter, we break it into its
@@ -9420,7 +9420,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{fontSize:15,fontWeight:700,color:'#1A2540'}}>{offerUpdateOpen[_slot]?'Upload your updated offer letter':'Or upload your offer letter'}</div>
                       {offerUpdateOpen[_slot]&&<Btn small secondary onClick={()=>{setOfferUpdateOpen(o=>({...o,[_slot]:false}));setOfferParseError(null)}}>Cancel</Btn>}
                     </div>
-                    <div style={{fontSize:13,color:C.gray,marginBottom:10,lineHeight:1.5}}>{offerUpdateOpen[_slot]?"Negotiated a better deal? Upload the new letter — it replaces the current terms, re-runs your guidance, and shows you what changed. We read only the compensation and employment terms, never personal identifiers, and we don't keep the document.":"We'll break it into its parts — base, bonus, equity, benefits, and the rest — so you can see the whole package and what's missing. We read only the compensation and employment terms, never personal identifiers, and we don't keep the document."}</div>
+                    <div style={{fontSize:15,color:C.gray,marginBottom:10,lineHeight:1.5}}>{offerUpdateOpen[_slot]?"Negotiated a better deal? Upload the new letter — it replaces the current terms, re-runs your guidance, and shows you what changed. We read only the compensation and employment terms, never personal identifiers, and we don't keep the document.":"We'll break it into its parts — base, bonus, equity, benefits, and the rest — so you can see the whole package and what's missing. We read only the compensation and employment terms, never personal identifiers, and we don't keep the document."}</div>
                     {offerParsing?<div style={{display:'flex',alignItems:'center',gap:8,fontSize:15,color:C.gray}}><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Reading your offer…</div>:<>
                       {!offerPasteOpen[_slot]?<div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
                         <FileUpload label="Upload offer letter" hint="PDF, Word, or text" onFile={f=>parseOfferLetter(f)}/>
@@ -9465,8 +9465,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         <span style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>What we found in your offer</span>
                       </button>
                     </div>
-                    {!offerTableOpen[_slot]&&<div style={{fontSize:13,color:C.gray,marginTop:4,lineHeight:1.5}}>The full parsed offer is saved — it's all here if you want to inspect or correct the terms.</div>}
-                    {offerTableOpen[_slot]&&<><div style={{fontSize:13,color:C.gray,margin:'8px 0 10px',lineHeight:1.5}}>Fix anything we misread. The terms the letter didn't mention are listed below as things to ask about — click one to add it. This feeds the guidance above, and stays private to your account.</div>
+                    {!offerTableOpen[_slot]&&<div style={{fontSize:15,color:C.gray,marginTop:4,lineHeight:1.5}}>The full parsed offer is saved — it's all here if you want to inspect or correct the terms.</div>}
+                    {offerTableOpen[_slot]&&<><div style={{fontSize:15,color:C.gray,margin:'8px 0 10px',lineHeight:1.5}}>Fix anything we misread. The terms the letter didn't mention are listed below as things to ask about — click one to add it. This feeds the guidance above, and stays private to your account.</div>
                     {(()=>{
                       const _revealed=revealedOfferFields[_slot]||[]
                       const _shown=OFFER_JSON_KEYS.filter(k=>(_offer[k]&&String(_offer[k]).trim())||_revealed.includes(k))
@@ -9474,19 +9474,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       return <>
                         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
                           {_shown.map(k=><div key={k}>
-                            <label style={{fontSize:12,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,display:'block',marginBottom:3}}>{OFFER_FIELD_LABELS[k]}</label>
-                            <input autoFocus={_revealed.includes(k)&&!(_offer[k]&&String(_offer[k]).trim())} style={{width:'100%',background:C.input,border:`1px solid ${(_offer[k]&&String(_offer[k]).trim())?C.border:C.gold+'55'}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_offer[k]||''} onChange={e=>updateOfferField(_slot,k,e.target.value)} placeholder="— not stated —"/>
+                            <label style={{fontSize:15,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,display:'block',marginBottom:3}}>{OFFER_FIELD_LABELS[k]}</label>
+                            <input autoFocus={_revealed.includes(k)&&!(_offer[k]&&String(_offer[k]).trim())} style={{width:'100%',background:C.input,border:`1px solid ${(_offer[k]&&String(_offer[k]).trim())?C.border:C.gold+'55'}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_offer[k]||''} onChange={e=>updateOfferField(_slot,k,e.target.value)} placeholder="— not stated —"/>
                           </div>)}
                         </div>
                         {_missing.length>0&&<div style={{marginTop:12}}>
-                          <div style={{fontSize:12,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,marginBottom:6}}>Not in your offer — worth asking about</div>
+                          <div style={{fontSize:15,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,marginBottom:6}}>Not in your offer — worth asking about</div>
                           <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                             {_missing.map(k=><button key={k} type="button" onClick={()=>setRevealedOfferFields(r=>({...r,[_slot]:[...(r[_slot]||[]),k]}))} style={{background:`${C.gold}12`,border:`1px solid ${C.gold}44`,borderRadius:16,padding:'4px 11px',fontSize:13,color:'#1A2540',cursor:'pointer',fontFamily:'inherit'}}>+ {OFFER_FIELD_LABELS[k]}</button>)}
                           </div>
                         </div>}
                       </>
                     })()}
-                    {_compBuilt&&<div style={{marginTop:6,fontSize:13,color:C.gray,lineHeight:1.5}}>Edited something here? Use <strong>Build</strong> / <strong>Rebuild</strong> at the top of this card to refresh the negotiation guidance from these numbers.</div>}</>}
+                    {_compBuilt&&<div style={{marginTop:6,fontSize:15,color:C.gray,lineHeight:1.5}}>Edited something here? Use <strong>Build</strong> / <strong>Rebuild</strong> at the top of this card to refresh the negotiation guidance from these numbers.</div>}</>}
                   </div>}
                   {opSectionErrors.offerNegotiation&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.offerNegotiation}/></div>}
                   {_onBusy&&<div style={{marginTop:14}}><Loading msg="Building Offer & Negotiation…" step="offerNegotiation"/></div>}
@@ -9506,8 +9506,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     const _company=(_rec&&_rec.company&&String(_rec.company).trim())||'this company'
                     return <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                       <div style={{fontSize:15,fontWeight:700,color:'#1A2540',marginBottom:2}}>Sharpen the ROI case — your value to them</div>
-                      <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:8}}>The strongest ask isn't what you did before — it's what you'll do for them. In a sentence or two: how will you create value at {_company}? What will you make or save, what risk will you reduce? Draw on the role and what you worked through in your interview prep. Rebuild and the analysis will lead with your case.</div>
-                      <textarea style={{...S.ta,minHeight:80,fontSize:15}} value={_vc} onChange={e=>setValueCaseDrafts(d=>({...d,[_slot]:e.target.value}))} onBlur={()=>{if((valueCaseDrafts[_slot]||'')!==_vcApplied)updateOfferValueCase(_slot,valueCaseDrafts[_slot]||'')}} placeholder="e.g. Cut first-year voluntary turnover, saving ~$X in replacement cost; de-risk the people side of the [growth initiative]; build the retention infrastructure to scale headcount from A to B."/>
+                      <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginBottom:8}}>The strongest ask isn't what you did before — it's what you'll do for them. In a sentence or two: how will you create value at {_company}? What will you make or save, what risk will you reduce? Draw on the role and what you worked through in your interview prep. Rebuild and the analysis will lead with your case.</div>
+                      <textarea style={{...S.ta,minHeight:80,fontSize:16}} value={_vc} onChange={e=>setValueCaseDrafts(d=>({...d,[_slot]:e.target.value}))} onBlur={()=>{if((valueCaseDrafts[_slot]||'')!==_vcApplied)updateOfferValueCase(_slot,valueCaseDrafts[_slot]||'')}} placeholder="e.g. Cut first-year voluntary turnover, saving ~$X in replacement cost; de-risk the people side of the [growth initiative]; build the retention infrastructure to scale headcount from A to B."/>
                       <div style={{marginTop:8}}><Btn small onClick={()=>{const v=valueCaseDrafts[_slot]!==undefined?valueCaseDrafts[_slot]:_vcApplied;if(v!==_vcApplied)updateOfferValueCase(_slot,v);generateOpOfferNegotiation(undefined,undefined,v)}} disabled={!!opSectionBuilding||!String(_vc||'').trim()}>{opSectionBuilding==='offerNegotiation'?'Rebuilding…':<><RotateCcw size={11}/>Rebuild with my value case</>}</Btn></div>
                     </div>
                   })()}
@@ -9538,11 +9538,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     const _btn2={padding:'7px 16px',borderRadius:6,border:`1.5px solid ${C.gold}`,background:C.gold,color:'#1A2540',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'inherit'}
                     return <div style={{marginTop:14}}>
                       <div style={{fontSize:15,fontWeight:700,color:'#1A2540',marginBottom:2}}>Benefits</div>
-                      <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>The parts of a package that move your real take-home: what you pay for health each month (it comes straight out of your check), weighed against the money that comes back to you — a 401(k) match, an employer HSA, and your PTO. These can swing which offer is the better deal even when the salaries look close. Enter each the way your offer states it — a 401(k) match as a percent of base is fine. Add whatever numbers you have; anything you skip simply won't be counted.</div>
+                      <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginBottom:10}}>The parts of a package that move your real take-home: what you pay for health each month (it comes straight out of your check), weighed against the money that comes back to you — a 401(k) match, an employer HSA, and your PTO. These can swing which offer is the better deal even when the salaries look close. Enter each the way your offer states it — a 401(k) match as a percent of base is fine. Add whatever numbers you have; anything you skip simply won't be counted.</div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
                         {OFFER_BENEFIT_KEYS.map(k=><div key={k}>
-                          <label style={{fontSize:12,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,display:'block',marginBottom:3}}>{OFFER_BENEFIT_LABELS[k]}</label>
-                          <input style={{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_ben[k]||''} onChange={e=>updateOfferBenefit(_slot,k,e.target.value)} placeholder="—"/>
+                          <label style={{fontSize:15,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,display:'block',marginBottom:3}}>{OFFER_BENEFIT_LABELS[k]}</label>
+                          <input style={{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_ben[k]||''} onChange={e=>updateOfferBenefit(_slot,k,e.target.value)} placeholder="—"/>
                         </div>)}
                       </div>
                       {_anyBen&&<div style={{marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
@@ -9552,7 +9552,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       {_anyBen&&_calced&&!_dirty&&<div style={{marginTop:12}}>
                         {_mv.net!=null
                           ?<div style={{fontSize:15,color:'#1A2540'}}>These benefits are worth <strong style={{fontSize:20,fontWeight:800}}>{_bm2(_mv.net)}/yr</strong> to you, net of what you pay for health.
-                            <div style={{fontSize:13,color:C.gray,marginTop:4,lineHeight:1.5}}>{[_mv.adds.retirement!=null&&`401(k) match ${_bm2(_mv.adds.retirement)}`,_mv.adds.hsa!=null&&`HSA ${_bm2(_mv.adds.hsa)}`,_mv.adds.pto!=null&&`PTO value ${_bm2(_mv.adds.pto)}`,_mv.premiumAnnual!=null&&`minus health premium ${_bm2(_mv.premiumAnnual)}`].filter(Boolean).join(' · ')}</div>
+                            <div style={{fontSize:15,color:C.gray,marginTop:4,lineHeight:1.5}}>{[_mv.adds.retirement!=null&&`401(k) match ${_bm2(_mv.adds.retirement)}`,_mv.adds.hsa!=null&&`HSA ${_bm2(_mv.adds.hsa)}`,_mv.adds.pto!=null&&`PTO value ${_bm2(_mv.adds.pto)}`,_mv.premiumAnnual!=null&&`minus health premium ${_bm2(_mv.premiumAnnual)}`].filter(Boolean).join(' · ')}</div>
                           </div>
                           :<div style={{fontSize:14,color:C.gray}}>Add a premium, a 401(k) match, an HSA, or PTO above to price these — a deductible alone doesn't change your take-home.</div>}
                         {_tc.firstYear!=null&&<div style={{marginTop:8,fontSize:14,color:'#1A2540'}}>With base and bonus, your first-year total comes to about <strong>{_bm2(_tc.firstYear)}</strong> <span style={{color:C.gray,fontWeight:400}}>(equity excluded).</span></div>}
@@ -9569,7 +9569,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     const _bm=bonusModel(_o,_ben)
                     if(_bm.framing==null)return null
                     const _m=n=>n==null?'—':'$'+Math.round(n).toLocaleString()
-                    const _binp={width:90,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}
+                    const _binp={width:90,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}
                     const _base=parseMoney(_o.base),_net=monetizeBenefits(_o,_ben).net
                     // Calculate-button mechanic (offer-bonus-calc-button 2026-08-07):
                     // the input is a DRAFT; the payout only recomputes when the user
@@ -9588,10 +9588,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     return <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                       <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:2}}>Model your bonus</div>
                       {_bm.framing==='pct'?<>
-                        <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>Your target is {_bm.targetPct}% of base{_bm.targetValue!=null?` (${_m(_bm.targetValue)} at 100%)`:''}. Target is the optimistic case — teams often land lower, so it's worth asking your hiring manager what this one actually hits. Set the attainment you expect, then press Calculate.</div>
+                        <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginBottom:10}}>Your target is {_bm.targetPct}% of base{_bm.targetValue!=null?` (${_m(_bm.targetValue)} at 100%)`:''}. Target is the optimistic case — teams often land lower, so it's worth asking your hiring manager what this one actually hits. Set the attainment you expect, then press Calculate.</div>
                         <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:15,color:'#1A2540'}}>At <input style={_binp} value={_draft} onChange={e=>setBonusCalcDraft(d=>({...d,[_slot]:e.target.value}))} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();_calc()}}}/> % attainment <button type="button" onClick={_calc} style={_btn}>Calculate</button></div>
                       </>:<>
-                        <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>{_bm.targetValue!=null?`Your stated target is ${_m(_bm.targetValue)}.`:'This reads as a variable or commission bonus, which base pay can\'t predict.'} Enter what you realistically expect, then press Calculate.</div>
+                        <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginBottom:10}}>{_bm.targetValue!=null?`Your stated target is ${_m(_bm.targetValue)}.`:'This reads as a variable or commission bonus, which base pay can\'t predict.'} Enter what you realistically expect, then press Calculate.</div>
                         <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:15,color:'#1A2540'}}>Expected bonus $ <input style={{..._binp,width:120}} value={_draft} onChange={e=>setBonusCalcDraft(d=>({...d,[_slot]:e.target.value}))} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();_calc()}}} placeholder="e.g. 6000"/> <button type="button" onClick={_calc} style={_btn}>Calculate</button></div>
                       </>}
                       <div style={{marginTop:12,fontSize:15,color:'#1A2540'}}>Payout: <strong style={{fontSize:22,fontWeight:800}}>{_m(_bm.modeled)}</strong>{_dirty&&<span style={{color:C.gold,fontWeight:600,marginLeft:8}}>press Calculate to update</span>}</div>
@@ -9613,9 +9613,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:2}}>How to read the equity</div>
                       <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginBottom:8}}>Your grant: <span style={{color:'#1A2540'}}>{_o.equity}</span></div>
                       <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>{['Public','Late-stage private','Early-stage private'].map(s=><button key={s} type="button" onClick={()=>updateOfferBenefit(_slot,'companyStage',_stage===s?'':s)} style={{padding:'8px 14px',borderRadius:8,border:`1.5px solid ${_stage===s?C.gold:C.border}`,background:_stage===s?`${C.gold}1F`:C.input,color:C.cream,fontWeight:_stage===s?700:500,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{s}</button>)}</div>
-                      <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>{_note}</div>
-                      <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:14,color:'#1A2540'}}>Paper value, if you were told one <input style={{width:140,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_ben.equityPaperValue!==undefined?_ben.equityPaperValue:''} onChange={e=>updateOfferBenefit(_slot,'equityPaperValue',e.target.value)} placeholder="optional, e.g. $200,000"/></div>
-                      <div style={{marginTop:10,fontSize:13,color:C.gray,fontStyle:'italic'}}>This is left out of the “cash + benefits you can bank on” number on purpose — a private grant can be worth zero. How much to weight it is a personal call, and a good one to talk through with My Coach.</div>
+                      <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginBottom:10}}>{_note}</div>
+                      <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:14,color:'#1A2540'}}>Paper value, if you were told one <input style={{width:140,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_ben.equityPaperValue!==undefined?_ben.equityPaperValue:''} onChange={e=>updateOfferBenefit(_slot,'equityPaperValue',e.target.value)} placeholder="optional, e.g. $200,000"/></div>
+                      <div style={{marginTop:10,fontSize:15,color:C.gray,fontStyle:'italic'}}>This is left out of the “cash + benefits you can bank on” number on purpose — a private grant can be worth zero. How much to weight it is a personal call, and a good one to talk through with My Coach.</div>
                     </div>
                   })()}
                   {/* Priorities Check retired 2026-08-08: folded into the Offer &
@@ -9639,7 +9639,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                           <Btn small secondary={_clBuilt} onClick={()=>generateOpNegotiationChecklist()} disabled={!!opSectionBuilding||!_onBuilt}>{_clBusy?'Building…':_clBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Prepare for the conversation</>}</Btn>
                         </div>
                       </div>
-                      {!_onBuilt&&<div style={{marginTop:10,fontSize:13,color:C.gray,lineHeight:1.5}}>Build the Offer & Negotiation analysis above first — your talking points are drawn from it.</div>}
+                      {!_onBuilt&&<div style={{marginTop:10,fontSize:15,color:C.gray,lineHeight:1.5}}>Build the Offer & Negotiation analysis above first — your talking points are drawn from it.</div>}
                       {opSectionErrors.checklist&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.checklist}/></div>}
                       {_clBusy&&<div style={{marginTop:14}}><Loading msg="Pulling your talking points together…" step="checklist"/></div>}
                       {_clBuilt&&<div style={{marginTop:14}}>
@@ -9902,7 +9902,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {savedPlaybooks.map(rec=><div key={rec.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'12px 16px',borderBottom:`1px solid ${C.border}`}}>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:16,fontWeight:600,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{rec.title}</div>
-              <div style={{fontSize:13,color:C.gray,marginTop:2}}>{rec.source==='door2'?'Opportunity':laneLabelFor(rec.lane)}</div>
+              <div style={{fontSize:15,color:C.gray,marginTop:2}}>{rec.source==='door2'?'Opportunity':laneLabelFor(rec.lane)}</div>
             </div>
             <Btn secondary onClick={()=>{const proceed=atCapModal.proceed;deleteFromSavedSet(rec.id);setAtCapModal(null);if(proceed)proceed()}}>Remove</Btn>
           </div>)}
