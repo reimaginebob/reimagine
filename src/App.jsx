@@ -2060,6 +2060,21 @@ async function extractText(file){
   return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(stripNulText(e.target.result));r.onerror=rej;r.readAsText(file)})
 }
 
+// Lightly tidy a stored job description for read-only display (jd-retrieve
+// 2026-08-07). Cosmetic ONLY — never changes words. Rejoins lines that a PDF
+// extraction wrapped mid-paragraph and de-hyphenates words split across a line
+// break, while preserving real paragraph breaks, headings, and bullets (which
+// end in punctuation, or are followed by a blank line / a capitalized word / a
+// bullet marker, so the lowercase→lowercase join rule leaves them intact).
+function tidyJd(s){
+  if(!s)return ''
+  let t=String(s).replace(/\r\n?/g,'\n')
+  t=t.replace(/([A-Za-z])-\n([a-z])/g,'$1$2')   // de-hyphenate split words
+  t=t.replace(/([a-z,])\n([a-z])/g,'$1 $2')     // rejoin a wrapped paragraph line
+  t=t.replace(/\n{3,}/g,'\n\n')                  // collapse extra blank lines
+  return t.trim()
+}
+
 // voice-allow
 // AUDIENCE ANCHORING (Christine Holt feedback 2026-06-04). Silent reasoning that
 // curates the candidate's signal for the target role's hiring audience. Brief A
@@ -5931,6 +5946,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // (bonusAttainment / bonusExpected) so the payout updates as a deliberate result.
   // undefined for a slot means "show the persisted/default value in the field".
   const[bonusCalcDraft,setBonusCalcDraft]=useState({})
+  // Whether the "View job description" modal is open (jd-retrieve 2026-08-07).
+  // The JD is already stored per record (rec.jd); this is a read-only retrieval.
+  const[jdModalOpen,setJdModalOpen]=useState(false)
   const[showOfferCompare,setShowOfferCompare]=useState(false)
   // Which not-stated offer fields the user has revealed to fill in (per slot). With
   // ~34 possible fields, the readout shows the filled ones as inputs and the rest as
@@ -8934,6 +8952,22 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>Your Opportunity Playbook</h2>
                 <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 18px'}}>Build each section when you're ready. They are independent; build the ones that help most.</p>
               </>}
+              {/* View job description (jd-retrieve 2026-08-07): the submitted posting
+                  is already stored on the record (rec.jd); this button retrieves it,
+                  read-only, in a modal. Shown only when this opportunity has a stored
+                  JD (older records created before the JD was persisted won't). Sits
+                  right above About This Company, per Bob. */}
+              {(()=>{const _jd=tidyJd(_rec&&_rec.jd);if(!_jd)return null;return <div style={{marginBottom:16}}>
+                <Btn secondary small onClick={()=>setJdModalOpen(true)}><Eye size={13}/> View job description</Btn>
+                {jdModalOpen&&<div data-print="hide" onClick={()=>setJdModalOpen(false)} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+                  <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Job description as submitted" style={{background:'#FFFFFF',borderRadius:14,padding:'28px 32px',maxWidth:760,width:'100%',maxHeight:'calc(100vh - 48px)',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
+                    <button onClick={()=>setJdModalOpen(false)} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
+                    <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 4px',paddingRight:28}}>Job description</h2>
+                    <p style={{fontSize:13,color:'#718096',margin:'0 0 16px'}}>The posting as you submitted it — the exact text Reimagine built this playbook from.</p>
+                    <div style={{whiteSpace:'pre-wrap',fontSize:15,lineHeight:1.6,color:'#3D4A5C',fontFamily:'inherit'}}>{_jd}</div>
+                  </div>
+                </div>}
+              </div>})()}
               {(()=>{
                 const _crBuilt=!!(_sec.companyRead&&_sec.companyRead.content&&_sec.companyRead.content.trim())
                 const _crBusy=opSectionBuilding==='companyRead'&&opBuildingSlot===currentSavedSlotIdRef.current
