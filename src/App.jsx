@@ -7021,13 +7021,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <tr><td style={labelCell}>Bonus (modeled)</td>{data.map(d=><td key={d.r.id} style={cell}>{d.bm.framing&&d.bm.modeled!=null?<><span style={{color:'#5A6577'}}>{money(d.bm.modeled)}</span><div style={{fontSize:12,color:C.gray,marginTop:2}}>{d.bm.framing==='pct'?`at ${d.bm.attainment}% attainment (target ${money(d.bm.targetValue)})`:'your expected'}</div></>:(d.o.bonus||<span style={{color:C.gray}}>—</span>)}</td>)}</tr>
             <tr><td style={{...labelCell,fontSize:12}}>With bonus, if you hit it</td>{data.map(d=><td key={d.r.id} style={{...cell,color:'#5A6577'}}>{(d.base!=null&&d.ben.net!=null&&d.bm.modeled!=null)?money(d.base+d.ben.net+d.bm.modeled):<span style={{color:C.gray}}>—</span>}</td>)}</tr>
             {strRow('Sign-on',d=>d.o.signon)}
-            {strRow('Equity',d=>d.o.equity)}
+            <tr><td style={labelCell}>Equity</td>{data.map(d=>{const _b=(d.r.offerStage&&d.r.offerStage.benefits)||{};return <td key={d.r.id} style={cell}>{d.o.equity?<><span style={{color:'#5A6577'}}>{d.o.equity}</span><div style={{fontSize:12,color:C.gray,marginTop:2}}>{_b.companyStage?_b.companyStage+' · ':''}{_b.equityPaperValue?'paper value '+_b.equityPaperValue+' · ':''}counted at $0 above</div></>:<span style={{color:C.gray}}>—</span>}</td>})}</tr>
             {strRow('Paid time off',d=>d.o.pto)}
             {strRow('Remote terms',d=>d.o.remote)}
             <tr><td style={labelCell}>Against your priorities</td>{data.map(d=><td key={d.r.id} style={cell}>{d.pcHead||<span style={{color:C.gray}}>Not checked yet</span>}</td>)}</tr>
           </tbody>
         </table>
       </div>
+      <div style={{fontSize:13,color:C.gray,lineHeight:1.6,marginTop:12,maxWidth:820}}>Bonus shows at the level you modeled on each offer. Equity is held at $0 in every total on purpose — a private grant can be worth nothing, so counting it would flatter the offer. Where an offer's real edge rests on its equity, that's the piece to weigh with your Coach, who can reason about your specific situation.</div>
     </div>
   }
   // Compensation Read — Focus surface (comp-benchmarking brief 2026-08-07). Lives
@@ -9191,6 +9192,26 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:15,color:'#1A2540'}}>Expected bonus $ <input style={{..._binp,width:120}} value={_ben.bonusExpected!==undefined?_ben.bonusExpected:(_bm.targetValue!=null?String(_bm.targetValue):'')} onChange={e=>updateOfferBenefit(_slot,'bonusExpected',e.target.value)} placeholder="e.g. 6000"/></div>
                       </>}
                       {_bm.modeled!=null&&_base!=null&&<div style={{marginTop:12,fontSize:14,color:'#1A2540'}}>With this bonus, cash + benefits + bonus ≈ <strong>{_m(_base+(_net||0)+_bm.modeled)}</strong> <span style={{color:C.gray,fontWeight:400}}>— if you hit it. The firmer number to lean on is the {_m(_base+(_net||0))} you can bank on without it.</span></div>}
+                    </div>
+                  })()}
+                  {/* How to read the equity (offer-comparison Phase 4b 2026-08-07): the
+                      speculative tier. Deliberately computes NO confident number — private
+                      equity can be worth zero. A stage selector changes the honest framing;
+                      any paper value the user was told is shown as paper, not expected; the
+                      whole thing is quarantined from every total. */}
+                  {!isDemo&&(()=>{
+                    const _o=(_rec&&_rec.offerStage&&_rec.offerStage.offer)||{}
+                    if(!(_o.equity&&String(_o.equity).trim()))return null
+                    const _ben=(_rec&&_rec.offerStage&&_rec.offerStage.benefits)||{}
+                    const _stage=_ben.companyStage||''
+                    const _note={'Public':"This company is public, so the shares have a real market price you can look up. They're liquid once vested, but the value moves with the stock — treat any figure as today's snapshot, not a guarantee.",'Late-stage private':"Late-stage private — closer to a possible exit, but the shares are still illiquid and sit behind investors' preference stack. A paper value is a ceiling if things go well, not a number to count on.",'Early-stage private':"Early-stage private — treat this as a lottery ticket, not pay. Common stock sits behind investors in any sale, so it can be worth nothing, up to its paper value if the company exits well. Don't lean on it for your decision."}[_stage]||"If it's a private company, treat the equity as a wide range: it can be worth nothing — common stock sits behind investors — up to its paper value. If it's public, the shares have a market price you can look up. Set the stage to see how to read it."
+                    return <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                      <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:2}}>How to read the equity</div>
+                      <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginBottom:8}}>Your grant: <span style={{color:'#1A2540'}}>{_o.equity}</span></div>
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>{['Public','Late-stage private','Early-stage private'].map(s=><button key={s} type="button" onClick={()=>updateOfferBenefit(_slot,'companyStage',_stage===s?'':s)} style={{padding:'8px 14px',borderRadius:8,border:`1.5px solid ${_stage===s?C.gold:C.border}`,background:_stage===s?`${C.gold}1F`:C.input,color:C.cream,fontWeight:_stage===s?700:500,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{s}</button>)}</div>
+                      <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>{_note}</div>
+                      <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:14,color:'#1A2540'}}>Paper value, if you were told one <input style={{width:140,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_ben.equityPaperValue!==undefined?_ben.equityPaperValue:''} onChange={e=>updateOfferBenefit(_slot,'equityPaperValue',e.target.value)} placeholder="optional, e.g. $200,000"/></div>
+                      <div style={{marginTop:10,fontSize:13,color:C.gray,fontStyle:'italic'}}>This is left out of the “cash + benefits you can bank on” number on purpose — a private grant can be worth zero. How much to weight it is a personal call, and a good one to talk through with My Coach.</div>
                     </div>
                   })()}
                   {/* Priorities Check (offerstage-priorities-check brief 2026-08-07):
