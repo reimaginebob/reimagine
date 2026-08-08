@@ -29,7 +29,13 @@ import { BUILD_SHA } from './build-meta.js'
 
 const LOOP_GUARD_KEY = 'reimagine.lastReloadAt'
 const LOOP_GUARD_WINDOW_MS = 60 * 1000
-const POLL_INTERVAL_MS = 30 * 60 * 1000
+// Poll cadence for /version.json. Kept short (2 min) so an open tab notices a
+// fresh deploy quickly and the Reload banner appears within ~2 min — during an
+// active-development beta, users test changes minutes after they ship. The check
+// also fires on tab-refocus (visibilitychange), so switching to the tab forces an
+// immediate check. /version.json is a few bytes and no-store, so the cost is
+// negligible even across all users (stale-build detection cadence 2026-08-08).
+const POLL_INTERVAL_MS = 2 * 60 * 1000
 const VERSION_URL = '/version.json'
 
 function readLoopGuard() {
