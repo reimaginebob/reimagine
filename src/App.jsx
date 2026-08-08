@@ -2903,7 +2903,7 @@ OUTPUT STRUCTURE: when a company basis was established, open with one short plai
   // URLs), so it is NOT routed through the citation gate — the candidate's own
   // offer figure has no source and would false-trip it. Only engages once the
   // candidate is already pursuing/holding an offer, so it stays clear of steering.
-  offerNegotiation:(jobTitle,location,compReadText,offerAmount,foundation,proofPoints,companyReadText,totalCompText)=>`You are a seasoned executive compensation advisor preparing a candidate for a compensation conversation they have already decided to have. Produce a sharp, specific Offer & Negotiation analysis. Never advise whether to take the role or whether the pay is good enough; that choice is already made.
+  offerNegotiation:(jobTitle,location,compReadText,offerAmount,foundation,proofPoints,companyReadText,totalCompText,priorities)=>`You are a seasoned executive compensation advisor preparing a candidate for a compensation conversation they have already decided to have. Produce a sharp, specific Offer & Negotiation analysis. Never advise whether to take the role or whether the pay is good enough; that choice is already made.
 
 THE ROLE: ${jobTitle||'(unspecified)'}
 THE LOCATION: ${location||'(unspecified)'}
@@ -2923,6 +2923,9 @@ ${companyReadText||'(not built)'}
 THE CANDIDATE'S OWN PROOF (accomplishments and story they already wrote — draw on concrete items to build the ROI case; never invent, never restate wholesale):
 ${proofPoints||'(none provided — anchor the asks on role scope and the market read alone)'}
 
+THE CANDIDATE'S PRACTICAL PRIORITIES (what they said mattered before they saw any offer — their compensation floor, commute/remote needs, how much benefits weigh, stability-vs-upside lean, and hard deal-breakers; address ONLY the ones with a value, skip any marked "(not set)"):
+${priorities&&String(priorities).trim()?String(priorities).trim():'(none set — omit the priorities part of the output entirely)'}
+
 SOURCING RULES (load-bearing):
 - Every MARKET dollar figure MUST reuse a figure and its adjacent source URL from the Compensation Read or the organization read above. Never introduce a market number, percentile, or benchmark that is not already sourced in one of them.
 - The candidate's own offer figures and the computed totals are theirs; state them plainly, no citation.
@@ -2935,41 +2938,22 @@ VOICE RULES (load-bearing):
 - Each part opens with a bolded headline a 7-second scan catches. Specific to THIS offer and market, never generic negotiation platitudes.
 - Evidence, never entitlement. Never "you deserve more" as an assertion. The case is always: here is what this person did, here is what it returns, here is the term that reflects it.
 
-OUTPUT STRUCTURE (three parts, each a bolded headline; be thorough but tight — aim 350-500 words):
+OUTPUT STRUCTURE (each part a bolded headline; four parts when the candidate set Practical Priorities, three when they did not; be thorough but tight — aim 400-550 words):
 
 **Where the offer sits.** ${offerAmount&&String(offerAmount).trim()?'Place the base against the BEST available benchmark. If the organization read surfaced real officer compensation for this employer or its peers, anchor there and cite it — that is the relevant peer set for a senior role. Otherwise place the base against the sourced public range, citing it with its URL. If the base sits at or above the top of a GENERIC range, do not imply it is inflated or that they should expect less — explain that generic aggregator data does not capture a role at this seniority or an organization at this scale, and reach for the officer-comp figures if either read provided any. State the gap or headroom honestly. Do not tell them whether to accept.':'The candidate has not entered an offer yet — in one sentence invite them to add it, then continue against the market read.'}
+
+**How it fits what matters to you.** ${priorities&&String(priorities).trim()?'Include this part ONLY because the candidate set Practical Priorities. As a short bulleted list, one line per priority they actually stated, show how this offer measures against each: does the base plus any sign-on or bonus clear their compensation floor; do the location and remote terms meet their commute/remote need; how the benefits weigh given how much they said benefits matter; stability vs upside read against the organization signal; and whether the offer or company appears to hit any hard deal-breaker — flag that as something to confirm, never as a verdict. Lead with any deal-breaker hit or hard conflict (a base under the floor, a remote need not met). This part is a fit read, NOT a recommendation: never tell them whether to accept or reject — that call is theirs.':'The candidate set no Practical Priorities, so OMIT this part entirely — do not mention priorities or that they were not set.'}
 
 **What to ask for — the levers with room.** Work element-by-element through the parsed offer. Name what is already strong; then name the TWO OR THREE highest-leverage terms this specific offer leaves open, thin, or unusual — drawing on the compensation knowledge above and the organization type. For each, give: the specific target, the ROI case built from ONE concrete accomplishment in the proof, and the exact sentence the candidate can say to make the ask. NEVER propose a base below the current offer; if the base already exceeds the market read, point every ask at non-base levers. Turn anything unusual for this organization type into a concrete question to raise. Prefer a short bulleted list of the prioritized asks over dense prose.
 
 **The package, quantified.** Use the COMPUTED TOTAL COMPENSATION figures to state the real first-year and steady-state numbers plainly — the actual totals, never "significantly higher." Name the one-time items (sign-on, relocation) as year-one-only so the recurring picture is honest. State that equity is held OUT of these totals as a separate, speculative line to weigh with a Coach. Close by pointing to the Total Compensation Checklist on this card for anything not yet priced.`,
-
-  // Priorities Check (offerstage-priorities-check brief 2026-08-07). Reads a logged
-  // offer against the five Practical Priorities the person set in Orientation.
-  // Informational, agency-preserving — never a take-it/leave-it verdict. Not
-  // citation-gated (own offer vs own stated priorities).
-  priorityCheck:(offerText,priorities,companyContext)=>`You are checking how a specific job offer lines up against what this candidate said mattered to them, before they saw any offer. This is informational: show how the offer measures against each priority they stated. NEVER advise whether to take or reject the offer — that decision is theirs.
-
-THE OFFER ON THE TABLE:
-${offerText||'(no offer details provided)'}
-
-WHAT THE CANDIDATE SAID MATTERED (their Practical Priorities; address ONLY the ones with a value — skip any marked "(not set)"):
-${priorities}
-${companyContext?'\nABOUT THE COMPANY (use for the deal-breaker, ownership, size, and stability checks):\n'+companyContext+'\n':''}
-RULES:
-- Address ONLY the priorities the candidate actually stated. Do not invent priorities they did not name.
-- Compare plainly. For the compensation floor, weigh the offer's base plus any sign-on or bonus against the floor and say whether it clears it. For commute/remote, compare the offer's location and remote terms against the requirement. For stability vs upside, use the company signal if present. For deal-breakers, check the offer and company against each named deal-breaker and flag any that appears to be hit — as something to confirm, never as a verdict.
-- Lead with any deal-breaker hit or hard conflict (comp under the floor, a remote requirement not met). Then the rest.
-- If a check needs company information that is not provided, say what to confirm rather than guessing.
-- Plain and direct. No AI-coaching register, no comparative standing against unnamed groups, no logic-flip cadence, no typology labels, no sincerity qualifiers.
-
-OUTPUT: one bolded headline sentence summarizing how the offer lines up overall, then one short line per stated priority as a "- " list, each naming the priority and how the offer measures against it. Keep it tight, 90-160 words. Never state whether to accept or reject.`,
 
   // Negotiation checklist (offer-checklist 2026-08-08). A print/PDF-ready artifact
   // for the compensation conversation and a reusable follow-up email. Condenses the
   // analysis + priorities check + unstated terms the user ALREADY has into checkable
   // items — consistent with what they read, not a fresh re-derivation. Own offer,
   // not citation-gated.
-  negotiationChecklist:(jobTitle,offerText,negotiationText,priorityText,blanksText)=>`You are turning a candidate's Offer & Negotiation analysis into a tight, take-to-the-table checklist of talking points for their compensation conversation and any follow-up they send. CONDENSE what is below — do not introduce new asks, numbers, or claims the analysis did not make. Never advise whether to accept; that is their call.
+  negotiationChecklist:(jobTitle,offerText,negotiationText,blanksText)=>`You are turning a candidate's Offer & Negotiation analysis into a tight, take-to-the-table checklist of talking points for their compensation conversation and any follow-up they send. CONDENSE what is below — do not introduce new asks, numbers, or claims the analysis did not make. Never advise whether to accept; that is their call.
 
 THE ROLE: ${jobTitle||'(unspecified)'}
 
@@ -2979,8 +2963,7 @@ ${offerText||'(not provided)'}
 THE OFFER & NEGOTIATION ANALYSIS ALREADY SHOWN TO THEM (the source for the asks and watch-outs — condense from this, stay consistent with it):
 ${negotiationText||'(not built)'}
 
-HOW IT READ AGAINST THEIR PRIORITIES (source for what to confirm):
-${priorityText||'(not built)'}
+The analysis already includes a "How it fits what matters to you" read against the candidate's Practical Priorities — use it as the source for what to confirm.
 
 TERMS THE LETTER DID NOT STATE (natural things to confirm):
 ${blanksText||'(none flagged)'}
@@ -7099,9 +7082,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         'Components — '+_tc.components.map(c=>`${c.label} ${_tcMoney(c.amount)} (${c.cadence})`).join('; '),
         _tc.equityText?`Equity held OUT of these totals (speculative, weigh with Coach): ${_tc.equityText}`:''
       ].filter(Boolean).join('\n'):''
+      // Practical Priorities are folded INTO the analysis now (the standalone
+      // Priorities Check was retired 2026-08-08). This is downstream of steering —
+      // the offer is already in hand — so compFloor/workReq are safe to use here,
+      // the same place the old check used them. Address only the ones with a value.
+      const _prio=[['Compensation floor',profile.compFloor],['Commute or remote needs',profile.workReq],['How much benefits weigh',profile.benefitsWeight],['Stability vs upside',profile.riskTolerance],['Hard deal-breakers',profile.dealBreakers]]
+      const priorities=_prio.some(([,v])=>v&&String(v).trim())?_prio.map(([lbl,v])=>`${lbl}: ${v&&String(v).trim()?String(v).trim():'(not set)'}`).join('\n'):''
       const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
-      const fn=()=>correctionsBlock(profile.corrections)+P.offerNegotiation(role,location,compRead,offerAmount,foundation,proofPoints,companyReadText,totalCompText)+corrTail
-      const r=await callClaudeWithVoiceGate(fn,{maxTokens:2400},{step:'op-offer-negotiation',onEvent:logVoiceEvent})
+      const fn=()=>correctionsBlock(profile.corrections)+P.offerNegotiation(role,location,compRead,offerAmount,foundation,proofPoints,companyReadText,totalCompText,priorities)+corrTail
+      const r=await callClaudeWithVoiceGate(fn,{maxTokens:2600},{step:'op-offer-negotiation',onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       setSavedPlaybooks(prev=>prev.map(rec=>{
         if(rec.id!==slotId)return rec
@@ -7112,41 +7101,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       setCurrentRoleSaved(false)
     }catch(e){
       if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,offerNegotiation:e.message||'Generation failed. Try again.'}))
-    }finally{
-      if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
-    }
-  }
-  // Priorities Check (offerstage-priorities-check brief 2026-08-07). Reads a logged
-  // offer against the five Practical Priorities the person set in Orientation. This
-  // is where compFloor + workReq do their real work — read directly from profile,
-  // never through the exploration prompt path. Not citation-gated. Cached lazily on
-  // rec.offerStage.priorityCheck (no schemaVersion bump).
-  const generateOpPriorityCheck=async(correctionText,overrideOffer)=>{
-    const slotId=currentSavedSlotIdRef.current
-    if(!slotId||opSectionBuilding)return
-    const rec0=savedPlaybooks.find(r=>r.id===slotId)
-    const _struct=overrideOffer||((rec0&&rec0.offerStage&&rec0.offerStage.offer)||null)
-    const offerText=offerSummaryFromStruct(_struct)||((offerDrafts[slotId]!==undefined?offerDrafts[slotId]:((rec0&&rec0.sections&&rec0.sections.offerNegotiation&&rec0.sections.offerNegotiation.offerAmount)||''))||'').trim()
-    if(!offerText){setOpSectionErrors(e=>({...e,priorityCheck:'Add your offer above first — upload the letter or type the numbers — then check it against your priorities.'}));return}
-    const _prio=[['Compensation floor',profile.compFloor],['Commute or remote needs',profile.workReq],['How much benefits weigh',profile.benefitsWeight],['Stability vs upside',profile.riskTolerance],['Hard deal-breakers',profile.dealBreakers]]
-    if(!_prio.some(([,v])=>v&&String(v).trim())){setOpSectionErrors(e=>({...e,priorityCheck:"You haven't set any priorities yet. Add them in the Practical Priorities step of Orientation, then come back."}));return}
-    const priorities=_prio.map(([lbl,v])=>`${lbl}: ${v&&String(v).trim()?String(v).trim():'(not set)'}`).join('\n')
-    setOpSectionBuilding('priorityCheck');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,priorityCheck:null}))
-    const reqId=++opSectionReqRef.current
-    try{
-      const companyContext=((rec0&&rec0.sections&&rec0.sections.companyRead&&rec0.sections.companyRead.content)||'').trim().slice(0,1500)
-      const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
-      const fn=()=>correctionsBlock(profile.corrections)+P.priorityCheck(offerText,priorities,companyContext)+corrTail
-      const r=await callClaudeWithVoiceGate(fn,{maxTokens:1400},{step:'op-priority-check',onEvent:logVoiceEvent})
-      if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
-      setSavedPlaybooks(prev=>prev.map(rec=>{
-        if(rec.id!==slotId)return rec
-        const os=rec.offerStage||{offer:null,updatedAt:null}
-        return{...rec,offerStage:{...os,priorityCheck:{content:r,builtAt:new Date().toISOString()}},updatedAt:new Date().toISOString()}
-      }))
-      setCurrentRoleSaved(false)
-    }catch(e){
-      if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,priorityCheck:e.message||'Generation failed. Try again.'}))
     }finally{
       if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
     }
@@ -7171,10 +7125,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       const _struct=(rec0&&rec0.offerStage&&rec0.offerStage.offer)||null
       const offerText=offerSummaryFromStruct(_struct)||((offerDrafts[slotId]!==undefined?offerDrafts[slotId]:'')||'').trim()
-      const priorityText=((rec0&&rec0.offerStage&&rec0.offerStage.priorityCheck&&rec0.offerStage.priorityCheck.content)||'').trim()
       const blanks=_struct?OFFER_JSON_KEYS.filter(k=>!(_struct[k]&&String(_struct[k]).trim())).map(k=>OFFER_FIELD_LABELS[k]).join(', '):''
       const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
-      const fn=()=>correctionsBlock(profile.corrections)+P.negotiationChecklist(role,offerText,_neg,priorityText,blanks)+corrTail
+      const fn=()=>correctionsBlock(profile.corrections)+P.negotiationChecklist(role,offerText,_neg,blanks)+corrTail
       const r=await callClaudeWithVoiceGate(fn,{maxTokens:1400},{step:'op-negotiation-checklist',onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       setSavedPlaybooks(prev=>prev.map(rec=>{
@@ -7250,20 +7203,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // sections are single-flight) and each gets the freshly parsed offer passed in,
       // since this closure's savedPlaybooks hasn't flushed the new offer yet. The
       // Compensation Read is intentionally NOT re-run: it's market data keyed to the
-      // role/company, not the offer, so a new offer doesn't make it stale. Negotiation
-      // only runs when a Compensation Read exists (it's anchored on that range);
-      // Priorities Check only when the person has set priorities — matching each
-      // build's own precondition, so the auto-run never surfaces a precondition error.
+      // role/company, not the offer, so a new offer doesn't make it stale. The
+      // Offer & Negotiation analysis (which now folds in the priorities read) runs
+      // only when a Compensation Read exists — it's anchored on that range — so the
+      // auto-run never surfaces a precondition error.
       const _recNow=savedPlaybooks.find(r=>r.id===slotId)
       const _hasCompRead=!!(((_recNow&&_recNow.sections&&_recNow.sections.salaryRead&&_recNow.sections.salaryRead.content)||'').trim())
-      const _hasPriorities=[profile.compFloor,profile.workReq,profile.benefitsWeight,profile.riskTolerance,profile.dealBreakers].some(v=>v&&String(v).trim())
       ;(async()=>{
-        if(!_hasCompRead&&!_hasPriorities)return
+        if(!_hasCompRead)return
         setOfferAutoRun(a=>({...a,[slotId]:true}))
         try{
-          if(_hasCompRead)await generateOpOfferNegotiation(undefined,offer)
-          if(_hasPriorities)await generateOpPriorityCheck(undefined,offer)
-        }catch{/* each build surfaces its own error state; nothing to add here */}
+          await generateOpOfferNegotiation(undefined,offer)
+        }catch{/* the build surfaces its own error state; nothing to add here */}
         finally{setOfferAutoRun(a=>({...a,[slotId]:false}))}
       })()
     }catch(e){
@@ -7306,10 +7257,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const o=r.offerStage.offer||{}
       const ben=monetizeBenefits(o,r.offerStage.benefits||{})
       const bm=bonusModel(o,r.offerStage.benefits||{})
-      const pcRaw=(r.offerStage.priorityCheck&&r.offerStage.priorityCheck.content)||''
-      const pcM=pcRaw.match(/\*\*(.+?)\*\*/)
-      const pcHead=pcM?pcM[1]:(pcRaw.split('\n').find(l=>l.trim())||'').replace(/[*#>-]/g,'').trim()
-      return {r,o,base:parseMoney(o.base),ben,bm,pcHead}
+      return {r,o,base:parseMoney(o.base),ben,bm}
     })
     const cell={padding:'10px 14px',borderBottom:`1px solid ${C.border}`,fontSize:15,color:'#1A2540',verticalAlign:'top',minWidth:180}
     const labelCell={...cell,fontWeight:700,color:C.grayL,fontSize:13,textTransform:'uppercase',letterSpacing:0.5,minWidth:150,background:C.bg}
@@ -7332,7 +7280,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <tr><td style={labelCell}>Equity</td>{data.map(d=>{const _b=(d.r.offerStage&&d.r.offerStage.benefits)||{};return <td key={d.r.id} style={cell}>{d.o.equity?<><span style={{color:'#5A6577'}}>{d.o.equity}</span><div style={{fontSize:12,color:C.gray,marginTop:2}}>{_b.companyStage?_b.companyStage+' · ':''}{_b.equityPaperValue?'paper value '+_b.equityPaperValue+' · ':''}counted at $0 above</div></>:<span style={{color:C.gray}}>—</span>}</td>})}</tr>
             {strRow('Paid time off',d=>d.o.pto)}
             {strRow('Remote terms',d=>d.o.remote)}
-            <tr><td style={labelCell}>Against your priorities</td>{data.map(d=><td key={d.r.id} style={cell}>{d.pcHead||<span style={{color:C.gray}}>Not checked yet</span>}</td>)}</tr>
           </tbody>
         </table>
       </div>
@@ -9619,31 +9566,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{marginTop:10,fontSize:13,color:C.gray,fontStyle:'italic'}}>This is left out of the “cash + benefits you can bank on” number on purpose — a private grant can be worth zero. How much to weight it is a personal call, and a good one to talk through with My Coach.</div>
                     </div>
                   })()}
-                  {/* Priorities Check (offerstage-priorities-check brief 2026-08-07):
-                      how this offer lines up against the person's stated Practical
-                      Priorities. Only shown once an offer exists to check. */}
-                  {!isDemo&&(_offerParsed||String(_offerVal||'').trim())&&(()=>{
-                    const _pc=(_rec&&_rec.offerStage&&_rec.offerStage.priorityCheck)||null
-                    const _pcBuilt=!!(_pc&&_pc.content&&_pc.content.trim())
-                    const _pcBusy=opSectionBuilding==='priorityCheck'&&opBuildingSlot===_slot
-                    const _hasPrio=['compFloor','workReq','benefitsWeight','riskTolerance','dealBreakers'].some(k=>profile[k]&&String(profile[k]).trim())
-                    return <div style={{marginTop:18,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
-                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-                        <div style={{flex:1,minWidth:220}}>
-                          <div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>Priorities Check</div>
-                          <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginTop:4}}>How this offer lines up with what you said mattered back in Orientation — your comp floor, deal-breakers, remote needs, and the rest. It flags conflicts and anything worth confirming, so you can raise them before you decide. It won't tell you whether to accept; that call is yours.</div>
-                        </div>
-                        <div style={{display:'flex',alignItems:'center',gap:10}}>
-                          {_pcBuilt&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:14,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
-                          <Btn small secondary={_pcBuilt} onClick={()=>generateOpPriorityCheck()} disabled={!!opSectionBuilding||!_hasPrio}>{_pcBusy?'Checking…':_pcBuilt?<><RotateCcw size={11}/>Recheck</>:<><Sparkles size={12}/>Check my priorities</>}</Btn>
-                        </div>
-                      </div>
-                      {!_hasPrio&&<div style={{marginTop:10,fontSize:13,color:C.gray,lineHeight:1.5}}>You haven't set any priorities yet. Add them in the <button type="button" onClick={()=>nav('priorities')} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:13,fontFamily:'inherit'}}>Practical Priorities</button> step, then check.</div>}
-                      {opSectionErrors.priorityCheck&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.priorityCheck}/></div>}
-                      {_pcBusy&&<div style={{marginTop:14}}><Loading msg="Checking against your priorities…" step="priorityCheck"/></div>}
-                      {_pcBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_pc.content}/></div></div>}
-                    </div>
-                  })()}
+                  {/* Priorities Check retired 2026-08-08: folded into the Offer &
+                      Negotiation analysis as its "How it fits what matters to you"
+                      part, so the offer position and the priorities read live in one
+                      place instead of two overlapping sections. */}
                   {/* Negotiation checklist (offer-checklist 2026-08-08): a print/PDF-ready
                       set of talking points condensed from the analysis + priorities. */}
                   {!isDemo&&(_offerParsed||String(_offerVal||'').trim())&&(()=>{
