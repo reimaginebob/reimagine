@@ -60,4 +60,46 @@ export function monetizeBenefits(offer, benefits) {
   return { net, adds, addTotal, premiumAnnual, missing, priced: anyInput }
 }
 
+// parseBonus: read the offer's free-text bonus into a framing the modeler can use.
+//   'pct'    — a percent of base (the standard annual bonus). Carries targetPct and,
+//              when base is known, the dollar value at 100% attainment.
+//   'dollar' — a stated dollar target, OR a commission/variable plan we can't derive
+//              from base (the user supplies an expected number).
+//   null     — nothing parseable.
+export function parseBonus(bonusStr, base) {
+  const s = String(bonusStr || '')
+  if (!s.trim()) return { framing: null }
+  const commissionLike = /\b(arr|revenue|sales|quota|commission|ote|deal|bookings)\b/i.test(s)
+  const pctM = s.match(/(\d+(?:\.\d+)?)\s*%/)
+  const dollarM = s.match(/\$\s?[\d,]+(?:\.\d+)?[km]?/i)
+  if (pctM && !commissionLike) {
+    const targetPct = parseFloat(pctM[1])
+    return { framing: 'pct', targetPct, targetDollar: base != null ? Math.round(base * targetPct / 100) : null }
+  }
+  if (dollarM) return { framing: 'dollar', targetDollar: parseMoney(dollarM[0]) }
+  return { framing: 'dollar', targetDollar: null } // commission / unparseable -> user enters expected
+}
+
+// bonusModel: the interactive bonus band for one offer. The user drives "the number"
+// — attainment % for a percent-of-base bonus, or an expected dollar for a dollar/
+// commission bonus — and sees the payout. Defaults to the stated target (100% / the
+// dollar target), which is the optimistic case; the UI invites dialing it to reality.
+// modeled is the value at the user's chosen level; targetValue is the value at target.
+export function bonusModel(offer, benefits) {
+  const b = benefits || {}
+  const base = parseMoney(offer && offer.base)
+  const p = parseBonus(offer && offer.bonus, base)
+  if (p.framing == null) return { framing: null, modeled: null }
+  if (p.framing === 'pct') {
+    const attRaw = parseMoney(b.bonusAttainment)
+    const attainment = attRaw != null ? attRaw : 100
+    const modeled = (base != null && p.targetPct != null)
+      ? Math.round(base * (p.targetPct / 100) * (attainment / 100)) : null
+    return { framing: 'pct', targetPct: p.targetPct, targetValue: p.targetDollar, attainment, modeled }
+  }
+  const expected = parseMoney(b.bonusExpected)
+  const modeled = expected != null ? expected : p.targetDollar
+  return { framing: 'dollar', targetValue: p.targetDollar, expected: expected != null ? expected : p.targetDollar, modeled }
+}
+
 export { ADD_LABELS }
