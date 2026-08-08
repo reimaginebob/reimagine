@@ -1,4 +1,4 @@
-// Unit test for src/offer-valuation.js (parseMoney + monetizeBenefits, Phase 3b).
+// Unit test for src/offer-valuation.js (parseMoney + monetizeBenefits, net-pay frame).
 import { parseMoney, monetizeBenefits } from '../src/offer-valuation.js'
 
 let pass = 0, fail = 0
@@ -15,30 +15,37 @@ eq('parseMoney empty -> null', parseMoney(''), null)
 eq('parseMoney junk -> null', parseMoney('to be determined'), null)
 eq('parseMoney null -> null', parseMoney(null), null)
 
-// monetizeBenefits — full package
+// Net benefits — full package (adds minus your premium)
 const full = monetizeBenefits(
   { base: '$150,000' },
-  { employerPremiumAnnual: '$9,000', employeePremiumAnnual: '$1,440', employerRetirementAnnual: '4500', employerHSAAnnual: '1000', ptoDays: '20' }
+  { employeePremiumMonthly: '500', employerRetirementAnnual: '4500', employerHSAAnnual: '1000', ptoDays: '20' }
 )
-// pto = round(150000/260 * 20) = round(11538.46) = 11538
-eq('full pto value', full.components.pto, 11538)
-eq('full health', full.components.health, 9000)
-eq('full retirement', full.components.retirement, 4500)
-eq('full hsa', full.components.hsa, 1000)
-eq('full total', full.total, 9000 + 4500 + 1000 + 11538)
+// pto = round(150000/260 * 20) = 11538; adds = 4500+1000+11538 = 17038; premium = 500*12 = 6000
+eq('full pto value', full.adds.pto, 11538)
+eq('full addTotal', full.addTotal, 17038)
+eq('full premiumAnnual', full.premiumAnnual, 6000)
+eq('full net = adds - premium', full.net, 17038 - 6000)
 eq('full missing empty', full.missing.length, 0)
-eq('full priced 4', full.priced, 4)
 
-// missing base -> pto can't be priced
-const noBase = monetizeBenefits({ base: '' }, { employerHSAAnnual: '1000', ptoDays: '20' })
-eq('noBase pto null', noBase.components.pto, null)
-eq('noBase total is hsa only', noBase.total, 1000)
-ok('noBase reports pto missing', noBase.missing.includes('PTO value'))
+// Bob's worked example: benefits are ONLY the premium difference.
+// Offer A: premium $0/mo -> net 0 ; Offer B: premium $500/mo -> net -6000.
+const offerA = monetizeBenefits({ base: '$100,000' }, { employeePremiumMonthly: '0' })
+const offerB = monetizeBenefits({ base: '$105,000' }, { employeePremiumMonthly: '500' })
+eq('A net (no premium)', offerA.net, 0)
+eq('B net (premium only)', offerB.net, -6000)
+// base + net: A = 100000, B = 99000 -> A ahead by 1000 despite higher salary
+eq('A base+net', 100000 + (offerA.net || 0), 100000)
+eq('B base+net', 105000 + (offerB.net || 0), 99000)
+ok('A beats B on firm cash+benefits', (100000 + offerA.net) > (105000 + offerB.net))
 
-// nothing entered -> total null (caller shows "not priced in")
+// employer premium contribution is ignored entirely (not a field, not in the math)
+const withEmployerNoise = monetizeBenefits({ base: '$100,000' }, { employerPremiumAnnual: '12000', employeePremiumMonthly: '0' })
+eq('employer contribution ignored -> net 0', withEmployerNoise.net, 0)
+
+// nothing entered -> net null (caller shows "not priced in")
 const empty = monetizeBenefits({ base: '$150,000' }, {})
-eq('empty total null', empty.total, null)
-eq('empty priced 0', empty.priced, 0)
+eq('empty net null', empty.net, null)
+eq('empty priced false', empty.priced, false)
 
 if (fail > 0) { console.error(`\ntest-monetize-benefits: ${fail} of ${pass + fail} checks failed.`); process.exit(1) }
 console.log(`test-monetize-benefits: OK (${pass} checks passed)`)
