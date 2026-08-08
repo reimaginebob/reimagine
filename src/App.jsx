@@ -5924,6 +5924,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[offerPasteDrafts,setOfferPasteDrafts]=useState({})
   const[offerPasteOpen,setOfferPasteOpen]=useState({})
   const[offerBenefitsOpen,setOfferBenefitsOpen]=useState({})
+  const[offerRefOpen,setOfferRefOpen]=useState({})
   const[showOfferCompare,setShowOfferCompare]=useState(false)
   // Which not-stated offer fields the user has revealed to fill in (per slot). With
   // ~34 possible fields, the readout shows the filled ones as inputs and the rest as
@@ -9147,7 +9148,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         </div>}
                       </>
                     })()}
-                    {_compBuilt&&<div style={{marginTop:14}}><Btn small onClick={()=>generateOpOfferNegotiation()} disabled={!!opSectionBuilding}>{_onBuilt?<><RotateCcw size={11}/>Update guidance with this offer</>:<><Sparkles size={12}/>Build guidance from this offer</>}</Btn></div>}
+                    {_compBuilt&&<div style={{marginTop:6,fontSize:13,color:C.gray,lineHeight:1.5}}>Edited something here? Use <strong>Build</strong> / <strong>Rebuild</strong> at the top of this card to refresh the negotiation guidance from these numbers.</div>}
                   </div>}
                   {opSectionErrors.offerNegotiation&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.offerNegotiation}/></div>}
                   {_onBusy&&<div style={{marginTop:14}}><Loading msg="Building Offer & Negotiation…" step="offerNegotiation"/></div>}
@@ -9246,30 +9247,31 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       content from the Career Club Corner negotiation sessions, written
                       once, no generation. Always available on this card. */}
                   <div style={{marginTop:18,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
-                    <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:4}}>Total compensation checklist</div>
-                    <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginBottom:8}}>An offer is more than base. Before you respond, get the full picture — ask about each of these.</div>
-                    <ul style={{margin:'0 0 0 20px',padding:0,fontSize:15,color:'#33405C',lineHeight:1.7}}>
-                      <li>Base salary</li>
-                      <li>Bonus — and what it has actually paid out in recent years, not just the target percentage</li>
-                      <li>Sign-on or signing bonus</li>
-                      <li>Title, and the level and scope it signals</li>
-                      <li>Equity or long-term incentives</li>
-                      <li>Retirement — the match rate and the vesting schedule</li>
-                      <li>Health benefits in detail — deductible, premium split, what is actually covered, not just "we offer a plan"</li>
-                      <li>Tuition reimbursement or a professional development budget</li>
-                      <li>Paid time off — and, if it is "unlimited," what people actually take</li>
-                      <li>Work location, commute, and remote terms</li>
-                      <li>Anything non-standard worth asking for — someone once negotiated recurring time with a senior leader; comp is not only cash</li>
-                    </ul>
-                  </div>
-                  <div style={{marginTop:16}}>
-                    <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:4}}>Negotiation scripts</div>
-                    <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginBottom:8}}>A few lines that do a lot of work in the conversation.</div>
-                    <ul style={{margin:'0 0 0 20px',padding:0,fontSize:15,color:'#33405C',lineHeight:1.7}}>
-                      <li>Instead of "what were you making before," ask: <strong>"Can you share the budget for this role?"</strong></li>
-                      <li>Share a range, then go quiet. Don't rush to fill the pause.</li>
-                      <li>Close with <strong>"Would that be fair?"</strong> — or its quieter inversion, <strong>"Would that be unfair?"</strong></li>
-                    </ul>
+                    {!offerRefOpen[_slot]?<button type="button" onClick={()=>setOfferRefOpen(o=>({...o,[_slot]:true}))} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit'}}>Negotiation reference — the total-comp checklist and scripts ▾</button>:<>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>Negotiation reference</div><button type="button" onClick={()=>setOfferRefOpen(o=>({...o,[_slot]:false}))} style={{background:'none',border:'none',color:C.gray,fontWeight:600,cursor:'pointer',padding:0,fontSize:13,fontFamily:'inherit'}}>Hide</button></div>
+                      <div style={{fontSize:14,fontWeight:700,color:'#1A2540',margin:'10px 0 4px'}}>Total compensation checklist</div>
+                      <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginBottom:8}}>An offer is more than base. Before you respond, get the full picture — ask about each of these.</div>
+                      <ul style={{margin:'0 0 0 20px',padding:0,fontSize:15,color:'#33405C',lineHeight:1.7}}>
+                        <li>Base salary</li>
+                        <li>Bonus — and what it has actually paid out in recent years, not just the target percentage</li>
+                        <li>Sign-on or signing bonus</li>
+                        <li>Title, and the level and scope it signals</li>
+                        <li>Equity or long-term incentives</li>
+                        <li>Retirement — the match rate and the vesting schedule</li>
+                        <li>Health benefits in detail — deductible, premium split, what is actually covered, not just "we offer a plan"</li>
+                        <li>Tuition reimbursement or a professional development budget</li>
+                        <li>Paid time off — and, if it is "unlimited," what people actually take</li>
+                        <li>Work location, commute, and remote terms</li>
+                        <li>Anything non-standard worth asking for — someone once negotiated recurring time with a senior leader; comp is not only cash</li>
+                      </ul>
+                      <div style={{fontSize:14,fontWeight:700,color:'#1A2540',margin:'14px 0 4px'}}>Negotiation scripts</div>
+                      <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginBottom:8}}>A few lines that do a lot of work in the conversation.</div>
+                      <ul style={{margin:'0 0 0 20px',padding:0,fontSize:15,color:'#33405C',lineHeight:1.7}}>
+                        <li>Instead of "what were you making before," ask: <strong>"Can you share the budget for this role?"</strong></li>
+                        <li>Share a range, then go quiet. Don't rush to fill the pause.</li>
+                        <li>Close with <strong>"Would that be fair?"</strong> — or its quieter inversion, <strong>"Would that be unfair?"</strong></li>
+                      </ul>
+                    </>}
                   </div>
                   <div style={{marginTop:16,fontSize:14,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Some offer situations don't have a universal script — severance timing, a take-it-or-leave-it or algorithm-set offer, reading a company's layoff history before you push. Those are worth a real conversation with your Coach.</div>
                 </>,'section-offerNegotiation')
