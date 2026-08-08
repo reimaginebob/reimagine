@@ -48,6 +48,7 @@ export const NAV_LABELS = {
   linkedin: 'Your LinkedIn',
   assessment: 'Assessments',
   values: 'Values, Passions & Causes',
+  priorities: 'Practical Priorities',
   reputation: 'Reputation',
   'life-events': 'Your Story',
   skills: 'Your Skills',

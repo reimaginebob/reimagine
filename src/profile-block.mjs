@@ -69,6 +69,14 @@ ${buildSynthesisContext(outs.p3_structured)}
 RAW SIGNALS (this person's own words from orientation, do not paraphrase back to them):
 VALUES: ${pr.values||'not provided'}
 PASSIONS AND CAUSES: ${pr.passions||'not provided'}
+` + /* Practical Priorities (offer-negotiation Phase 1): deal-breakers + risk
+tolerance from the Priorities Orientation step shape GTM ranking (P.p7). The other
+three fields (compFloor, workReq, benefitsWeight) are intentionally NOT here — they
+must not enter the prompt path, they do their work at offerStage in Phase 2.
+REMINDER FOR PHASE 2: api/coach.js keeps its OWN hand-mirrored profile block; these
+two fields are not there yet. When offerStage lands (Phase 2), mirror them into
+api/coach.js so My Coach can reason about the person's stated non-negotiables. */ `HARD DEAL-BREAKERS: ${pr.dealBreakers||'not provided'}
+RISK TOLERANCE (stability vs upside): ${pr.riskTolerance||'not provided'}
 PRAISE THEY RECEIVE: ${pr.rep.memory||'not provided'}
 WHO CALLS THEM IN EMERGENCY: ${pr.rep.emergency||'not provided'}
 HOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${pr.rep.twoWords||'not provided'}

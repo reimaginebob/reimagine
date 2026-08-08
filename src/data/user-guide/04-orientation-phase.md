@@ -14,9 +14,10 @@ The Orientation phase has nine screens, in this order:
 4. Your LinkedIn (optional)
 5. Assessments
 6. Values, Passions & Causes
-7. Reputation
-8. Your Story (optional)
-9. Your Skills
+7. Practical Priorities
+8. Reputation
+9. Your Story (optional)
+10. Your Skills
 
 You can navigate them with the **Continue** and **Back** buttons at the bottom of each screen, or jump to any completed step using the sidebar on the left.
 
@@ -159,7 +160,19 @@ Two short fields. Both have a microphone button. You can speak your answers inst
 
 Both fields are required. Click **Continue**.
 
-## Screen 7: Reputation
+## Screen 7: Practical Priorities
+
+Where Values covers *why* work matters to you, this screen covers the practical side: what you actually need for a move to be worth making. Every field is optional — fill in what applies and skip the rest.
+
+- **Compensation floor.** The minimum total compensation that would make a move worth it. A number or a range is fine.
+- **Commute or remote needs.** Anything firm about where and how you work — "remote only," "no more than 30 minutes," "hybrid, two days max."
+- **How much benefits weigh.** A quick sense of how much a strong benefits package factors into your decision.
+- **Stability or upside.** Which way you lean when a role trades security for potential.
+- **Hard deal-breakers.** Anything you won't consider — an industry, an ownership structure, a company size. Leave blank if none.
+
+Two of these do work right away: your deal-breakers and your stability-vs-upside lean shape which companies Go-to-Market surfaces for you, the same way your values and passions already do. The compensation floor and commute needs are held for later — they come back when you evaluate an actual offer, and they are never used to steer which directions or companies you see. Click **Continue** when you're done, or skip straight through if none apply.
+
+## Screen 8: Reputation
 
 Four short questions about what other people see in you. Each has a microphone button.
 
@@ -179,7 +192,7 @@ If you have nothing in writing, sit with the questions for a moment. A moment of
 
 Click **Continue** when you are done.
 
-## Screen 8: Your Story (optional)
+## Screen 9: Your Story (optional)
 
 The final orientation step is the most personal one. Reimagine asks for a life experience that shapes how you work but is not on your resume. Where you grew up. A role you played in your family. A community commitment that runs across decades. The kind of thing that explains a recurring pattern in your career the resume cannot show.
 
@@ -198,7 +211,7 @@ The button at the bottom adapts. If you type anything, it reads **Continue**. If
 
 When you click Continue, Reimagine moves you to Your Skills.
 
-## Screen 9: Your Skills
+## Screen 10: Your Skills
 
 After Your Story, Reimagine reads your resume and LinkedIn and extracts a categorized list of your hard skills: technical tools, systems and platforms, certifications, languages, and methodologies. The list shows up in a few seconds, organized into chips you can edit, remove, or add to.
 
