@@ -3079,7 +3079,7 @@ function GtmContactLine({company,cc}){
     return <div><strong>Contact:</strong> <span style={{color:C.gray}}>{msg}</span></div>
   }
   const note=contactSourceNote(found.source)
-  return <div><strong>Contact:</strong> {found.contact}{found.contactLinkedIn&&/^https?:\/\//i.test(found.contactLinkedIn)&&<> · <a href={found.contactLinkedIn} target="_blank" rel="noreferrer" style={{color:C.gold}}>LinkedIn</a></>}{note&&<span style={{color:C.gray,fontWeight:400,fontSize:13}}> · {note}</span>}</div>
+  return <div><strong>Contact:</strong> {found.contact}{found.contactLinkedIn&&/^https?:\/\//i.test(found.contactLinkedIn)&&<> · <a href={found.contactLinkedIn} target="_blank" rel="noreferrer" style={{color:C.gold}}>LinkedIn</a></>}{note&&<span style={{color:C.gray,fontWeight:400,fontSize:15}}> · {note}</span>}</div>
 }
 function GtmOpeningMatch({oc}){
   const[open,setOpen]=useState(false)
@@ -3091,7 +3091,7 @@ function GtmOpeningMatch({oc}){
       <Sparkles size={16}/>{label}<span style={{fontWeight:400}}>{open?'▲':'▼'}</span>
     </button>
     {open&&matches.length>0&&<ul style={{margin:'10px 0 0',paddingLeft:18}}>
-      {matches.map((m,i)=><li key={i} style={{fontSize:14,color:'#2D3748',lineHeight:1.5,marginBottom:8}}>
+      {matches.map((m,i)=><li key={i} style={{fontSize:15,color:'#2D3748',lineHeight:1.5,marginBottom:8}}>
         {m.url?<a href={m.url} target="_blank" rel="noreferrer" style={{color:'#12603F',fontWeight:700}}>{m.title}</a>:<strong>{m.title}</strong>}
         {m.reason?<div style={{color:'#4A5568'}}>{m.reason}</div>:null}
       </li>)}
@@ -3132,7 +3132,7 @@ function RecruiterMatchRow({m}){
   const pageLabel=isPractice?`Visit the ${m.practice?m.practice+' ':''}practice page`:`Visit ${m.firm}`
   return <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,marginBottom:14,padding:'16px 20px'}}>
     <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap',marginBottom:4}}>
-      <span style={{fontSize:12,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:isPractice?'#5A4B8A':'#8A5E1C',background:isPractice?'#EDE9F7':'#FBF0DC',borderRadius:6,padding:'2px 8px'}}>{isPractice?'Large-firm practice':'Boutique'}</span>
+      <span style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:isPractice?'#5A4B8A':'#8A5E1C',background:isPractice?'#EDE9F7':'#FBF0DC',borderRadius:6,padding:'2px 8px'}}>{isPractice?'Large-firm practice':'Boutique'}</span>
       {isPractice&&m.practice&&<span style={{fontSize:15,color:C.gray}}>{m.practice} practice</span>}
     </div>
     <div style={{fontSize:20,fontWeight:700,color:'#1A2540',margin:'2px 0'}}>{m.firm}</div>
@@ -3140,11 +3140,11 @@ function RecruiterMatchRow({m}){
     {!named&&<div style={{fontSize:15,color:C.gray,marginBottom:2}}>No individual contact confirmed from a first-party source yet — the {isPractice?'practice':'firm'} page is the place to start.</div>}
     {m.specialty&&<div style={{fontSize:15,color:'#2D3748',lineHeight:1.55,marginTop:4}}>{m.specialty}</div>}
     {m.openSearchSignal&&<div style={{marginTop:10}}>
-      <span style={{display:'inline-flex',alignItems:'center',gap:6,padding:'6px 12px',background:'#E4F6EA',border:'1.5px solid #1A7F5A',borderRadius:8,color:'#12603F',fontSize:14,fontWeight:700}}><Sparkles size={14}/>{isPractice?'This practice is running a search that fits right now':'This firm has a relevant search open now'}</span>
-      {m.openSearchSignal.sourceUrl&&<a href={m.openSearchSignal.sourceUrl} target="_blank" rel="noreferrer" style={{fontSize:13,color:'#12603F',marginLeft:8}}>{m.openSearchSignal.description||'See the listing'}</a>}
+      <span style={{display:'inline-flex',alignItems:'center',gap:6,padding:'6px 12px',background:'#E4F6EA',border:'1.5px solid #1A7F5A',borderRadius:8,color:'#12603F',fontSize:15,fontWeight:700}}><Sparkles size={14}/>{isPractice?'This practice is running a search that fits right now':'This firm has a relevant search open now'}</span>
+      {m.openSearchSignal.sourceUrl&&<a href={m.openSearchSignal.sourceUrl} target="_blank" rel="noreferrer" style={{fontSize:15,color:'#12603F',marginLeft:8}}>{m.openSearchSignal.description||'See the listing'}</a>}
     </div>}
     {pageUrl&&<div style={{marginTop:10}}><a href={pageUrl} target="_blank" rel="noreferrer" style={{fontSize:15,color:C.goldL,fontWeight:600}}>{pageLabel} <span style={{fontWeight:400}}>↗</span></a></div>}
-    {m.sourceUrl&&<div style={{fontSize:12,color:C.gray,marginTop:8}}>Source: <a href={m.sourceUrl} target="_blank" rel="noreferrer" style={{color:C.gray}}>{(()=>{try{return new URL(m.sourceUrl).hostname.replace(/^www\./,'')}catch{return 'link'}})()}</a></div>}
+    {m.sourceUrl&&<div style={{fontSize:15,color:C.gray,marginTop:8}}>Source: <a href={m.sourceUrl} target="_blank" rel="noreferrer" style={{color:C.gray}}>{(()=>{try{return new URL(m.sourceUrl).hostname.replace(/^www\./,'')}catch{return 'link'}})()}</a></div>}
   </div>
 }
 // RecruitersFindMoreBox: mirrors GtmFindMoreBox exactly (same plain card, same
@@ -3156,12 +3156,12 @@ function RecruitersFindMoreBox({busy,onSubmit}){
     <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
     <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:6}}>Add more recruiters to your list</div>
     <div style={{fontSize:15,color:'#4A5568',lineHeight:1.55,marginBottom:14}}>Get more contacts. To make them a closer fit, describe what to focus on below — or leave it blank to match the list you already have.</div>
-    <label style={{display:'block',fontSize:14,fontWeight:600,color:'#2D3748',marginBottom:6}}>What should the next set focus on? <span style={{fontWeight:400,color:'#718096'}}>(optional)</span></label>
+    <label style={{display:'block',fontSize:15,fontWeight:600,color:'#2D3748',marginBottom:6}}>What should the next set focus on? <span style={{fontWeight:400,color:'#718096'}}>(optional)</span></label>
     <input value={focus} onChange={e=>setFocus(e.target.value)} disabled={busy}
       placeholder="e.g. boutiques only · firms in the Southeast · a specific sub-specialty"
       style={{width:'100%',boxSizing:'border-box',padding:'11px 14px',fontSize:15,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:8,fontFamily:'inherit',outline:'none',marginBottom:14}}/>
     <Btn onClick={()=>onSubmit(focus)} disabled={busy}>{busy?<Loader2 size={16} style={{animation:'spin 0.9s linear infinite'}}/>:<Plus size={16}/>}{busy?'Finding more…':'Find more recruiters'}</Btn>
-    {busy&&<div style={{marginTop:10,fontSize:14,color:'#718096',lineHeight:1.5}}>Researching more recruiters live — this can take a minute.</div>}
+    {busy&&<div style={{marginTop:10,fontSize:15,color:'#718096',lineHeight:1.5}}>Researching more recruiters live — this can take a minute.</div>}
   </div>
 }
 // RecruitersCard: the whole bonus card body. Gated on `chosen`. One-time
@@ -3182,17 +3182,17 @@ function RecruitersCard({data,busy,chosen,onGenerate,onMore,onCopy,copied}){
     {!built&&!busy&&<div style={S.row}><Btn disabled={busy} onClick={onGenerate}><Sparkles size={14}/>Find recruiters for this path</Btn></div>}
     {busy&&matches.length===0&&<Loading msg="Finding recruiters who specialize in this path…" step="recruiters"/>}
     {(built||matches.length>0)&&<>
-      {(c.function||c.industry||c.seniority)&&<div style={{fontSize:14,color:C.grayL,margin:'6px 0 14px'}}>Matching on: <strong>{[c.function,c.industry,c.seniority,c.geo].filter(Boolean).join(' · ')}</strong></div>}
+      {(c.function||c.industry||c.seniority)&&<div style={{fontSize:15,color:C.grayL,margin:'6px 0 14px'}}>Matching on: <strong>{[c.function,c.industry,c.seniority,c.geo].filter(Boolean).join(' · ')}</strong></div>}
       {matches.map((m,i)=><RecruiterMatchRow key={(m.firm||'')+i} m={m}/>)}
       {matches.length>0&&<div data-print="hide" style={{display:'flex',gap:8,margin:'2px 0 14px'}}>
         <Btn small secondary onClick={()=>downloadRecruitersCsv(matches,chosen)}><Download size={12}/>Download CSV</Btn>
         <Btn small secondary onClick={()=>window.print()}><Printer size={12}/>Print</Btn>
       </div>}
       {template&&<div style={{margin:'8px 0 4px',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'14px 16px'}}>
-        <div style={{fontSize:12,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>Outreach note — edit for each firm<Btn small onClick={()=>onCopy(template)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn></div>
+        <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>Outreach note — edit for each firm<Btn small onClick={()=>onCopy(template)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn></div>
         <div style={{fontSize:15,color:'#2D3748',lineHeight:1.6,whiteSpace:'pre-wrap'}}>{template}</div>
       </div>}
-      {busy&&built&&!template&&<div style={{fontSize:14,color:C.gray,margin:'6px 0'}}>Writing your outreach template…</div>}
+      {busy&&built&&!template&&<div style={{fontSize:15,color:C.gray,margin:'6px 0'}}>Writing your outreach template…</div>}
       {!busy&&matches.length===0&&<div style={{...S.note,background:C.input,border:`1px solid ${C.border}`,color:'#2D3748'}}>We couldn't confirm a specialist for this exact combination from a source we trust. Try the box below with a different focus and we'll look again.</div>}
       {built&&<div data-print="hide"><RecruitersFindMoreBox busy={busy} onSubmit={onMore}/></div>}
     </>}
@@ -3244,12 +3244,12 @@ function GtmFindMoreBox({busy,error,onSubmit}){
     <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
     <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:6}}>Add more companies to your list</div>
     <div style={{fontSize:15,color:'#4A5568',lineHeight:1.55,marginBottom:14}}>Get 10 more companies. To make them a closer fit, describe what to focus on below — or leave it blank to match the list you already have.</div>
-    <label style={{display:'block',fontSize:14,fontWeight:600,color:'#2D3748',marginBottom:6}}>What should the next 10 focus on? <span style={{fontWeight:400,color:'#718096'}}>(optional)</span></label>
+    <label style={{display:'block',fontSize:15,fontWeight:600,color:'#2D3748',marginBottom:6}}>What should the next 10 focus on? <span style={{fontWeight:400,color:'#718096'}}>(optional)</span></label>
     <input value={focus} onChange={e=>setFocus(e.target.value)} disabled={busy}
       placeholder="e.g. earlier-stage startups · companies in the Southeast · mission-driven organizations"
       style={{width:'100%',boxSizing:'border-box',padding:'11px 14px',fontSize:15,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:8,fontFamily:'inherit',outline:'none',marginBottom:14}}/>
     <Btn onClick={()=>onSubmit(focus)} disabled={busy}>{busy?<Loader2 size={16} style={{animation:'spin 0.9s linear infinite'}}/>:<Plus size={16}/>}{busy?'Finding 10 more…':'Find 10 More Companies'}</Btn>
-    {busy&&<div style={{marginTop:10,fontSize:14,color:'#718096',lineHeight:1.5}}>Researching 10 more companies live — this can take a minute or two.</div>}
+    {busy&&<div style={{marginTop:10,fontSize:15,color:'#718096',lineHeight:1.5}}>Researching 10 more companies live — this can take a minute or two.</div>}
     {error&&<div style={{...S.err,marginTop:12}}>{error}</div>}
   </div>
 }
@@ -3263,12 +3263,12 @@ function GtmReshapeBox({busy,error,onSubmit}){
     <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
     <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:6}}>Want a different set of companies?</div>
     <div style={{fontSize:15,color:'#4A5568',lineHeight:1.55,marginBottom:14}}>Tell us what you're after — size, stage, mission, geography — and we'll rebuild the list around it. Part 1 and the outreach stay.</div>
-    <label style={{display:'block',fontSize:14,fontWeight:600,color:'#2D3748',marginBottom:6}}>What should the list focus on?</label>
+    <label style={{display:'block',fontSize:15,fontWeight:600,color:'#2D3748',marginBottom:6}}>What should the list focus on?</label>
     <input value={focus} onChange={e=>setFocus(e.target.value)} disabled={busy}
       placeholder="e.g. mid-market instead of enterprise · lean toward the Southeast · closer to the mission angle"
       style={{width:'100%',boxSizing:'border-box',padding:'11px 14px',fontSize:15,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:8,fontFamily:'inherit',outline:'none',marginBottom:14}}/>
     <Btn onClick={()=>onSubmit(focus)} disabled={busy}>{busy?<Loader2 size={16} style={{animation:'spin 0.9s linear infinite'}}/>:<RotateCcw size={16}/>}{busy?'Rebuilding the list…':'Rebuild the list'}</Btn>
-    {busy&&<div style={{marginTop:10,fontSize:14,color:'#718096',lineHeight:1.5}}>Rebuilding your company list live — this can take a minute or two.</div>}
+    {busy&&<div style={{marginTop:10,fontSize:15,color:'#718096',lineHeight:1.5}}>Rebuilding your company list live — this can take a minute or two.</div>}
     {error&&<div style={{...S.err,marginTop:12}}>{error}</div>}
   </div>
 }
@@ -3854,7 +3854,7 @@ function Loading({ msg = 'Generating your analysis…', step = '' }) {
     <div style={{fontSize:22,color:C.grayL,marginBottom:24}}>{msg}</div>
     {previews && <div style={{borderLeft:`3px solid ${C.gold}30`,paddingLeft:18,textAlign:'left',marginBottom:24,fontSize:17,color:C.gray,lineHeight:1.7}}>
       <div style={{fontWeight:600,marginBottom:6,color:C.grayL,fontSize:16,letterSpacing:'0.5px',textTransform:'uppercase'}}>While you wait: what's coming</div>
-      {step==='p3'&&<div style={{fontSize:14,fontWeight:400,color:C.grayL,marginBottom:10,fontStyle:'italic'}}>This usually takes 3 to 5 minutes.</div>}
+      {step==='p3'&&<div style={{fontSize:15,fontWeight:400,color:C.grayL,marginBottom:10,fontStyle:'italic'}}>This usually takes 3 to 5 minutes.</div>}
       {previews.map((p,i) => {
         const colonIdx = p.indexOf(':')
         if(colonIdx>0 && colonIdx<40){
@@ -3876,7 +3876,7 @@ function ErrBox({msg}){return <div style={S.err}><AlertCircle size={13} color={C
 function InfoTooltip({label,children}){
   const[open,setOpen]=useState(false)
   return <span style={{position:'relative',display:'inline-flex',alignItems:'center',marginLeft:6}}>
-    <button type="button" aria-label={label||'More info'} onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)} onFocus={()=>setOpen(true)} onBlur={()=>setOpen(false)} onClick={()=>setOpen(o=>!o)} style={{width:20,height:20,borderRadius:10,border:`1px solid ${C.border}`,background:'transparent',color:C.gray,fontSize:14,fontWeight:600,fontFamily:'inherit',cursor:'help',padding:0,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>i</button>
+    <button type="button" aria-label={label||'More info'} onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)} onFocus={()=>setOpen(true)} onBlur={()=>setOpen(false)} onClick={()=>setOpen(o=>!o)} style={{width:20,height:20,borderRadius:10,border:`1px solid ${C.border}`,background:'transparent',color:C.gray,fontSize:15,fontWeight:600,fontFamily:'inherit',cursor:'help',padding:0,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>i</button>
     {open&&<span style={{position:'absolute',left:26,top:-6,background:'#1A2540',color:'#FFFFFF',padding:'10px 14px',borderRadius:8,fontSize:16,lineHeight:1.55,maxWidth:320,minWidth:200,zIndex:10,fontWeight:400,fontStyle:'normal',textAlign:'left',boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>{children}</span>}
   </span>
 }
@@ -3999,7 +3999,7 @@ function SkillCategory({label,placeholder,items,onChange}){
       {items.map((s,i)=>(
         <span key={i} style={{display:'inline-flex',alignItems:'center',gap:6,background:'#F5F0E8',border:`1px solid ${C.border}`,borderRadius:14,padding:'4px 10px 4px 12px',fontSize:16,color:'#1A2540'}}>
           {s}
-          <button onClick={()=>onChange(items.filter((_,j)=>j!==i))} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:C.gray,padding:0,marginLeft:2,lineHeight:1,fontFamily:'inherit'}} aria-label={`Remove ${s}`}>×</button>
+          <button onClick={()=>onChange(items.filter((_,j)=>j!==i))} style={{background:'none',border:'none',cursor:'pointer',fontSize:15,color:C.gray,padding:0,marginLeft:2,lineHeight:1,fontFamily:'inherit'}} aria-label={`Remove ${s}`}>×</button>
         </span>
       ))}
     </div>
@@ -4028,7 +4028,7 @@ function SubsectionRefineBox({scopeKey,onSubmit,busy,error,label,placeholder,sub
   useEffect(()=>{if(typeof presetText==='string'&&presetText.length>0){setText(presetText);if(!open)setOpen(true)}},[presetText,presetNonce])
   return <div data-print="hide" style={{marginTop:12,border:`1px solid ${C.border}`,borderRadius:8,background:C.input}}>
     <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',background:'transparent',border:'none',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-      <span style={{fontSize:14,color:C.gray}}>{open?'Hide feedback':(label||'None of these feel right? Tell us what to fix.')}</span>
+      <span style={{fontSize:15,color:C.gray}}>{open?'Hide feedback':(label||'None of these feel right? Tell us what to fix.')}</span>
       {open?<ChevronUp size={14} color={C.gray}/>:<ChevronDown size={14} color={C.gray}/>}
     </button>
     {open&&<div style={{padding:'10px 14px 14px',borderTop:`1px solid ${C.border}`}}>
@@ -4076,7 +4076,7 @@ const P8_AXIS_LABEL={search:'Search visibility',resonance:'Human resonance',auth
 function HeadlineCard({h,idx,busy,error,onRegenerate,onCopy}){
   return <div style={{...S.out,marginTop:14}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:6}}>
-      <div style={{fontSize:14,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.4}}>Option {idx+1}{h.axis&&P8_AXIS_LABEL[h.axis]?' · '+P8_AXIS_LABEL[h.axis]:''}</div>
+      <div style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.4}}>Option {idx+1}{h.axis&&P8_AXIS_LABEL[h.axis]?' · '+P8_AXIS_LABEL[h.axis]:''}</div>
       <Btn small secondary onClick={()=>onCopy(h.text)}><Copy size={11}/>Copy</Btn>
     </div>
     <div style={{fontSize:18,fontWeight:700,color:'#1A2540',lineHeight:1.5,whiteSpace:'pre-wrap'}}>{h.text}</div>
@@ -4205,7 +4205,7 @@ const SUPPORT_ANNOUNCEMENT_COPY={
 // so the layout must not imply parity between them.
 function SupportPanel({onClose}){
   const K=SUPPORT_PANEL_COPY
-  const sectionLabelStyle={fontSize:13,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#718096',margin:'0 0 10px'}
+  const sectionLabelStyle={fontSize:15,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#718096',margin:'0 0 10px'}
   const amountLinkStyle={display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'11px 20px',border:`1.5px solid ${C.gold}`,borderRadius:10,color:C.gold,fontSize:17,fontWeight:700,textDecoration:'none',fontFamily:'inherit',cursor:'pointer',background:'transparent'}
   return <div data-print="hide" onClick={onClose} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
     <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label={K.navLabel} style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:560,width:'100%',maxHeight:'calc(100vh - 48px)',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
@@ -4214,7 +4214,7 @@ function SupportPanel({onClose}){
       {K.body.map((para,i)=><p key={i} style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:'0 0 14px'}}>{para}</p>)}
       {K.quote&&<div style={{margin:'8px 0 0',padding:'2px 0 2px 16px',borderLeft:`3px solid ${C.gold}`}}>
         <p style={{fontFamily:'Georgia,serif',fontStyle:'italic',fontSize:17,color:'#3D4A5C',lineHeight:1.55,margin:0}}>{`“${K.quote.text}”`}</p>
-        <p style={{fontSize:14,color:'#718096',margin:'6px 0 0'}}>{`— ${K.quote.attribution}`}</p>
+        <p style={{fontSize:15,color:'#718096',margin:'6px 0 0'}}>{`— ${K.quote.attribution}`}</p>
       </div>}
       <div style={{marginTop:22}}>
         <div style={sectionLabelStyle}>{K.onceLabel}</div>
@@ -4307,7 +4307,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
     // Indented deeper than the parent's 22px so the hierarchy reads as
     // child-of, not a new section. Same active-state treatment as inputs.
     const subItemStyle=(active)=>({padding:'8px 14px 8px 44px',display:'flex',alignItems:'center',gap:8,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:15,fontWeight:active?700:400,color:active?'#FFFFFF':'#F1F5F9',transition:'all 0.15s'})
-    const sectionHeaderStyle={fontSize:13,fontWeight:800,letterSpacing:'1.2px',textTransform:'uppercase',color:'#B0BEDE',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8}
+    const sectionHeaderStyle={fontSize:15,fontWeight:800,letterSpacing:'1.2px',textTransform:'uppercase',color:'#B0BEDE',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8}
     return <div ref={navRef} style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
       <div style={sectionHeaderStyle}>Your work</div>
       {primaryItems.flatMap(({id,label,Icon,children})=>{
@@ -4356,7 +4356,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
     <div style={{fontSize:18,color:'#FFFFFF',fontWeight:600,marginBottom:8}}>You're {prog}% complete</div>
     <div style={{width:'100%',height:5,background:'#0F1A30',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:3,transition:'width 0.4s'}}/></div>
   </div>}
-  {phasesToRender.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active,isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{NAV_LABELS[sid]}{sid==='focus'&&chosen?<span style={{display:'block',fontSize:13,fontWeight:400,color:'#8A9BB8',marginTop:2}}>{chosen}</span>:null}</span>{active&&<span style={{fontSize:14,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
+  {phasesToRender.map(ph=><div key={ph.id} style={{marginBottom:6}}><div style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active,isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>can&&onNav(sid)} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:can?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{NAV_LABELS[sid]}{sid==='focus'&&chosen?<span style={{display:'block',fontSize:15,fontWeight:400,color:'#8A9BB8',marginTop:2}}>{chosen}</span>:null}</span>{active&&<span style={{fontSize:15,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
   {supportRail}
 </div>}
 
@@ -4503,7 +4503,7 @@ ${body}
   if(w){w.document.write(html);w.document.close();setTimeout(()=>{try{w.print()}catch{}},400)}
 }
 
-const PBKicker=({children})=><div style={{fontSize:13,textTransform:'uppercase',letterSpacing:'0.1em',color:'#1A2540',fontWeight:500,marginBottom:8}}>{children}</div>
+const PBKicker=({children})=><div style={{fontSize:15,textTransform:'uppercase',letterSpacing:'0.1em',color:'#1A2540',fontWeight:500,marginBottom:8}}>{children}</div>
 function PersonalBrandView({presentation:rawPresentation,proseForCopy,onCopy,copied,onPrint}){
   // Normalize first (dedupe sections vs origin/edges; relabel/fold settled-open)
   // so the on-screen view matches the copied/exported prose exactly.
@@ -4527,7 +4527,7 @@ function PersonalBrandView({presentation:rawPresentation,proseForCopy,onCopy,cop
     <PBKicker>Phase 1 · Personal Brand</PBKicker>
     <div style={{fontSize:24,fontWeight:500,lineHeight:1.32,color:PRIMARY,margin:'0 0 2px'}}>{hero}</div>
     {proof.length>=3&&<div style={{display:'flex',flexWrap:'wrap',gap:'16px 32px',borderTop:`0.5px solid ${C.border}`,borderBottom:`0.5px solid ${C.border}`,padding:'14px 0',margin:'18px 0 28px'}}>
-      {proof.map((pt,i)=><div key={i}><div style={{fontSize:19,fontWeight:500,color:PRIMARY,lineHeight:1.1}}>{pt.value}</div>{String(pt.label||'').trim()&&<div style={{fontSize:11,color:TERT,marginTop:3,maxWidth:160}}>{pt.label}</div>}</div>)}
+      {proof.map((pt,i)=><div key={i}><div style={{fontSize:19,fontWeight:500,color:PRIMARY,lineHeight:1.1}}>{pt.value}</div>{String(pt.label||'').trim()&&<div style={{fontSize:15,color:TERT,marginTop:3,maxWidth:160}}>{pt.label}</div>}</div>)}
     </div>}
     {proof.length<3&&<div style={{height:26}}/>}
     {sections.map((s,i)=><div key={i} style={{marginBottom:30}}>
@@ -4540,7 +4540,7 @@ function PersonalBrandView({presentation:rawPresentation,proseForCopy,onCopy,cop
     </div>}
     {edges.length>0&&<div style={{marginBottom:30}}>
       <PBKicker>Worth naming, and how to use it</PBKicker>
-      <div style={{fontSize:13,color:TERT,margin:'-2px 0 14px',lineHeight:1.5}}>Every strength has a flip side. These are yours, and what to do with them.</div>
+      <div style={{fontSize:15,color:TERT,margin:'-2px 0 14px',lineHeight:1.5}}>Every strength has a flip side. These are yours, and what to do with them.</div>
       {edges.map((e,i)=><div key={i} style={{borderLeft:`2px solid ${C.border}`,paddingLeft:14,marginBottom:14}}>
         <div style={{fontSize:15,fontWeight:500,color:PRIMARY,lineHeight:1.45}}>{clean(e.claim)}</div>
         {clean(e.detail)&&<div style={{fontSize:15,color:BODY,marginTop:4,lineHeight:1.6}}>{clean(e.detail)}</div>}
@@ -4551,8 +4551,8 @@ function PersonalBrandView({presentation:rawPresentation,proseForCopy,onCopy,cop
       <div style={{fontSize:16,lineHeight:1.7,color:PRIMARY,whiteSpace:'pre-wrap'}}>{close}</div>
     </div>}
     {(onCopy||onPrint)&&<div style={{marginTop:26,display:'flex',gap:10,flexWrap:'wrap'}}>
-      {onCopy&&proseForCopy&&<button type="button" onClick={()=>onCopy(proseForCopy)} style={{background:'#FFF',color:ACCENT,border:`1px solid ${ACCENT}`,borderRadius:8,padding:'8px 16px',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{copied?'Copied':'Copy text'}</button>}
-      {onPrint&&<button type="button" onClick={onPrint} style={{background:'#FFF',color:ACCENT,border:`1px solid ${ACCENT}`,borderRadius:8,padding:'8px 16px',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6}}><Printer size={14}/>Save as PDF</button>}
+      {onCopy&&proseForCopy&&<button type="button" onClick={()=>onCopy(proseForCopy)} style={{background:'#FFF',color:ACCENT,border:`1px solid ${ACCENT}`,borderRadius:8,padding:'8px 16px',fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{copied?'Copied':'Copy text'}</button>}
+      {onPrint&&<button type="button" onClick={onPrint} style={{background:'#FFF',color:ACCENT,border:`1px solid ${ACCENT}`,borderRadius:8,padding:'8px 16px',fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6}}><Printer size={14}/>Save as PDF</button>}
     </div>}
   </div>
 }
@@ -6436,7 +6436,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <input style={{...iS,flex:1,minWidth:120}} value={t.dates||''} onChange={ev=>updTitle(i,ti,{dates:ev.target.value})} placeholder="2019 – 2023"/>
         </div>)}
         <button type="button" onClick={()=>addTitle(i)} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:'4px 0',fontSize:15}}>+ Add another title here (for a promotion or role change)</button>
-        {employers.length>1&&<div><button type="button" onClick={()=>removeEmployer(i)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',fontSize:14,marginTop:6}}>× Remove this company</button></div>}
+        {employers.length>1&&<div><button type="button" onClick={()=>removeEmployer(i)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',fontSize:15,marginTop:6}}>× Remove this company</button></div>}
       </div>)}
       <Btn secondary onClick={addEmployer}>+ Add another company</Btn>
       <div style={{...S.card,marginTop:18}}>
@@ -6486,7 +6486,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{fontWeight:700,color:'#1A2540',margin:'18px 0 8px',fontSize:20}}>Experience</div>
       {(bl.experience||[]).map((role,ri)=><div key={ri} style={S.card}>
         <div style={{fontWeight:700,color:'#1A2540',fontSize:17}}>{role.company||'Company'}</div>
-        <div style={{fontSize:14,color:C.gray,marginBottom:4}}>{(role.titles||[]).map(t=>`${t.title||''}${t.dates?` · ${t.dates}`:''}`).filter(Boolean).join('  |  ')||role.title||''}</div>
+        <div style={{fontSize:15,color:C.gray,marginBottom:4}}>{(role.titles||[]).map(t=>`${t.title||''}${t.dates?` · ${t.dates}`:''}`).filter(Boolean).join('  |  ')||role.title||''}</div>
         {role.context&&<div style={{fontSize:15,color:C.gray,fontStyle:'italic',marginBottom:8}}>{role.context}</div>}
         {(role.bullets||[]).map((bt,bi)=><div key={bi} style={{marginBottom:10}}>
           <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
@@ -6496,18 +6496,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
           {!hasNumber(bt)&&<div style={{marginLeft:18}}>
             {draftNudges[`${ri}:${bi}`]
-              ? <div style={{fontSize:14,color:C.goldL,background:`${C.gold}10`,border:`1px solid ${C.gold}25`,borderRadius:6,padding:'8px 12px',marginTop:4}}>{draftNudges[`${ri}:${bi}`]}</div>
-              : <button type="button" disabled={!!builderBuilding} onClick={()=>genDraftNudge(ri,bi,bt)} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',fontSize:14,padding:'2px 0'}}>{builderBuilding===`nudge-${ri}:${bi}`?'Thinking…':'add a number?'}</button>}
+              ? <div style={{fontSize:15,color:C.goldL,background:`${C.gold}10`,border:`1px solid ${C.gold}25`,borderRadius:6,padding:'8px 12px',marginTop:4}}>{draftNudges[`${ri}:${bi}`]}</div>
+              : <button type="button" disabled={!!builderBuilding} onClick={()=>genDraftNudge(ri,bi,bt)} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',fontSize:15,padding:'2px 0'}}>{builderBuilding===`nudge-${ri}:${bi}`?'Thinking…':'add a number?'}</button>}
           </div>}
         </div>)}
         {sayMore.ri===ri
           ? <div style={{marginTop:8}}>
               <textarea style={{...S.ta,minHeight:90}} value={sayMore.text} onChange={ev=>setSayMore({ri,text:ev.target.value})} placeholder="What else did you do here? One thought per line. We'll turn it into resume lines."/>
-              {draftAreas[ri]&&draftAreas[ri].length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:8,margin:'8px 0'}}>{draftAreas[ri].map((a,ai)=><span key={ai} style={{background:`${C.gold}14`,border:`1px solid ${C.gold}30`,borderRadius:16,padding:'4px 11px',fontSize:13,color:'#1A2540'}}>{a}</span>)}</div>}
+              {draftAreas[ri]&&draftAreas[ri].length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:8,margin:'8px 0'}}>{draftAreas[ri].map((a,ai)=><span key={ai} style={{background:`${C.gold}14`,border:`1px solid ${C.gold}30`,borderRadius:16,padding:'4px 11px',fontSize:15,color:'#1A2540'}}>{a}</span>)}</div>}
               <div style={{display:'flex',gap:10,marginTop:6,flexWrap:'wrap',alignItems:'center'}}>
                 <Btn small disabled={!!builderBuilding} onClick={()=>genDraftSayMore(ri,sayMore.text)}>{builderBuilding==='saymore-'+ri?'Adding…':'Add these'}</Btn>
                 <Btn small secondary onClick={()=>setSayMore({ri:null,text:''})}>Cancel</Btn>
-                {!(draftAreas[ri]&&draftAreas[ri].length)&&<button type="button" disabled={!!builderBuilding} onClick={()=>genDraftAreas(ri)} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',fontSize:14}}>{builderBuilding==='areas-'+ri?'…':'need ideas?'}</button>}
+                {!(draftAreas[ri]&&draftAreas[ri].length)&&<button type="button" disabled={!!builderBuilding} onClick={()=>genDraftAreas(ri)} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',fontSize:15}}>{builderBuilding==='areas-'+ri?'…':'need ideas?'}</button>}
               </div>
             </div>
           : <button type="button" onClick={()=>setSayMore({ri,text:''})} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',fontSize:15,padding:'6px 0'}}>+ Say more about this role</button>}
@@ -6515,10 +6515,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
       <div style={{fontWeight:700,color:'#1A2540',margin:'18px 0 8px',fontSize:20}}>Skills</div>
       <div style={S.card}>
-        {skillGroups.length===0&&<div style={{fontSize:14,color:C.gray,marginBottom:8}}>No skills yet. Suggest some below.</div>}
+        {skillGroups.length===0&&<div style={{fontSize:15,color:C.gray,marginBottom:8}}>No skills yet. Suggest some below.</div>}
         {skillGroups.map((g,gi)=><div key={gi} style={{marginBottom:12}}>
           {g.category&&<div style={{fontWeight:600,color:'#1A2540',marginBottom:6,fontSize:15}}>{g.category}</div>}
-          <div style={{display:'flex',flexWrap:'wrap',gap:8,alignItems:'center'}}>{g.items.map((it,ii)=><span key={ii} style={{display:'inline-flex',alignItems:'center',gap:6,background:`${C.gold}18`,border:`1px solid ${C.gold}40`,borderRadius:16,padding:'5px 10px',fontSize:14,color:'#1A2540'}}>{typeof it==='string'?it:(it&&it.skill)}<button type="button" onClick={()=>removeSkill(gi,ii)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',fontSize:15,lineHeight:1}}>×</button></span>)}
+          <div style={{display:'flex',flexWrap:'wrap',gap:8,alignItems:'center'}}>{g.items.map((it,ii)=><span key={ii} style={{display:'inline-flex',alignItems:'center',gap:6,background:`${C.gold}18`,border:`1px solid ${C.gold}40`,borderRadius:16,padding:'5px 10px',fontSize:15,color:'#1A2540'}}>{typeof it==='string'?it:(it&&it.skill)}<button type="button" onClick={()=>removeSkill(gi,ii)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',fontSize:15,lineHeight:1}}>×</button></span>)}
             <input style={{...iS,width:170,padding:'5px 10px'}} value={skillDraft} onChange={ev=>setSkillDraft(ev.target.value)} onKeyDown={ev=>{if(ev.key==='Enter'){ev.preventDefault();addSkillTo(gi,skillDraft)}}} placeholder="Add a skill"/>
           </div>
         </div>)}
@@ -6533,8 +6533,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <Btn secondary onClick={addEduRow}>+ Add education</Btn>
 
       <div style={{fontWeight:700,color:'#1A2540',margin:'22px 0 8px',fontSize:20}}>Preview</div>
-      <div style={{...S.out,marginTop:0}}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:14,lineHeight:1.6,color:'#1A2540',margin:0}}>{renderResumeText(bl)}</pre></div>
-      <div style={{fontSize:14,color:C.ok,marginTop:10}}><Check size={12} style={{display:'inline',marginRight:4}}/>Saved to your account</div>
+      <div style={{...S.out,marginTop:0}}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:'#1A2540',margin:0}}>{renderResumeText(bl)}</pre></div>
+      <div style={{fontSize:15,color:C.ok,marginTop:10}}><Check size={12} style={{display:'inline',marginRight:4}}/>Saved to your account</div>
       <div style={S.row}>
         <Btn onClick={()=>downloadResumeWord(bl)}><Download size={14}/>Download (Word)</Btn>
         <Btn secondary disabled={!!builderBuilding} onClick={()=>genBuilderBaseline()}><RotateCcw size={12}/>Regenerate</Btn>
@@ -6738,11 +6738,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap',marginBottom:8}}>
               <span style={{fontSize:19,fontWeight:700,color:'#1A2540'}}>{nm||(typeof p.role==='string'&&p.role.trim()?p.role.trim():'Interviewer')}</span>
               {typeof p.title==='string'&&p.title.trim()&&<span style={{fontSize:15,color:C.gray}}>{p.title.trim()}</span>}
-              {typeof p.role==='string'&&p.role.trim()&&<span style={{fontSize:13,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>{p.role.trim()}</span>}
+              {typeof p.role==='string'&&p.role.trim()&&<span style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>{p.role.trim()}</span>}
             </div>
             {typeof p.looking_for==='string'&&p.looking_for.trim()&&<div style={{marginBottom:10}}>{H('What '+who+' is really looking for')}<div style={{fontSize:16,color:C.cream,lineHeight:1.6}}>{p.looking_for.trim()}</div></div>}
             {qs.length>0&&<div style={{marginBottom:10}}>{H('Questions '+who+' is likely to ask')}<ul style={{margin:0,paddingLeft:20}}>{qs.map((q,qi)=><li key={qi} style={{fontSize:16,color:C.cream,lineHeight:1.6,marginBottom:3}}>{q}</li>)}</ul></div>}
-            {stories.length>0&&<div style={{marginBottom:10}}>{H('Best stories to use')}{stories.map((s,si)=>{const k=(nm||('p'+pi))+'|'+((s&&s.story)||si);const ans=fullAnswers[k];const busy=answerBusy===k;return <div key={si} style={{marginBottom:8}}><div style={{fontSize:16,color:C.cream,lineHeight:1.6}}><strong>{(s&&s.story)||''}</strong>{(s&&s.why)?'. '+s.why:''}</div>{!isDemo&&<div style={{marginTop:5}}>{busy?<span style={{fontSize:14,color:C.gray,display:'inline-flex',alignItems:'center',gap:6}}><Loader2 size={13} style={{animation:'spin 0.9s linear infinite'}}/>Writing the full answer…</span>:<Btn small secondary onClick={()=>generateFullAnswer(nm,(s&&s.story)||'')}><Sparkles size={12}/>{ans?'Rewrite the full answer':'Write the full answer'}</Btn>}</div>}{ans&&!busy&&<div style={{marginTop:8,paddingLeft:12,borderLeft:`2px solid ${C.border}`}}><MD text={ans}/></div>}</div>})}</div>}
+            {stories.length>0&&<div style={{marginBottom:10}}>{H('Best stories to use')}{stories.map((s,si)=>{const k=(nm||('p'+pi))+'|'+((s&&s.story)||si);const ans=fullAnswers[k];const busy=answerBusy===k;return <div key={si} style={{marginBottom:8}}><div style={{fontSize:16,color:C.cream,lineHeight:1.6}}><strong>{(s&&s.story)||''}</strong>{(s&&s.why)?'. '+s.why:''}</div>{!isDemo&&<div style={{marginTop:5}}>{busy?<span style={{fontSize:15,color:C.gray,display:'inline-flex',alignItems:'center',gap:6}}><Loader2 size={13} style={{animation:'spin 0.9s linear infinite'}}/>Writing the full answer…</span>:<Btn small secondary onClick={()=>generateFullAnswer(nm,(s&&s.story)||'')}><Sparkles size={12}/>{ans?'Rewrite the full answer':'Write the full answer'}</Btn>}</div>}{ans&&!busy&&<div style={{marginTop:8,paddingLeft:12,borderLeft:`2px solid ${C.border}`}}><MD text={ans}/></div>}</div>})}</div>}
             {asks.length>0&&<div style={{marginBottom:10}}>{H('Good questions to ask '+who)}<ul style={{margin:0,paddingLeft:20}}>{asks.map((q,qi)=><li key={qi} style={{fontSize:16,color:C.cream,lineHeight:1.6,marginBottom:3}}>{q}</li>)}</ul></div>}
             {typeof onPrepWithCoach==='function'&&<div style={{marginTop:6}}><Btn small secondary onClick={()=>onPrepWithCoach(who)}><MessageCircle size={13}/>Practice with My Coach</Btn></div>}
           </div>
@@ -6786,7 +6786,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap'}}>
             <span style={{fontSize:17,fontWeight:700,color:'#1A2540'}}>{(typeof s.name==='string'&&s.name.trim())?s.name.trim():roleLbl(s.seat_role)}</span>
             {typeof s.title==='string'&&s.title.trim()&&<span style={{fontSize:15,color:C.gray}}>{s.title.trim()}</span>}
-            <span style={{fontSize:13,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>{roleLbl(s.seat_role)}</span>
+            <span style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>{roleLbl(s.seat_role)}</span>
           </div>
           {typeof s.read==='string'&&s.read.trim()&&<div style={{fontSize:16,color:C.cream,lineHeight:1.6,marginTop:6}}>{s.read.trim()}</div>}
           {reso.length>0&&<ul style={{margin:'8px 0 0',paddingLeft:20}}>{reso.map((r,ri)=><li key={ri} style={{fontSize:16,color:C.cream,lineHeight:1.6,marginBottom:4}}>{r}</li>)}</ul>}
@@ -6819,7 +6819,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {(lr.headlines||[]).map((h,i)=><HeadlineCard key={i} h={h} idx={i} busy={regeneratingP8Slot==='headline:'+i} error={p8SlotErrors['headline:'+i]} onRegenerate={regenH} onCopy={copy}/>)}
       <div style={hdr}>About section</div>
       <div style={{...S.out,marginTop:14}}>
-        {['hook','story','close'].map(k=>ab[k]?<div key={k} style={{marginBottom:10}}><div style={{fontSize:14,fontWeight:700,color:C.goldL,textTransform:'capitalize',marginBottom:4}}>{k}</div><div style={{fontSize:17,color:C.cream,lineHeight:1.65,whiteSpace:'pre-wrap'}}>{ab[k]}</div></div>:null)}
+        {['hook','story','close'].map(k=>ab[k]?<div key={k} style={{marginBottom:10}}><div style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'capitalize',marginBottom:4}}>{k}</div><div style={{fontSize:17,color:C.cream,lineHeight:1.65,whiteSpace:'pre-wrap'}}>{ab[k]}</div></div>:null)}
         <div style={{display:'flex',justifyContent:'flex-end'}}><Btn small secondary onClick={()=>copy([ab.hook,ab.story,ab.close].filter(Boolean).join('\n\n'))}><Copy size={11}/>Copy About</Btn></div>
         {regenA&&<SubsectionRefineBox scopeKey="about" onSubmit={(t)=>regenA(t)} busy={regeneratingP8Slot==='about'} error={p8SlotErrors['about']} label="Tell us what to refine in your About section." placeholder="For example: make the hook more personal. Lead with the mission, not the title." submitLabel="Regenerate About" helperText="Only the About section changes. Headlines and skills stay."/>}
       </div>
@@ -7305,7 +7305,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       return {r,o,base:parseMoney(o.base),ben,bm}
     })
     const cell={padding:'10px 14px',borderBottom:`1px solid ${C.border}`,fontSize:15,color:'#1A2540',verticalAlign:'top',minWidth:180}
-    const labelCell={...cell,fontWeight:700,color:C.grayL,fontSize:13,textTransform:'uppercase',letterSpacing:0.5,minWidth:150,background:C.bg}
+    const labelCell={...cell,fontWeight:700,color:C.grayL,fontSize:15,textTransform:'uppercase',letterSpacing:0.5,minWidth:150,background:C.bg}
     const strRow=(label,pick)=><tr><td style={labelCell}>{label}</td>{data.map(d=><td key={d.r.id} style={cell}>{pick(d)||<span style={{color:C.gray}}>—</span>}</td>)}</tr>
     return <div>
       <div style={{marginBottom:14}}><Btn secondary small onClick={()=>setShowOfferCompare(false)}><ArrowLeft size={13}/>Back to My Playbooks</Btn></div>
@@ -7317,12 +7317,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <thead><tr><td style={{...labelCell,background:'#F1F3F6'}}></td>{data.map(d=><td key={d.r.id} style={{...cell,fontWeight:700,fontSize:16,color:'#1A2540',background:'#F1F3F6'}}>{d.r.title||d.o.title||'Offer'}</td>)}</tr></thead>
           <tbody>
             {strRow('Base salary',d=>d.base!=null?money(d.base):(d.o.base||null))}
-            <tr><td style={labelCell}>Benefits, net of what you pay</td>{data.map(d=><td key={d.r.id} style={cell}>{d.ben.net!=null?<><strong style={{color:d.ben.net<0?C.err:'#1A2540'}}>{d.ben.net<0?'−'+money(-d.ben.net):'+'+money(d.ben.net)}/yr</strong><div style={{fontSize:12,color:C.gray,marginTop:3}}>{d.ben.addTotal>0?'+'+money(d.ben.addTotal)+' match/HSA/PTO':''}{d.ben.premiumAnnual?(d.ben.addTotal>0?', ':'')+'−'+money(d.ben.premiumAnnual)+' premium':''}{d.ben.missing.length?<div style={{marginTop:2}}>Not counted: {d.ben.missing.join(', ')}</div>:null}</div></>:<span style={{color:C.gray}}>Not priced in — add numbers under “Price your benefits” on this offer</span>}</td>)}</tr>
+            <tr><td style={labelCell}>Benefits, net of what you pay</td>{data.map(d=><td key={d.r.id} style={cell}>{d.ben.net!=null?<><strong style={{color:d.ben.net<0?C.err:'#1A2540'}}>{d.ben.net<0?'−'+money(-d.ben.net):'+'+money(d.ben.net)}/yr</strong><div style={{fontSize:15,color:C.gray,marginTop:3}}>{d.ben.addTotal>0?'+'+money(d.ben.addTotal)+' match/HSA/PTO':''}{d.ben.premiumAnnual?(d.ben.addTotal>0?', ':'')+'−'+money(d.ben.premiumAnnual)+' premium':''}{d.ben.missing.length?<div style={{marginTop:2}}>Not counted: {d.ben.missing.join(', ')}</div>:null}</div></>:<span style={{color:C.gray}}>Not priced in — add numbers under “Price your benefits” on this offer</span>}</td>)}</tr>
             <tr style={{background:`${C.gold}0C`}}><td style={{...labelCell,background:`${C.gold}14`}}>Cash + benefits you can bank on</td>{data.map(d=><td key={d.r.id} style={{...cell,fontWeight:700}}>{(d.base!=null&&d.ben.net!=null)?money(d.base+d.ben.net):(d.base!=null?money(d.base):<span style={{color:C.gray,fontWeight:400}}>—</span>)}</td>)}</tr>
-            <tr><td style={labelCell}>Bonus (modeled)</td>{data.map(d=><td key={d.r.id} style={cell}>{d.bm.framing&&d.bm.modeled!=null?<><span style={{color:'#5A6577'}}>{money(d.bm.modeled)}</span><div style={{fontSize:12,color:C.gray,marginTop:2}}>{d.bm.framing==='pct'?`at ${d.bm.attainment}% attainment (target ${money(d.bm.targetValue)})`:'your expected'}</div></>:(d.o.bonus||<span style={{color:C.gray}}>—</span>)}</td>)}</tr>
-            <tr><td style={{...labelCell,fontSize:12}}>With bonus, if you hit it</td>{data.map(d=><td key={d.r.id} style={{...cell,color:'#5A6577'}}>{(d.base!=null&&d.ben.net!=null&&d.bm.modeled!=null)?money(d.base+d.ben.net+d.bm.modeled):<span style={{color:C.gray}}>—</span>}</td>)}</tr>
+            <tr><td style={labelCell}>Bonus (modeled)</td>{data.map(d=><td key={d.r.id} style={cell}>{d.bm.framing&&d.bm.modeled!=null?<><span style={{color:'#5A6577'}}>{money(d.bm.modeled)}</span><div style={{fontSize:15,color:C.gray,marginTop:2}}>{d.bm.framing==='pct'?`at ${d.bm.attainment}% attainment (target ${money(d.bm.targetValue)})`:'your expected'}</div></>:(d.o.bonus||<span style={{color:C.gray}}>—</span>)}</td>)}</tr>
+            <tr><td style={{...labelCell,fontSize:15}}>With bonus, if you hit it</td>{data.map(d=><td key={d.r.id} style={{...cell,color:'#5A6577'}}>{(d.base!=null&&d.ben.net!=null&&d.bm.modeled!=null)?money(d.base+d.ben.net+d.bm.modeled):<span style={{color:C.gray}}>—</span>}</td>)}</tr>
             {strRow('Sign-on',d=>d.o.signon)}
-            <tr><td style={labelCell}>Equity</td>{data.map(d=>{const _b=(d.r.offerStage&&d.r.offerStage.benefits)||{};return <td key={d.r.id} style={cell}>{d.o.equity?<><span style={{color:'#5A6577'}}>{d.o.equity}</span><div style={{fontSize:12,color:C.gray,marginTop:2}}>{_b.companyStage?_b.companyStage+' · ':''}{_b.equityPaperValue?'paper value '+_b.equityPaperValue+' · ':''}counted at $0 above</div></>:<span style={{color:C.gray}}>—</span>}</td>})}</tr>
+            <tr><td style={labelCell}>Equity</td>{data.map(d=>{const _b=(d.r.offerStage&&d.r.offerStage.benefits)||{};return <td key={d.r.id} style={cell}>{d.o.equity?<><span style={{color:'#5A6577'}}>{d.o.equity}</span><div style={{fontSize:15,color:C.gray,marginTop:2}}>{_b.companyStage?_b.companyStage+' · ':''}{_b.equityPaperValue?'paper value '+_b.equityPaperValue+' · ':''}counted at $0 above</div></>:<span style={{color:C.gray}}>—</span>}</td>})}</tr>
             {strRow('Paid time off',d=>d.o.pto)}
             {strRow('Remote terms',d=>d.o.remote)}
           </tbody>
@@ -7367,7 +7367,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4}}>A sourced pay range for this direction in your market, triangulated across public salary sites with links to check yourself. A starting point for your own research, not a verdict.</div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
-          {built&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:14,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
+          {built&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:15,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
           <Btn small secondary={built} onClick={()=>generateDoor1SalaryRead()} disabled={focusSalaryBusy}>{focusSalaryBusy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>}</Btn>
         </div>
       </div>
@@ -8296,7 +8296,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <FileUpload label="Upload LinkedIn profile" hint="The 'Save to PDF' export from your LinkedIn profile page." fileName={profile.linkedinFile} onFile={async f=>{setFileLoading(true);try{const t=await extractText(f);pr('linkedin',t);pr('linkedinFile',f.name);setErr(null)}catch(e){setErr(`Could not read ${f.name}: ${e.message}`)}finally{setFileLoading(false)}}}/>
         {fileLoading&&<Loading msg="Reading your file…"/>}
         <div style={S.field}><label style={S.label}>Or paste your LinkedIn content here</label><textarea style={{...S.ta,minHeight:200}} value={profile.linkedin||''} onChange={e=>pr('linkedin',e.target.value)} placeholder="Paste your About section, recommendations, or any LinkedIn content you want Reimagine to read. The PDF export above is the easiest path."/></div>
-        {profile.linkedin&&<div style={{fontSize:14,color:C.ok}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.linkedin.length.toLocaleString()} characters loaded</div>}
+        {profile.linkedin&&<div style={{fontSize:15,color:C.ok}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.linkedin.length.toLocaleString()} characters loaded</div>}
       </div>}
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}>
@@ -8460,7 +8460,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {key:'languages',label:'Languages',placeholder:'Spanish (fluent), Mandarin (conversational)'},
             {key:'methodologies',label:'Methodologies and frameworks',placeholder:'Agile, Lean, Design Thinking'}
           ].map(cat=><SkillCategory key={cat.key} label={cat.label} placeholder={cat.placeholder} items={(profile.skills&&profile.skills[cat.key])||[]} onChange={items=>pr('skills',{...(profile.skills||{technical:[],systems:[],certifications:[],languages:[],methodologies:[]}),[cat.key]:items})}/>)}
-          <button onClick={()=>pr('skills',{technical:[],systems:[],certifications:[],languages:[],methodologies:[]})} style={{background:'none',border:'none',color:C.gold,fontSize:14,cursor:'pointer',padding:'8px 0 0',textDecoration:'underline',fontFamily:'inherit'}}>Re-extract from my resume and LinkedIn</button>
+          <button onClick={()=>pr('skills',{technical:[],systems:[],certifications:[],languages:[],methodologies:[]})} style={{background:'none',border:'none',color:C.gold,fontSize:15,cursor:'pointer',padding:'8px 0 0',textDecoration:'underline',fontFamily:'inherit'}}>Re-extract from my resume and LinkedIn</button>
         </div>
         <div style={S.row}><Btn secondary onClick={()=>nav('life-events')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('skills','orientation-done')}>Continue <ChevronRight size={14}/></Btn></div>
       </>}
@@ -8468,13 +8468,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
     case'orientation-done':return <div>
       <div style={{background:`linear-gradient(135deg,${C.panel} 0%,${C.card} 100%)`,border:`1px solid ${C.gold}35`,borderRadius:16,padding:'36px',textAlign:'center',marginBottom:22}}>
-        <div style={{fontSize:14,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:C.goldL,marginBottom:8}}>Phase 0 Complete</div>
+        <div style={{fontSize:15,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:C.goldL,marginBottom:8}}>Phase 0 Complete</div>
         <h1 style={{...S.title,fontSize:30,textAlign:'center',marginBottom:14}}>Orientation complete.</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.7,maxWidth:540,margin:'0 auto'}}>You've shared the foundation: where you are, what you've done, how you're wired, what matters to you, and what others say about you. That's the input. Everything that follows is the output: your story, your strategy, your next chapter. Take a breath. Then keep going.</p>
         <p style={{margin:'12px auto 0',fontSize:18,color:C.gray,fontStyle:'italic',maxWidth:540}}>Good stopping point. Phase 1 is where the analysis begins; come back to it with fresh eyes if you have been at this a while.</p>
       </div>
       <div style={S.row}><Btn secondary onClick={()=>nav('skills')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{advance('orientation-done','p3');generateChain()}}>Build My Personal Brand <ChevronRight size={14}/></Btn></div>
-      <div style={{display:'flex',alignItems:'center',gap:8,marginTop:14,fontSize:14,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>About 4 to 5 minutes (your resume analysis, your wiring, and the synthesis run end to end).</div>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginTop:14,fontSize:15,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>About 4 to 5 minutes (your resume analysis, your wiring, and the synthesis run end to end).</div>
     </div>
 
     // Brief 2 (KYV consolidation): p1 and p2 are no longer user-visible
@@ -8504,7 +8504,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>}
 
-      {!isDemo&&!outputs.p3&&!loading&&<><Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn><div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:14,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>A single prose synthesis of who you are at work, roughly 600 to 800 words. About 4 to 5 minutes to generate.</div></>}
+      {!isDemo&&!outputs.p3&&!loading&&<><Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn><div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:15,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>A single prose synthesis of who you are at work, roughly 600 to 800 words. About 4 to 5 minutes to generate.</div></>}
       {!isDemo&&!outputs.p3&&!loading&&outputs.p3_prev&&outputs.p3_prev.p3&&<div style={{marginTop:14}}><Btn small secondary onClick={restorePrevP3}><RotateCcw size={12}/>Restore previous version</Btn></div>}
       {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3"/>}
       {outputs.p3&&!loading&&<>
@@ -8560,8 +8560,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
           <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}>Paste a job description and get a focused playbook for that exact role: how you fit, how to position yourself, what the conversation looks like. Add as many opportunities as you want.</div>
           <div style={{borderTop:`1px solid ${C.border}`,marginTop:18,paddingTop:14,display:'flex',flexDirection:'column',gap:8}}>
-            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>A tailored playbook for one specific job.</div>
-            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Clock size={14} style={{flexShrink:0}}/>Four sections, built on demand. About 30 seconds per section.</div>
+            <div style={{fontSize:15,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>A tailored playbook for one specific job.</div>
+            <div style={{fontSize:15,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Clock size={14} style={{flexShrink:0}}/>Four sections, built on demand. About 30 seconds per section.</div>
           </div>
           <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:'#4F7CAC',color:'#FFFFFF',padding:'10px 18px',borderRadius:8,fontWeight:600,fontSize:16}}>Add an Opportunity <ChevronRight size={15}/></div>
         </button>
@@ -8572,8 +8572,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
           <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}>See role options across <strong>Familiar Ground</strong> (where your credibility extends), <strong>Industry Insider</strong> (where your sector knowledge translates), and <strong>Work That Matters</strong> (where your values point).</div>
           <div style={{borderTop:`1px solid ${C.border}`,marginTop:18,paddingTop:14,display:'flex',flexDirection:'column',gap:8}}>
-            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>Three directions, each with role candidates and reasoning.</div>
-            <div style={{fontSize:14,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Clock size={14} style={{flexShrink:0}}/>About 90 seconds to generate.</div>
+            <div style={{fontSize:15,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Eye size={14} style={{flexShrink:0}}/>Three directions, each with role candidates and reasoning.</div>
+            <div style={{fontSize:15,color:C.gray,display:'flex',alignItems:'center',gap:8,lineHeight:1.5}}><Clock size={14} style={{flexShrink:0}}/>About 90 seconds to generate.</div>
           </div>
           <div style={{marginTop:18,alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:6,background:'transparent',color:C.gold,border:`1.5px solid ${C.gold}`,padding:'8.5px 16.5px',borderRadius:8,fontWeight:600,fontSize:16}}>Start Exploring <ChevronRight size={15}/></div>
         </button>
@@ -8593,14 +8593,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{marginTop:22,fontSize:15,color:C.gray,lineHeight:1.6,maxWidth:860,textAlign:'center'}}><strong>Not sure where to start?</strong> Familiar Ground is the lowest-risk exploration — your track record speaks immediately, so you can move through these roles quickly, see what is out there, and get a real sense of your market. Start there if you are unsure; come back to Industry Insider or Work That Matters knowing what you are choosing toward, not just away from.</div>
     </div>
     case'p4':{
-      if(!selectedLane)return <div>{!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}{!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}<h1 style={S.title}>Pick a direction first</h1><div style={S.row}><Btn onClick={()=>nav('laneSelect')}>Choose a direction <ChevronRight size={14}/></Btn></div></div>
+      if(!selectedLane)return <div>{!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}{!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}<h1 style={S.title}>Pick a direction first</h1><div style={S.row}><Btn onClick={()=>nav('laneSelect')}>Choose a direction <ChevronRight size={14}/></Btn></div></div>
       const laneText=laneData[selectedLane]||''
       const L=LANE_CARDS.find(x=>x.id===selectedLane)||{label:laneLabelFor(selectedLane),tagline:''}
       const lo=extractLaneOptions(laneText)
       const titles=lo.options.map(laneOptionTitle).filter(Boolean)
       const otherLanes=Object.keys(laneData).filter(k=>k!==selectedLane&&laneData[k])
       return <div>
-        {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
+        {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
         {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
         <h1 id="section-p4" style={S.title}>{L.label}</h1>
         {L.tagline&&<p style={{...S.sub,fontStyle:'italic',color:C.gold,marginBottom:14}}>{L.tagline}</p>}
@@ -8776,11 +8776,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <ChevronRight size={14} color={C.gray}/>
             <span style={{color:'#1A2540',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{chosen||'Your Focus Playbook'}</span>
           </div>
-          {currentRoleInSavedSet&&<div role="status" style={{display:'inline-flex',alignItems:'center',gap:6,background:`${C.ok}18`,color:C.ok,padding:'4px 12px',borderRadius:999,fontSize:13,fontWeight:600,flexShrink:0}}>
+          {currentRoleInSavedSet&&<div role="status" style={{display:'inline-flex',alignItems:'center',gap:6,background:`${C.ok}18`,color:C.ok,padding:'4px 12px',borderRadius:999,fontSize:15,fontWeight:600,flexShrink:0}}>
             <Check size={12} color={C.ok} strokeWidth={2.5}/>Saved
           </div>}
         </div>}
-        {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
+        {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
         {!isDemo&&<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginBottom:14}}>
           <div style={{...S.tag('#8A9BB8'),marginBottom:0}}>Phase 2 · Apply Your Foundation</div>
           <div style={{...S.tag(C.gold),marginBottom:0}}>Focus Playbook</div>
@@ -8821,7 +8821,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             return <section key={id} style={{marginTop:32}}>
               <h2 id={`section-${id}`} style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',scrollMarginTop:80}}>
                 <span>{num?num+'. ':''}{sec.label}</span>
-                {isDoneSec&&<span data-print="hide" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:13,fontWeight:600,color:C.ok,background:`${C.ok}18`,padding:'3px 10px',borderRadius:999}}><Check size={12} color={C.ok} strokeWidth={2.5}/>Built</span>}
+                {isDoneSec&&<span data-print="hide" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:15,fontWeight:600,color:C.ok,background:`${C.ok}18`,padding:'3px 10px',borderRadius:999}}><Check size={12} color={C.ok} strokeWidth={2.5}/>Built</span>}
               </h2>
               {SECTION_EXPLAINERS[id]&&<SectionExplainer subhead={SECTION_EXPLAINERS[id].subhead} detail={SECTION_EXPLAINERS[id].detail}/>}
               {isGen&&<Loading msg={sec.load} step={id}/>}
@@ -8857,7 +8857,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       }
                     }
                   }
-                  return <div data-print="hide" style={{display:'flex',alignItems:'center',gap:10,background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:8,padding:'10px 14px',margin:'0 0 12px',fontSize:14,color:'#8A5E1C',lineHeight:1.55}}><div style={{width:8,height:8,borderRadius:'50%',background:'#F0B856',flexShrink:0}}/><div style={{flex:1}}>{head}</div><button type="button" onClick={refresh} style={{background:'transparent',color:'#8A5E1C',border:'1px solid #F0B856',borderRadius:6,padding:'5px 12px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit',flexShrink:0,whiteSpace:'nowrap'}}>Update this section</button></div>
+                  return <div data-print="hide" style={{display:'flex',alignItems:'center',gap:10,background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:8,padding:'10px 14px',margin:'0 0 12px',fontSize:15,color:'#8A5E1C',lineHeight:1.55}}><div style={{width:8,height:8,borderRadius:'50%',background:'#F0B856',flexShrink:0}}/><div style={{flex:1}}>{head}</div><button type="button" onClick={refresh} style={{background:'transparent',color:'#8A5E1C',border:'1px solid #F0B856',borderRadius:6,padding:'5px 12px',fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',flexShrink:0,whiteSpace:'nowrap'}}>Update this section</button></div>
                 })()}
                 {renderBody(id)}
                 {!isDemo&&id!=='p6'&&<RefineBox guard={submitCorrection} sectionId={id} value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
@@ -8878,12 +8878,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </section>
           }
           const groupDivider=(label,color)=><div style={{marginTop:40,marginBottom:4}}>
-            <div style={{fontSize:13,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color,marginBottom:6}}>{label}</div>
+            <div style={{fontSize:15,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color,marginBottom:6}}>{label}</div>
             <div style={{height:1,background:C.border}}/>
           </div>
           return <>
             {!isDemo&&<div data-print="hide" style={{background:'#FFFFFF',border:`0.5px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'18px 22px',margin:'4px 0 8px'}}>
-              <div style={{fontSize:13,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold,marginBottom:10}}>How to use your playbook</div>
+              <div style={{fontSize:15,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold,marginBottom:10}}>How to use your playbook</div>
               <p style={{fontSize:18,color:'#1A2540',lineHeight:1.6,margin:'0 0 14px'}}>This page assembles a complete playbook for this role: a single working document you take into your search and update as you learn. {totalNumbered} sections.</p>
               {/* The 4-group structural grid that used to live here was
                   redundant with the PR5 section rail, which lists all
@@ -8934,7 +8934,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {err&&!generatingSection&&<ErrBox msg={err}/>}
         </div>
         <div data-print="content" className="pe-print-playbook" style={{display:'none'}}>
-          <div className="pe-print-head"><div style={{fontSize:13,fontWeight:700,letterSpacing:'1px',color:'#C8924A',textTransform:'uppercase'}}>Reimagine · career.club</div><div style={{fontSize:26,fontWeight:700,fontFamily:'Georgia,serif',color:'#1A2540',marginTop:4}}>{chosen||'Your Focus Playbook'}</div>{selectedLane&&<div style={{fontSize:14,color:'#4A5568',marginTop:2}}>Direction: {laneLbl}</div>}</div>
+          <div className="pe-print-head"><div style={{fontSize:15,fontWeight:700,letterSpacing:'1px',color:'#C8924A',textTransform:'uppercase'}}>Reimagine · career.club</div><div style={{fontSize:26,fontWeight:700,fontFamily:'Georgia,serif',color:'#1A2540',marginTop:4}}>{chosen||'Your Focus Playbook'}</div>{selectedLane&&<div style={{fontSize:15,color:'#4A5568',marginTop:2}}>Direction: {laneLbl}</div>}</div>
           {FOCUS_ORDER.filter(sec=>outputs[sec.id]&&outputs[sec.id].length>0).map(sec=><section key={sec.id} className="pe-print-section">
             <h2 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>{sec.label}</h2>
             {sec.id==='p_res'?<pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',margin:0}}>{(()=>{const j=parseResumeJSON(outputs.p_res);return j?renderResumeText(j):outputs.p_res})()}</pre>:<MD text={sec.id==='p7'?outputs.p7.replace(/```json[\s\S]*?(?:```|$)/gi,'').replace(/\n{3,}/g,'\n\n').trim():outputs[sec.id]}/>}
@@ -9047,7 +9047,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {completeCard('Your Personal Brand','p3',stripPersonalBrandTail(outputs.p3))}
         {chosen&&hasAnyFocusSection&&<div style={{margin:'24px 0 14px'}}>
           <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:6,flexWrap:'wrap'}}>
-            <div style={{fontSize:13,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold}}>Focus Playbook</div>
+            <div style={{fontSize:15,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold}}>Focus Playbook</div>
             <div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:'#1A2540'}}>{chosen}</div>
           </div>
           <div style={{height:1,background:C.border}}/>
@@ -9061,14 +9061,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {completeCard('Go-to-Market Strategy','p7',outputs.p7)}
         {outputs.income&&<div style={{margin:'24px 0 10px'}}>
           <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:6,flexWrap:'wrap'}}>
-            <div style={{fontSize:13,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.goldL}}>Bonus · Income Now</div>
+            <div style={{fontSize:15,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.goldL}}>Bonus · Income Now</div>
             <div style={{flex:1,height:1,background:C.border}}/>
           </div>
           <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 16px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
               <div>
                 <div style={{fontFamily:'Georgia,serif',fontSize:17,fontWeight:600,color:'#1A2540'}}>Income Now</div>
-                <div style={{fontSize:14,color:C.gray,marginTop:2}}>Consulting and fractional positioning while you continue the search.</div>
+                <div style={{fontSize:15,color:C.gray,marginTop:2}}>Consulting and fractional positioning while you continue the search.</div>
               </div>
               <div style={{display:'flex',gap:7,flexShrink:0}}>
                 <Btn small onClick={()=>copy(outputs.income)}>{copied?<><CheckCheck size={10}/>Copied</>:<><Copy size={10}/>Copy</>}</Btn>
@@ -9108,7 +9108,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // cards-only markDone criterion: legacy v1 (outputs.op truthy) OR any v2 card built
       if((outputs.op||_anyOpCardBuilt)&&!done.includes('op'))markDone('op')
       return <div>
-      {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:14,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
+      {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
       <h1 style={S.title}>{(opIsV2||outputs.op)?'Your Opportunity Playbook':'Add an Opportunity'}</h1>
       {loading?<Loading msg={loadMsg||'Building your Opportunity Playbook…'} step="op"/>:<>
         {(opIsV2||outputs.op)?<>
@@ -9162,7 +9162,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4}}>{sub}</div>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:10}}>
-                {built&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:14,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
+                {built&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:15,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
                 {onBuild&&<Btn small prominent={!built} onClick={onBuild} disabled={!!opSectionBuilding||_opAutoBuildPending}>{buildLabel}</Btn>}
               </div>
             </div>
@@ -9214,7 +9214,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Job description as submitted" style={{background:'#FFFFFF',borderRadius:14,padding:'28px 32px',maxWidth:760,width:'100%',maxHeight:'calc(100vh - 48px)',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
                     <button onClick={()=>setJdModalOpen(false)} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
                     <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 4px',paddingRight:28}}>Job description</h2>
-                    <p style={{fontSize:13,color:'#718096',margin:'0 0 16px'}}>The posting as you submitted it — the exact text Reimagine built this playbook from.</p>
+                    <p style={{fontSize:15,color:'#718096',margin:'0 0 16px'}}>The posting as you submitted it — the exact text Reimagine built this playbook from.</p>
                     <div style={{whiteSpace:'pre-wrap',fontSize:15,lineHeight:1.6,color:'#3D4A5C',fontFamily:'inherit'}}>{_jd}</div>
                   </div>
                 </div>}
@@ -9323,7 +9323,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {_ivs.length===0&&<div style={{fontSize:15,color:C.gray,fontStyle:'italic',margin:'4px 0 14px'}}>No one added yet.</div>}
                   {_ivs.map((iv,idx)=><div key={iv.id} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 16px',marginBottom:12,background:C.bg}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:12}}>
-                      <div style={{fontSize:14,fontWeight:700,color:C.grayL,letterSpacing:'1px',textTransform:'uppercase'}}>Interviewer {idx+1}</div>
+                      <div style={{fontSize:15,fontWeight:700,color:C.grayL,letterSpacing:'1px',textTransform:'uppercase'}}>Interviewer {idx+1}</div>
                       <div style={{display:'flex',gap:6}}>
                         <Btn small secondary onClick={()=>_moveIv(idx,-1)} disabled={idx===0} style={{padding:'6px 9px'}}><ChevronUp size={14}/></Btn>
                         <Btn small secondary onClick={()=>_moveIv(idx,1)} disabled={idx===_ivs.length-1} style={{padding:'6px 9px'}}><ChevronDown size={14}/></Btn>
@@ -9366,10 +9366,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       const unconfirmed=research.status!=='confirmed'
                       return wrap(<>
                         <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,flexWrap:'wrap'}}>
-                          <span style={{fontSize:14,fontWeight:700,color:'#1A2540'}}>From the web</span>
+                          <span style={{fontSize:15,fontWeight:700,color:'#1A2540'}}>From the web</span>
                           {unconfirmed
-                            ?<span style={{fontSize:12,fontWeight:700,color:C.goldL,background:`${C.gold}1A`,border:`1px solid ${C.gold}55`,borderRadius:20,padding:'2px 10px'}}>Not yet confirmed. Verify before you rely on it.</span>
-                            :<span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:13,fontWeight:700,color:C.ok}}><Check size={12}/>Confirmed by you</span>}
+                            ?<span style={{fontSize:15,fontWeight:700,color:C.goldL,background:`${C.gold}1A`,border:`1px solid ${C.gold}55`,borderRadius:20,padding:'2px 10px'}}>Not yet confirmed. Verify before you rely on it.</span>
+                            :<span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:15,fontWeight:700,color:C.ok}}><Check size={12}/>Confirmed by you</span>}
                         </div>
                         <div style={{fontSize:15,color:C.cream,lineHeight:1.6}}><MD text={research.text||''}/></div>
                         <div style={{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}}>
@@ -9408,7 +9408,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     <Loader2 size={20} color={C.gold} style={{animation:'spin 0.9s linear infinite',flexShrink:0,marginTop:2}}/>
                     <div>
                       <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:4}}>Building your negotiation game plan…</div>
-                      <div style={{fontSize:14,color:'#1A2540',lineHeight:1.55}}>We're reading your numbers and putting together where this offer stands against the market, the two or three highest-value things to ask for — with the exact words to use — and your full package in real dollars. Give it a few seconds and it'll appear below.</div>
+                      <div style={{fontSize:15,color:'#1A2540',lineHeight:1.55}}>We're reading your numbers and putting together where this offer stands against the market, the two or three highest-value things to ask for — with the exact words to use — and your full package in real dollars. Give it a few seconds and it'll appear below.</div>
                     </div>
                   </div>}
                   {!_compBuilt&&<div style={{marginTop:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:8,padding:'12px 14px',fontSize:15,color:'#1A2540',lineHeight:1.55}}>Build the Compensation Read first — the negotiation guidance is anchored on its sourced range.<div style={{marginTop:8}}><Btn small secondary onClick={()=>scrollToOutput('salaryRead')}>Compensation Read ↑</Btn></div></div>}
@@ -9464,9 +9464,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       {_changes.length>0&&<div style={{marginBottom:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:10,padding:'12px 14px'}}>
                         <div style={{fontSize:15,fontWeight:700,color:'#1A2540',marginBottom:6}}>What changed since your previous offer</div>
                         <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                          {_changes.map((c,i)=><div key={i} style={{fontSize:14,color:'#1A2540',lineHeight:1.5}}><strong>{c.label}:</strong> {c.isNew?<>added <strong>{c.to}</strong></>:c.removed?<>removed <span style={{color:C.gray}}>(was {c.from})</span></>:c.delta?<>{c.from} → <strong>{c.to}</strong> <span style={{color:c.up?'#2E7D32':'#B23120',fontWeight:700}}>({c.delta})</span></>:<>{c.from} → <strong>{c.to}</strong></>}</div>)}
+                          {_changes.map((c,i)=><div key={i} style={{fontSize:15,color:'#1A2540',lineHeight:1.5}}><strong>{c.label}:</strong> {c.isNew?<>added <strong>{c.to}</strong></>:c.removed?<>removed <span style={{color:C.gray}}>(was {c.from})</span></>:c.delta?<>{c.from} → <strong>{c.to}</strong> <span style={{color:c.up?'#2E7D32':'#B23120',fontWeight:700}}>({c.delta})</span></>:<>{c.from} → <strong>{c.to}</strong></>}</div>)}
                         </div>
-                        {_tcA&&_tcA.firstYear!=null&&_tcB.firstYear!=null&&_tcA.firstYear!==_tcB.firstYear&&(()=>{const d=_tcB.firstYear-_tcA.firstYear;return <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${C.gold}33`,fontSize:14,color:'#1A2540'}}>First-year total: {_md(_tcA.firstYear)} → <strong>{_md(_tcB.firstYear)}</strong> <span style={{color:d>=0?'#2E7D32':'#B23120',fontWeight:700}}>({d>=0?'+':'−'}{_md(Math.abs(d))})</span></div>})()}
+                        {_tcA&&_tcA.firstYear!=null&&_tcB.firstYear!=null&&_tcA.firstYear!==_tcB.firstYear&&(()=>{const d=_tcB.firstYear-_tcA.firstYear;return <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${C.gold}33`,fontSize:15,color:'#1A2540'}}>First-year total: {_md(_tcA.firstYear)} → <strong>{_md(_tcB.firstYear)}</strong> <span style={{color:d>=0?'#2E7D32':'#B23120',fontWeight:700}}>({d>=0?'+':'−'}{_md(Math.abs(d))})</span></div>})()}
                       </div>}
                       <Btn small secondary onClick={()=>setOfferUpdateOpen(o=>({...o,[_slot]:true}))}><Upload size={13}/> Upload an updated offer</Btn>
                     </div>
@@ -9494,7 +9494,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         {_missing.length>0&&<div style={{marginTop:12}}>
                           <div style={{fontSize:15,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,marginBottom:6}}>Not in your offer — worth asking about</div>
                           <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                            {_missing.map(k=><button key={k} type="button" onClick={()=>setRevealedOfferFields(r=>({...r,[_slot]:[...(r[_slot]||[]),k]}))} style={{background:`${C.gold}12`,border:`1px solid ${C.gold}44`,borderRadius:16,padding:'4px 11px',fontSize:13,color:'#1A2540',cursor:'pointer',fontFamily:'inherit'}}>+ {OFFER_FIELD_LABELS[k]}</button>)}
+                            {_missing.map(k=><button key={k} type="button" onClick={()=>setRevealedOfferFields(r=>({...r,[_slot]:[...(r[_slot]||[]),k]}))} style={{background:`${C.gold}12`,border:`1px solid ${C.gold}44`,borderRadius:16,padding:'4px 11px',fontSize:15,color:'#1A2540',cursor:'pointer',fontFamily:'inherit'}}>+ {OFFER_FIELD_LABELS[k]}</button>)}
                           </div>
                         </div>}
                       </>
@@ -9534,7 +9534,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     return <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                       {!offerPackageOpen[_slot]
                         ?<button type="button" onClick={()=>setOfferPackageOpen(o=>({...o,[_slot]:true}))} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6}}>Price the full package — benefits, bonus, equity (optional){_any&&<Check size={13}/>} ▾</button>
-                        :<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>Price the full package</div><button type="button" onClick={()=>setOfferPackageOpen(o=>({...o,[_slot]:false}))} style={{background:'none',border:'none',color:C.gray,fontWeight:600,cursor:'pointer',padding:0,fontSize:13,fontFamily:'inherit'}}>Hide</button></div>}
+                        :<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>Price the full package</div><button type="button" onClick={()=>setOfferPackageOpen(o=>({...o,[_slot]:false}))} style={{background:'none',border:'none',color:C.gray,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit'}}>Hide</button></div>}
                     </div>
                   })()}
                   {/* Benefits intake (offer-benefits-intake brief 2026-08-07, Phase 3a). */}
@@ -9548,7 +9548,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     const _mv=monetizeBenefits(_o,_ben)
                     const _tc=totalCompModel(_o,_ben)
                     const _bm2=n=>n==null?'—':'$'+Math.round(n).toLocaleString()
-                    const _btn2={padding:'7px 16px',borderRadius:6,border:`1.5px solid ${C.gold}`,background:C.gold,color:'#1A2540',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'inherit'}
+                    const _btn2={padding:'7px 16px',borderRadius:6,border:`1.5px solid ${C.gold}`,background:C.gold,color:'#1A2540',fontWeight:700,fontSize:15,cursor:'pointer',fontFamily:'inherit'}
                     return <div style={{marginTop:14}}>
                       <div style={{fontSize:15,fontWeight:700,color:'#1A2540',marginBottom:2}}>Benefits</div>
                       <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginBottom:10}}>The parts of a package that move your real take-home: what you pay for health each month (it comes straight out of your check), weighed against the money that comes back to you — a 401(k) match, an employer HSA, and your PTO. These can swing which offer is the better deal even when the salaries look close. Enter each the way your offer states it — a 401(k) match as a percent of base is fine. Add whatever numbers you have; anything you skip simply won't be counted.</div>
@@ -9560,15 +9560,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       </div>
                       {_anyBen&&<div style={{marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                         <button type="button" onClick={()=>setBenefitsCalced(s=>({...s,[_slot]:_snap}))} style={_btn2}>Calculate</button>
-                        {_dirty&&<span style={{color:C.gold,fontWeight:600,fontSize:14}}>press Calculate to update</span>}
+                        {_dirty&&<span style={{color:C.gold,fontWeight:600,fontSize:15}}>press Calculate to update</span>}
                       </div>}
                       {_anyBen&&_calced&&!_dirty&&<div style={{marginTop:12}}>
                         {_mv.net!=null
                           ?<div style={{fontSize:15,color:'#1A2540'}}>These benefits are worth <strong style={{fontSize:20,fontWeight:800}}>{_bm2(_mv.net)}/yr</strong> to you, net of what you pay for health.
                             <div style={{fontSize:15,color:C.gray,marginTop:4,lineHeight:1.5}}>{[_mv.adds.retirement!=null&&`401(k) match ${_bm2(_mv.adds.retirement)}`,_mv.adds.hsa!=null&&`HSA ${_bm2(_mv.adds.hsa)}`,_mv.adds.pto!=null&&`PTO value ${_bm2(_mv.adds.pto)}`,_mv.premiumAnnual!=null&&`minus health premium ${_bm2(_mv.premiumAnnual)}`].filter(Boolean).join(' · ')}</div>
                           </div>
-                          :<div style={{fontSize:14,color:C.gray}}>Add a premium, a 401(k) match, an HSA, or PTO above to price these — a deductible alone doesn't change your take-home.</div>}
-                        {_tc.firstYear!=null&&<div style={{marginTop:8,fontSize:14,color:'#1A2540'}}>With base and bonus, your first-year total comes to about <strong>{_bm2(_tc.firstYear)}</strong> <span style={{color:C.gray,fontWeight:400}}>(equity excluded).</span></div>}
+                          :<div style={{fontSize:15,color:C.gray}}>Add a premium, a 401(k) match, an HSA, or PTO above to price these — a deductible alone doesn't change your take-home.</div>}
+                        {_tc.firstYear!=null&&<div style={{marginTop:8,fontSize:15,color:'#1A2540'}}>With base and bonus, your first-year total comes to about <strong>{_bm2(_tc.firstYear)}</strong> <span style={{color:C.gray,fontWeight:400}}>(equity excluded).</span></div>}
                       </div>}
                     </div>
                   })()}
@@ -9597,7 +9597,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     const _draft=bonusCalcDraft[_slot]!==undefined?bonusCalcDraft[_slot]:_applied
                     const _dirty=String(_draft)!==String(_applied)
                     const _calc=()=>updateOfferBenefit(_slot,_key,_draft)
-                    const _btn={padding:'7px 16px',borderRadius:6,border:`1.5px solid ${C.gold}`,background:C.gold,color:'#1A2540',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'inherit'}
+                    const _btn={padding:'7px 16px',borderRadius:6,border:`1.5px solid ${C.gold}`,background:C.gold,color:'#1A2540',fontWeight:700,fontSize:15,cursor:'pointer',fontFamily:'inherit'}
                     return <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                       <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:2}}>Model your bonus</div>
                       {_bm.framing==='pct'?<>
@@ -9608,7 +9608,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:15,color:'#1A2540'}}>Expected bonus $ <input style={{..._binp,width:120}} value={_draft} onChange={e=>setBonusCalcDraft(d=>({...d,[_slot]:e.target.value}))} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();_calc()}}} placeholder="e.g. 6000"/> <button type="button" onClick={_calc} style={_btn}>Calculate</button></div>
                       </>}
                       <div style={{marginTop:12,fontSize:15,color:'#1A2540'}}>Payout: <strong style={{fontSize:22,fontWeight:800}}>{_m(_bm.modeled)}</strong>{_dirty&&<span style={{color:C.gold,fontWeight:600,marginLeft:8}}>press Calculate to update</span>}</div>
-                      {_bm.modeled!=null&&_base!=null&&!_dirty&&<div style={{marginTop:8,fontSize:14,color:'#1A2540'}}>With this bonus, cash + benefits + bonus ≈ <strong>{_m(_base+(_net||0)+_bm.modeled)}</strong> <span style={{color:C.gray,fontWeight:400}}>— if you hit it. The firmer number to lean on is the {_m(_base+(_net||0))} you can bank on without it.</span></div>}
+                      {_bm.modeled!=null&&_base!=null&&!_dirty&&<div style={{marginTop:8,fontSize:15,color:'#1A2540'}}>With this bonus, cash + benefits + bonus ≈ <strong>{_m(_base+(_net||0)+_bm.modeled)}</strong> <span style={{color:C.gray,fontWeight:400}}>— if you hit it. The firmer number to lean on is the {_m(_base+(_net||0))} you can bank on without it.</span></div>}
                     </div>
                   })()}
                   {/* How to read the equity (offer-comparison Phase 4b 2026-08-07): the
@@ -9624,10 +9624,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     const _note={'Public':"This company is public, so the shares have a real market price you can look up. They're liquid once vested, but the value moves with the stock — treat any figure as today's snapshot, not a guarantee.",'Late-stage private':"Late-stage private — closer to a possible exit, but the shares are still illiquid and sit behind investors' preference stack. A paper value is a ceiling if things go well, not a number to count on.",'Early-stage private':"Early-stage private — treat this as a lottery ticket, not pay. Common stock sits behind investors in any sale, so it can be worth nothing, up to its paper value if the company exits well. Don't lean on it for your decision."}[_stage]||"If it's a private company, treat the equity as a wide range: it can be worth nothing — common stock sits behind investors — up to its paper value. If it's public, the shares have a market price you can look up. Set the stage to see how to read it."
                     return <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                       <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:2}}>How to read the equity</div>
-                      <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginBottom:8}}>Your grant: <span style={{color:'#1A2540'}}>{_o.equity}</span></div>
-                      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>{['Public','Late-stage private','Early-stage private'].map(s=><button key={s} type="button" onClick={()=>updateOfferBenefit(_slot,'companyStage',_stage===s?'':s)} style={{padding:'8px 14px',borderRadius:8,border:`1.5px solid ${_stage===s?C.gold:C.border}`,background:_stage===s?`${C.gold}1F`:C.input,color:C.cream,fontWeight:_stage===s?700:500,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>{s}</button>)}</div>
+                      <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginBottom:8}}>Your grant: <span style={{color:'#1A2540'}}>{_o.equity}</span></div>
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>{['Public','Late-stage private','Early-stage private'].map(s=><button key={s} type="button" onClick={()=>updateOfferBenefit(_slot,'companyStage',_stage===s?'':s)} style={{padding:'8px 14px',borderRadius:8,border:`1.5px solid ${_stage===s?C.gold:C.border}`,background:_stage===s?`${C.gold}1F`:C.input,color:C.cream,fontWeight:_stage===s?700:500,fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>{s}</button>)}</div>
                       <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginBottom:10}}>{_note}</div>
-                      <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:14,color:'#1A2540'}}>Paper value, if you were told one <input style={{width:140,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_ben.equityPaperValue!==undefined?_ben.equityPaperValue:''} onChange={e=>updateOfferBenefit(_slot,'equityPaperValue',e.target.value)} placeholder="optional, e.g. $200,000"/></div>
+                      <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',fontSize:15,color:'#1A2540'}}>Paper value, if you were told one <input style={{width:140,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_ben.equityPaperValue!==undefined?_ben.equityPaperValue:''} onChange={e=>updateOfferBenefit(_slot,'equityPaperValue',e.target.value)} placeholder="optional, e.g. $200,000"/></div>
                       <div style={{marginTop:10,fontSize:15,color:C.gray,fontStyle:'italic'}}>This is left out of the “cash + benefits you can bank on” number on purpose — a private grant can be worth zero. How much to weight it is a personal call, and a good one to talk through with My Coach.</div>
                     </div>
                   })()}
@@ -9645,10 +9645,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
                         <div style={{flex:1,minWidth:220}}>
                           <div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>Your talking points</div>
-                          <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginTop:4}}>A tight checklist to take into the conversation or paste into a follow-up — what to confirm, what to ask for (with the words to use), and what to get in writing. Drawn from your analysis and priorities check, and printable.</div>
+                          <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4}}>A tight checklist to take into the conversation or paste into a follow-up — what to confirm, what to ask for (with the words to use), and what to get in writing. Drawn from your analysis and priorities check, and printable.</div>
                         </div>
                         <div style={{display:'flex',alignItems:'center',gap:10}}>
-                          {_clBuilt&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:14,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
+                          {_clBuilt&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:15,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
                           <Btn small secondary={_clBuilt} onClick={()=>generateOpNegotiationChecklist()} disabled={!!opSectionBuilding||!_onBuilt}>{_clBusy?'Building…':_clBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Prepare for the conversation</>}</Btn>
                         </div>
                       </div>
@@ -9666,9 +9666,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       once, no generation. Always available on this card. */}
                   <div style={{marginTop:18,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
                     {!offerRefOpen[_slot]?<button type="button" onClick={()=>setOfferRefOpen(o=>({...o,[_slot]:true}))} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit'}}>Negotiation reference — the total-comp checklist and scripts ▾</button>:<>
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>Negotiation reference</div><button type="button" onClick={()=>setOfferRefOpen(o=>({...o,[_slot]:false}))} style={{background:'none',border:'none',color:C.gray,fontWeight:600,cursor:'pointer',padding:0,fontSize:13,fontFamily:'inherit'}}>Hide</button></div>
-                      <div style={{fontSize:14,fontWeight:700,color:'#1A2540',margin:'10px 0 4px'}}>Total compensation checklist</div>
-                      <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginBottom:8}}>An offer is more than base. Before you respond, get the full picture — ask about each of these.</div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>Negotiation reference</div><button type="button" onClick={()=>setOfferRefOpen(o=>({...o,[_slot]:false}))} style={{background:'none',border:'none',color:C.gray,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit'}}>Hide</button></div>
+                      <div style={{fontSize:15,fontWeight:700,color:'#1A2540',margin:'10px 0 4px'}}>Total compensation checklist</div>
+                      <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginBottom:8}}>An offer is more than base. Before you respond, get the full picture — ask about each of these.</div>
                       <ul style={{margin:'0 0 0 20px',padding:0,fontSize:15,color:'#33405C',lineHeight:1.7}}>
                         <li>Base salary</li>
                         <li>Bonus — and what it has actually paid out in recent years, not just the target percentage</li>
@@ -9682,8 +9682,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         <li>Work location, commute, and remote terms</li>
                         <li>Anything non-standard worth asking for — someone once negotiated recurring time with a senior leader; comp is not only cash</li>
                       </ul>
-                      <div style={{fontSize:14,fontWeight:700,color:'#1A2540',margin:'14px 0 4px'}}>Negotiation scripts</div>
-                      <div style={{fontSize:14,color:C.gray,lineHeight:1.5,marginBottom:8}}>A few lines that do a lot of work in the conversation.</div>
+                      <div style={{fontSize:15,fontWeight:700,color:'#1A2540',margin:'14px 0 4px'}}>Negotiation scripts</div>
+                      <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginBottom:8}}>A few lines that do a lot of work in the conversation.</div>
                       <ul style={{margin:'0 0 0 20px',padding:0,fontSize:15,color:'#33405C',lineHeight:1.7}}>
                         <li>Instead of "what were you making before," ask: <strong>"Can you share the budget for this role?"</strong></li>
                         <li>Share a range, then go quiet. Don't rush to fill the pause.</li>
@@ -9691,7 +9691,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       </ul>
                     </>}
                   </div>
-                  <div style={{marginTop:16,fontSize:14,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Some offer situations don't have a universal script — severance timing, a take-it-or-leave-it or algorithm-set offer, reading a company's layoff history before you push. Those are worth a real conversation with your Coach.</div>
+                  <div style={{marginTop:16,fontSize:15,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Some offer situations don't have a universal script — severance timing, a take-it-or-leave-it or algorithm-set offer, reading a company's layoff history before you push. Those are worth a real conversation with your Coach.</div>
                 </>,'section-offerNegotiation')
               })()}
               {/* About This Company moved to the top of the cards (item F round 2): it
@@ -9702,7 +9702,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4,marginBottom:14}}>Replies you saved from My Coach for this opportunity.</div>
                 {_notes.map(n=><div key={n.id} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 14px',marginBottom:10,background:C.bg}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:6,flexWrap:'wrap'}}>
-                    <span style={{fontSize:13,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>From My Coach{n.personName?` · ${n.personName}`:''}</span>
+                    <span style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>From My Coach{n.personName?` · ${n.personName}`:''}</span>
                     {!isDemo&&<Btn small secondary onClick={()=>removeOpSavedNote(_rec.id,n.id)} style={{padding:'4px 10px'}}><X size={12}/>Remove</Btn>}
                   </div>
                   <div style={{fontSize:15,color:C.cream,lineHeight:1.6}}><MD text={n.text||''}/></div>
@@ -9730,12 +9730,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               shared-selector print CSS. Iterates the five op cards in rail
               order; each card renders via its print-safe transform. */}
           {opIsV2&&_anyOpCardBuilt&&<div data-print="content" className="pe-print-opportunity" style={{display:'none'}}>
-            <div className="pe-print-head"><div style={{fontSize:13,fontWeight:700,letterSpacing:'1px',color:'#C8924A',textTransform:'uppercase'}}>Reimagine · career.club</div><div style={{fontSize:26,fontWeight:700,fontFamily:'Georgia,serif',color:'#1A2540',marginTop:4}}>{(()=>{const t=(profile.jd||'').split('\n').find(l=>l.trim())||'Your Opportunity Playbook';return t.length>80?t.slice(0,80)+'…':t})()}</div></div>
+            <div className="pe-print-head"><div style={{fontSize:15,fontWeight:700,letterSpacing:'1px',color:'#C8924A',textTransform:'uppercase'}}>Reimagine · career.club</div><div style={{fontSize:26,fontWeight:700,fontFamily:'Georgia,serif',color:'#1A2540',marginTop:4}}>{(()=>{const t=(profile.jd||'').split('\n').find(l=>l.trim())||'Your Opportunity Playbook';return t.length>80?t.slice(0,80)+'…':t})()}</div></div>
             {[{id:'companyRead',label:'About This Company'},{id:'salaryRead',label:'Compensation Read'},{id:'p5',label:'The Role'},{id:'p6',label:'Bridge Story'},{id:'p_res',label:'Resume Refresh'},{id:'p_cover',label:'Cover Letter'},{id:'p11',label:'Interview Prep'},{id:'offerNegotiation',label:'Offer & Negotiation'}].filter(c=>opCardDone(c.id)).map(c=>{
               const card=_opSec[c.id]
               let body=null
               if(c.id==='p5')body=<MD text={card.content}/>
-              else if(c.id==='p6')body=<p style={{fontSize:14,lineHeight:1.6,margin:0,whiteSpace:'pre-wrap'}}>{bridgeStoryToProse(card)}</p>
+              else if(c.id==='p6')body=<p style={{fontSize:15,lineHeight:1.6,margin:0,whiteSpace:'pre-wrap'}}>{bridgeStoryToProse(card)}</p>
               else if(c.id==='p_res')body=<pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',margin:0}}>{(()=>{const j=parseResumeJSON(card.content);return j?renderResumeText(j):card.content})()}</pre>
               else if(c.id==='p11')body=<MD text={interviewPrepToProse(card.content)}/>
               else if(c.id==='companyRead')body=<MD text={card.content}/>
@@ -9795,7 +9795,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       {authToast&&<div style={{background:authToast==='ok'?'#7AB87A':'#C8924A',color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:16,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
         <span>{authToast==='ok'?`Signed in${signedInUser?.email?` as ${signedInUser.email}`:''}.`:authToast==='invalid'?'That sign-in link is not valid. Request a new one.':authToast==='used'?'That sign-in link has already been used. Request a new one.':authToast==='expired'?'That sign-in link expired. Request a new one.':''}</span>
-        <button onClick={()=>setAuthToast(null)} style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>Dismiss</button>
+        <button onClick={()=>setAuthToast(null)} style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>Dismiss</button>
       </div>}
       <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 24px'}}>
         <div style={{maxWidth:520,width:'100%'}}>
@@ -9959,8 +9959,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const who=upLabels.join(' and ')
       const verb=upLabels.length>1?'were':'was'
       return <div data-print="hide" style={{position:'fixed',bottom:90,left:'50%',transform:'translateX(-50%)',maxWidth:560,width:'calc(100% - 48px)',background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:10,padding:'12px 16px',display:'flex',alignItems:'center',gap:12,boxShadow:'0 6px 20px rgba(0,0,0,0.15)',zIndex:1150}}>
-        <div style={{flex:1,fontSize:14,color:'#8A5E1C',lineHeight:1.5}}>You corrected {NAV_LABELS[upstreamCheck.section]||'this section'}. {who} {verb} written before this correction and may carry the same pattern.</div>
-        {upstreamCheck.upstreams.map(u=><button key={u} type="button" onClick={()=>navToUpstream(u)} style={{background:'transparent',color:'#8A5E1C',border:'1px solid #F0B856',borderRadius:6,padding:'5px 12px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>Check {NAV_LABELS[u]||u}</button>)}
+        <div style={{flex:1,fontSize:15,color:'#8A5E1C',lineHeight:1.5}}>You corrected {NAV_LABELS[upstreamCheck.section]||'this section'}. {who} {verb} written before this correction and may carry the same pattern.</div>
+        {upstreamCheck.upstreams.map(u=><button key={u} type="button" onClick={()=>navToUpstream(u)} style={{background:'transparent',color:'#8A5E1C',border:'1px solid #F0B856',borderRadius:6,padding:'5px 12px',fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>Check {NAV_LABELS[u]||u}</button>)}
         <button type="button" onClick={()=>setUpstreamCheck(null)} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#8A5E1C',fontSize:18,lineHeight:1,cursor:'pointer',padding:'0 2px',fontFamily:'inherit'}}>×</button>
       </div>
     })()}
@@ -10001,7 +10001,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {!feedbackSent?<>
             <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 16px'}}>What's on your mind?</h2>
             <textarea ref={feedbackTaRef} value={feedbackText} onChange={e=>setFeedbackText(e.target.value)} placeholder="Start typing..." style={{width:'100%',boxSizing:'border-box',minHeight:140,padding:'12px 14px',border:`1.5px solid ${C.border}`,borderRadius:10,fontSize:17,fontFamily:'inherit',color:'#1A2540',lineHeight:1.6,resize:'vertical'}}/>
-            {SHOW_CONTEXT_NOTE&&<div style={{fontSize:14,color:'#718096',margin:'8px 0 0',lineHeight:1.5}}>We'll see which screen you're on, so you don't have to explain where you were.</div>}
+            {SHOW_CONTEXT_NOTE&&<div style={{fontSize:15,color:'#718096',margin:'8px 0 0',lineHeight:1.5}}>We'll see which screen you're on, so you don't have to explain where you were.</div>}
             {feedbackError&&<div role="alert" style={{fontSize:16,color:C.err,lineHeight:1.5,margin:'12px 0 0',padding:'10px 14px',background:`${C.err}10`,border:`1px solid ${C.err}40`,borderRadius:8}}>{feedbackError}</div>}
             <div style={{display:'flex',gap:10,marginTop:18}}>
               <Btn disabled={feedbackSending||!feedbackText.trim()} onClick={sendFeedback}>{feedbackSending?'Sending…':'Send'}</Btn>
@@ -10029,20 +10029,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </a>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           {isDemo?<>
-            <div style={{fontSize:14,color:C.gray}}>Step {demoIdx+1} of {DEMO_TOUR.length}</div>
+            <div style={{fontSize:15,color:C.gray}}>Step {demoIdx+1} of {DEMO_TOUR.length}</div>
             <div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${((demoIdx+1)/DEMO_TOUR.length)*100}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>
           </>:<>
             {typeof prog==='number'&&<div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>}
           </>}
           {!isDemo&&<button onClick={()=>setFeedbackOpen(true)} style={{background:'transparent',color:C.gold,border:'none',padding:'6px 10px',fontSize:17,fontWeight:700,cursor:'pointer',fontFamily:'inherit',marginLeft:8,display:'inline-flex',alignItems:'center',gap:6}}><MessageSquare size={16}/>Share feedback</button>}
-          {!isDemo&&signedInUser&&<button onClick={deleteAccount} title="Delete your profile and start over from scratch" style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Start Fresh</button>}
-          {!isDemo&&signedInUser&&<button onClick={signOut} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign out</button>}
-          {!isDemo&&!signedInUser&&<button onClick={()=>{setSignedUp(false);setMagicLinkSentTo(null)}} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:14,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign in</button>}
+          {!isDemo&&signedInUser&&<button onClick={deleteAccount} title="Delete your profile and start over from scratch" style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:15,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Start Fresh</button>}
+          {!isDemo&&signedInUser&&<button onClick={signOut} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:15,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign out</button>}
+          {!isDemo&&!signedInUser&&<button onClick={()=>{setSignedUp(false);setMagicLinkSentTo(null)}} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:15,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign in</button>}
         </div>
       </div>
       {authToast&&<div data-print="hide" style={{background:authToast==='ok'?'#7AB87A':'#C8924A',color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:16,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12,flexShrink:0}}>
         <span>{authToast==='ok'?`Signed in${signedInUser?.email?` as ${signedInUser.email}`:''}.`:authToast==='invalid'?'That sign-in link is not valid. Request a new one.':authToast==='used'?'That sign-in link has already been used. Request a new one.':authToast==='expired'?'That sign-in link expired. Request a new one.':''}</span>
-        <button onClick={()=>setAuthToast(null)} style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>Dismiss</button>
+        <button onClick={()=>setAuthToast(null)} style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>Dismiss</button>
       </div>}
       {/* Stale-build update banner. Suppression rules (all must hold):
             - updateAvailable from the version-check hook
@@ -10056,8 +10056,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           60-second sessionStorage loop guard and triggers window.location.reload. */}
       {versionCheck.updateAvailable&&!updateBannerDismissed&&step!=='welcome'&&!isDemo&&!isTest&&!loading&&!generatingSection&&!authToast&&<div data-print="hide" style={{background:C.gold,color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:16,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12,flexShrink:0}}>
         <span>A newer version is ready. Reload when you're at a good stopping point.</span>
-        <button onClick={versionCheck.reload} style={{background:'#FFFFFF',color:C.gold,border:'none',borderRadius:4,padding:'4px 12px',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Reload</button>
-        <button onClick={()=>setUpdateBannerDismissed(true)} aria-label="Dismiss" style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>×</button>
+        <button onClick={versionCheck.reload} style={{background:'#FFFFFF',color:C.gold,border:'none',borderRadius:4,padding:'4px 12px',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Reload</button>
+        <button onClick={()=>setUpdateBannerDismissed(true)} aria-label="Dismiss" style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>×</button>
       </div>}
       {/* One-time My Coach intro banner. Same slot/pattern as the version
           banner above. Gated to signed-in, post-orientation (Personal Brand
@@ -10067,8 +10067,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           the pe_v4 localStorage mirror), so it never returns on any device. */}
       {signedInUser&&!isDemo&&done.includes('p3')&&step!=='myCoach'&&!seenCoachIntro&&<div data-print="hide" role="region" aria-label="My Coach announcement" style={{background:C.gold,color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:16,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12,flexWrap:'wrap',flexShrink:0}}>
         <span><strong>New: My Coach.</strong> Ask anything about your search — networking, interviews, your resume, or just a tough day — and get guidance built on your profile.</span>
-        <button onClick={()=>{setSeenCoachIntro(true);nav('myCoach')}} style={{background:'#FFFFFF',color:C.gold,border:'none',borderRadius:4,padding:'4px 14px',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Try it</button>
-        <button onClick={()=>setSeenCoachIntro(true)} aria-label="Dismiss" style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>×</button>
+        <button onClick={()=>{setSeenCoachIntro(true);nav('myCoach')}} style={{background:'#FFFFFF',color:C.gold,border:'none',borderRadius:4,padding:'4px 14px',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Try it</button>
+        <button onClick={()=>setSeenCoachIntro(true)} aria-label="Dismiss" style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>×</button>
       </div>}
       <div style={{display:'flex',flex:1,minHeight:0}}>
         <div data-print="hide" style={{width:260,background:'#1A2540',borderRight:'1px solid #0F1A30',padding:'16px 0',overflowY:'auto',flexShrink:0}}>
@@ -10089,7 +10089,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <footer data-print="hide" style={{marginTop:40,padding:'20px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',textAlign:'center'}}>
             <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',background:'#FFFFFF',border:`1px solid ${C.gold}`,borderRadius:8,color:C.gold,fontWeight:600,fontSize:17,textDecoration:'none'}}>Read the full User Guide (PDF)</a>
             <p style={{margin:'8px 0 0',fontSize:15,color:'#718096',lineHeight:1.5}}>Everything Reimagine does, explained in plain English.</p>
-            <p style={{margin:'14px 0 0',fontSize:14,color:'#718096'}}>
+            <p style={{margin:'14px 0 0',fontSize:15,color:'#718096'}}>
               <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{color:'#718096',textDecoration:'underline'}}>Privacy</a>
               <span style={{margin:'0 8px'}}>·</span>
               <a href="/terms" target="_blank" rel="noopener noreferrer" style={{color:'#718096',textDecoration:'underline'}}>Terms</a>
@@ -10121,7 +10121,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           last check: HH:MM UTC of the most recent successful fetch
           status: current | update available | unknown | check failed
         URL-gated so production users see nothing. */}
-    {isDebug&&<div data-print="hide" style={{position:'fixed',bottom:6,right:10,zIndex:1100,fontFamily:'ui-monospace,SFMono-Regular,Menlo,monospace',fontSize:11,color:'rgba(255,255,255,0.55)',background:'rgba(15,26,48,0.85)',padding:'4px 10px',borderRadius:4,pointerEvents:'none'}}>
+    {isDebug&&<div data-print="hide" style={{position:'fixed',bottom:6,right:10,zIndex:1100,fontFamily:'ui-monospace,SFMono-Regular,Menlo,monospace',fontSize:15,color:'rgba(255,255,255,0.55)',background:'rgba(15,26,48,0.85)',padding:'4px 10px',borderRadius:4,pointerEvents:'none'}}>
       build: {String(versionCheck.buildSha||'').slice(0,7)||'unknown'} · live: {versionCheck.liveSha?String(versionCheck.liveSha).slice(0,7):'unknown'} · last check: {versionCheck.lastCheckAt?new Date(versionCheck.lastCheckAt).toISOString().slice(11,16)+' UTC':'never'} · status: {versionCheck.lastCheckStatus==='update-available'?'update available':versionCheck.lastCheckStatus==='check-failed'?'check failed':versionCheck.lastCheckStatus}
       {BUILT_AT?` · built: ${BUILT_AT.slice(0,16).replace('T',' ')} UTC`:''}
     </div>}

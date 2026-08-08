@@ -86,7 +86,7 @@ function SourceBadge({ source, lane, C }) {
       <span style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         background: '#2A3F60', color: '#FFFFFF',
-        fontSize: 12, fontWeight: 600,
+        fontSize: 15, fontWeight: 600,
         padding: '4px 10px', borderRadius: 6,
         letterSpacing: 0.2,
       }}>
@@ -98,7 +98,7 @@ function SourceBadge({ source, lane, C }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center',
       background: `${C.gold}18`, color: C.goldL,
-      fontSize: 12, fontWeight: 600,
+      fontSize: 15, fontWeight: 600,
       padding: '4px 10px', borderRadius: 6,
       letterSpacing: 0.2,
     }}>
@@ -171,7 +171,7 @@ function PlaybookCard({ rec, onRestore, onDelete, onRename, C }) {
           <SourceBadge source={rec.source} lane={rec.lane} C={C}/>
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 14, color: C.gray }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 15, color: C.gray }}>
         <div>{built} of {total} {total === 1 ? 'section' : 'sections'} built</div>
         {rec.updatedAt ? <div>· {relativeTime(rec.updatedAt)}</div> : null}
       </div>
@@ -193,7 +193,7 @@ function PlaybookCard({ rec, onRestore, onDelete, onRename, C }) {
             display: 'inline-flex', alignItems: 'center', gap: 6,
             background: 'transparent', color: C.gray, border: `1px solid ${C.border}`,
             padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
-            fontSize: 14, fontWeight: 500, fontFamily: 'inherit',
+            fontSize: 15, fontWeight: 500, fontFamily: 'inherit',
           }}>
           <Trash2 size={13}/>Remove
         </button>

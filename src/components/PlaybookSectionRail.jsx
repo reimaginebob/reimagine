@@ -36,7 +36,7 @@ function Row({ section, isDone, onJump, C }) {
         cursor: 'pointer',
         textAlign: 'left',
         fontFamily: 'inherit',
-        fontSize: 14,
+        fontSize: 15,
         color: isDone ? '#1A2540' : C.gray,
         fontWeight: isDone ? 600 : 500,
         transition: 'background 0.15s',
@@ -50,7 +50,7 @@ function Row({ section, isDone, onJump, C }) {
         background: isDone ? C.ok : 'transparent',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
-        fontSize: 11, fontWeight: 700,
+        fontSize: 15, fontWeight: 700,
         color: isDone ? '#FFFFFF' : C.gray,
       }}>
         {isDone ? <Check size={12} color="#FFFFFF" strokeWidth={3}/> : (section.num || '')}
@@ -88,7 +88,7 @@ export default function PlaybookSectionRail({ sections, done, onJump, C }) {
       }}
     >
       <div style={{
-        fontSize: 11, fontWeight: 700, letterSpacing: '1.2px',
+        fontSize: 15, fontWeight: 700, letterSpacing: '1.2px',
         textTransform: 'uppercase', color: C.gold,
         padding: '4px 10px 8px',
       }}>
@@ -102,7 +102,7 @@ export default function PlaybookSectionRail({ sections, done, onJump, C }) {
       {bonus.length > 0 && (
         <>
           <div style={{
-            fontSize: 11, fontWeight: 700, letterSpacing: '1.2px',
+            fontSize: 15, fontWeight: 700, letterSpacing: '1.2px',
             textTransform: 'uppercase', color: C.goldL,
             padding: '14px 10px 6px',
             borderTop: `1px solid ${C.border}`,

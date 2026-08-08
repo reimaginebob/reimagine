@@ -17,7 +17,7 @@
 
 import fs from 'fs'
 
-const BASELINE = 142
+const BASELINE = 0
 
 const files = [
   'src/App.jsx',
