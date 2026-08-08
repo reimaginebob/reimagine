@@ -1330,6 +1330,12 @@ function parseOfferJSON(raw){
 // User-facing labels for the parsed offer fields — used by the editable readout
 // and to build the structured summary the negotiation prompt consumes.
 const OFFER_FIELD_LABELS={base:'Base salary',bonus:'Bonus',commission:'Commission',signon:'Sign-on bonus',guarantee:'Guaranteed pay',equity:'Equity',ltip:'Long-term incentives',relocation:'Relocation',stipends:'Stipends / allowances',tuition:'Tuition / development',title:'Title',level:'Level',employment:'Employment type',start:'Start date',reporting:'Reports to',pto:'Paid time off',sick:'Sick leave',parental:'Parental leave',sabbatical:'Sabbatical',health:'Medical insurance',dental:'Dental / vision',retirement:'Retirement match',hsa:'HSA / FSA contribution',insurance:'Life / disability',deductible:'Deductible',premium:'Premium share',location:'Location',remote:'Remote terms',deadline:'Response deadline',contingencies:'Contingencies',severance:'Severance',restrictions:'Non-compete / clawback',visa:'Visa sponsorship',notes:'Other notes'}
+// Benefits intake (offer-benefits-intake brief 2026-08-07, Phase 3a). The numeric
+// layer the future comparison view (Phase 3b) prices — the parser captures benefits
+// as text; these are the clean inputs the monetization formulas (reference doc Part 2)
+// need. Stored on rec.offerStage.benefits (lazy, no schema bump); optional, non-blocking.
+const OFFER_BENEFIT_KEYS=['employerPremiumAnnual','employeePremiumAnnual','deductible','employerRetirementAnnual','employerHSAAnnual','ptoDays']
+const OFFER_BENEFIT_LABELS={employerPremiumAnnual:'Employer pays toward premium ($/yr)',employeePremiumAnnual:'You pay toward premium ($/yr)',deductible:'Annual deductible ($)',employerRetirementAnnual:'Employer 401(k) match ($/yr)',employerHSAAnnual:'Employer HSA / FSA contribution ($/yr)',ptoDays:'Paid time off (days)'}
 // offerSummaryFromStruct: flatten the non-empty parsed fields into one labeled
 // string the Offer & Negotiation prompt can place against the market range. Empty
 // string when nothing is filled in (caller falls back to the free-text offer).
@@ -5913,6 +5919,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[offerParseError,setOfferParseError]=useState(null)
   const[offerPasteDrafts,setOfferPasteDrafts]=useState({})
   const[offerPasteOpen,setOfferPasteOpen]=useState({})
+  const[offerBenefitsOpen,setOfferBenefitsOpen]=useState({})
   // Which not-stated offer fields the user has revealed to fill in (per slot). With
   // ~34 possible fields, the readout shows the filled ones as inputs and the rest as
   // compact "+ add" chips; clicking a chip reveals its input.
@@ -6962,6 +6969,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const os=rec.offerStage||{offer:null,updatedAt:null}
       const offer={...(os.offer||{}),[key]:value}
       return{...rec,offerStage:{...os,offer,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}
+    }))
+    setCurrentRoleSaved(false)
+  }
+  // Benefits intake write (Phase 3a). Stores one numeric benefits field on
+  // rec.offerStage.benefits (lazy). Optional; nothing depends on it being filled.
+  const updateOfferBenefit=(slotId,key,value)=>{
+    setSavedPlaybooks(prev=>prev.map(rec=>{
+      if(rec.id!==slotId)return rec
+      const os=rec.offerStage||{offer:null,updatedAt:null}
+      const benefits={...(os.benefits||{}),[key]:value}
+      return{...rec,offerStage:{...os,benefits,updatedAt:new Date().toISOString()},updatedAt:new Date().toISOString()}
     }))
     setCurrentRoleSaved(false)
   }
@@ -9078,6 +9096,27 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {opSectionErrors.offerNegotiation&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.offerNegotiation}/></div>}
                   {_onBusy&&<div style={{marginTop:14}}><Loading msg="Building Offer & Negotiation…" step="offerNegotiation"/></div>}
                   {_onBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.offerNegotiation.content}/></div>{_compDisclaimer}</div>}
+                  {/* Benefits intake (offer-benefits-intake brief 2026-08-07, Phase 3a):
+                      optional numeric benefits fields so the future comparison can price
+                      them. Non-blocking; only shown once an offer exists. */}
+                  {!isDemo&&(_offerParsed||String(_offerVal||'').trim())&&(()=>{
+                    const _ben=(_rec&&_rec.offerStage&&_rec.offerStage.benefits)||{}
+                    const _open=!!offerBenefitsOpen[_slot]
+                    const _anyBen=OFFER_BENEFIT_KEYS.some(k=>_ben[k]&&String(_ben[k]).trim())
+                    return <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                      {!_open?<button type="button" onClick={()=>setOfferBenefitsOpen(o=>({...o,[_slot]:true}))} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6}}>Price your benefits (optional){_anyBen&&<Check size={13}/>}</button>:<>
+                        <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:2}}>Price your benefits</div>
+                        <div style={{fontSize:13,color:C.gray,lineHeight:1.55,marginBottom:10}}>Benefits can be worth several thousand dollars a year even at the same salary — a low deductible, a strong 401(k) match, or richer PTO all add up. Add whatever numbers you have and leave the rest blank. Nothing here is required; anything you skip simply won't be priced in.</div>
+                        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
+                          {OFFER_BENEFIT_KEYS.map(k=><div key={k}>
+                            <label style={{fontSize:12,fontWeight:700,color:C.grayL,textTransform:'uppercase',letterSpacing:0.5,display:'block',marginBottom:3}}>{OFFER_BENEFIT_LABELS[k]}</label>
+                            <input style={{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_ben[k]||''} onChange={e=>updateOfferBenefit(_slot,k,e.target.value)} placeholder="—"/>
+                          </div>)}
+                        </div>
+                        <div style={{marginTop:8}}><button type="button" onClick={()=>setOfferBenefitsOpen(o=>({...o,[_slot]:false}))} style={{background:'none',border:'none',color:C.gray,fontWeight:600,cursor:'pointer',padding:0,fontSize:14,fontFamily:'inherit'}}>Done</button></div>
+                      </>}
+                    </div>
+                  })()}
                   {/* Priorities Check (offerstage-priorities-check brief 2026-08-07):
                       how this offer lines up against the person's stated Practical
                       Priorities. Only shown once an offer exists to check. */}
