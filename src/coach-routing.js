@@ -65,11 +65,14 @@ export const FEATURE_MAP = [
   // `label` (no NAV_LABELS join) and a `where` pointer. Compensation Read also
   // appears in Income Now for a chosen direction; Offer & Negotiation is built on it.
   { slug: 'compensation-read',    reach: 'opportunity-gated', label: 'Compensation Read',
-    does: 'gives a sourced pay range for a role and market, triangulated across public salary sites and cited so the person can check it themselves',
+    does: 'gives a sourced pay range for a role and market, triangulated across public salary sites and cited so the person can check it themselves; for a specific opportunity it anchors to the company\'s size and industry and sets aside sources that are matching a mislabeled version of the role',
     where: 'inside the Opportunity Playbook, and inside Income Now once a direction is picked' },
   { slug: 'offer-negotiation',    reach: 'opportunity-gated', label: 'Offer & Negotiation',
-    does: 'places an offer against the sourced range, frames the ask as an evidence case from the person\'s own accomplishments, and carries a static total-compensation checklist plus negotiation scripts; judgment calls (severance timing, algorithmic offers, reading layoff history, who to talk to) route here to Coach',
+    does: 'takes the offer (typed, or uploaded as a letter that it parses into its parts), places it against the sourced range, frames the ask as an evidence case from the person\'s own accomplishments, checks it against the Practical Priorities they set in Orientation, lets them price the benefits package, and carries a static total-compensation checklist plus negotiation scripts; judgment calls (severance timing, algorithmic offers, reading layoff history, who to talk to) route here to Coach, whose ground truth is the "How an offer is put together" guide chapter',
     where: 'inside the Opportunity Playbook, built on the Compensation Read' },
+  { slug: 'offer-comparison',     reach: 'opportunity-gated', label: 'Compare offers',
+    does: 'lines up the person\'s logged offers side by side, with the priced value of each benefits package on its own line rather than blended into one number; informational, it does not rank the offers or say which to take',
+    where: 'in My Playbooks, once two or more opportunities have a logged offer' },
 
   // Community resources — surfaced in prose only (especially on discouragement
   // turns when someone is carrying the search alone). No step. The Corner pointer
