@@ -5997,6 +5997,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // terms (keeping the prior version for the "what changed" delta) without the
   // user having to Clear first.
   const[offerUpdateOpen,setOfferUpdateOpen]=useState({})
+  // True while the post-upload auto-run (negotiation + priorities) is working, per
+  // slot (offer-autorun-banner 2026-08-08). Drives a prominent, benefit-framed
+  // "we're building this for you" box — the small section spinner was too easy to
+  // miss right after an upload, when the user's eyes are up at the upload area.
+  const[offerAutoRun,setOfferAutoRun]=useState({})
   const[showOfferCompare,setShowOfferCompare]=useState(false)
   // Which not-stated offer fields the user has revealed to fill in (per slot). With
   // ~34 possible fields, the readout shows the filled ones as inputs and the rest as
@@ -7078,10 +7083,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const _hasCompRead=!!(((_recNow&&_recNow.sections&&_recNow.sections.salaryRead&&_recNow.sections.salaryRead.content)||'').trim())
       const _hasPriorities=[profile.compFloor,profile.workReq,profile.benefitsWeight,profile.riskTolerance,profile.dealBreakers].some(v=>v&&String(v).trim())
       ;(async()=>{
+        if(!_hasCompRead&&!_hasPriorities)return
+        setOfferAutoRun(a=>({...a,[slotId]:true}))
         try{
           if(_hasCompRead)await generateOpOfferNegotiation(undefined,offer)
           if(_hasPriorities)await generateOpPriorityCheck(undefined,offer)
         }catch{/* each build surfaces its own error state; nothing to add here */}
+        finally{setOfferAutoRun(a=>({...a,[slotId]:false}))}
       })()
     }catch(e){
       setOfferParseError(e.message||'Could not read that file. Try pasting the offer text instead.')
@@ -9226,6 +9234,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _offerParsed=!!(_offer&&OFFER_JSON_KEYS.some(k=>_offer[k]&&String(_offer[k]).trim()))
                 return _cardWrap(<>
                   {_head('Offer & Negotiation','Where an offer sits against the sourced range, what to ask for, and the parts of the package a base-salary number hides. Built on your Compensation Read.',_onBuilt,()=>generateOpOfferNegotiation(),_onBusy?'Building…':_onBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
+                  {/* Prominent auto-run banner (offer-autorun-banner 2026-08-08): after
+                      an upload the section spinner is too easy to miss. Tell them plainly
+                      that we're working and, in benefit terms, what they'll get back. */}
+                  {offerAutoRun[_slot]&&<div style={{marginTop:14,background:`${C.gold}1F`,border:`1.5px solid ${C.gold}`,borderRadius:10,padding:'16px 18px',display:'flex',gap:12,alignItems:'flex-start'}}>
+                    <Loader2 size={20} color={C.gold} style={{animation:'spin 0.9s linear infinite',flexShrink:0,marginTop:2}}/>
+                    <div>
+                      <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:4}}>Building your negotiation game plan…</div>
+                      <div style={{fontSize:14,color:'#1A2540',lineHeight:1.55}}>We're reading your numbers and putting together where this offer stands against the market, the two or three highest-value things to ask for — with the exact words to use — and your full package in real dollars. Give it a few seconds and it'll appear below.</div>
+                    </div>
+                  </div>}
                   {!_compBuilt&&<div style={{marginTop:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:8,padding:'12px 14px',fontSize:15,color:'#1A2540',lineHeight:1.55}}>Build the Compensation Read first — the negotiation guidance is anchored on its sourced range.<div style={{marginTop:8}}><Btn small secondary onClick={()=>scrollToOutput('salaryRead')}>Compensation Read ↑</Btn></div></div>}
                   <div style={{marginTop:14}}>
                     <label style={S.label}>Your offer, if you have one <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label>
