@@ -29,6 +29,20 @@ const LANE_LABEL_MAP = {
   specific: 'Specific Role',
 }
 
+// Focus titles nearly all open with a seniority/rank clause ("VP of", "Senior
+// Director of", "Head of", ...). That lead-in is the least distinguishing part;
+// muting it lets the function/sector tail — what actually tells two roles apart
+// — carry the card. Applied to Door 1 (Focus) titles only; Door 2 (Opportunity)
+// titles front-load the company, so they render whole. No match => title
+// renders unchanged, so an unusual title is never mangled, only ever un-muted.
+const FOCUS_TITLE_LEAD = /^(?:E?S?VP|Vice President|Senior Director|Executive Director|Managing Director|Director|Senior Manager|Manager|Global Head|Head|President|Chief [A-Za-z]+(?: [A-Za-z]+)? Officer|CEO|CFO|COO|CTO|CHRO|CPO|CMO|CIO)(?:\s+of)?[,:\s]+/i
+function splitFocusTitle(title) {
+  if (!title) return [null, title || '']
+  const m = title.match(FOCUS_TITLE_LEAD)
+  if (!m || m[0].length >= title.length) return [null, title]
+  return [title.slice(0, m[0].length), title.slice(m[0].length)]
+}
+
 // p10 is the retired Interview Prep stub per CLAUDE.md and never generates
 // content. Excluding it from the dashboard denominator so a fully-built
 // playbook reads "8 of 8" instead of "8 of 9". App.jsx ROLE_SUBMODULES
@@ -110,6 +124,7 @@ function SourceBadge({ source, lane, C }) {
 function PlaybookCard({ rec, onRestore, onDelete, onRename, C }) {
   const { built, total } = sectionsBuilt(rec)
   const door2 = rec.source === 'door2'
+  const [titleLead, titleRest] = door2 ? [null, rec.title] : splitFocusTitle(rec.title)
   const borderColor = door2 ? '#2A3F6055' : C.border
   const canRename = typeof onRename === 'function'
   const [editing, setEditing] = useState(false)
@@ -155,16 +170,22 @@ function PlaybookCard({ rec, onRestore, onDelete, onRename, C }) {
               onMouseEnter={canRename ? () => setTitleHover(true) : undefined}
               onMouseLeave={canRename ? () => setTitleHover(false) : undefined}
               title={canRename ? 'Rename' : undefined}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, cursor: canRename ? 'pointer' : 'default' }}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 8, cursor: canRename ? 'pointer' : 'default' }}
             >
-              <span style={{
-                fontSize: 20, fontWeight: 700, color: '#1A2540',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
-                textDecoration: canRename && titleHover ? 'underline' : 'none',
-                textDecorationColor: C.gold, textUnderlineOffset: 3,
-              }}>{rec.title}</span>
+              <span
+                title={rec.title}
+                style={{
+                  flex: 1, minWidth: 0,
+                  fontSize: 20, fontWeight: 700, color: '#1A2540', lineHeight: 1.3,
+                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                  minHeight: '2.6em',
+                  textDecoration: canRename && titleHover ? 'underline' : 'none',
+                  textDecorationColor: C.gold, textUnderlineOffset: 3,
+                }}>
+                {titleLead ? <><span style={{ color: '#8592A6' }}>{titleLead}</span>{titleRest}</> : rec.title}
+              </span>
               {canRename && (
-                <Pencil size={16} aria-hidden="true" style={{ flexShrink: 0, color: titleHover ? C.gold : '#9AA6B8', opacity: titleHover ? 1 : 0.75, transition: 'color 0.12s, opacity 0.12s' }}/>
+                <Pencil size={16} aria-hidden="true" style={{ flexShrink: 0, marginTop: 3, color: titleHover ? C.gold : '#9AA6B8', opacity: titleHover ? 1 : 0.75, transition: 'color 0.12s, opacity 0.12s' }}/>
               )}
             </div>
           )}
@@ -226,7 +247,7 @@ function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDe
       </div>
       {records.length > 0
         ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
             {records.map(rec => (
               <PlaybookCard key={rec.id} rec={rec} onRestore={onRestore} onDelete={onDelete} onRename={onRename} C={C}/>
             ))}
