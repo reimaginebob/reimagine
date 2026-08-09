@@ -6,7 +6,7 @@ Ask it the tactical questions (how to open a networking conversation, how to fol
 
 ## How to find it
 
-Two ways in, one conversation: the chat button in the corner of every screen once you're signed in, and My Coach in the sidebar, there from your very first screen in orientation. Your history follows you between them.
+A few ways in, one conversation: the chat button in the corner of every screen once you're signed in; My Coach in the sidebar, there from your very first screen in orientation; and an **Ask My Coach about this** button on each section you build — your Personal Brand and every part of your playbook — which opens the coach with a question about that section ready for you to send or edit. Your history follows you across all of them.
 
 ## What it can do
 

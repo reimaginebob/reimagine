@@ -3015,6 +3015,26 @@ const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','resume-builder',
 // not editable inputs. Drives the "your Personal Brand is now out of date" nudge.
 const INPUT_EDIT_STEPS=new Set(['location','resume','resume-builder','linkedin','assessment','values','priorities','reputation','life-events','skills'])
 const INPUT_STEP_LABEL={location:'Location',resume:'Résumé','resume-builder':'Résumé',linkedin:'LinkedIn',assessment:'Assessment',values:'Values',reputation:'Reputation','life-events':'Life events',skills:'Skills'}
+// Per-section "Ask My Coach about this" seeds. Each prefills the coach input
+// (openCoachWith -> the user reviews and sends) with a question about that
+// section, turning a finished read into a launch point for the coach that has
+// already read it. Generic on purpose: the coach holds the user's chosen
+// direction and role from their profile, so a seed needn't name them (and so
+// can never render a stale or blank title). Keyed by section id;
+// ASK_COACH_SEED_DEFAULT covers anything unmapped.
+const ASK_COACH_SEED_DEFAULT='Help me get the most out of this section.'
+const ASK_COACH_SEEDS={
+  p3:'Help me understand my Personal Brand — what it says about where I should focus, and how to use it.',
+  p5:'Help me think through this role — whether it fits me, and what to focus on.',
+  p6:'Help me practice and sharpen my bridge story.',
+  p9:'Help me use this industry background — what should I learn or prioritize first?',
+  p11:'Help me practice my answers to these interview questions.',
+  p_res:'Help me make the most of my refreshed resume.',
+  p8:'Help me apply these LinkedIn changes and strengthen my profile.',
+  p7:'Help me plan my outreach to these target companies.',
+  recruiters:'Help me reach out to these recruiters.',
+  income:'Help me think through my Income Now options.',
+}
 // Captured at module load (before any beforeprint can change document.title) so
 // afterprint always restores the true base title regardless of effect re-runs.
 const BASE_DOC_TITLE=typeof document!=='undefined'?document.title:'Reimagine'
@@ -8561,6 +8581,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {!isDemo&&outputs.p3_prev&&outputs.p3_prev.p3?<Btn small secondary onClick={restorePrevP3}><RotateCcw size={12}/>{p3RestoreLabel()}</Btn>:<span/>}
           <Btn small secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={12}/>Save as PDF</Btn>
         </div>
+        {!isDemo&&<div data-print="hide" style={{marginBottom:18}}><Btn small secondary onClick={()=>openCoachWith(ASK_COACH_SEEDS.p3)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
         {!isDemo&&<RefineBox guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{recordCorrection('p3',v);out('p3','');refreshP3(v)}}/>}
         {!isDemo&&<div style={{margin:'24px 0 14px',fontSize:18,color:'#2D3748',lineHeight:1.7}}>This is your foundation. Next, we put it to work — finding the directions worth exploring and the people worth reaching.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','twoDoors')}>Put It to Work <ChevronRight size={14}/></Btn></div>}
@@ -8887,6 +8908,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   return <div data-print="hide" style={{display:'flex',alignItems:'center',gap:10,background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:8,padding:'10px 14px',margin:'0 0 12px',fontSize:15,color:'#8A5E1C',lineHeight:1.55}}><div style={{width:8,height:8,borderRadius:'50%',background:'#F0B856',flexShrink:0}}/><div style={{flex:1}}>{head}</div><button type="button" onClick={refresh} style={{background:'transparent',color:'#8A5E1C',border:'1px solid #F0B856',borderRadius:6,padding:'5px 12px',fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',flexShrink:0,whiteSpace:'nowrap'}}>Update this section</button></div>
                 })()}
                 {renderBody(id)}
+                {!isDemo&&<div data-print="hide" style={{marginTop:14}}><Btn small secondary onClick={()=>openCoachWith(ASK_COACH_SEEDS[id]||ASK_COACH_SEED_DEFAULT)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
                 {!isDemo&&id!=='p6'&&<RefineBox guard={submitCorrection} sectionId={id} value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
                 {!isDemo&&nextSec&&<div data-print="hide" style={{marginTop:18,padding:'12px 16px',background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
                   <div style={{fontSize:15,color:C.grayL}}>Next: {nextNum?nextNum+'. ':''}{nextSec.label}</div>
