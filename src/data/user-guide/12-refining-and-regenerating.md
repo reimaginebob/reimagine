@@ -8,14 +8,14 @@ This chapter explains how to use Reimagine the way it was designed to be used: i
 
 Reimagine gives you two ways to change a result:
 
-1. **Tell Reimagine what it got wrong, then regenerate.** Below every generated step there is a feedback box. Use it to flag factual misreads, missing context, or stylistic adjustments, then regenerate the step with your input folded in.
+1. **Tell Reimagine what to adjust, then regenerate.** Below every generated step there is a feedback box. Use it to flag factual misreads, missing context, or stylistic adjustments, then regenerate the step with your input folded in.
 2. **Update an earlier input and regenerate downstream.** Go back to one of the orientation steps (resume, assessment, values, etc.), change it, and regenerate the affected later steps.
 
 Both are normal. Both preserve the rest of your work.
 
 ## The feedback box: factual corrections AND stylistic adjustments
 
-Every generated step has a **Tell us what we got wrong** box below the output. Click to open. You will see:
+Every generated step has a **Does this feel right?** box below the output. Click to open. You will see:
 
 - A text field where you describe what to adjust. The microphone button is here too. You can speak instead of type.
 - An **Update with my correction** button that regenerates the current step with your input folded in.

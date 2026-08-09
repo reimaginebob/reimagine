@@ -92,7 +92,7 @@ You build the playbook at your own pace, in the order that fits you. The seven n
 
 The arc has a logic: **confirm the role, test the fit, prepare the materials, learn where to apply.** The first sections are fit tests (can I tell this story, do I know the language, can I handle the questions, do I have the proof). The middle sections prepare your materials. Go-to-Market sits late on purpose: it is the most expensive section to generate, so you only pay for it once you have confirmed the role is worth pursuing. A user who stops after Bridge Story never burns the heavy research call.
 
-Each section has a "What did we get wrong?" box. Refining a section regenerates just that section. It does not wipe the rest of your playbook. If you want another section to reflect a change, regenerate that one too (one click).
+Each section has a "Does this feel right?" box. Refining a section regenerates just that section. It does not wipe the rest of your playbook. If you want another section to reflect a change, regenerate that one too (one click).
 
 ## Save your playbook
 

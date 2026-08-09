@@ -44,7 +44,7 @@ Three checks as you read:
 
 ## How to refine
 
-Below the read, the **What did we get wrong?** box accepts both factual corrections and interpretive pushback. Tell Reimagine what to adjust, then click **Update with my changes**. The microphone button is here too: speak instead of typing if it is easier. The whole read regenerates with your correction folded in, and the correction stays in your profile so every later section honors it.
+Below the read, the **Does this feel right?** box accepts both factual corrections and interpretive pushback. Tell Reimagine what to adjust, then click **Update with my changes**. The microphone button is here too: speak instead of typing if it is easier. The whole read regenerates with your correction folded in, and the correction stays in your profile so every later section honors it.
 
 Refinement patterns that work well:
 

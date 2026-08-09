@@ -29,7 +29,7 @@ A few specifics: take an assessment if you do not have one (the difference is si
 
 ## Things worth knowing before you start
 
-**This is iterative.** Every output has a "Tell us what we got wrong" feedback box. Use it for factual corrections or stylistic tuning. Factual corrections persist across the whole session, so the same correction does not need to be made twice.
+**This is iterative.** Every output has a "Does this feel right?" feedback box. Use it for factual corrections or stylistic tuning. Factual corrections persist across the whole session, so the same correction does not need to be made twice.
 
 **You can speak instead of type.** Most input fields have a microphone button. Tap it and talk.
 

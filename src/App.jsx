@@ -450,7 +450,7 @@ function buildVarianceCorrective(violations) {
   }
   if (closer.length > 0) {
     const surfaces = dedupeSurfaces(closer)
-    parts.push(`\n\nAI-COACH CLOSING TEMPLATE DETECTED: ${fmt(surfaces)}. The Refine box below the synthesis is labeled "What did we get wrong?" and handles the correction affordance structurally. The prose does not need to reinforce it.`)
+    parts.push(`\n\nAI-COACH CLOSING TEMPLATE DETECTED: ${fmt(surfaces)}. The Refine box below the synthesis is labeled "Does this feel right?" and handles the correction affordance structurally. The prose does not need to reinforce it.`)
     parts.push(`\n\nDo NOT close the synthesis with a correction invitation. Do NOT name the feedback box. Do NOT use "if that misses how you experience" or any near-variant ("if that framing misses," "if the framing misses," "if this misses how you read your work"). Do NOT announce the analytical wager ("The framing here is," "The wager is," "The choice of X as the through-line is").`)
     parts.push(`\n\nEnd on the analytical conclusion itself. The final sentence states what the through-line means for the next chapter, returns to the principle the synthesis was built on, or names the forward question without inviting correction. The "Now you know who you are. Next, choose how you want to explore what's possible." navigational line that appears below the synthesis is the system-level transition; do not duplicate that work in the prose.`)
     parts.push(`\n\nThe closing prose does not invite correction. The UI handles that.`)
@@ -4126,7 +4126,7 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
     <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <div style={{width:8,height:8,borderRadius:'50%',background:C.gold,flexShrink:0}}/>
-        <span style={{fontSize:17,fontWeight:700,color:C.gold}}>What did we get wrong?</span>
+        <span style={{fontSize:17,fontWeight:700,color:C.gold}}>Does this feel right?</span>
       </div>
       {open?<ChevronUp size={18} color={C.gold} strokeWidth={2.5}/>:<ChevronDown size={18} color={C.gold} strokeWidth={2.5}/>}
     </button>
@@ -4860,8 +4860,8 @@ export default function PivotEngine(){
     if(!(outputs&&outputs.p3))return
     pbCheckinFiredRef.current=true
     setSeenPbCheckin(true)
-    const yesFollow='Good. Head into Put it to Work whenever you\'re ready — and remember each output has a "What did we get wrong?" box you can use to sharpen it anytime.'
-    const lukewarmFollow='Let\'s tighten it. Open Personal Brand from the sidebar and use the "What did we get wrong?" box under it to tell Reimagine what\'s missing or off — it\'ll rework that section with your notes. When it reads like you, head back to Put it to Work. Want to talk through what feels off first?'
+    const yesFollow='Good. Head into Put it to Work whenever you\'re ready — and remember each output has a "Does this feel right?" box you can use to sharpen it anytime.'
+    const lukewarmFollow='Let\'s tighten it. Open Personal Brand from the sidebar and use the "Does this feel right?" box under it to tell Reimagine what\'s missing or off — it\'ll rework that section with your notes. When it reads like you, head back to Put it to Work. Want to talk through what feels off first?'
     setChatMessages(m=>[...m,{role:'assistant',content:'Before you dive in, does your Personal Brand capture who you are and what you bring?',checkinKey:'personal-brand',quickReplies:[{label:'Yes',value:'yes',followUp:yesFollow},{label:'Mostly',value:'mostly',followUp:lukewarmFollow},{label:'Not quite',value:'not_quite',followUp:lukewarmFollow}]}])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,seenPbCheckin,outputs,isDemo,isTest])
@@ -6698,7 +6698,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // surface cleanup brief 2026-05-29 — its sole caller was the lane affordance
   // UI which is gone. The classifier still runs silently and writes
   // record.opLane via runOpLaneInference; users adjust per-card output via the
-  // RefineBox ("What did we get wrong") rather than a lane-level override.
+  // RefineBox ("Does this feel right") rather than a lane-level override.
   // Fire inference when an op artifact is present and opLane is unset: covers
   // new records right after Build and v2 records created before this PR (backfill).
   useEffect(()=>{
@@ -8526,7 +8526,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <li style={{display:'flex',gap:12,marginBottom:10,alignItems:'flex-start',fontSize:16,color:C.creamD,lineHeight:1.65}}><span style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}></span><div><strong>Does it sound like a person, not just a professional?</strong> The best brands connect your work to what shaped you. If it reads as all competence and no human, ask Reimagine to bring more of you in.</div></li>
             <li style={{display:'flex',gap:12,marginBottom:0,alignItems:'flex-start',fontSize:16,color:C.creamD,lineHeight:1.65}}><span style={{width:6,height:6,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}></span><div><strong>Does it point somewhere, not just back?</strong> The close should open real possibilities for what's next, not restate where you have already been. If it plays it safe, ask it to push further.</div></li>
           </ul>
-          <p style={{margin:'14px 0 0',fontSize:16,color:C.gray}}>The "What did we get wrong?" box takes factual corrections and style tweaks, and your correction carries forward to every later section automatically. You can also ask in the chat in the corner.</p>
+          <p style={{margin:'14px 0 0',fontSize:16,color:C.gray}}>The "Does this feel right?" box takes factual corrections and style tweaks, and your correction carries forward to every later section automatically. You can also ask in the chat in the corner.</p>
         </div>}
         {outputs.p3_structured&&outputs.p3_structured.presentation
           ? <PersonalBrandView presentation={outputs.p3_structured.presentation} proseForCopy={stripPersonalBrandTail(outputs.p3)} onCopy={copy} copied={copied}/>
@@ -9121,7 +9121,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <li style={{margin:'0 0 4px'}}><strong>Preparing for the conversation:</strong> STAR stories, screening-interview prep, questions to ask.</li>
               <li style={{margin:0}}><strong>The deliverables:</strong> 90-day plan, cover letter draft.</li>
             </ul>
-            <p style={{margin:0}}>If something is off about how Reimagine read the JD or your background, the "What did we get wrong?" box below sharpens it. Corrections you submit here also carry forward to your next playbook.</p>
+            <p style={{margin:0}}>If something is off about how Reimagine read the JD or your background, the "Does this feel right?" box below sharpens it. Corrections you submit here also carry forward to your next playbook.</p>
           </CoachingCallout>}
           {(()=>{const _body=<>{!opIsV2&&<div id="section-op" style={{scrollMarginTop:80}}><OutPanel text={outputs.op} onCopy={copy} copied={copied}/></div>}
           {!isDemo&&!opIsV2&&<RefineBox value={feedback.op} onChange={v=>setFb('op',v)} hint="Did we read the JD or your background right? Tell us what to adjust." placeholder="e.g. 'You missed that the role explicitly requires P&L experience.' Or: 'My time at [Company] was internal strategy, not consulting.' Or: 'Emphasize the operating depth angle more, less on strategic vision.'" onRegenerate={v=>{recordCorrection('op',v);out('op','');generate('op',()=>P.op(pc,outputs,chosen,profile.jd)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:11000,msg:'Building your Opportunity Playbook…',profileBlock:buildUserProfileBlock(pc,outputs),step:'op'})}}/>}
