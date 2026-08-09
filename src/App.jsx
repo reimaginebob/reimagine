@@ -6608,6 +6608,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }finally{
       if(reqId===opSectionReqRef.current){
         setOpSectionBuilding(null);setOpBuildingSlot(null)
+        // Bridge story is the closing beat of Where You Fit (merged 2026-08-09):
+        // once the fit analysis (p5) releases the lock, chain the role-tuned
+        // bridge story so the card finishes itself. Runs on every p5 build — the
+        // top-down auto-build, a manual Rebuild, and a refine — so the two stay in
+        // sync. The bridge stores at sections.p6, which the Cover Letter reads.
+        if(key==='p5'&&currentSavedSlotIdRef.current===slotId)generateOpBridgeStory()
       }
     }
   }
@@ -9110,14 +9116,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // interviewer) rather than "built". It sits immediately before Interview
       // Prep, the output it feeds.
       const _panelPopulated=(()=>{const p=getOpPanel(_opRec);return !!((p.opportunity_context&&p.opportunity_context.trim())||p.interviewers.length)})()
-      const opRailDone=['p5','p6','p_res','p11','companyRead','salaryRead','offerNegotiation'].filter(opCardDone).concat(_panelPopulated?['panel']:[])
+      const opRailDone=['p5','p_res','p11','companyRead','salaryRead','offerNegotiation'].filter(opCardDone).concat(_panelPopulated?['panel']:[])
       // Sequential 1-N numbering (2026-08-09): number every row in display order
       // so the rail reads as one clean top-down sequence. The earlier scheme left
       // the reference/input cards (Compensation, Interview Team, Offer) unnumbered,
       // which made the numbers look non-sequential and the flow look like it began
       // mid-list. num is computed by index so adding or removing a card renumbers
       // automatically.
-      const opSections=[{id:'companyRead',label:'About This Company'},{id:'salaryRead',label:'Compensation'},{id:'p5',label:'Where you fit'},{id:'p6',label:'Bridge Story'},{id:'p_res',label:'Resume Refresh'},{id:'p_cover',label:'Cover Letter'},{id:'panel',label:'Interview Team'},{id:'p11',label:'Interview Prep'},{id:'offerNegotiation',label:'Offer & Negotiation'}].map((s,i)=>({...s,num:i+1}))
+      const opSections=[{id:'companyRead',label:'About This Company'},{id:'salaryRead',label:'Compensation'},{id:'p5',label:'Where you fit'},{id:'p_res',label:'Resume Refresh'},{id:'p_cover',label:'Cover Letter'},{id:'panel',label:'Interview Team'},{id:'p11',label:'Interview Prep'},{id:'offerNegotiation',label:'Offer & Negotiation'}].map((s,i)=>({...s,num:i+1}))
       // cards-only markDone criterion: legacy v1 (outputs.op truthy) OR any v2 card built
       if((outputs.op||_anyOpCardBuilt)&&!done.includes('op'))markDone('op')
       return <div>
@@ -9208,12 +9214,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 {built&&!isDemo&&<RefineBox value={feedback[key]||''} onChange={v=>setFb(key,v)} hint="Tell us what to refine on this card. Your existing card stays as-is until you submit." onRegenerate={v=>refineOpCard(key,v)} onlyUpdateButton={true}/>}
               </>,'section-'+key)
             }
+            // _busyP6 drives the bridge-story spinner inside the merged Where You
+            // Fit card (the bridge is that card's closing beat, 2026-08-09).
             const _busyP6=opSectionBuilding==='p6'&&opBuildingSlot===currentSavedSlotIdRef.current
-            // Non-blocking dependency soft-note (op Bridge Story graceful fallback):
-            // the strongest role version adapts the general Bridge Story + Personal Brand.
-            // When absent (Door 2-only users), Build stays enabled and writes from raw inputs.
-            const _needFocusBridge=!(bridgeStoryToProse(outputs.p6).trim())
-            const _needP6Brand=!(outputs.p3&&asText(outputs.p3).trim())
             // Lane affordance UI (_laneLink / _laneOpts / _laneSelector /
             // _laneAffordance) removed (op surface cleanup brief 2026-05-29).
             // The classifier still runs silently via runOpLaneInference; the
@@ -9277,21 +9280,32 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {_srBuilt&&!isDemo&&<RefineBox value={feedback.salaryRead||''} onChange={v=>setFb('salaryRead',v)} hint="Did we get the basis wrong — the company size, industry, or market? Tell us and we'll rebuild the estimate." placeholder="e.g. they're about 300 people, not enterprise… this is the healthcare division, not corporate… the market should be Denver, not remote-national" onRegenerate={v=>generateOpSalaryRead(v)} onlyUpdateButton={true}/>}
                 </>,'section-salaryRead')
               })()}
-              {_simpleCard('p5','Where you fit, and how to make your case','What this job weights most, your strongest points with the one proof to lead with, the areas they may probe and how to handle them, and a one-line pitch.')}
-              {(()=>{const _pfBuilt=!!(_sec.p5&&_sec.p5.content&&_sec.p5.content.trim());return _pfBuilt&&!isDemo?<div style={{marginTop:-4,marginBottom:14}}><Btn small secondary onClick={()=>openCoachWith(`Help me talk through how I fit and how to position myself for ${_rec.title||'this role'}.`)}><MessageCircle size={13}/>Talk it through with My Coach</Btn></div>:null})()}
-              {_cardWrap(<>
-                {_head('Bridge Story for this role','A 30-second tell-me-about-yourself answer written for this specific opportunity, shorter and sharper than your general Bridge Story.',_p6Built,()=>generateOpBridgeStory(),_busyP6?'Building…':_p6Built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
-                {!isDemo&&!_p6Built&&(_needFocusBridge||_needP6Brand)&&<div style={{marginTop:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:8,padding:'12px 14px',fontSize:15,color:'#1A2540',lineHeight:1.55}}>
-                  Building these first makes this Bridge Story stronger. It will still generate without them.
-                  <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>
-                    {_needP6Brand&&<Btn small secondary onClick={()=>nav('p3')}>Personal Brand</Btn>}
-                    {_needFocusBridge&&<Btn small secondary onClick={()=>nav('p6')}>Bridge Story</Btn>}
-                  </div>
-                </div>}
-                {opSectionErrors.p6&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.p6}/></div>}
-                {_busyP6&&<div style={{marginTop:14}}><Loading msg="Building Bridge Story…" step="p6"/></div>}
-                {_p6Built&&<div style={{marginTop:14}}><OutPanel text={bridgeStoryToProse(_p6)} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.opP6||''} onChange={v=>setFb('opP6',v)} hint="Does this feel right for this specific role? Tell us what to adjust: the opening, how you connect to the company, or the forward move." placeholder="e.g. Lead with my mission alignment instead… name the specific product line… the close needs to reference their recent funding…" onRegenerate={v=>{recordCorrection('p6',v);generateOpBridgeStory({refine:v})}}/>}</div>}
-              </>,'section-p6')}
+              {(()=>{
+                // Where You Fit + Bridge Story, merged into one card (2026-08-09).
+                // The fit analysis and its 30-second bridge story share a card: the
+                // bridge is the closing beat, "how to say the case out loud." It
+                // auto-builds right after p5 (chained in generateOpSection's finally)
+                // and still stores at sections.p6, so the Cover Letter's bridge input
+                // is undisturbed. Older records with p5 but no bridge get a manual
+                // "Build the bridge story" button as a fallback.
+                const _pfBuilt=!!(_sec.p5&&_sec.p5.content&&_sec.p5.content.trim())
+                const _pfBusy=opSectionBuilding==='p5'&&opBuildingSlot===currentSavedSlotIdRef.current
+                return _cardWrap(<>
+                  {_head('Where you fit, and how to make your case','What this job weights most, your strongest points with the one proof to lead with, the areas they may probe and how to handle them, a one-line pitch, and a 30-second bridge story to say it out loud.',_pfBuilt,()=>generateOpSection('p5'),_pfBusy?'Building…':_pfBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
+                  {opSectionErrors.p5&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.p5}/></div>}
+                  {_pfBusy&&<div style={{marginTop:14}}><Loading msg="Building Where you fit…" step="p5"/></div>}
+                  {_pfBuilt&&<div style={{marginTop:14}}>{_renderSection('p5',_sec.p5.content)}</div>}
+                  {_pfBuilt&&!isDemo&&<RefineBox value={feedback.p5||''} onChange={v=>setFb('p5',v)} hint="Tell us what to refine on this card. Your existing card stays as-is until you submit." onRegenerate={v=>refineOpCard('p5',v)} onlyUpdateButton={true}/>}
+                  {_pfBuilt&&(!isDemo||_p6Built)&&<div style={{marginTop:22,paddingTop:18,borderTop:`1px solid ${C.border}`}}>
+                    <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:4}}>Your 30-second bridge story for this role</div>
+                    <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginBottom:12}}>A tell-me-about-yourself answer written for this specific opportunity, sharper than your general one. This is the case above, in words you can say out loud.</div>
+                    {opSectionErrors.p6&&<div style={{marginBottom:10}}><ErrBox msg={opSectionErrors.p6}/></div>}
+                    {_busyP6&&<div style={{marginBottom:6}}><Loading msg="Finishing with your bridge story…" step="p6"/></div>}
+                    {_p6Built?<><OutPanel text={bridgeStoryToProse(_p6)} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.opP6||''} onChange={v=>setFb('opP6',v)} hint="Does this feel right for this specific role? Tell us what to adjust: the opening, how you connect to the company, or the forward move." placeholder="e.g. Lead with my mission alignment instead… name the specific product line… the close needs to reference their recent funding…" onRegenerate={v=>{recordCorrection('p6',v);generateOpBridgeStory({refine:v})}}/>}</>:(!_busyP6&&!isDemo&&<Btn small secondary onClick={()=>generateOpBridgeStory()} disabled={!!opSectionBuilding}><Sparkles size={12}/>Build the bridge story</Btn>)}
+                  </div>}
+                  {_pfBuilt&&!isDemo&&<div style={{marginTop:16}}><Btn small secondary onClick={()=>openCoachWith(`Help me talk through how I fit and how to position myself for ${_rec.title||'this role'}.`)}><MessageCircle size={13}/>Talk it through with My Coach</Btn></div>}
+                </>,'section-p5')
+              })()}
               {_simpleCard('p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize the competencies this role asks for. The rest of your resume can stay as it is.')}
               {(()=>{
                 // Cover Letter (op-cover-letter brief 2026-06-29): sibling of the p7
@@ -9310,7 +9324,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     Building these first makes this cover letter stronger. It will still generate without them.
                     <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>
                       {_needBrand&&<Btn small secondary onClick={()=>nav('p3')}>Personal Brand</Btn>}
-                      {_needBridge&&<Btn small secondary onClick={()=>scrollToOutput('p6')}>Bridge Story ↑</Btn>}
+                      {_needBridge&&<Btn small secondary onClick={()=>scrollToOutput('p5')}>Where You Fit ↑</Btn>}
                       {_needResume&&<Btn small secondary onClick={()=>scrollToOutput('p_res')}>Resume Refresh ↑</Btn>}
                     </div>
                   </div>}
