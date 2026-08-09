@@ -45,6 +45,6 @@ A few specifics: take an assessment if you do not have one (the difference is si
 
 ## Where to start
 
-Open **reimagine2-two.vercel.app**. Click **Let's get started**. The first thing you see is the welcome screen. Read it, then click forward into the Orientation phase.
+Open **reimagine.career.club**. Click **Let's get started**. The first thing you see is the welcome screen. Read it, then click forward into the Orientation phase.
 
 If anything along the way feels off, the full guide has a chapter for every phase, plus chapters on refining and regenerating, saving your work, an FAQ, a glossary, and a changelog.
