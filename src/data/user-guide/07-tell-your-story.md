@@ -107,7 +107,7 @@ Useful patterns:
 - "Translate the accomplishments out of my old industry's language. A healthcare CEO would not follow these."
 - "I want to lead with my sustainability work for mission-driven conversations. Use that as the opening."
 
-Use **Update with my correction** to fold the change in. Use **Start fresh** to clear and regenerate from a different angle.
+Use **Update with my changes** to fold the change in. Use **Start fresh** to clear and regenerate from a different angle.
 
 If you ever want a completely different opening because the conversation in front of you calls for it, the refine box is also where you do that. Tell the model which anchor to lead with and it will rewrite around that choice.
 

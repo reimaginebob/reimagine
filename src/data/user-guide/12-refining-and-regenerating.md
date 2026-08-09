@@ -18,7 +18,7 @@ Both are normal. Both preserve the rest of your work.
 Every generated step has a **Does this feel right?** box below the output. Click to open. You will see:
 
 - A text field where you describe what to adjust. The microphone button is here too. You can speak instead of type.
-- An **Update with my correction** button that regenerates the current step with your input folded in.
+- An **Update with my changes** button that regenerates the current step with your input folded in.
 - A **Start fresh** button that clears your feedback and regenerates without it.
 
 [screenshot: an open feedback box with a text field, microphone button, Update and Start fresh buttons]
@@ -101,7 +101,7 @@ Edit the field. Replace the resume file. Paste new text. Add a values entry. Wha
 
 ### Step 3: Regenerate the affected steps
 
-When you regenerate a step (with **Update with my correction** or **Start fresh**), Reimagine applies your change to that step. The later steps you already built stay exactly as they were. None of your downstream work is wiped.
+When you regenerate a step (with **Update with my changes** or **Start fresh**), Reimagine applies your change to that step. The later steps you already built stay exactly as they were. None of your downstream work is wiped.
 
 What changes is that the affected later steps now show a yellow staleness indicator, because they were written from the earlier version of the step you just changed. The indicator flags that the upstream moved and offers an **Update this section** button. You decide which later steps are worth refreshing and which are fine as they are.
 
