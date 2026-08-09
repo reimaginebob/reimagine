@@ -66,10 +66,10 @@ Refresh the page and regenerate the step. If it happens again on the same step, 
 Refresh the page. Your work is saved. Most errors are transient. Usually a network blip or a momentary issue with the language model. If the error persists for the same step, try refining with simpler input ("regenerate without the third option," for example) and try again.
 
 **The output is in the wrong tone or doesn't sound like me.**
-Use the feedback box. Describe how you want it to sound. Example: "I'm more reserved than this version. Tighter sentences, less storytelling." Then click **Update with my correction**.
+Use the feedback box. Describe how you want it to sound. Example: "I'm more reserved than this version. Tighter sentences, less storytelling." Then click **Update with my changes**.
 
 **Reimagine read my background wrong.**
-Tell it in the feedback box. Example: "My time at MoneyGram was internal strategy work, not consulting." Click **Update with my correction**. Factual corrections persist across the whole session, so the correction propagates to every later section that depends on it.
+Tell it in the feedback box. Example: "My time at MoneyGram was internal strategy work, not consulting." Click **Update with my changes**. Factual corrections persist across the whole session, so the correction propagates to every later section that depends on it.
 
 **I refreshed my Personal Brand and liked the previous version better.**
 Reimagine keeps the version you had just before your last refresh or Start fresh. Click **Restore previous version** on the Personal Brand screen to bring it back. It is a one-click switch, and you can switch again if you change your mind, so you can compare the two. It keeps the most recent prior version.
@@ -81,7 +81,7 @@ Your Personal Brand does not rebuild on its own when you change an input (your r
 It is a single tell-me-about-yourself answer written in your voice and calibrated to the direction you picked. It opens with the strongest human anchor in your inputs (a passion, a craft you trained in, a formative experience, or an assessment finding), connects that to one accomplishment that carries the theme, and closes on why your next move is the natural next step. When your profile holds a second strong opening, Reimagine adds a short italic coaching note below the story. Chapter 7 covers the model in full.
 
 **My Bridge Story is out of date after I changed my Orientation.**
-If you change your reputation, values, passions, assessment, or Your Story after generating, regenerate the Bridge Story so it reflects what is now true. Open the feedback box below the story and click **Start fresh** (or **Update with my correction** if you also have a specific note). Reimagine rebuilds from your current inputs; your saved story is replaced only when you regenerate it.
+If you change your reputation, values, passions, assessment, or Your Story after generating, regenerate the Bridge Story so it reflects what is now true. Open the feedback box below the story and click **Start fresh** (or **Update with my changes** if you also have a specific note). Reimagine rebuilds from your current inputs; your saved story is replaced only when you regenerate it.
 
 **The Bridge Story or LinkedIn copy uses words I would never say.**
 Open the feedback box below the section and tell Reimagine what to change, then regenerate. Examples: "Lead with my sustainability work instead," or "Don't use the word 'leverage,' I would not say that." The same feedback box works for the Bridge Story, LinkedIn copy, and every other section. Factual corrections save to your profile and carry into later sections; wording requests apply to the section you make them on.

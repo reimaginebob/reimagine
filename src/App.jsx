@@ -4115,7 +4115,7 @@ function WidenCareerOptions({lane,prevTitles,onSubmit,disabled}){
 }
 // RefineBox: whole-output refinement affordance, gold-bordered banner. The
 // onlyUpdateButton prop (PR-A op-card-refinebox brief 2026-05-30) suppresses
-// the "Start fresh (no correction)" button on consumers where a separate
+// the "Start fresh" button on consumers where a separate
 // head-row Rebuild affordance already covers the clean-slate regen path —
 // specifically the four op v2 cards (Role, Resume Refresh, Interview Prep,
 // About This Company). Default false preserves existing behavior for the
@@ -4138,8 +4138,8 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
       </div>
       <div style={S.helperText}>{hasSpeech?'Tip: Tap the microphone to speak, or type. ':''}This is for factual corrections too. If we got something wrong about your experience, your role, or how we read it, tell us. Corrections will apply to future regenerations of other sections as well.</div>
       <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
-        <Btn onClick={()=>{if(guard&&value&&value.trim()){guard(sectionId,value,()=>{setOpen(false);onRegenerate(value)})}else{setOpen(false);onRegenerate(value)}}}><RotateCcw size={13}/>{updateLabel||'Update with my correction'}</Btn>
-        {!onlyUpdateButton&&<Btn secondary onClick={()=>{onChange('');setOpen(false);onRegenerate('')}}><RotateCcw size={13}/>{freshLabel||'Start fresh (no correction)'}</Btn>}
+        <Btn onClick={()=>{if(guard&&value&&value.trim()){guard(sectionId,value,()=>{setOpen(false);onRegenerate(value)})}else{setOpen(false);onRegenerate(value)}}}><RotateCcw size={13}/>{updateLabel||'Update with my changes'}</Btn>
+        {!onlyUpdateButton&&<Btn secondary onClick={()=>{onChange('');setOpen(false);onRegenerate('')}}><RotateCcw size={13}/>{freshLabel||'Start fresh'}</Btn>}
       </div>
     </div>}
   </div>
