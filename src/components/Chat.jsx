@@ -394,7 +394,12 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   return (
     <div data-print="hide" style={{
       position: 'fixed', bottom: 24 + bottomOffset, right: 24, zIndex: 1000,
-      width: 480, maxWidth: 'calc(100vw - 24px)', height: 680, maxHeight: 'calc(100vh - 48px)',
+      // Half-screen footprint (2026-08-09): the panel opens to ~50% of the
+      // viewport width so it's a comfortable reading surface, with a floor so it
+      // never shrinks below the old 480px on small windows and a ceiling so it
+      // stops short of full-screen (that's the My Coach sidebar view's job).
+      width: 'min(50vw, 760px)', minWidth: 'min(480px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)',
+      height: 'min(86vh, 900px)', maxHeight: 'calc(100vh - 48px)',
       background: '#fff',
       border: '1px solid #E2E5EA', borderRadius: 14,
       boxShadow: '0 8px 24px rgba(0,0,0,0.15)',

@@ -4233,7 +4233,7 @@ function SupportPanel({onClose}){
   </div>
 }
 
-function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0}){
+function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false}){
   const navRef=useRef(null)
   const[supportOpen,setSupportOpen]=useState(false)
   // App bumps openSupportReq to open the Support panel programmatically (the
@@ -4353,6 +4353,20 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
   const orientationComplete=done.includes('skills')
   const phasesToRender=(orientationComplete||isDemo)?PHASES:PHASES.filter(p=>p.id!==1)
   return <div ref={navRef} style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
+  {/* My Coach pinned to the top of the orientation rail so it's reachable from
+      the very first screen, not only after the Personal Brand is built (that
+      later sidebar carries its own My Coach entry). Gated on signedIn to match
+      the floating coach bubble: the coach needs an authenticated account, so we
+      only surface the entry when a click would actually open a working coach
+      (not a "sign in first" dead end). Standalone row — never a sequential
+      orientation step, so no progress dot or done-check. */}
+  {signedIn&&(()=>{const active=step==='myCoach';return <div data-step="myCoach" onClick={()=>onNav('myCoach')} style={{margin:'0 14px 6px',padding:'11px 12px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',borderRadius:8,background:active?`${C.gold}45`:'rgba(200,146,74,0.12)',border:`1px solid ${active?C.gold:'rgba(200,146,74,0.35)'}`,transition:'all 0.15s'}}>
+    <MessageCircle size={17} color={active?'#FFFFFF':C.gold}/>
+    <div style={{flex:1}}>
+      <div style={{fontSize:17,fontWeight:active?700:600,color:active?'#FFFFFF':'#F1F5F9'}}>My Coach</div>
+      <div style={{fontSize:15,color:'#B0BEDE',marginTop:1}}>Ask anything, anytime</div>
+    </div>
+  </div>})()}
   {typeof prog==='number'&&<div style={{padding:'16px 18px 20px',borderBottom:'1px solid #0F1A30',marginBottom:8}}>
     <div style={{fontSize:18,color:'#FFFFFF',fontWeight:600,marginBottom:8}}>You're {prog}% complete</div>
     <div style={{width:'100%',height:5,background:'#0F1A30',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:3,transition:'width 0.4s'}}/></div>
@@ -10127,7 +10141,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {isDemo&&<div style={{pointerEvents:'none'}}>
             <Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog}/>
           </div>}
-          {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>to==='op'?addNewOpportunity():nav(to)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq}/>}
+          {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>to==='op'?addNewOpportunity():nav(to)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser}/>}
         </div>
         <div ref={contentColumnRef} data-print="content" style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
