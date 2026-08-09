@@ -4803,6 +4803,19 @@ export default function PivotEngine(){
   // prefills the input the user then sends; no write path to the coach.
   const[coachSeed,setCoachSeed]=useState('')
   const openCoachWith=(seedText)=>{setCoachSeed(seedText||'');nav('myCoach')}
+  // Subtle inline "ask the coach" nudge woven along the journey — the free-text
+  // orientation prompts, the direction choice, a section's empty state. A text
+  // link, not a gold Btn, so it invites without competing with the step's
+  // primary action. Gated on signedInUser (the coach needs an authenticated
+  // account, same as the floating bubble) and hidden in demo, so it only shows
+  // when a click opens a working coach rather than a "sign in first" dead end.
+  // Hidden from print. Returns null when it shouldn't show.
+  const coachNudge=(seed,label,extraStyle)=>(!signedInUser||isDemo)?null:<div data-print="hide" style={{margin:'0 0 4px',...(extraStyle||{})}}><button type="button" onClick={()=>openCoachWith(seed)} style={{background:'none',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6,padding:0}}><MessageCircle size={15}/>{label}</button></div>
+  const ASK_COACH_ORIENT={
+    values:'I\'m filling in my values, passions, and causes. Help me think of what to include — even the personal things that don\'t seem work-related.',
+    reputation:'Help me think through what to write about my reputation — the specific moments, and the words other people have used about me at work.',
+    'life-events':'Help me think about which life experiences shaped who I am at work and might be worth sharing here.',
+  }
   const[isSmallPortrait,setIsSmallPortrait]=useState(false)
   const[mobileBannerDismissed,setMobileBannerDismissed]=useState(()=>{try{return sessionStorage.getItem('reimagine_mobile_advisory_dismissed')==='1'}catch{return false}})
   const dismissMobileBanner=()=>{try{sessionStorage.setItem('reimagine_mobile_advisory_dismissed','1')}catch{};setMobileBannerDismissed(true)}
@@ -8414,6 +8427,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={S.field}><label style={S.label}>Passions, Interests & Causes (3-5)</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>What do you read about for fun, volunteer your time for, or could talk about for 30 minutes with zero preparation? Include hobbies, industries that fascinate you, communities you belong to, and causes close to your heart.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.passions} onChange={e=>pr('passions',e.target.value)} placeholder="e.g. Youth mentoring, Formula 1, Fintech, Sustainability, Veterans' employment, Youth sports, Faith-based service, Addiction recovery, Women in leadership, Gaming, Geopolitics…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('passions',t)}/>}</div></div>
       </div>
       {err&&<ErrBox msg={err}/>}
+      {coachNudge(ASK_COACH_ORIENT.values,'Not sure what to put here? Ask your coach',{margin:'0 0 16px'})}
       <div style={S.row}><Btn secondary onClick={()=>nav('assessment')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.values&&profile.passions?advance('values','priorities'):setErr('Please fill in both fields.')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
 
@@ -8472,6 +8486,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>}<div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea ref={f==='other'?repOtherRef:null} style={{...S.ta,minHeight:f==='other'?90:62,flex:1}} value={profile.rep[f]} onChange={e=>rep(f,e.target.value)}/>{hasSpeech&&<SpeechBtn onResult={t=>rep(f,t)}/>}</div>{f==='other'&&<><div style={{...S.helperText,marginTop:8}}>Paste anything that gives Reimagine more signal: performance reviews, LinkedIn recommendations, 360 feedback, notes from former managers. A divider line between each source (for example, === LinkedIn recommendations === then the text, then === 2024 performance review === then the text) helps Reimagine attribute what came from where.</div><div style={{marginTop:10}}><Btn secondary small onClick={()=>{const cur=profile.rep.other||'';const div='\n\n=== Source ===\n\n';const next=cur+div;rep('other',next);setTimeout(()=>{if(repOtherRef.current){repOtherRef.current.focus();repOtherRef.current.setSelectionRange(next.length,next.length)}},50)}}>+ Add another source</Btn></div></>}</div>)}
         <div style={S.helperText}>If you leave all blank, we'll generate a reputation hypothesis from your other data and ask you to validate it.</div>
       </div>
+      {coachNudge(ASK_COACH_ORIENT.reputation,'Not sure what to write? Ask your coach',{margin:'0 0 16px'})}
       <div style={S.row}><Btn secondary onClick={()=>nav('priorities')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('reputation','life-events')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
 
@@ -8488,6 +8503,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
         </div>
       </div>
+      {coachNudge(ASK_COACH_ORIENT['life-events'],'Not sure what to share? Ask your coach',{margin:'0 0 16px'})}
       <div style={S.row}><Btn secondary onClick={()=>nav('reputation')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('life-events','skills')}>{(profile.lifeEvents||'').trim()?'Continue':'Continue without sharing'} <ChevronRight size={14}/></Btn></div>
     </div>
 
@@ -8549,7 +8565,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>}
 
-      {!isDemo&&!outputs.p3&&!loading&&<><Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn><div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:15,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>A single prose synthesis of who you are at work, roughly 600 to 800 words. About 4 to 5 minutes to generate.</div></>}
+      {!isDemo&&!outputs.p3&&!loading&&<><Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn><div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:15,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>A single prose synthesis of who you are at work, roughly 600 to 800 words. About 4 to 5 minutes to generate.</div>{coachNudge('Before I build my Personal Brand, help me understand what it will give me — and whether my inputs so far are enough to make it sharp.','Wondering what this will give you? Ask your coach',{marginTop:12})}</>}
       {!isDemo&&!outputs.p3&&!loading&&outputs.p3_prev&&outputs.p3_prev.p3&&<div style={{marginTop:14}}><Btn small secondary onClick={restorePrevP3}><RotateCcw size={12}/>Restore previous version</Btn></div>}
       {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3"/>}
       {outputs.p3&&!loading&&<>
@@ -8637,6 +8653,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </button>)}
       </div>
       <div style={{marginTop:22,fontSize:15,color:C.gray,lineHeight:1.6,maxWidth:860,textAlign:'center'}}><strong>Not sure where to start?</strong> Familiar Ground is the lowest-risk exploration — your track record speaks immediately, so you can move through these roles quickly, see what is out there, and get a real sense of your market. Start there if you are unsure; come back to Industry Insider or Work That Matters knowing what you are choosing toward, not just away from.</div>
+      {coachNudge('Help me think through which of these three directions — Familiar Ground, Industry Insider, or Work That Matters — fits me best right now. Ask me what matters most and talk it through; don\'t decide for me.','Talk through which direction fits me',{marginTop:16,maxWidth:860,textAlign:'center'})}
     </div>
     case'p4':{
       if(!selectedLane)return <div>{!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}{!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}<h1 style={S.title}>Pick a direction first</h1><div style={S.row}><Btn onClick={()=>nav('laneSelect')}>Choose a direction <ChevronRight size={14}/></Btn></div></div>
@@ -8848,6 +8865,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{flex:1,minWidth:0}}>
         {(()=>{
           const focusById=Object.fromEntries(FOCUS_ORDER.map(s=>[s.id,s]))
+          // Empty-state coach nudge shows on at most ONE section — the topmost
+          // not-yet-built one — so a playbook with several unbuilt sections never
+          // stacks the same nudge down the page.
+          const sectionBuilt=(sid)=>sid==='p6'?((typeof outputs.p6==='string'&&outputs.p6.length>0)||(outputs.p6&&typeof outputs.p6==='object')||outputs.p6===null):(outputs[sid]&&outputs[sid].length>0)
+          const firstUnbuiltFocusId=FOCUS_ORDER.map(s=>s.id).find(sid=>!sectionBuilt(sid))||null
           const sectionNums={};{let n=1;FOCUS_GROUPS.forEach(g=>g.sectionIds.forEach(sid=>{sectionNums[sid]=n++}))}
           const totalNumbered=focusNumberedIds.length
           const renderSection=(sec,num)=>{
@@ -8924,6 +8946,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   ?<Btn disabled={loading} onClick={()=>generate('p5',gp('p5'),go('p5'))}><Sparkles size={14}/>Generate The Role</Btn>
                   :<Btn disabled={!canGenSection(id)} onClick={()=>genSec(id)}><Sparkles size={14}/>Generate {sec.label}</Btn>}
               </div>}
+              {!isGen&&!sectionErrors[id]&&!has&&id===firstUnbuiltFocusId&&coachNudge(`Before I build the ${sec.label} section, help me understand what it will give me and how to get the most from it.`,'New to this section? Ask your coach what it covers',{marginTop:10})}
             </section>
           }
           const groupDivider=(label,color)=><div style={{marginTop:40,marginBottom:4}}>
