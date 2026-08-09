@@ -69,7 +69,7 @@ The anchor can come from any of four places. One example of each:
 
 ## On the screen
 
-The Bridge Story section opens with a short section header and a generate button. Click **Generate**. About a minute to a minute and a half. You get the story and, when one is warranted, the coaching note. Below them, the standard refine box ("What did we get wrong?") and the navigation to **Find My Market**.
+The Bridge Story section opens with a short section header and a generate button. Click **Generate**. About a minute to a minute and a half. You get the story and, when one is warranted, the coaching note. Below them, the standard refine box ("Does this feel right?") and the navigation to **Find My Market**.
 
 ## What good looks like
 
@@ -97,7 +97,7 @@ The first starts with the human and pivots into the career. The second starts wi
 
 ## How to refine
 
-The refine box ("What did we get wrong?" below the story) is your tool. Open it, write what is off, and regenerate. The microphone in the box lets you talk through what feels off; that is often easier than typing it.
+The refine box ("Does this feel right?" below the story) is your tool. Open it, write what is off, and regenerate. The microphone in the box lets you talk through what feels off; that is often easier than typing it.
 
 Useful patterns:
 

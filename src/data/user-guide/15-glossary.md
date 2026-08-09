@@ -73,7 +73,7 @@ The Personal Brand prose names what is settled about your fit and what is open. 
 
 **Quick Takeaway.** A short summary at the top of some generated sections. Three to five sentences that give you the essentials without expanding the full output. Retired from the Personal Brand output in 2026-05-20 (the lead sentence now carries that role) and from Role Options in 2026-05-27 (the umbrella paragraph at the top of each lane now carries that role). Still used in Go-to-Market and in The Role focus card.
 
-**Refine box.** The "Want to make changes?" box below every generated output. Where you tell Reimagine what to adjust before regenerating.
+**Refine box.** The "Does this feel right?" box below every generated output. Where you tell Reimagine what to adjust before regenerating.
 
 **Reputation.** The final input in the Orientation phase. External data about how others see you, gathered through four short prompts.
 
