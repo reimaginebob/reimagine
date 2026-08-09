@@ -2463,6 +2463,28 @@ Return ONLY a JSON object, no preamble and no markdown fence:
 
 PROFILE TEXT:
 ${text}`,
+  // RESUME_PARSE (plain path): structure an uploaded existing resume (possibly old
+  // or rough) into the same builder skeleton the LinkedIn parse produces, so the
+  // draft rebuilds from it. Extraction only; invents nothing.
+  RESUME_PARSE:(text)=>`The text below was extracted from a person's existing resume. It may be old, rough, or thin. Pull out their contact header and work history. Return ONLY what is present in the text. Do not invent or infer any employer, title, date, number, or contact detail that is not there.
+
+HEADER. Extract each field the resume contains: "name", "location" (city or metro), "email", "phone", "linkedinUrl" if a LinkedIn URL is present, and "summary" (the summary or objective statement if the resume opens with one, copied as written; otherwise empty).
+
+EMPLOYERS. From the work-history / experience section, list each employer in the order shown. For each:
+- "company": the employer name.
+- "context": a short description or size marker ABOUT THE COMPANY, only if the resume states one; otherwise an empty string.
+- "titles": one or more roles at that employer, each with "title" and "dates" copied as written. Group several stacked roles under one employer when the resume shows a promotion or role change.
+- "rawLines": the person's OWN bullet points and accomplishments under that role, each bullet as one string in the array, copied verbatim including all numbers.
+
+EDUCATION. Each entry with "degree", "field" (field of study), "institution", and "year", copied as written.
+
+SKILLS. Any skills the resume lists, grouped by the resume's own categories where it groups them, otherwise a single group. Copy skills as written; do not invent tools or certifications the resume does not mention.
+
+If you find no work history, return { "header": { ... }, "employers": [], "education": [], "skills": [] }. Return ONLY a JSON object, no preamble and no markdown fence:
+{ "header": { "name": "", "location": "", "email": "", "phone": "", "linkedinUrl": "", "summary": "" }, "employers": [{ "company": "", "context": "", "titles": [{ "title": "", "dates": "" }], "rawLines": [] }], "education": [{ "degree": "", "field": "", "institution": "", "year": "" }], "skills": [{ "category": "", "items": [] }] }
+
+RESUME TEXT:
+${text}`,
   AREAS:(title,industry,companyContext)=>`Someone is rebuilding their resume and needs help remembering what they did in a past role. The role is ${title}${industry?` in ${industry}`:''}${companyContext?` (${companyContext})`:''}.
 
 List up to 10 areas of responsibility and impact that someone in this role commonly owns. These are memory-joggers to spark their own recall, not claims about this person and not resume bullets.
@@ -6206,52 +6228,47 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // extractText returns a bracketed notice string when the PDF has no text layer
   // (image-based / browser-printed). Detect it so we route to from-scratch.
   const looksLikeExtractFallback=(t)=>/^\s*\[/.test(String(t||''))&&/(could\W?n\W?t be read|image-based|browser)/i.test(String(t||''))
-  // 0. LINKEDIN_PARSE (plain path): extract the LinkedIn PDF text, then structure
-  // it into the builder skeleton so the person sees their history laid out and only
-  // corrects it. Falls through to from-scratch when the PDF has no readable text.
-  const genBuilderLinkedinParse=async(file)=>{
+  // Shared document-to-draft parse for the builder on-ramps. Extracts the file text,
+  // structures it into the builder skeleton (same schema for a LinkedIn PDF or an
+  // uploaded resume), then routes to 'drafting' (fires the baseline) when roles
+  // parse, else the skeleton. The LinkedIn on-ramp additionally feeds
+  // profile.linkedin from its real source (so the LinkedIn step is auto-satisfied);
+  // the resume on-ramp NEVER touches profile.linkedin — the uploaded resume seeds
+  // the draft only, and the rebuilt baseline becomes profile.resume.
+  const runBuilderDocParse=async(file,opts)=>{
+    const{key,promptFn,source,feedLinkedin,fallbackMsg}=opts
     if(builderBuilding)return
-    const key='linkedin-parse';setBuilderBuilding(key);builderErr(key,null)
+    setBuilderBuilding(key);builderErr(key,null)
     const reqId=++builderReqRef.current
     try{
       const text=await extractText(file)
       if(reqId!==builderReqRef.current)return
       if(looksLikeExtractFallback(text)){
-        setBuilder(cur=>({...cur,source:'scratch',linkedinFile:file.name,employers:(cur.employers&&cur.employers.length)?cur.employers:[emptyEmployer()],phase:'skeleton'}))
-        builderErr(key,"We could not read that PDF as text. It may be image-based or printed from a browser, which LinkedIn sometimes produces. Build it from a few basics below instead.")
+        setBuilder(cur=>({...cur,source:'scratch',employers:(cur.employers&&cur.employers.length)?cur.employers:[emptyEmployer()],phase:'skeleton'}))
+        builderErr(key,fallbackMsg)
         return
       }
-      const raw=await callClaude(P.LINKEDIN_PARSE(text),{maxTokens:4000})
+      const raw=await callClaude(promptFn(text),{maxTokens:4000})
       if(reqId!==builderReqRef.current)return
       const parsed=parseJsonObject(raw)
       // Tolerate both the nested {header:{...}} shape and a flat object.
       const ph=(parsed&&parsed.header&&typeof parsed.header==='object')?parsed.header:(parsed||{})
       const emps=((parsed&&Array.isArray(parsed.employers))?parsed.employers:[]).map(e=>{
         const rawLines=Array.isArray(e&&e.rawLines)?e.rawLines.map(s=>String(s||'').trim()).filter(Boolean):[]
-        return {
-          company:((e&&e.company)||'').trim(),
-          context:((e&&e.context)||'').trim(),
-          titles:(((e&&Array.isArray(e.titles)&&e.titles.length)?e.titles:[{}]).map(t=>({title:((t&&t.title)||'').trim(),dates:((t&&t.dates)||'').trim()}))),
-          // rawLines (the person's own contributions) pre-seed the capture box so a
-          // LinkedIn user confirms and sharpens rather than starting blank.
-          areas:[],rawText:rawLines.join('\n'),shaped:[]
-        }
+        // rawLines (the person's own contributions) pre-seed the draft so they
+        // confirm and sharpen rather than starting blank.
+        return {company:((e&&e.company)||'').trim(),context:((e&&e.context)||'').trim(),titles:(((e&&Array.isArray(e.titles)&&e.titles.length)?e.titles:[{}]).map(t=>({title:((t&&t.title)||'').trim(),dates:((t&&t.dates)||'').trim()}))),areas:[],rawText:rawLines.join('\n'),shaped:[]}
       }).filter(e=>e.company||e.titles.some(t=>t.title))
       const g=(k)=>((ph&&ph[k])||'').trim()
       const name=g('name'),loc=g('location'),email=g('email'),phone=g('phone'),linkedinUrl=g('linkedinUrl'),summary=g('summary')
-      // education + skills (round-3): parsed straight into the builder so the first
-      // baseline draft renders complete (Top Skills + Education sections present).
       const education=((parsed&&Array.isArray(parsed.education))?parsed.education:[]).map(e=>({degree:((e&&e.degree)||'').trim(),field:((e&&e.field)||'').trim(),institution:((e&&e.institution)||'').trim(),year:((e&&e.year)||'').trim()})).filter(e=>e.degree||e.institution)
       const skills=((parsed&&Array.isArray(parsed.skills))?parsed.skills:[]).map(grp=>({category:((grp&&grp.category)||'').trim(),items:((grp&&Array.isArray(grp.items))?grp.items:[]).map(it=>({skill:(typeof it==='string'?it:((it&&it.skill)||'')).trim(),selected:true})).filter(it=>it.skill)})).filter(grp=>grp.items.length)
       setProfile(p=>{
         const builder=p.builder||{};const hdr=builder.header||{}
         const nextLoc=(p.loc&&p.loc.city)?p.loc:{...(p.loc||{}),city:loc||((p.loc||{}).city||'')}
-        // employers present -> go straight to drafting (the effect fires the baseline);
-        // no roles parsed -> drop to the skeleton so the person can add them.
-        // Feed the orientation LinkedIn field from its real source (the extracted PDF
-        // text) so the LinkedIn upload step is auto-satisfied and we don't re-ask for
-        // the same file. Distinct field from profile.resume; not cross-wired.
-        return{...p,loc:nextLoc,linkedin:text,linkedinFile:file.name,builder:{...builder,source:'linkedin',linkedinFile:file.name,linkedinRaw:text,linkedinSummary:summary||builder.linkedinSummary||'',
+        const profileExtra=feedLinkedin?{linkedin:text,linkedinFile:file.name}:{}
+        const builderFileFields=feedLinkedin?{linkedinFile:file.name,linkedinRaw:text}:{resumeSourceFile:file.name}
+        return{...p,loc:nextLoc,...profileExtra,builder:{...builder,source,...builderFileFields,summarySeed:summary||builder.summarySeed||'',
           header:{...hdr,name:name||hdr.name||'',email:email||hdr.email||'',phone:phone||hdr.phone||'',linkedin:linkedinUrl||hdr.linkedin||p.linkedin||''},
           education:education.length?education:(builder.education||[]),skills:skills.length?skills:(builder.skills||[]),
           employers:emps.length?emps:[emptyEmployer()],phase:emps.length?'drafting':'skeleton'}}
@@ -6259,11 +6276,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if(!emps.length)builderErr(key,'We read your file but could not lay out the roles cleanly. Add them below and keep going.')
     }catch(e){
       if(reqId===builderReqRef.current){
-        setBuilder(cur=>({...cur,source:'linkedin',linkedinFile:file.name,employers:(cur.employers&&cur.employers.length)?cur.employers:[emptyEmployer()],phase:'skeleton'}))
+        setBuilder(cur=>({...cur,source,employers:(cur.employers&&cur.employers.length)?cur.employers:[emptyEmployer()],phase:'skeleton'}))
         builderErr(key,(e&&e.message)||'We could not read that file. Add your roles below and keep going.')
       }
     }finally{if(reqId===builderReqRef.current)setBuilderBuilding(null)}
   }
+  const genBuilderLinkedinParse=(file)=>runBuilderDocParse(file,{key:'linkedin-parse',promptFn:P.LINKEDIN_PARSE,source:'linkedin',feedLinkedin:true,fallbackMsg:"We could not read that PDF as text. It may be image-based or printed from a browser, which LinkedIn sometimes produces. Build it from a few basics below instead."})
+  const genBuilderResumeParse=(file)=>runBuilderDocParse(file,{key:'resume-parse',promptFn:P.RESUME_PARSE,source:'resume',feedLinkedin:false,fallbackMsg:"We could not read that file as text. It may be a scanned image. Build it from a few basics below instead."})
   // Draft-side enrichment generators are defined after the baseline commit helpers
   // (genDraftAreas / genDraftNudge / genDraftSayMore / genDraftSkills).
   // Assemble the captured material into a plain block for BASELINE. Only what the
@@ -6274,7 +6293,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     L.push('HEADER:')
     L.push(`Name: ${h.name||''}`)
     L.push(`Email: ${h.email||''}`);L.push(`Phone: ${h.phone||''}`);L.push(`Location: ${loc}`);L.push(`LinkedIn: ${h.linkedin||''}`)
-    if(b.linkedinSummary&&b.linkedinSummary.trim()){L.push('');L.push("THE PERSON'S OWN LINKEDIN SUMMARY (their voice, for reference when writing the professional summary):");L.push(b.linkedinSummary.trim())}
+    const summarySeed=b.summarySeed||b.linkedinSummary
+    if(summarySeed&&summarySeed.trim()){L.push('');L.push("THE PERSON'S OWN CURRENT SUMMARY (their voice, for reference when writing the professional summary):");L.push(summarySeed.trim())}
     L.push('')
     L.push('EXPERIENCE:')
     ;(b.employers||[]).forEach(emp=>{
@@ -6462,19 +6482,28 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>
 
     if(phase==='onramp')return <div>
-      {hdr('Phase 0 · Orientation','The fastest way to start',"If you're on LinkedIn, your profile already has the backbone we need: your roles, companies, and dates. Here's how to hand it to us. Open your LinkedIn profile, click the three dots near your name, choose Save to PDF, and upload that file here. We'll read it and lay out your history so you're not starting from a blank page.")}
+      {hdr('Phase 0 · Orientation','Give us a head start',"Hand over whatever you already have and we'll turn it into a clean first draft you can edit. Even an old resume works: we use it to save you typing, then rebuild it fresh, so the version you're not proud of never leaves this step.")}
       <div style={S.card}>
+        <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>Upload a resume, even an old one</div>
+        <p style={{fontSize:15,color:C.gray,margin:'0 0 12px'}}>PDF, Word, or text. It can be years out of date. We use it to save you typing, then rebuild it clean.</p>
+        <FileUpload label="Upload a resume" hint="PDF, Word (.docx), or text file" fileName={b.resumeSourceFile} onFile={f=>genBuilderResumeParse(f)}/>
+        {builderBuilding==='resume-parse'&&<Loading msg="Reading your resume and laying out your history…"/>}
+        {builderErrors['resume-parse']&&<ErrBox msg={builderErrors['resume-parse']}/>}
+      </div>
+      <div style={S.card}>
+        <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>No resume? Use your LinkedIn</div>
+        <p style={{fontSize:15,color:C.gray,margin:'0 0 12px'}}>Open your LinkedIn profile, click the three dots near your name, choose Save to PDF, and upload that file. We'll read your roles, dates, and the accomplishments you already wrote.</p>
         <FileUpload label="Upload my LinkedIn PDF" hint="PDF only" fileName={b.linkedinFile} onFile={f=>genBuilderLinkedinParse(f)}/>
         {builderBuilding==='linkedin-parse'&&<Loading msg="Reading your profile and laying out your history…"/>}
         {builderErrors['linkedin-parse']&&<ErrBox msg={builderErrors['linkedin-parse']}/>}
       </div>
-      <p style={{fontSize:16,color:C.gray,margin:'4px 0 10px'}}>Not on LinkedIn? We'll build it from a few basics instead.</p>
-      <div style={S.row}>{back('intro')}<Btn secondary onClick={()=>{setBuilder(cur=>({...cur,source:'scratch',employers:(cur.employers&&cur.employers.length)?cur.employers:[{company:'',context:'',titles:[{title:'',dates:''}],areas:[],rawText:'',shaped:[]}],phase:'skeleton'}))}}>Start from scratch <ChevronRight size={14}/></Btn></div>
+      <p style={{fontSize:15,color:C.gray,margin:'4px 0 10px'}}>Have neither on hand? We'll build it from a few basics instead.</p>
+      <div style={S.row}>{back('intro')}<Btn secondary onClick={()=>{setBuilder(cur=>({...cur,source:'scratch',employers:(cur.employers&&cur.employers.length)?cur.employers:[emptyEmployer()],phase:'skeleton'}))}}>Start from scratch <ChevronRight size={14}/></Btn></div>
     </div>
 
-    if(phase==='skeleton'){const fromLinkedin=b.source==='linkedin'&&employers.some(e=>e.company||(e.titles||[]).some(t=>t.title));return <div>
-      {hdr('Phase 0 · Orientation','Where have you worked?',fromLinkedin?'We laid out your history from LinkedIn below. Check that your companies, titles, and dates look right, and fix anything that came through wrong.':'Start with your most recent role and work back. We just need the basics here; the good stuff comes next.')}
-      {builderErrors['linkedin-parse']&&<div style={{...S.note,marginBottom:14}}>{builderErrors['linkedin-parse']}</div>}
+    if(phase==='skeleton'){const fromDoc=(b.source==='linkedin'||b.source==='resume')&&employers.some(e=>e.company||(e.titles||[]).some(t=>t.title));return <div>
+      {hdr('Phase 0 · Orientation','Where have you worked?',fromDoc?'We laid out your history from what you uploaded below. Check that your companies, titles, and dates look right, and fix anything that came through wrong.':'Start with your most recent role and work back. We just need the basics here; the good stuff comes next.')}
+      {(builderErrors['linkedin-parse']||builderErrors['resume-parse'])&&<div style={{...S.note,marginBottom:14}}>{builderErrors['linkedin-parse']||builderErrors['resume-parse']}</div>}
       {b.source==='linkedin'&&b.linkedinRaw&&<details style={{marginBottom:14}}><summary style={{cursor:'pointer',color:C.gold,fontWeight:600}}>What we read from your LinkedIn file</summary><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,color:C.gray,maxHeight:220,overflow:'auto',marginTop:8}}>{b.linkedinRaw}</pre><div style={{fontSize:15,color:C.gray}}>This is the raw text we read, kept here for reference. Your roles are in the fields below.</div></details>}
       {employers.map((e,i)=><div key={i} style={S.card}>
         <div style={S.field}><label style={S.label}>Company</label><input style={iS} value={e.company||''} onChange={ev=>updEmployer(i,{company:ev.target.value})} placeholder="Company name"/></div>
@@ -8301,25 +8330,25 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
     case'resume':return <div>
       <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
-      <h1 style={S.title} >Add your resume<InfoTooltip label="Why your resume matters here">Your resume is the single largest input. Reimagine reads it for accomplishments, scope, industry context, and trajectory. A thin or unquantified resume produces thin output. If you need to update it before continuing, do that first.</InfoTooltip></h1>
+      <h1 style={S.title} >Add your resume<InfoTooltip label="Why your resume matters here">Your resume is the single largest input. Reimagine reads it for accomplishments, scope, industry context, and trajectory. You do not need to polish or update it first: if yours is out of date, the builder can rebuild it with you.</InfoTooltip></h1>
       <p style={S.sub}>This is the raw material for everything we build with you next.</p>
       {/* Two co-equal doors, side by side and both visible without scrolling. */}
       <div style={{display:'flex',gap:16,alignItems:'stretch',flexWrap:'wrap'}}>
-        {/* Door 1: upload (unchanged behavior); paste demoted behind a reveal link. */}
+        {/* Door 1: already have a current resume -> use it as-is. Paste demoted behind a reveal link. */}
         <div style={{...S.card,flex:'1 1 320px',marginBottom:0,display:'flex',flexDirection:'column'}}>
-          <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>Upload my resume</div>
-          <p style={{fontSize:15,color:C.gray,margin:'0 0 14px'}}>PDF or Word. Drag it in and keep going.</p>
+          <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>Already have an up-to-date resume?</div>
+          <p style={{fontSize:15,color:C.gray,margin:'0 0 14px'}}>Upload it here and we'll use it as-is. PDF or Word, drag it in and keep going.</p>
           <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
           {fileLoading&&<Loading msg="Reading your file…"/>}
           {!(showPasteResume||(profile.resume&&!profile.resumeFile))&&<button type="button" onClick={()=>setShowPasteResume(true)} style={{alignSelf:'flex-start',background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:'10px 0 0',fontSize:15}}>Or paste it instead</button>}
           {(showPasteResume||(profile.resume&&!profile.resumeFile))&&<div style={{...S.field,marginTop:14,marginBottom:0}}><label style={S.label}>Paste resume text</label><textarea style={{...S.ta,minHeight:160}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} placeholder="Paste your resume text here…"/></div>}
           {profile.resume&&<div style={{fontSize:15,color:C.ok,marginTop:10}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
         </div>
-        {/* Door 2: build a resume with the person (unchanged behavior). */}
+        {/* Door 2: build/refresh with the person from an old resume, LinkedIn, or scratch. */}
         <button type="button" onClick={()=>{if(!(profile.builder&&profile.builder.phase)){setBuilder({phase:'intro',source:'',header:{name:'',email:'',phone:'',linkedin:profile.linkedin||''},employers:[],skills:[],education:[],certs:'',extras:'',proudest:''})}nav('resume-builder')}} style={{flex:'1 1 320px',textAlign:'left',background:'#FFFDF8',border:`1.5px solid ${C.gold}`,borderRadius:10,padding:'32px 38px',cursor:'pointer',display:'flex',flexDirection:'column',fontFamily:'inherit'}}>
-          <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>{profile.builder&&profile.builder.phase?'Continue building my resume':'I need help with my resume first'}</div>
-          <p style={{fontSize:15,color:C.gray,margin:0}}>{profile.builder&&profile.builder.phase?'Pick up where you left off. Your entries are saved.':"We'll build one with you, step by step."}</p>
-          <div style={{marginTop:'auto',paddingTop:18,color:C.gold,fontWeight:700,fontSize:15,display:'flex',alignItems:'center',gap:6}}>{profile.builder&&profile.builder.phase?'Continue':'Build my resume'}<ChevronRight size={15}/></div>
+          <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>{profile.builder&&profile.builder.phase?'Continue building my resume':"Out of date, or don't have one?"}</div>
+          <p style={{fontSize:15,color:C.gray,margin:0}}>{profile.builder&&profile.builder.phase?'Pick up where you left off. Your entries are saved.':"Bring an old resume, your LinkedIn, or nothing at all. We'll turn it into a fresh draft you can edit."}</p>
+          <div style={{marginTop:'auto',paddingTop:18,color:C.gold,fontWeight:700,fontSize:15,display:'flex',alignItems:'center',gap:6}}>{profile.builder&&profile.builder.phase?'Continue':'Build my resume with help'}<ChevronRight size={15}/></div>
         </button>
       </div>
       {profile.baselineResume&&<div style={{...S.note,marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}><Check size={14} color={C.ok}/>Your built resume is saved to your account.<a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume)}>Download (Word)</a></div>}

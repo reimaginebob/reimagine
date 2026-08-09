@@ -57,9 +57,11 @@ Click **Continue** when you are done.
 
 Your resume is the raw material for everything Reimagine builds with you next. This screen gives you two ways to provide it.
 
-### Door 1: Upload my resume
+You do not need to polish or update your resume before you start. If yours is out of date, the builder rebuilds it with you (see Door 2).
 
-If you already have a resume, this is the fast path.
+### Door 1: Already have an up-to-date resume?
+
+If your resume is current, this is the fast path: Reimagine uses it as-is.
 
 **Upload.** Drag a file onto the upload area or click to browse. PDF, Word (.docx), and plain text all work.
 
@@ -69,13 +71,17 @@ You can do both. The text field is the source of truth for what Reimagine reads,
 
 Once Reimagine has read the file, you will see a green checkmark and a character count. Click **Continue**.
 
-### Door 2: I need help with my resume first
+### Door 2: Out of date, or don't have one?
 
-If you do not have a current resume, or the one you have is thin, Reimagine builds one with you and gets you to a complete, sendable draft fast. You refine a resume that already exists rather than building up to one.
+If your resume is stale, thin, or missing, Reimagine builds one with you and gets you to a complete, sendable draft fast. You refine a resume that already exists rather than building up to one. Whatever you hand over is a jumpstart only: Reimagine rebuilds it fresh, so an old version you are not proud of never carries through.
 
 Here is how the builder works:
 
-1. **Pick a starting point.** Hand over your LinkedIn profile as a PDF (open your profile, click the three dots, choose Save to PDF, and upload it), or start from a few basics. Either way you are never staring at a blank page.
+1. **Pick a starting point.** Give it whatever you already have:
+   - **An old resume**, even years out of date (PDF, Word, or text). Reimagine reads it and rebuilds it clean.
+   - **Your LinkedIn**, if you have no resume handy. Open your profile, click the three dots, choose Save to PDF, and upload that file. (Using your LinkedIn here also means the LinkedIn step later does not ask for it again.)
+   - **A few basics**, if you have neither. You give companies, titles, and dates, and Reimagine drafts from those.
+   Either way you are never staring at a blank page.
 2. **Get a complete draft right away.** If you upload LinkedIn, Reimagine reads your roles, dates, the accomplishments you already wrote, your skills, and your education, and writes a full first draft. If you start from scratch, you give the basics (companies, titles, dates, and optionally a few lines about your work) and Reimagine drafts from those. No long questionnaire first.
 3. **Edit it on the page.** The draft is your workspace, and everything on it is editable: the summary, each bullet, your skills, and your education. Your changes save as you go.
 4. **Sharpen it where you want to, all optional.** A bullet without a number shows an **add a number?** prompt that names how that kind of work is usually measured. **Say more about this role** opens a box to add anything that is missing, and can offer a few role-typical ideas to jog your memory. **Suggest more skills** finds skills your draft implies. None of this is required; the draft already works without it.
