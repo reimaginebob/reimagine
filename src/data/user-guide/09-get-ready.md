@@ -27,11 +27,11 @@ Review Industry Background before networking events, informational calls, and an
 
 ## Interview Prep
 
-**What this section does.** The questions this role's interview cycle is most likely to surface, with the raw material from your own inputs to build each answer. The strongest version of each answer is in your voice, with the specifics only you can add.
+**What this section does.** The questions this role's interview cycle is most likely to surface, with the raw material from your own inputs to build each answer. The set grounds in the classic questions every candidate should expect — why you are leaving, your strengths and weaknesses, what you know about the company, how you handle conflict, a difficult situation you faced — each one tuned to this role rather than answered generically. The strongest version of each answer is in your voice, with the specifics only you can add.
 
 **What you will get back.**
 
-- **Ten to twelve likely questions** for this specific role, with framing recommendations for each.
+- **Eight to ten likely questions** for this specific role, with framing recommendations for each.
 - **For behavioral questions, a STAR breakdown** (Situation, **Thinking**, Action, Result). The T is for *Thinking*, the most important section. How you diagnosed the problem and chose your path is what hiring managers care about most. Each STAR section pulls from a specific moment in your inputs and includes a "to strengthen" note pointing at what would make the answer land harder.
 - **Opening moves** that connect your past experience to the situation the interviewer is facing now. A bridge sentence you can adapt to the company in front of you.
 - **A "why this company or role" variant** with talking points pulled from the passions, values, and life experiences you named in Orientation. If those inputs were thin, the talking points flag the gap and ask you to add context about the target company so Reimagine can sharpen the answer.
