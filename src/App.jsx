@@ -6608,18 +6608,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }finally{
       if(reqId===opSectionReqRef.current){
         setOpSectionBuilding(null);setOpBuildingSlot(null)
-        // Auto-companyRead hand-off (op-auto-company-read brief 2026-06-14): once
-        // the p5 auto-build releases the lock, fire companyRead for the same slot.
-        // Runs on both success and failure paths (finally), so a p5 failure does
-        // not block companyRead — it is independent of p5 content. Gated on key
-        // ==='p5' (only the auto-build hand-off) and on the slot still matching
-        // (a mid-flight op-record switch clears the pending ref without firing on
-        // the wrong record). The render-N closure's opSectionBuilding is null, so
-        // generateOpCompanyRead's own lock guard passes when called here.
-        if(key==='p5'&&_pendingCompanyReadRef.current===slotId){
-          _pendingCompanyReadRef.current=null
-          if(currentSavedSlotIdRef.current===slotId)generateOpCompanyRead()
-        }
       }
     }
   }
@@ -6631,22 +6619,22 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // only write is record.opLane.
   const[opLaneInferring,setOpLaneInferring]=useState(false)
   const opLaneInferRef=useRef({})
-  // _pendingAutoBuildRef (op surface cleanup brief 2026-05-29): stores the
-  // slotId when Build My Playbook is clicked, signaling runOpLaneInference's
-  // success path to fire generateOpSection('p5') with the inferred lane once
-  // classification completes. Cleared after firing, or naturally when the
-  // user switches op records (the slotId match in runOpLaneInference's
-  // success path acts as the freshness check).
+  // _pendingAutoBuildRef (top-down auto-build, 2026-08-09): stores the slotId
+  // when Build My Playbook is clicked, signaling runOpLaneInference's success
+  // path to start the auto-build sequence once classification completes. The
+  // sequence is top-down: About This Company (card 1) builds first, then its
+  // finally hands off to Where You Fit (p5), which reads the lane already
+  // written to the record. The ref stays set across the chain and is cleared
+  // when p5 is queued (in generateOpCompanyRead's finally); the slotId match
+  // acts as the freshness check if the user switches op records mid-flight.
   const _pendingAutoBuildRef=useRef(null)
-  // _pendingCompanyReadRef (op-auto-company-read brief 2026-06-14): set alongside
-  // _pendingAutoBuildRef in submitOpRole. After p5's auto-build completes (or
-  // fails) and releases the lock, generateOpSection's finally fires
-  // generateOpCompanyRead so a single JD upload populates BOTH The Role and
-  // About This Company. Sequential by the shared opSectionBuilding lock — p5
-  // (fast, no web search) first, companyRead (slow, web search) second. Closes
-  // audit gap #1 (Door-2 industry context) via the existing companyRead surface
-  // rather than porting Industry Background (P.p9) from Door 1.
-  const _pendingCompanyReadRef=useRef(null)
+  // Snap the view to About This Company the moment the auto-build sequence is
+  // queued (top-down 2026-08-09). The web-search build itself starts only after
+  // lane classification returns; without this, the card-1 spinner shown during
+  // that window (via _opAutoBuildPending) could sit below the fold while the
+  // page is still pinned to the top from the step change. Gated on a queued
+  // auto-build so background backfill inference (no pending build) never scrolls.
+  useEffect(()=>{if(!opLaneInferring||!_pendingAutoBuildRef.current)return;requestAnimationFrame(()=>{const el=document.getElementById('section-companyRead');if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})},[opLaneInferring])
   // Compact foundation summary for the lane inference call: the synthesized
   // Personal Brand when present, plus the raw values / passions / reputation.
   const buildOpProfileSummary=()=>{
@@ -6675,7 +6663,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // fallback string for empty laneValue. Defaulting to FG would assert an
       // on-thesis fit the system couldn't establish; empty is the epistemically
       // clean move.
-      const inferredLane=res?res.value:''
       if(res){
         setSavedPlaybooks(prev=>prev.map(r=>{
           if(r.id!==slotId||opLaneValue(r))return r
@@ -6683,13 +6670,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         }))
         setCurrentRoleSaved(false)
       }
-      // Auto-build hand-off: if Build My Playbook queued this slot, fire The
-      // Role generation with the inferred lane passed through as laneOverride.
-      // The slotId match guard prevents firing on a stale ref if the user
-      // switched op records between submit and classification finishing.
+      // Auto-build hand-off (top-down 2026-08-09): build About This Company
+      // (card 1) first. The pending ref stays set — generateOpCompanyRead's
+      // finally consumes it to build Where You Fit (p5) second, reading the
+      // lane just written to the record above. The slotId guard prevents firing
+      // on a stale ref if the user switched op records mid-classification.
       if(_pendingAutoBuildRef.current===slotId){
-        _pendingAutoBuildRef.current=null
-        generateOpSection('p5',inferredLane)
+        generateOpCompanyRead()
       }
     }catch(e){/* leave opLane unset; downstream cards still fall back to JD-only framing */}
     finally{setOpLaneInferring(false)}
@@ -6989,7 +6976,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }catch(e){
       if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,companyRead:e.message||'Generation failed. Try again.'}))
     }finally{
-      if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
+      if(reqId===opSectionReqRef.current){
+        setOpSectionBuilding(null);setOpBuildingSlot(null)
+        // Auto-build hand-off (top-down 2026-08-09): once About This Company (card
+        // 1) releases the lock, build Compensation (card 2) next. The pending ref
+        // stays set — generateOpSalaryRead's finally consumes it to build Where You
+        // Fit (p5) third. Gated on the pending ref (set only by the Build My
+        // Playbook auto-build) and the slot still matching, so a manual Rebuild or
+        // a mid-flight record switch never triggers it.
+        if(_pendingAutoBuildRef.current===slotId&&currentSavedSlotIdRef.current===slotId){
+          generateOpSalaryRead()
+        }
+      }
     }
   }
   // Compensation Read — Opportunity surface (comp-benchmarking brief 2026-08-07).
@@ -7038,7 +7036,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }catch(e){
       if(reqId===opSectionReqRef.current)setOpSectionErrors(er=>({...er,salaryRead:e.message||'Generation failed. Try again.'}))
     }finally{
-      if(reqId===opSectionReqRef.current){setOpSectionBuilding(null);setOpBuildingSlot(null)}
+      if(reqId===opSectionReqRef.current){
+        setOpSectionBuilding(null);setOpBuildingSlot(null)
+        // Auto-build hand-off (top-down 2026-08-09): Compensation is the 2nd
+        // auto-built card; once it releases the lock, build Where You Fit (p5)
+        // third and close out the sequence (clearing the pending ref). Gated on
+        // the pending ref + slot match, so a manual Build/Rebuild never chains.
+        if(_pendingAutoBuildRef.current===slotId){
+          _pendingAutoBuildRef.current=null
+          if(currentSavedSlotIdRef.current===slotId)generateOpSection('p5')
+        }
+      }
     }
   }
   // Offer & Negotiation — Opportunity surface (comp-benchmarking brief 2026-08-07).
@@ -8002,15 +8010,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // caller — the Build My Playbook button — is now wired to submitOpRole,
   // which subsumes the same applyRoleSwitchDoor2 + title-derivation logic
   // and additionally queues the auto-build via _pendingAutoBuildRef.
-  // submitOpRole (op surface cleanup brief 2026-05-29): Build My Playbook click
-  // handler. Creates the door2 record via applyRoleSwitchDoor2, then queues an
-  // auto-build of The Role by setting _pendingAutoBuildRef to the new slotId.
+  // submitOpRole (top-down auto-build 2026-08-09): Build My Playbook click
+  // handler. Creates the door2 record via applyRoleSwitchDoor2, then queues the
+  // auto-build sequence by setting _pendingAutoBuildRef to the new slotId.
   // runOpLaneInference's existing useEffect fires on next render (when the new
-  // record commits into savedPlaybooks); on success, its modified success path
-  // checks _pendingAutoBuildRef and fires generateOpSection('p5', inferredLane).
-  // Sequential pattern (classify first, then build with the inferred lane)
-  // implemented via the ref-bridge rather than a synchronous onReady because
-  // setSavedPlaybooks is queued, not synchronous — see brief consult notes.
+  // record commits into savedPlaybooks); on success it builds About This Company
+  // (card 1) first, whose finally then builds Where You Fit (p5) second. Deferred
+  // via the ref-bridge rather than a synchronous call because setSavedPlaybooks
+  // and setProfile are queued, so profile.jd is not readable in this same tick.
   const submitOpRole=(jd)=>{
     // Block a link-only paste before it builds a playbook against a non-company
     // (Karen Groll URL-only bug, 2026-06-29). The <100-char button gate already
@@ -8023,9 +8030,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const title=deriveOpRoleTitle(jd)
     applyRoleSwitchDoor2(title,jd)
     _pendingAutoBuildRef.current=currentSavedSlotIdRef.current
-    // Queue companyRead to auto-build after p5; both refs set synchronously
-    // here, well before runOpLaneInference's deferred hand-off can fire p5.
-    _pendingCompanyReadRef.current=currentSavedSlotIdRef.current
   }
   const savePlaybookPdf=()=>{playbookSavePendingRef.current=true;afterSaveRunRef.current=null;window.print()}
   const focusNumberedIds=FOCUS_GROUPS.flatMap(g=>g.sectionIds)
@@ -9107,7 +9111,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // Prep, the output it feeds.
       const _panelPopulated=(()=>{const p=getOpPanel(_opRec);return !!((p.opportunity_context&&p.opportunity_context.trim())||p.interviewers.length)})()
       const opRailDone=['p5','p6','p_res','p11','companyRead','salaryRead','offerNegotiation'].filter(opCardDone).concat(_panelPopulated?['panel']:[])
-      const opSections=[{id:'companyRead',label:'About This Company',num:1},{id:'salaryRead',label:'Compensation'},{id:'p5',label:'Where you fit',num:2},{id:'p6',label:'Bridge Story',num:3},{id:'p_res',label:'Resume Refresh',num:4},{id:'p_cover',label:'Cover Letter',num:5},{id:'panel',label:'Interview Team'},{id:'p11',label:'Interview Prep',num:6},{id:'offerNegotiation',label:'Offer & Negotiation'}]
+      // Sequential 1-N numbering (2026-08-09): number every row in display order
+      // so the rail reads as one clean top-down sequence. The earlier scheme left
+      // the reference/input cards (Compensation, Interview Team, Offer) unnumbered,
+      // which made the numbers look non-sequential and the flow look like it began
+      // mid-list. num is computed by index so adding or removing a card renumbers
+      // automatically.
+      const opSections=[{id:'companyRead',label:'About This Company'},{id:'salaryRead',label:'Compensation'},{id:'p5',label:'Where you fit'},{id:'p6',label:'Bridge Story'},{id:'p_res',label:'Resume Refresh'},{id:'p_cover',label:'Cover Letter'},{id:'panel',label:'Interview Team'},{id:'p11',label:'Interview Prep'},{id:'offerNegotiation',label:'Offer & Negotiation'}].map((s,i)=>({...s,num:i+1}))
       // cards-only markDone criterion: legacy v1 (outputs.op truthy) OR any v2 card built
       if((outputs.op||_anyOpCardBuilt)&&!done.includes('op'))markDone('op')
       return <div>
@@ -9143,13 +9153,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const _p6=_sec.p6
             const _p6Built=!!(_p6&&bridgeStoryToProse(_p6).trim())
             const _anyBuilt=_opAnyBuiltFor(_rec)
-            // Auto-build spinner bracket: The Role's busy state should cover the
-            // lane-inference callClaude that runs BEFORE generateOpSection sets
-            // opSectionBuilding (the visible dead window on a fresh submit). Keyed
-            // on flags that already exist and already clear unconditionally
-            // (opLaneInferring's finally at runOpLaneInference; opSectionBuilding's
-            // own finally), so there is no stuck-spinner risk. Render-only.
+            // Auto-build spinner bracket: About This Company's busy state should
+            // cover the lane-inference callClaude that runs BEFORE the top-down
+            // sequence sets opSectionBuilding (the visible dead window on a fresh
+            // submit). Keyed on flags that already exist and already clear
+            // unconditionally (opLaneInferring's finally at runOpLaneInference;
+            // opSectionBuilding's own finally), so there is no stuck-spinner risk.
+            // Render-only. Feeds _crBusy (card 1), not p5, per top-down order.
             const _opAutoBuildPending=opLaneInferring&&_pendingAutoBuildRef.current&&_pendingAutoBuildRef.current===currentSavedSlotIdRef.current
+            // Auto-build sequence flag (context banner, 2026-08-09): true from the
+            // moment Build My Playbook is clicked until Where You Fit (the last
+            // auto-built card) starts and clears the ref. Drives a top-of-page line
+            // that tells the user which cards are building for them and that the
+            // rest are theirs to build on demand. Gated on the pending ref, so a
+            // manual single-card Build/Rebuild never shows the banner.
+            const _opAutoSeq=_pendingAutoBuildRef.current===currentSavedSlotIdRef.current
             const _renderSection=(key,content)=>{
               if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:16,lineHeight:1.65,color:C.cream,margin:0}}>{renderResumeText(j)}</pre><div style={S.row}><Btn small onClick={()=>downloadResumeWord(j)}><Download size={12}/>Download as Word</Btn></div></div>}
               if(key==='p11')return renderInterviewPrep(content,isDemo?undefined:regenerateOpP11Question,regeneratingP11QuestionIdx,p11QuestionErrors,isDemo?undefined:(seatName)=>openCoachWith(`Help me prep for my interview with ${seatName} for ${_rec.title||'this role'}.`))
@@ -9177,7 +9195,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             // card works without a freshness banner.
             const _simpleCard=(key,label,sub)=>{
               const built=!!(_sec[key]&&_sec[key].content&&_sec[key].content.trim())
-              const busy=(opSectionBuilding===key&&opBuildingSlot===currentSavedSlotIdRef.current)||(key==='p5'&&_opAutoBuildPending)
+              const busy=opSectionBuilding===key&&opBuildingSlot===currentSavedSlotIdRef.current
               return _cardWrap(<>
                 {_head(label,sub,built,()=>generateOpSection(key),busy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                 {opSectionErrors[key]&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors[key]}/></div>}
@@ -9202,6 +9220,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             // inferred lane feeds per-card prompts through opLaneValue(rec).
             // Users adjust output via per-card RefineBox if framing is off.
             return <div style={{marginTop:32}} data-print="hide">
+              {_opAutoSeq&&<div style={{marginBottom:20,background:`${C.gold}12`,border:`1px solid ${C.gold}44`,borderRadius:10,padding:'14px 18px',fontSize:16,color:'#1A2540',lineHeight:1.6}}>
+                <strong>Building your first cards now</strong> — About This Company, then Compensation, then Where You Fit. Each appears here as it finishes. The rest of the playbook is yours to build whenever you want them.
+              </div>}
               {_anyBuilt&&<>
                 <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>Your Opportunity Playbook</h2>
                 <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 18px'}}>Build each section when you're ready. They are independent; build the ones that help most.</p>
@@ -9224,7 +9245,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </div>})()}
               {(()=>{
                 const _crBuilt=!!(_sec.companyRead&&_sec.companyRead.content&&_sec.companyRead.content.trim())
-                const _crBusy=opSectionBuilding==='companyRead'&&opBuildingSlot===currentSavedSlotIdRef.current
+                const _crBusy=(opSectionBuilding==='companyRead'&&opBuildingSlot===currentSavedSlotIdRef.current)||_opAutoBuildPending
                 return _cardWrap(<>
                   {_head('About This Company','A read beyond Glassdoor: recent news, the employee voice, industry-specific metrics with sources cited inline, the leadership\'s public footprint, and watch-outs named honestly.',_crBuilt,()=>generateOpCompanyRead(),_crBusy?'Building…':_crBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                   {opSectionErrors.companyRead&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.companyRead}/></div>}
