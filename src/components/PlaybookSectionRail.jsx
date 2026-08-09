@@ -7,10 +7,14 @@
 // behavior via the onJump callback.
 //
 // Props:
-//   sections   array of {id, label, num, isBonus?} in display order
-//   done       array of done step ids (App.jsx state)
-//   onJump     fn(id) -> scrolls the page to that section's anchor
-//   C          color tokens passed from App.jsx for visual consistency
+//   sections     array of {id, label, num, isBonus?} in display order
+//   done         array of done step ids (App.jsx state)
+//   onJump       fn(id) -> scrolls the page to that section's anchor
+//   C            color tokens passed from App.jsx for visual consistency
+//   title        optional opportunity/role name pinned at the top of the
+//                rail so it stays visible as the body scrolls (falsy = no pin)
+//   titleKicker  optional uppercase eyebrow above the title (e.g. "ROLE",
+//                "OPPORTUNITY") giving the pinned name context
 //
 // Voice rules: all visible copy passes the voice gate (no em dashes, no
 // banned constructions). The component is hidden from print via the
@@ -62,7 +66,7 @@ function Row({ section, isDone, onJump, C }) {
   )
 }
 
-export default function PlaybookSectionRail({ sections, done, onJump, C }) {
+export default function PlaybookSectionRail({ sections, done, onJump, C, title, titleKicker }) {
   if (!sections || sections.length === 0) return null
   const isDoneFor = (id) => Array.isArray(done) && done.includes(id)
   // Split sections into the numbered playbook set and the Bonus set
@@ -87,6 +91,29 @@ export default function PlaybookSectionRail({ sections, done, onJump, C }) {
         overflowY: 'auto',
       }}
     >
+      {title && (
+        <div style={{ padding: '2px 10px 12px', marginBottom: 10, borderBottom: `1px solid ${C.border}` }}>
+          {titleKicker && (
+            <div style={{
+              fontSize: 15, fontWeight: 700, letterSpacing: '1.2px',
+              textTransform: 'uppercase', color: C.gold, marginBottom: 4,
+            }}>
+              {titleKicker}
+            </div>
+          )}
+          <div
+            title={title}
+            style={{
+              fontFamily: 'Georgia,serif', fontSize: 16, fontWeight: 700,
+              color: '#1A2540', lineHeight: 1.3,
+              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {title}
+          </div>
+        </div>
+      )}
       <div style={{
         fontSize: 15, fontWeight: 700, letterSpacing: '1.2px',
         textTransform: 'uppercase', color: C.gold,

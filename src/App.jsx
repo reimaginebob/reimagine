@@ -8793,6 +8793,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             and prints hidden via data-print="hide" inside the component. */}
         <div style={{display:'flex',gap:24,alignItems:'flex-start'}}>
           <PlaybookSectionRail
+            title={chosen||undefined}
+            titleKicker={chosen?'Role':undefined}
             sections={FOCUS_ORDER.map(s=>({id:s.id,label:s.label,num:(()=>{const m={};{let n=1;FOCUS_GROUPS.forEach(g=>g.sectionIds.forEach(sid=>{m[sid]=n++}))}return m[s.id]})(),isBonus:s.id==='income'}))}
             done={(()=>{const _rr=(savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')||{}).recruiters;return(_rr&&_rr.builtAt&&!done.includes('recruiters'))?[...done,'recruiters']:done})()}
             onJump={scrollToOutput}
@@ -9763,7 +9765,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </section>
             })}
           </div>}
-          </>;return opIsV2?<div style={{display:'flex',gap:24,alignItems:'flex-start'}}><PlaybookSectionRail sections={opSections} done={opRailDone} onJump={scrollToOutput} C={C}/><div style={{flex:1,minWidth:0}}>{_body}</div></div>:_body})()}
+          </>;return opIsV2?<div style={{display:'flex',gap:24,alignItems:'flex-start'}}><PlaybookSectionRail title={(profile.jd||'').split('\n').find(l=>l.trim())||undefined} titleKicker="Opportunity" sections={opSections} done={opRailDone} onJump={scrollToOutput} C={C}/><div style={{flex:1,minWidth:0}}>{_body}</div></div>:_body})()}
         </>:<>
           {!isDemo&&<p style={S.sub}>When you find a role worth pursuing, bring it here. Paste the job description or upload the PDF. Reimagine creates an Opportunity Playbook scoped to that role with five sections you can build on demand, each taking about 30 seconds to generate.</p>}
           {!isDemo&&<p style={S.sub}>You'll know whether the role aligns with the path you chose and where it stretches you. You'll have a Bridge Story tuned to this specific opportunity, a Resume Refresh aimed at this JD, Interview Prep with the questions this role's interview cycle is likely to ask and STAR stories drawn from your background, and an honest About This Company read with industry-specific signal and sources cited.</p>}
