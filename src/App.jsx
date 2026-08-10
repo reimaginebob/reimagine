@@ -2707,17 +2707,17 @@ SHAPE: a greeting, then exactly THREE short paragraphs, then a sign-off.
 
 GREETING: Address the letter to the most relevant leader you can identify from the ABOUT THIS COMPANY text below, the executive whose remit actually covers this role (the head of the function or department this role sits in; for a senior or officer role, the relevant C-level leader). Use that person's FIRST NAME only, on its own line, with no "Dear" and no title: just "<First name>,". Only ever name a real person who appears in the ABOUT THIS COMPANY text or the posting; never invent or guess a name. Relevance matters more than seniority: if the only leaders named are not connected to this role's function (for example, only the CEO is named for a mid-level role), do NOT address them, use the team fallback instead. TEAM FALLBACK: when no leader whose area covers this role is named, open with the function drawn from the posting, as "Hi <Function> Team," (for example, "Hi Product Team,"). Never use "Dear", and never fall back to "Hiring Manager".
 
-PARAGRAPH 1 (2-3 sentences), why this role and why now. Anchor the "why now" in a SPECIFIC company event from the About This Company text: an acquisition, a publication, a launched initiative, a recognition, a named recent move, a leadership statement. Generic strategic direction fails this ("the firm is pushing deeper into AI-driven transformation" is NOT specific; "your April 2025 acquisition of Argano signals the firm is building the technical capability" is). If the About This Company text surfaces no specific event, fall back to a specific initiative or team focus named in the posting. EMBED the role name inside the frame (shape: "this Manager role is the people side of that same work"); never ANNOUNCE it ("So I'm writing about the Manager role", "I am writing to apply for", "That's why I'm writing about the <role>"). Do NOT open with a personal thesis or a manifesto ("I have spent my career...").
+PARAGRAPH 1 (2-3 sentences), a human opening that leads with genuine interest in this role and company. Open the way a real person opens a note to someone whose work they respect: warm, direct, first person. Say plainly what draws them to THIS role at THIS company, grounded in something real, what the company does or is working on connected to what this person actually cares about (from their Personal Brand, values, and passions below). Do NOT open bluntly with a company fact or a dated event ("Your April 2025 acquisition of Argano signals..." is exactly the wrong opener); a specific company detail can come later, woven in, not as the cold lead. Embed the role name naturally; never announce it ("I am writing to apply for the <role>"). No manifesto opener ("I have spent my career...").
 
-PARAGRAPH 2 (2-3 sentences), how you fit. Open by launching straight into the accomplishment's context ("When...", "At <company>...", "In <year>..."); NO self-labeling opener ("My colleagues call me...", "Colleagues describe me as...", "I am known for..."). Give ONE accomplishment, exactly one, not two, not three, the single strongest for THIS role from the Resume Refresh / resume below, developed across the sentences with its real numbers, framed as what it demonstrates about how this person operates. Close the paragraph with ONE broader capability statement that generalizes the story into the pattern this person brings, in present tense, first person, active verbs (shape: "I design the systems that make adoption work, then execute them under pressure."). That generalizing sentence carries the broader-capability signal without loading in a second accomplishment.
+PARAGRAPH 2 (2-3 sentences), the overall relevance of their experience, drawn from the Personal Brand below. Synthesize the through-line the Personal Brand already found, the integrating thread across their background, and translate it into why their experience as a whole fits THIS role. This is a synthesis of relevance, NOT a STAR story: do not narrate a single accomplishment blow-by-blow. You may anchor the thread with ONE concrete proof in a short clause (a real result, stated lightly, "including <result>"), but the paragraph's job is the pattern and the fit, not a mini case study. First person, present tense, plain and confident. No self-labeling opener ("My colleagues call me...", "I am known for...").
 
-PARAGRAPH 3 (2-3 sentences), the ask. Name TWO or THREE specific things the candidate wants to hear about, each phrased as what THE COMPANY or TEAM is working on now: draw them from the posting's responsibilities and named initiatives, or from the About This Company text's current focus areas and publicly-discussed challenges (shape: "the workforce and change priorities your team is working on now, the engagements where adoption has proven harder than expected, and how the firm is thinking about the cultural side of AI transformation"). These are curiosities about THEIR work, never about the candidate ("how this looks on my side" and "how the firm thinks about the transition" both fail). If the resume below includes an email or phone, close with contact ("You can reach me at <email> or <phone>."); never invent contact details. A brief "Thanks for your time." is fine but optional, do not force it if flowing straight to contact reads more naturally.
+PARAGRAPH 3 (2-3 sentences), a close that expresses genuine interest in the role. Convey real, specific enthusiasm for THIS company and role and how their experience lines up with it, warmth rather than a list of questions. Draw on the WHERE THEY FIT framing below for how this person sees the fit and why it matters to them, and tie it back to what the company is doing. Keep it honest and grounded (a specific reason it appeals), never generic gushing ("I am passionate about...") or empty enthusiasm. If the resume below includes an email or phone, you may close with a brief contact line ("You can reach me at <email> or <phone>."); never invent contact details.
 
 SIGN-OFF: "Best," on its own line, then the candidate's name: ${candidateName||'the name on the resume'}.
 
-FIVE-COMPANY TEST: the letter must contain at least one fact specific to ${companyName||'this company'}, drawn from the About This Company text or the posting, that could not survive swapping the company name for a competitor. Generic industry language fails this test.
+FIVE-COMPANY TEST: the letter must contain at least one fact specific to ${companyName||'this company'}, drawn from the About This Company text or the posting, that could not survive swapping the company name for a competitor. Weave it into the genuine interest (the opening or the close), not as a blunt lead. Generic industry language fails this test.
 
-ANTI-RESTATE: the one accomplishment must FRAME a pattern (what it shows about how this person operates), not restate the resume bullet.
+ANTI-RESTATE: any concrete proof you reference must illustrate the through-line (what the pattern of their experience brings to this role), not restate a resume bullet. Do not turn the relevance paragraph into a narrated accomplishment.
 
 VOICE: you are writing AS the candidate, not ABOUT the candidate. Write like a person who did the work, sending a direct email to another person who does adjacent work. One operator to another. If the candidate would not say this out loud to a peer over coffee, do not write it. It is the person's own voice from their Personal Brand. ${DIRECT_OUTREACH_VOICE}
 Explicitly avoid consultant-register, thought-leader, and MBA-speak:
@@ -2734,16 +2734,16 @@ COMPANY: ${companyName||'(unspecified)'}
 JOB POSTING:
 ${(jd||'').slice(0,4000)||'(none)'}
 
-ABOUT THIS COMPANY (the source for the specific current-direction fact in paragraph 1):
+ABOUT THIS COMPANY (a source for a specific company fact to weave into the genuine interest, and for the greeting recipient):
 ${companyReadText||'(not built; use the posting for the specific fact)'}
 
-RESUME REFRESH / RESUME (the source for the single accomplishment in paragraph 2, and for contact details):
+RESUME REFRESH / RESUME (background and one concrete proof to draw on lightly, and contact details):
 ${resumeRefresh||'(not built)'}
 
-PERSONAL BRAND (voice, and how this person frames their work):
+PERSONAL BRAND (the through-line of their background — the primary source for paragraph 2's relevance synthesis — and their voice):
 ${brand||'(not built yet; work from the posting and resume)'}
 
-WHERE THEY FIT (role framing, optional support):
+WHERE THEY FIT (how they fit and why it matters — draw on this for the closing expression of interest):
 ${roleFit||'(not built)'}
 
 OUTPUT: the greeting, three paragraphs, and sign-off, as prose only. No headers, no preamble, no code fences.`,
