@@ -2820,7 +2820,7 @@ ${personName?`THIS IS TO PREP FOR: ${personName}.\n`:''}${jd?`ROLE CONTEXT (job 
 PLAIN LANGUAGE: about an 8th-grade level, short sentences, the candidate's own voice. No em dashes; use commas or periods.
 
 Return Markdown: four short labeled parts, Situation, Thinking, Action, Result, each a short paragraph in the candidate's voice. Then a bold "To make it stronger:" line with one or two specific suggestions for what the candidate could add (a number they might have, a detail that would land). Return only the Markdown.`,
-  companyRead:(jd,foundation,companyName,industry,rubricText,laneLabel,mode='op',gtmContext='')=>`You are producing a Company Read for the candidate's evaluation of a specific opportunity. Five subsections, each opens with a bolded headline insight then 2-3 sentences of supporting prose with sources cited inline. Target length: 350-500 words total.
+  companyRead:(jd,foundation,companyName,industry,rubricText,laneLabel,mode='op',gtmContext='')=>`You are producing a Company Read for the candidate's evaluation of a specific opportunity. Four subsections, each opens with a bolded headline insight then 2-3 sentences of supporting prose with sources cited inline. Target length: 300-450 words total.
 
 THE CANDIDATE'S FOUNDATION:
 ${foundation||'(not provided)'}
@@ -2828,7 +2828,7 @@ ${foundation||'(not provided)'}
 THE COMPANY: ${companyName||'(unspecified)'}
 ${mode==='gtm'?'CONTEXT (from the Focus Playbook target-company list — deepen this rather than re-emit; do not restate the Growth signal sentence already in the company block):\n'+gtmContext+'\n\nWe are researching this company for pre-application consideration; there is no JD to read against.':'THE OPPORTUNITY (job description):\n'+jd}
 ${laneLabel?'\nOPPORTUNITY LANE: '+laneLabel+' (Familiar Ground = same function and similar industry; Industry Insider = function carries into a connected industry; Work That Matters = lateral move toward values-aligned work). Use the lane framing where it sharpens the candidate translation.\n':''}
-INDUSTRY-SPECIFIC SIGNAL SOURCES (use these in Subsection 3):
+INDUSTRY-SPECIFIC SIGNAL SOURCES (a signal source for the whole read, NOT a section of its own): the sources below are where this industry's decision-weight signals live. Use them to sharpen the read: fold a genuinely decision-weight positive (a strong safety grade, healthy engineering cadence, a solid program ratio) into the market read, and surface any negative (an FDA warning letter, OSHA citations, an enforcement action, a poor rating, accreditation risk) as a watch-out. Any industry signal that genuinely bears on the candidate's decision for THIS role MUST appear somewhere in the read; lead the relevant subsection with it when it is headline-worthy. Do NOT force a signal that does not carry weight for this role, do NOT restate the market news as if it were an industry metric, and do NOT give the industry rubric its own subsection.
 ${rubricText}
 
 VOICE RULES (load-bearing):
@@ -2851,7 +2851,7 @@ COMPANY IDENTITY GUARD (load-bearing):
 NO SOFTENING ON WATCH-OUTS:
 State each watch-out plainly with its source. Do not hedge. Name the watch-out, name the source, state the implication for the candidate's decision.
 
-OUTPUT STRUCTURE (five subsections; produce exactly these headings in order):
+OUTPUT STRUCTURE (four subsections; produce exactly these headings in order):
 
 ## What is the market saying right now?
 
@@ -2864,12 +2864,6 @@ OUTPUT STRUCTURE (five subsections; produce exactly these headings in order):
 [Bolded one-line headline insight summarizing the employee-voice signal.]
 
 [2-3 sentences citing public sources: Best Companies lists, news mentions of culture, Built In pages, Great Place to Work certifications, well-sourced articles about the workplace. Each named claim carries an inline source URL.]
-
-## What does the industry-specific scoreboard say?
-
-[Bolded one-line headline insight summarizing where the company stands on the industry rubric.]
-
-[2-3 sentences with the actual ratings, scores, or filings from the industry sources listed above. Each named score, rating, or filing carries an inline source URL.]
 
 ## Who is the leadership and what is their public footprint?
 
@@ -2884,7 +2878,7 @@ OUTPUT STRUCTURE (five subsections; produce exactly these headings in order):
 Each bullet: state the negative signal plainly. Name the source. State the implication for the candidate's decision.
 
 WHAT GOOD LOOKS LIKE:
-The output surfaces one or two findings the candidate would not have known to look for. Industry-specific signal carries weight, not hand-waved or omitted. Watch-outs are stated honestly. Every number, percentage, year reference, and named transition has an adjacent URL. The Glassdoor-reflexive read does not appear here; the candidate already checked Glassdoor before opening Reimagine.`,
+The output surfaces one or two findings the candidate would not have known to look for. Industry-specific signal carries weight and lands where the candidate uses it, the market read or a watch-out, never hand-waved, omitted, or parked in a section of its own. Watch-outs are stated honestly. Every number, percentage, year reference, and named transition has an adjacent URL. The Glassdoor-reflexive read does not appear here; the candidate already checked Glassdoor before opening Reimagine.`,
 
   // Compensation Read (comp-benchmarking brief 2026-08-07). Search-based, no API:
   // reuses the {webSearch:true} Claude call + the citation/fabrication gate proven
