@@ -538,7 +538,21 @@ function normalizePresentation(p){
   const originD=origin?(()=>{const b=dedupParas(origin.body);return b.trim()?{body:b}:null})():null
   edges.forEach(e=>{remember((e.claim||'')+' '+(e.detail||''));if(e.detail)remember(e.detail)})
   const forwardCloseD=forwardClose?(()=>{const b=dedupParas(forwardClose);return b.trim()?b:null})():null
-  return {hero,proofPoints:Array.isArray(p.proofPoints)?p.proofPoints:[],sections:sectionsD,origin:originD,edges,forwardClose:forwardCloseD}
+  // Grounding guard: keep a proofPoint only if its number actually appears in the
+  // brand's own prose (the p3 prompt guarantees "the numbers still live in the
+  // section prose"). Drops the schema example-literal and any hallucinated point
+  // whose value is grounded nowhere in the analysis; points with no digits fall
+  // back to a label-text match.
+  const _hay=[hero,...sectionsD.map(s=>s&&s.body),originD&&originD.body,...edges.map(e=>e&&((e.claim||'')+' '+(e.detail||''))),forwardCloseD].filter(Boolean).join(' ')
+  const _numTokens=t=>String(t||'').match(/\d+(?:[.,]\d+)?/g)||[]
+  const _hayNums=new Set(_numTokens(_hay))
+  const _grounded=pp=>{
+    if(!pp||typeof pp!=='object')return false
+    const vn=_numTokens(pp.value)
+    return vn.length?vn.every(n=>_hayNums.has(n)):norm(_hay).includes(norm(pp.value||pp.label))
+  }
+  const proofPointsG=(Array.isArray(p.proofPoints)?p.proofPoints:[]).filter(_grounded)
+  return {hero,proofPoints:proofPointsG,sections:sectionsD,origin:originD,edges,forwardClose:forwardCloseD}
 }
 
 // Derive the flowing brand prose from the normalized presentation, in reading
@@ -2241,7 +2255,7 @@ Schema:
   "topAnchors": [ { "type": "accomplishment|reputation|life-shaping", "text": "<one sentence>" } ],
   "presentation": {
     "hero": "<same text as throughLine>",
-    "proofPoints": [ { "value": "94%", "label": "retained through the Toronto earn-out" } ],
+    "proofPoints": [ { "value": "<a quantified result that appears in the analysis, e.g. a percentage or dollar figure>", "label": "<short plain label for that result, taken from the analysis>" } ],
     "sections": [ { "kicker": "<short plain label, 2-5 words>", "body": "<the second-person prose for this part of the analysis, verbatim from the analysis>" } ],
     "origin": { "body": "<the second-person formative-origin passage>" },
     "edges": [ { "claim": "<the growth edge in one line>", "detail": "<the second-person detail and how to use it>" } ],
