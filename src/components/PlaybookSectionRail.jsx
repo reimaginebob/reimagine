@@ -20,7 +20,7 @@
 // banned constructions). The component is hidden from print via the
 // data-print="hide" attribute carried by the wrapping div.
 
-import { Check } from 'lucide-react'
+import { Check, Eye } from 'lucide-react'
 
 function Row({ section, isDone, onJump, C }) {
   const handleClick = () => { if (onJump) onJump(section.id) }
@@ -66,7 +66,7 @@ function Row({ section, isDone, onJump, C }) {
   )
 }
 
-export default function PlaybookSectionRail({ sections, done, onJump, C, title, titleKicker }) {
+export default function PlaybookSectionRail({ sections, done, onJump, C, title, titleKicker, onViewJd }) {
   if (!sections || sections.length === 0) return null
   const isDoneFor = (id) => Array.isArray(done) && done.includes(id)
   // Split sections into the numbered playbook set and the Bonus set
@@ -112,6 +112,20 @@ export default function PlaybookSectionRail({ sections, done, onJump, C, title, 
           >
             {title}
           </div>
+          {onViewJd && (
+            <button
+              type="button"
+              onClick={onViewJd}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                marginTop: 8, padding: 0, background: 'transparent', border: 'none',
+                color: C.gold, fontFamily: 'inherit', fontSize: 15, fontWeight: 600,
+                cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              <Eye size={13}/> View job description
+            </button>
+          )}
         </div>
       )}
       <div style={{

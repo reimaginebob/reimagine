@@ -9318,22 +9318,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>Your Opportunity Playbook</h2>
                 <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 18px'}}>Build each section when you're ready. They are independent; build the ones that help most.</p>
               </>}
-              {/* View job description (jd-retrieve 2026-08-07): the submitted posting
-                  is already stored on the record (rec.jd); this button retrieves it,
-                  read-only, in a modal. Shown only when this opportunity has a stored
-                  JD (older records created before the JD was persisted won't). Sits
-                  right above About This Company, per Bob. */}
-              {(()=>{const _jd=tidyJd(_rec&&_rec.jd);if(!_jd)return null;return <div style={{marginBottom:16}}>
-                <Btn secondary small onClick={()=>setJdModalOpen(true)}><Eye size={13}/> View job description</Btn>
-                {jdModalOpen&&<div data-print="hide" onClick={()=>setJdModalOpen(false)} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+              {/* View job description (jd-retrieve 2026-08-07; trigger moved to the
+                  sticky rail 2026-08-10 so it is persistent across the whole playbook).
+                  The submitted posting is stored on the record (rec.jd); the rail's
+                  "View job description" link opens this read-only modal. This block now
+                  renders only the modal, gated on the stored JD (older records created
+                  before JD persistence won't have one) and the open flag. */}
+              {(()=>{const _jd=tidyJd(_rec&&_rec.jd);if(!_jd||!jdModalOpen)return null;return <div data-print="hide" onClick={()=>setJdModalOpen(false)} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
                   <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Job description as submitted" style={{background:'#FFFFFF',borderRadius:14,padding:'28px 32px',maxWidth:760,width:'100%',maxHeight:'calc(100vh - 48px)',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
                     <button onClick={()=>setJdModalOpen(false)} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
                     <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 4px',paddingRight:28}}>Job description</h2>
                     <p style={{fontSize:15,color:'#718096',margin:'0 0 16px'}}>The posting as you submitted it — the exact text Reimagine built this playbook from.</p>
                     <div style={{whiteSpace:'pre-wrap',fontSize:15,lineHeight:1.6,color:'#3D4A5C',fontFamily:'inherit'}}>{_jd}</div>
                   </div>
-                </div>}
-              </div>})()}
+                </div>})()}
               {(()=>{
                 const _crBuilt=!!(_sec.companyRead&&_sec.companyRead.content&&_sec.companyRead.content.trim())
                 const _crBusy=(opSectionBuilding==='companyRead'&&opBuildingSlot===currentSavedSlotIdRef.current)||_opAutoBuildPending
@@ -9888,7 +9886,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </section>
             })}
           </div>}
-          </>;return opIsV2?<div style={{display:'flex',gap:24,alignItems:'flex-start'}}><PlaybookSectionRail title={(profile.jd||'').split('\n').find(l=>l.trim())||undefined} titleKicker="Opportunity" sections={opSections} done={opRailDone} onJump={scrollToOutput} C={C}/><div style={{flex:1,minWidth:0}}>{_body}</div></div>:_body})()}
+          </>;return opIsV2?<div style={{display:'flex',gap:24,alignItems:'flex-start'}}><PlaybookSectionRail title={(_opRec&&_opRec.title&&_opRec.title.trim())||(profile.jd||'').split('\n').find(l=>l.trim())||undefined} titleKicker="Opportunity" sections={opSections} done={opRailDone} onJump={scrollToOutput} C={C} onViewJd={tidyJd(_opRec&&_opRec.jd)?()=>setJdModalOpen(true):undefined}/><div style={{flex:1,minWidth:0}}>{_body}</div></div>:_body})()}
         </>:<>
           {!isDemo&&<p style={S.sub}>When you find a role worth pursuing, bring it here. Paste the job description or upload the PDF. Reimagine creates an Opportunity Playbook scoped to that role with five sections you can build on demand, each taking about 30 seconds to generate.</p>}
           {!isDemo&&<p style={S.sub}>You'll know whether the role aligns with the path you chose and where it stretches you. You'll have a Bridge Story tuned to this specific opportunity, a Resume Refresh aimed at this JD, Interview Prep with the questions this role's interview cycle is likely to ask and STAR stories drawn from your background, and an honest About This Company read with industry-specific signal and sources cited.</p>}
