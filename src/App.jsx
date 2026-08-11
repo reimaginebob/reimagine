@@ -3797,7 +3797,7 @@ const correctionsBlock = (corrections) => {
   // Fed as ground-truth facts in the person's own terms, NOT meta-labeled as
   // "corrections the user made" — that framing leaks into the prose (the model
   // narrates the process). Presented this way the model absorbs them as input.
-  return `The person has told us the following directly about themselves and their work. Treat each as established, ground-truth fact and let it shape this read as naturally as any other evidence; where it differs from the resume or other source material, it takes precedence.
+  return `The person has told us the following directly about themselves and their work. Treat each as established, ground-truth fact and let it shape this read as naturally as any other evidence; where it differs from the resume or other source material, it takes precedence. When any of these says something is inaccurate, invented, exaggerated, or not theirs, that thing is forbidden: do not include it, reintroduce it, or rephrase it anywhere in your output, and do not infer it back from the resume on this or any future pass. Never mention these statements, quote them, or refer to a correction having been made — write as though the corrected facts were always true.
 
 ${lines}
 
