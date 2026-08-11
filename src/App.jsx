@@ -2863,6 +2863,8 @@ FABRICATION GUARD:
 - Do not use "It has been reported" or "According to sources" with no named source.
 - If no public signal exists for a subsection, say so directly: for example, "No recent leadership transitions surfaced in public news in the last 90 days." Honest absence beats fabricated inclusion.
 
+LEADERSHIP AND PERSONNEL CURRENCY (load-bearing): named people in leadership move, and trained knowledge of who holds a role goes stale fast. Name a current officer, executive, or hiring manager (a CEO, a CHRO, a function head, the hiring manager) only when a current source shows they hold that role now, and cite that source inline. Verify current tenure before naming anyone; a plausible-sounding name proves nothing. A citation that is undated, clearly more than about a year old, or a listicle, aggregator, or org-chart page does not confirm the person still holds the role. Do not name a leader from memory. If you cannot confirm who currently holds a role, describe the role or the leadership's public footprint without naming a person, or say plainly that current leadership is not confirmed in public signal. Never name a former holder as if they were current. The same rule governs any personal transition (appointed, promoted, joined, departed, stepped down): state it only with a current, dated source.
+
 COMPANY IDENTITY GUARD (load-bearing):
 "THE COMPANY" named above is the only company this read covers. If that value is blank, a bare URL, or anything other than a real company name, do not guess, do not web-search for a candidate company, and do not substitute a different company. Output exactly this single line and nothing else: "We could not identify the company from the posting provided. Paste the full job description text and rebuild this section."
 
@@ -2887,7 +2889,7 @@ OUTPUT STRUCTURE (four subsections; produce exactly these headings in order):
 
 [Bolded one-line headline insight summarizing the relevant leadership profile.]
 
-[2-3 sentences: hiring manager if named in the JD, function head where searchable, CEO or CHRO public footprint (podcasts, articles, conference talks, LinkedIn tenure pattern). Each named individual or asset carries an inline source URL.]
+[2-3 sentences: hiring manager if named in the JD, function head where searchable, CEO or CHRO public footprint (podcasts, articles, conference talks, LinkedIn tenure pattern). Name a person only when a current source confirms they hold that role now (see LEADERSHIP AND PERSONNEL CURRENCY above); otherwise speak to the role or footprint without naming someone. Each named individual or asset carries an inline source URL.]
 
 ## What are the watch-outs?
 
