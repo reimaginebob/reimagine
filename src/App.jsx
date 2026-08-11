@@ -8757,7 +8757,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       }[id])}
       // Migrated surfaces send the canonical profile as a cached block; profileBlock
       // is built lazily (only at generation time) and step tags telemetry per surface.
-      const go=(id)=>{const base={p5:{maxTokens:4000},p6:{maxTokens:7000},p7:{webSearch:true,maxTokens:12000},p8:{maxTokens:4000},p_res:{maxTokens:5000},p9:{maxTokens:4000},p11:{maxTokens:8000},income:{maxTokens:7000}}[id]||{};return ['p5','p7','p8','p11','p_res','income'].includes(id)?{...base,profileBlock:buildUserProfileBlock(pc,sanitizeUpstreamForSection(id,outputs)),step:id}:base}
+      const go=(id)=>{const base={p5:{maxTokens:4000},p6:{maxTokens:7000},p7:{webSearch:true,maxTokens:16000},p8:{maxTokens:4000},p_res:{maxTokens:5000},p9:{maxTokens:4000},p11:{maxTokens:8000},income:{maxTokens:7000}}[id]||{};return ['p5','p7','p8','p11','p_res','income'].includes(id)?{...base,profileBlock:buildUserProfileBlock(pc,sanitizeUpstreamForSection(id,outputs)),step:id}:base}
       const genSec=(id)=>id==='p6'?generateP6():generateSection(id,gp(id),go(id))
       const refineSec=(id,v)=>{recordCorrection(id,v);if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
       const renderBody=(id)=>{
