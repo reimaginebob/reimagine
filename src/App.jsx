@@ -4174,8 +4174,23 @@ function WidenCareerOptions({lane,prevTitles,onSubmit,disabled}){
 // Focus per-section, Personal Brand, and op v1 consumers.
 function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel,onlyUpdateButton,guard,sectionId}){
   const[open,setOpen]=useState(false)
+  // Submit guard (2026-08-11 dead-button fix): the update/fresh regen is a multi-
+  // minute call and the button gave no click feedback, so users re-clicked and
+  // each click recorded a duplicate correction (inflating the correction counts).
+  // submittingRef blocks synchronous double-fires; `submitting` disables both
+  // buttons and shows progress; editing the text or reopening the box re-enables.
+  const submittingRef=useRef(false)
+  const[submitting,setSubmitting]=useState(false)
+  const clearSubmit=()=>{submittingRef.current=false;setSubmitting(false)}
+  const submit=fresh=>{
+    if(submittingRef.current)return
+    submittingRef.current=true;setSubmitting(true)
+    if(fresh){onChange('');setOpen(false);onRegenerate('')}
+    else if(guard&&value&&value.trim()){guard(sectionId,value,()=>{setOpen(false);onRegenerate(value)})}
+    else{setOpen(false);onRegenerate(value)}
+  }
   return <div data-print="hide" style={{marginTop:28,marginBottom:28,border:`2px solid ${C.gold}`,borderRadius:12,overflow:'hidden',background:`${C.gold}10`}}>
-    <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+    <button onClick={()=>setOpen(o=>{const n=!o;if(n)clearSubmit();return n})} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <div style={{width:8,height:8,borderRadius:'50%',background:C.gold,flexShrink:0}}/>
         <span style={{fontSize:17,fontWeight:700,color:C.gold}}>Does this feel right?</span>
@@ -4185,13 +4200,13 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
     {open&&<div style={{background:'#FFFFFF',padding:'16px 20px',borderTop:`1px solid ${C.border}`}}>
       <div style={{fontSize:16,color:C.gray,marginBottom:12,lineHeight:1.65}}>{hint||'If anything feels off, wrong tone, missing context, something we misread, describe it here and we\'ll adjust.'}</div>
       <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
-        <textarea style={{...S.ta,minHeight:80,flex:1}} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||'e.g. The seniority level feels too junior… you missed that I ran a P&L… the tone doesn\'t sound like me…'}/>
+        <textarea style={{...S.ta,minHeight:80,flex:1}} value={value} onChange={e=>{onChange(e.target.value);if(submittingRef.current)clearSubmit()}} placeholder={placeholder||'e.g. The seniority level feels too junior… you missed that I ran a P&L… the tone doesn\'t sound like me…'}/>
         {hasSpeech&&<SpeechBtn onResult={t=>onChange(t)} style={{marginTop:2}}/>}
       </div>
       <div style={S.helperText}>{hasSpeech?'Tip: Tap the microphone to speak, or type. ':''}This is for factual corrections too. If we got something wrong about your experience, your role, or how we read it, tell us. Corrections will apply to future regenerations of other sections as well.</div>
       <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
-        <Btn onClick={()=>{if(guard&&value&&value.trim()){guard(sectionId,value,()=>{setOpen(false);onRegenerate(value)})}else{setOpen(false);onRegenerate(value)}}}><RotateCcw size={13}/>{updateLabel||'Update with my changes'}</Btn>
-        {!onlyUpdateButton&&<Btn secondary onClick={()=>{onChange('');setOpen(false);onRegenerate('')}}><RotateCcw size={13}/>{freshLabel||'Start fresh'}</Btn>}
+        <Btn disabled={submitting} onClick={()=>submit(false)}><RotateCcw size={13}/>{submitting?'Working on it…':(updateLabel||'Update with my changes')}</Btn>
+        {!onlyUpdateButton&&<Btn secondary disabled={submitting} onClick={()=>submit(true)}><RotateCcw size={13}/>{freshLabel||'Start fresh'}</Btn>}
       </div>
     </div>}
   </div>
