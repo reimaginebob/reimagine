@@ -940,12 +940,14 @@ function parseInterviewPrepJSON(raw){
   // Interview Team (PR 2; counts revised round 2): panel is an optional, additive
   // top-level array (one read per person). When present, p11 emits about five
   // questions per person plus up to a couple shared "core" ones, so the cap scales
-  // with team size; with no team p11 produces about five total. Bounds are kept
+  // with team size; with no team p11 produces about 8 to 10 total (the prompt asks
+  // for "about 8 to 10", so the cap must clear 10 with headroom — it was 8, which
+  // rejected compliant 9-10 question outputs into a raw-JSON dump). Bounds are kept
   // lenient ("ish") so a slightly-off count does not fail the whole parse. A
   // non-array panel is a clear contract violation; malformed individual seats are
   // tolerated and skipped by the renderer rather than failing the parse.
   if(obj.panel!==undefined&&!Array.isArray(obj.panel))return null
-  const maxQ=(Array.isArray(obj.panel)&&obj.panel.length)?(6*obj.panel.length+4):8
+  const maxQ=(Array.isArray(obj.panel)&&obj.panel.length)?(6*obj.panel.length+4):14
   if(!Array.isArray(qs)||qs.length<3||qs.length>maxQ)return null
   const okStr=v=>typeof v==='string'&&v.trim().length>0
   const okStarSec=x=>x&&typeof x==='object'&&okStr(x.raw_material)&&okStr(x.to_strengthen)
