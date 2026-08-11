@@ -88,5 +88,33 @@ const refBare = buildUserProfileBlock(bare, {})
 assert('bare fallback deterministic', buildUserProfileBlock({ rep: {} }, {}) === refBare)
 assert('bare fallback uses not provided', refBare.includes('VALUES: not provided') && refBare.includes('ASSESSMENT NOTES: not provided'))
 
+// 6. topAnchors grounding guard: an anchor citing a number absent from the brand
+// prose is dropped (the p3 example-literal bleed reached topAnchors too); grounded-
+// numeric and prose-only anchors are kept. Six anchors so the >=4 render threshold
+// still holds after the one ungrounded drop.
+const groundedOuts = {
+  p3: 'prose',
+  p3_structured: {
+    throughLine: 'systems thinker',
+    presentation: {
+      hero: 'You fix systems where failure is expensive.',
+      sections: [{ kicker: 'k', body: 'You reduced deviations by 47%, protected $200M in revenue, cut resolution time 60%, and passed audit in 18 months.' }],
+    },
+    topAnchors: [
+      { type: 'accomplishment', text: 'You reduced deviations by 47%.' },
+      { type: 'accomplishment', text: 'You protected $200M in revenue.' },
+      { type: 'accomplishment', text: 'You cut resolution time 60%.' },
+      { type: 'accomplishment', text: 'You passed audit in 18 months.' },
+      { type: 'reputation', text: 'Colleagues call you calm in chaos.' },
+      { type: 'accomplishment', text: 'You retained 94% of the Toronto team.' },
+    ],
+  },
+}
+const groundedRef = buildUserProfileBlock({ rep: {} }, groundedOuts)
+assert('grounding guard deterministic', buildUserProfileBlock({ rep: {} }, JSON.parse(JSON.stringify(groundedOuts))) === groundedRef)
+assert('grounded numeric anchor kept', groundedRef.includes('You reduced deviations by 47%'))
+assert('prose-only anchor kept', groundedRef.includes('calm in chaos'))
+assert('ungrounded numeric anchor dropped', !groundedRef.includes('94% of the Toronto team'))
+
 if (failed) { console.error(`\ntest-profile-block: ${failed}/${total} FAILED`); process.exit(1) }
 console.log(`test-profile-block: OK (${total} cases passed)`)
