@@ -37,8 +37,31 @@ export const buildSynthesisContext = (s) => {
   }
   const anchors = Array.isArray(s.topAnchors) ? s.topAnchors : []
   if (anchors.length > 0) {
+    // Grounding guard: an anchor that cites a number absent from the brand's own
+    // prose is ungrounded (the p3 proofPoints example-literal bleed reached
+    // topAnchors too; see the Personal Brand fix). Drop number-bearing anchors
+    // whose figures appear nowhere in the brand text so a fabricated stat cannot
+    // propagate into downstream generations; prose-only anchors (reputation,
+    // life-shaping) always pass through. When no brand prose is available to
+    // check against, keep every anchor (never over-drop). Deterministic: pure
+    // function of input, order-preserving — the prompt-cache invariant holds.
+    const pres = s.presentation && typeof s.presentation === 'object' ? s.presentation : {}
+    const hay = [
+      String(s.throughLine || ''),
+      String(pres.hero || ''),
+      pres.origin && pres.origin.body,
+      ...(Array.isArray(pres.sections) ? pres.sections.map(x => x && x.body) : []),
+      ...(Array.isArray(pres.edges) ? pres.edges.map(x => x && (String(x.claim || '') + ' ' + String(x.detail || ''))) : []),
+    ].filter(Boolean).join(' ')
+    const hayNums = new Set(hay.match(/\d+(?:[.,]\d+)?/g) || [])
+    const grounded = a => {
+      if (!hay.trim()) return true
+      const nums = String(a.text || '').match(/\d+(?:[.,]\d+)?/g) || []
+      return nums.length === 0 || nums.every(n => hayNums.has(n))
+    }
     const anchorLines = anchors
       .filter(a => a && typeof a === 'object' && a.type && a.text)
+      .filter(grounded)
       .map(a => `- ${a.type}: ${String(a.text).trim()}`)
     if (anchorLines.length >= 4) {
       parts.push(`\n\nTOP ANCHORS (strongest specific evidence pieces from career, reputation, and life-shaping experience):\n${anchorLines.join('\n')}`)
