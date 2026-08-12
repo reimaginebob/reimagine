@@ -54,7 +54,7 @@ export const FEATURE_MAP = [
   { slug: 'linkedin-remix',       reach: 'focus-gated', labelId: 'p8',
     does: "rewrites the person's own LinkedIn profile for where they're headed" },
   { slug: 'resume-refresh',       reach: 'focus-gated', labelId: 'p_res',
-    does: 'repoints the resume at a chosen direction' },
+    does: 'repoints the resume at a chosen direction; the top Career Highlights and the body bullets are written to complement, not repeat, each other' },
   { slug: 'interview-prep',       reach: 'focus-gated', labelId: 'p11',
     does: 'works the likely interview questions with worked-through answers' },
   { slug: 'industry-background',  reach: 'focus-gated', labelId: 'p9',
