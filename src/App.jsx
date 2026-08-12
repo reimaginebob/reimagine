@@ -1804,7 +1804,11 @@ function buildCompanyReadCorrective(violations){
   const lines=violations.slice(0,3).map(v=>'- '+v.name+': "'+(v.match||'').replace(/"/g,'\\"').slice(0,140)+'" — '+v.note)
   return '\n\nCRITICAL: the previous generation contained '+violations.length+' citation or fabrication violation(s):\n'+lines.join('\n')+'\n\nEvery numeric claim, percentage, dollar amount, year reference, or named transition MUST have an adjacent source URL (https://...) in the same sentence, or the claim must be hedged as "public signal does not confirm this directly." Do not produce sentences of those shapes anywhere in your output.'
 }
-function renderResumeText(r){
+// renderResumeText(r) produces the human-reader text; renderResumeText(r, true)
+// produces the ATS-reader arrangement of the SAME record: keyword bank up top,
+// wins as a plain Summary of Qualifications list, standard headings. No content
+// is invented or dropped — the two versions differ only in order and labels.
+function renderResumeText(r, ats=false){
   if(!r)return ''
 
   // Flatten structured bullets (matches buildResumeDoc's runsFromBullet and highlightParagraph)
@@ -1821,20 +1825,36 @@ function renderResumeText(r){
 
   const h=r.header||{}
   const contact=[h.city||h.location,h.email,h.phone,h.linkedin].filter(Boolean).join(' · ')
+  const ka=(r.keyAccomplishments||[]).filter(Boolean)
+  const skillGroups=(r.skills||[]).filter(g=>g&&Array.isArray(g.items)&&g.items.length)
+  const skillLine=(g)=>{const items=g.items.map(s=>typeof s==='string'?s:(s&&s.skill)||'').filter(Boolean).join(', ');return items?(g.category?`${g.category}: ${items}`:items):''}
+
   const lines=[]
   lines.push((h.name||'').toUpperCase())
   if(contact)lines.push(contact)
   lines.push('')
-  lines.push('SUMMARY')
+  lines.push(ats?'PROFESSIONAL SUMMARY':'SUMMARY')
   lines.push(r.summary||'')
-  const ka=(r.keyAccomplishments||[]).filter(Boolean)
-  if(ka.length){
+
+  if(ats){
+    if(skillGroups.length){
+      lines.push('')
+      lines.push('CORE COMPETENCIES')
+      skillGroups.forEach(g=>{const l=skillLine(g);if(l)lines.push(l)})
+    }
+    if(ka.length){
+      lines.push('')
+      lines.push('SUMMARY OF QUALIFICATIONS')
+      ka.forEach(b=>lines.push('• '+bulletToText(b)))
+    }
+  } else if(ka.length){
     lines.push('')
     lines.push('KEY ACCOMPLISHMENTS')
     ka.forEach(b=>lines.push('• '+bulletToText(b)))
   }
+
   lines.push('')
-  lines.push('EXPERIENCE')
+  lines.push(ats?'PROFESSIONAL EXPERIENCE':'EXPERIENCE')
   lines.push('')
   ;(r.experience||[]).forEach((role,idx)=>{
     // Baseline shape supports titles:[{title,dates}] (multiple, for promotions);
@@ -1861,23 +1881,19 @@ function renderResumeText(r){
       lines.push(parts)
     })
   }
-  const skillGroups=(r.skills||[]).filter(g=>g&&Array.isArray(g.items)&&g.items.length)
-  if(skillGroups.length){
+  if(!ats&&skillGroups.length){
     lines.push('')
     lines.push('SKILLS')
-    skillGroups.forEach(g=>{
-      const items=g.items.map(s=>typeof s==='string'?s:(s&&s.skill)||'').filter(Boolean).join(', ')
-      if(items)lines.push(g.category?`${g.category}: ${items}`:items)
-    })
+    skillGroups.forEach(g=>{const l=skillLine(g);if(l)lines.push(l)})
   }
   return lines.join('\n')
 }
 
-function resumeFilename(r){
+function resumeFilename(r, ats=false){
   const name=(r&&r.header&&r.header.name)||'resume'
   const slug=name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim().split(/\s+/).join('_')
   const d=new Date().toISOString().slice(0,10)
-  return `${slug||'resume'}_resume_${d}.docx`
+  return `${slug||'resume'}_resume${ats?'_ats':''}_${d}.docx`
 }
 
 // Lazy-load the docx writer on first use so it is split into its own chunk
@@ -1891,11 +1907,15 @@ async function getDocx(){
   return _docxModule
 }
 
-async function buildResumeDoc(r){
+async function buildResumeDoc(r, opts = {}){
   const { Document, Paragraph, TextRun, AlignmentType, BorderStyle, TabStopType } = await getDocx()
+  // ATS mode re-arranges the same record for the machine reader: sans-serif font,
+  // standard headings, skills as a Core Competencies bank up top, curated wins as a
+  // plain Summary of Qualifications, and bold stripped (a parser cannot see weight).
+  const ats = !!opts.ats
   const h = r.header || {}
   const contact = [h.city, h.email, h.phone, h.linkedin].filter(Boolean).join(' | ')
-  const FONT = 'Garamond'
+  const FONT = ats ? 'Arial' : 'Garamond'
   const MARGIN = 1152 // 0.8 inch in twips
   const PAGE_W = 12240 // 8.5 inch in twips
   const CONTENT_W = PAGE_W - 2 * MARGIN // right-tab-stop position
@@ -1926,7 +1946,7 @@ async function buildResumeDoc(r){
     if (Array.isArray(bullet)) {
       return bullet.map(run => new TextRun({
         text: (run && run.text) || '',
-        bold: !!(run && run.bold),
+        bold: ats ? false : !!(run && run.bold),
         size: 22,
         font: FONT
       }))
@@ -1943,7 +1963,7 @@ async function buildResumeDoc(r){
       const itemRuns = Array.isArray(item.runs) ? item.runs : []
       runs = itemRuns.map(rn => new TextRun({
         text: (rn && rn.text) || '',
-        bold: !!(rn && rn.bold),
+        bold: ats ? false : !!(rn && rn.bold),
         size: 22,
         font: FONT
       }))
@@ -1971,35 +1991,63 @@ async function buildResumeDoc(r){
 
   const children = []
 
-  // Name: centered, uppercased, letter-spaced, larger size
+  // Name: centered for the human version, left-aligned for the ATS version (the
+  // safest header shape for a parser). Uppercased, letter-spaced, larger size.
   children.push(new Paragraph({
-    alignment: AlignmentType.CENTER,
+    alignment: ats ? AlignmentType.LEFT : AlignmentType.CENTER,
     spacing: { after: 80 },
     children: [new TextRun({
       text: (h.name || '').toUpperCase(),
       bold: true,
       size: 36, // 18pt
       font: FONT,
-      characterSpacing: 120
+      characterSpacing: ats ? 0 : 120
     })]
   }))
 
-  // Contact line: centered, pipe-separated
+  // Contact line: centered (human) or left-aligned (ATS), pipe-separated
   if (contact) {
     children.push(new Paragraph({
-      alignment: AlignmentType.CENTER,
+      alignment: ats ? AlignmentType.LEFT : AlignmentType.CENTER,
       spacing: { after: 200 },
       children: [new TextRun({ text: contact, size: 20, font: FONT })]
     }))
+  }
+
+  // Skills renderer (Core Competencies up top in ATS mode; Skills at the foot in
+  // human mode). One paragraph per category: "Category: a, b, c".
+  const pushSkills = (label) => {
+    const skillGroups = (r.skills || []).filter(g => g && Array.isArray(g.items) && g.items.length)
+    if (!skillGroups.length) return
+    children.push(sectionHeader(label))
+    skillGroups.forEach(g => {
+      const items = g.items.map(s => typeof s === 'string' ? s : (s && s.skill) || '').filter(Boolean).join(', ')
+      if (!items) return
+      children.push(new Paragraph({
+        spacing: { after: 80, line: 280 },
+        children: g.category
+          ? [new TextRun({ text: `${g.category}: `, bold: !ats, size: 22, font: FONT }), new TextRun({ text: items, size: 22, font: FONT })]
+          : [new TextRun({ text: items, size: 22, font: FONT })]
+      }))
+    })
   }
 
   // PROFESSIONAL SUMMARY
   children.push(sectionHeader('PROFESSIONAL SUMMARY'))
   children.push(bodyPara(r.summary || ''))
 
-  // CAREER HIGHLIGHTS
-  children.push(sectionHeader('CAREER HIGHLIGHTS'))
-  ;(r.keyAccomplishments || []).forEach(item => children.push(highlightParagraph(item)))
+  if (ats) {
+    // ATS: keyword bank up top, curated wins as a plain Summary of Qualifications.
+    pushSkills('CORE COMPETENCIES')
+    if ((r.keyAccomplishments || []).length) {
+      children.push(sectionHeader('SUMMARY OF QUALIFICATIONS'))
+      ;(r.keyAccomplishments || []).forEach(item => children.push(highlightParagraph(item)))
+    }
+  } else {
+    // CAREER HIGHLIGHTS
+    children.push(sectionHeader('CAREER HIGHLIGHTS'))
+    ;(r.keyAccomplishments || []).forEach(item => children.push(highlightParagraph(item)))
+  }
 
   // PROFESSIONAL EXPERIENCE
   children.push(sectionHeader('PROFESSIONAL EXPERIENCE'))
@@ -2072,21 +2120,9 @@ async function buildResumeDoc(r){
     }
   })
 
-  // SKILLS (baseline schema extension). One paragraph per category: "Category: a, b, c".
-  const skillGroups = (r.skills || []).filter(g => g && Array.isArray(g.items) && g.items.length)
-  if (skillGroups.length) {
-    children.push(sectionHeader('SKILLS'))
-    skillGroups.forEach(g => {
-      const items = g.items.map(s => typeof s === 'string' ? s : (s && s.skill) || '').filter(Boolean).join(', ')
-      if (!items) return
-      children.push(new Paragraph({
-        spacing: { after: 80, line: 280 },
-        children: g.category
-          ? [new TextRun({ text: `${g.category}: `, bold: true, size: 22, font: FONT }), new TextRun({ text: items, size: 22, font: FONT })]
-          : [new TextRun({ text: items, size: 22, font: FONT })]
-      }))
-    })
-  }
+  // SKILLS at the foot in human mode; in ATS mode skills were already emitted as
+  // CORE COMPETENCIES near the top.
+  if (!ats) pushSkills('SKILLS')
 
   return new Document({
     creator: 'Reimagine',
@@ -2098,14 +2134,14 @@ async function buildResumeDoc(r){
   })
 }
 
-async function downloadResumeWord(r){
+async function downloadResumeWord(r, opts={}){
   const { Packer }=await getDocx()
-  const doc=await buildResumeDoc(r)
+  const doc=await buildResumeDoc(r, opts)
   const blob=await Packer.toBlob(doc)
   const url=URL.createObjectURL(blob)
   const a=document.createElement('a')
   a.href=url
-  a.download=resumeFilename(r)
+  a.download=resumeFilename(r, opts.ats)
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
@@ -3099,6 +3135,33 @@ const S={
 }
 
 function Btn({onClick,disabled,secondary,small,prominent,children,style={}}){const base=small?(prominent?S.smSolid:S.sm):(secondary?S.sec:S.btn);return <button style={{...base,opacity:disabled?0.5:1,...style}} onClick={onClick} disabled={disabled}>{children}</button>}
+// Resume Refresh view with a Human / ATS version toggle. Both versions render from
+// the SAME parsed record; the toggle only changes arrangement and the download
+// target (renderResumeText/buildResumeDoc take an `ats` flag). Self-contained state
+// so it does not touch the parent section component's hooks.
+function ResumeRefreshView({resumeJson,isDemo,copy,copied}){
+  const [variant,setVariant]=useState('human')
+  const ats=variant==='ats'
+  const resumeText=renderResumeText(resumeJson,ats)
+  const tabBtn=(mode,label,sub)=>{
+    const active=variant===mode
+    return <button onClick={()=>setVariant(mode)} aria-pressed={active} style={{flex:1,border:'none',cursor:'pointer',borderRadius:8,padding:'10px 12px',background:active?'#FFFFFF':'transparent',color:active?C.gold:C.gray,fontWeight:600,fontSize:16,lineHeight:1.25,textAlign:'center',boxShadow:active?`inset 0 0 0 1px ${C.gold},0 1px 2px rgba(20,30,45,.10)`:'none',transition:'background .15s,color .15s'}}>{label}<span style={{display:'block',fontSize:15,fontWeight:500,opacity:.85,marginTop:2}}>{sub}</span></button>
+  }
+  const helper=ats
+    ?'Tuned for the parser: a Core Competencies keyword bank up top, standard headings, and plain type. Best when you apply through a company portal like Workday, Greenhouse, or iCIMS.'
+    :'Tuned for a person: your strongest wins above the fold, with bold drawing the eye. Best for a recruiter hand-off, a referral, or walking into an interview.'
+  return <>
+    <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Below is your Resume Refresh, ready to download and print as a Word document. Switch between the version a recruiter reads and the version an applicant tracking system reads. Both are built from the same content.</div>
+    <div role="group" aria-label="Resume version" style={{display:'flex',gap:6,background:'#EEF1F5',border:`1px solid ${C.border}`,borderRadius:11,padding:5,marginBottom:12,maxWidth:460}}>
+      {tabBtn('human','Human version','Recruiter & interview')}
+      {tabBtn('ats','ATS version','Online applications')}
+    </div>
+    <div style={{...S.footnote,marginTop:0,marginBottom:12,color:C.gray}}>{helper}</div>
+    <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:17,lineHeight:1.65,color:C.cream,margin:0}}>{resumeText}</pre></div>
+    <div style={S.row}><Btn onClick={()=>downloadResumeWord(resumeJson,{ats})}><Download size={14}/>{ats?'Download ATS version (Word)':'Download as Word'}</Btn><Btn secondary onClick={()=>copy(resumeText)}>{copied?<><CheckCheck size={13}/>Copied</>:<><Copy size={13}/>Copy text</>}</Btn></div>
+    {!isDemo&&<div style={S.footnote}>Reimagine does not modify your original resume file. The download is a new Word document you can edit, save, and share.</div>}
+  </>
+}
 // GtmLearnMoreButton: full-width solid amber action on the GTM per-company
 // card. Per the rename-and-prominence PR, replaces the inline outline Build
 // affordance. Hover darkens one stop (#BA7517 → #854F0B). Module-scope so
@@ -8793,13 +8856,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         if(id==='income')return <><div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div><OutPanel text={outputs.income} onCopy={copy} copied={copied}/>{focusSalaryCard()}</>
         if(id==='p_res'){
           const resumeJson=outputs.p_res?parseResumeJSON(outputs.p_res):null
-          const resumeText=resumeJson?renderResumeText(resumeJson):''
-          if(resumeJson)return <>
-            <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Below is your Resume Refresh, ready to download and print as a Word document. If you prefer your existing format, copy the sections you want into your own template.</div>
-            <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:17,lineHeight:1.65,color:C.cream,margin:0}}>{resumeText}</pre></div>
-            <div style={S.row}><Btn onClick={()=>downloadResumeWord(resumeJson)}><Download size={14}/>Download as Word</Btn><Btn secondary onClick={()=>copy(resumeText)}>{copied?<><CheckCheck size={13}/>Copied</>:<><Copy size={13}/>Copy text</>}</Btn></div>
-            {!isDemo&&<div style={S.footnote}>Reimagine does not modify your original resume file. The download is a new Word document you can edit, save, and share.</div>}
-          </>
+          if(resumeJson)return <ResumeRefreshView resumeJson={resumeJson} isDemo={isDemo} copy={copy} copied={copied}/>
           return <><div style={S.note}>The download didn't come together cleanly on this try. This happens once in a while. Regenerate this section and it usually lands right the second time.</div><div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:16,lineHeight:1.65,color:C.cream,margin:0}}>{outputs.p_res}</pre></div></>
         }
         if(id==='p7'){
