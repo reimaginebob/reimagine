@@ -4895,14 +4895,18 @@ export default function PivotEngine(){
   // The originating tab subscribes; the tab where /api/me resolves to a
   // signed-in user broadcasts on BroadcastChannel('reimagine-auth') and
   // writes a localStorage key. The storage event is the fallback for any
-  // browser without BroadcastChannel support. On signal we attempt to close
+  // browser without BroadcastChannel support. On signal we first try to close
   // this tab; window.close() is blocked for non-script-opened tabs in most
-  // browsers, so the render switches to a "you can close this safely" view.
+  // browsers, so rather than leave a dead "check your email" card we repurpose
+  // this tab INTO the app: the auth cookie is now set for the origin, so a
+  // reload re-runs the /api/me hydration and this tab lands signed-in. The
+  // "you can close this safely" view remains only as a last resort if reload
+  // is somehow unavailable.
   useEffect(()=>{
     if(!magicLinkSentTo||typeof window==='undefined')return
     setSignedInElsewhere(false)
     let bc=null
-    const handleSignal=()=>{setSignedInElsewhere(true);try{window.close()}catch{}}
+    const handleSignal=()=>{try{window.close()}catch{}try{window.location.reload();return}catch{}setSignedInElsewhere(true)}
     try{if(typeof BroadcastChannel!=='undefined'){bc=new BroadcastChannel('reimagine-auth');bc.onmessage=(e)=>{if(e&&e.data&&e.data.type==='signed_in')handleSignal()}}}catch{}
     const onStorage=(e)=>{if(e.key==='pe_signed_in_at'&&e.newValue)handleSignal()}
     window.addEventListener('storage',onStorage)
