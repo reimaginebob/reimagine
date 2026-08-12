@@ -1804,12 +1804,50 @@ function buildCompanyReadCorrective(violations){
   const lines=violations.slice(0,3).map(v=>'- '+v.name+': "'+(v.match||'').replace(/"/g,'\\"').slice(0,140)+'" — '+v.note)
   return '\n\nCRITICAL: the previous generation contained '+violations.length+' citation or fabrication violation(s):\n'+lines.join('\n')+'\n\nEvery numeric claim, percentage, dollar amount, year reference, or named transition MUST have an adjacent source URL (https://...) in the same sentence, or the claim must be hedged as "public signal does not confirm this directly." Do not produce sentences of those shapes anywhere in your output.'
 }
+// ATS keyword-in-context fold: move each Career Highlight into the dated role where
+// it happened (matched by the highlight's roleTag naming the company and title), as
+// the leading bullet, so the keyword sits in the context a parser scores. Highlights
+// whose roleTag matches no employer stay in keyAccomplishments and render as a
+// Summary of Qualifications fallback, so nothing is ever dropped. Pure: returns a new
+// record and never mutates the source. Applied only in ATS mode.
+function foldHighlightsIntoExperience(r){
+  if(!r||typeof r!=='object')return r
+  const ka=(r.keyAccomplishments||[]).filter(Boolean)
+  if(!ka.length||!Array.isArray(r.experience)||!r.experience.length)return r
+  const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'')
+  // Clone experience (and each title's bullet list) so we can prepend without mutating.
+  const experience=r.experience.map(role=>({
+    ...role,
+    titles:Array.isArray(role.titles)?role.titles.map(t=>({...t,bullets:Array.isArray(t.bullets)?[...t.bullets]:t.bullets})):role.titles,
+    bullets:Array.isArray(role.bullets)?[...role.bullets]:role.bullets
+  }))
+  const remaining=[]
+  ka.forEach(item=>{
+    const runs=(item&&Array.isArray(item.runs))?item.runs:null
+    const tagN=norm(item&&item.roleTag)
+    if(!runs||!tagN){remaining.push(item);return}
+    const target=experience.find(role=>role.company&&norm(role.company)&&tagN.includes(norm(role.company)))
+    if(!target){remaining.push(item);return}
+    const bullet=runs.map(rn=>({text:(rn&&rn.text)||'',bold:!!(rn&&rn.bold)}))
+    if(Array.isArray(target.titles)&&target.titles.length){
+      const t=target.titles.find(tt=>tt.title&&tagN.includes(norm(tt.title)))||target.titles[0]
+      if(!Array.isArray(t.bullets))t.bullets=[]
+      t.bullets.unshift(bullet)
+    }else{
+      if(!Array.isArray(target.bullets))target.bullets=[]
+      target.bullets.unshift(bullet)
+    }
+  })
+  return {...r,experience,keyAccomplishments:remaining}
+}
+
 // renderResumeText(r) produces the human-reader text; renderResumeText(r, true)
 // produces the ATS-reader arrangement of the SAME record: keyword bank up top,
-// wins as a plain Summary of Qualifications list, standard headings. No content
+// wins folded into the roles where they happened, standard headings. No content
 // is invented or dropped — the two versions differ only in order and labels.
 function renderResumeText(r, ats=false){
   if(!r)return ''
+  if(ats)r=foldHighlightsIntoExperience(r)
 
   // Flatten structured bullets (matches buildResumeDoc's runsFromBullet and highlightParagraph)
   const bulletToText = (b) => {
@@ -1921,9 +1959,10 @@ async function getDocx(){
 async function buildResumeDoc(r, opts = {}){
   const { Document, Paragraph, TextRun, AlignmentType, BorderStyle, TabStopType } = await getDocx()
   // ATS mode re-arranges the same record for the machine reader: sans-serif font,
-  // standard headings, skills as a Core Competencies bank up top, curated wins as a
-  // plain Summary of Qualifications, and bold stripped (a parser cannot see weight).
+  // standard headings, skills as a Core Competencies bank up top, curated wins folded
+  // into the roles where they happened, and bold stripped (a parser cannot see weight).
   const ats = !!opts.ats
+  if (ats) r = foldHighlightsIntoExperience(r)
   const h = r.header || {}
   const contact = [h.city, h.email, h.phone, h.linkedin].filter(Boolean).join(' | ')
   const FONT = ats ? 'Arial' : 'Garamond'
@@ -2048,7 +2087,8 @@ async function buildResumeDoc(r, opts = {}){
   children.push(bodyPara(r.summary || ''))
 
   if (ats) {
-    // ATS: keyword bank up top, curated wins as a plain Summary of Qualifications.
+    // ATS: keyword bank up top; wins folded into their roles above already, so this
+    // renders only any highlights that could not be matched to an employer (fallback).
     pushSkills('CORE COMPETENCIES')
     if ((r.keyAccomplishments || []).length) {
       children.push(sectionHeader('SUMMARY OF QUALIFICATIONS'))
