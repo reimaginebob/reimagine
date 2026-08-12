@@ -74,7 +74,7 @@ Some applications go to a person first. Many go through applicant tracking softw
 
 The **Human version** is tuned for the recruiter: your strongest wins in a Career Highlights block up top, bold drawing the eye, a polished layout. Use it for a referral, a direct hand-off, or walking into an interview.
 
-The **ATS version** is tuned for the software: your skills promoted to a Core Competencies list near the top where the parser weights them, standard section headings the software recognizes, and plain type that parses cleanly. Use it when you apply through a company's online portal.
+The **ATS version** is tuned for the software: your skills promoted to a Core Competencies list near the top where the parser weights them, standard section headings the software recognizes, and plain type that parses cleanly. Your strongest wins are placed inside the roles where they happened, so the keywords sit in the context the software scores rather than in a separate block it may skip. Use it when you apply through a company's online portal.
 
 Nothing is invented for either one. Every number, employer, and date is identical. The ATS version simply re-arranges the same true record for the machine reader, and the download follows whichever version you have selected.
 
