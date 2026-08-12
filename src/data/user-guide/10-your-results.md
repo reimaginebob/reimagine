@@ -80,7 +80,7 @@ Nothing is invented for either one. Every number, employer, and date is identica
 
 ## Held several roles at one company? Reimagine groups them
 
-If you were promoted or changed roles at the same employer, Resume Refresh keeps that employer as a single block. The company name appears once, and each role you held sits below it with its own dates, most recent first. A reader sees the progression at a glance, and it never reads as if you left and came back. Your accomplishments for that employer sit under the stacked roles. If you held just one role at a company, it renders as a single title and date line, the way you would expect.
+If you were promoted or changed roles at the same employer, Resume Refresh keeps that employer as a single block. The company name appears once, and each role you held sits below it with its own dates, most recent first. Your accomplishments sit directly under the role where you earned them, so a reader sees not just that you were promoted but what you delivered at each level. A reader sees the progression at a glance, and it never reads as if you left and came back. If you held just one role at a company, it renders as a single title and date line, the way you would expect.
 
 ## Your progress is saved across devices
 
