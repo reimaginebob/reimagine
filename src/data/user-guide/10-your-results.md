@@ -78,6 +78,10 @@ The **ATS version** is tuned for the software: your skills promoted to a Core Co
 
 Nothing is invented for either one. Every number, employer, and date is identical. The ATS version simply re-arranges the same true record for the machine reader, and the download follows whichever version you have selected.
 
+## Held several roles at one company? Reimagine groups them
+
+If you were promoted or changed roles at the same employer, Resume Refresh keeps that employer as a single block. The company name appears once, and each role you held sits below it with its own dates, most recent first. A reader sees the progression at a glance, and it never reads as if you left and came back. Your accomplishments for that employer sit under the stacked roles. If you held just one role at a company, it renders as a single title and date line, the way you would expect.
+
 ## Your progress is saved across devices
 
 A banner reminds you that your work is saved against your account. As long as you are signed in, your progress travels with you across devices. Chapter 13 covers the details of how account-based saving works, plus the export options for backups and snapshots.
