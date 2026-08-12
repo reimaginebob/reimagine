@@ -31,6 +31,7 @@ import {
   extractLeadSentence,
   findPersonalBrandTailBoundary,
   stripPersonalBrandTail,
+  stripHeroLead,
 } from '../src/personal-brand-tail.mjs'
 
 let failed = 0
@@ -337,8 +338,55 @@ The dimension worth examining is **scale**.`
   if (stripPersonalBrandTail(undefined) !== undefined) fail('Test 27c: undefined input should return undefined unchanged')
 }
 
+// --- Test 28: stripHeroLead — removes the hero lead without eating the tail's
+// first character. The regression: collapsed whitespace in the retained tail
+// (double space, "\n\n" paragraph break) previously shifted a length-based cut
+// and dropped leading letters ("You" -> "ou"). ---
+{
+  const hero = 'You read the room and name the real constraint.'
+  const heroKey = hero.replace(/\s+/g, ' ')
+
+  // 28a: tail with two collapsed double-spaces — the exact drop shape.
+  {
+    const body = 'You read the room and name the real constraint. You  do it  before anyone asks.'
+    const out = stripHeroLead(body, heroKey)
+    if (out !== 'You  do it  before anyone asks.') fail('Test 28a: leading letter dropped or hero not stripped', `got="${out}"`)
+  }
+  // 28b: paragraph break in the retained tail is preserved intact.
+  {
+    const body = 'You read the room and name the real constraint. You do it before anyone asks.\n\nYou keep the team moving.'
+    const out = stripHeroLead(body, heroKey)
+    if (out !== 'You do it before anyone asks.\n\nYou keep the team moving.') fail('Test 28b: tail corrupted', `got="${out}"`)
+  }
+  // 28c: hero followed immediately by a paragraph break.
+  {
+    const body = 'You read the room and name the real constraint.\n\nYou do it before anyone asks.'
+    const out = stripHeroLead(body, heroKey)
+    if (out !== 'You do it before anyone asks.') fail('Test 28c: hero-then-break not stripped cleanly', `got="${out}"`)
+  }
+  // 28d: body that does not lead with the hero is returned trimmed, unchanged.
+  {
+    const body = '  Something else entirely that does not repeat the hero.  '
+    const out = stripHeroLead(body, heroKey)
+    if (out !== 'Something else entirely that does not repeat the hero.') fail('Test 28d: non-lead body altered', `got="${out}"`)
+  }
+  // 28e: empty heroKey is a no-op (returns trimmed body).
+  {
+    const out = stripHeroLead('  You do it.  ', '')
+    if (out !== 'You do it.') fail('Test 28e: empty heroKey should return trimmed body', `got="${out}"`)
+  }
+  // 28f: hero containing regex-special characters is matched literally.
+  {
+    const h = 'You ship (fast) — no matter what.'
+    const hk = h.replace(/\s+/g, ' ')
+    const body = 'You ship (fast) — no matter what. You  own the fallout.'
+    const out = stripHeroLead(body, hk)
+    if (out !== 'You  own the fallout.') fail('Test 28f: regex-special hero mishandled', `got="${out}"`)
+  }
+}
+
 if (failed > 0) {
   console.error(`\ntest-personal-brand-tail: ${failed} cases failed.`)
   process.exit(1)
 }
-console.log('test-personal-brand-tail: OK (27 test groups passed)')
+console.log('test-personal-brand-tail: OK (28 test groups passed)')

@@ -160,3 +160,30 @@ export function stripPersonalBrandTail(text) {
   if (boundary === -1) return text
   return text.slice(0, boundary).trimEnd()
 }
+
+// Remove a leading repeat of the hero line from the start of a section body.
+// The p3 prose frequently opens its first section by restating the hero; the
+// Personal Brand view and the PDF export both strip that lead so the hero is
+// not printed twice.
+//
+// heroKey MUST be whitespace-collapsed (hero.replace(/\s+/g,' ')). The prior
+// implementation located the cut by length arithmetic on the collapsed string
+// and then sliced the ORIGINAL string by that length:
+//   s.slice(s.length - (sk.length - heroKey.length))
+// When the retained tail contained collapsed whitespace (a double space, or a
+// "\n\n" paragraph break that collapses two chars to one), sk was shorter than
+// s, so the slice cut too far in and dropped that many LEADING characters of
+// the kept text — the "missing first letter" bug (e.g. "You" rendering as
+// "ou"). Anchor-matching the hero prefix against the original string with
+// flexible whitespace removes exactly the hero span and nothing more.
+//
+// Returns body.trim() unchanged when it does not lead with the hero, or when
+// heroKey is empty.
+export function stripHeroLead(body, heroKey) {
+  const s = String(body || '').trim()
+  if (!heroKey) return s
+  const sk = s.replace(/\s+/g, ' ')
+  if (!sk.startsWith(heroKey)) return s
+  const esc = heroKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+')
+  return s.replace(new RegExp('^' + esc + '\\s*'), '').trim()
+}
