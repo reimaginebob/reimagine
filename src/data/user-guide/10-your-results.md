@@ -55,10 +55,18 @@ Each output has its own purpose. A short field guide:
 - **Your Bridge Story**. Read this aloud before a phone screen or an interview. The goal is to put the three parts (who you are as a human, how that has played out in your career, where you are headed) back into your head, so they are familiar rather than memorized.
 - **Industry Background**. Review before networking events, informational calls, and any first conversation in this space. The terms, the tools, and the people you should know to sound like someone already inside the conversation.
 - **Interview Prep**. Review before any interview. The STAR stories inside Interview Prep are worth reading before any conversation that might surface them, and worth remixing in real time based on who is across the table. The Same Story Different Angle subsection is the practice ground for that remixing.
-- **Resume Refresh**. Open your resume document and apply the changes. The summary, the career highlights, the role expansion and compression guidance.
+- **Resume Refresh**. Open your resume document and apply the changes. The summary, the career highlights, the role expansion and compression guidance. Your strongest wins appear both in the Career Highlights block up top and under the jobs where they happened, written from two different angles so they read as evidence rather than repetition (see below).
 - **LinkedIn Remix**. Copy the headline you chose into LinkedIn. Copy the About section. Apply the experience reframes. The output stays here for reference; the work happens in your LinkedIn profile.
 - **Go-to-Market Strategy**. Your operating manual for the search itself. The hiring executive profile tells you who to reach. The target company list tells you where. The outreach template is your starting draft, personalized per company. (Don't forget: the **Download CSV** button on the Phase 4 screen pulls the company list out as a working spreadsheet. Open it in Excel, Google Sheets, or Numbers and run your search from it. Add columns as you go: when you reached out, who you reached out to, what you heard back, what the next step is.)
 - **Income Now**. Your fastest path to revenue while you search, if you generated it. Renders as a bonus stripe below the seven section cards on Complete, with a slimmer card body and a one-line description in place of a preview snippet.
+
+## Your Career Highlights and your resume body work together
+
+Your three to five strongest wins sit in a Career Highlights block at the top of the resume, chosen for the direction you are targeting. Those same wins also belong under the jobs where they happened. Reimagine does not repeat them word for word in both places, and that is deliberate.
+
+A hiring manager reads top to bottom. They meet the Highlight first, then the role below it. If the two said the same thing twice, the second reading would feel like filler. So the Highlight up top carries the headline result in its most compressed form, and the bullet under the job carries the part the Highlight left out: how you did it, the scope you did it at, and the supporting numbers. Same accomplishment, seen from two angles. The version under the job becomes the evidence for the claim at the top, which is exactly what a careful reader is looking for.
+
+When a win is a single number with no story behind it, Reimagine keeps it in the Career Highlights only and gives the job a different bullet, so nothing reads as a reworded copy. The result is a resume that rewards a second read instead of repeating itself.
 
 ## Your progress is saved across devices
 
