@@ -6,7 +6,7 @@ import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-p
 // Foundation A (p3 structured emit): tail parser, schema validator, and
 // first-sentence extractor used by callClaudeWithVoiceGate's Phase 3
 // and the lead-drift comparator. See scripts/test-personal-brand-tail.mjs.
-import { findPersonalBrandTailBoundary, parsePersonalBrandTail, validatePersonalBrandTailSchema, extractLeadSentence, stripPersonalBrandTail } from "./personal-brand-tail.mjs"
+import { findPersonalBrandTailBoundary, parsePersonalBrandTail, validatePersonalBrandTailSchema, extractLeadSentence, stripPersonalBrandTail, stripHeroLead } from "./personal-brand-tail.mjs"
 // Foundation B.1 (PR #85): deterministic post-processors extracted into
 // their own .mjs module so they can be unit-tested without loading the
 // JSX-bearing App.jsx. stripCoachSpeak wraps the callClaude return chain;
@@ -565,7 +565,7 @@ function presentationToProse(p){
   if(!np)return ''
   const hero=String(np.hero||'').trim()
   const heroKey=hero.replace(/\s+/g,' ')
-  const ded=t=>{const s=String(t||'').trim();const sk=s.replace(/\s+/g,' ');return heroKey&&sk.startsWith(heroKey)?s.slice(s.length-(sk.length-heroKey.length)).trim():s}
+  const ded=t=>stripHeroLead(t,heroKey)
   const parts=[]
   if(hero)parts.push(hero)
   np.sections.forEach(s=>{const b=ded(s&&s.body);if(b)parts.push(b)})
@@ -4498,7 +4498,7 @@ function printPersonalBrand(p, name, proseFallback){
   const date=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
   const heroRaw=String(p.hero||'').trim(), hero=clean(heroRaw)
   const heroKey=heroRaw.replace(/\s+/g,' ')
-  const ded=t=>{const s=String(t||'').trim();const sk=s.replace(/\s+/g,' ');return heroKey&&sk.startsWith(heroKey)?s.slice(s.length-(sk.length-heroKey.length)).trim():s}
+  const ded=t=>stripHeroLead(t,heroKey)
   const proof=(Array.isArray(p.proofPoints)?p.proofPoints:[]).filter(x=>x&&String(x.value||'').trim())
   const sections=(Array.isArray(p.sections)?p.sections:[]).map(s=>s&&String(s.body||'').trim()?{kicker:clean(s.kicker),body:clean(ded(s.body))}:null).filter(Boolean)
   const origin=p.origin&&typeof p.origin==='object'&&String(p.origin.body||'').trim()?clean(p.origin.body):''
@@ -4604,7 +4604,7 @@ function PersonalBrandView({presentation:rawPresentation,proseForCopy,onCopy,cop
   if(!hero)return null
   const proof=(Array.isArray(p.proofPoints)?p.proofPoints:[]).filter(x=>x&&typeof x==='object'&&String(x.value||'').trim())
   const heroKey=hero.replace(/\s+/g,' ')
-  const dedupeHero=(t)=>{const s=t.trim();const sk=s.replace(/\s+/g,' ');return sk.startsWith(heroKey)?s.slice(s.length-(sk.length-heroKey.length)).trim():s}
+  const dedupeHero=(t)=>stripHeroLead(t,heroKey)
   const sections=(Array.isArray(p.sections)?p.sections:[]).map(x=>x&&typeof x==='object'?{kicker:clean(x.kicker),body:dedupeHero(stripTitle(clean(x.body)))}:null).filter(x=>x&&x.body)
   const origin=p.origin&&typeof p.origin==='object'&&clean(p.origin.body)?clean(p.origin.body):null
   const edges=(Array.isArray(p.edges)?p.edges:[]).filter(x=>x&&typeof x==='object'&&String(x.claim||'').trim())
