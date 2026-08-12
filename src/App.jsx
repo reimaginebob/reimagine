@@ -8576,7 +8576,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'priorities':return <div>
       <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
       <h1 style={S.title}>Your Priorities & Non-Negotiables</h1>
-      <p style={S.sub}>Values covered why work matters to you. This is the practical side: what you actually need for a move to be worth making. Everything here is optional; skip anything that doesn't apply.</p>
+      <p style={S.sub}>The Values screen covered why work matters to you. This is the practical side: what a move actually needs to be worth making. Everything here is optional; skip anything that doesn't apply.</p>
       <div style={S.card}>
         <div style={S.field}><label style={S.label}>Compensation floor</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>The minimum total compensation that would make a move worth it. A number or a range is fine.</div><input style={S.inp} value={profile.compFloor||''} onChange={e=>pr('compFloor',e.target.value)} placeholder="e.g. $150,000 base, or $180k total"/></div>
         <div style={S.field}><label style={S.label}>Commute or remote needs</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>Anything firm about where and how you work.</div><input style={S.inp} value={profile.workReq||''} onChange={e=>pr('workReq',e.target.value)} placeholder="e.g. Remote only · No more than 30 minutes · Hybrid, two days max"/></div>

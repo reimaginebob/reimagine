@@ -14,7 +14,7 @@ The Orientation phase has nine screens, in this order:
 4. Your LinkedIn (optional)
 5. Assessments
 6. Values, Passions & Causes
-7. Practical Priorities
+7. Your Priorities & Non-Negotiables
 8. Reputation
 9. Your Story (optional)
 10. Your Skills
@@ -166,7 +166,7 @@ Two short fields. Both have a microphone button. You can speak your answers inst
 
 Both fields are required. Click **Continue**.
 
-## Screen 7: Practical Priorities
+## Screen 7: Your Priorities & Non-Negotiables
 
 Where Values covers *why* work matters to you, this screen covers the practical side: what you actually need for a move to be worth making. Every field is optional — fill in what applies and skip the rest.
 
