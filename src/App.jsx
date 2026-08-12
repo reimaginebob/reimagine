@@ -4519,22 +4519,22 @@ ${close?`<div class="close">${k('What is next')}<div class="b">${close}</div></d
   if(!body)return
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${name?esc(name)+' — Personal Brand':'Personal Brand'}</title>
 <style>@page{size:letter;margin:0.7in 0.8in}*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1A2540;line-height:1.6;font-size:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1A2540;line-height:1.6;font-size:15px}
 .wrap{max-width:680px;margin:0 auto}
-.badge{display:inline-block;background:#C8924A;color:#fff;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:3px}
+.badge{display:inline-block;background:#C8924A;color:#fff;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:3px}
 .head{border-bottom:2px solid #C8924A;padding-bottom:10px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-end}
-.head .nm{font-size:18px;font-weight:600;margin-top:6px}.head .dt{font-size:11px;color:#64748B}
-.k{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8A9BB8;font-weight:600;margin-bottom:6px}
-.hero{font-size:18px;font-weight:500;line-height:1.35;margin-bottom:4px}
+.head .nm{font-size:22px;font-weight:600;margin-top:6px}.head .dt{font-size:13px;color:#64748B}
+.k{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#8A9BB8;font-weight:600;margin-bottom:6px}
+.hero{font-size:22px;font-weight:500;line-height:1.35;margin-bottom:4px}
 .proof{display:flex;flex-wrap:wrap;gap:10px 28px;border-top:.5px solid #E2E5EA;border-bottom:.5px solid #E2E5EA;padding:12px 0;margin:16px 0 22px}
-.proof .v{font-size:16px;font-weight:500}.proof .l{font-size:10px;color:#8A9BB8;margin-top:2px;max-width:150px}
-.sec{margin-bottom:20px;page-break-inside:avoid}.sec .b{font-size:12px;line-height:1.65;white-space:pre-wrap}
+.proof .v{font-size:20px;font-weight:500}.proof .l{font-size:13px;color:#8A9BB8;margin-top:2px;max-width:160px}
+.sec{margin-bottom:20px;page-break-inside:avoid}.sec .b{font-size:15px;line-height:1.7;white-space:pre-wrap}
 .origin{background:#F3F4F6;border-radius:8px;padding:14px 16px;margin:4px 0 20px;page-break-inside:avoid}
-.origin .b{font-family:Georgia,serif;font-size:13px;line-height:1.55;white-space:pre-wrap}
+.origin .b{font-family:Georgia,serif;font-size:16px;line-height:1.6;white-space:pre-wrap}
 .edge{border-left:2px solid #E2E5EA;padding-left:12px;margin-bottom:12px;page-break-inside:avoid}
-.edge .c{font-size:12px;font-weight:500}.edge .d{font-size:11px;color:#2D3748;margin-top:3px}
-.close{border-left:2px solid #C8924A;padding-left:14px;margin-top:6px;page-break-inside:avoid}.close .b{font-size:12px;line-height:1.6;white-space:pre-wrap}
-.foot{margin-top:24px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:9px;color:#94A3B8}</style></head><body><div class="wrap">
+.edge .c{font-size:15px;font-weight:500}.edge .d{font-size:14px;color:#2D3748;margin-top:3px}
+.close{border-left:2px solid #C8924A;padding-left:14px;margin-top:6px;page-break-inside:avoid}.close .b{font-size:15px;line-height:1.7;white-space:pre-wrap}
+.foot{margin-top:24px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:11px;color:#94A3B8}</style></head><body><div class="wrap">
 <div class="head"><div><span class="badge">Reimagine by Career Club</span><div class="nm">${name?esc(name)+' · ':''}Personal Brand</div></div><div class="dt">${esc(date)}</div></div>
 ${body}
 <div class="foot">Reimagine by Career Club · career.club · ${esc(date)}</div>
