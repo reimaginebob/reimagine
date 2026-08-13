@@ -304,18 +304,19 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   )
 
   const inputRow = (
-    <div style={{ padding: 12, borderTop: '1px solid #E2E5EA', display: 'flex', gap: 8 }}>
-      <input
-        type="text"
+    <div style={{ padding: 12, borderTop: '1px solid #E2E5EA', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+      <textarea
         autoFocus
+        rows={2}
         value={input}
         onChange={e => setInput(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && send()}
-        placeholder="Ask your coach anything about your search"
+        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+        placeholder="Ask your coach anything. Shift+Enter for a new line."
         disabled={loading}
         style={{
           flex: 1, padding: '8px 12px', border: '1px solid #E2E5EA',
           borderRadius: 8, fontSize: 18, fontFamily: 'inherit', color: '#1A2540',
+          resize: 'vertical', lineHeight: 1.4,
         }}
       />
       {hasSpeech && <SpeechBtn onResult={t => setInput((input || '') + t)} C={C} title="Speak your question" />}
