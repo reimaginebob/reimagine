@@ -58,7 +58,11 @@ function isAllowedOrigin(rawOrigin) {
 // chosen, ... }). Returns a human-readable block; never throws on sparse data.
 function buildCoachProfileSlice(state) {
   if (!state || typeof state !== 'object') {
-    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.`
+    // No profile at all — definitionally pre-Personal-Brand, so the sidebar is the
+    // Orientation phase list. Carry the same navigation gate as the main path below
+    // (keyed there on `done`): none of Career Paths, Add an Opportunity, Income Now
+    // or the Focus Playbook sections is on this person's screen yet.
+    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.`
   }
   const pr = state.profile && typeof state.profile === 'object' ? state.profile : {}
   const outs = state.outputs && typeof state.outputs === 'object' ? state.outputs : {}
@@ -160,7 +164,29 @@ function buildCoachProfileSlice(state) {
     ? '\n\nNOTE: this profile is thin. Lean on whatever signals are present, say plainly what you do not yet know, and answer lightly rather than faking familiarity. Do not run a cold-start interview.'
     : ''
 
-  return `THIS USER'S REIMAGINE PROFILE (read-only; you can reference and reason about it, but you never change it):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}`
+  // Pre-Personal-Brand navigation gate. Career Paths, Add an Opportunity and
+  // Income Now render only as children of Put It to Work, and that whole group
+  // renders only once 'p3' is in `done` (src/App.jsx primaryItems). Before that
+  // the sidebar is the Orientation phase list and none of the three is reachable,
+  // so COACH_NAV_MAP's "these features are their own step, point someone straight
+  // there" is false for all three of them plus every Focus Playbook section.
+  //
+  // Keyed on `done`, NOT on outputs.p3. Generating the brand writes outputs.p3,
+  // but 'p3' enters `done` only when the user clicks through to Put It to Work.
+  // In that gap a user is reading a finished Personal Brand while the sidebar is
+  // still the pre-brand one, and keying on outputs.p3 would send exactly those
+  // users to a screen they cannot see.
+  //
+  // Lives in this block, which is the second and UNCACHED system block. The nav
+  // map sits in SYSTEM_PROMPT_STABLE under cache_control ephemeral alongside the
+  // user guide and the full book; making that vary per user state would fork the
+  // expensive cached prefix.
+  const brandStepDone = Array.isArray(state.done) && state.done.includes('p3')
+  const preBrandNote = brandStepDone
+    ? ''
+    : '\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.'
+
+  return `THIS USER'S REIMAGINE PROFILE (read-only; you can reference and reason about it, but you never change it):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
