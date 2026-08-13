@@ -3192,31 +3192,52 @@ const S={
 }
 
 function Btn({onClick,disabled,secondary,small,prominent,children,style={}}){const base=small?(prominent?S.smSolid:S.sm):(secondary?S.sec:S.btn);return <button style={{...base,opacity:disabled?0.5:1,...style}} onClick={onClick} disabled={disabled}>{children}</button>}
+// Shared Human / ATS segmented control. Both versions render from the SAME record;
+// the flag only changes arrangement (renderResumeText/buildResumeDoc take `ats`).
+function ResumeVersionSeg({variant,setVariant}){
+  const tab=(mode,label,sub)=>{
+    const active=variant===mode
+    return <button onClick={()=>setVariant(mode)} aria-pressed={active} style={{flex:1,border:'none',cursor:'pointer',borderRadius:8,padding:'10px 12px',background:active?'#FFFFFF':'transparent',color:active?C.gold:C.gray,fontWeight:600,fontSize:16,lineHeight:1.25,textAlign:'center',boxShadow:active?`inset 0 0 0 1px ${C.gold},0 1px 2px rgba(20,30,45,.10)`:'none',transition:'background .15s,color .15s'}}>{label}<span style={{display:'block',fontSize:15,fontWeight:500,opacity:.85,marginTop:2}}>{sub}</span></button>
+  }
+  return <div role="group" aria-label="Resume version" style={{display:'flex',gap:6,background:'#EEF1F5',border:`1px solid ${C.border}`,borderRadius:11,padding:5,marginBottom:12,maxWidth:460}}>
+    {tab('human','Human version','Recruiter & interview')}
+    {tab('ats','ATS version','Online applications')}
+  </div>
+}
+
 // Resume Refresh view with a Human / ATS version toggle. Both versions render from
 // the SAME parsed record; the toggle only changes arrangement and the download
-// target (renderResumeText/buildResumeDoc take an `ats` flag). Self-contained state
-// so it does not touch the parent section component's hooks.
+// target. Self-contained state so it does not touch the parent's hooks.
 function ResumeRefreshView({resumeJson,isDemo,copy,copied}){
   const [variant,setVariant]=useState('human')
   const ats=variant==='ats'
   const resumeText=renderResumeText(resumeJson,ats)
-  const tabBtn=(mode,label,sub)=>{
-    const active=variant===mode
-    return <button onClick={()=>setVariant(mode)} aria-pressed={active} style={{flex:1,border:'none',cursor:'pointer',borderRadius:8,padding:'10px 12px',background:active?'#FFFFFF':'transparent',color:active?C.gold:C.gray,fontWeight:600,fontSize:16,lineHeight:1.25,textAlign:'center',boxShadow:active?`inset 0 0 0 1px ${C.gold},0 1px 2px rgba(20,30,45,.10)`:'none',transition:'background .15s,color .15s'}}>{label}<span style={{display:'block',fontSize:15,fontWeight:500,opacity:.85,marginTop:2}}>{sub}</span></button>
-  }
   const helper=ats
     ?'Tuned for the parser: a Core Competencies keyword bank up top, standard headings, and plain type. Best when you apply through a company portal like Workday, Greenhouse, or iCIMS.'
     :'Tuned for a person: your strongest wins above the fold, with bold drawing the eye. Best for a recruiter hand-off, a referral, or walking into an interview.'
   return <>
     <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Below is your Resume Refresh, ready to download and print as a Word document. Switch between the version a recruiter reads and the version an applicant tracking system reads. Both are built from the same content.</div>
-    <div role="group" aria-label="Resume version" style={{display:'flex',gap:6,background:'#EEF1F5',border:`1px solid ${C.border}`,borderRadius:11,padding:5,marginBottom:12,maxWidth:460}}>
-      {tabBtn('human','Human version','Recruiter & interview')}
-      {tabBtn('ats','ATS version','Online applications')}
-    </div>
+    <ResumeVersionSeg variant={variant} setVariant={setVariant}/>
     <div style={{...S.footnote,marginTop:0,marginBottom:12,color:C.gray}}>{helper}</div>
     <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:17,lineHeight:1.65,color:C.cream,margin:0}}>{resumeText}</pre></div>
     <div style={S.row}><Btn onClick={()=>downloadResumeWord(resumeJson,{ats})}><Download size={14}/>{ats?'Download ATS version (Word)':'Download as Word'}</Btn><Btn secondary onClick={()=>copy(resumeText)}>{copied?<><CheckCheck size={13}/>Copied</>:<><Copy size={13}/>Copy text</>}</Btn></div>
     {!isDemo&&<div style={S.footnote}>Reimagine does not modify your original resume file. The download is a new Word document you can edit, save, and share.</div>}
+  </>
+}
+
+// Built-resume preview (Resume Builder) with the same Human / ATS toggle. The caller
+// passes its own workflow buttons (Regenerate, Continue) as children for the action row.
+function BuiltResumeView({record,children}){
+  const [variant,setVariant]=useState('human')
+  const ats=variant==='ats'
+  return <>
+    <ResumeVersionSeg variant={variant} setVariant={setVariant}/>
+    <div style={{...S.out,marginTop:0}}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:'#1A2540',margin:0}}>{renderResumeText(record,ats)}</pre></div>
+    <div style={{fontSize:15,color:C.ok,marginTop:10}}><Check size={12} style={{display:'inline',marginRight:4}}/>Saved to your account</div>
+    <div style={S.row}>
+      <Btn onClick={()=>downloadResumeWord(record,{ats})}><Download size={14}/>{ats?'Download ATS version (Word)':'Download (Word)'}</Btn>
+      {children}
+    </div>
   </>
 }
 // GtmLearnMoreButton: full-width solid amber action on the GTM per-company
@@ -6763,13 +6784,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <Btn secondary onClick={addEduRow}>+ Add education</Btn>
 
       <div style={{fontWeight:700,color:'#1A2540',margin:'22px 0 8px',fontSize:20}}>Preview</div>
-      <div style={{...S.out,marginTop:0}}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:'#1A2540',margin:0}}>{renderResumeText(bl)}</pre></div>
-      <div style={{fontSize:15,color:C.ok,marginTop:10}}><Check size={12} style={{display:'inline',marginRight:4}}/>Saved to your account</div>
-      <div style={S.row}>
-        <Btn onClick={()=>downloadResumeWord(bl)}><Download size={14}/>Download (Word)</Btn>
+      <BuiltResumeView record={bl}>
         <Btn secondary disabled={!!builderBuilding} onClick={()=>genBuilderBaseline()}><RotateCcw size={12}/>Regenerate</Btn>
         <Btn secondary onClick={()=>advance('resume-builder','linkedin')}>Continue <ChevronRight size={14}/></Btn>
-      </div>
+      </BuiltResumeView>
     </div>}
 
     return <div>{hdr('Phase 0 · Orientation','Resume Builder',null)}<Btn onClick={()=>setPhase('intro')}>Start</Btn></div>
@@ -8504,7 +8522,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{marginTop:'auto',paddingTop:18,color:C.gold,fontWeight:700,fontSize:15,display:'flex',alignItems:'center',gap:6}}>{profile.builder&&profile.builder.phase?'Continue':'Build my resume with help'}<ChevronRight size={15}/></div>
         </button>
       </div>
-      {profile.baselineResume&&<div style={{...S.note,marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}><Check size={14} color={C.ok}/>Your built resume is saved to your account.<a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume)}>Download (Word)</a></div>}
+      {profile.baselineResume&&<div style={{...S.note,marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}><Check size={14} color={C.ok}/>Your built resume is saved to your account.<a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume)}>Download (Word)</a><a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume,{ats:true})}>Download ATS version (Word)</a></div>}
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('location')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.resume?advance('resume','linkedin'):setErr('Add your resume to continue, or build one with us.')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
