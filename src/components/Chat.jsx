@@ -20,6 +20,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // App bumps openRequest to open the floating coach programmatically (e.g. the
   // Personal Brand check-in on first arrival at Put it to Work).
   useEffect(() => { if (openRequest) setOpen(true) }, [openRequest])
+  // Esc closes the floating panel. There is no backdrop to click and no
+  // dismiss-on-outside-click, so before this the header button was the only exit
+  // and a bad top edge could take it off the screen. Floating only: the embedded
+  // sidebar view has no open state to toggle. The draft in `input` survives,
+  // because the component stays mounted and only `open` flips.
+  useEffect(() => {
+    if (embedded || !open) return
+    const onKey = e => { if (e.key === 'Escape') setOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [embedded, open])
   const [input, setInput] = useState('')
   // Save-to-opportunity (PR-5, item I): transient per-reply UI state for the Copy
   // and "Save to this opportunity" actions. The save itself goes through the app
@@ -394,12 +405,21 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   return (
     <div data-print="hide" style={{
       position: 'fixed', bottom: 24 + bottomOffset, right: 24, zIndex: 1000,
-      // Half-screen footprint (2026-08-09): the panel opens to ~50% of the
-      // viewport width so it's a comfortable reading surface, with a floor so it
-      // never shrinks below the old 480px on small windows and a ceiling so it
-      // stops short of full-screen (that's the My Coach sidebar view's job).
-      width: 'min(50vw, 760px)', minWidth: 'min(480px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)',
-      height: 'min(86vh, 900px)', maxHeight: 'calc(100vh - 48px)',
+      // Sized for reading, but pulled back from PR #358's half-screen footprint
+      // (2026-08-09, min(50vw, 760px)) to min(44vw, 620px): the panel floats over
+      // the Focus content column it is answering questions about, so a narrower
+      // ceiling covers less of it (especially the Generate button). Floor stays at
+      // the old 480px so it never gets cramped on small windows, and the ceiling
+      // still stops short of full-screen (that's the My Coach sidebar view's job).
+      width: 'min(44vw, 620px)', minWidth: 'min(480px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)',
+      // maxHeight has to reserve the bottom anchor too, not just the 24px gap at
+      // each end. The panel is bottom-anchored at 24 + bottomOffset and grows
+      // upward, so with bottomOffset at 72 (any playbook surface, src/App.jsx
+      // renders showPlaybookFooter ? 72 : 0) the top edge lands at 14vh - 96px
+      // and goes negative on any viewport under roughly 686px. On a 1366x768
+      // laptop that put the header, and the only close button, above the top of
+      // the window. That is the "the X is hidden" report from 2026-08-06.
+      height: 'min(86vh, 900px)', maxHeight: `calc(100vh - ${48 + bottomOffset}px)`,
       background: '#fff',
       border: '1px solid #E2E5EA', borderRadius: 14,
       boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
