@@ -56,7 +56,7 @@ function isAllowedOrigin(rawOrigin) {
 // `state` is the profile_state JSONB blob the client autosaves
 // ({ profile, outputs, selectedLane, exploredRoleTitles, savedPlaybooks,
 // chosen, ... }). Returns a human-readable block; never throws on sparse data.
-function buildCoachProfileSlice(state) {
+function buildCoachProfileSlice(state, employmentStatus) {
   if (!state || typeof state !== 'object') {
     // No profile at all — definitionally pre-Personal-Brand, so the sidebar is the
     // Orientation phase list. Carry the same navigation gate as the main path below
@@ -88,6 +88,10 @@ function buildCoachProfileSlice(state) {
     "RAW SIGNALS (this person's own words from orientation; do not paraphrase back to them as if they were your idea):",
     `VALUES: ${txt(pr.values) || 'not provided'}`,
     `PASSIONS AND CAUSES: ${txt(pr.passions) || 'not provided'}`,
+    (employmentStatus === 'employed' ? 'EMPLOYMENT STATUS: currently employed. This may inform urgency and cadence, but ask about their actual available time rather than assuming it from this — an employed person may still have real hours to give a search.'
+      : employmentStatus === 'in_transition' ? 'EMPLOYMENT STATUS: in transition (not currently employed). This may inform urgency and cadence, but do not assume how much time they have or lecture them on speed — ask.'
+      : employmentStatus === 'role_ending' ? 'EMPLOYMENT STATUS: employed with a role that is ending soon (notice period, announced layoff, or a contract winding down). Treat this like an active search on a clock, but ask about their timeline and available time rather than assuming it.'
+      : 'EMPLOYMENT STATUS: not yet provided. Do not assume whether they are employed or searching; if it would change your advice, you may ask.'),
     `PRACTICAL PRIORITIES (their own non-negotiables from Orientation — use these directly when the conversation is about an offer, a role's fit, or compensation):`,
     `  Compensation floor: ${txt(pr.compFloor) || 'not provided'}`,
     `  Commute / remote needs: ${txt(pr.workReq) || 'not provided'}`,
@@ -491,14 +495,16 @@ export default async function handler(req, res) {
   // Read the user's profile server-side (never sent from the client). Same
   // row cross-device profile sync reads and writes. Read-only here.
   let profileState = null
+  let employmentStatus = null
   try {
-    const rows = await sql`SELECT profile_state FROM users WHERE id = ${user.id} LIMIT 1`
+    const rows = await sql`SELECT profile_state, employment_status FROM users WHERE id = ${user.id} LIMIT 1`
     profileState = rows.length ? rows[0].profile_state : null
+    employmentStatus = rows.length ? rows[0].employment_status : null
   } catch (err) {
     console.error('coach profile read failed:', err)
     // Fall through with a null profile rather than failing the turn.
   }
-  let profileBlock = buildCoachProfileSlice(profileState)
+  let profileBlock = buildCoachProfileSlice(profileState, employmentStatus)
   // PR-B: if the conversation is about a specific saved playbook, expand its
   // anchor + intent-matched section into the (uncached) slice. Best-effort — a
   // malformed record must never break the turn.
