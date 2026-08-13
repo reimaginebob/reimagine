@@ -9410,7 +9410,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             // manual single-card Build/Rebuild never shows the banner.
             const _opAutoSeq=_pendingAutoBuildRef.current===currentSavedSlotIdRef.current
             const _renderSection=(key,content)=>{
-              if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:16,lineHeight:1.65,color:C.cream,margin:0}}>{renderResumeText(j)}</pre><div style={S.row}><Btn small onClick={()=>downloadResumeWord(j)}><Download size={12}/>Download as Word</Btn></div></div>}
+              if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <ResumeRefreshView resumeJson={j} isDemo={isDemo} copy={copy} copied={copied}/>}
               if(key==='p11')return renderInterviewPrep(content,isDemo?undefined:regenerateOpP11Question,regeneratingP11QuestionIdx,p11QuestionErrors,isDemo?undefined:(seatName)=>openCoachWith(`Help me prep for my interview with ${seatName} for ${_rec.title||'this role'}.`))
               return <div style={S.out}><MD text={content}/></div>
             }
