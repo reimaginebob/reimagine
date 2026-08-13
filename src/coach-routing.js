@@ -128,7 +128,17 @@ const HRULE_LINE_RE = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/
 export function parseSelfcheck(text) {
   if (typeof text !== 'string' || !text) return { feature: null, text: text || '' }
   let feature = null
-  const setFeature = raw => { const s = raw.trim().toLowerCase(); feature = (s && s !== 'none') ? s : null }
+  // Strip the wrapper characters the model puts around the verdict before testing
+  // it. Without this, "**none**", "none.", and "\"none\"" all fail the !== 'none'
+  // test and get logged as matched features, and a real slug wrapped in emphasis
+  // ("go-to-market**") buckets separately from the clean one in the insights
+  // dashboard. A canonical slug is [a-z][a-z0-9-]*, so no stripped character is
+  // ever load-bearing. The prompt already forbids XML wrappers by name and the
+  // parser already defends against them; markdown emphasis was the family nobody
+  // covered, and it accounted for 3 of the 6 "matched" turns in the two weeks to
+  // 2026-08-13.
+  const normalizeSlug = raw => String(raw).trim().toLowerCase().replace(/^[\s*_`'"]+|[\s*_`'".,;:!?]+$/g, '')
+  const setFeature = raw => { const s = normalizeSlug(raw); feature = (s && s !== 'none') ? s : null }
   const kept = []
   for (const line of text.split('\n')) {
     const sc = line.match(SELFCHECK_TOKEN_RE)

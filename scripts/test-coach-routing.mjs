@@ -38,6 +38,27 @@ eq('case-insensitive + pipe surfaced-hint tolerated',
 eq('markdown-decorated trailer line tolerated',
   parseSelfcheck('Reply.\n> SELFCHECK: resume-refresh'),
   { feature: 'resume-refresh', text: 'Reply.' })
+
+// --- markdown / punctuation wrappers around the verdict (2026-08-13) ---
+// Live data showed "** none", "none**" and "personal-brand**" as feature buckets.
+eq('bold-wrapped whole trailer: none is NOT a feature',
+  parseSelfcheck('Reply.\n**SELFCHECK: none**'),
+  { feature: null, text: 'Reply.' })
+eq('bold-wrapped verdict only: none is NOT a feature',
+  parseSelfcheck('Reply.\nSELFCHECK: **none**'),
+  { feature: null, text: 'Reply.' })
+eq('trailing period after none is NOT a feature',
+  parseSelfcheck('Reply.\nSELFCHECK: none.'),
+  { feature: null, text: 'Reply.' })
+eq('quoted none is NOT a feature',
+  parseSelfcheck('Reply.\nSELFCHECK: "none"'),
+  { feature: null, text: 'Reply.' })
+eq('bold-wrapped real slug normalizes to the clean slug',
+  parseSelfcheck('Reply.\n**SELFCHECK: go-to-market**'),
+  { feature: 'go-to-market', text: 'Reply.' })
+eq('backtick-wrapped real slug normalizes',
+  parseSelfcheck('Reply.\n`SELFCHECK: personal-brand`'),
+  { feature: 'personal-brand', text: 'Reply.' })
 eq('non-string input safe', parseSelfcheck(null), { feature: null, text: '' })
 
 // --- strip control lines ANYWHERE, not just trailing (2026-06-11) ---

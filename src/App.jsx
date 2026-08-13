@@ -7119,7 +7119,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }
     return <>
       {list.length>0&&<div style={{marginTop:16}}>{list.map(card)}</div>}
-      <div style={{margin:'16px 0',padding:'16px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
+      {list.length>0&&<div style={{margin:'16px 0',padding:'16px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
         <div><div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:4}}>Download your company list</div><div style={{fontSize:16,color:C.goldL}}>Save as a spreadsheet to track outreach, add notes, and share with your network.</div></div>
         <Btn onClick={()=>{
           if(list.length===0){alert('Could not extract company data from the strategy output. Try regenerating the strategy, or copy the text directly.');return}
@@ -7133,7 +7133,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           a.download=`${nameSlug}_${roleSlug}_${new Date().toISOString().slice(0,10)}.csv`
           document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)
         }} style={{flexShrink:0}}>Download CSV</Btn>
-      </div>
+      </div>}
     </>
   }
   // Go-to-Market (p7) structured renderer. Part 1 + Part 3 each get a
@@ -8999,7 +8999,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           return <>
             <div style={S.out}><div style={{fontSize:16,color:C.goldL,fontStyle:'italic',lineHeight:1.6,marginBottom:14,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6}}>Note: contact names are surfaced from public sources and may be out of date. Verify on LinkedIn or the company website before reaching out.</div><div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}><Btn small onClick={()=>copy(cleanText)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn><Btn small onClick={()=>window.print()}><Printer size={11}/>Print</Btn></div><MD text={part1Text}/></div>
             {_p7Companies.length>0&&<div style={{marginTop:16}}>{_p7Companies.map(_renderGtmCompanyCard)}</div>}
-            <div style={{margin:'16px 0',padding:'16px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
+            {_p7Companies.length>0&&<div style={{margin:'16px 0',padding:'16px 20px',background:`${C.gold}14`,border:`2px solid ${C.gold}60`,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
               <div><div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:4}}>Download your company list</div><div style={{fontSize:16,color:C.goldL}}>Save as a spreadsheet to track outreach, add notes, and share with your network.</div></div>
               <Btn onClick={()=>{
                 const companies=parseCompanies(outputs.p7)
@@ -9014,7 +9014,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 a.download=`${nameSlug}_${roleSlug}_${new Date().toISOString().slice(0,10)}.csv`
                 document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)
               }} style={{flexShrink:0}}>Download CSV</Btn>
-            </div>
+            </div>}
             {part34&&<div style={S.out}><MD text={part34}/></div>}
           </>
         }
