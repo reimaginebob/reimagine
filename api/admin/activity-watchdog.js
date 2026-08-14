@@ -20,13 +20,13 @@ export const config = { maxDuration: 30 }
 
 // Tunable starting thresholds. Set well above a real power user's peak so the
 // alert only fires on genuinely abnormal volume; tighten once a baseline is seen.
-const PER_USER_PLAYBOOKS_HR = 15  // one account building this many playbooks in an hour is not normal
-const TOTAL_PLAYBOOKS_HR = 50     // app-wide spike — a runaway loop/bug or coordinated abuse
+const PER_USER_PLAYBOOKS_HR = 6   // a normal user builds a handful total; 6 in one hour is already unusual — alert early
+const TOTAL_PLAYBOOKS_HR = 20     // app-wide spike — a runaway loop/bug or coordinated abuse
 
 // Generation thresholds are used only once the Phase 2 generation_events table
 // exists; the query below is wrapped so this file runs safely without it.
-const PER_USER_GENERATIONS_HR = 150
-const TOTAL_GENERATIONS_HR = 600
+const PER_USER_GENERATIONS_HR = 80   // ~a handful of playbook builds' worth of generation calls
+const TOTAL_GENERATIONS_HR = 250
 
 function parseRecipients(raw) {
   return (raw || '').split(',').map(s => s.trim()).filter(Boolean)
