@@ -14,7 +14,21 @@
 // alert so admin testing does not self-page; app-wide totals include everyone.
 
 import { sql } from '../_lib/db.js'
-import { sendActivityAlertEmail } from '../_lib/email.js'
+import { sendActivityAlertEmail, sendAccountHoldEmail } from '../_lib/email.js'
+
+// Auto-pause an account by email if it is not already paused. Returns true only on
+// the transition, so the user is emailed and the alert announces it once — not
+// every hour the account stays over the line. Best-effort; never throws.
+async function autoPause(email, reason) {
+  try {
+    const rows = await sql`UPDATE users SET suspended_at = NOW(), suspended_reason = ${reason} WHERE lower(email) = lower(${email}) AND suspended_at IS NULL RETURNING email`
+    if (rows.length) {
+      try { await sendAccountHoldEmail(email) } catch (e) { console.error('watchdog: hold email failed', e && e.message) }
+      return true
+    }
+    return false
+  } catch (e) { console.error('watchdog: auto-pause failed', e && e.message); return false }
+}
 
 export const config = { maxDuration: 30 }
 
@@ -67,7 +81,8 @@ export default async function handler(req, res) {
     const totalPlaybooks = (totalRows[0] && totalRows[0].total) || 0
     summary.playbooks = { totalLastHour: totalPlaybooks, offenders: perUser.length }
     for (const r of perUser) {
-      alerts.push(`Account ${r.email} built ${r.n} playbooks in the last hour (alert threshold ${PER_USER_PLAYBOOKS_HR}).`)
+      const paused = await autoPause(r.email, `auto: ${r.n} playbooks/hr`)
+      alerts.push(`Account ${r.email} built ${r.n} playbooks in the last hour — ${paused ? 'AUTO-PAUSED' : 'already paused'} (threshold ${PER_USER_PLAYBOOKS_HR}).`)
     }
     if (totalPlaybooks >= TOTAL_PLAYBOOKS_HR) {
       alerts.push(`App-wide: ${totalPlaybooks} playbooks built in the last hour across all users (alert threshold ${TOTAL_PLAYBOOKS_HR}).`)
@@ -95,7 +110,8 @@ export default async function handler(req, res) {
     const totalGenerations = (genTotalRows[0] && genTotalRows[0].total) || 0
     summary.generations = { totalLastHour: totalGenerations, offenders: genPerUser.length }
     for (const r of genPerUser) {
-      alerts.push(`Account ${r.email} triggered ${r.n} generations in the last hour (alert threshold ${PER_USER_GENERATIONS_HR}).`)
+      const paused = await autoPause(r.email, `auto: ${r.n} generations/hr`)
+      alerts.push(`Account ${r.email} triggered ${r.n} generations in the last hour — ${paused ? 'AUTO-PAUSED' : 'already paused'} (threshold ${PER_USER_GENERATIONS_HR}).`)
     }
     if (totalGenerations >= TOTAL_GENERATIONS_HR) {
       alerts.push(`App-wide: ${totalGenerations} generations in the last hour across all users (alert threshold ${TOTAL_GENERATIONS_HR}).`)

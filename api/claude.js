@@ -19,6 +19,13 @@
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { sql } from './_lib/db.js'
 import { getSessionUser } from './_lib/session.js'
+import { sendAccountHoldEmail, sendActivityAlertEmail } from './_lib/email.js'
+
+// Real-time generation cap (rogue-activity safeguard). Matches the watchdog's
+// per-user generation threshold; a signed-in account that has already generated
+// this many times in the last hour is auto-paused before the next call spends
+// anything. Tunable alongside PER_USER_GENERATIONS_HR in activity-watchdog.js.
+const GENERATION_CAP_HR = 80
 
 // Best-effort generation-events logging (rogue-activity watchdog, Phase 2). One
 // row per generation, used by api/admin/activity-watchdog to catch volume
@@ -371,6 +378,26 @@ export default async function handler(req, res) {
   try { sessionUser = await getSessionUser(req, res) } catch { /* no/failed session */ }
   if (sessionUser && sessionUser.suspended_at) {
     return res.status(403).json({ error: 'account_suspended' })
+  }
+
+  // Real-time generation cap: a signed-in caller already over the hourly limit is
+  // auto-paused before this call spends anything, and told respectfully. Fails
+  // OPEN — a counting hiccup must never block a legitimate generation. Internal
+  // @career.club accounts are exempt so admin testing can't self-lock.
+  if (sessionUser && sessionUser.id && !/@career\.club$/i.test(sessionUser.email || '')) {
+    try {
+      const c = await sql`SELECT COUNT(*)::int AS n FROM generation_events WHERE user_id = ${sessionUser.id} AND created_at >= NOW() - INTERVAL '1 hour'`
+      const n = (c[0] && c[0].n) || 0
+      if (n >= GENERATION_CAP_HR) {
+        await sql`UPDATE users SET suspended_at = NOW(), suspended_reason = ${'auto: ' + n + ' generations/hr'} WHERE id = ${sessionUser.id} AND suspended_at IS NULL`
+        try { await sendAccountHoldEmail(sessionUser.email) } catch (e) { console.error('gen-cap: hold email failed', e && e.message) }
+        const admins = (process.env.ADMIN_EMAILS || '').split(',').map(s => s.trim()).filter(Boolean)
+        if (admins.length) {
+          try { await sendActivityAlertEmail(admins, 'Reimagine: account auto-paused (generation cap)', [`Account ${sessionUser.email} hit ${n} generations in the last hour (cap ${GENERATION_CAP_HR}) and was auto-paused.`]) } catch (e) { console.error('gen-cap: admin email failed', e && e.message) }
+        }
+        return res.status(403).json({ error: 'account_suspended' })
+      }
+    } catch (e) { console.error('generation-cap check skipped:', e && e.message) }
   }
 
   const reqBody = req.body || {}
