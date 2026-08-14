@@ -4,6 +4,12 @@ import SpeechBtn, { hasSpeech } from './SpeechBtn'
 
 const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
 
+// Plain-language employment mentions. Deliberately conservative: it gates only
+// WHETHER to offer the save prompt (all three options are always shown, so the
+// user picks the real value). Misses some phrasings on purpose — the on-open
+// prompt is the primary capture path; this is the belt-and-suspenders.
+const EMPLOYMENT_MENTION_RE = /\b(i['’]?m|i am|currently|presently)\s+(employed|unemployed|between jobs|in transition|out of work|laid off|jobless|job[- ]?hunting|job[- ]?searching|looking for (a job|work|another))\b|\bmy\s+(job|role|position|contract)\b[^.?!]{0,48}\b(is ending|ends|ending soon|is up|wrapping up|being eliminated|notice period|last day)\b/i
+
 // My Coach. PROSE-ONLY on feature references (2026-06-11): the coach names a
 // feature in prose ("you'll find this in Career Paths") and never renders a
 // clickable navigation button. Render-true labels come from COACH_NAV_MAP in the
@@ -15,11 +21,15 @@ const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anyt
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null }) {
   const [open, setOpen] = useState(false)
   // App bumps openRequest to open the floating coach programmatically (e.g. the
   // Personal Brand check-in on first arrival at Put it to Work).
   useEffect(() => { if (openRequest) setOpen(true) }, [openRequest])
+  // Tell the app when the floating panel opens, so it can surface a first-time
+  // prompt (e.g. the employment one-tap) on coach-open, not only on a hub screen.
+  // Floating only; the embedded view is always "open" and handles its own surfacing.
+  useEffect(() => { if (open && !embedded && onOpen) onOpen() }, [open])
   // Esc closes the floating panel. There is no backdrop to click and no
   // dismiss-on-outside-click, so before this the header button was the only exit
   // and a bad top edge could take it off the screen. Floating only: the embedded
@@ -62,6 +72,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   const [commentDraft, setCommentDraft] = useState('')
   const noteTaRef = useRef(null)
   const noteActionsRef = useRef(null)
+  // Caps the in-conversation employment save-offer to once per session.
+  const employmentOfferedRef = useRef(false)
 
   useEffect(() => {
     const len = messages ? messages.length : 0
@@ -175,6 +187,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             copy[copy.length - 1] = { ...copy[copy.length - 1], content: fullText, id: msgId }
             return copy
           })
+        }
+        // One-time in-conversation offer to persist a stated employment status.
+        // Only when the value is unset, we have not offered this session, and no
+        // employment prompt is already pending — so the on-open prompt and this
+        // never stack. The tap routes through onQuickReply like the other prompt;
+        // the model never writes, and all three options are shown so the stored
+        // value is always the user's tap, never the regex's guess.
+        const alreadyPending = (messages || []).some(mm => mm && mm.checkinKey === 'employment-status' && Array.isArray(mm.quickReplies) && mm.quickReplies.length)
+        if (employmentCaptureActive && employmentOfferMessage && !employmentOfferedRef.current && !alreadyPending && EMPLOYMENT_MENTION_RE.test(userMsg.content)) {
+          employmentOfferedRef.current = true
+          setMessages(m => [...m, employmentOfferMessage])
         }
       }
     } catch {
