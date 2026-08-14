@@ -3168,6 +3168,18 @@ const ASK_COACH_SEEDS={
 // afterprint always restores the true base title regardless of effect re-runs.
 const BASE_DOC_TITLE=typeof document!=='undefined'?document.title:'Reimagine'
 
+// The one-tap employment quick-reply, reused by the dashboard/coach-open prompt
+// and the conversational save-offer. `lead` swaps the opening sentence; the three
+// options and their follow-ups are identical everywhere. The value is always the
+// button the user taps (never inferred), and the tap routes through
+// handleEmploymentQuickReply -> saveEmployment -> /api/employment.
+const EMPLOYMENT_QUICK_REPLIES=[
+  {label:'Currently Employed',value:'employed',followUp:'Good to know — I\'ll keep that in mind as we work.'},
+  {label:'In Transition',value:'in_transition',followUp:'Thanks, that\'s helpful to know.'},
+  {label:'Role Ending Soon',value:'role_ending',followUp:'Got it — we\'ll treat this like a search on a clock when it matters.'},
+]
+const employmentPromptMessage=(lead)=>({role:'assistant',content:(lead||'One quick thing so your coaching fits where you actually are — ')+'how would you describe your work situation right now?',checkinKey:'employment-status',quickReplies:EMPLOYMENT_QUICK_REPLIES})
+
 const S={
   title:{fontFamily:'Georgia,serif',fontSize:38,fontWeight:700,color:"#1A2540",margin:'0 0 14px',lineHeight:1.2},
   sub:{fontSize:18,color:C.gray,margin:'0 0 28px',lineHeight:1.7,maxWidth:700},
@@ -4995,6 +5007,7 @@ export default function PivotEngine(){
   const[employmentStatus,setEmploymentStatus]=useState('')
   const[seenEmploymentPrompt,setSeenEmploymentPrompt]=useState(false)
   const employmentPromptFiredRef=useRef(false)
+  const[coachOpenTick,setCoachOpenTick]=useState(0)
   // App-owned write: the quick-reply tap and (PR 4) the Orientation field both
   // call this. Writes the column, updates local state for immediate UI, and never
   // touches markInputEdited so answering it cannot mark the Personal Brand stale.
@@ -5142,18 +5155,20 @@ export default function PivotEngine(){
   // employment prompt yields and fires on the next arrival instead.
   useEffect(()=>{
     if(isDemo||isTest)return
-    if(step!=='twoDoors'||!signedInUser)return
+    // Fire on the hubs a returning user actually lands on — Put It to Work, My
+    // Playbooks, My Coach — OR the moment they open the floating coach (coachOpenTick).
+    // PR #393 gated only on twoDoors, which an active existing user may never visit.
+    const onPromptSurface=step==='twoDoors'||step==='mylib'||step==='myCoach'
+    if((!onPromptSurface&&!coachOpenTick)||!signedInUser)return
     if(employmentStatus||seenEmploymentPrompt||employmentPromptFiredRef.current)return
-    if(pbCheckinFiredRef.current||(!seenPbCheckin&&outputs&&outputs.p3))return
+    // Yield to the Personal Brand check-in only where it actually fires (twoDoors),
+    // so the two never share a visit; on other surfaces there is nothing to collide with.
+    if(step==='twoDoors'&&(pbCheckinFiredRef.current||(!seenPbCheckin&&outputs&&outputs.p3)))return
     employmentPromptFiredRef.current=true
     setSeenEmploymentPrompt(true)
-    setChatMessages(m=>[...m,{role:'assistant',content:'One quick thing so your coaching fits where you actually are — how would you describe your work situation right now?',checkinKey:'employment-status',quickReplies:[
-      {label:'Currently Employed',value:'employed',followUp:'Good to know — I\'ll keep that in mind as we work.'},
-      {label:'In Transition',value:'in_transition',followUp:'Thanks, that\'s helpful to know.'},
-      {label:'Role Ending Soon',value:'role_ending',followUp:'Got it — we\'ll treat this like a search on a clock when it matters.'},
-    ]}])
+    setChatMessages(m=>[...m,employmentPromptMessage()])
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,isDemo,isTest])
+  },[step,signedInUser,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest])
   // Skills step: on first arrival with empty skills and at least one source
   // document (resume or LinkedIn paste), trigger a JSON-only extraction pass.
   // Subsequent visits or pre-populated skills skip the call. The Re-extract
@@ -9270,7 +9285,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:6}}>My Coach</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your coach for the search, grounded in Making Your Own Weather and in what Reimagine knows about you. Ask anything: where to focus, how to tell your story, how to prepare for a conversation.</p>
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} onSeedConsumed={()=>setCoachSeed('')} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} onSeedConsumed={()=>setCoachSeed('')} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')}/>
     </div>
     case'mylib':{
       const _comparable=savedPlaybooks.filter(offerComparable)
@@ -10470,7 +10485,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {toast&&<div data-print="hide" role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'#1A2540',color:'#FFFFFF',padding:'12px 22px',borderRadius:8,fontSize:16,fontWeight:500,boxShadow:'0 4px 16px rgba(0,0,0,0.18)',zIndex:1200}}>{toast}</div>}
     {/* ?debug=1 diagnostic footer. Bottom-right corner, low-contrast text.
