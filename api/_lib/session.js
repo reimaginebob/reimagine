@@ -57,7 +57,7 @@ export async function getSessionUser(req, res = null) {
   if (!token) return null
   const rows = await sql`
     SELECT u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login_at,
-           u.privacy_version, u.terms_version, u.employment_status
+           u.privacy_version, u.terms_version, u.employment_status, u.suspended_at
     FROM sessions s
     JOIN users u ON u.id = s.user_id
     WHERE s.token = ${token} AND s.expires_at > NOW()
@@ -90,6 +90,12 @@ export function requireAuth(handler) {
     const user = await getSessionUser(req, res)
     if (!user) {
       res.status(401).json({ error: 'Not authenticated' })
+      return
+    }
+    // Paused accounts are blocked from every authed path. The client reads the
+    // same suspended_at (via /api/me) to show a respectful hold message.
+    if (user.suspended_at) {
+      res.status(403).json({ error: 'account_suspended' })
       return
     }
     req.user = user

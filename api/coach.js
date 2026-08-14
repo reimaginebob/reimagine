@@ -486,6 +486,7 @@ export default async function handler(req, res) {
 
   const user = await getSessionUser(req, res)
   if (!user) return res.status(401).json({ error: 'Not signed in' })
+  if (user.suspended_at) return res.status(403).json({ error: 'account_suspended' })
 
   const { message, history = [], currentStep, surface } = req.body || {}
   if (!message || typeof message !== 'string') {
