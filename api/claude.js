@@ -26,10 +26,9 @@ import { getSessionUser } from './_lib/session.js'
 // log a null user_id. Swallows every error (table not migrated yet, no session,
 // DB hiccup) so it can NEVER affect or delay a generation. kind is the internal
 // step tag (e.g. 'p7' = Go-to-Market).
-async function logGeneration(req, res, step) {
+async function logGeneration(user, step) {
   try {
-    let userId = null
-    try { const u = await getSessionUser(req, res); userId = (u && u.id) ? u.id : null } catch { /* no/failed session */ }
+    const userId = (user && user.id) ? user.id : null
     const kind = (typeof step === 'string' && step.trim()) ? step.trim().slice(0, 40) : null
     await sql`INSERT INTO generation_events (user_id, kind) VALUES (${userId}, ${kind})`
   } catch { /* never surfaces to the caller */ }
@@ -364,6 +363,16 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Forbidden' })
   }
 
+  // Identify the caller once (best-effort — this endpoint also serves signed-out
+  // early-orientation generations, which have no session). Used to (1) reject a
+  // paused account before spending an Anthropic call, and (2) attribute the
+  // generation-events log. Never throws.
+  let sessionUser = null
+  try { sessionUser = await getSessionUser(req, res) } catch { /* no/failed session */ }
+  if (sessionUser && sessionUser.suspended_at) {
+    return res.status(403).json({ error: 'account_suspended' })
+  }
+
   const reqBody = req.body || {}
   const sysText = reqBody.voiceMode === 'prose' ? SYS_PROSE
     : reqBody.voiceMode === 'prose-lite' ? SYS_PROSE_NOGUIDE
@@ -425,7 +434,7 @@ export default async function handler(req, res) {
     console.log(JSON.stringify({ evt: 'claude_usage', step: reqBody.step, usage: data.usage }))
     // Best-effort; awaited so it completes before the function returns (serverless
     // may freeze after the response), but it never throws or blocks the reply.
-    await logGeneration(req, res, reqBody.step)
+    await logGeneration(sessionUser, reqBody.step)
     return res.status(response.status).json(data)
   } catch (error) {
     return res.status(500).json({ error: error.message })
