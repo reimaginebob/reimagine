@@ -8313,9 +8313,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const openPursuitRecord=(rec,target)=>{track('mysearch_next_move_click',{recordId:rec.id,target:target||'op'});restoreFromSavedSlot(rec)}
   const mySearchPanel=()=>{
     const ops=savedPlaybooks.filter(r=>r&&r.source==='door2')
-    const wrap=(inner)=><div style={{maxWidth:860,margin:'0 0 28px',padding:'20px 22px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:12}}>
-      <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 4px'}}>My Search</h2>
-      <CoachingCallout>This is your live search — every opportunity you're working, in one place. Set where each one stands and what's next, and it stays in front of you so nothing quietly goes cold.</CoachingCallout>
+    const wrap=(inner)=><div style={{maxWidth:900,margin:'0 0 32px'}}>
+      <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>My Search</h2>
+      <CoachingCallout>All the opportunities you're pursuing, in one place. As things change, update where each one stands, when you'll next talk, and what you're doing next — it all saves, so it's here whenever you come back.</CoachingCallout>
       {inner}
     </div>
     if(ops.length===0)return wrap(<CoachingCallout>Nothing here yet. When you add an opportunity, it'll show up with its stage and what's next — so you can see where each one is going.</CoachingCallout>)
@@ -8342,14 +8342,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }
     const weekNeeds=needs.slice(0,5)
     return wrap(<>
-      {weekNeeds.length>0&&<div style={{margin:'0 0 18px',padding:'14px 16px',background:'#FAFBFC',border:`1px solid ${C.border}`,borderRadius:10}}>
+      {weekNeeds.length>0&&<div style={{margin:'0 0 16px',padding:'16px 20px',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:14}}>
         <div style={{fontSize:15,fontWeight:800,letterSpacing:'0.4px',textTransform:'uppercase',color:C.gold,margin:'0 0 8px'}}>What this week needs</div>
         {weekNeeds.map((it,i)=><button key={i} type="button" onClick={()=>openPursuitRecord(it.rec,'op')} style={{display:'block',width:'100%',textAlign:'left',background:'transparent',border:'none',borderTop:i===0?'none':`1px solid ${C.border}`,padding:'9px 0',fontSize:16,color:'#1A2540',cursor:'pointer',fontFamily:'inherit',lineHeight:1.5}}>{it.text}</button>)}
       </div>}
-      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+      <div style={{display:'flex',flexDirection:'column',gap:16}}>
         {sorted.map(rec=>{
           const s=stat(rec);const title=rec.title||rec.company||'Opportunity';const built=builtCount(rec)
-          return <div key={rec.id} style={{padding:'14px 16px',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,opacity:isClosed(s)?0.7:1}}>
+          return <div key={rec.id} style={{padding:'18px 20px',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:14,opacity:isClosed(s)?0.65:1}}>
             <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:12,marginBottom:10}}>
               <div style={{fontSize:18,fontWeight:700,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{title}</div>
               <button type="button" onClick={()=>openPursuitRecord(rec,'op')} style={{flexShrink:0,background:'transparent',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Open →</button>
