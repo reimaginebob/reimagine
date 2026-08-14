@@ -8315,10 +8315,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const ops=savedPlaybooks.filter(r=>r&&r.source==='door2')
     const wrap=(inner)=><div style={{maxWidth:860,margin:'0 0 28px',padding:'20px 22px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:12}}>
       <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 4px'}}>My Search</h2>
-      <p style={{fontSize:15,color:C.gray,margin:'0 0 16px'}}>Your live opportunities and what each one is waiting on.</p>
+      <p style={{fontSize:16,color:C.gray,margin:'0 0 16px',lineHeight:1.6,maxWidth:640}}>This is your live search — every opportunity you're working, in one place. Set where each one stands and what's next, and it stays in front of you so nothing quietly goes cold.</p>
       {inner}
     </div>
-    if(ops.length===0)return wrap(<p style={{fontSize:16,color:C.grayL,margin:0,lineHeight:1.6}}>Nothing in flight yet. Add a role with Add an Opportunity below, and it'll show up here with its stage and next move.</p>)
+    if(ops.length===0)return wrap(<p style={{fontSize:16,color:C.grayL,margin:0,lineHeight:1.6}}>Nothing here yet. When you add an opportunity, it'll show up with its stage and what's next — so you can see where each one is going.</p>)
     const now=Date.now()
     const sec=(rec)=>rec.sections||{}
     const builtCount=(rec)=>OP_COUNTED_KEYS.filter(k=>_opSectionBuilt(sec(rec),k)).length
@@ -8355,18 +8355,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <button type="button" onClick={()=>openPursuitRecord(rec,'op')} style={{flexShrink:0,background:'transparent',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Open →</button>
             </div>
             <div style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'center'}}>
-              <label style={{fontSize:15,color:C.gray}}>Stage{' '}
+              <label style={{fontSize:15,color:C.gray}}>Where it stands{' '}
                 <select value={s.stage||''} onChange={e=>savePursuit(rec.id,{stage:e.target.value||null,...(e.target.value==='closed'?{closed_at:new Date().toISOString()}:{})})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}>
-                  <option value="">— not set —</option>
+                  <option value="">Not set yet</option>
                   {PURSUIT_STAGES.map(st=><option key={st.value} value={st.value}>{st.label}</option>)}
                 </select>
               </label>
-              <label style={{fontSize:15,color:C.gray}}>Next conversation{' '}
+              <label style={{fontSize:15,color:C.gray}}>Next time you'll talk{' '}
                 <input type="date" value={dateInputVal(s.next_conversation_at)} onChange={e=>savePursuit(rec.id,{next_conversation_at:e.target.value?new Date(e.target.value).toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
               </label>
             </div>
             <div style={{marginTop:10}}>
-              <input defaultValue={s.next_move||''} placeholder="One next move…" onBlur={e=>{const v=e.target.value.trim();if(v!==(s.next_move||''))savePursuit(rec.id,{next_move:v||null})}} style={{width:'100%',boxSizing:'border-box',fontSize:16,fontFamily:'inherit',padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
+              <input defaultValue={s.next_move||''} placeholder="What are you doing next? (e.g. send a follow-up note)" onBlur={e=>{const v=e.target.value.trim();if(v!==(s.next_move||''))savePursuit(rec.id,{next_move:v||null})}} style={{width:'100%',boxSizing:'border-box',fontSize:16,fontFamily:'inherit',padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
             </div>
             <div style={{marginTop:10,display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
               <span style={{fontSize:15,color:C.grayL}}>{built} of {OP_COUNTED_KEYS.length} built:</span>
