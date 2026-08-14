@@ -17,6 +17,23 @@
 // and lives in its own follow-up brief; this raises the ceiling so heavy
 // generations have headroom in the meantime.
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
+import { sql } from './_lib/db.js'
+import { getSessionUser } from './_lib/session.js'
+
+// Best-effort generation-events logging (rogue-activity watchdog, Phase 2). One
+// row per generation, used by api/admin/activity-watchdog to catch volume
+// spikes. Attribution is best-effort — signed-out early-orientation generations
+// log a null user_id. Swallows every error (table not migrated yet, no session,
+// DB hiccup) so it can NEVER affect or delay a generation. kind is the internal
+// step tag (e.g. 'p7' = Go-to-Market).
+async function logGeneration(req, res, step) {
+  try {
+    let userId = null
+    try { const u = await getSessionUser(req, res); userId = (u && u.id) ? u.id : null } catch { /* no/failed session */ }
+    const kind = (typeof step === 'string' && step.trim()) ? step.trim().slice(0, 40) : null
+    await sql`INSERT INTO generation_events (user_id, kind) VALUES (${userId}, ${kind})`
+  } catch { /* never surfaces to the caller */ }
+}
 
 export const config = {
   maxDuration: 300,
@@ -406,6 +423,9 @@ export default async function handler(req, res) {
     // cache_read_input_tokens) per surface. Serverless cannot count "first N
     // calls"; log every call (low volume at beta scale) and read manually.
     console.log(JSON.stringify({ evt: 'claude_usage', step: reqBody.step, usage: data.usage }))
+    // Best-effort; awaited so it completes before the function returns (serverless
+    // may freeze after the response), but it never throws or blocks the reply.
+    await logGeneration(req, res, reqBody.step)
     return res.status(response.status).json(data)
   } catch (error) {
     return res.status(500).json({ error: error.message })
