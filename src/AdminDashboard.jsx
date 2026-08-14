@@ -71,6 +71,26 @@ export default function AdminDashboard() {
   const [liveAsOf, setLiveAsOf] = useState(null)
   const [tokenInput, setTokenInput] = useState("")
   const [expandedUser, setExpandedUser] = useState(null) // email of the expanded power-user row
+  // Account pause/unpause control (rogue-activity safeguard).
+  const [suspendEmail, setSuspendEmail] = useState("")
+  const [suspendBusy, setSuspendBusy] = useState(false)
+  const [suspendMsg, setSuspendMsg] = useState("")
+  const doSuspend = async (action) => {
+    const email = suspendEmail.trim()
+    if (!email) { setSuspendMsg("Enter an email address first."); return }
+    setSuspendBusy(true); setSuspendMsg("")
+    try {
+      const res = await fetch("/api/admin/suspend-user", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ email, action }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setSuspendMsg(data.error || `Failed (HTTP ${res.status})`); return }
+      setSuspendMsg(data.suspended ? `Paused ${data.email}.` : `Unpaused ${data.email} — they're active again.`)
+    } catch { setSuspendMsg("Network error. Try again.") }
+    finally { setSuspendBusy(false) }
+  }
   const [tab, setTab] = useState("analytics") // "analytics" | "feedback"
 
   // Single call doubles as the auth probe and the data fetch: a 200 means the
@@ -217,6 +237,21 @@ export default function AdminDashboard() {
 
         {/* Panel grid */}
         <div style={S.panelGrid}>
+          {/* Account controls: pause / unpause a user (rogue-activity safeguard) */}
+          <Panel title="Account controls">
+            <div style={{ fontSize: 14, color: "#4A5568", lineHeight: 1.5, marginBottom: 10 }}>
+              Pause an account (blocks generating, saving, and the coach) or lift a pause. Reversible — nothing is deleted. Paste the email from an alert.
+            </div>
+            <input value={suspendEmail} onChange={(e) => setSuspendEmail(e.target.value)} placeholder="user@example.com"
+              style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", fontSize: 15, border: "1px solid #E2E5EA", borderRadius: 8, marginBottom: 10, fontFamily: "inherit" }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => doSuspend("pause")} disabled={suspendBusy}
+                style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 15, fontWeight: 600, cursor: suspendBusy ? "default" : "pointer", opacity: suspendBusy ? 0.6 : 1, fontFamily: "inherit" }}>Pause</button>
+              <button onClick={() => doSuspend("unpause")} disabled={suspendBusy}
+                style={{ background: "transparent", color: "#1A2540", border: "1px solid #E2E5EA", borderRadius: 8, padding: "9px 18px", fontSize: 15, cursor: suspendBusy ? "default" : "pointer", opacity: suspendBusy ? 0.6 : 1, fontFamily: "inherit" }}>Unpause</button>
+            </div>
+            {suspendMsg && <div style={{ fontSize: 14, color: "#1A2540", marginTop: 10 }}>{suspendMsg}</div>}
+          </Panel>
           {/* Panel 1: top-line */}
           <Panel title="Top-line">
             <div style={S.tileGrid}>

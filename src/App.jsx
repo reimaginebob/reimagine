@@ -332,7 +332,13 @@ async function callClaude(prompt, opts={}) {
   }
   const body={model:"claude-sonnet-4-5",max_tokens:maxTokens,temperature:typeof temperature==='number'?temperature:(highTemp?1.0:0.7),system:[{type:"text",text:SYS_BASE,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content}],...(voiceMode&&{voiceMode}),...(step&&{step}),...(tools&&{tools})}
   const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
-  if(!res.ok){const e=await res.json();throw new Error(e.error?.message||"API error")}
+  if(!res.ok){
+    const e=await res.json().catch(()=>({}))
+    // Account paused (auto or manual): surface it to the app so it can show the
+    // hold notice promptly, mid-session, without waiting for a reload.
+    if(res.status===403&&e.error==='account_suspended'){try{window.dispatchEvent(new Event('pe-account-suspended'))}catch{}}
+    throw new Error(e.error?.message||(typeof e.error==='string'?e.error:'API error'))
+  }
   const data=await res.json()
   const raw=data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n")
   return stripSincerityQualifiers(stripLogicFlipCadence(stripCoachSpeak(stripMetaNarration(stripRoomsPlaceholder(raw)))))
@@ -4968,6 +4974,11 @@ export default function PivotEngine(){
   const[reaccept,setReaccept]=useState(null)
   const[signupStep,setSignupStep]=useState('email')
   const[signedInUser,setSignedInUser]=useState(null)
+  // Account hold (rogue-activity safeguard). Set from /api/me on load or a 403
+  // account_suspended mid-session (via the pe-account-suspended window event);
+  // renders a respectful full-screen hold notice that blocks the app.
+  const[accountSuspended,setAccountSuspended]=useState(false)
+  useEffect(()=>{if(isDemo||isTest)return;const h=()=>setAccountSuspended(true);window.addEventListener('pe-account-suspended',h);return()=>window.removeEventListener('pe-account-suspended',h)},[])
   const[magicLinkSentTo,setMagicLinkSentTo]=useState(null)
   // Set when the user signs in on a different tab while this tab is showing
   // "Check your email". The render switches to a "you can close this safely"
@@ -5111,7 +5122,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
@@ -10487,6 +10498,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         state keeps it one continuous conversation across both doors. */}
     {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
+    {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 14px'}}>Your account is temporarily on hold</h2>
+        <p style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:'0 0 14px'}}>Your recent activity is well outside the usual pattern, so we've paused things while we take a quick look — a standard safeguard, and nothing is lost.</p>
+        <p style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:'0 0 22px'}}>We'll review and follow up with next steps shortly. Questions in the meantime? Reach us at <a href="mailto:info@career.club" style={{color:C.gold,fontWeight:600}}>info@career.club</a>.</p>
+        <button onClick={signOut} style={{background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 18px',fontSize:16,cursor:'pointer',fontFamily:'inherit'}}>Sign out</button>
+      </div>
+    </div>}
     {toast&&<div data-print="hide" role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'#1A2540',color:'#FFFFFF',padding:'12px 22px',borderRadius:8,fontSize:16,fontWeight:500,boxShadow:'0 4px 16px rgba(0,0,0,0.18)',zIndex:1200}}>{toast}</div>}
     {/* ?debug=1 diagnostic footer. Bottom-right corner, low-contrast text.
         Renders four data points so Bob can confirm at a glance whether a
