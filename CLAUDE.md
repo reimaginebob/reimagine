@@ -207,6 +207,7 @@ Two notes on drift:
 - **Apps Script redeploy: update the EXISTING deployment.** "New deployment" mints a new URL and silently breaks the signup pipeline.
 - **Apps Script POST CORS pattern.** Browser→Apps Script POSTs must omit BOTH fetch mode key AND Content-Type header; either alone triggers preflight that silently drops.
 - **Resend SDK silent-error pattern.** Resend SDK returns `{data, error}` instead of throwing. Always unpack and throw on error or sends fail silently behind a fake 200.
+- **DB credential rotation requires a production redeploy.** Rotating the Neon password / changing `DATABASE_URL` does NOT reach the already-built deployment — Vercel injects env at build time, so the running functions keep authenticating with the old value until a rebuild. After any DB credential change: ensure Vercel's `DATABASE_URL` (+ the `POSTGRES_*` siblings) hold the new value, **redeploy production**, then confirm `GET /api/health-db` returns 200. This was the 2026-08-14 outage: a Neon-console password reset left prod on the old credential (`password authentication failed for user 'neondb_owner'`) — invisible to `/api/health` (no DB) and `/api/me` (short-circuits with no session), surfacing only when the admin dashboard 500'd. `/api/health-db` is the dedicated DB-liveness probe; point an uptime monitor at it.
 
 ### Vercel runtime constraints
 
