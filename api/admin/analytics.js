@@ -93,6 +93,7 @@ async function loadAggregate(rangeInterval, adminEmails) {
     surveyInRange,
     incomeUsage,
     drillInRows,
+    employmentSplit,
   ] = await Promise.all([
     // Panel 1: top-line counts (users + Focus / Op proxy counts).
     sql`
@@ -314,6 +315,21 @@ async function loadAggregate(rangeInterval, adminEmails) {
       ORDER BY (pb.value->>'createdAt') DESC NULLS LAST
       LIMIT 500
     `,
+    // Panel 1c: employment status crossed with door usage. Reuses Panel 1's
+    // focus-complete / op-started predicates as FILTERs, grouped by the column.
+    // NULL bucket = users who have not answered yet. All-time (profile progress
+    // is not timestamped per step), same as Panel 1.
+    sql`
+      SELECT
+        employment_status AS status,
+        COUNT(*)::int AS users,
+        COUNT(*) FILTER (WHERE profile_state->'done' ?& array['p5','p6','p7','p8','p9','p11','p_res'])::int AS focus_complete,
+        COUNT(*) FILTER (WHERE (profile_state->'done') ? 'op'
+                            OR NULLIF(TRIM(profile_state->'outputs'->>'op'), '') IS NOT NULL)::int AS op_started
+      FROM users
+      WHERE LOWER(email) <> ALL(${adminEmails}::text[])
+      GROUP BY employment_status
+    `,
   ])
 
   // Database connectivity check is implicit; if we got here, every query
@@ -379,6 +395,12 @@ async function loadAggregate(rangeInterval, adminEmails) {
       created_at:     r.created_at,
       updated_at:     r.updated_at,
       sections_built: r.sections_built,
+    })),
+    panel_1c_employment: employmentSplit.map(r => ({
+      status:         r.status || 'unanswered',
+      users:          r.users,
+      focus_complete: r.focus_complete,
+      op_started:     r.op_started,
     })),
     panel_2_funnel: funnel,
     panel_3_nps: {
