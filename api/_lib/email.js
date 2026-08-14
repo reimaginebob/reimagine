@@ -44,6 +44,43 @@ Career Club
   return data
 }
 
+// Account-hold notice sent to a user whose account was paused (auto or manual)
+// by the rogue-activity safeguard. Respectful, non-accusatory, reversible. Points
+// to info@career.club for resolution. Follows the Resend unpack-and-throw pattern.
+export async function sendAccountHoldEmail(email) {
+  const subject = 'Your Reimagine account is temporarily on hold'
+  const textBody = `Hi,
+
+Your recent activity is well outside the usual pattern, so we've paused your Reimagine account while we take a quick look. This is a standard safeguard, and nothing is lost.
+
+We'll review and follow up with next steps shortly. Questions in the meantime? Reach us at info@career.club.
+
+Career Club
+`
+  const htmlBody = `<!DOCTYPE html><html><body style="font-family: Georgia, serif; color: #1A2540; line-height: 1.6; max-width: 560px; margin: 0 auto; padding: 32px 16px;">
+<p>Hi,</p>
+<p>Your recent activity is well outside the usual pattern, so we've paused your Reimagine account while we take a quick look. This is a standard safeguard, and nothing is lost.</p>
+<p>We'll review and follow up with next steps shortly. Questions in the meantime? Reach us at <a href="mailto:info@career.club" style="color: #C8924A;">info@career.club</a>.</p>
+<p style="font-size: 13px; color: #9CA3AF; margin-top: 32px;">Career Club</p>
+</body></html>`
+
+  const { data, error } = await resend.emails.send({
+    from: EMAIL_FROM,
+    to: email,
+    subject,
+    text: textBody,
+    html: htmlBody,
+  })
+
+  if (error) {
+    const message = error.message || JSON.stringify(error)
+    throw new Error(`Resend account-hold send failed: ${message}`)
+  }
+
+  console.log('Resend account-hold send ok', { id: data?.id, to: email })
+  return data
+}
+
 // Admin activity alert (the rogue-activity watchdog). Plain internal notice sent
 // to the operator ADMIN_EMAILS when the hourly watchdog trips a threshold. `to`
 // may be a single address or an array; `lines` are pre-formatted plain-text
