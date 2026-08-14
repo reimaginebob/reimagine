@@ -15,7 +15,7 @@ const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anyt
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null }) {
   const [open, setOpen] = useState(false)
   // App bumps openRequest to open the floating coach programmatically (e.g. the
   // Personal Brand check-in on first arrival at Put it to Work).
@@ -112,12 +112,18 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       if (opt.followUp) c.push({ role: 'assistant', content: opt.followUp })
       return c
     })
+    // Persistence is best-effort and routed by App: an onQuickReply handler owns
+    // where the value lands (e.g. employment status -> its own column endpoint).
+    // Falls back to the personal-brand check-in log when App does not handle it.
     try {
-      await fetch('/api/pb-checkin', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ checkin: checkinKey || 'personal-brand', answer: opt.value }),
-      })
+      const handled = onQuickReply ? await onQuickReply(checkinKey, opt.value) : false
+      if (!handled) {
+        await fetch('/api/pb-checkin', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ checkin: checkinKey || 'personal-brand', answer: opt.value }),
+        })
+      }
     } catch { /* the conversation already continued; the tap is best-effort */ }
   }
 
