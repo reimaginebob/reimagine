@@ -176,8 +176,11 @@ Briefs that come back at 25-80% of their original scope after pre-flight are com
   
   migrations/                      Postgres schema (Neon). Single canonical
                                    folder. New files: YYYY-MM-DD_description.sql.
-                                   Apply via npm run migrate; never edit a
-                                   file after it has been applied.
+                                   AUTO-APPLIED on every production deploy
+                                   (scripts/deploy-migrate.mjs runs before the
+                                   build); npm run migrate is only for local/
+                                   manual runs. Never edit a file after it has
+                                   been applied.
   
   Output/                          (Cowork-Claude's workspace, not part of build)
     handoff/                       implementation briefs YYYY-MM-DD_short-name.md
@@ -191,7 +194,7 @@ Briefs that come back at 25-80% of their original scope after pre-flight are com
 Two notes on drift:
 
 - The repo's `src/data/user-guide/` is the canonical source for user guide content. The workspace path `Output/docs/reimagine-user-guide/` is deprecated and was historically used as the canonical source before the repo had user-guide build infrastructure. Future user-guide changes go directly through the repo. The workspace path is preserved for historical reference only.
-- Database changes go in `migrations/` with the dated naming convention (`YYYY-MM-DD_description.sql`). New migrations are applied via `npm run migrate` (runner at `scripts/migrate.mjs`, tracked in the `schema_migrations` table). The `db/migrations/` folder no longer exists; any reference to it is stale.
+- Database changes go in `migrations/` with the dated naming convention (`YYYY-MM-DD_description.sql`). **Migrations auto-apply on every production deploy**: `vercel.json`'s `buildCommand` runs `scripts/deploy-migrate.mjs` (which runs `scripts/migrate.mjs up`, gated on `VERCEL_ENV === 'production'`) *before* the build, so the schema is always updated before the new code serves — no manual step, and the old "apply the migration before you merge or auth 500s" ordering trap is gone. Keep migrations forward-only and idempotent (`ADD COLUMN IF NOT EXISTS`, `CREATE TABLE IF NOT EXISTS`) so a re-run is a no-op. `npm run migrate` still works for local/manual runs; tracked in the `schema_migrations` table. The `db/migrations/` folder no longer exists; any reference to it is stale.
 
 ---
 
