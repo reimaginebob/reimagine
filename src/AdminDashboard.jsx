@@ -26,6 +26,10 @@ const ERR = "#C0432F"
 const TOKEN_KEY = "reimagine-admin-token"
 const RANGE_KEY = "reimagine-admin-range"
 const RANGES = ["24h", "7d", "30d", "all"]
+// Employment status (panel_1c). Display labels + a stable row order; the API
+// returns 'unanswered' for users who have not provided it yet.
+const EMPLOYMENT_LABELS = { employed: "Currently Employed", in_transition: "In Transition", role_ending: "Role Ending Soon", unanswered: "Not yet answered" }
+const EMPLOYMENT_ORDER = ["employed", "in_transition", "role_ending", "unanswered"]
 
 const STEP_LABELS = {
   p5: "The Role", p6: "Bridge Story", p7: "Go-to-Market", p8: "LinkedIn Remix",
@@ -167,6 +171,7 @@ export default function AdminDashboard() {
     }
     return [...m.values()].sort((a, b) => b.total - a.total || b.sections - a.sections)
   })()
+  const employment = ((payload && payload.panel_1c_employment) || []).slice().sort((a, b) => EMPLOYMENT_ORDER.indexOf(a.status) - EMPLOYMENT_ORDER.indexOf(b.status))
   const funnel = (payload && payload.panel_2_funnel) || []
   const nps = (payload && payload.panel_3_nps) || {}
   const health = (payload && payload.panel_5_system_health) || {}
@@ -227,6 +232,26 @@ export default function AdminDashboard() {
               <Stat label="Magic links used" value={p1.magic_links_used_in_range} />
               <Stat label="Link conversion" value={fmtRate(p1.magic_link_conversion_rate)} />
             </div>
+          </Panel>
+
+          {/* Panel 1c: employment status crossed with door usage */}
+          <Panel title="Employment status">
+            <table style={S.table}>
+              <thead><tr>
+                <Th>Status</Th><Th right>Users</Th><Th right>Focus-complete</Th><Th right>Op-started</Th>
+              </tr></thead>
+              <tbody>
+                {employment.map((e) => (
+                  <tr key={e.status}>
+                    <Td>{EMPLOYMENT_LABELS[e.status] || e.status}</Td>
+                    <Td right>{e.users}</Td>
+                    <Td right>{e.focus_complete}</Td>
+                    <Td right>{e.op_started}</Td>
+                  </tr>
+                ))}
+                {employment.length === 0 && <tr><Td colSpan={4} muted>No employment data yet.</Td></tr>}
+              </tbody>
+            </table>
           </Panel>
 
           {/* Panel 2: funnel */}
