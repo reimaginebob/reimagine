@@ -254,7 +254,7 @@ function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDe
           </div>
         )
         : (
-          <div style={{ background: '#FFFFFF', border: `1.5px solid ${C.border}`, borderRadius: 14, padding: '22px 26px', color: C.grayL, fontSize: 16, lineHeight: 1.6 }}>{emptyCopy}</div>
+          <div style={{ background: `${C.gold}10`, borderLeft: `3px solid ${C.gold}`, borderRadius: 8, padding: '14px 18px', color: C.grayL, fontSize: 16, lineHeight: 1.6 }}>{emptyCopy}</div>
         )}
     </div>
   )

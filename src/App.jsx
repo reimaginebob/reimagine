@@ -6907,7 +6907,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
       <div style={{fontWeight:700,color:'#1A2540',margin:'18px 0 8px',fontSize:20}}>Skills</div>
       <div style={S.card}>
-        {skillGroups.length===0&&<div style={{fontSize:15,color:C.gray,marginBottom:8}}>No skills yet. Suggest some below.</div>}
+        {skillGroups.length===0&&<CoachingCallout>No skills yet. Suggest some below.</CoachingCallout>}
         {skillGroups.map((g,gi)=><div key={gi} style={{marginBottom:12}}>
           {g.category&&<div style={{fontWeight:600,color:'#1A2540',marginBottom:6,fontSize:15}}>{g.category}</div>}
           <div style={{display:'flex',flexWrap:'wrap',gap:8,alignItems:'center'}}>{g.items.map((it,ii)=><span key={ii} style={{display:'inline-flex',alignItems:'center',gap:6,background:`${C.gold}18`,border:`1px solid ${C.gold}40`,borderRadius:16,padding:'5px 10px',fontSize:15,color:'#1A2540'}}>{typeof it==='string'?it:(it&&it.skill)}<button type="button" onClick={()=>removeSkill(gi,ii)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',fontSize:15,lineHeight:1}}>×</button></span>)}
@@ -9037,7 +9037,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>}
       <h1 style={S.title}>Put It to Work</h1>
       <p style={S.sub}>Your foundation is set. In this section, you decide how to explore your options: a wider look at the directions your background opens up, or a focused playbook for a job description you already have in hand. You can come back to this choice anytime from the sidebar.</p>
-      <div style={{margin:'4px 0 18px',fontSize:17,color:'#4A5568',lineHeight:1.65,maxWidth:920}}>If you have a current opportunity you're pursuing, start here. We'll build your playbook around that specific role.<br/><span style={{color:C.gray}}>No specific opportunity in play yet? Start with Career Paths to explore where you could go.</span></div>
+      <CoachingCallout>If you have a current opportunity you're pursuing, start here. We'll build your playbook around that specific role.<br/><span style={{color:C.gray}}>No specific opportunity in play yet? Start with Career Paths to explore where you could go.</span></CoachingCallout>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,maxWidth:920,marginTop:8}}>
         <button onClick={()=>{markDone('twoDoors');addNewOpportunity()}} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
@@ -9076,7 +9076,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:17,color:'#4A5568',lineHeight:1.7}}>{L.blurb}</div>
         </button>)}
       </div>
-      <div style={{marginTop:22,fontSize:15,color:C.gray,lineHeight:1.6,maxWidth:860,textAlign:'center'}}><strong>Not sure where to start?</strong> Familiar Ground is the lowest-risk exploration — your track record speaks immediately, so you can move through these roles quickly, see what is out there, and get a real sense of your market. Start there if you are unsure; come back to Industry Insider or Work That Matters knowing what you are choosing toward, not just away from.</div>
+      <div style={{marginTop:22}}><CoachingCallout><strong>Not sure where to start?</strong> Familiar Ground is the lowest-risk exploration — your track record speaks immediately, so you can move through these roles quickly, see what is out there, and get a real sense of your market. Start there if you are unsure; come back to Industry Insider or Work That Matters knowing what you are choosing toward, not just away from.</CoachingCallout></div>
       {coachNudge('Help me think through which of these three directions — Familiar Ground, Industry Insider, or Work That Matters — fits me best right now. Ask me what matters most and talk it through; don\'t decide for me.','Talk through which direction fits me',{marginTop:16,maxWidth:860,textAlign:'center'})}
     </div>
     case'p4':{
@@ -9569,7 +9569,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
         </div>}
 
-        <div style={{marginTop:16,padding:'16px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,fontSize:17,color:C.gray,lineHeight:1.7}}><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</div>
+        <div style={{marginTop:16}}><CoachingCallout><strong style={{color:'#1A2540'}}>Your progress is saved.</strong> To return, open the same browser on the same device and go to this URL. If you switch browsers or devices, you'll need to start a new session.</CoachingCallout></div>
         <div style={{marginTop:24,padding:'20px 24px',background:'#FAFBFC',border:`1.5px solid ${C.border}`,borderRadius:12}}>
           <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:4}}>Your Deliverables</div>
           <div style={{fontSize:18,color:C.gray,marginBottom:16}}>Take your Reimagine work with you.</div>
@@ -9623,7 +9623,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {!isDemo&&!opIsV2&&<RefineBox value={feedback.op} onChange={v=>setFb('op',v)} hint="Did we read the JD or your background right? Tell us what to adjust." placeholder="e.g. 'You missed that the role explicitly requires P&L experience.' Or: 'My time at [Company] was internal strategy, not consulting.' Or: 'Emphasize the operating depth angle more, less on strategic vision.'" onRegenerate={v=>{recordCorrection('op',v);out('op','');generate('op',()=>P.op(pc,outputs,chosen,profile.jd)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:11000,msg:'Building your Opportunity Playbook…',profileBlock:buildUserProfileBlock(pc,outputs),step:'op'})}}/>}
           {opIsV2&&!_anyOpCardBuilt&&<>
             <h2 style={{fontFamily:'Georgia,serif',fontSize:28,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>{(profile.jd||'').split('\n').find(l=>l.trim())||'Your Opportunity Playbook'}</h2>
-            <p style={{fontSize:18,color:C.grayL,margin:'0 0 32px'}}>Build each section when you're ready. They are independent; build the ones that help most.</p>
+            <CoachingCallout>Build each section when you're ready. They are independent; build the ones that help most.</CoachingCallout>
           </>}
           {!isDemo&&(()=>{
             const _rec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)
@@ -9706,7 +9706,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </div>}
               {_anyBuilt&&<>
                 <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>Your Opportunity Playbook</h2>
-                <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 18px'}}>Build each section when you're ready. They are independent; build the ones that help most.</p>
+                <CoachingCallout>Build each section when you're ready. They are independent; build the ones that help most.</CoachingCallout>
               </>}
               {/* View job description (jd-retrieve 2026-08-07; trigger moved to the
                   sticky rail 2026-08-10 so it is persistent across the whole playbook).
@@ -10173,7 +10173,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                           <Btn small secondary={_clBuilt} onClick={()=>generateOpNegotiationChecklist()} disabled={!!opSectionBuilding||!_onBuilt}>{_clBusy?'Building…':_clBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Prepare for the conversation</>}</Btn>
                         </div>
                       </div>
-                      {!_onBuilt&&<div style={{marginTop:10,fontSize:15,color:C.gray,lineHeight:1.5}}>Build the Offer & Negotiation analysis above first — your talking points are drawn from it.</div>}
+                      {!_onBuilt&&<CoachingCallout>Build the Offer & Negotiation analysis above first — your talking points are drawn from it.</CoachingCallout>}
                       {opSectionErrors.checklist&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.checklist}/></div>}
                       {_clBusy&&<div style={{marginTop:14}}><Loading msg="Pulling your talking points together…" step="checklist"/></div>}
                       {_clBuilt&&<div style={{marginTop:14}}>
@@ -10333,7 +10333,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>:<div style={S.card}>
             <h1 style={{...S.title,fontSize:28,marginBottom:14}}>Check your email.</h1>
             <p style={{...S.sub,marginBottom:18}}>We sent a sign-in link to <strong style={{color:C.cream}}>{magicLinkSentTo}</strong>. The link expires in 15 minutes.</p>
-            <p style={{fontSize:16,color:C.gray,marginBottom:18,lineHeight:1.6}}>If you don't see it within a minute, check your spam folder, or request another link.</p>
+            <CoachingCallout>If you don't see it within a minute, check your spam folder, or request another link.</CoachingCallout>
             <Btn secondary onClick={()=>{setMagicLinkSentTo(null);setSignupStep('email');setSignupError('')}}>Use a different email</Btn>
           </div>):signupStep==='details'?<>
             <h1 style={{...S.title,fontSize:34,marginBottom:10}}>Looks like this is your first time.</h1>
