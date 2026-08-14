@@ -8315,10 +8315,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const ops=savedPlaybooks.filter(r=>r&&r.source==='door2')
     const wrap=(inner)=><div style={{maxWidth:860,margin:'0 0 28px',padding:'20px 22px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:12}}>
       <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 4px'}}>My Search</h2>
-      <p style={{fontSize:16,color:C.gray,margin:'0 0 16px',lineHeight:1.6,maxWidth:640}}>This is your live search — every opportunity you're working, in one place. Set where each one stands and what's next, and it stays in front of you so nothing quietly goes cold.</p>
+      <CoachingCallout>This is your live search — every opportunity you're working, in one place. Set where each one stands and what's next, and it stays in front of you so nothing quietly goes cold.</CoachingCallout>
       {inner}
     </div>
-    if(ops.length===0)return wrap(<p style={{fontSize:16,color:C.grayL,margin:0,lineHeight:1.6}}>Nothing here yet. When you add an opportunity, it'll show up with its stage and what's next — so you can see where each one is going.</p>)
+    if(ops.length===0)return wrap(<CoachingCallout>Nothing here yet. When you add an opportunity, it'll show up with its stage and what's next — so you can see where each one is going.</CoachingCallout>)
     const now=Date.now()
     const sec=(rec)=>rec.sections||{}
     const builtCount=(rec)=>OP_COUNTED_KEYS.filter(k=>_opSectionBuilt(sec(rec),k)).length
