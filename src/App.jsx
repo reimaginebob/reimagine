@@ -8540,9 +8540,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
           <p style={S.helperText}>Pick any combination. If you are open to multiple arrangements, select multiple.</p>
         </div>
+        <div style={S.field}><label style={S.label}>Your work right now<InfoTooltip label="Why we ask">This helps your coach and playbooks fit where you actually are in your search.</InfoTooltip></label>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {[['employed','Currently Employed'],['in_transition','In Transition'],['role_ending','Role Ending Soon']].map(([val,lbl])=>{
+              const checked=employmentStatus===val
+              return <label key={val} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:checked?`${C.gold}14`:C.input,border:`1.5px solid ${checked?C.gold:C.border}`,borderRadius:8,cursor:'pointer',transition:'all 0.15s'}}>
+                <input type="radio" name="employment-status" checked={checked} onChange={()=>saveEmployment(val)} style={{margin:0,cursor:'pointer'}}/>
+                <span style={{fontSize:17,color:'#1A2540'}}>{lbl}</span>
+              </label>
+            })}
+          </div>
+        </div>
       </div>
       {err&&<ErrBox msg={err}/>}
-      <div style={S.row}><Btn secondary onClick={()=>nav('welcome')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.loc.country&&Array.isArray(profile.loc.work)&&profile.loc.work.length>0?advance('location','resume'):setErr('Please complete your country and at least one work preference.')}>Continue <ChevronRight size={14}/></Btn></div>
+      <div style={S.row}><Btn secondary onClick={()=>nav('welcome')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{const needEmployment=!done.includes('location')&&!employmentStatus;if(!profile.loc.country||!Array.isArray(profile.loc.work)||profile.loc.work.length===0){setErr('Please complete your country and at least one work preference.');return}if(needEmployment){setErr('Please choose how you\'d describe your work right now.');return}advance('location','resume')}}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
 
     case'resume':return <div>
