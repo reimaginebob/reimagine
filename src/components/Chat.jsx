@@ -10,6 +10,13 @@ const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anyt
 // prompt is the primary capture path; this is the belt-and-suspenders.
 const EMPLOYMENT_MENTION_RE = /\b(i['’]?m|i am|currently|presently)\s+(employed|unemployed|between jobs|in transition|out of work|laid off|jobless|job[- ]?hunting|job[- ]?searching|looking for (a job|work|another))\b|\bmy\s+(job|role|position|contract)\b[^.?!]{0,48}\b(is ending|ends|ending soon|is up|wrapping up|being eliminated|notice period|last day)\b/i
 
+// Plain-language pursuit-status mentions for the My Search one-tap capture.
+// Conservative like the employment one: it only gates WHETHER to offer the save,
+// and all stage options are shown, so a false positive is an ignorable prompt
+// rather than a wrong value. Deliberately misses phrasings — the My Search card
+// is the primary edit path; this is the belt-and-suspenders.
+const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|on-?site)\b[^.?!]{0,40}\b(scheduled|booked|set up|coming up|next week|tomorrow|monday|tuesday|wednesday|thursday|friday|moved|pushed|rescheduled|happened|went|done|finished)\b|\b(got|received|have|got an)\s+(an?\s+)?(offer|rejection)\b|\b(they|it|this)\s+(passed|rejected|declined|ghosted)\b|\b(withdrew|pulled out|turned (it|them) down|accepted (the|their) offer)\b|\b(date|meeting|conversation|call)\s+(moved|changed|got pushed|rescheduled|slipped)\b/i
+
 // My Coach. PROSE-ONLY on feature references (2026-06-11): the coach names a
 // feature in prose ("you'll find this in Career Paths") and never renders a
 // clickable navigation button. Render-true labels come from COACH_NAV_MAP in the
@@ -21,7 +28,7 @@ const EMPLOYMENT_MENTION_RE = /\b(i['’]?m|i am|currently|presently)\s+(employe
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null }) {
   const [open, setOpen] = useState(false)
   // App bumps openRequest to open the floating coach programmatically (e.g. the
   // Personal Brand check-in on first arrival at Put it to Work).
@@ -74,6 +81,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   const noteActionsRef = useRef(null)
   // Caps the in-conversation employment save-offer to once per session.
   const employmentOfferedRef = useRef(false)
+  // Same cap for the My Search pursuit-status save-offer.
+  const pursuitOfferedRef = useRef(false)
 
   useEffect(() => {
     const len = messages ? messages.length : 0
@@ -195,9 +204,20 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // the model never writes, and all three options are shown so the stored
         // value is always the user's tap, never the regex's guess.
         const alreadyPending = (messages || []).some(mm => mm && mm.checkinKey === 'employment-status' && Array.isArray(mm.quickReplies) && mm.quickReplies.length)
-        if (employmentCaptureActive && employmentOfferMessage && !employmentOfferedRef.current && !alreadyPending && EMPLOYMENT_MENTION_RE.test(userMsg.content)) {
+        const empJustFired = employmentCaptureActive && employmentOfferMessage && !employmentOfferedRef.current && !alreadyPending && EMPLOYMENT_MENTION_RE.test(userMsg.content)
+        if (empJustFired) {
           employmentOfferedRef.current = true
           setMessages(m => [...m, employmentOfferMessage])
+        }
+        // One-time in-conversation offer to save a pursuit-status change to My
+        // Search. Same shape as the employment offer: only when the feature is on
+        // and an opportunity is open (pursuitOfferMessage is null otherwise), we
+        // have not offered this session, none is pending, and the employment offer
+        // did not just fire this turn — so the two never stack in one reply.
+        const pursuitPending = (messages || []).some(mm => mm && mm.checkinKey === 'pursuit-stage' && Array.isArray(mm.quickReplies) && mm.quickReplies.length)
+        if (pursuitCaptureActive && pursuitOfferMessage && !pursuitOfferedRef.current && !pursuitPending && !empJustFired && STAGE_MENTION_RE.test(userMsg.content)) {
+          pursuitOfferedRef.current = true
+          setMessages(m => [...m, pursuitOfferMessage])
         }
       }
     } catch {
