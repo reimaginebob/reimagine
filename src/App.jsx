@@ -3185,6 +3185,22 @@ const EMPLOYMENT_QUICK_REPLIES=[
   {label:'Role Ending Soon',value:'role_ending',followUp:'Got it — we\'ll treat this like a search on a clock when it matters.'},
 ]
 const employmentPromptMessage=(lead)=>({role:'assistant',content:(lead||'One quick thing so your coaching fits where you actually are — ')+'how would you describe your work situation right now?',checkinKey:'employment-status',quickReplies:EMPLOYMENT_QUICK_REPLIES})
+// My Search (brief 2026-08-14). Stage vocabulary shared by the card editor and
+// the Coach one-tap capture. value is the stored enum; label is the render-true
+// name. The tap is always the user's — the detector only decides whether to
+// offer, never what to write.
+const PURSUIT_STAGES=[
+  {value:'researching',label:'Researching'},
+  {value:'applied',label:'Applied'},
+  {value:'in_conversation',label:'In conversation'},
+  {value:'interviewing',label:'Interviewing'},
+  {value:'offer',label:'Offer'},
+  {value:'closed',label:'Closed'},
+]
+const PURSUIT_STAGE_LABELS=Object.fromEntries(PURSUIT_STAGES.map(s=>[s.value,s.label]))
+const PURSUIT_OUTCOME_LABELS={accepted:'Accepted',declined:'Declined',not_selected:'Not selected',withdrew:'Withdrew',no_response:'No response'}
+const PURSUIT_STAGE_QUICK_REPLIES=PURSUIT_STAGES.map(s=>({label:s.label,value:s.value,followUp:s.value==='closed'?'Saved — I\'ve marked it closed on My Search.':s.value==='interviewing'?'Saved — it\'ll show up first if a conversation is coming.':'Saved to My Search.'}))
+const pursuitOfferMessage=(title)=>({role:'assistant',content:`Sounds like something moved on ${title||'this opportunity'} — where does it stand now? I\'ll save it to My Search so it carries across every session.`,checkinKey:'pursuit-stage',quickReplies:PURSUIT_STAGE_QUICK_REPLIES})
 
 const S={
   title:{fontFamily:'Georgia,serif',fontSize:38,fontWeight:700,color:"#1A2540",margin:'0 0 14px',lineHeight:1.2},
@@ -5019,6 +5035,32 @@ export default function PivotEngine(){
   const[seenEmploymentPrompt,setSeenEmploymentPrompt]=useState(false)
   const employmentPromptFiredRef=useRef(false)
   const[coachOpenTick,setCoachOpenTick]=useState(0)
+  // My Search (brief 2026-08-14). Per-user gate + the pursuit-status list.
+  // featureFlags rides on the signed-in user row (via getSessionUser -> /api/me),
+  // so hasMySearch is false for demo/test (no signedInUser) without special-casing.
+  const featureFlags=Array.isArray(signedInUser?.feature_flags)?signedInUser.feature_flags:[]
+  const hasMySearch=featureFlags.includes('my_search')
+  // pursuit_status rows, column-name shape as returned by GET /api/pursuit-status.
+  const[pursuitStatus,setPursuitStatus]=useState([])
+  const pursuitReconciledRef=useRef(false)
+  const pursuitStatusFor=(recordId)=>pursuitStatus.find(r=>r&&r.record_id===recordId)||null
+  // Optimistic status write. `patch` uses column names (stage, next_move,
+  // next_conversation_at, closed_at, outcome); translated to the endpoint's body
+  // keys. Fire-and-forget PUT — a failed write leaves the optimistic value, and
+  // the next load reconciles from the server.
+  const savePursuit=(recordId,patch)=>{
+    if(!recordId)return
+    setPursuitStatus(prev=>{
+      const i=prev.findIndex(r=>r&&r.record_id===recordId)
+      const merged={...(i>=0?prev[i]:{record_id:recordId}),...patch,updated_at:new Date().toISOString()}
+      if(i>=0){const c=[...prev];c[i]=merged;return c}
+      return[...prev,merged]
+    })
+    const KMAP={next_move:'nextMove',next_conversation_at:'nextConversationAt',closed_at:'closedAt'}
+    const body={recordId}
+    for(const k of Object.keys(patch))body[KMAP[k]||k]=patch[k]
+    if(!isDemo&&!isTest){try{fetch('/api/pursuit-status',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(()=>{})}catch{}}
+  }
   // App-owned write: the quick-reply tap and (PR 4) the Orientation field both
   // call this. Writes the column, updates local state for immediate UI, and never
   // touches markInputEdited so answering it cannot mark the Personal Brand stale.
@@ -5029,11 +5071,38 @@ export default function PivotEngine(){
   // The handler Chat calls on a quick-reply tap. Returns true for the employment
   // key so Chat does NOT fall back to the pb-checkin log.
   const handleEmploymentQuickReply=async(checkinKey,value)=>{
-    if(checkinKey!=='employment-status')return false
-    await saveEmployment(value)
-    return true
+    if(checkinKey==='employment-status'){await saveEmployment(value);return true}
+    // My Search stage capture. Needs the record id of the open opportunity; if
+    // none is open, do nothing rather than write to the wrong record.
+    if(checkinKey==='pursuit-stage'){
+      const tgt=coachSaveTarget()
+      if(!tgt||!tgt.id)return false
+      const patch={stage:value}
+      if(value==='closed')patch.closed_at=new Date().toISOString()
+      savePursuit(tgt.id,patch)
+      return true
+    }
+    return false
   }
   const voiceMigCheckedRef=useRef(false)
+  // My Search hydration: load the pursuit-status list once the flag is known.
+  // Fires when hasMySearch flips true (after /api/me resolves signedInUser).
+  useEffect(()=>{
+    if(isDemo||isTest)return
+    if(!hasMySearch)return
+    fetch('/api/pursuit-status',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitStatus(d.rows)}).catch(()=>{})
+  },[hasMySearch,isDemo,isTest])
+  // Orphan reconcile: on first arrival at My Playbooks, tell the server which
+  // Door 2 record ids still exist so it can prune status rows for deleted /
+  // removed / import-dropped opportunities. Fire-and-forget; never blocks render.
+  useEffect(()=>{
+    if(isDemo||isTest)return
+    if(!hasMySearch||step!=='mylib')return
+    if(pursuitReconciledRef.current)return
+    pursuitReconciledRef.current=true
+    const ids=savedPlaybooks.filter(r=>r&&r.source==='door2').map(r=>r.id)
+    try{fetch('/api/pursuit-status',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({recordIds:ids})}).catch(()=>{})}catch{}
+  },[hasMySearch,step,savedPlaybooks,isDemo,isTest])
   const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p}}catch{}return[{role:'assistant',content:"Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you."}]})
   const[showPulse,setShowPulse]=useState(false)
   // Coach doors (PR-3, item H): a one-shot seed that prefills the My Coach input
@@ -8236,6 +8305,78 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setToast(`Restored: ${rec.title}`)
     setTimeout(()=>setToast(t=>t===`Restored: ${rec.title}`?null:t),3000)
   }
+  // === My Search (brief 2026-08-14) ===
+  // Gated status layer over Opportunity (Door 2) records. Built-state is read
+  // from the hoisted op predicates (_opSectionBuilt / OP_COUNTED_KEYS), never a
+  // parallel derivation. Deterministic, no generation.
+  const OP_CARD_LABELS={companyRead:'About This Company',p5:'Where you fit',p6:'Bridge Story',p_res:'Resume Refresh',p_cover:'Cover Letter',p11:'Interview Prep'}
+  const openPursuitRecord=(rec,target)=>{track('mysearch_next_move_click',{recordId:rec.id,target:target||'op'});restoreFromSavedSlot(rec)}
+  const mySearchPanel=()=>{
+    const ops=savedPlaybooks.filter(r=>r&&r.source==='door2')
+    const wrap=(inner)=><div style={{maxWidth:860,margin:'0 0 28px',padding:'20px 22px',background:C.panel,border:`1px solid ${C.border}`,borderRadius:12}}>
+      <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 4px'}}>My Search</h2>
+      <p style={{fontSize:15,color:C.gray,margin:'0 0 16px'}}>Your live opportunities and what each one is waiting on.</p>
+      {inner}
+    </div>
+    if(ops.length===0)return wrap(<p style={{fontSize:16,color:C.grayL,margin:0,lineHeight:1.6}}>Nothing in flight yet. Add a role with Add an Opportunity below, and it'll show up here with its stage and next move.</p>)
+    const now=Date.now()
+    const sec=(rec)=>rec.sections||{}
+    const builtCount=(rec)=>OP_COUNTED_KEYS.filter(k=>_opSectionBuilt(sec(rec),k)).length
+    const stat=(rec)=>pursuitStatusFor(rec.id)||{}
+    const isClosed=(s)=>s.stage==='closed'||!!s.closed_at
+    const ncaMs=(s)=>s.next_conversation_at?new Date(s.next_conversation_at).getTime():null
+    const priority=(rec)=>{const s=stat(rec);if(isClosed(s))return 600;const n=ncaMs(s);if(n!=null&&n<now)return 100;if(n!=null)return 200;if(s.next_move&&String(s.next_move).trim())return 300;if((s.stage==='interviewing'||s.stage==='offer')&&builtCount(rec)<OP_COUNTED_KEYS.length)return 400;return 500}
+    const tieKey=(rec)=>{const s=stat(rec);const p=priority(rec);const n=ncaMs(s);if((p===100||p===200)&&n!=null)return n;return -(new Date(s.updated_at||rec.updatedAt||0).getTime()||0)}
+    const sorted=[...ops].sort((a,b)=>{const pa=priority(a),pb=priority(b);if(pa!==pb)return pa-pb;return tieKey(a)-tieKey(b)})
+    const fmtDate=(iso)=>{try{return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'})}catch{return ''}}
+    const dateInputVal=(iso)=>{try{return iso?new Date(iso).toISOString().slice(0,10):''}catch{return ''}}
+    // "What this week needs" — one deterministic item per opportunity, highest-need first.
+    const needs=[]
+    for(const rec of sorted){
+      const s=stat(rec);if(isClosed(s))continue
+      const n=ncaMs(s);const title=rec.title||rec.company||'This opportunity'
+      if(n!=null&&n<now)needs.push({rec,text:`${title}: your last set conversation was ${fmtDate(s.next_conversation_at)} — follow up`})
+      else if(n!=null)needs.push({rec,text:`${title}: ${PURSUIT_STAGE_LABELS[s.stage]||'conversation'} on ${fmtDate(s.next_conversation_at)}`})
+      else if((s.stage==='interviewing'||s.stage==='offer')&&!_opSectionBuilt(sec(rec),'p11'))needs.push({rec,text:`${title}: build Interview Prep before your conversation`})
+      else if(s.next_move&&String(s.next_move).trim())needs.push({rec,text:`${title}: ${String(s.next_move).trim()}`})
+    }
+    const weekNeeds=needs.slice(0,5)
+    return wrap(<>
+      {weekNeeds.length>0&&<div style={{margin:'0 0 18px',padding:'14px 16px',background:'#FAFBFC',border:`1px solid ${C.border}`,borderRadius:10}}>
+        <div style={{fontSize:15,fontWeight:800,letterSpacing:'0.4px',textTransform:'uppercase',color:C.gold,margin:'0 0 8px'}}>What this week needs</div>
+        {weekNeeds.map((it,i)=><button key={i} type="button" onClick={()=>openPursuitRecord(it.rec,'op')} style={{display:'block',width:'100%',textAlign:'left',background:'transparent',border:'none',borderTop:i===0?'none':`1px solid ${C.border}`,padding:'9px 0',fontSize:16,color:'#1A2540',cursor:'pointer',fontFamily:'inherit',lineHeight:1.5}}>{it.text}</button>)}
+      </div>}
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        {sorted.map(rec=>{
+          const s=stat(rec);const title=rec.title||rec.company||'Opportunity';const built=builtCount(rec)
+          return <div key={rec.id} style={{padding:'14px 16px',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,opacity:isClosed(s)?0.7:1}}>
+            <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:12,marginBottom:10}}>
+              <div style={{fontSize:18,fontWeight:700,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{title}</div>
+              <button type="button" onClick={()=>openPursuitRecord(rec,'op')} style={{flexShrink:0,background:'transparent',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Open →</button>
+            </div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'center'}}>
+              <label style={{fontSize:15,color:C.gray}}>Stage{' '}
+                <select value={s.stage||''} onChange={e=>savePursuit(rec.id,{stage:e.target.value||null,...(e.target.value==='closed'?{closed_at:new Date().toISOString()}:{})})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}>
+                  <option value="">— not set —</option>
+                  {PURSUIT_STAGES.map(st=><option key={st.value} value={st.value}>{st.label}</option>)}
+                </select>
+              </label>
+              <label style={{fontSize:15,color:C.gray}}>Next conversation{' '}
+                <input type="date" value={dateInputVal(s.next_conversation_at)} onChange={e=>savePursuit(rec.id,{next_conversation_at:e.target.value?new Date(e.target.value).toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
+              </label>
+            </div>
+            <div style={{marginTop:10}}>
+              <input defaultValue={s.next_move||''} placeholder="One next move…" onBlur={e=>{const v=e.target.value.trim();if(v!==(s.next_move||''))savePursuit(rec.id,{next_move:v||null})}} style={{width:'100%',boxSizing:'border-box',fontSize:16,fontFamily:'inherit',padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
+            </div>
+            <div style={{marginTop:10,display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+              <span style={{fontSize:15,color:C.grayL}}>{built} of {OP_COUNTED_KEYS.length} built:</span>
+              {OP_COUNTED_KEYS.map(k=>{const on=_opSectionBuilt(sec(rec),k);return <span key={k} style={{fontSize:15,padding:'3px 8px',borderRadius:20,border:`1px solid ${on?C.gold:C.border}`,background:on?`${C.gold}22`:'transparent',color:on?'#1A2540':C.grayL}}>{OP_CARD_LABELS[k]||k}</span>})}
+            </div>
+          </div>
+        })}
+      </div>
+    </>)
+  }
   const applyRoleSwitchDoor1=(newRoleTitle,lane)=>{
     setCurrentRoleSaved(false)
     setCurrentRoleInSavedSet(false)
@@ -9296,7 +9437,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:6}}>My Coach</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your coach for the search, grounded in Making Your Own Weather and in what Reimagine knows about you. Ask anything: where to focus, how to tell your story, how to prepare for a conversation.</p>
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} onSeedConsumed={()=>setCoachSeed('')} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} onSeedConsumed={()=>setCoachSeed('')} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null}/>
     </div>
     case'mylib':{
       const _comparable=savedPlaybooks.filter(offerComparable)
@@ -9306,6 +9447,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:6}}>My Playbooks</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {savedPlaybooks.length} of {getSavedCap()} saved.</p>
       </div>
+      {hasMySearch&&mySearchPanel()}
       {_comparable.length>=2&&<div style={{margin:'0 0 16px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({_comparable.length}) <ChevronRight size={14}/></Btn></div>}
       <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity}/>
     </div>

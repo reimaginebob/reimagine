@@ -56,7 +56,7 @@ function isAllowedOrigin(rawOrigin) {
 // `state` is the profile_state JSONB blob the client autosaves
 // ({ profile, outputs, selectedLane, exploredRoleTitles, savedPlaybooks,
 // chosen, ... }). Returns a human-readable block; never throws on sparse data.
-function buildCoachProfileSlice(state, employmentStatus) {
+function buildCoachProfileSlice(state, employmentStatus, featureFlags) {
   if (!state || typeof state !== 'object') {
     // No profile at all — definitionally pre-Personal-Brand, so the sidebar is the
     // Orientation phase list. Carry the same navigation gate as the main path below
@@ -190,7 +190,18 @@ function buildCoachProfileSlice(state, employmentStatus) {
     ? ''
     : '\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.'
 
-  return `THIS USER'S REIMAGINE PROFILE (read-only; you can reference and reason about it, but you never change it):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}`
+  // My Search — a gated pilot feature (brief 2026-08-14). Lives here in the
+  // UNCACHED per-user block, keyed on the server-side feature flag, so an
+  // unflagged user's cached prompt prefix is unchanged and the feature stays
+  // hidden. It is deliberately NOT in FEATURE_MAP / COACH_NAV_MAP / the user
+  // guide during the pilot (that would leak it to everyone and fork the cache);
+  // this note is the only place the Coach learns of it until GA.
+  const hasMySearch = Array.isArray(featureFlags) && featureFlags.includes('my_search')
+  const myStatusNote = hasMySearch
+    ? '\n\nMY SEARCH (this person has it; it is a limited pilot feature most users do not have — never imply it is generally available): My Search is a live view of their saved Opportunity Playbooks, on the My Playbooks screen. Each opportunity shows its stage, its next conversation, one next move, and which playbook cards are built, ordered so the one that needs attention comes first. A panel on that screen sums up what the week needs. They keep it current by telling you when something changes — a date moved, an interview happened, an opportunity ended — and you offer to save it with one tap. When they ask how to track their search or where an opportunity stands, this is the answer. Name it plainly in your normal voice; do not pitch it. There is no self-check slug for My Search, so when it is the fitting answer, still help, and end with SELFCHECK: none.'
+    : ''
+
+  return `THIS USER'S REIMAGINE PROFILE (read-only; you can reference and reason about it, but you never change it):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusNote}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -497,15 +508,17 @@ export default async function handler(req, res) {
   // row cross-device profile sync reads and writes. Read-only here.
   let profileState = null
   let employmentStatus = null
+  let featureFlags = []
   try {
-    const rows = await sql`SELECT profile_state, employment_status FROM users WHERE id = ${user.id} LIMIT 1`
+    const rows = await sql`SELECT profile_state, employment_status, feature_flags FROM users WHERE id = ${user.id} LIMIT 1`
     profileState = rows.length ? rows[0].profile_state : null
     employmentStatus = rows.length ? rows[0].employment_status : null
+    featureFlags = rows.length && Array.isArray(rows[0].feature_flags) ? rows[0].feature_flags : []
   } catch (err) {
     console.error('coach profile read failed:', err)
     // Fall through with a null profile rather than failing the turn.
   }
-  let profileBlock = buildCoachProfileSlice(profileState, employmentStatus)
+  let profileBlock = buildCoachProfileSlice(profileState, employmentStatus, featureFlags)
   // PR-B: if the conversation is about a specific saved playbook, expand its
   // anchor + intent-matched section into the (uncached) slice. Best-effort — a
   // malformed record must never break the turn.
