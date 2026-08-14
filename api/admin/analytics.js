@@ -94,6 +94,7 @@ async function loadAggregate(rangeInterval, adminEmails) {
     incomeUsage,
     drillInRows,
     employmentSplit,
+    pausedAccounts,
   ] = await Promise.all([
     // Panel 1: top-line counts (users + Focus / Op proxy counts).
     sql`
@@ -330,6 +331,17 @@ async function loadAggregate(rangeInterval, adminEmails) {
       WHERE LOWER(email) <> ALL(${adminEmails}::text[])
       GROUP BY employment_status
     `,
+    // Panel 1d: accounts currently on hold (rogue-activity safeguard). Every
+    // paused account, newest first, with why and when — the actionable list the
+    // dashboard shows with a per-row Unpause. No admin exclusion: a manually
+    // paused internal account should still appear so it can be lifted.
+    sql`
+      SELECT email, suspended_at, suspended_reason
+      FROM users
+      WHERE suspended_at IS NOT NULL
+      ORDER BY suspended_at DESC
+      LIMIT 200
+    `,
   ])
 
   // Database connectivity check is implicit; if we got here, every query
@@ -401,6 +413,11 @@ async function loadAggregate(rangeInterval, adminEmails) {
       users:          r.users,
       focus_complete: r.focus_complete,
       op_started:     r.op_started,
+    })),
+    panel_1d_paused_accounts: pausedAccounts.map(r => ({
+      email:        r.email,
+      suspended_at: r.suspended_at,
+      reason:       r.suspended_reason,
     })),
     panel_2_funnel: funnel,
     panel_3_nps: {

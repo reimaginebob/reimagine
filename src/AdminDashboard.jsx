@@ -75,6 +75,7 @@ export default function AdminDashboard() {
   const [suspendEmail, setSuspendEmail] = useState("")
   const [suspendBusy, setSuspendBusy] = useState(false)
   const [suspendMsg, setSuspendMsg] = useState("")
+  const [rowBusy, setRowBusy] = useState("") // email of the row currently unpausing
   const doSuspend = async (action) => {
     const email = suspendEmail.trim()
     if (!email) { setSuspendMsg("Enter an email address first."); return }
@@ -134,6 +135,20 @@ export default function AdminDashboard() {
     if (token) fetchData(token, r)
   }
   const refresh = () => { if (token) fetchData(token, range) }
+  // Per-row Unpause on the Paused-accounts panel: lift the hold, then refresh so
+  // the row drops off the list.
+  const unpauseRow = async (email) => {
+    setRowBusy(email)
+    try {
+      const res = await fetch("/api/admin/suspend-user", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ email, action: "unpause" }),
+      })
+      if (res.ok) refresh()
+    } catch { /* leave the row; the operator can retry */ }
+    finally { setRowBusy("") }
+  }
   const submitToken = (e) => {
     e.preventDefault()
     const t = tokenInput.trim()
@@ -192,6 +207,7 @@ export default function AdminDashboard() {
     return [...m.values()].sort((a, b) => b.total - a.total || b.sections - a.sections)
   })()
   const employment = ((payload && payload.panel_1c_employment) || []).slice().sort((a, b) => EMPLOYMENT_ORDER.indexOf(a.status) - EMPLOYMENT_ORDER.indexOf(b.status))
+  const paused = (payload && payload.panel_1d_paused_accounts) || []
   const funnel = (payload && payload.panel_2_funnel) || []
   const nps = (payload && payload.panel_3_nps) || {}
   const health = (payload && payload.panel_5_system_health) || {}
@@ -251,6 +267,30 @@ export default function AdminDashboard() {
                 style={{ background: "transparent", color: "#1A2540", border: "1px solid #E2E5EA", borderRadius: 8, padding: "9px 18px", fontSize: 15, cursor: suspendBusy ? "default" : "pointer", opacity: suspendBusy ? 0.6 : 1, fontFamily: "inherit" }}>Unpause</button>
             </div>
             {suspendMsg && <div style={{ fontSize: 14, color: "#1A2540", marginTop: 10 }}>{suspendMsg}</div>}
+          </Panel>
+
+          {/* Paused accounts: the current hold list, with a per-row Unpause */}
+          <Panel title={`Paused accounts (${paused.length})`} wide>
+            {paused.length === 0
+              ? <div style={{ fontSize: 14, color: "#4A5568" }}>No accounts are on hold right now.</div>
+              : <table style={S.table}>
+                  <thead><tr><Th>Email</Th><Th>Why</Th><Th>Since</Th><Th right>Action</Th></tr></thead>
+                  <tbody>
+                    {paused.map((p) => (
+                      <tr key={p.email}>
+                        <Td>{p.email}</Td>
+                        <Td>{p.reason || "—"}</Td>
+                        <Td>{p.suspended_at ? new Date(p.suspended_at).toLocaleString() : "—"}</Td>
+                        <Td right>
+                          <button onClick={() => unpauseRow(p.email)} disabled={rowBusy === p.email}
+                            style={{ background: "#2E7D52", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 14, fontWeight: 600, cursor: rowBusy === p.email ? "default" : "pointer", opacity: rowBusy === p.email ? 0.6 : 1, fontFamily: "inherit" }}>
+                            {rowBusy === p.email ? "…" : "Unpause"}
+                          </button>
+                        </Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>}
           </Panel>
           {/* Panel 1: top-line */}
           <Panel title="Top-line">
