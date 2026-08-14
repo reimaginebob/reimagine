@@ -1,7 +1,35 @@
 import { sql } from '../_lib/db.js'
 import { hashToken, createSession, buildCookie } from '../_lib/session.js'
 
+// Magic-link verification is deliberately tolerant of email-security scanners
+// and link-preview bots, which pre-fetch the URLs inside an email before the
+// human ever clicks. Two guards work together to stop the "sign-in loop" those
+// pre-fetches used to cause (a scanner consumed the one-time token, so the
+// human's real click landed on an already-used token and got bounced back to
+// the sign-in screen):
+//
+//   1. Only GET redeems a token. HEAD (and any other method), which many
+//      scanners use to probe a link, returns 200 with NO side effects — a scan
+//      never creates a user, mints a session, or touches the token.
+//
+//   2. The token is redeemable for its full (short, 15-minute) expiry window
+//      rather than exactly once. A scanner's GET no longer "steals" the token:
+//      the human's real click still redeems it and mints their own session.
+//      This trades strict one-time-use for a link that works more than once
+//      within its 15-minute life — an accepted tradeoff (Bob, 2026-08-15) to
+//      keep scanning email gateways from locking users out.
+//
+// Do NOT re-add a `used_at`-based single-use rejection here. That block is
+// exactly what reintroduces the scanner loop. `used_at` is now first-use audit
+// only (see the COALESCE update below).
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store')
+
+  // Guard 1: never mutate state on a non-GET probe.
+  if (req.method !== 'GET') {
+    return res.status(200).end()
+  }
+
   const { token } = req.query
   if (!token || typeof token !== 'string') {
     return res.redirect(302, '/?auth=invalid')
@@ -19,16 +47,18 @@ export default async function handler(req, res) {
     return res.redirect(302, '/?auth=invalid')
   }
   const row = rows[0]
-  if (row.used_at) {
-    return res.redirect(302, '/?auth=used')
-  }
+  // Guard 2: expiry is the only bar to redemption — a set `used_at` no longer
+  // blocks, so a pre-fetched link still works when the human clicks it.
   if (new Date(row.expires_at) < new Date()) {
     return res.redirect(302, '/?auth=expired')
   }
 
-  await sql`UPDATE magic_link_tokens SET used_at = NOW() WHERE token_hash = ${tokenHash}`
+  // Stamp first use for audit without blocking reuse within the expiry window.
+  await sql`UPDATE magic_link_tokens SET used_at = COALESCE(used_at, NOW()) WHERE token_hash = ${tokenHash}`
 
-  // Find or create user
+  // Find or create user. ON CONFLICT keeps concurrent redemptions (a scanner's
+  // GET racing the human's click on a brand-new signup) from colliding on the
+  // UNIQUE email constraint — either redemption resolves to the same user row.
   const existing = await sql`SELECT id FROM users WHERE email = ${row.email} LIMIT 1`
   let userId
   if (existing.length > 0) {
@@ -45,6 +75,7 @@ export default async function handler(req, res) {
         privacy_accepted_at, privacy_version, terms_accepted_at, terms_version)
       VALUES (${row.email}, ${row.first_name}, ${row.last_name}, NOW(),
         ${row.privacy_accepted_at}, ${row.privacy_version}, ${row.terms_accepted_at}, ${row.terms_version})
+      ON CONFLICT (email) DO UPDATE SET last_login_at = NOW()
       RETURNING id
     `
     userId = created[0].id
