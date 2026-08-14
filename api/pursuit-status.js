@@ -97,44 +97,33 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // ===================================================================
-  // TEST-ONLY phase-2 token path — THROWAWAY BRANCH, DO NOT MERGE.
-  // Demonstrates the non-browser push seam: a bearer token resolves to a
-  // fixed Reimagine user, bypassing the cookie/origin path. In real phase two
-  // this becomes a per-user token looked up in the DB, not a hardcoded pair.
-  // This whole block is deleted with the branch after the connectivity test.
-  // ===================================================================
-  const TEST_PUSH_TOKEN = 'aHe5lAuXSGEsbyojCrJGnjbGRyEe88uc'
-  const TEST_PUSH_USER_ID = 'bd802482-4634-4961-bca2-225969da2688'
-  const authHeader = req.headers.authorization || ''
-  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
-
-  let user
-  if (bearer && bearer === TEST_PUSH_TOKEN) {
-    // Token path: no origin, no cookie. Construct the mapped user.
-    user = { id: TEST_PUSH_USER_ID, feature_flags: ['my_search'], suspended_at: null }
-  } else {
-    // Phase-one cookie-authenticated browser path; require an allowlisted origin.
+  // Phase one is the cookie-authenticated browser path; require an allowlisted
+  // origin for it. A phase-two token caller would branch here instead of being
+  // rejected by an unconditional origin gate.
+  const authMode = 'cookie'
+  if (authMode === 'cookie') {
     const origin = req.headers.origin || req.headers.referer || ''
     if (!isAllowedOrigin(origin)) {
       return res.status(403).json({ error: 'Forbidden' })
     }
-    try {
-      user = await getSessionUser(req, res)
-    } catch (err) {
-      console.warn('pursuit-status: session lookup failed', err)
-      user = null
-    }
-    if (!user || !user.id) {
-      return res.status(401).json({ error: 'Not authenticated' })
-    }
-    if (user.suspended_at) {
-      return res.status(403).json({ error: 'account_suspended' })
-    }
-    const flags = Array.isArray(user.feature_flags) ? user.feature_flags : []
-    if (!flags.includes('my_search')) {
-      return res.status(403).json({ error: 'Not enabled' })
-    }
+  }
+
+  let user
+  try {
+    user = await getSessionUser(req, res)
+  } catch (err) {
+    console.warn('pursuit-status: session lookup failed', err)
+    user = null
+  }
+  if (!user || !user.id) {
+    return res.status(401).json({ error: 'Not authenticated' })
+  }
+  if (user.suspended_at) {
+    return res.status(403).json({ error: 'account_suspended' })
+  }
+  const flags = Array.isArray(user.feature_flags) ? user.feature_flags : []
+  if (!flags.includes('my_search')) {
+    return res.status(403).json({ error: 'Not enabled' })
   }
 
   try {

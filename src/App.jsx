@@ -8330,22 +8330,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const sorted=[...ops].sort((a,b)=>{const pa=priority(a),pb=priority(b);if(pa!==pb)return pa-pb;return tieKey(a)-tieKey(b)})
     const fmtDate=(iso)=>{try{return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'})}catch{return ''}}
     const dateInputVal=(iso)=>{try{return iso?new Date(iso).toISOString().slice(0,10):''}catch{return ''}}
-    // "What this week needs" — one deterministic item per opportunity, highest-need first.
-    const needs=[]
-    for(const rec of sorted){
-      const s=stat(rec);if(isClosed(s))continue
-      const n=ncaMs(s);const title=rec.title||rec.company||'This opportunity'
-      if(n!=null&&n<now)needs.push({rec,text:`${title}: your last set conversation was ${fmtDate(s.next_conversation_at)} — follow up`})
-      else if(n!=null)needs.push({rec,text:`${title}: ${PURSUIT_STAGE_LABELS[s.stage]||'conversation'} on ${fmtDate(s.next_conversation_at)}`})
-      else if((s.stage==='interviewing'||s.stage==='offer')&&!_opSectionBuilt(sec(rec),'p11'))needs.push({rec,text:`${title}: build Interview Prep before your conversation`})
-      else if(s.next_move&&String(s.next_move).trim())needs.push({rec,text:`${title}: ${String(s.next_move).trim()}`})
-    }
-    const weekNeeds=needs.slice(0,5)
-    return wrap(<>
-      {weekNeeds.length>0&&<div style={{margin:'0 0 16px',padding:'16px 20px',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:14}}>
-        <div style={{fontSize:15,fontWeight:800,letterSpacing:'0.4px',textTransform:'uppercase',color:C.gold,margin:'0 0 8px'}}>What this week needs</div>
-        {weekNeeds.map((it,i)=><button key={i} type="button" onClick={()=>openPursuitRecord(it.rec,'op')} style={{display:'block',width:'100%',textAlign:'left',background:'transparent',border:'none',borderTop:i===0?'none':`1px solid ${C.border}`,padding:'9px 0',fontSize:16,color:'#1A2540',cursor:'pointer',fontFamily:'inherit',lineHeight:1.5}}>{it.text}</button>)}
-      </div>}
+    return wrap(
       <div style={{display:'flex',flexDirection:'column',gap:16}}>
         {sorted.map(rec=>{
           const s=stat(rec);const title=rec.title||rec.company||'Opportunity';const built=builtCount(rec)
@@ -8367,6 +8352,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </div>
             <div style={{marginTop:10}}>
               <input defaultValue={s.next_move||''} placeholder="What are you doing next? (e.g. send a follow-up note)" onBlur={e=>{const v=e.target.value.trim();if(v!==(s.next_move||''))savePursuit(rec.id,{next_move:v||null})}} style={{width:'100%',boxSizing:'border-box',fontSize:16,fontFamily:'inherit',padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
+              {coachNudge(`I'm working the ${title} opportunity${s.stage?` — it's at the ${(PURSUIT_STAGE_LABELS[s.stage]||s.stage).toLowerCase()} stage`:''}${s.next_conversation_at?`, and my next conversation is ${fmtDate(s.next_conversation_at)}`:''}. What's a good next step to move it forward?`,"Not sure? Talk it through with your Coach",{margin:'8px 0 0'})}
             </div>
             <div style={{marginTop:10,display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
               <span style={{fontSize:15,color:C.grayL}}>{built} of {OP_COUNTED_KEYS.length} built:</span>
@@ -8375,7 +8361,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
         })}
       </div>
-    </>)
+    )
   }
   const applyRoleSwitchDoor1=(newRoleTitle,lane)=>{
     setCurrentRoleSaved(false)
