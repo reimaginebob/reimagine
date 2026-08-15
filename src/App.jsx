@@ -5043,26 +5043,10 @@ export default function PivotEngine(){
   // pursuit_status rows, column-name shape as returned by GET /api/pursuit-status.
   const[pursuitStatus,setPursuitStatus]=useState([])
   const pursuitReconciledRef=useRef(false)
-  // Phase-2 connector token (Connect your assistant). status={connected,createdAt};
-  // revealedToken holds the plaintext for the one render after minting.
-  const[pushTokenStatus,setPushTokenStatus]=useState({connected:false,createdAt:null})
-  const[revealedToken,setRevealedToken]=useState('')
-  const[tokenBusy,setTokenBusy]=useState(false)
+  // Phase-2 connector: the OAuth flow happens inside Claude (Add connector ->
+  // Connect -> Allow), so the panel is instructions only. connectorSetupOpen
+  // just toggles the plumbing into view under the automagic pitch.
   const[connectorSetupOpen,setConnectorSetupOpen]=useState(false)
-  const generatePushToken=async()=>{
-    setTokenBusy(true)
-    try{
-      const r=await fetch('/api/push-token',{method:'POST',credentials:'include'})
-      if(r.ok){const d=await r.json();if(d.token){setRevealedToken(d.token);setPushTokenStatus({connected:true,createdAt:d.createdAt||null})}}
-    }catch{}
-    setTokenBusy(false)
-  }
-  const revokePushToken=async()=>{
-    if(!window.confirm('Disconnect your assistant? Its token stops working immediately; you can generate a new one anytime.'))return
-    setTokenBusy(true)
-    try{const r=await fetch('/api/push-token',{method:'DELETE',credentials:'include'});if(r.ok){setRevealedToken('');setPushTokenStatus({connected:false,createdAt:null})}}catch{}
-    setTokenBusy(false)
-  }
   const pursuitStatusFor=(recordId)=>pursuitStatus.find(r=>r&&r.record_id===recordId)||null
   // Optimistic status write. `patch` uses column names (stage, next_move,
   // next_conversation_at, closed_at, outcome); translated to the endpoint's body
@@ -5111,7 +5095,6 @@ export default function PivotEngine(){
     if(isDemo||isTest)return
     if(!hasMySearch)return
     fetch('/api/pursuit-status',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitStatus(d.rows)}).catch(()=>{})
-    fetch('/api/push-token',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d)setPushTokenStatus({connected:!!d.connected,createdAt:d.createdAt||null})}).catch(()=>{})
   },[hasMySearch,isDemo,isTest])
   // Orphan reconcile: on first arrival at My Playbooks, tell the server which
   // Door 2 record ids still exist so it can prune status rows for deleted /
@@ -8402,38 +8385,26 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const connectAssistantPanel=()=>{
     const mcpUrl=(typeof window!=='undefined'?window.location.origin:'https://reimagine.career.club')+'/api/mcp'
     const copyText=(t)=>{try{navigator.clipboard.writeText(t)}catch{};setToast('Copied');setTimeout(()=>setToast(x=>x==='Copied'?null:x),1500)}
-    const showSetup=connectorSetupOpen||pushTokenStatus.connected
     return <div style={{maxWidth:900,margin:'8px 0 32px'}}>
       <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>Keep your pipeline current — automatically <span style={{fontSize:15,fontWeight:600,color:C.gold}}>· beta</span></h2>
       <CoachingCallout>Stop maintaining your pipeline by hand. Give your own Claude permission and it watches your email and calendar, notices when an opportunity moves, and keeps its stage, dates, and next step up to date for you. <strong>Reimagine never touches your inbox</strong> — your assistant does the reading and sends back only the status. Prefer to keep it by hand? That works too.</CoachingCallout>
-      {!showSetup?
+      {!connectorSetupOpen?
         <Btn prominent onClick={()=>setConnectorSetupOpen(true)}>Set up automatic updates</Btn>
       :
       <div style={{padding:'18px 20px',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:14}}>
-        <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:12}}>{pushTokenStatus.connected?'Your assistant is connected':'Set it up — three steps'}</div>
+        <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:12}}>Connect it — four steps</div>
         <ol style={{margin:'0 0 4px 20px',padding:0,fontSize:16,color:C.grayL,lineHeight:1.7}}>
           <li style={{marginBottom:10}}>In Claude, connect <strong>Gmail</strong> and <strong>Google Calendar</strong> (Settings → Connectors).</li>
-          <li style={{marginBottom:10}}>Add the Reimagine connector to Claude using this URL:
+          <li style={{marginBottom:10}}>In the same <strong>Settings → Connectors</strong>, choose <strong>Add custom connector</strong> and paste this URL there (add it in Settings, not in the chat box):
             <div style={{display:'flex',gap:8,alignItems:'center',margin:'6px 0 0'}}>
               <code style={{flex:1,minWidth:0,fontSize:15,background:'#F6F7F9',border:`1px solid ${C.border}`,borderRadius:7,padding:'8px 10px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{mcpUrl}</code>
               <Btn small secondary onClick={()=>copyText(mcpUrl)}>Copy</Btn>
             </div>
           </li>
-          <li>Authorize it with the token below, then tell Claude: <em>&ldquo;Update my pipeline in Reimagine from my email and calendar.&rdquo;</em></li>
+          <li style={{marginBottom:10}}>Click <strong>Connect</strong>, then <strong>Allow</strong> on the Reimagine screen that opens.</li>
+          <li>Tell Claude: <em>&ldquo;Update my pipeline in Reimagine from my email and calendar.&rdquo;</em></li>
         </ol>
-        <div style={{marginTop:16,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
-          {revealedToken?<>
-            <div style={{fontSize:15,color:C.gray,marginBottom:6}}>Your connector token — <strong>copy it now; it won't be shown again.</strong></div>
-            <div style={{display:'flex',gap:8,alignItems:'center'}}>
-              <code style={{flex:1,minWidth:0,fontSize:15,background:'#FFF9EC',border:`1.5px solid ${C.gold}`,borderRadius:7,padding:'8px 10px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{revealedToken}</code>
-              <Btn small prominent onClick={()=>copyText(revealedToken)}>Copy</Btn>
-            </div>
-          </>:<>
-            <div style={{fontSize:15,color:C.gray,marginBottom:8}}>{pushTokenStatus.connected?'A token is active. Generate a new one to replace it (the old one stops working).':'Generate a token to authorize your assistant.'}</div>
-            <Btn small onClick={generatePushToken}>{tokenBusy?'Working…':(pushTokenStatus.connected?'Generate a new token':'Generate token')}</Btn>
-            {pushTokenStatus.connected&&<button type="button" onClick={revokePushToken} style={{marginLeft:12,background:'none',border:'none',color:C.gray,fontSize:15,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Disconnect</button>}
-          </>}
-        </div>
+        <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`,fontSize:15,color:C.gray,lineHeight:1.6}}>One <strong>Allow</strong> in Reimagine — no passwords, no token to copy. Disconnect anytime from Claude's connector settings.</div>
       </div>
       }
     </div>
@@ -10700,7 +10671,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>
