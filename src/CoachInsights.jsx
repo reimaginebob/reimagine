@@ -11,6 +11,10 @@
 // cream / navy / amber palette; no new dependencies.
 import { useState, useEffect, useCallback } from "react"
 
+// Minimum rated replies before the helpful-% is shown as a figure. Below this the
+// percentage swings wildly on one thumb and reads as a metric it is not.
+const RATED_MIN = 10
+
 const NAVY = "#1A2540"
 const GOLD = "#C8924A"
 const GOLDL = "#A06828"
@@ -171,14 +175,19 @@ export default function CoachInsights() {
         <div style={S.headlineGrid}>
           <Stat label="Questions in window" value={totals.messages} />
           <Stat label="Tagged" value={totals.tagged} sub={`v${p.taxonomyVersion ?? "?"}`} />
-          <Stat label="Coach found a feature" value={vb.matched} accent />
-          <Stat label="Came up empty (none)" value={vb.none} sub={`${vb.nonePct}% of answered`} big danger />
+          <Stat label="Surfaced a feature" value={vb.matched} accent />
+          <Stat label="No feature surfaced" value={vb.none} sub={`${vb.nonePct}% of answered`} />
+          <Stat label="Real gaps (product-gap)" value={totals.productGap ?? 0} big danger />
           <Stat label="No self-check logged" value={vb.null} sub="pre-migration / legacy" />
         </div>
 
-        {/* Unmet-need questions, front and center. Raw text rides the review gate. */}
-        <Panel title={`Unmet-need questions (${unmet.length})`} subtitle={contentReview ? "Coach self-check returned “none” — newest first." : "Coach self-check returned “none” — counts/tags shown; question text behind the review gate."}>
-          {unmet.length === 0 ? <div style={S.empty}>No unmet-need questions in this window.</div> : (
+        {/* Turns where the coach answered without naming a feature. NOT a gap list:
+            the self-check answers "should I surface a feature in this reply?", which
+            the prompt keeps deliberately conservative, and some features (My Pipeline)
+            have no slug and log 'none' by design. Filter Need type to product-gap for
+            the real gaps. Raw text rides the review gate. */}
+        <Panel title={`Turns with no feature surfaced (${unmet.length})`} subtitle={contentReview ? "Coach answered without naming a feature — often the right call, not a gap. Filter Need type to product-gap for real gaps. Newest first." : "Coach answered without naming a feature — often the right call, not a gap. Counts/tags shown; question text behind the review gate."}>
+          {unmet.length === 0 ? <div style={S.empty}>Every answered turn in this window surfaced a feature.</div> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {unmet.map((u, i) => {
                 const a = u.attributes || {}
@@ -221,7 +230,11 @@ export default function CoachInsights() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12, marginBottom: 14 }}>
                 <Stat label="Helpful" value={aq.up} accent />
                 <Stat label="Not helpful" value={aq.down} danger />
-                <Stat label="% helpful" value={`${aq.helpfulPct}%`} big />
+                {/* A percentage off a handful of ratings reads as a measurement and
+                    is not one — show the figure only once the sample can carry it. */}
+                {(aq.up + aq.down) >= RATED_MIN
+                  ? <Stat label="% helpful" value={`${aq.helpfulPct}%`} big />
+                  : <Stat label="% helpful" value="—" sub={`too few ratings (need ${RATED_MIN})`} />}
               </div>
               <div style={S.mixGrid}>
                 <Panel title="Thumbs-down by topic" subtitle="Click a value to filter">

@@ -100,7 +100,11 @@ export default async function handler(req, res) {
         count(*) FILTER (WHERE c.selfcheck_verdict = 'none')::int AS none_count,
         count(*) FILTER (WHERE c.selfcheck_verdict IS NULL)::int AS unset,
         count(*) FILTER (WHERE c.rating = 1)::int AS thumbs_up,
-        count(*) FILTER (WHERE c.rating = -1)::int AS thumbs_down
+        count(*) FILTER (WHERE c.rating = -1)::int AS thumbs_down,
+        -- The real unmet-need signal. selfcheck_verdict='none' answers a different
+        -- question ("should I surface a feature in THIS reply?") and is deliberately
+        -- conservative, so it is not a gap count and must not be labelled as one.
+        count(*) FILTER (WHERE t.attributes->>'need_type' = 'product-gap')::int AS product_gap
       FROM chat_messages c
       LEFT JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
@@ -253,7 +257,7 @@ export default async function handler(req, res) {
       contentReview,
       filter,
       categories: CATEGORIES,
-      totals: { messages: tr.total, tagged: tr.tagged },
+      totals: { messages: tr.total, tagged: tr.tagged, productGap: tr.product_gap },
       verdictBreakdown,
       distribution,
       featureBreakdown,
