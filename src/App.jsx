@@ -8923,6 +8923,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={S.card}>
         <div style={S.field}><label style={S.label}>Core Values: 3 to 5 non-negotiables</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>The conditions under which you do your best work and feel most like yourself.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.values} onChange={e=>pr('values',e.target.value)} placeholder="e.g. Independence, Family, Justice, Stability, Wealth creation, Cooperation, Service, Faith, Intellectual challenge…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('values',t)}/>}</div></div>
         <div style={S.field}><label style={S.label}>Passions, Interests & Causes (3-5)</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>What do you read about for fun, volunteer your time for, or could talk about for 30 minutes with zero preparation? Include hobbies, industries that fascinate you, communities you belong to, and causes close to your heart.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.passions} onChange={e=>pr('passions',e.target.value)} placeholder="e.g. Youth mentoring, Formula 1, Fintech, Sustainability, Veterans' employment, Youth sports, Faith-based service, Addiction recovery, Women in leadership, Gaming, Geopolitics…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('passions',t)}/>}</div></div>
+        <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4}}>What you share here stays private to your account.</div>
       </div>
       {err&&<ErrBox msg={err}/>}
       {coachNudge(ASK_COACH_ORIENT.values,'Not sure what to put here? Ask your coach',{margin:'0 0 16px'})}
@@ -8967,6 +8968,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </ul>
         <p style={{margin:'10px 0 0'}}>The phrases other people use to describe you are often more accurate than the ones you use about yourself. The Memory and the Emergency Call do the most work for the analysis that follows, so prioritize those.</p>
       </div>
+      <div style={{fontSize:15,color:C.gray,lineHeight:1.5,margin:'0 0 14px'}}>The specifics you share here stay private to your account.</div>
       <div style={S.card}>
         {[['memory','The Memory',"Think of a specific moment at work when someone thanked you or praised you. What was the situation and what did they say?"],['emergency','The Emergency Call','If your former team had a critical problem right now, what type of situation would they call you to handle?'],['twoWords','The Two Words','If your best former manager described your professional superpower in exactly two words, what would they be?'],['other','Additional Feedback','Performance reviews, LinkedIn recommendations, 360 feedback. Paste anything here.']].map(([f,lbl,hint])=><div key={f} style={S.field}><label style={S.label}>{lbl}</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>{hint}</div>{f==='other'&&<div style={{marginBottom:14}}>
           <p style={S.helperText}>Old performance reviews, 360 feedback, LinkedIn recommendations as PDFs. You can upload multiple files; each gets added to the text below with a divider line so Reimagine can attribute what came from where.</p>
@@ -8994,7 +8996,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <p style={S.sub}>We'd love to get to know you better. The things that shape who we are often don't show up on a resume, like the role we played in our family, an identity we carry, a person who shaped us, or a season that changed us. If something like that comes to mind, share it. One thing or several.</p>
       <div style={S.card}>
         <div style={S.field}>
-          <div style={S.helperText}>Optional. Share only what you're comfortable with.</div>
+          <div style={S.helperText}>Optional. Share only what you're comfortable with. This stays private to your account, and you can delete it anytime with Start Fresh.</div>
           <div style={{position:'relative'}}>
             <textarea style={{...S.ta,minHeight:180,paddingRight:hasSpeech?44:15}} value={profile.lifeEvents||''} onChange={e=>pr('lifeEvents',e.target.value)}/>
             {hasSpeech&&<SpeechBtn onResult={t=>pr('lifeEvents',(profile.lifeEvents||'')+t)} style={{position:'absolute',right:8,bottom:8}}/>}
