@@ -8332,10 +8332,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // parallel derivation. Deterministic, no generation.
   const OP_CARD_LABELS={companyRead:'About This Company',p5:'Where you fit',p6:'Bridge Story',p_res:'Resume Refresh',p_cover:'Cover Letter',p11:'Interview Prep'}
   const openPursuitRecord=(rec,target)=>{track('mysearch_next_move_click',{recordId:rec.id,target:target||'op'});restoreFromSavedSlot(rec)}
+  // Built chip -> open the record and jump to that section (reuses the op rail's
+  // scroll target). Delay lets the op page render + the step-change scroll reset
+  // fire first, so this scroll wins.
+  const openPursuitSection=(rec,key)=>{track('mysearch_section_jump',{recordId:rec.id,section:key});restoreFromSavedSlot(rec);setTimeout(()=>scrollToOutput(key),250)}
+  const removeOpportunity=(rec)=>{if(window.confirm(`Remove "${rec.title||'this opportunity'}" from your pipeline? This deletes its playbook.`))deleteFromSavedSet(rec.id)}
   const mySearchPanel=()=>{
     const ops=savedPlaybooks.filter(r=>r&&r.source==='door2')
     const wrap=(inner)=><div style={{maxWidth:900,margin:'0 0 32px'}}>
-      <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>My Pipeline</h2>
+      <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',margin:'0 0 6px'}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:0}}>My Pipeline</h2>
+        <Btn small secondary onClick={addNewOpportunity}>+ Add an Opportunity</Btn>
+      </div>
       <CoachingCallout>All the opportunities you're pursuing, in one place. As things change, update where each one stands, when you'll next talk, and what you're doing next — it all saves, so it's here whenever you come back.</CoachingCallout>
       {inner}
     </div>
@@ -8377,7 +8385,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </div>
             <div style={{marginTop:10,display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
               <span style={{fontSize:15,color:C.grayL}}>{built} of {OP_COUNTED_KEYS.length} built:</span>
-              {OP_COUNTED_KEYS.map(k=>{const on=_opSectionBuilt(sec(rec),k);return <span key={k} style={{fontSize:15,padding:'3px 8px',borderRadius:20,border:`1px solid ${on?C.gold:C.border}`,background:on?`${C.gold}22`:'transparent',color:on?'#1A2540':C.grayL}}>{OP_CARD_LABELS[k]||k}</span>})}
+              {OP_COUNTED_KEYS.map(k=>{const on=_opSectionBuilt(sec(rec),k);const label=OP_CARD_LABELS[k]||k;return on
+                ?<button key={k} type="button" onClick={()=>openPursuitSection(rec,k)} title={`Go to ${label}`} style={{fontSize:15,padding:'3px 8px',borderRadius:20,border:`1px solid ${C.gold}`,background:`${C.gold}22`,color:'#1A2540',cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
+                :<span key={k} title="Not built yet" style={{fontSize:15,padding:'3px 8px',borderRadius:20,border:`1px solid ${C.border}`,background:'transparent',color:C.grayL}}>{label}</span>})}
+            </div>
+            <div style={{marginTop:12,display:'flex',justifyContent:'flex-end'}}>
+              <button type="button" onClick={()=>removeOpportunity(rec)} style={{background:'none',border:'none',color:C.gray,fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>Remove from pipeline</button>
             </div>
           </div>
         })}
@@ -9498,7 +9511,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {hasMySearch&&mySearchPanel()}
       {hasMySearch&&connectAssistantPanel()}
       {_comparable.length>=2&&<div style={{margin:'0 0 16px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({_comparable.length}) <ChevronRight size={14}/></Btn></div>}
-      <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity}/>
+      <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasMySearch}/>
     </div>
     }
     case'income':{
