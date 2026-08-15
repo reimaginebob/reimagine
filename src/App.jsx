@@ -5060,7 +5060,7 @@ export default function PivotEngine(){
       if(i>=0){const c=[...prev];c[i]=merged;return c}
       return[...prev,merged]
     })
-    const KMAP={next_move:'nextMove',next_conversation_at:'nextConversationAt',closed_at:'closedAt'}
+    const KMAP={next_move:'nextMove',next_conversation_at:'nextConversationAt',next_step_at:'nextStepAt',closed_at:'closedAt'}
     const body={recordId}
     for(const k of Object.keys(patch))body[KMAP[k]||k]=patch[k]
     if(!isDemo&&!isTest){try{fetch('/api/pursuit-status',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(()=>{})}catch{}}
@@ -8337,8 +8337,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const stat=(rec)=>pursuitStatusFor(rec.id)||{}
     const isClosed=(s)=>s.stage==='closed'||!!s.closed_at
     const ncaMs=(s)=>s.next_conversation_at?new Date(s.next_conversation_at).getTime():null
-    const priority=(rec)=>{const s=stat(rec);if(isClosed(s))return 600;const n=ncaMs(s);if(n!=null&&n<now)return 100;if(n!=null)return 200;if(s.next_move&&String(s.next_move).trim())return 300;if((s.stage==='interviewing'||s.stage==='offer')&&builtCount(rec)<OP_COUNTED_KEYS.length)return 400;return 500}
-    const tieKey=(rec)=>{const s=stat(rec);const p=priority(rec);const n=ncaMs(s);if((p===100||p===200)&&n!=null)return n;return -(new Date(s.updated_at||rec.updatedAt||0).getTime()||0)}
+    const stepMs=(s)=>s.next_step_at?new Date(s.next_step_at).getTime():null
+    // Attention-first: overdue next step (you meant to act) > passed meeting >
+    // soonest upcoming date (step or meeting) > has a next step > build gap > rest.
+    const priority=(rec)=>{const s=stat(rec);if(isClosed(s))return 600;const st=stepMs(s);const n=ncaMs(s);if(st!=null&&st<now)return 100;if(n!=null&&n<now)return 150;if([st,n].some(x=>x!=null&&x>=now))return 200;if(s.next_move&&String(s.next_move).trim())return 300;if((s.stage==='interviewing'||s.stage==='offer')&&builtCount(rec)<OP_COUNTED_KEYS.length)return 400;return 500}
+    const tieKey=(rec)=>{const s=stat(rec);const p=priority(rec);const st=stepMs(s);const n=ncaMs(s);if(p===100)return st;if(p===150)return n;if(p===200)return Math.min(...[st,n].filter(x=>x!=null&&x>=now));return -(new Date(s.updated_at||rec.updatedAt||0).getTime()||0)}
     const sorted=[...ops].sort((a,b)=>{const pa=priority(a),pb=priority(b);if(pa!==pb)return pa-pb;return tieKey(a)-tieKey(b)})
     const fmtDate=(iso)=>{try{return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'})}catch{return ''}}
     const dateInputVal=(iso)=>{try{return iso?new Date(iso).toISOString().slice(0,10):''}catch{return ''}}
@@ -8358,13 +8361,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {PURSUIT_STAGES.map(st=><option key={st.value} value={st.value}>{st.label}</option>)}
                 </select>
               </label>
-              <label style={{fontSize:15,color:C.gray}}>Next time you'll talk{' '}
+              <label style={{fontSize:15,color:C.gray}}>Next scheduled meeting{' '}
                 <input type="date" value={dateInputVal(s.next_conversation_at)} onChange={e=>savePursuit(rec.id,{next_conversation_at:e.target.value?new Date(e.target.value).toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
               </label>
             </div>
-            <div style={{marginTop:10}}>
-              <input defaultValue={s.next_move||''} placeholder="What are you doing next? (e.g. send a follow-up note)" onBlur={e=>{const v=e.target.value.trim();if(v!==(s.next_move||''))savePursuit(rec.id,{next_move:v||null})}} style={{width:'100%',boxSizing:'border-box',fontSize:16,fontFamily:'inherit',padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
-              {coachNudge(`I'm working the ${title} opportunity${s.stage?` — it's at the ${(PURSUIT_STAGE_LABELS[s.stage]||s.stage).toLowerCase()} stage`:''}${s.next_conversation_at?`, and my next conversation is ${fmtDate(s.next_conversation_at)}`:''}. What's a good next step to move it forward?`,"Not sure? Talk it through with your Coach",{margin:'8px 0 0'})}
+            <div style={{marginTop:12}}>
+              <div style={{fontSize:15,color:C.gray,marginBottom:6}}>My Next Steps</div>
+              <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                <input defaultValue={s.next_move||''} placeholder="Your next step (e.g. send a follow-up note)" onBlur={e=>{const v=e.target.value.trim();if(v!==(s.next_move||''))savePursuit(rec.id,{next_move:v||null})}} style={{flex:1,minWidth:220,boxSizing:'border-box',fontSize:16,fontFamily:'inherit',padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
+                <label style={{fontSize:15,color:C.gray,whiteSpace:'nowrap'}}>by{' '}
+                  <input type="date" value={dateInputVal(s.next_step_at)} onChange={e=>savePursuit(rec.id,{next_step_at:e.target.value?new Date(e.target.value).toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
+                </label>
+              </div>
+              {coachNudge(`I'm working the ${title} opportunity${s.stage?` — it's at the ${(PURSUIT_STAGE_LABELS[s.stage]||s.stage).toLowerCase()} stage`:''}${s.next_conversation_at?`, and my next meeting is ${fmtDate(s.next_conversation_at)}`:''}. What's a good next step to move it forward?`,"Not sure? Talk it through with your Coach",{margin:'8px 0 0'})}
             </div>
             <div style={{marginTop:10,display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
               <span style={{fontSize:15,color:C.grayL}}>{built} of {OP_COUNTED_KEYS.length} built:</span>
