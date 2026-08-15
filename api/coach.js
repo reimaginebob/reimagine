@@ -198,7 +198,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags) {
   // this note is the only place the Coach learns of it until GA.
   const hasMySearch = Array.isArray(featureFlags) && featureFlags.includes('my_search')
   const myStatusNote = hasMySearch
-    ? '\n\nMY PIPELINE (this person has it; it is a limited pilot feature most users do not have — never imply it is generally available): My Pipeline is a live view of their saved Opportunity Playbooks, on its own My Pipeline screen (its own item in the sidebar, separate from My Playbooks). Each opportunity shows where it stands, when they will next talk, the next step they are taking, and which playbook cards are built, ordered so the one that needs attention comes first. They keep it current by editing a card, or by telling you when something changes — a date moved, an interview happened, an opportunity ended — and you offer to save it with one tap. They can also connect their own assistant (Gmail and Calendar) to keep it updated automatically if they want; Reimagine never reads their inbox. When they ask how to track their search or where an opportunity stands, this is the answer. Name it plainly in your normal voice; do not pitch it. There is no self-check slug for My Pipeline, so when it is the fitting answer, still help, and end with SELFCHECK: none.'
+    ? '\n\nMY PIPELINE (this person has it; it is a limited pilot feature most users do not have — never imply it is generally available): My Pipeline is a live view of their saved Opportunity Playbooks, on its own My Pipeline screen (its own item in the sidebar, separate from My Playbooks). Each opportunity shows where it stands, when they will next talk, the next step they are taking, and which playbook cards are built, ordered so the one that needs attention comes first. They keep it current by editing a card, or by telling you when something changes — a date moved, an interview happened, an opportunity ended — and you offer to save it with one tap. They can also connect their own assistant (Gmail and Calendar) to keep it updated automatically if they want; Reimagine never reads their inbox. When they ask how to track their search or where an opportunity stands, this is the answer. Name it plainly in your normal voice; do not pitch it. There is no self-check slug for My Pipeline, so when it is the fitting answer, still help, and end with SELFCHECK: none. INTERVIEW TEAM CAPTURE: when this person names one or more specific people they will be interviewing with for one of their opportunities, end your reply with a final line exactly like INTERVIEWTEAM: {"opportunity":"<the opportunity title from their saved work>","people":[{"name":"Full Name","title":"their title if stated"}]} listing only the people they explicitly named. The app turns that line into a one-tap "add to your Interview Team" offer and never shows it. Only emit it when they clearly named interviewers; otherwise omit it entirely.'
     : ''
 
   return `THIS USER'S REIMAGINE PROFILE (read-only; you can reference and reason about it, but you never change it):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusNote}`
@@ -641,7 +641,27 @@ export default async function handler(req, res) {
   const { feature, text: selfcheckStripped } = parseSelfcheck(cleaned)
   const selfcheckVerdict = feature ? 'matched' : 'none'
   const selfcheckSurfaced = feature ? 'prose' : 'none'
-  const strippedText = selfcheckStripped.trim()
+  const strippedText0 = selfcheckStripped.trim()
+  // Interview-team capture: the model may end with an INTERVIEWTEAM: {json} line
+  // naming people the user said they'll interview with. Strip it from the reply
+  // and ship the extracted people on a response header; the client turns it into
+  // a one-tap "add to your Interview Team" offer. Non-flagged users never get the
+  // instruction, so this simply no-ops for them.
+  let interviewersB64 = null
+  let strippedText = strippedText0
+  const itMatch = strippedText0.match(/^\s*INTERVIEWTEAM:\s*(\{[\s\S]*?\})\s*$/im)
+  if (itMatch) {
+    strippedText = strippedText0.replace(itMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(itMatch[1])
+      const people = (parsed && Array.isArray(parsed.people) ? parsed.people : [])
+        .map(p => ({ name: String((p && p.name) || '').slice(0, 200), title: String((p && p.title) || '').slice(0, 200) }))
+        .filter(p => p.name)
+      if (people.length) {
+        interviewersB64 = Buffer.from(JSON.stringify({ opportunity: String((parsed && parsed.opportunity) || '').slice(0, 200), people: people.slice(0, 12) })).toString('base64')
+      }
+    } catch { /* malformed — drop the line, no offer */ }
+  }
   // Distress safety-net: guarantees a human-pointer on genuine-distress inputs.
   // Runs here (not in applyOutputStrippers) because the triggers live in the
   // user's message.
@@ -665,6 +685,7 @@ export default async function handler(req, res) {
   }
 
   if (rowId) res.setHeader('X-Coach-Message-Id', String(rowId))
+  if (interviewersB64) res.setHeader('X-Coach-Interviewers', interviewersB64)
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.setHeader('Cache-Control', 'no-cache')
   res.status(200)

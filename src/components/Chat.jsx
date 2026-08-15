@@ -28,7 +28,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false }) {
   const [open, setOpen] = useState(false)
   // App bumps openRequest to open the floating coach programmatically (e.g. the
   // Personal Brand check-in on first arrival at Put it to Work).
@@ -183,6 +183,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // it's readable without CORS config). Stash it on the assistant message so
         // the thumbs below it can attach a rating to that exact row.
         const msgId = res.headers.get('X-Coach-Message-Id') || null
+        const itHeader = res.headers.get('X-Coach-Interviewers') || null
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let fullText = ''
@@ -218,6 +219,18 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         if (pursuitCaptureActive && pursuitOfferMessage && !pursuitOfferedRef.current && !pursuitPending && !empJustFired && STAGE_MENTION_RE.test(userMsg.content)) {
           pursuitOfferedRef.current = true
           setMessages(m => [...m, pursuitOfferMessage])
+        }
+        // Interview-team capture: the server extracted people the user named as
+        // interviewers onto the X-Coach-Interviewers header. Offer a one-tap add.
+        if (interviewTeamCaptureActive && itHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(itHeader), c => c.charCodeAt(0))))
+            const names = (data && Array.isArray(data.people) ? data.people : []).map(p => p && p.name).filter(Boolean)
+            if (names.length) {
+              const where = data.opportunity ? ` to your ${data.opportunity} Interview Team` : ' to your Interview Team'
+              setMessages(m => [...m, { role: 'assistant', content: `It looks like you're interviewing with ${names.join(', ')}. Want me to add ${names.length > 1 ? 'them' : 'them'}${where}?`, checkinKey: 'interview-team', quickReplies: [{ label: 'Add to my team', value: JSON.stringify(data), followUp: 'Added to your Interview Team.' }, { label: 'Not now', value: 'dismiss' }] }])
+            }
+          } catch { /* malformed header — no offer */ }
         }
       }
     } catch {
