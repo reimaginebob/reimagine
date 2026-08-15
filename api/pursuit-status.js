@@ -65,7 +65,7 @@ function parseTs(v) {
 // patch over the existing row so unspecified fields are preserved, then upserts.
 async function writeCore(userId, recordId, patch) {
   const existingRows = await sql`
-    SELECT stage, next_conversation_at, next_move, closed_at, outcome
+    SELECT stage, next_conversation_at, next_step_at, next_move, closed_at, outcome
     FROM pursuit_status
     WHERE user_id = ${userId}::uuid AND record_id = ${recordId}
     LIMIT 1
@@ -75,16 +75,18 @@ async function writeCore(userId, recordId, patch) {
 
   const stage = has('stage') ? patch.stage : (prev.stage ?? null)
   const nextConversationAt = has('next_conversation_at') ? patch.next_conversation_at : (prev.next_conversation_at ?? null)
+  const nextStepAt = has('next_step_at') ? patch.next_step_at : (prev.next_step_at ?? null)
   const nextMove = has('next_move') ? patch.next_move : (prev.next_move ?? null)
   const closedAt = has('closed_at') ? patch.closed_at : (prev.closed_at ?? null)
   const outcome = has('outcome') ? patch.outcome : (prev.outcome ?? null)
 
   await sql`
-    INSERT INTO pursuit_status (user_id, record_id, stage, next_conversation_at, next_move, closed_at, outcome, updated_at)
-    VALUES (${userId}::uuid, ${recordId}, ${stage}, ${nextConversationAt}, ${nextMove}, ${closedAt}, ${outcome}, NOW())
+    INSERT INTO pursuit_status (user_id, record_id, stage, next_conversation_at, next_step_at, next_move, closed_at, outcome, updated_at)
+    VALUES (${userId}::uuid, ${recordId}, ${stage}, ${nextConversationAt}, ${nextStepAt}, ${nextMove}, ${closedAt}, ${outcome}, NOW())
     ON CONFLICT (user_id, record_id)
     DO UPDATE SET stage = EXCLUDED.stage,
                   next_conversation_at = EXCLUDED.next_conversation_at,
+                  next_step_at = EXCLUDED.next_step_at,
                   next_move = EXCLUDED.next_move,
                   closed_at = EXCLUDED.closed_at,
                   outcome = EXCLUDED.outcome,
@@ -145,7 +147,7 @@ export default async function handler(req, res) {
   try {
     if (method === 'GET') {
       const rows = await sql`
-        SELECT record_id, stage, next_conversation_at, next_move, closed_at, outcome, updated_at
+        SELECT record_id, stage, next_conversation_at, next_step_at, next_move, closed_at, outcome, updated_at
         FROM pursuit_status
         WHERE user_id = ${user.id}::uuid
       `
@@ -180,6 +182,11 @@ export default async function handler(req, res) {
         const p = parseTs(body.nextConversationAt)
         if (!p.ok) return res.status(400).json({ error: 'invalid nextConversationAt' })
         patch.next_conversation_at = p.value
+      }
+      if (Object.prototype.hasOwnProperty.call(body, 'nextStepAt')) {
+        const p = parseTs(body.nextStepAt)
+        if (!p.ok) return res.status(400).json({ error: 'invalid nextStepAt' })
+        patch.next_step_at = p.value
       }
       if (Object.prototype.hasOwnProperty.call(body, 'closedAt')) {
         const p = parseTs(body.closedAt)

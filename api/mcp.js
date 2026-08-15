@@ -39,14 +39,15 @@ const TOOLS = [
   },
   {
     name: 'update_pursuit',
-    description: "Update the tracked status of ONE existing opportunity (identified by a record_id from list_pursuits). Only set fields you have real evidence for from the user's mail/calendar; omit fields you do not know. Never guess a stage.",
+    description: "Update the tracked status of ONE existing opportunity (identified by a record_id from list_pursuits). Only set fields you have real evidence for from the user's mail/calendar; omit fields you do not know. Never guess a stage. Keep the two dates distinct: next_conversation_at is a real MEETING on the calendar; next_step_at is a self-reminder for the user's next action, not an appointment.",
     inputSchema: {
       type: 'object',
       properties: {
         record_id: { type: 'string', description: 'The opportunity id from list_pursuits.' },
         stage: { type: 'string', enum: [...VALID_STAGES], description: 'Where the pursuit stands.' },
-        next_conversation_at: { type: 'string', description: 'ISO 8601 timestamp of the next scheduled conversation/interview, or null to clear.' },
-        next_move: { type: 'string', description: 'One concrete next step, or null to clear.' },
+        next_conversation_at: { type: 'string', description: 'ISO 8601 timestamp of the next scheduled MEETING — a real event on the calendar (interview, screen, call). Set this ONLY from an actual calendar event; null to clear. Never put a self-reminder here.' },
+        next_move: { type: 'string', description: 'The next step the user will take (the text of "My Next Steps"), e.g. "send a follow-up note". Pairs with next_step_at. null to clear.' },
+        next_step_at: { type: 'string', description: 'ISO 8601 date for the user\'s next action (their "My Next Steps" date) — a follow-up / prep / outreach reminder, NOT a scheduled meeting. null to clear.' },
         closed_at: { type: 'string', description: 'ISO 8601 timestamp the pursuit closed, or null.' },
         outcome: { type: 'string', enum: [...VALID_OUTCOMES], description: 'Outcome, meaningful only when stage is closed.' },
       },
@@ -83,7 +84,7 @@ async function toolListPursuits(user) {
   const saved = Array.isArray(profile.savedPlaybooks) ? profile.savedPlaybooks : []
   const door2 = saved.filter(r => r && r.source === 'door2' && r.id)
 
-  const statusRows = await sql`SELECT record_id, stage, next_conversation_at, next_move, closed_at, outcome, updated_at FROM pursuit_status WHERE user_id = ${user.id}::uuid`
+  const statusRows = await sql`SELECT record_id, stage, next_conversation_at, next_step_at, next_move, closed_at, outcome, updated_at FROM pursuit_status WHERE user_id = ${user.id}::uuid`
   const byId = new Map(statusRows.map(s => [s.record_id, s]))
 
   return door2.map(r => {
@@ -95,6 +96,7 @@ async function toolListPursuits(user) {
       role: r.role || null,
       stage: s.stage || null,
       next_conversation_at: s.next_conversation_at || null,
+      next_step_at: s.next_step_at || null,
       next_move: s.next_move || null,
       closed_at: s.closed_at || null,
       outcome: s.outcome || null,
@@ -126,23 +128,26 @@ async function toolUpdatePursuit(user, args) {
   }
   if (has('next_move')) patch.next_move = args.next_move === null ? null : stripNul(String(args.next_move)).slice(0, 2000)
   if (has('next_conversation_at')) patch.next_conversation_at = parseTs(args.next_conversation_at)
+  if (has('next_step_at')) patch.next_step_at = parseTs(args.next_step_at)
   if (has('closed_at')) patch.closed_at = parseTs(args.closed_at)
   if (Object.keys(patch).length === 0) throw new Error('no status fields provided')
 
   // Read-merge-write so an update of one field never clears the others.
-  const existing = await sql`SELECT stage, next_conversation_at, next_move, closed_at, outcome FROM pursuit_status WHERE user_id = ${user.id}::uuid AND record_id = ${recordId} LIMIT 1`
+  const existing = await sql`SELECT stage, next_conversation_at, next_step_at, next_move, closed_at, outcome FROM pursuit_status WHERE user_id = ${user.id}::uuid AND record_id = ${recordId} LIMIT 1`
   const prev = existing[0] || {}
   const stage = has('stage') ? patch.stage : (prev.stage ?? null)
   const nca = has('next_conversation_at') ? patch.next_conversation_at : (prev.next_conversation_at ?? null)
+  const nsa = has('next_step_at') ? patch.next_step_at : (prev.next_step_at ?? null)
   const nextMove = has('next_move') ? patch.next_move : (prev.next_move ?? null)
   const closedAt = has('closed_at') ? patch.closed_at : (prev.closed_at ?? null)
   const outcome = has('outcome') ? patch.outcome : (prev.outcome ?? null)
 
   await sql`
-    INSERT INTO pursuit_status (user_id, record_id, stage, next_conversation_at, next_move, closed_at, outcome, updated_at)
-    VALUES (${user.id}::uuid, ${recordId}, ${stage}, ${nca}, ${nextMove}, ${closedAt}, ${outcome}, NOW())
+    INSERT INTO pursuit_status (user_id, record_id, stage, next_conversation_at, next_step_at, next_move, closed_at, outcome, updated_at)
+    VALUES (${user.id}::uuid, ${recordId}, ${stage}, ${nca}, ${nsa}, ${nextMove}, ${closedAt}, ${outcome}, NOW())
     ON CONFLICT (user_id, record_id)
     DO UPDATE SET stage = EXCLUDED.stage, next_conversation_at = EXCLUDED.next_conversation_at,
+                  next_step_at = EXCLUDED.next_step_at,
                   next_move = EXCLUDED.next_move, closed_at = EXCLUDED.closed_at,
                   outcome = EXCLUDED.outcome, updated_at = NOW()
   `
