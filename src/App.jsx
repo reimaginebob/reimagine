@@ -6360,7 +6360,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   }
   const adoptStagedInterviewer=(sug)=>{
     if(!sug||!sug.record_id)return
-    updateOpPanel(sug.record_id,p=>({...p,interviewers:[...p.interviewers,{id:newInterviewerId(),name:sug.name||'',role_in_loop:'',title:sug.title||'',function:'',linkedin_url:'',learned_note:sug.notes||''}]}))
+    updateOpPanel(sug.record_id,p=>({...p,interviewers:[...p.interviewers,{id:newInterviewerId(),name:sug.name||'',role_in_loop:(typeof sug.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===sug.role))?sug.role:'',title:sug.title||'',function:'',linkedin_url:'',learned_note:sug.notes||''}]}))
     dismissStagedInterviewer(sug.interviewer_id)
   }
   // Save to this opportunity (PR-5, item I): the user saves a chosen My Coach

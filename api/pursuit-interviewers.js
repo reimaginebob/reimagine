@@ -52,7 +52,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const rows = await sql`
-        SELECT interviewer_id, record_id, name, title, notes
+        SELECT interviewer_id, record_id, name, title, notes, role
         FROM pursuit_interviewers
         WHERE user_id = ${user.id}::uuid
         ORDER BY created_at ASC`
