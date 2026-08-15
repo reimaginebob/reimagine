@@ -5046,6 +5046,8 @@ export default function PivotEngine(){
   // pursuit_status rows, column-name shape as returned by GET /api/pursuit-status.
   const[pursuitStatus,setPursuitStatus]=useState([])
   const pursuitReconciledRef=useRef(false)
+  // Interview-team suggestions staged by the connector ("found by your assistant").
+  const[pursuitInterviewers,setPursuitInterviewers]=useState([])
   // Phase-2 connector: the OAuth flow happens inside Claude (Add connector ->
   // Connect -> Allow), so the panel is instructions only. connectorSetupOpen
   // just toggles the plumbing into view under the automagic pitch.
@@ -5098,6 +5100,7 @@ export default function PivotEngine(){
     if(isDemo||isTest)return
     if(!hasMySearch)return
     fetch('/api/pursuit-status',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitStatus(d.rows)}).catch(()=>{})
+    fetch('/api/pursuit-interviewers',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitInterviewers(d.rows)}).catch(()=>{})
   },[hasMySearch,isDemo,isTest])
   // Orphan reconcile: on first arrival at My Playbooks, tell the server which
   // Door 2 record ids still exist so it can prune status rows for deleted /
@@ -6334,6 +6337,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const updateOpPanel=(slotId,updater)=>{
     if(!slotId)return
     setSavedPlaybooks(prev=>prev.map(rec=>rec.id===slotId?{...rec,panel:updater(getOpPanel(rec)),updatedAt:new Date().toISOString()}:rec))
+  }
+  // Connector interview-team suggestions: remove a staged row (adopted or
+  // dismissed), and adopt one into the real (blob) panel via the normal path.
+  const dismissStagedInterviewer=(interviewerId)=>{
+    setPursuitInterviewers(prev=>prev.filter(x=>x.interviewer_id!==interviewerId))
+    if(!isDemo&&!isTest){try{fetch('/api/pursuit-interviewers',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({interviewerId})}).catch(()=>{})}catch{}}
+  }
+  const adoptStagedInterviewer=(sug)=>{
+    if(!sug||!sug.record_id)return
+    updateOpPanel(sug.record_id,p=>({...p,interviewers:[...p.interviewers,{id:newInterviewerId(),name:sug.name||'',role_in_loop:'',title:sug.title||'',function:'',linkedin_url:'',learned_note:sug.notes||''}]}))
+    dismissStagedInterviewer(sug.interviewer_id)
   }
   // Save to this opportunity (PR-5, item I): the user saves a chosen My Coach
   // reply onto the in-focus door2 record. The write goes through the app's own
@@ -9883,6 +9897,23 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   </div>
                   <div style={{fontSize:16,fontWeight:700,color:'#1A2540',margin:'6px 0 2px'}}>Do you know who you will be meeting with?</div>
                   <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginBottom:10}}>Add each person and what you have learned about them. Even one name sharpens the prep.</div>
+                  {hasMySearch&&(()=>{const _sugs=pursuitInterviewers.filter(x=>x.record_id===_slot);if(!_sugs.length)return null;return <div style={{border:`1.5px solid ${C.gold}`,background:`${C.gold}10`,borderRadius:10,padding:'14px 16px',marginBottom:14}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:6,flexWrap:'wrap'}}>
+                      <div style={{fontSize:15,fontWeight:700,color:'#1A2540'}}>Found by your assistant</div>
+                      {_sugs.length>1&&<Btn small secondary onClick={()=>_sugs.forEach(adoptStagedInterviewer)}>Add all</Btn>}
+                    </div>
+                    <div style={{fontSize:15,color:C.grayL,lineHeight:1.5,marginBottom:8}}>Your assistant spotted these on your calendar or in email. Add the ones you want to your team.</div>
+                    {_sugs.map(sug=><div key={sug.interviewer_id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'8px 0',borderTop:`1px solid ${C.gold}44`}}>
+                      <div style={{minWidth:0}}>
+                        <div style={{fontSize:16,fontWeight:600,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sug.name}</div>
+                        {(sug.title||sug.notes)&&<div style={{fontSize:15,color:C.gray}}>{[sug.title,sug.notes].filter(Boolean).join(' · ')}</div>}
+                      </div>
+                      <div style={{display:'flex',gap:6,flexShrink:0}}>
+                        <Btn small onClick={()=>adoptStagedInterviewer(sug)}>Add</Btn>
+                        <Btn small secondary onClick={()=>dismissStagedInterviewer(sug.interviewer_id)}>Dismiss</Btn>
+                      </div>
+                    </div>)}
+                  </div>})()}
                   {_ivs.length===0&&<div style={{fontSize:15,color:C.gray,fontStyle:'italic',margin:'4px 0 14px'}}>No one added yet.</div>}
                   {_ivs.map((iv,idx)=><div key={iv.id} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 16px',marginBottom:12,background:C.bg}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:12}}>

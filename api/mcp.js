@@ -54,6 +54,30 @@ const TOOLS = [
       required: ['record_id'],
     },
   },
+  {
+    name: 'add_interviewers',
+    description: "Add people the user will interview with — found on a real calendar invite or in email (attendees, a named panel) — to an opportunity's Interview Team. They appear as 'found by your assistant' suggestions the user adopts with one tap; they feed Interview Prep. Only add real people you actually found; never invent names. Check current_interviewers from list_pursuits first and do not re-add someone already on the team. Deduplicated automatically.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        record_id: { type: 'string', description: 'The opportunity id from list_pursuits.' },
+        interviewers: {
+          type: 'array',
+          description: 'The people found for this opportunity.',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: "The person's full name." },
+              title: { type: 'string', description: 'Their role or title, if known.' },
+              notes: { type: 'string', description: 'Optional short context you learned about them.' },
+            },
+            required: ['name'],
+          },
+        },
+      },
+      required: ['record_id', 'interviewers'],
+    },
+  },
 ]
 
 async function resolveUser(req) {
@@ -95,6 +119,7 @@ async function toolListPursuits(user) {
       company: r.company || null,
       role: r.role || null,
       stage: s.stage || null,
+      current_interviewers: (Array.isArray(r.panel && r.panel.interviewers) ? r.panel.interviewers : []).map(i => i && i.name).filter(Boolean),
       next_conversation_at: s.next_conversation_at || null,
       next_step_at: s.next_step_at || null,
       next_move: s.next_move || null,
@@ -152,6 +177,41 @@ async function toolUpdatePursuit(user, args) {
                   outcome = EXCLUDED.outcome, updated_at = NOW()
   `
   return { ok: true, record_id: recordId }
+}
+
+async function toolAddInterviewers(user, args) {
+  const recordId = args && typeof args.record_id === 'string' ? args.record_id.trim() : ''
+  if (!recordId) throw new Error('record_id is required')
+  const incoming = Array.isArray(args.interviewers) ? args.interviewers : []
+  if (incoming.length === 0) throw new Error('interviewers is required')
+
+  const rows = await sql`SELECT profile_state FROM users WHERE id = ${user.id}::uuid LIMIT 1`
+  const profile = (rows[0] && rows[0].profile_state) || {}
+  const saved = Array.isArray(profile.savedPlaybooks) ? profile.savedPlaybooks : []
+  const rec = saved.find(r => r && r.source === 'door2' && r.id === recordId)
+  if (!rec) throw new Error('record_id does not match any of your opportunities')
+
+  // Dedup against who is already on the panel and who is already staged.
+  const onPanel = new Set((rec.panel && Array.isArray(rec.panel.interviewers) ? rec.panel.interviewers : []).map(i => String((i && i.name) || '').trim().toLowerCase()).filter(Boolean))
+  const stagedRows = await sql`SELECT name FROM pursuit_interviewers WHERE user_id = ${user.id}::uuid AND record_id = ${recordId}`
+  const staged = new Set(stagedRows.map(r => String(r.name || '').trim().toLowerCase()))
+
+  let added = 0
+  let skipped = 0
+  for (const iv of incoming) {
+    const name = iv && typeof iv.name === 'string' ? stripNul(iv.name).trim().slice(0, 200) : ''
+    if (!name) { skipped++; continue }
+    const key = name.toLowerCase()
+    if (onPanel.has(key) || staged.has(key)) { skipped++; continue }
+    staged.add(key)
+    const title = iv.title ? stripNul(String(iv.title)).trim().slice(0, 200) : null
+    const notes = iv.notes ? stripNul(String(iv.notes)).trim().slice(0, 1000) : null
+    const id = 'sv_' + crypto.randomBytes(8).toString('hex')
+    await sql`INSERT INTO pursuit_interviewers (user_id, interviewer_id, record_id, name, title, notes)
+              VALUES (${user.id}::uuid, ${id}, ${recordId}, ${name}, ${title}, ${notes})`
+    added++
+  }
+  return { added, skipped }
 }
 
 function parseTs(v) {
@@ -212,6 +272,7 @@ export default async function handler(req, res) {
       let data
       if (name === 'list_pursuits') data = await toolListPursuits(user)
       else if (name === 'update_pursuit') data = await toolUpdatePursuit(user, args)
+      else if (name === 'add_interviewers') data = await toolAddInterviewers(user, args)
       else return res.status(200).json(rpcError(id, -32602, `unknown tool: ${name}`))
       return res.status(200).json(rpcResult(id, { content: [{ type: 'text', text: JSON.stringify(data) }] }))
     } catch (err) {
