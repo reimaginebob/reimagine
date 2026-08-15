@@ -17,6 +17,7 @@
 export const NAV_LABELS = {
   // Standalone destinations — sidebar "Your work" (src/App.jsx primaryItems).
   myCoach: 'My Coach',
+  pipeline: 'My Pipeline',
   mylib: 'My Playbooks',
   p3: 'Personal Brand',
   twoDoors: 'Put It to Work',

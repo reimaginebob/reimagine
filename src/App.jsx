@@ -3143,7 +3143,7 @@ const PHASES=[
 // two readers (the orientation sidebar and the section-name lookup) now read
 // NAV_LABELS. This also fixed the stale "Pick a Direction"/"Upload a Live
 // Opportunity" labels META still carried.
-const ALL=['welcome','location','resume','resume-builder','linkedin','assessment','values','priorities','reputation','life-events','skills','orientation-done','p3','twoDoors','laneSelect','p4','focus','mylib','op','complete','myCoach']
+const ALL=['welcome','location','resume','resume-builder','linkedin','assessment','values','priorities','reputation','life-events','skills','orientation-done','p3','twoDoors','laneSelect','p4','focus','mylib','pipeline','op','complete','myCoach']
 const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','resume-builder','linkedin','assessment','values','priorities','reputation','life-events','skills','orientation-done','p3'])
 // Editable input surfaces (subset of INPUT_PHASE_STEPS): the screens a returning
 // user changes after the Personal Brand exists. welcome / orientation-done / p3 are
@@ -4479,7 +4479,7 @@ function SupportPanel({onClose}){
   </div>
 }
 
-function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false}){
+function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false}){
   const navRef=useRef(null)
   const[supportOpen,setSupportOpen]=useState(false)
   // App bumps openSupportReq to open the Support panel programmatically (the
@@ -4522,6 +4522,9 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
     // coach nav map also reads, so a rename lands here and in the coach together.
     const primaryItems=[
       {id:'myCoach',label:NAV_LABELS.myCoach,Icon:MessageCircle},
+      // My Pipeline is its own surface for flagged (my_search) users — the daily
+      // action home, distinct from the exploration library (My Playbooks).
+      ...(hasPipeline?[{id:'pipeline',label:NAV_LABELS.pipeline,Icon:Target}]:[]),
       {id:'mylib',label:NAV_LABELS.mylib,Icon:Briefcase},
       {id:'p3',label:NAV_LABELS.p3,Icon:Fingerprint},
       {id:'twoDoors',label:NAV_LABELS.twoDoors,Icon:Compass,children:[
@@ -5357,7 +5360,9 @@ export default function PivotEngine(){
     landingDecidedRef.current=true
     if(isReturningExplorer){
       track('landing_dashboard',{savedCount:savedPlaybooks.length,exploredCount:exploredRoleTitles.length})
-      setStep('mylib')
+      // Flagged users land on their live pipeline (their daily home); everyone
+      // else on the playbook library.
+      setStep(hasMySearch?'pipeline':'mylib')
     }else{
       track('landing_skipped',{reason:'no_explorer_signal'})
     }
@@ -9480,6 +9485,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} onSeedConsumed={()=>setCoachSeed('')} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null}/>
     </div>
+    case'pipeline':return <div>
+      {mySearchPanel()}
+      {connectAssistantPanel()}
+    </div>
     case'mylib':{
       const _comparable=savedPlaybooks.filter(offerComparable)
       if(showOfferCompare&&_comparable.length>=2)return offerCompareView()
@@ -9488,8 +9497,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:6}}>My Playbooks</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {savedPlaybooks.length} of {getSavedCap()} saved.</p>
       </div>
-      {hasMySearch&&mySearchPanel()}
-      {hasMySearch&&connectAssistantPanel()}
       {_comparable.length>=2&&<div style={{margin:'0 0 16px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({_comparable.length}) <ChevronRight size={14}/></Btn></div>}
       <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasMySearch}/>
     </div>
@@ -10645,7 +10652,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {isDemo&&<div style={{pointerEvents:'none'}}>
             <Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog}/>
           </div>}
-          {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>to==='op'?addNewOpportunity():nav(to)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser}/>}
+          {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>to==='op'?addNewOpportunity():nav(to)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasMySearch}/>}
         </div>
         <div ref={contentColumnRef} data-print="content" style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
