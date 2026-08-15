@@ -10089,7 +10089,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       </button>
                     </div>
                     {!offerTableOpen[_slot]&&<div style={{fontSize:15,color:C.gray,marginTop:4,lineHeight:1.5}}>The full parsed offer is saved — it's all here if you want to inspect or correct the terms.</div>}
-                    {offerTableOpen[_slot]&&<><div style={{fontSize:15,color:C.gray,margin:'8px 0 10px',lineHeight:1.5}}>Fix anything we misread. The terms the letter didn't mention are listed below as things to ask about — click one to add it. This feeds the guidance above, and stays private to your account.</div>
+                    {offerTableOpen[_slot]&&<><div style={{fontSize:15,color:C.gray,margin:'8px 0 10px',lineHeight:1.5}}>Fix anything we misread. The terms the letter didn't mention are listed below as things to ask about — click one to add it. This feeds the guidance above. <strong style={{color:C.grayL,fontWeight:600}}>It stays private to your account.</strong></div>
                     {(()=>{
                       const _revealed=revealedOfferFields[_slot]||[]
                       const _shown=OFFER_JSON_KEYS.filter(k=>(_offer[k]&&String(_offer[k]).trim())||_revealed.includes(k))
