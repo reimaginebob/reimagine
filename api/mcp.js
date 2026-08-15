@@ -29,6 +29,7 @@ const PROTOCOL_VERSION = '2025-06-18'
 const SERVER_INFO = { name: 'Reimagine', version: '1.0.0' }
 
 const VALID_STAGES = new Set(['researching', 'applied', 'in_conversation', 'interviewing', 'offer', 'closed'])
+const VALID_IV_ROLES = new Set(['hiring_manager', 'skip_level', 'peer', 'cross_functional', 'recruiter_screen'])
 const VALID_OUTCOMES = new Set(['accepted', 'declined', 'not_selected', 'withdrew', 'no_response'])
 
 const TOOLS = [
@@ -70,6 +71,7 @@ const TOOLS = [
               name: { type: 'string', description: "The person's full name." },
               title: { type: 'string', description: 'Their role or title, if known.' },
               notes: { type: 'string', description: 'Optional short context you learned about them.' },
+              role: { type: 'string', enum: [...VALID_IV_ROLES], description: 'How they fit the interview loop, if you can tell: hiring_manager, skip_level, peer, cross_functional, or recruiter_screen. Usually omit — a calendar invite rarely says.' },
             },
             required: ['name'],
           },
@@ -206,9 +208,10 @@ async function toolAddInterviewers(user, args) {
     staged.add(key)
     const title = iv.title ? stripNul(String(iv.title)).trim().slice(0, 200) : null
     const notes = iv.notes ? stripNul(String(iv.notes)).trim().slice(0, 1000) : null
+    const role = (iv.role && VALID_IV_ROLES.has(iv.role)) ? iv.role : null
     const id = 'sv_' + crypto.randomBytes(8).toString('hex')
-    await sql`INSERT INTO pursuit_interviewers (user_id, interviewer_id, record_id, name, title, notes)
-              VALUES (${user.id}::uuid, ${id}, ${recordId}, ${name}, ${title}, ${notes})`
+    await sql`INSERT INTO pursuit_interviewers (user_id, interviewer_id, record_id, name, title, notes, role)
+              VALUES (${user.id}::uuid, ${id}, ${recordId}, ${name}, ${title}, ${notes}, ${role})`
     added++
   }
   return { added, skipped }
