@@ -3199,8 +3199,8 @@ const PURSUIT_STAGES=[
 ]
 const PURSUIT_STAGE_LABELS=Object.fromEntries(PURSUIT_STAGES.map(s=>[s.value,s.label]))
 const PURSUIT_OUTCOME_LABELS={accepted:'Accepted',declined:'Declined',not_selected:'Not selected',withdrew:'Withdrew',no_response:'No response'}
-const PURSUIT_STAGE_QUICK_REPLIES=PURSUIT_STAGES.map(s=>({label:s.label,value:s.value,followUp:s.value==='closed'?'Saved — I\'ve marked it closed on My Search.':s.value==='interviewing'?'Saved — it\'ll show up first if a conversation is coming.':'Saved to My Search.'}))
-const pursuitOfferMessage=(title)=>({role:'assistant',content:`Sounds like something moved on ${title||'this opportunity'} — where does it stand now? I\'ll save it to My Search so it carries across every session.`,checkinKey:'pursuit-stage',quickReplies:PURSUIT_STAGE_QUICK_REPLIES})
+const PURSUIT_STAGE_QUICK_REPLIES=PURSUIT_STAGES.map(s=>({label:s.label,value:s.value,followUp:s.value==='closed'?'Saved — I\'ve marked it closed on My Pipeline.':s.value==='interviewing'?'Saved — it\'ll show up first if a conversation is coming.':'Saved to My Pipeline.'}))
+const pursuitOfferMessage=(title)=>({role:'assistant',content:`Sounds like something moved on ${title||'this opportunity'} — where does it stand now? I\'ll save it to My Pipeline so it carries across every session.`,checkinKey:'pursuit-stage',quickReplies:PURSUIT_STAGE_QUICK_REPLIES})
 
 const S={
   title:{fontFamily:'Georgia,serif',fontSize:38,fontWeight:700,color:"#1A2540",margin:'0 0 14px',lineHeight:1.2},
@@ -5048,6 +5048,7 @@ export default function PivotEngine(){
   const[pushTokenStatus,setPushTokenStatus]=useState({connected:false,createdAt:null})
   const[revealedToken,setRevealedToken]=useState('')
   const[tokenBusy,setTokenBusy]=useState(false)
+  const[connectorSetupOpen,setConnectorSetupOpen]=useState(false)
   const generatePushToken=async()=>{
     setTokenBusy(true)
     try{
@@ -8334,7 +8335,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const mySearchPanel=()=>{
     const ops=savedPlaybooks.filter(r=>r&&r.source==='door2')
     const wrap=(inner)=><div style={{maxWidth:900,margin:'0 0 32px'}}>
-      <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>My Search</h2>
+      <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>My Pipeline</h2>
       <CoachingCallout>All the opportunities you're pursuing, in one place. As things change, update where each one stands, when you'll next talk, and what you're doing next — it all saves, so it's here whenever you come back.</CoachingCallout>
       {inner}
     </div>
@@ -8383,13 +8384,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     )
   }
-  // Connect your assistant (phase-2 connector setup). Gated with My Search.
+  // Keep your pipeline current (phase-2 connector). Automagic-first: lead with
+  // the payoff, tuck the token/URL plumbing behind a "Set it up" CTA.
   const connectAssistantPanel=()=>{
     const mcpUrl=(typeof window!=='undefined'?window.location.origin:'https://reimagine.career.club')+'/api/mcp'
     const copyText=(t)=>{try{navigator.clipboard.writeText(t)}catch{};setToast('Copied');setTimeout(()=>setToast(x=>x==='Copied'?null:x),1500)}
+    const showSetup=connectorSetupOpen||pushTokenStatus.connected
     return <div style={{maxWidth:900,margin:'8px 0 32px'}}>
-      <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>Connect your assistant <span style={{fontSize:15,fontWeight:600,color:C.gold}}>· beta</span></h2>
-      <CoachingCallout>Let your own Claude keep My Search current. With your permission, it reads your email and calendar, notices when an opportunity moves, and updates it here — so you don't have to. Reimagine never sees your inbox; your assistant does the reading and only sends back the status.</CoachingCallout>
+      <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>Keep your pipeline current — automatically <span style={{fontSize:15,fontWeight:600,color:C.gold}}>· beta</span></h2>
+      <CoachingCallout>Stop maintaining your pipeline by hand. Give your own Claude permission and it watches your email and calendar, notices when an opportunity moves, and keeps its stage, dates, and next step up to date for you. <strong>Reimagine never touches your inbox</strong> — your assistant does the reading and sends back only the status. Prefer to keep it by hand? That works too.</CoachingCallout>
+      {!showSetup?
+        <Btn prominent onClick={()=>setConnectorSetupOpen(true)}>Set up automatic updates</Btn>
+      :
       <div style={{padding:'18px 20px',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:14}}>
         <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:12}}>{pushTokenStatus.connected?'Your assistant is connected':'Set it up — three steps'}</div>
         <ol style={{margin:'0 0 4px 20px',padding:0,fontSize:16,color:C.grayL,lineHeight:1.7}}>
@@ -8400,7 +8406,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <Btn small secondary onClick={()=>copyText(mcpUrl)}>Copy</Btn>
             </div>
           </li>
-          <li>Authorize it with the token below, then tell Claude: <em>&ldquo;Update my job search in Reimagine from my email and calendar.&rdquo;</em></li>
+          <li>Authorize it with the token below, then tell Claude: <em>&ldquo;Update my pipeline in Reimagine from my email and calendar.&rdquo;</em></li>
         </ol>
         <div style={{marginTop:16,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
           {revealedToken?<>
@@ -8416,6 +8422,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </>}
         </div>
       </div>
+      }
     </div>
   }
   const applyRoleSwitchDoor1=(newRoleTitle,lane)=>{
