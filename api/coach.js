@@ -56,13 +56,24 @@ function isAllowedOrigin(rawOrigin) {
 // `state` is the profile_state JSONB blob the client autosaves
 // ({ profile, outputs, selectedLane, exploredRoleTitles, savedPlaybooks,
 // chosen, ... }). Returns a human-readable block; never throws on sparse data.
+//
+// Values capture (brief 2026-08-15). The in-conversation counterpart to the
+// Values, Passions & Causes screen: when a conversation settles what the person
+// wants in those fields, the model emits a silent trailer and the client offers a
+// one-tap save. Static text, appended to the UNCACHED per-user block rather than
+// SYSTEM_PROMPT_STABLE — the stable prefix tells the coach it is "Read-only
+// throughout", and this is the narrow, explicit exception to that, exactly as the
+// interview-team trailer is. The model already sees current VALUES / PASSIONS AND
+// CAUSES in ANCHOR 1, so it knows whether it is filling a blank or replacing.
+const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passions & Causes live on a screen in Reimagine called "Values, Passions & Causes", and you can offer to write them there. When a conversation has settled into a statement of their values or their passions and causes that they seem happy with — their words and their conclusions, not a list you proposed and they have not responded to — end your reply with a final line exactly like VALUESCAPTURE: {"values":"Independence; Creative problem solving; Belonging","passions":"Youth mentoring; Faith-based service"} carrying whichever of the two you have. Include a key ONLY for a field the conversation actually settled; omit the other entirely. Write each as a short semicolon-separated list in their own words, not a paragraph and not your paraphrase. If ANCHOR 1 shows a field already has content, only emit it when they have clearly landed somewhere new — the tap replaces what is there. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
+
 function buildCoachProfileSlice(state, employmentStatus, featureFlags) {
   if (!state || typeof state !== 'object') {
     // No profile at all — definitionally pre-Personal-Brand, so the sidebar is the
     // Orientation phase list. Carry the same navigation gate as the main path below
     // (keyed there on `done`): none of Career Paths, Add an Opportunity, Income Now
     // or the Focus Playbook sections is on this person's screen yet.
-    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.`
+    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.${VALUES_CAPTURE_NOTE}`
   }
   const pr = state.profile && typeof state.profile === 'object' ? state.profile : {}
   const outs = state.outputs && typeof state.outputs === 'object' ? state.outputs : {}
@@ -201,7 +212,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags) {
     ? '\n\nMY PIPELINE (this person has it; it is a limited pilot feature most users do not have — never imply it is generally available): My Pipeline is a live view of their saved Opportunity Playbooks, on its own My Pipeline screen (its own item in the sidebar, separate from My Playbooks). Each opportunity shows where it stands, when they will next talk, the next step they are taking, and which playbook cards are built, ordered so the one that needs attention comes first. They keep it current by editing a card, or by telling you when something changes — a date moved, an interview happened, an opportunity ended — and you offer to save it with one tap. They can also connect their own assistant (Gmail and Calendar) to keep it updated automatically if they want; Reimagine never reads their inbox. When they ask how to track their search or where an opportunity stands, this is the answer. Name it plainly in your normal voice; do not pitch it. There is no self-check slug for My Pipeline, so when it is the fitting answer, still help, and end with SELFCHECK: none. INTERVIEW TEAM CAPTURE: when this person names one or more specific people they will be interviewing with for one of their opportunities, end your reply with a final line exactly like INTERVIEWTEAM: {"opportunity":"<the opportunity title from their saved work>","people":[{"name":"Full Name","title":"their title if stated","role":"one of hiring_manager|skip_level|peer|cross_functional|recruiter_screen ONLY if they said how this person fits the loop, else omit role"}]} listing only the people they explicitly named. Map what they said to the role: "she is a peer" -> peer, "the hiring manager" -> hiring_manager, "recruiter screen" -> recruiter_screen, "her skip-level" -> skip_level, "a cross-functional partner" -> cross_functional. If they did not say how the person fits, omit role. The app turns that line into a one-tap "add to your Interview Team" offer and never shows it. Only emit it when they clearly named interviewers; otherwise omit it entirely.'
     : ''
 
-  return `THIS USER'S REIMAGINE PROFILE (read-only; you can reference and reason about it, but you never change it):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusNote}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusNote}${VALUES_CAPTURE_NOTE}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -663,6 +674,25 @@ export default async function handler(req, res) {
       }
     } catch { /* malformed — drop the line, no offer */ }
   }
+  // Values capture: the model may end with a VALUESCAPTURE: {json} line carrying
+  // what the conversation settled for Values and/or Passions & Causes. Strip it
+  // and ship it on a response header; the client offers a one-tap save that
+  // writes through the same setter the screen's own textareas use.
+  let valuesB64 = null
+  const vcMatch = strippedText.match(/^\s*VALUESCAPTURE:\s*(\{[\s\S]*?\})\s*$/im)
+  if (vcMatch) {
+    strippedText = strippedText.replace(vcMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(vcMatch[1])
+      const clean = v => (typeof v === 'string' ? v.trim().slice(0, 600) : '')
+      const payload = {}
+      if (clean(parsed && parsed.values)) payload.values = clean(parsed.values)
+      if (clean(parsed && parsed.passions)) payload.passions = clean(parsed.passions)
+      if (payload.values || payload.passions) {
+        valuesB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
+      }
+    } catch { /* malformed — drop the line, no offer */ }
+  }
   // Distress safety-net: guarantees a human-pointer on genuine-distress inputs.
   // Runs here (not in applyOutputStrippers) because the triggers live in the
   // user's message.
@@ -687,6 +717,7 @@ export default async function handler(req, res) {
 
   if (rowId) res.setHeader('X-Coach-Message-Id', String(rowId))
   if (interviewersB64) res.setHeader('X-Coach-Interviewers', interviewersB64)
+  if (valuesB64) res.setHeader('X-Coach-Values', valuesB64)
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.setHeader('Cache-Control', 'no-cache')
   res.status(200)

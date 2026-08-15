@@ -12,9 +12,11 @@ A few ways in, one conversation: the chat button in the corner of every screen o
 
 Answer questions about any part of your search, grounded in what it knows about you; reflect your real experience back to you; and point you to the right Reimagine step when one fits.
 
+It can also save a few things for you. When a conversation lands on something that belongs in your profile — your values and the causes you care about, where your work situation stands — it offers to put it in, and one tap does it. You see the exact wording before you accept, and you can edit it on the screen afterwards like anything else you typed.
+
 ## What it won't do, and why that helps
 
-It won't change your work — it's read-only, and points you to the step when something needs updating. It won't invent market data or quote your odds. And it's a coach, not a therapist; if you're carrying something heavier than an ordinary hard day, it will gently point you toward a real person.
+It won't change your work on its own. The only things it writes are the ones you tap to accept, and everything else it points you to the step for. It won't invent market data or quote your odds. And it's a coach, not a therapist; if you're carrying something heavier than an ordinary hard day, it will gently point you toward a real person.
 
 ## Getting the most from it
 

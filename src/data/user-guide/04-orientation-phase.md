@@ -164,6 +164,8 @@ Two short fields. Both have a microphone button. You can speak your answers inst
 
 **One thing worth knowing:** it can be tempting to filter your answers for what feels professionally relevant. Try not to. The Explore Options phase looks for unexpected combinations between your professional life and the rest of you, so the side project, the cause, the hobby, the industry you read about for fun are all worth including.
 
+If you are not sure what belongs here, ask your coach — there is a prompt on the screen that opens the conversation. Once the two of you land on something, your coach offers to save it straight into these fields. You tap once, and you can edit it here afterwards like anything else you typed.
+
 Both fields are required. Click **Continue**.
 
 ## Screen 7: Your Priorities & Non-Negotiables

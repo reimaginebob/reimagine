@@ -28,7 +28,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false }) {
   const [open, setOpen] = useState(false)
   // App bumps openRequest to open the floating coach programmatically (e.g. the
   // Personal Brand check-in on first arrival at Put it to Work).
@@ -184,6 +184,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // the thumbs below it can attach a rating to that exact row.
         const msgId = res.headers.get('X-Coach-Message-Id') || null
         const itHeader = res.headers.get('X-Coach-Interviewers') || null
+        const vcHeader = res.headers.get('X-Coach-Values') || null
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let fullText = ''
@@ -229,6 +230,21 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             if (names.length) {
               const where = data.opportunity ? ` to your ${data.opportunity} Interview Team` : ' to your Interview Team'
               setMessages(m => [...m, { role: 'assistant', content: `It looks like you're interviewing with ${names.join(', ')}. Want me to add ${names.length > 1 ? 'them' : 'them'}${where}?`, checkinKey: 'interview-team', quickReplies: [{ label: 'Add to my team', value: JSON.stringify(data), followUp: 'Added to your Interview Team.' }, { label: 'Not now', value: 'dismiss' }] }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Values capture: the server extracted what this turn settled for Values
+        // and/or Passions & Causes onto X-Coach-Values. Show it back in full — the
+        // person accepts the exact text they are about to store, never a summary
+        // of it — and offer a one-tap save.
+        if (valuesCaptureActive && vcHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(vcHeader), c => c.charCodeAt(0))))
+            const parts = []
+            if (data && data.values) parts.push(`Core Values: ${data.values}`)
+            if (data && data.passions) parts.push(`Passions, Interests & Causes: ${data.passions}`)
+            if (parts.length) {
+              setMessages(m => [...m, { role: 'assistant', content: `Want me to save this to your Values, Passions & Causes screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, checkinKey: 'values-capture', quickReplies: [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Values, Passions & Causes.' }, { label: 'Not now', value: 'dismiss' }] }])
             }
           } catch { /* malformed header — no offer */ }
         }
