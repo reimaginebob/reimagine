@@ -268,10 +268,13 @@ function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDe
 // hides empty sections. The split is a pure render-layer filter on rec.source;
 // no schema change. The `layout` prop is retained for caller compatibility but
 // the grid is now owned per-section (the legacy wideView path is vestigial).
-export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, onRename, C, layout = 'complete', title, onAddDirection, onAddOpportunity }) {
+export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, onRename, C, layout = 'complete', title, onAddDirection, onAddOpportunity, focusOnly = false }) {
   const focus = (savedPlaybooks || []).filter(r => r && r.source !== 'door2')
-  const opp = (savedPlaybooks || []).filter(r => r && r.source === 'door2')
-  if (focus.length === 0 && opp.length === 0 && !onAddDirection && !onAddOpportunity) return null
+  // focusOnly: My Pipeline owns the Opportunity records, so this component renders
+  // Focus only and never shows a duplicate Opportunity section (gated to flagged
+  // users at the call site; default path is unchanged).
+  const opp = focusOnly ? [] : (savedPlaybooks || []).filter(r => r && r.source === 'door2')
+  if (focus.length === 0 && opp.length === 0 && !onAddDirection && !(focusOnly ? false : onAddOpportunity)) return null
   const suppressHeading = title === null
   return (
     <div style={{ marginTop: suppressHeading ? 18 : 36 }}>
@@ -285,13 +288,15 @@ export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, on
         onAdd={onAddDirection}
         emptyCopy="No Focus Playbooks yet. Explore directions across Familiar Ground, Industry Insider, and Work That Matters."
         onRestore={onRestore} onDelete={onDelete} onRename={onRename} C={C}/>
-      <Section
-        heading="Opportunity Playbooks"
-        records={opp}
-        addLabel="Add an Opportunity"
-        onAdd={onAddOpportunity}
-        emptyCopy="No Opportunity Playbooks yet. Bring a job description and Reimagine builds a playbook tuned to that exact role."
-        onRestore={onRestore} onDelete={onDelete} onRename={onRename} C={C}/>
+      {!focusOnly && (
+        <Section
+          heading="Opportunity Playbooks"
+          records={opp}
+          addLabel="Add an Opportunity"
+          onAdd={onAddOpportunity}
+          emptyCopy="No Opportunity Playbooks yet. Bring a job description and Reimagine builds a playbook tuned to that exact role."
+          onRestore={onRestore} onDelete={onDelete} onRename={onRename} C={C}/>
+      )}
     </div>
   )
 }
