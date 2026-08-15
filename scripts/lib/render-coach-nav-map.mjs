@@ -25,7 +25,8 @@ const line = f =>
   `- ${labelFor(f)} — ${f.does}.${f.where ? ` Pointer: ${f.where}.` : ''}  [slug: ${f.slug}]`
 
 export function renderCoachNavMap() {
-  const standalone  = FEATURE_MAP.filter(f => f.reach === 'standalone')
+  const standalone  = FEATURE_MAP.filter(f => f.reach === 'standalone' && !f.parent)
+  const nested      = FEATURE_MAP.filter(f => f.reach === 'standalone' && f.parent)
   const focus       = FEATURE_MAP.filter(f => f.reach === 'focus-gated')
   const opportunity = FEATURE_MAP.filter(f => f.reach === 'opportunity-gated')
   const community   = FEATURE_MAP.filter(f => f.reach === 'community')
@@ -34,6 +35,9 @@ export function renderCoachNavMap() {
     '',
     'These features are their own step — point someone straight there:',
     ...standalone.map(line),
+    '',
+    `These are their own step too, but they sit UNDER ${NAV_LABELS.twoDoors} in the sidebar, not at the top level. Name the feature and say it is under ${NAV_LABELS.twoDoors} — never tell someone to look for it at the top level of their sidebar, because it is not there:`,
+    ...nested.map(line),
     '',
     `These live inside the Focus Playbook, reached through ${NAV_LABELS.laneSelect} once the person has picked a direction. Until they pick one, name the feature and say it is waiting in their Focus Playbook — do not pretend it is one click away:`,
     ...focus.map(line),

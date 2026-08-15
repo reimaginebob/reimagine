@@ -35,14 +35,21 @@
 //                   pointer (no NAV_LABELS entry to join).
 // labelId: the NAV_LABELS key to join the user-facing label from (standalone +
 //   focus-gated). The generator hard-fails if it is not in NAV_LABELS.
+// parent: OPTIONAL NAV_LABELS key. When present, this feature renders as a child
+//   of that sidebar item rather than at the top level, and the generated map says
+//   so. Set it whenever a feature is nested — a coach that says "point someone
+//   straight there" about a nested feature sends them looking for a label that is
+//   not on their screen (the Aug 11 2026 navigation reports). The sidebar itself
+//   was corrected for this nesting on 2026-06-04 (src/App.jsx primaryItems);
+//   FEATURE_MAP was not, and drifted for two months.
 export const FEATURE_MAP = [
   { slug: 'personal-brand',       reach: 'standalone',  labelId: 'p3',
     does: 'finds the through-line that ties a varied background together' },
-  { slug: 'role-options',         reach: 'standalone',  labelId: 'laneSelect',
+  { slug: 'role-options',         reach: 'standalone',  labelId: 'laneSelect', parent: 'twoDoors',
     does: 'opens up directions worth exploring, including off the obvious path' },
-  { slug: 'income-now',           reach: 'standalone',  labelId: 'income',
+  { slug: 'income-now',           reach: 'standalone',  labelId: 'income',     parent: 'twoDoors',
     does: 'surfaces faster ways to bring in money while the bigger search runs' },
-  { slug: 'opportunity-playbook', reach: 'standalone',  labelId: 'op',
+  { slug: 'opportunity-playbook', reach: 'standalone',  labelId: 'op',         parent: 'twoDoors',
     does: 'turns one specific live opening into a tailored plan of attack' },
 
   { slug: 'bridge-story',         reach: 'focus-gated', labelId: 'p6',
