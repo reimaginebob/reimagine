@@ -24,6 +24,7 @@
 // user-scoped key and never validates that the record "exists" — the server
 // cannot see savedPlaybooks in either phase.
 
+import crypto from 'node:crypto'
 import { sql } from './_lib/db.js'
 import { getSessionUser } from './_lib/session.js'
 import { stripNul } from './_lib/strip-nul.js'
@@ -97,26 +98,41 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // Phase one is the cookie-authenticated browser path; require an allowlisted
-  // origin for it. A phase-two token caller would branch here instead of being
-  // rejected by an unconditional origin gate.
-  const authMode = 'cookie'
-  if (authMode === 'cookie') {
+  // Two auth modes, resolving the same user object:
+  //  - Phase-two connector: a per-user bearer token whose SHA-256 hash matches
+  //    users.push_token_hash. No cookie, no origin (a connector is not a browser).
+  //  - Phase-one browser: cookie session + allowlisted origin.
+  // Both then pass the same suspended + my_search gates below.
+  const authHeader = req.headers.authorization || ''
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+
+  let user
+  if (bearer) {
+    const hash = crypto.createHash('sha256').update(bearer).digest('hex')
+    try {
+      const rows = await sql`SELECT id, feature_flags, suspended_at FROM users WHERE push_token_hash = ${hash} LIMIT 1`
+      user = rows[0] || null
+    } catch (err) {
+      console.warn('pursuit-status: token lookup failed', err)
+      user = null
+    }
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid token' })
+    }
+  } else {
     const origin = req.headers.origin || req.headers.referer || ''
     if (!isAllowedOrigin(origin)) {
       return res.status(403).json({ error: 'Forbidden' })
     }
-  }
-
-  let user
-  try {
-    user = await getSessionUser(req, res)
-  } catch (err) {
-    console.warn('pursuit-status: session lookup failed', err)
-    user = null
-  }
-  if (!user || !user.id) {
-    return res.status(401).json({ error: 'Not authenticated' })
+    try {
+      user = await getSessionUser(req, res)
+    } catch (err) {
+      console.warn('pursuit-status: session lookup failed', err)
+      user = null
+    }
+    if (!user || !user.id) {
+      return res.status(401).json({ error: 'Not authenticated' })
+    }
   }
   if (user.suspended_at) {
     return res.status(403).json({ error: 'account_suspended' })
