@@ -5102,7 +5102,7 @@ export default function PivotEngine(){
       const tgt=coachSaveTarget()
       const targetId=(match&&match.id)||(tgt&&tgt.id)||null
       if(!targetId)return false
-      updateOpPanel(targetId,p=>({...p,interviewers:[...p.interviewers,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:''}))]}))
+      updateOpPanel(targetId,p=>({...p,interviewers:[...p.interviewers,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:(typeof pe.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===pe.role))?pe.role:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:''}))]}))
       return true
     }
     return false
