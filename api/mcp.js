@@ -23,6 +23,7 @@
 import crypto from 'node:crypto'
 import { sql } from './_lib/db.js'
 import { stripNul } from './_lib/strip-nul.js'
+import { baseUrl } from './_lib/oauth.js'
 
 const PROTOCOL_VERSION = '2025-06-18'
 const SERVER_INFO = { name: 'Reimagine', version: '1.0.0' }
@@ -59,7 +60,15 @@ async function resolveUser(req) {
   const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
   if (!bearer) return null
   const hash = crypto.createHash('sha256').update(bearer).digest('hex')
-  const rows = await sql`SELECT id, feature_flags, suspended_at FROM users WHERE push_token_hash = ${hash} LIMIT 1`
+  // OAuth access token (the connector's normal path); fall back to the API push
+  // token (Claude Code / scripts). Both resolve to a Reimagine user.
+  let rows = await sql`
+    SELECT u.id, u.feature_flags, u.suspended_at
+    FROM oauth_tokens t JOIN users u ON u.id = t.user_id
+    WHERE t.access_token_hash = ${hash} AND t.expires_at > NOW() LIMIT 1`
+  if (rows.length === 0) {
+    rows = await sql`SELECT id, feature_flags, suspended_at FROM users WHERE push_token_hash = ${hash} LIMIT 1`
+  }
   const user = rows[0]
   if (!user) return null
   if (user.suspended_at) return null
@@ -183,8 +192,8 @@ export default async function handler(req, res) {
     return res.status(500).json(rpcError(id, -32603, 'auth error'))
   }
   if (!user) {
-    res.setHeader('WWW-Authenticate', 'Bearer')
-    return res.status(401).json(rpcError(id, -32001, 'Unauthorized: a valid Reimagine connector token is required'))
+    res.setHeader('WWW-Authenticate', `Bearer resource_metadata="${baseUrl(req)}/.well-known/oauth-protected-resource"`)
+    return res.status(401).json(rpcError(id, -32001, 'Unauthorized: connect this server via OAuth'))
   }
 
   if (method === 'tools/list') {
