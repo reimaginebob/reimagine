@@ -1,7 +1,5 @@
 # Refining and Regenerating
 
-> *(Bridge Story is now lane-aware prose; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
-
 This chapter explains how to use Reimagine the way it was designed to be used: iteratively, not perfectly the first time. If you only read one chapter from the second half of this guide, this is the one.
 
 ## Two kinds of changes you can make
