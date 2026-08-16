@@ -6,7 +6,7 @@ This is the most important chapter in the guide. If you read only one chapter be
 
 Reimagine builds your career strategy on top of what you tell it about yourself during **Orientation**, the first phase of the journey. Everything that comes out, your personal brand, your options, your story, your target list, your outreach, your playbook, is built on what you provide there.
 
-If your inputs are thin, the output will be thin in the same places. If your inputs are rich and honest, the output is sharp and personal. There is no shortcut around this. The rest of the tool is downstream of what you do in the first 20 minutes.
+If your inputs are thin, the output will be thin in the same places. If your inputs are rich and honest, the output is sharp and personal. There is no shortcut around this. The rest of the tool is downstream of what you do in the first 30 minutes.
 
 Put your best foot forward in the intake, and Reimagine will do the same for you in everything that follows.
 
