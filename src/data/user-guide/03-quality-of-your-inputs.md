@@ -43,7 +43,7 @@ The resume is the source of every accomplishment Reimagine will translate into y
 
 **Watch out for:** a resume that lists job titles and responsibilities but not outcomes. Reimagine can work with that, but the resulting Value Proposition will be more abstract than you want. If you have time, spend a few minutes adding the numbers you remember before you upload.
 
-**You can always update it later.** If you remember a major project after the fact, go back to the Resume step, replace the file or paste in updated text, and regenerate from Phase 1. Chapter 12 explains how.
+**You can always update it later.** If you remember a major project after the fact, go back to the Resume step, replace the file or paste in updated text, and regenerate from Phase 1. Refining and Regenerating explains how.
 
 ### LinkedIn
 
@@ -151,7 +151,7 @@ For the full details, see the [Privacy Policy](/privacy) and the [Terms of Servi
 
 Every input is editable. If you remember a key accomplishment after Phase 1, or you realize the assessment did not capture something important, or your work preference changes mid-journey, you can return to that input step, change it, and regenerate the analysis from there.
 
-Chapter 12 covers exactly how to do this without losing the work you have already done downstream. The short version: Reimagine is built to be revisited. Treat your first pass as a draft.
+Refining and Regenerating covers exactly how to do this without losing the work you have already done downstream. The short version: Reimagine is built to be revisited. Treat your first pass as a draft.
 
 ## A short checklist before you start
 

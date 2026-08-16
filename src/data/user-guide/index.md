@@ -6,11 +6,11 @@ A plain-English guide to using Reimagine to build your career strategy.
 
 You can read it front to back, or jump to the chapter that matches where you are.
 
-If you have never opened the tool, start with **Chapters 1–3**. They explain what Reimagine is, what to have ready, and the single most important idea in the whole guide: the quality of your inputs sets the ceiling on the quality of your outputs.
+If you have never opened the tool, start with **What Reimagine Is**, **Before You Begin**, and **The Quality of Your Inputs**. They explain what Reimagine is, what to have ready, and the single most important idea in the whole guide: the quality of your inputs sets the ceiling on the quality of your outputs.
 
 If you are inside the tool right now and want help with a specific phase, jump to that phase's chapter. Each one has the same shape: what this phase does, what to expect on screen, what good looks like, and how to refine the result before moving on.
 
-If something is not working the way you expect, check **Chapter 14: FAQ and Troubleshooting**.
+If something is not working the way you expect, check **FAQ and Troubleshooting**.
 
 ## Table of contents
 
@@ -47,7 +47,7 @@ If something is not working the way you expect, check **Chapter 14: FAQ and Trou
 
 ## A note on how Reimagine works with you
 
-Reimagine is not a one-shot generator. After every output, you have the option to tell it what to adjust, then regenerate. You will see this throughout the journey. The tool is designed to be used iteratively, not perfectly the first time. Chapter 12 covers this in detail, and every phase chapter points back to it.
+Reimagine is not a one-shot generator. After every output, you have the option to tell it what to adjust, then regenerate. You will see this throughout the journey. The tool is designed to be used iteratively, not perfectly the first time. Refining and Regenerating covers this in detail, and every phase chapter points back to it.
 
 ---
 

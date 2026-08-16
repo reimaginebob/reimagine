@@ -20,7 +20,7 @@ Three things worth knowing.
 
 ## Save a Focus Playbook as PDF
 
-The Focus Playbook (Chapter 6) is where Reimagine builds everything for one role. Your work is saved to your Reimagine account and available on any device you sign in from, but the PDF gives you a portable copy you can share, send to a coach, or keep alongside your offline notes.
+The Focus Playbook is where Reimagine builds everything for one role. Your work is saved to your Reimagine account and available on any device you sign in from, but the PDF gives you a portable copy you can share, send to a coach, or keep alongside your offline notes.
 
 **Where the button is.** Once you have generated at least one section past The Role, a footer bar appears at the bottom of the Focus Playbook with a **Save Playbook as PDF** button. It stays in view as you scroll, so it is there the moment you decide a playbook is worth keeping.
 
@@ -50,7 +50,7 @@ You can download it from two places on the Complete screen: the banner at the to
 
 Use it to share your story with a recruiter, a coach, or someone in your network you would like to refer you. It is designed to be readable in 60 seconds.
 
-A creative use worth trying: upload the PDF into **Notebook LM** (Google's free notebook tool) and use the Audio Summary feature to generate a short podcast-style episode about you. Hearing two hosts talk about your background hits you differently than reading the same content on paper. Chapter 10 has the full setup.
+A creative use worth trying: upload the PDF into **Notebook LM** (Google's free notebook tool) and use the Audio Summary feature to generate a short podcast-style episode about you. Hearing two hosts talk about your background hits you differently than reading the same content on paper.
 
 ### The target company list as a CSV
 

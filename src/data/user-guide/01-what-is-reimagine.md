@@ -36,8 +36,8 @@ Reimagine sends your inputs to Claude, a large language model from Anthropic, wi
 
 You do not need to know any of that to use the tool. Two things are worth knowing:
 
-1. **What you put in shapes what comes out.** Chapter 3 explains why this is the most important idea in the whole guide.
-2. **You can always go back and update.** If you remember something later, or learn something new about yourself, or want to try a different direction, you can return to any earlier step, change your input, and regenerate from there. Chapter 12 explains how.
+1. **What you put in shapes what comes out.** The Quality of Your Inputs explains why this is the most important idea in the whole guide.
+2. **You can always go back and update.** If you remember something later, or learn something new about yourself, or want to try a different direction, you can return to any earlier step, change your input, and regenerate from there. Refining and Regenerating explains how.
 
 ## Your data and how it is stored
 

@@ -6,7 +6,7 @@ These are the terms you will encounter inside Reimagine, in this guide, or in th
 
 **Affintus.** A free 15-minute professional assessment Reimagine recommends if you do not already have one. It produces results you can paste into the Assessment input screen.
 
-**Bridge Story.** Your answer to "tell me about yourself": a single flowing answer in your voice, calibrated to the direction you picked. It opens with the strongest human anchor in your inputs, connects that to one accomplishment that carries the theme, and closes on why your next move is the natural next step. When your profile holds a second strong opening, Reimagine adds a short coaching note below it. Saved as a persistent asset that feeds the later steps needing a "tell me about yourself." It is the section after The Role in the Focus Playbook. See Chapter 7 for the model and how to use it.
+**Bridge Story.** Your answer to "tell me about yourself": a single flowing answer in your voice, calibrated to the direction you picked. It opens with the strongest human anchor in your inputs, connects that to one accomplishment that carries the theme, and closes on why your next move is the natural next step. When your profile holds a second strong opening, Reimagine adds a short coaching note below it. Saved as a persistent asset that feeds the later steps needing a "tell me about yourself." It is the section after The Role in the Focus Playbook. See Your Focus Playbook for the model and how to use it.
 
 **Brand Synthesis.** Retired in 2026-05-20. The Phase 1 output is now Personal Brand, a single flowing prose synthesis that includes the through-line, evidence triangulation, a transfer reading, and dimensional fit across function, industry, position, scale, pace, and mission.
 

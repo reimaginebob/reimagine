@@ -2,7 +2,7 @@
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
-This is the **Add an Opportunity** card on the Put It to Work screen in Phase 2 (Chapter 6). Whenever you have a specific job description in hand, choose Add an Opportunity, paste it in, and Reimagine creates an Opportunity Playbook for that role with five sections. Two of them start building the moment you submit the posting; the rest you build on demand. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here. You no longer have to finish the main journey first; Add an Opportunity is available as soon as you reach the Put It to Work screen, and the sidebar entry under Phase 2 routes back there from anywhere in the app.
+This is the **Add an Opportunity** card on the Put It to Work screen in Phase 2 (see Put It to Work). Whenever you have a specific job description in hand, choose Add an Opportunity, paste it in, and Reimagine creates an Opportunity Playbook for that role with five sections. Two of them start building the moment you submit the posting; the rest you build on demand. It is the most natural reason to come back to Reimagine during an active search: every specific role you consider can get its own playbook here. You no longer have to finish the main journey first; Add an Opportunity is available as soon as you reach the Put It to Work screen, and the sidebar entry under Phase 2 routes back there from anywhere in the app.
 
 ## When to use it
 
@@ -71,7 +71,7 @@ Each section has its own Refine box. Examples:
 - "The STAR stories are too leadership-heavy. The role is more individual contributor. Pick stories that show that."
 - "The Resume Refresh skews too marketing-flavored. The role is more operations; rework the accomplishments to match."
 
-Use the Refine box on the section you want to change. The corrections you submit persist on your profile and propagate to any later Focus Playbooks or Opportunity Playbooks you build for other roles, just like factual corrections elsewhere in the tool (Chapter 12 covers this in detail).
+Use the Refine box on the section you want to change. The corrections you submit persist on your profile and propagate to any later Focus Playbooks or Opportunity Playbooks you build for other roles, just like factual corrections elsewhere in the tool (Refining and Regenerating covers this in detail).
 
 ## Saved with each opportunity
 

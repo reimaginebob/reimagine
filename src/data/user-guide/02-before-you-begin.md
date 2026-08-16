@@ -29,7 +29,7 @@ Reimagine accepts any of the major professional assessments:
 
 **You can combine more than one.** The Assessment screen has one upload slot, but you can also paste results into the text field. If you have two or three assessments you want Reimagine to consider, paste them sequentially into the text field with a simple divider line between each (for example, `=== CliftonStrengths ===` then the results, then `=== Hogan ===` then those results). Reimagine will read all of it.
 
-If you decide to skip the assessment entirely, Reimagine will still work, but the recommendations will be more abstract and less personal. Chapter 3 explains why this matters.
+If you decide to skip the assessment entirely, Reimagine will still work, but the recommendations will be more abstract and less personal. The Quality of Your Inputs explains why this matters.
 
 ### 3. About 30 minutes for the intake
 
@@ -68,7 +68,7 @@ Reimagine saves your progress to your account as you go. As long as you are sign
 There are two things worth knowing:
 
 - **Your inputs travel only to Anthropic's Claude service** to generate each section of your strategy, plus to Career Club's own database to save your progress against your email. No other parties receive your information.
-- **You can still export a snapshot.** If you want to download a copy of everything for your own records, the Results screen has a download button (Chapter 13).
+- **You can still export a snapshot.** If you want to download a copy of everything for your own records, the Results screen has a download button (see Saving and Sharing Your Work).
 
 ## How we protect your data
 

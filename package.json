@@ -25,7 +25,7 @@
     "lint": "eslint \"src/**/*.{js,jsx}\" \"api/**/*.js\"",
     "test": "node scripts/test-md-italic.mjs && node scripts/test-voice-patterns.mjs && node scripts/test-personal-brand-tail.mjs && node scripts/test-text-strippers.mjs && node scripts/test-strip-nul.mjs && node scripts/test-profile-block.mjs && node scripts/test-coach-routing.mjs && node scripts/test-corrections.mjs && node scripts/test-monetize-benefits.mjs",
     "gen:coach-nav-map": "node scripts/gen-coach-nav-map.mjs",
-    "prebuild": "node scripts/write-build-meta.mjs && node scripts/build-user-guide.mjs && node scripts/check-voice.mjs && node scripts/check-sys-equality.mjs && node scripts/check-prompt-refs.mjs && node scripts/check-coach-nav-map.mjs && node scripts/check-orphans.mjs && node scripts/check-fontsize.mjs && node scripts/check-user-guide-pdf.mjs && npm run test && npm run lint",
+    "prebuild": "node scripts/write-build-meta.mjs && node scripts/build-user-guide.mjs && node scripts/check-voice.mjs && node scripts/check-sys-equality.mjs && node scripts/check-prompt-refs.mjs && node scripts/check-coach-nav-map.mjs && node scripts/check-orphans.mjs && node scripts/check-fontsize.mjs && node scripts/check-guide-refs.mjs && node scripts/check-user-guide-pdf.mjs && npm run test && npm run lint",
     "build": "vite build",
     "build:user-guide-pdf": "python3 scripts/build-user-guide-pdf.py && node scripts/write-user-guide-hash.mjs",
     "preview": "vite preview",

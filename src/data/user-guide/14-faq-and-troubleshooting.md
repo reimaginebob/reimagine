@@ -49,7 +49,7 @@ Once you are signed in, clearing cache does not affect your work. Sign in again 
 Yes, automatically. Sign in from the new device with the same email and your full session is there. No file export needed.
 
 **Can I have more than one Reimagine direction in flight at a time?**
-Not directly. Reimagine holds one active session per account. To explore two different directions in parallel, finish one, download the markdown of all outputs as a snapshot, then come back to the Decision step and pick a different option to generate downstream artifacts for the second direction. Chapter 12 covers the mechanics.
+Not directly. Reimagine holds one active session per account. To explore two different directions in parallel, finish one, download the markdown of all outputs as a snapshot, then come back to the Decision step and pick a different option to generate downstream artifacts for the second direction. Refining and Regenerating covers the mechanics.
 
 **Why is there only one playbook when I built the same role twice (or uploaded the same job description twice)?**
 Reimagine de-duplicates. If you pick the same role from Career Paths twice, or upload the same job description twice, Reimagine quietly re-links you to the existing playbook instead of creating a second copy. Your work is not lost; you land back in the same record, right where you left it. If you want a clean start on that role or job description, delete the existing playbook from My Playbooks first, then build it again.
@@ -78,7 +78,7 @@ Reimagine keeps the version you had just before your last refresh or Start fresh
 Your Personal Brand does not rebuild on its own when you change an input (your resume, values, reputation, assessment, and so on). When you leave a changed input, Reimagine reminds you and offers to update it right then; you can also refresh it any time from the Personal Brand screen. Refreshing is safe: your current version is saved, so you can restore it if you prefer it.
 
 **What does the Bridge Story look like?**
-It is a single tell-me-about-yourself answer written in your voice and calibrated to the direction you picked. It opens with the strongest human anchor in your inputs (a passion, a craft you trained in, a formative experience, or an assessment finding), connects that to one accomplishment that carries the theme, and closes on why your next move is the natural next step. When your profile holds a second strong opening, Reimagine adds a short italic coaching note below the story. Chapter 7 covers the model in full.
+It is a single tell-me-about-yourself answer written in your voice and calibrated to the direction you picked. It opens with the strongest human anchor in your inputs (a passion, a craft you trained in, a formative experience, or an assessment finding), connects that to one accomplishment that carries the theme, and closes on why your next move is the natural next step. When your profile holds a second strong opening, Reimagine adds a short italic coaching note below the story. Your Focus Playbook covers the model in full.
 
 **My Bridge Story is out of date after I changed my Orientation.**
 If you change your reputation, values, passions, assessment, or Your Story after generating, regenerate the Bridge Story so it reflects what is now true. Open the feedback box below the story and click **Start fresh** (or **Update with my changes** if you also have a specific note). Reimagine rebuilds from your current inputs; your saved story is replaced only when you regenerate it.
@@ -87,7 +87,7 @@ If you change your reputation, values, passions, assessment, or Your Story after
 Open the feedback box below the section and tell Reimagine what to change, then regenerate. Examples: "Lead with my sustainability work instead," or "Don't use the word 'leverage,' I would not say that." The same feedback box works for the Bridge Story, LinkedIn copy, and every other section. Factual corrections save to your profile and carry into later sections; wording requests apply to the section you make them on.
 
 **I want to explore a different direction or role after I picked one.**
-Use **Explore another direction** to return to the three directions, or pick a different role in the Lane Option view. Any role you have opened before also appears under **Roles You've Explored** in the sidebar with a Re-explore action. Switching roles regenerates that role's Focus Playbook fresh; if the current playbook has unsaved work, Reimagine offers to save it as a PDF first. Chapter 6 covers this in detail.
+Use **Explore another direction** to return to the three directions, or pick a different role in the Lane Option view. Any role you have opened before also appears under **Roles You've Explored** in the sidebar with a Re-explore action. Switching roles regenerates that role's Focus Playbook fresh; if the current playbook has unsaved work, Reimagine offers to save it as a PDF first. Career Paths covers this in detail.
 
 **I want different options, or options in a direction we missed.**
 On the Lane Option view, open **Tell us where else to look** and name a domain or direction we missed, or tell Reimagine what did not fit. Examples: "You missed affordable housing." "Consider education." "Remove consulting roles." "These skew too senior." It re-runs with your input weighted, without repeating the ones you have seen.
