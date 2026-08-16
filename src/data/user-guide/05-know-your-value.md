@@ -63,7 +63,7 @@ Click **Put It to Work** to advance to Phase 2: Apply Your Foundation. Personal 
 
 ## Phase 1 in one paragraph
 
-You arrived in Phase 1 with a resume, an assessment, your values, your passions, what others say about you, and a life-shaping experience or two. You leave with one document: a single integrated read of who you are at work, with a forward-looking translation of where the through-line applies and a dimensional reading that names the choices worth sharpening in Phase 2. Behind the scenes Reimagine ran a two-stage build against your inputs; on the screen you saw one CTA, one wait, and one synthesis. If you ever need to start over on a downstream step, the easiest fix is usually to come back to Phase 1, refine here, and let the changes flow forward. Chapter 12 covers the mechanics.
+You arrived in Phase 1 with a resume, an assessment, your values, your passions, what others say about you, and a life-shaping experience or two. You leave with one document: a single integrated read of who you are at work, with a forward-looking translation of where the through-line applies and a dimensional reading that names the choices worth sharpening in Phase 2. Behind the scenes Reimagine ran a two-stage build against your inputs; on the screen you saw one CTA, one wait, and one synthesis. If you ever need to start over on a downstream step, the easiest fix is usually to come back to Phase 1, refine here, and let the changes flow forward. Refining and Regenerating covers the mechanics.
 
 ---
 

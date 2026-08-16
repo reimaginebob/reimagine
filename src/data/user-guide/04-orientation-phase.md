@@ -4,7 +4,7 @@
 
 This is the only phase where you do the work. Everything that follows is generated for you. This chapter walks through each screen so you know what to expect and what good input looks like at each one.
 
-If you have not read **Chapter 3: The Quality of Your Inputs** yet, do that first. This chapter assumes you have.
+If you have not read **The Quality of Your Inputs** yet, do that first. This chapter assumes you have.
 
 The Orientation phase has nine screens, in this order:
 
@@ -33,7 +33,7 @@ Click the link in either case and you are in. Your session lasts 30 days, refres
 
 If you have used Reimagine before and your session is still active in this browser, you skip straight past sign-in and land on your last step. If you are on a new device or your session has expired, you sign in again with the same email and your work appears.
 
-Chapter 2 has more detail on sign-in and what to do if the link does not arrive.
+Before You Begin has more detail on sign-in and what to do if the link does not arrive.
 
 ## Screen 2: Location & Work
 
@@ -90,7 +90,7 @@ The draft is written to a broadly legible posture, the kind a wide range of recr
 
 The builder is a step you can return to. Your draft is saved to your account, so you can leave, come back, and add more whenever new details surface. When you do, Reimagine also offers to refresh your Personal Brand and the work that builds on it, so your sharper material reaches every downstream result. That refresh is always your choice, never automatic.
 
-**A reminder from Chapter 3:** the more your resume includes specific outcomes. Money made, money saved, risk mitigated, with numbers attached. The better the output. If you have time, add a few numbers. If you do not, that is fine. Reimagine will flag where it would help and you can come back later.
+**A reminder from The Quality of Your Inputs:** the more your resume includes specific outcomes. Money made, money saved, risk mitigated, with numbers attached. The better the output. If you have time, add a few numbers. If you do not, that is fine. Reimagine will flag where it would help and you can come back later.
 
 ## Screen 4: Your LinkedIn (optional)
 
@@ -136,7 +136,7 @@ When you have either uploaded or pasted (or chosen to skip), click **Continue**.
 
 ## Screen 5: Assessments
 
-This is the input that does the most work. Read Chapter 3 if you have not already.
+This is the input that does the most work. Read The Quality of Your Inputs if you have not already.
 
 An assessment shows the durable part of you: where your natural strengths lie, what energizes you, and the environments where you do your best work. These qualities don't depend on title, compensation, or where you worked. They travel with you into every role that comes next, which is why this layer raises the quality of everything Reimagine generates downstream.
 
@@ -239,7 +239,7 @@ From Phase 1 on, you are no longer entering data. You are reviewing what Reimagi
 
 While Reimagine generates each section, the loading screen shows a short "while you wait" bullet list previewing what is coming, plus rotating quotes from Bob Goodwin's book Making Your Own Weather. Each phase has its own pool of quotes matched to that phase's substance.
 
-If at any point you realize an input was wrong or incomplete, click any completed orientation step in the left sidebar to return, fix it, and regenerate from there. Chapter 12 explains how to do that without losing your downstream work.
+If at any point you realize an input was wrong or incomplete, click any completed orientation step in the left sidebar to return, fix it, and regenerate from there. Refining and Regenerating explains how to do that without losing your downstream work.
 
 ---
 

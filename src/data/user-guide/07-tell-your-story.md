@@ -1,6 +1,6 @@
 # 7. Phase 3. Tell Your Story
 
-> **Where this lives now.** Your Bridge Story is generated inside the Focus Playbook for a specific role (Chapter 6), as the second section after The Role. It is no longer a separate phase you walk to in order. This chapter explains what the Bridge Story is and what good looks like; the Focus Playbook is where you generate and refine it.
+> **Where this lives now.** Your Bridge Story is generated inside the Focus Playbook for a specific role (see Your Focus Playbook), as the second section after The Role. It is no longer a separate phase you walk to in order. This chapter explains what the Bridge Story is and what good looks like; the Focus Playbook is where you generate and refine it.
 
 > **What changed (2026-05-31).** Reimagine used to give you the bones of an answer: three building blocks, three starter options for each, that you assembled and edited into a finished story. It now writes a single cohesive answer in your voice, calibrated to the direction you picked, and offers a coaching note when a second strong opening is also visible in your profile. The reason for the change is below.
 
@@ -113,7 +113,7 @@ If you ever want a completely different opening because the conversation in fron
 
 ## The op-card adaptation
 
-Each Live Opportunity Playbook (Chapter 11b) you build also has a Bridge Story card. That card is a 2 to 3 sentence sharpening of your role-level story, tuned to the specific company and job description for that opportunity.
+Each Live Opportunity Playbook (see Add an Opportunity) you build also has a Bridge Story card. That card is a 2 to 3 sentence sharpening of your role-level story, tuned to the specific company and job description for that opportunity.
 
 It does two things your base Bridge Story cannot: it names *why this company specifically*, and (when the company's mission calls for it) it shifts the human anchor to the angle most resonant for that role. The result is a 30-second opener you can take into that conversation without rewriting from scratch.
 
@@ -154,7 +154,7 @@ Because the Bridge Story is a saved asset, the time you spend refining it until 
 
 ## When you are happy with it
 
-Click **Find My Market** to advance to Phase 4. If something feels off later, say you read your LinkedIn copy in Phase 5 and the opening line sounds off. You can come back here, refine, and let the LinkedIn step regenerate. Chapter 12 covers how.
+Click **Find My Market** to advance to Phase 4. If something feels off later, say you read your LinkedIn copy in Phase 5 and the opening line sounds off. You can come back here, refine, and let the LinkedIn step regenerate. Refining and Regenerating covers how.
 
 ---
 

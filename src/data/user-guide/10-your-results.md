@@ -84,13 +84,13 @@ If you were promoted or changed roles at the same employer, Resume Refresh keeps
 
 ## Your progress is saved across devices
 
-A banner reminds you that your work is saved against your account. As long as you are signed in, your progress travels with you across devices. Chapter 13 covers the details of how account-based saving works, plus the export options for backups and snapshots.
+A banner reminds you that your work is saved against your account. As long as you are signed in, your progress travels with you across devices. Saving and Sharing Your Work covers the details of how account-based saving works, plus the export options for backups and snapshots.
 
 When you finish the main flow and land on Complete, the progress bar in the header reads 100%.
 
 ## Pursuing a specific opportunity
 
-The first CTA card on the Complete screen invites you to bring a job description into Reimagine. When a posting catches your eye (through your network, on LinkedIn, in a posting you came across yourself), head to **Add an Opportunity** in the sidebar. Paste the description or upload the PDF. Reimagine creates an Opportunity Playbook scoped to that role with four sections you can build on demand: The Role, Bridge Story, Resume Refresh, and Interview Prep. Chapter 11b walks through the module in detail.
+The first CTA card on the Complete screen invites you to bring a job description into Reimagine. When a posting catches your eye (through your network, on LinkedIn, in a posting you came across yourself), head to **Add an Opportunity** in the sidebar. Paste the description or upload the PDF. Reimagine creates an Opportunity Playbook scoped to that role with four sections you can build on demand: The Role, Bridge Story, Resume Refresh, and Interview Prep. Add an Opportunity walks through the module in detail.
 
 This is the most natural reason to come back to Reimagine during an active search. Every specific role you consider can get its own playbook.
 
@@ -108,7 +108,7 @@ The third CTA card points to *Making Your Own Weather*, the book by Bob Goodwin 
 
 A small italic line below the three CTA cards mentions Income Now: it turns your existing expertise into consulting or fractional income while you continue the search. For some people the bridge becomes the path.
 
-If you have not yet generated Income Now, click into it from the sidebar (or the dedicated "Income Now" entry). Chapter 11 covers what it produces.
+If you have not yet generated Income Now, click into it from the sidebar (or the dedicated "Income Now" entry). Income Now covers what it produces.
 
 If you have already generated Income Now, the result appears as a card in your regular results list.
 
@@ -136,7 +136,7 @@ Some users come back to the Complete screen daily during an active search. Other
 
 ## When to come back to refine
 
-Even after you reach the Complete screen, the journey is not closed. If you have a conversation that surfaces something new. A project you forgot to mention, a passion you should have flagged, a refined direction. You can navigate back to the relevant step in the sidebar, refine your input, and regenerate from there. Chapter 12 covers the mechanics. The Complete screen is the destination, not the end.
+Even after you reach the Complete screen, the journey is not closed. If you have a conversation that surfaces something new. A project you forgot to mention, a passion you should have flagged, a refined direction. You can navigate back to the relevant step in the sidebar, refine your input, and regenerate from there. Refining and Regenerating covers the mechanics. The Complete screen is the destination, not the end.
 
 ---
 

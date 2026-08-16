@@ -1,6 +1,6 @@
 # 11. Bonus. Income Now
 
-> **Where this lives now.** Income Now is the bonus section that lives below the seven main sections inside the Focus Playbook for a specific role (Chapter 6). It generates separately and renders with bonus-stripe treatment on both the Focus Playbook page and the Complete page. You can reach it from inside the Focus Playbook, and from the Income Now item nested under Put It to Work in the left sidebar. If you open it from the sidebar before picking a direction, you'll see a short screen that points you to Career Paths first, since the plan is built around the direction you choose. Everything below still describes what it produces and how to use it.
+> **Where this lives now.** Income Now is the bonus section that lives below the seven main sections inside the Focus Playbook for a specific role (see Your Focus Playbook). It generates separately and renders with bonus-stripe treatment on both the Focus Playbook page and the Complete page. You can reach it from inside the Focus Playbook, and from the Income Now item nested under Put It to Work in the left sidebar. If you open it from the sidebar before picking a direction, you'll see a short screen that points you to Career Paths first, since the plan is built around the direction you choose. Everything below still describes what it produces and how to use it.
 
 When money gets tight, the temptation is to take whatever pays the bills. Reimagine has a different idea.
 
@@ -52,7 +52,7 @@ The rates should match your seniority. The standard ranges Reimagine uses are ro
 
 ## Compensation Read
 
-Below your income plan, Income Now carries a **Compensation Read**: a sourced pay range for the direction you picked, in your market. Click **Build** and Reimagine searches public salary sites (Glassdoor, BuiltIn, Salary.com, PayScale, and similar), triangulates two or three of them, and reports the range with every dollar figure a clickable link to its source so you can check it yourself. It sets aside sources that are matching a mislabeled version of the role, so a stray high or low outlier doesn't distort the range. Because the relevant public sources still disagree among themselves, it names the honest spread rather than one falsely precise number. A disclaimer under the card says what it is: a starting point for your own research, not a verdict. It is context for the direction you are weighing, never a signal for whether to pursue it — that call stays yours. (The same Compensation Read appears inside an Opportunity Playbook for a specific posting, where it also feeds an Offer & Negotiation section; see Chapter 11b.)
+Below your income plan, Income Now carries a **Compensation Read**: a sourced pay range for the direction you picked, in your market. Click **Build** and Reimagine searches public salary sites (Glassdoor, BuiltIn, Salary.com, PayScale, and similar), triangulates two or three of them, and reports the range with every dollar figure a clickable link to its source so you can check it yourself. It sets aside sources that are matching a mislabeled version of the role, so a stray high or low outlier doesn't distort the range. Because the relevant public sources still disagree among themselves, it names the honest spread rather than one falsely precise number. A disclaimer under the card says what it is: a starting point for your own research, not a verdict. It is context for the direction you are weighing, never a signal for whether to pursue it — that call stays yours. (The same Compensation Read appears inside an Opportunity Playbook for a specific posting, where it also feeds an Offer & Negotiation section; see Add an Opportunity.)
 
 ## How to refine
 
@@ -67,7 +67,7 @@ Use **Update my plan** to fold the changes in. Use **Show me a fresh plan** to c
 
 ## When you are happy with it
 
-When you finish Income Now, click **Back to Results** to return to the Complete screen. Your Income Now plan is now part of your library of outputs there, alongside everything else you generated in the main journey. Treat it the same way: come back to it whenever you have a conversation that should be a paid one, or when you want to update your rates, your bio, or your service offerings. Chapter 12 covers how to refine and regenerate any output you have already produced.
+When you finish Income Now, click **Back to Results** to return to the Complete screen. Your Income Now plan is now part of your library of outputs there, alongside everything else you generated in the main journey. Treat it the same way: come back to it whenever you have a conversation that should be a paid one, or when you want to update your rates, your bio, or your service offerings. Refining and Regenerating covers how to refine and regenerate any output you have already produced.
 
 ---
 
