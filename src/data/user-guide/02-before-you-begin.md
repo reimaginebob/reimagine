@@ -31,7 +31,7 @@ Reimagine accepts any of the major professional assessments:
 
 If you decide to skip the assessment entirely, Reimagine will still work, but the recommendations will be more abstract and less personal. Chapter 3 explains why this matters.
 
-### 3. About 20 to 30 minutes for the intake
+### 3. About 30 minutes for the intake
 
 That covers entering your information and getting your first set of results. The full journey takes longer because each phase asks you to read what was generated and decide whether to refine it. The journey is meant to be paced; you do not need to finish in one sitting.
 

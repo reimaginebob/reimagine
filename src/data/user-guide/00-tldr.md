@@ -12,11 +12,11 @@ A web-based career strategy tool for professionals navigating a transition. You 
 
 - Your resume (any format)
 - An assessment from the last three years (Affintus, CliftonStrengths, MBTI, DiSC, Hogan, etc.). Affintus is free and takes 15 minutes
-- About 20 to 30 minutes for the intake. The full journey takes longer than one sitting; pace yourself across multiple sessions
+- About 30 minutes for the intake. The full journey takes longer than one sitting; pace yourself across multiple sessions
 
 ## The single most important idea
 
-The quality of your inputs determines how much Reimagine can help you. The first 20 minutes of the journey are where the leverage is: your resume, your assessment, your values, your passions, four short reputation prompts, and a few formative experiences from Your Story. Put your best foot forward at the intake and Reimagine will do the same for you in everything that follows.
+The quality of your inputs determines how much Reimagine can help you. The first 30 minutes of the journey are where the leverage is: your resume, your assessment, your values, your passions, four short reputation prompts, and a few formative experiences from Your Story. Put your best foot forward at the intake and Reimagine will do the same for you in everything that follows.
 
 A few specifics: take an assessment if you do not have one (the difference is significant). When you describe your passions, do not filter for what feels professionally relevant. The unexpected combinations are what Reimagine looks for. For Your Story, the formative experiences that shaped how you work often surface anchors no other input captures, so share what feels relevant even if it does not read like resume material. For the reputation step, dig up old performance reviews, LinkedIn recommendations, and 360 feedback before you start.
 
