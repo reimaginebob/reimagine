@@ -20,8 +20,8 @@ If something is not working the way you expect, check **FAQ and Troubleshooting*
 2. [What Reimagine Is](what-reimagine-is.md)
 3. [Before You Begin](before-you-begin.md)
 4. [The Quality of Your Inputs](quality-of-your-inputs.md)
-5. [Phase 0. Orientation: Telling Reimagine About You](orientation.md)
-6. [Phase 1. Know Your Value](personal-brand.md)
+5. [Orientation](orientation.md)
+6. [Your Personal Brand](personal-brand.md)
 7. [Put It to Work](put-it-to-work.md)
 8. [Career Paths](career-paths.md)
 9. [Your Focus Playbook](focus-playbook.md)
@@ -35,6 +35,7 @@ If something is not working the way you expect, check **FAQ and Troubleshooting*
 17. [Saving and Sharing Your Work](saving-your-work.md)
 18. [FAQ and Troubleshooting](faq-and-troubleshooting.md)
 19. [Glossary](glossary.md)
+20. [What's Changed](whats-changed.md)
 
 <!-- toc:end -->
 

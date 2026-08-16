@@ -1,14 +1,18 @@
-# Phase 1. Know Your Value
+# Your Personal Brand
 
-This is the foundation phase. Everything you generate later in the journey: your bridge story, your target companies, your outreach, your LinkedIn, your resume refresh, your playbook. All of it is built on what comes out of Phase 1. If the foundation is sharp, everything downstream is sharp. If the foundation is generic, the rest of the journey carries that around.
+This is the foundation. Everything you generate afterward — your bridge story, your target companies, your outreach, your LinkedIn, your resume refresh, every playbook — is built on what comes out of here. If the foundation is sharp, everything after it is sharp. If the foundation is generic, the rest carries that around.
 
-Plan to spend more time reading and refining Phase 1 than any later phase. The 15 minutes you spend here saves an hour of refining downstream.
+Plan to spend more time reading and refining your Personal Brand than any single section that follows. The 15 minutes you spend here saves an hour of refining later.
 
-## One step, one read
+Your Personal Brand is also the one thing that stays constant. Explore three directions and open a dozen roles, and this does not get rewritten. It is the source everything else reads from.
 
-Phase 1 is a single step: **Personal Brand**. You click one button, you wait once, and you get one flowing prose synthesis of who you are at work. Behind the scenes Reimagine runs a two-stage build: a deep read of everything you provided, then the synthesis that turns it into your brand. Neither stage reaches the screen as a separate output. The integration is the deliverable.
+## One button, one read
 
-The synthesis pulls from everything you provided in Orientation: your resume, your assessment, your values, your passions, your reputation answers, your life-shaping experiences. The two stages feed each other and produce a single read, laid out as a set of components that appear only when your inputs earn them.
+**Personal Brand** is a single step. You click one button, you wait once, and you get one integrated read of who you are at work.
+
+Behind the scenes Reimagine runs a two-stage build: a deep read of everything you provided, then the synthesis that turns it into your brand. Neither stage reaches the screen as a separate output. The integration is the deliverable.
+
+The synthesis pulls from everything you provided in Orientation: your resume, your assessment, your values, your passions, your reputation answers, your life-shaping experiences. What comes back is a designed read, built from components that appear only when your inputs earn them, so a sparse profile reads short and a rich one reads full.
 
 ## On the screen
 
@@ -21,14 +25,14 @@ The quote is for you, not for the analysis. Use the time.
 
 ## What you will get back
 
-Personal Brand comes back as a designed read, not a wall of text. It opens with one line, then lays out only the parts your inputs actually support, so a sparse profile reads short and a rich one reads full. Nothing is padded to fill a slot. You may see:
+It opens with one line, then lays out only the parts your inputs actually support. Nothing is padded to fill a slot. You may see:
 
 - **A through-line at the top.** One sentence naming what runs through your work, specific enough that it could not be lifted onto anyone else in your role.
 - **A proof strip.** When your inputs carry several quantified results, the strongest few sit in a row near the top as a quick scan layer. With only one or two, the numbers stay inline in the prose.
 - **Sections, each led by a short label.** The body of the read, in the order the analysis makes its case. The labels are the scan layer; the prose underneath rewards the deep read.
 - **Where it comes from.** When your life-shaping inputs hold a real formative source, it gets its own set-apart passage. If your story inputs are thin, there is no origin section, and Reimagine will not invent one.
 - **Worth naming.** A short set of growth edges, each named the way a trusted coach names a watch-out: matter-of-fact, useful, and resolved into how to use it. Only when your inputs surfaced real ones.
-- **What is next.** A warm close that points toward Phase 2 without picking a lane for you.
+- **What is next.** A warm close that opens up what to do with this, without picking a direction for you.
 
 You can keep a copy any time with **Save as PDF**, which opens a clean print-or-save view of the read. Re-running replaces your current Personal Brand, so save first if you want to hold on to a version.
 
@@ -57,11 +61,11 @@ Either way, Reimagine keeps the version you had just before. If a refresh comes 
 
 ## When you are happy with it
 
-Click **Put It to Work** to advance to Phase 2: Apply Your Foundation. Personal Brand becomes the source of truth Reimagine uses to generate everything that follows. The dimensions you and Reimagine surfaced as worth examining (often scale, mission, or position in the value chain) are exactly what Phase 2's Put It to Work choice is designed to sharpen.
+Click **Put It to Work**. Your Personal Brand becomes the source of truth Reimagine reads for everything that follows. The dimensions you and Reimagine surfaced as worth examining (often scale, mission, or position in the value chain) are exactly the ones the Put It to Work choice is designed to sharpen.
 
-## Phase 1 in one paragraph
+## In one paragraph
 
-You arrived in Phase 1 with a resume, an assessment, your values, your passions, what others say about you, and a life-shaping experience or two. You leave with one document: a single integrated read of who you are at work, with a forward-looking translation of where the through-line applies and a dimensional reading that names the choices worth sharpening in Phase 2. Behind the scenes Reimagine ran a two-stage build against your inputs; on the screen you saw one CTA, one wait, and one synthesis. If you ever need to start over on a downstream step, the easiest fix is usually to come back to Phase 1, refine here, and let the changes flow forward. Refining and Regenerating covers the mechanics.
+You came in with a resume, an assessment, your values, your passions, what others say about you, and a life-shaping experience or two. You leave with one document: an integrated read of who you are at work, a forward-looking translation of where the through-line applies, and a reading of the choices worth sharpening next. Behind the scenes Reimagine ran a two-stage build against your inputs; on the screen you saw one button, one wait, and one read. If a later section ever comes out wrong, the fix is usually here rather than there: refine your Personal Brand and let the change flow forward. Refining and Regenerating covers the mechanics.
 
 ---
 

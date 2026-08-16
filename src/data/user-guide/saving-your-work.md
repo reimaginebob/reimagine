@@ -36,23 +36,15 @@ You can also click any completed step in the left sidebar to jump there.
 
 Reimagine produces several artifacts you can take with you.
 
-### Download all outputs as one markdown file
+### The playbook PDF
 
-On the Complete screen, click **Download All Outputs as Markdown**. The file contains every generated section in one document, with clear headings between phases. Open it in any text editor, paste into a document, or convert it to PDF.
+The main one is the playbook PDF, covered above. Every Focus Playbook and every Opportunity Playbook can be saved as a clean paged document with each section on its own page.
 
-### The one-page PDF
-
-The most portable summary of your work is the one-page PDF. It is generated from your final outputs and includes your personal brand, your value proposition, your bridge story, and your target direction in a clean printable format.
-
-You can download it from two places on the Complete screen: the banner at the top, and the Your Deliverables section near the bottom.
-
-Use it to share your story with a recruiter, a coach, or someone in your network you would like to refer you. It is designed to be readable in 60 seconds.
-
-A creative use worth trying: upload the PDF into **Notebook LM** (Google's free notebook tool) and use the Audio Summary feature to generate a short podcast-style episode about you. Hearing two hosts talk about your background hits you differently than reading the same content on paper.
+A creative use worth trying: upload one into **Notebook LM** (Google's free notebook tool) and use the Audio Summary feature to generate a short podcast-style episode about you. Hearing two hosts talk about your background hits you differently than reading the same content on paper. My Playbooks covers it.
 
 ### The target company list as a CSV
 
-In Phase 4 (Find Your Market), Reimagine shows a callout with a **Download CSV** button right after your target company list. Click it and the entire list downloads as a spreadsheet. The columns include: Company, What they do, Industry, Size, HQ, Why it fits, Growth signal, Contact, and Email. The filename is keyed to your name, the role you are pursuing, and the date.
+In the Go-to-Market section of a Focus Playbook, Reimagine shows a callout with a **Download CSV** button right after your target company list. Click it and the entire list downloads as a spreadsheet. The columns include: Company, What they do, Industry, Size, HQ, Why it fits, Growth signal, Contact, and Email. The filename is keyed to your name, the role you are pursuing, and the date.
 
 This is the most actionable artifact Reimagine produces. Open it in Excel, Google Sheets, or Numbers, and you have a working outreach tracker. Add columns as you go: when you reached out, what you heard back, the next step. Filter, sort, and share. Many users keep a live working copy that evolves as their search progresses and a separate clean copy of the original Reimagine output for reference.
 

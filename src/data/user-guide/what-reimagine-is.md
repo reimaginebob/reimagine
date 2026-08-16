@@ -22,7 +22,7 @@ By the time you finish the journey, you will have:
 - A **target company list** with hiring decision-makers and personalized outreach you can send today.
 - A **LinkedIn refresh**, a **resume refresh**, and a **playbook** of industry vocabulary, key people to follow, interview prep, and STAR stories.
 - An optional **Income Now** plan if you need revenue while you search.
-- A downloadable **one-page PDF** summarizing it all.
+- A downloadable **PDF** of any playbook you build, so you can share it or read it offline.
 
 ## How long it takes
 

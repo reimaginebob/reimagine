@@ -1,7 +1,7 @@
 import MarkdownPage from './MarkdownPage'
 import QUICK_START_MD from './data/user-guide/quick-start.md?raw'
 
-// TODO(reimagine-help-visual): the "Reimagine Help is on every screen" bullet in
+// TODO(reimagine-help-visual): the "My Coach is on every screen" bullet in
 // quick-start.md renders as plain bold text because MarkdownPage's renderer has no
 // raw-HTML pass-through. When MarkdownPage gains HTML support, restore the
 // inline gold round "?" button visual from the Quick Start brief next to that bullet.
