@@ -16,7 +16,7 @@ It can also save a few things for you. When a conversation lands on something th
 
 ## What it won't do, and why that helps
 
-It won't change your work on its own. The only things it writes are the ones you tap to accept, and everything else it points you to the step for. It won't invent market data or quote your odds. And it's a coach, not a therapist; if you're carrying something heavier than an ordinary hard day, it will gently point you toward a real person.
+It won't change your work on its own. The only things it writes are the ones you tap to accept, and everything else it points you to the step for. It won't look you up either — it has what you have given Reimagine and nothing else, so it cannot open your website or read your LinkedIn. Paste in anything you want it to see. It won't invent market data or quote your odds. And it's a coach, not a therapist; if you're carrying something heavier than an ordinary hard day, it will gently point you toward a real person.
 
 ## Getting the most from it
 

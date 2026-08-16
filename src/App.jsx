@@ -9539,6 +9539,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{marginBottom:8}}>
         <h1 style={{...S.title,marginBottom:6}}>My Coach</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your coach for the search, grounded in Making Your Own Weather and in what Reimagine knows about you. Ask anything: where to focus, how to tell your story, how to prepare for a conversation.</p>
+        <div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>
       </div>
       <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} onSeedConsumed={()=>setCoachSeed('')} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo}/>
     </div>
