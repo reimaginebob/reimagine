@@ -1,4 +1,4 @@
-# 11e. How an Offer Is Put Together
+# How an Offer Is Put Together
 
 An offer is more than a base salary, and the parts that aren't base are where the real value, and the real traps, hide. This chapter is the anatomy: every element that can show up in a white-collar offer, what each one is worth, and the question to ask about each. Reimagine's Offer & Negotiation section uses this same logic to price the stable parts, and My Coach draws on it to reason about your specific situation. Figures dated 2026 are IRS or legal limits current for that year; they move, so confirm the current number when it matters.
 

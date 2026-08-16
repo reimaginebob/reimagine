@@ -1,4 +1,4 @@
-# Quick Start Guide
+# Quick Start
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 

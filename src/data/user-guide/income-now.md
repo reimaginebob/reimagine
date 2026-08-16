@@ -1,4 +1,4 @@
-# 11. Bonus. Income Now
+# Income Now
 
 > **Where this lives now.** Income Now is the bonus section that lives below the seven main sections inside the Focus Playbook for a specific role (see Your Focus Playbook). It generates separately and renders with bonus-stripe treatment on both the Focus Playbook page and the Complete page. You can reach it from inside the Focus Playbook, and from the Income Now item nested under Put It to Work in the left sidebar. If you open it from the sidebar before picking a direction, you'll see a short screen that points you to Career Paths first, since the plan is built around the direction you choose. Everything below still describes what it produces and how to use it.
 
@@ -71,4 +71,4 @@ When you finish Income Now, click **Back to Results** to return to the Complete 
 
 ---
 
-*Next: [Refining and Regenerating Your Results →](12-refining-and-regenerating.md)*
+*Next: [Refining and Regenerating Your Results →](refining-and-regenerating.md)*

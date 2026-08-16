@@ -1,4 +1,4 @@
-# 10. Your Results
+# Your Results
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
@@ -140,4 +140,4 @@ Even after you reach the Complete screen, the journey is not closed. If you have
 
 ---
 
-*Next: [Bonus. Income Now →](11-income-now.md)*
+*Next: [Bonus. Income Now →](income-now.md)*

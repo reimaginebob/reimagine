@@ -1,4 +1,4 @@
-# 5. Phase 1. Know Your Value
+# Phase 1. Know Your Value
 
 > *(KYV consolidated 2026-05-20. Phase 1 used to be three user-visible steps; now it is one: Personal Brand.)*
 

@@ -1,4 +1,4 @@
-# 13. Saving and Sharing Your Work
+# Saving and Sharing Your Work
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
@@ -96,4 +96,4 @@ If you used Reimagine before the sign-in feature shipped and declined the migrat
 
 ---
 
-*Next: [FAQ and Troubleshooting →](14-faq-and-troubleshooting.md)*
+*Next: [FAQ and Troubleshooting →](faq-and-troubleshooting.md)*

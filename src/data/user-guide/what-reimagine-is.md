@@ -1,4 +1,4 @@
-# 1. What Reimagine Is
+# What Reimagine Is
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
@@ -61,4 +61,4 @@ What it does instead is hold up a mirror, point at the patterns you may not see 
 
 ---
 
-*Next: [Before You Begin →](02-before-you-begin.md)*
+*Next: [Before You Begin →](before-you-begin.md)*

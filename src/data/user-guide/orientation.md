@@ -1,4 +1,4 @@
-# 4. Phase 0. Orientation: Telling Reimagine About You
+# Phase 0. Orientation: Telling Reimagine About You
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
@@ -243,4 +243,4 @@ If at any point you realize an input was wrong or incomplete, click any complete
 
 ---
 
-*Next: [Phase 1. Know Your Value →](05-know-your-value.md)*
+*Next: [Phase 1. Know Your Value →](personal-brand.md)*

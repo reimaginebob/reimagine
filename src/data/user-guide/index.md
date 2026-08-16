@@ -8,46 +8,40 @@ You can read it front to back, or jump to the chapter that matches where you are
 
 If you have never opened the tool, start with **What Reimagine Is**, **Before You Begin**, and **The Quality of Your Inputs**. They explain what Reimagine is, what to have ready, and the single most important idea in the whole guide: the quality of your inputs sets the ceiling on the quality of your outputs.
 
-If you are inside the tool right now and want help with a specific phase, jump to that phase's chapter. Each one has the same shape: what this phase does, what to expect on screen, what good looks like, and how to refine the result before moving on.
+If you are inside the tool right now and want help with the screen in front of you, jump to that screen's chapter. Each one has the same shape: what the screen does, what to expect on it, what good looks like, and how to refine the result.
 
 If something is not working the way you expect, check **FAQ and Troubleshooting**.
 
-## Table of contents
+## Contents
 
-**The basics**
+<!-- toc:start -->
 
-1. [What Reimagine Is](01-what-is-reimagine.md)
-2. [Before You Begin](02-before-you-begin.md)
-3. [The Quality of Your Inputs](03-quality-of-your-inputs.md)
+1. [Quick Start](quick-start.md)
+2. [What Reimagine Is](what-reimagine-is.md)
+3. [Before You Begin](before-you-begin.md)
+4. [The Quality of Your Inputs](quality-of-your-inputs.md)
+5. [Phase 0. Orientation: Telling Reimagine About You](orientation.md)
+6. [Phase 1. Know Your Value](personal-brand.md)
+7. [Phase 2. Apply Your Foundation](06-explore-options.md)
+8. [Phase 3. Tell Your Story](07-tell-your-story.md)
+9. [Phase 4. Find Your Market](08-find-your-market.md)
+10. [Getting Ready](09-get-ready.md)
+11. [Your Results](10-your-results.md)
+12. [Add an Opportunity](add-an-opportunity.md)
+13. [My Coach](my-coach.md)
+14. [Income Now](income-now.md)
+15. [Negotiating an Offer](negotiating-an-offer.md)
+16. [How an Offer Is Put Together](how-an-offer-is-put-together.md)
+17. [Refining and Regenerating](refining-and-regenerating.md)
+18. [Saving and Sharing Your Work](saving-your-work.md)
+19. [FAQ and Troubleshooting](faq-and-troubleshooting.md)
+20. [Glossary](glossary.md)
 
-**The journey**
-
-4. [Phase 0. Orientation: Telling Reimagine About You](04-orientation-phase.md)
-5. [Phase 1. Know Your Value](05-know-your-value.md)
-6. [Phase 2. Explore Options](06-explore-options.md)
-7. [Phase 3. Tell Your Story](07-tell-your-story.md)
-8. [Phase 4. Find Your Market](08-find-your-market.md)
-9. [Phase 5. Get Ready](09-get-ready.md)
-10. [Your Results: The Complete Screen](10-your-results.md)
-11. [Bonus. Income Now](11-income-now.md)
-11b. [Add an Opportunity](11b-upload-a-live-opportunity.md)
-11c. [My Coach](11c-my-coach.md)
-11d. [Negotiating an Offer](11d-negotiating-an-offer.md)
-11e. [How an Offer Is Put Together](11e-how-an-offer-is-put-together.md)
-
-**Working with the tool**
-
-12. [Refining and Regenerating Your Results](12-refining-and-regenerating.md)
-13. [Saving and Sharing Your Work](13-saving-your-work.md)
-
-**Reference**
-
-14. [FAQ and Troubleshooting](14-faq-and-troubleshooting.md)
-15. [Glossary](15-glossary.md)
+<!-- toc:end -->
 
 ## A note on how Reimagine works with you
 
-Reimagine is not a one-shot generator. After every output, you have the option to tell it what to adjust, then regenerate. You will see this throughout the journey. The tool is designed to be used iteratively, not perfectly the first time. Refining and Regenerating covers this in detail, and every phase chapter points back to it.
+Reimagine is not a one-shot generator. After every output, you have the option to tell it what to adjust, then regenerate. You will see this throughout the guide. The tool is designed to be used iteratively, not perfectly the first time. Refining and Regenerating covers this in detail, and the chapters point back to it.
 
 ---
 

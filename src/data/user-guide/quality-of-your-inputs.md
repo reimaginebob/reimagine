@@ -1,4 +1,4 @@
-# 3. The Quality of Your Inputs
+# The Quality of Your Inputs
 
 This is the most important chapter in the guide. If you read only one chapter before starting, read this one.
 
@@ -168,4 +168,4 @@ You do not need every line checked to start; the more you can, the sharper the r
 
 ---
 
-*Next: [Phase 0. Orientation →](04-orientation-phase.md)*
+*Next: [Phase 0. Orientation →](orientation.md)*
