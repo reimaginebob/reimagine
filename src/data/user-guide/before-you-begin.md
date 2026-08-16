@@ -1,4 +1,4 @@
-# 2. Before You Begin
+# Before You Begin
 
 ## What to bring
 
@@ -88,4 +88,4 @@ If you want your account deleted, email [bob@career.club](mailto:bob@career.club
 
 ---
 
-*Next: [The Quality of Your Inputs →](03-quality-of-your-inputs.md)*
+*Next: [The Quality of Your Inputs →](quality-of-your-inputs.md)*

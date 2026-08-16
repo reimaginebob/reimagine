@@ -1,4 +1,4 @@
-# 12. Refining and Regenerating Your Results
+# Refining and Regenerating
 
 > *(Bridge Story is now lane-aware prose; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
@@ -150,4 +150,4 @@ Refine and regenerate freely. The tool gets better with that feedback, and so do
 
 ---
 
-*Next: [Saving and Sharing Your Work →](13-saving-your-work.md)*
+*Next: [Saving and Sharing Your Work →](saving-your-work.md)*

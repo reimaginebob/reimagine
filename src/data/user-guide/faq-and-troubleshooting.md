@@ -1,4 +1,4 @@
-# 14. FAQ and Troubleshooting
+# FAQ and Troubleshooting
 
 ## Getting started
 
@@ -118,4 +118,4 @@ If a step keeps failing or the output is not making sense after multiple refines
 
 ---
 
-*Next: [Glossary →](15-glossary.md)*
+*Next: [Glossary →](glossary.md)*

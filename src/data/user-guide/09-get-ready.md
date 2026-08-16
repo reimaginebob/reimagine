@@ -1,4 +1,4 @@
-# 9. Getting Ready
+# Getting Ready
 
 These are the sections of your Focus Playbook that get you ready for the conversations the rest of your search creates: networking calls, screening interviews, recruiter messages, the conversation that opens the door. You generate each section on demand from inside the Focus Playbook for any role you are exploring. There is no separate phase to advance through; these sections sit alongside The Role and Your Bridge Story on the same page, and you generate them in the order that fits your week.
 

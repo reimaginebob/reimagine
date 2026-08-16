@@ -1,4 +1,4 @@
-# 7. Phase 3. Tell Your Story
+# Phase 3. Tell Your Story
 
 > **Where this lives now.** Your Bridge Story is generated inside the Focus Playbook for a specific role (see Your Focus Playbook), as the second section after The Role. It is no longer a separate phase you walk to in order. This chapter explains what the Bridge Story is and what good looks like; the Focus Playbook is where you generate and refine it.
 

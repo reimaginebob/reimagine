@@ -10,6 +10,7 @@ to the repo source per Output/handoff/2026-06-07_pdf-pipeline-repoint-and-regen.
 Run weekly (Sunday night) via scheduled task.
 """
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -244,7 +245,28 @@ def on_first_page(canvas, doc):
 
 
 def chapter_files():
-    return sorted(p for p in CHAPTERS_DIR.glob("*.md") if p.name != "index.md")
+    """Chapters in reading order, from ORDER.json.
+
+    This used to be sorted(glob("*.md")), which worked only while filenames
+    carried numeric prefixes. Filenames are stable slugs now, so alphabetical
+    order is not reading order and the PDF would have come out shuffled. The
+    manifest is the single source every consumer reads (see
+    scripts/lib/user-guide-order.mjs); mirror it here rather than re-deriving.
+    """
+    manifest = json.loads((CHAPTERS_DIR / "ORDER.json").read_text(encoding="utf-8"))
+    listed = manifest["chapters"]
+
+    on_disk = {p.name for p in CHAPTERS_DIR.glob("*.md") if p.name != "index.md"}
+    missing = [n for n in listed if n not in on_disk]
+    unlisted = sorted(on_disk - set(listed))
+    if missing or unlisted:
+        if missing:
+            print(f"ERROR: ORDER.json lists chapters that do not exist: {', '.join(missing)}", file=sys.stderr)
+        if unlisted:
+            print(f"ERROR: chapters not listed in ORDER.json: {', '.join(unlisted)}", file=sys.stderr)
+        sys.exit(1)
+
+    return [CHAPTERS_DIR / n for n in listed]
 
 
 def build():

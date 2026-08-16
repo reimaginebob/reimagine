@@ -1,4 +1,4 @@
-# 6. Phase 2. Apply Your Foundation
+# Phase 2. Apply Your Foundation
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 

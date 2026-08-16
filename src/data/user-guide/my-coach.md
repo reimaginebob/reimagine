@@ -1,4 +1,4 @@
-# 11c. My Coach
+# My Coach
 
 My Coach is a coach you can ask anything about your job search, any time. What makes it different from a general AI chatbot is that it already knows you — it has read your Reimagine profile, your Personal Brand, your resume, and the work you've built here, so its answers are about your situation, not generic advice. It's grounded in the same method the rest of Reimagine is built on, Bob Goodwin's Making Your Own Weather.
 

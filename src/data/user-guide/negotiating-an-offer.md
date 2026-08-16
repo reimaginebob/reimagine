@@ -1,4 +1,4 @@
-# 11d. Negotiating an Offer
+# Negotiating an Offer
 
 Most of what you need to negotiate well is stable enough to write down once. The Offer & Negotiation section in your Opportunity Playbook carries it: a sourced pay range for the role, a total compensation checklist so you ask about the whole package and not just base, and a few scripts that do a lot of work in the conversation. Build the Compensation Read, enter your offer if you have one, and you have the number, the range it sits against, and the language to open the conversation.
 

@@ -1,4 +1,4 @@
-# 15. Glossary
+# Glossary
 
 These are the terms you will encounter inside Reimagine, in this guide, or in the methodology behind the tool.
 

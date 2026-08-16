@@ -1,4 +1,4 @@
-# 11b. Add an Opportunity
+# Add an Opportunity
 
 > *(Bridge Story structure updated 2026-05-19; see [07-tell-your-story.md](07-tell-your-story.md) for the current model.)*
 
@@ -87,4 +87,4 @@ When the playbook is complete, Save as PDF builds a polished single-document ver
 
 ---
 
-*Next: [Refining and Regenerating Your Results →](12-refining-and-regenerating.md)*
+*Next: [Refining and Regenerating Your Results →](refining-and-regenerating.md)*
