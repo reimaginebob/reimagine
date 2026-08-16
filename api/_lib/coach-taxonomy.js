@@ -12,7 +12,13 @@
 // re-tagging on the next nightly run. Old-version rows are left in place (so two
 // versions can be compared side by side); the endpoint reads the current version.
 
-export const TAXONOMY_VERSION = 1
+// v2 (2026-08-15): added need_type 'broken-feature'. Until then a user reporting
+// something broken had nowhere to land and was filed as 'product-gap', so defect
+// reports quietly inflated the count of capabilities Reimagine does not have —
+// the Aug 3 "Download CSV gives an error because there's nothing there" row was
+// the whole of that count. Bumped rather than added silently so history re-tags
+// and past defect reports come out of the gap number.
+export const TAXONOMY_VERSION = 2
 
 // Ordered field -> allowed values. The endpoint builds one distribution per key
 // over these values; the classifier is constrained to them (or null) by the
@@ -34,7 +40,7 @@ export const CATEGORIES = {
   specificity: ['generic', 'personalized'],
   tone: ['discouraged', 'anxious', 'neutral', 'motivated'],
   framework: ['KEEL', 'four-Cs', 'five-Ps', 'SCOPE', 'STAR', 'Covey', 'Frankl', 'none'],
-  need_type: ['served-by-feature', 'coaching-only', 'product-gap'],
+  need_type: ['served-by-feature', 'coaching-only', 'broken-feature', 'product-gap'],
 }
 
 export const ATTRIBUTE_KEYS = Object.keys(CATEGORIES)
@@ -77,4 +83,4 @@ HARD RULES:
 - Never extract or echo identifying detail of any kind — no employer names, person names, job titles tied to a real employer, locations, or specifics like "laid off from <company>". You are bucketing the question, not summarizing it. The output carries no free text.
 - Judge the question as written. Do not infer beyond what the user said. When unsure, use null (or the explicit 'unclear'/'none'/'Other' value where the field provides one).
 - 'specificity' is 'personalized' only when the question references the user's own situation/materials; a generic how-to question is 'generic'.
-- 'need_type': 'served-by-feature' if Reimagine has a feature that addresses this; 'coaching-only' if it is judgment/encouragement with no feature; 'product-gap' if it is a real need Reimagine does not serve.`
+- 'need_type': 'served-by-feature' if Reimagine has a feature that addresses this; 'coaching-only' if it is judgment/encouragement with no feature; 'broken-feature' if the person is reporting that something in Reimagine is not working — an error message, an empty or missing result, a button or control they cannot find or click, a step that will not complete; 'product-gap' if it is a real need Reimagine does not serve. Keep the last two apart: 'broken-feature' is a capability that exists and is failing them, 'product-gap' is a capability that was never built.`

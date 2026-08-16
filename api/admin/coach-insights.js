@@ -104,7 +104,11 @@ export default async function handler(req, res) {
         -- The real unmet-need signal. selfcheck_verdict='none' answers a different
         -- question ("should I surface a feature in THIS reply?") and is deliberately
         -- conservative, so it is not a gap count and must not be labelled as one.
-        count(*) FILTER (WHERE t.attributes->>'need_type' = 'product-gap')::int AS product_gap
+        count(*) FILTER (WHERE t.attributes->>'need_type' = 'product-gap')::int AS product_gap,
+        -- Defect reports. Kept out of product_gap on purpose: something that exists
+        -- and is failing is a different job from something never built, and before
+        -- v2 of the taxonomy the two were pooled.
+        count(*) FILTER (WHERE t.attributes->>'need_type' = 'broken-feature')::int AS broken_feature
       FROM chat_messages c
       LEFT JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
@@ -257,7 +261,7 @@ export default async function handler(req, res) {
       contentReview,
       filter,
       categories: CATEGORIES,
-      totals: { messages: tr.total, tagged: tr.tagged, productGap: tr.product_gap },
+      totals: { messages: tr.total, tagged: tr.tagged, productGap: tr.product_gap, brokenFeature: tr.broken_feature },
       verdictBreakdown,
       distribution,
       featureBreakdown,
