@@ -71,4 +71,4 @@ When you finish Income Now, click **Back to Results** to return to the Complete 
 
 ---
 
-*Next: [Refining and Regenerating Your Results →](refining-and-regenerating.md)*
+*Next: [Negotiating an Offer →](negotiating-an-offer.md)*

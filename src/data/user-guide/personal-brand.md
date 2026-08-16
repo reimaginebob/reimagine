@@ -1,7 +1,5 @@
 # Phase 1. Know Your Value
 
-> *(KYV consolidated 2026-05-20. Phase 1 used to be three user-visible steps; now it is one: Personal Brand.)*
-
 This is the foundation phase. Everything you generate later in the journey: your bridge story, your target companies, your outreach, your LinkedIn, your resume refresh, your playbook. All of it is built on what comes out of Phase 1. If the foundation is sharp, everything downstream is sharp. If the foundation is generic, the rest of the journey carries that around.
 
 Plan to spend more time reading and refining Phase 1 than any later phase. The 15 minutes you spend here saves an hour of refining downstream.
@@ -67,4 +65,4 @@ You arrived in Phase 1 with a resume, an assessment, your values, your passions,
 
 ---
 
-*Next: [Phase 2. Explore Options →](06-explore-options.md)*
+*Next: [Put It to Work →](put-it-to-work.md)*
