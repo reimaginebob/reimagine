@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-patterns.mjs"
@@ -4963,6 +4963,7 @@ export default function PivotEngine(){
   const[fileLoading,setFileLoading]=useState(false)
   const[showPasteResume,setShowPasteResume]=useState(false)
   const[skipAssessWarn,setSkipAssessWarn]=useState(false)
+  const[welcomeMoreOpen,setWelcomeMoreOpen]=useState(false)
   // Free-text feedback panel (header "Share feedback"). Replaces the retired
   // post-session NPS survey as the only in-app feedback write path. Two states:
   // form (textarea + Send) and thank-you. Opened from the header button on any
@@ -8697,94 +8698,59 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </a>
         */}
       </div>
-      <p style={{fontSize:20,fontWeight:500,color:'#1A2540',lineHeight:1.75,margin:'0 0 28px'}}><span style={{fontWeight:700,color:'#e4572e'}}>Reimagine</span> is a career strategy tool for senior professionals in transition. You bring your resume, an assessment, what matters to you, and your sense of what you want next. Reimagine turns that into a personal brand, a map of options, a story you can tell, a target company list, and the materials you need to walk into conversations ready.</p>
+      <p style={{fontSize:20,fontWeight:500,color:'#1A2540',lineHeight:1.75,margin:'0 0 28px'}}><span style={{fontWeight:700,color:'#e4572e'}}>Reimagine</span> is a career strategy tool for professionals in transition. Pursuing a role right now? Reimagine builds a tailored playbook for it: how you fit, your resume and cover letter, interview prep to walk in ready. Not sure yet what's next? Reimagine maps roles that fit your background, your interests, and where the market's headed. Either way, it starts with a personal brand built from real evidence, so what you say about yourself is something you can back up, and when you believe it, so does whoever you're talking to.</p>
 
-      <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center',marginBottom:32}}>
-        {!isDemo&&<>
-          <Btn onClick={()=>advance('welcome','location')}>Let's get started <ChevronRight size={14}/></Btn>
-          <Btn onClick={()=>importFileRef.current?.click()} style={{background:'#2A3F60'}}><Upload size={14}/>Load a Saved Profile</Btn>
-          {Object.values(outputs).some(v=>v&&(typeof v==='string'?v.length>0:true))&&<Btn onClick={exportProfile} style={{background:'#2A3F60'}}><Download size={14}/>Save Profile as JSON</Btn>}
-        </>}
-      </div>
-
-      <CoachingCallout>
-        <strong style={{color:'#1A2540'}}>Take your time.</strong>
-        <p style={{margin:'8px 0 0'}}>The 20 minutes of intake is where the leverage is. What you put in shapes what comes out, so put your best foot forward and Reimagine does the same for you in everything that follows. The full journey runs longer than one sitting; pace yourself across multiple sessions. Your progress saves automatically once you sign in, and you can pick it up on any device.</p>
-      </CoachingCallout>
-
-      <div style={{...S.card,marginBottom:20}}>
-        <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>Before You Begin</div>
+      <div style={{display:'flex',gap:14,flexWrap:'wrap',marginBottom:20}}>
         {[
-          ['Your resume','Any format. It doesn\'t need to be polished. We\'ll help you get the most out of it.'],
-          ['An assessment (recommended)','If you have CliftonStrengths, Myers-Briggs, DiSC, Hogan, or any other assessment from the last three years, bring it. If yours is older or you haven\'t taken one, Affintus is free and takes 15 minutes.'],
-          ['About 20–30 minutes','That covers the intake questions and your first set of results. Once you sign in, your progress syncs to your account, so you can save and return on any device.'],
-        ].map(([t,d])=><div key={t} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
-          <div style={{width:7,height:7,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}/>
-          <div><span style={{fontWeight:700,fontSize:18,color:'#1A2540'}}>{t}. </span><span style={{fontSize:18,color:'#2D3748',lineHeight:1.7}}>{d}</span></div>
-        </div>)}
-        <div style={{marginTop:8,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
-          <a href="https://affintus.com/job-seekers/" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 20px',background:'#C8924A10',border:`1px solid #C8924A40`,borderRadius:8,color:C.goldL,fontSize:17,fontWeight:600,textDecoration:'none'}}>Don't have an assessment already? Take the free Affintus assessment →</a>
-        </div>
-      </div>
-
-      <div style={{...S.card,marginBottom:20}}>
-        <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>How It Works</div>
-        <div style={{background:`${C.gold}06`,borderRadius:10,padding:'14px 18px',marginBottom:20,border:`1px solid ${C.gold}20`}}>
-          <div style={{fontSize:18,color:'#2D3748',lineHeight:1.7}}>The first step gathers your information: resume, assessment, values, and reputation. <strong style={{color:'#1A2540'}}>That's the only part where you need to do work.</strong> Everything after that is generated for you. You'll review each section and tell us if it feels right before we move on.</div>
-        </div>
-        {[
-          ['1','Personal Brand','Reimagine reads your resume and translates each accomplishment into money made, money saved, or risk mitigated, with numbers attached.'],
-          ['2','Explore Options','Reimagine shows you specific roles to consider, then builds a full playbook for any that resonate.'],
-          ['3','Tell Your Story','A great answer to "tell me about yourself" sets the tone for the conversation that follows. Reimagine writes your bridge story.'],
-          ['4','Find Your Market','Reimagine searches for companies that fit and drafts your outreach to the right people.'],
-          ['5','Get Ready','LinkedIn, resume, industry briefing, and interview prep. You walk in ready.'],
-        ].map(([num,phase,desc])=><div key={num} style={{display:'flex',gap:16,marginBottom:20,alignItems:'flex-start'}}>
-          <div style={{width:34,height:34,borderRadius:'50%',background:`${C.gold}25`,border:`2px solid ${C.gold}60`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:17,fontWeight:700,color:C.gold}}>
-            {num}
+          [FileText,'Your resume','Any format. Outdated or missing? We\'ll help you build one.'],
+          [CheckCheck,'An assessment','Recommended, not required. Free option if you don\'t have one.'],
+          [Clock,'About half an hour','The fuller your answers, the sharper the output. Saves as you go, pick it back up anytime.'],
+        ].map(([Icon,t,d])=><div key={t} style={{flex:'1 1 240px',minWidth:220,background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'16px 18px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+            <Icon size={16} color={C.gold}/>
+            <span style={{fontWeight:700,fontSize:17,color:'#1A2540'}}>{t}</span>
           </div>
-          <div style={{flex:1}}>
-            <span style={{fontWeight:700,fontSize:19,color:'#1A2540'}}>{phase}</span>
-            <div style={{fontSize:18,color:'#2D3748',lineHeight:1.7,marginTop:4}}>{desc}</div>
+          <div style={{fontSize:15,color:'#3D4A5C',lineHeight:1.55}}>{d}</div>
+        </div>)}
+      </div>
+
+      <div style={{display:'flex',gap:14,flexWrap:'wrap',marginBottom:28}}>
+        {[
+          [RotateCcw,'You\'re in control','Review and adjust every step.'],
+          [Lock,'Kept private','Encrypted, access-controlled, never used to train the AI.'],
+          [MessageCircle,'My Coach','Ask anything, anytime.'],
+        ].map(([Icon,t,d])=><div key={t} style={{flex:'1 1 240px',minWidth:220,background:'#FAFBFC',border:`1px solid ${C.border}`,borderRadius:10,padding:'16px 18px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+            <Icon size={16} color={C.goldL}/>
+            <span style={{fontWeight:700,fontSize:17,color:'#1A2540'}}>{t}</span>
           </div>
+          <div style={{fontSize:15,color:'#3D4A5C',lineHeight:1.55}}>{d}</div>
         </div>)}
       </div>
 
-      <div style={{...S.card,marginBottom:20}}>
-        <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>The Framework</div>
-        <p style={{fontSize:18,color:'#2D3748',lineHeight:1.7,marginBottom:18}}>Everything in Reimagine is built on a framework called the 4 C's. It goes in order, and each step builds on the one before it.</p>
-        {[
-          ['Convictions','What is actually, demonstrably true about you: your values, your durable qualities, your track record, and what people consistently say about you.'],
-          ['Clarity','When your convictions are solid, the right opportunities become visible, and you can make better choices about where to focus.'],
-          ['Confidence','Evidence-based self-belief. When you can point to evidence of who you are and what you\'ve done, you carry that into every conversation.'],
-          ['Contagious','When you believe, others believe too. That\'s the natural result of Convictions, Clarity, and Confidence.'],
-        ].map(([t,d])=><div key={t} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
-          <div style={{width:7,height:7,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:10}}/>
-          <div><span style={{fontWeight:700,fontSize:18,color:'#1A2540'}}>{t}. </span><span style={{fontSize:18,color:'#2D3748',lineHeight:1.7}}>{d}</span></div>
-        </div>)}
-        <p style={{fontSize:18,color:'#2D3748',lineHeight:1.7,marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`,fontWeight:500}}>Everything that follows is building that foundation with you.</p>
-      </div>
-
-      <div style={{...S.card,marginBottom:24}}>
-        <div style={{fontSize:20,fontWeight:800,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:18,paddingBottom:12,borderBottom:`2px solid ${C.gold}`}}>A Few Things Worth Knowing</div>
-        {[
-          ['You can adjust as you go.','Every output has a "Does this feel right?" option. If something is off, tell us and we\'ll adjust before moving on.'],
-          ['There are no wrong answers in the intake.','The questions about your passions and values are not trick questions. Honest answers produce better output; strategic ones distort the work.'],
-          ['Reimagine generates copy; you apply it.','The LinkedIn Remix and Resume Refresh produce recommendations you take into your own profile and document. The tool does not modify those for you.'],
-          ['Reimagine Help is on every screen.','The button in the bottom-right opens a chat that knows the tool and the methodology, so it can answer specific questions as they come up.'],
-          ['You only need one new job, but you can explore as many directions as you want.','Reimagine is designed to open more doors than you might have imagined, so you can find the right one with confidence. Once you walk through with one role in mind, you can come back and run another the same way.'],
-        ].map(([t,d])=><div key={t} style={{display:'flex',gap:14,marginBottom:16,alignItems:'flex-start'}}>
-          <div style={{width:7,height:7,borderRadius:'50%',background:C.gold,flexShrink:0,marginTop:9}}/>
-          <div><span style={{fontWeight:700,fontSize:18,color:'#1A2540'}}>{t} </span><span style={{fontSize:18,color:'#2D3748',lineHeight:1.7}}>{d}</span></div>
-        </div>)}
-      </div>
-
-      <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}}>
+      <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center',marginBottom:20}}>
         {!isDemo&&<>
           <Btn onClick={()=>advance('welcome','location')}>Let's get started <ChevronRight size={14}/></Btn>
           <input ref={importFileRef} type="file" accept=".json" style={{display:'none'}} onChange={e=>e.target.files[0]&&importProfile(e.target.files[0])}/>
           <Btn onClick={()=>importFileRef.current?.click()} style={{background:'#2A3F60'}}><Upload size={14}/>Load a Saved Profile</Btn>
           {Object.values(outputs).some(v=>v&&(typeof v==='string'?v.length>0:true))&&<Btn onClick={exportProfile} style={{background:'#2A3F60'}}><Download size={14}/>Save Profile as JSON</Btn>}
         </>}
+      </div>
+
+      <div style={{...S.card,marginBottom:24}}>
+        <button onClick={()=>setWelcomeMoreOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:8,width:'100%',background:'transparent',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+          {welcomeMoreOpen?<ChevronUp size={16} color={C.goldL}/>:<ChevronDown size={16} color={C.goldL}/>}
+          <span style={{fontSize:18,fontWeight:700,color:'#1A2540'}}>See how this works</span>
+        </button>
+        {welcomeMoreOpen&&<div style={{marginTop:18,paddingTop:18,borderTop:`1px solid ${C.border}`}}>
+          {[
+            ['Your Personal Brand comes first, and nothing else opens until it does.','Reimagine turns your resume, assessment, values, priorities, story, and reputation into the through-line of who you are at work, with your accomplishments translated into money made, money saved, or risk mitigated.'],
+            ['Then two ways to put it to work.','Add an Opportunity builds a tailored playbook around a specific role: company research, resume and cover letter, interview prep, offer help. Career Paths maps roles that fit you if you\'re still deciding, then builds the same kind of playbook for whichever one you pick. Income Now rides along as a bonus in either.'],
+          ].map(([t,d])=><div key={t} style={{marginBottom:16}}>
+            <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:6}}>{t}</div>
+            <div style={{fontSize:17,color:'#2D3748',lineHeight:1.7}}>{d}</div>
+          </div>)}
+        </div>}
       </div>
     </div>
 
