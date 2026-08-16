@@ -45,6 +45,14 @@ Once you sign in, Reimagine saves your work to a Career Club database keyed to y
 
 Your inputs and outputs are not shared with anyone. There is no advertising, no marketing pipeline, no list of users sold or rented. If you decide to stop using Reimagine, your data can be removed on request.
 
+## Where your information comes from
+
+Everything Reimagine knows about you came from you: the answers you type into orientation, the resume you upload, and what you say to your coach. There is no other source.
+
+Reimagine never looks you up. It does not search for you, read your social accounts, open your website, or gather anything about you from anywhere else. The only live research it does is about companies and roles, which is what Go-to-Market and About This Company are for. That research is about the job you are pursuing, not about you.
+
+Your coach works the same way. It has your profile, your resume text, the work you have built here, and the conversation in front of it. It cannot open a link or browse the web, so if you want it to see something, paste it in.
+
 ## What Reimagine will not do for you
 
 It will not apply to jobs for you. It will not write your cover letters in bulk. It will not lie about your experience or invent accomplishments. It will not tell you what you want to hear if your resume tells a different story.
