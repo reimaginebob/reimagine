@@ -177,6 +177,7 @@ export default function CoachInsights() {
           <Stat label="Tagged" value={totals.tagged} sub={`v${p.taxonomyVersion ?? "?"}`} />
           <Stat label="Surfaced a feature" value={vb.matched} accent />
           <Stat label="No feature surfaced" value={vb.none} sub={`${vb.nonePct}% of answered`} />
+          <Stat label="Something broken" value={totals.brokenFeature ?? 0} big danger />
           <Stat label="Real gaps (product-gap)" value={totals.productGap ?? 0} big danger />
           <Stat label="No self-check logged" value={vb.null} sub="pre-migration / legacy" />
         </div>
