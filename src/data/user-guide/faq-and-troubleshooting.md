@@ -95,10 +95,11 @@ On the Role Options screen, open **Tell us where else to look** and name a domai
 ## Output and deliverables
 
 **How do I save my work?**
-It is already saved to your account, and it follows you across devices. To take a copy with you, three ways:
+It is already saved to your account, and it follows you across devices. To take a copy with you, four ways:
 1. **Save Playbook as PDF** from the footer of any Focus Playbook or Opportunity Playbook. A clean paged document, each section on its own page. Good for a coach, a mentor, or reading offline.
-2. **Download CSV** in the Go-to-Market section pulls your target company list out as a spreadsheet. This is the most useful artifact for tracking outreach over time.
-3. **Copy All** on any section copies that section's text to your clipboard. The output strips markdown symbols so the paste is clean.
+2. **Markdown** on any card in My Playbooks downloads that playbook as a plain text file you can edit, paste, or convert.
+3. **Download CSV** in the Go-to-Market section pulls your target company list out as a spreadsheet. This is the most useful artifact for tracking outreach over time.
+4. **Copy All** on any section copies that section's text to your clipboard. The output strips markdown symbols so the paste is clean.
 
 **Can I print the full output?**
 Yes. Press Ctrl+P on Windows or Cmd+P on Mac from the section you want to print. Reimagine produces a clean printout of that section: the full content, paper-friendly type, no sidebar or buttons. From the print dialog you can save it as a PDF or send it to a printer. If you would rather paste into a document first, use **Copy All** at the top of the section. For the whole playbook at once, use **Save Playbook as PDF** in the footer.

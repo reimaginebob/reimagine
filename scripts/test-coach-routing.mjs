@@ -95,13 +95,19 @@ eq('strips <verdict>none</verdict> element (arbitrary tag), feature null',
 // --- CANONICAL_FEATURE_SLUGS (the SELFCHECK vocabulary) ---
 ok('community slugs are in the canonical set',
   CANONICAL_FEATURE_SLUGS.includes('career-club-corner') && CANONICAL_FEATURE_SLUGS.includes('accountability-partner'))
-ok('CANONICAL_FEATURE_SLUGS has 16 entries', CANONICAL_FEATURE_SLUGS.length === 16)
+ok('CANONICAL_FEATURE_SLUGS has 17 entries', CANONICAL_FEATURE_SLUGS.length === 17)
 
 // --- FEATURE_MAP is the single structured source ---
 eq('CANONICAL_FEATURE_SLUGS derives from FEATURE_MAP (same order)',
   CANONICAL_FEATURE_SLUGS, FEATURE_MAP.map(f => f.slug))
-ok('standalone/focus-gated features join a real NAV_LABELS label via labelId',
-  FEATURE_MAP.filter(f => f.reach === 'standalone' || f.reach === 'focus-gated').every(f => typeof NAV_LABELS[f.labelId] === 'string'))
+// A feature that is its own nav step joins NAV_LABELS via labelId. A feature
+// that lives inside a surface as a control (the Markdown download on a My
+// Playbooks card) has no nav step to join, so it carries an inline label +
+// where instead — the same escape hatch labelFor() in render-coach-nav-map.mjs
+// already honours, and the same shape the opportunity-gated cards use.
+ok('standalone/focus-gated features resolve a label: labelId joins NAV_LABELS, or an inline label + where',
+  FEATURE_MAP.filter(f => f.reach === 'standalone' || f.reach === 'focus-gated')
+    .every(f => f.labelId ? typeof NAV_LABELS[f.labelId] === 'string' : !!(f.label && f.where)))
 ok('community features carry an inline label + where (no NAV_LABELS join)',
   FEATURE_MAP.filter(f => f.reach === 'community').every(f => f.label && f.where && !f.labelId))
 ok('opportunity-gated features carry an inline label + where (card inside a surface, no NAV_LABELS join)',

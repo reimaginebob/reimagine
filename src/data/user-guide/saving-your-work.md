@@ -40,6 +40,10 @@ Reimagine produces several artifacts you can take with you.
 
 The main one is the playbook PDF, covered above. Every Focus Playbook and every Opportunity Playbook can be saved as a clean paged document with each section on its own page.
 
+### The playbook as a Markdown file
+
+Every card in **My Playbooks** has a **Markdown** button. It downloads that playbook as plain text: your Personal Brand, then every section you have built. Open it in any text editor, paste it into a document, or convert it to a PDF. The PDF is the one you hand to a person; the Markdown file is the one you keep, edit, or feed into another tool.
+
 A creative use worth trying: upload one into **Notebook LM** (Google's free notebook tool) and use the Audio Summary feature to generate a short podcast-style episode about you. Hearing two hosts talk about your background hits you differently than reading the same content on paper. My Playbooks covers it.
 
 ### The target company list as a CSV

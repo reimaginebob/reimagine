@@ -18,6 +18,7 @@ Each group has an add button in its heading: **Explore More Roles** takes you ba
 
 - **Open.** Picks the playbook back up exactly where you left it. Your sections, your inputs, and your refinements are all there.
 - **Rename.** Click the title and type. A pencil appears when you hover, and the change saves when you click away or press Enter. Useful when the auto-generated title is not how you think of the role.
+- **Markdown.** Downloads that playbook as a plain text file: your Personal Brand, then every section you have built, in the order the playbook renders them. Open it in any text editor, paste it into a document, or convert it to a PDF. Use this when you want the words themselves rather than a formatted document; use **Save Playbook as PDF** from inside the playbook when you want something to hand to a person.
 - **Remove.** Takes it out of your set. Reimagine asks you to confirm first.
 
 The section count on each card ("5 of 8 sections built") is the fastest way to see how far along something is when you come back after a week away.

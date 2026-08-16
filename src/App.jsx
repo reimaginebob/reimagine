@@ -1195,6 +1195,15 @@ function _opSectionBuilt(sec,k){
   if(k==='p6')return !!(v&&bridgeStoryToProse(v).trim())
   return !!(v&&v.content&&v.content.trim())
 }
+// Text of one opportunity card, same shape tolerance as _opSectionBuilt above
+// (p6 is a bare string on older records, a {content} object everywhere else).
+// Used by the per-playbook Markdown export.
+function _opSectionText(sec,k){
+  const v=sec&&sec[k]
+  if(!v)return ''
+  if(k==='p6')return bridgeStoryToProse(v).trim()
+  return (v.content||'').trim()
+}
 function _opAnyBuiltFor(record){
   if(!record||record.schemaVersion!==2||!record.sections)return false
   return OP_COUNTED_KEYS.some(k=>_opSectionBuilt(record.sections,k))
@@ -3136,7 +3145,7 @@ Keep the whole thing tight — a page they can glance at across the table or pas
 const PHASES=[
   {id:0,label:'Orientation',color:'#8A9BB8',steps:['welcome','location','resume','linkedin','assessment','values','priorities','reputation','life-events','skills']},
   {id:1,label:'Personal Brand',color:'#C8924A',steps:['p3']},
-  {id:2,label:'Apply Your Foundation',color:'#4A9E72',steps:['twoDoors']},
+  {id:2,label:'Put It to Work',color:'#4A9E72',steps:['twoDoors']},
 ]
 // META (the step-id -> label map) was retired 2026-06-11: its labels moved to
 // NAV_LABELS (src/nav-labels.js), the single render-true label source, and its
@@ -4698,14 +4707,14 @@ function printPersonalBrand(p, name, proseFallback){
   const k=s=>`<div class="k">${s}</div>`
   // Component layout when a presentation exists; otherwise a plain-prose document
   // from the fallback text so the export still works on the prose-fallback view.
-  const compBody=`${k('Phase 1 · Personal Brand')}<div class="hero">${hero}</div>
+  const compBody=`${k('Personal Brand')}<div class="hero">${hero}</div>
 ${proof.length>=3?`<div class="proof">${proof.map(pt=>`<div><div class="v">${clean(pt.value)}</div>${String(pt.label||'').trim()?`<div class="l">${clean(pt.label)}</div>`:''}</div>`).join('')}</div>`:'<div style="height:16px"></div>'}
 ${sections.map(s=>`<div class="sec">${s.kicker?k(s.kicker):''}<div class="b">${s.body}</div></div>`).join('')}
 ${origin?`<div class="origin">${k('Where it comes from')}<div class="b">${origin}</div></div>`:''}
 ${edges.length?`<div>${k('Worth naming, and how to use it')}${edges.map(e=>`<div class="edge"><div class="c">${clean(e.claim)}</div>${String(e.detail||'').trim()?`<div class="d">${clean(e.detail)}</div>`:''}</div>`).join('')}</div>`:''}
 ${close?`<div class="close">${k('What is next')}<div class="b">${close}</div></div>`:''}`
   const proseClean=clean(proseFallback)
-  const proseBody=`${k('Phase 1 · Personal Brand')}<div class="sec"><div class="b">${proseClean}</div></div>`
+  const proseBody=`${k('Personal Brand')}<div class="sec"><div class="b">${proseClean}</div></div>`
   const body=(hero||sections.length)?compBody:(proseClean?proseBody:'')
   if(!body)return
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${name?esc(name)+' — Personal Brand':'Personal Brand'}</title>
@@ -4801,7 +4810,7 @@ function PersonalBrandView({presentation:rawPresentation,proseForCopy,onCopy,cop
   const edges=(Array.isArray(p.edges)?p.edges:[]).filter(x=>x&&typeof x==='object'&&String(x.claim||'').trim())
   const close=typeof p.forwardClose==='string'&&clean(p.forwardClose)?clean(p.forwardClose):null
   return <div style={{maxWidth:800,margin:'0'}}>
-    <PBKicker>Phase 1 · Personal Brand</PBKicker>
+    <PBKicker>Personal Brand</PBKicker>
     <div style={{fontSize:24,fontWeight:500,lineHeight:1.32,color:PRIMARY,margin:'0 0 2px'}}>{hero}</div>
     {proof.length>=3&&<div style={{display:'flex',flexWrap:'wrap',gap:'16px 32px',borderTop:`0.5px solid ${C.border}`,borderBottom:`0.5px solid ${C.border}`,padding:'14px 0',margin:'18px 0 28px'}}>
       {proof.map((pt,i)=><div key={i}><div style={{fontSize:19,fontWeight:500,color:PRIMARY,lineHeight:1.1}}>{pt.value}</div>{String(pt.label||'').trim()&&<div style={{fontSize:15,color:TERT,marginTop:3,maxWidth:160}}>{pt.label}</div>}</div>)}
@@ -6266,6 +6275,54 @@ export default function PivotEngine(){
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
+  // Per-playbook Markdown export, offered on every My Playbooks card.
+  //
+  // downloadAllMarkdown (above) exports LIVE state and its only button is on the
+  // Complete screen, which no journey reaches anymore — so the export had
+  // quietly stopped being available to anyone who started after that screen was
+  // retired. Work is per-playbook now and a saved record carries its own
+  // sections, so this reads the record rather than whatever happens to be loaded.
+  // Personal Brand is global and leads every export.
+  const downloadPlaybookMarkdown=(rec)=>{
+    if(!rec)return
+    const today=new Date().toISOString().slice(0,10)
+    const parts=[]
+    const brand=(outputs.p3||(rec.upstream&&rec.upstream.p3)||'').trim()
+    if(brand)parts.push(`## ${NAV_LABELS.p3}\n\n${brand}`)
+    if(rec.source==='door2'){
+      const labels={companyRead:'About This Company',p5:'Where you fit',p6:'Bridge Story',p_res:'Resume Refresh',p_cover:'Cover Letter',p11:'Interview Prep'}
+      for(const k of OP_COUNTED_KEYS){
+        const text=_opSectionText(rec.sections,k)
+        if(text)parts.push(`## ${labels[k]}\n\n${text}`)
+      }
+      // Legacy v1 opportunity records hold one blob instead of cards.
+      const legacy=((rec.outputs&&rec.outputs.op)||'').trim()
+      if(!parts.some(s=>s.startsWith('## About'))&&legacy)parts.push(`## Opportunity Playbook\n\n${legacy}`)
+    }else{
+      // The numbered seven in the order the playbook renders them, then the bonus.
+      for(const k of [...FOCUS_GROUPS.flatMap(g=>g.sectionIds),'income']){
+        const text=((rec.outputs&&rec.outputs[k])||'').trim()
+        if(text)parts.push(`## ${NAV_LABELS[k]||k}\n\n${text}`)
+      }
+    }
+    if(!parts.length){
+      setToast('Nothing to download here yet: build a section first.')
+      setTimeout(()=>setToast(null),3000)
+      return
+    }
+    const slug=(rec.title||'playbook').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'playbook'
+    const md=`# ${rec.title||'Your Playbook'}\n\n*Reimagine · exported ${today}*\n\n---\n\n${parts.join('\n\n---\n\n')}\n`
+    const blob=new Blob([md],{type:'text/markdown'})
+    const url=URL.createObjectURL(blob)
+    const a=document.createElement('a')
+    a.href=url
+    a.download=`reimagine_${slug}_${today}.md`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    track('playbook_markdown_download',{recordId:rec.id,source:rec.source})
+  }
   const downloadOnePager=()=>{
     const rawFirstLine=(profile.resume||'').split(/\n/).find(l=>l.trim())||''
     const nameParts=rawFirstLine.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ')
@@ -6857,12 +6914,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const hasNumber=(s)=>/\d/.test(String(s||''))
 
     if(phase==='intro')return <div>
-      {hdr('Phase 0 · Orientation',"Let's build your resume together","You don't need every detail or every number right now. We'll work with what you remember, shape it into strong resume language, and you can sharpen it as you go.")}
+      {hdr('Orientation',"Let's build your resume together","You don't need every detail or every number right now. We'll work with what you remember, shape it into strong resume language, and you can sharpen it as you go.")}
       <div style={S.row}>{back('resume')}<Btn onClick={()=>setPhase('onramp')}>Start <ChevronRight size={14}/></Btn></div>
     </div>
 
     if(phase==='onramp')return <div>
-      {hdr('Phase 0 · Orientation','Give us a head start',"Hand over whatever you already have and we'll turn it into a clean first draft you can edit. Even an old resume works: we use it to save you typing, then rebuild it fresh, so the version you're not proud of never leaves this step.")}
+      {hdr('Orientation','Give us a head start',"Hand over whatever you already have and we'll turn it into a clean first draft you can edit. Even an old resume works: we use it to save you typing, then rebuild it fresh, so the version you're not proud of never leaves this step.")}
       <div style={S.card}>
         <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>Upload a resume, even an old one</div>
         <p style={{fontSize:15,color:C.gray,margin:'0 0 12px'}}>PDF, Word, or text. It can be years out of date. We use it to save you typing, then rebuild it clean.</p>
@@ -6882,7 +6939,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>
 
     if(phase==='skeleton'){const fromDoc=(b.source==='linkedin'||b.source==='resume')&&employers.some(e=>e.company||(e.titles||[]).some(t=>t.title));return <div>
-      {hdr('Phase 0 · Orientation','Where have you worked?',fromDoc?'We laid out your history from what you uploaded below. Check that your companies, titles, and dates look right, and fix anything that came through wrong.':'Start with your most recent role and work back. We just need the basics here; the good stuff comes next.')}
+      {hdr('Orientation','Where have you worked?',fromDoc?'We laid out your history from what you uploaded below. Check that your companies, titles, and dates look right, and fix anything that came through wrong.':'Start with your most recent role and work back. We just need the basics here; the good stuff comes next.')}
       {(builderErrors['linkedin-parse']||builderErrors['resume-parse'])&&<div style={{...S.note,marginBottom:14}}>{builderErrors['linkedin-parse']||builderErrors['resume-parse']}</div>}
       {b.source==='linkedin'&&b.linkedinRaw&&<details style={{marginBottom:14}}><summary style={{cursor:'pointer',color:C.gold,fontWeight:600}}>What we read from your LinkedIn file</summary><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,color:C.gray,maxHeight:220,overflow:'auto',marginTop:8}}>{b.linkedinRaw}</pre><div style={{fontSize:15,color:C.gray}}>This is the raw text we read, kept here for reference. Your roles are in the fields below.</div></details>}
       {employers.map((e,i)=><div key={i} style={S.card}>
@@ -6909,17 +6966,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>}
 
     if(phase==='drafting')return <div>
-      {hdr('Phase 0 · Orientation','Putting your resume together','One moment. We are turning what you gave us into a complete, sendable draft you can edit.')}
+      {hdr('Orientation','Putting your resume together','One moment. We are turning what you gave us into a complete, sendable draft you can edit.')}
       <Loading msg="Writing your starting resume…"/>
       {builderErrors['baseline']&&<><ErrBox msg={builderErrors['baseline']}/><div style={S.row}>{back('skeleton')}<Btn onClick={()=>setPhase('drafting')}><RotateCcw size={12}/>Try again</Btn></div></>}
     </div>
 
     if(phase==='draft'){
-      if(!bl)return <div>{hdr('Phase 0 · Orientation','Your draft','')}<Loading msg="Loading your draft…"/></div>
+      if(!bl)return <div>{hdr('Orientation','Your draft','')}<Loading msg="Loading your draft…"/></div>
       const h=bl.header||{}
       const skillGroups=(bl.skills||[]).filter(g=>g&&Array.isArray(g.items)&&g.items.length)
       return <div>
-      {hdr('Phase 0 · Orientation','Your resume is ready to edit',"This is your draft, good enough to send today. Everything here is editable. Add a number, say more about a role, or adjust the wording. Your changes save as you go.")}
+      {hdr('Orientation','Your resume is ready to edit',"This is your draft, good enough to send today. Everything here is editable. Add a number, say more about a role, or adjust the wording. Your changes save as you go.")}
       <div style={{...S.note}}>New details can also strengthen your personal brand and the work that builds on it, so you may want to refresh those later.</div>
 
       <div style={S.card}>
@@ -6996,7 +7053,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </BuiltResumeView>
     </div>}
 
-    return <div>{hdr('Phase 0 · Orientation','Resume Builder',null)}<Btn onClick={()=>setPhase('intro')}>Start</Btn></div>
+    return <div>{hdr('Orientation','Resume Builder',null)}<Btn onClick={()=>setPhase('intro')}>Start</Btn></div>
   }
   // GTM Company Read (PR-2). Per-company building state keyed by company name;
   // errors keyed by company name. Persisted output lives on the active door1
@@ -8755,7 +8812,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>
 
     case'location':return <div>
-      <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
+      <div style={S.tag('#8A9BB8')}>Orientation</div>
       <h1 style={S.title}>Location & Work Preferences</h1>
       <p style={S.sub}>This shapes every opportunity we generate and every company we identify.</p>
       <div style={S.card}>
@@ -8791,7 +8848,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>
 
     case'resume':return <div>
-      <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
+      <div style={S.tag('#8A9BB8')}>Orientation</div>
       <h1 style={S.title} >Add your resume<InfoTooltip label="Why your resume matters here">Your resume is the single largest input. Reimagine reads it for accomplishments, scope, industry context, and trajectory. You do not need to polish or update it first: if yours is out of date, the builder can rebuild it with you.</InfoTooltip></h1>
       <p style={S.sub}>This is the raw material for everything we build with you next.</p>
       {/* Two co-equal doors, side by side and both visible without scrolling. */}
@@ -8820,7 +8877,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'resume-builder':return renderResumeBuilder()
 
     case'linkedin':{const fromBuilderLinkedin=!!(profile.builder&&profile.builder.source==='linkedin'&&profile.linkedin);return <div>
-      <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
+      <div style={S.tag('#8A9BB8')}>Orientation</div>
       <h1 style={S.title}>Your LinkedIn</h1>
       <p style={S.sub}>{fromBuilderLinkedin?'We already pulled your LinkedIn profile from the resume builder. You can add your recommendations below, or just continue.':"This step is optional. Adding it sharpens Reimagine's read on how you present yourself publicly and what others have said about you."}</p>
       <CoachingCallout>
@@ -8858,7 +8915,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>}
 
     case'assessment':return <div>
-      <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
+      <div style={S.tag('#8A9BB8')}>Orientation</div>
       <h1 style={S.title}>Assessment Data<InfoTooltip label="Which assessment to use">Any of these works: Affintus (free), CliftonStrengths, Hogan, DiSC, MBTI, Enneagram, PI. Affintus is the recommended free option if you do not already have results.</InfoTooltip></h1>
       <p style={S.sub}>Your resume shows what you've done. An assessment shows the durable part of you: where your natural strengths lie, what energizes you, and the environments where you do your best work. These qualities don't depend on title, compensation, or where you worked. They travel with you into every role that comes next. Without an assessment, we can only work with your track record. With it, we can connect your results to the qualities that produced them, and surface what you'll carry forward.</p>
       <CoachingCallout>
@@ -8907,7 +8964,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>
 
     case'values':return <div>
-      <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
+      <div style={S.tag('#8A9BB8')}>Orientation</div>
       <h1 style={S.title}>Values, Passions & Causes</h1>
       <p style={S.sub}>These two inputs are how Reimagine finds combinations between your professional life and the rest of you that you might not see yourself. Don't filter for professional relevance, that is our job.</p>
       <CoachingCallout>
@@ -8924,7 +8981,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>
 
     case'priorities':return <div>
-      <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
+      <div style={S.tag('#8A9BB8')}>Orientation</div>
       <h1 style={S.title}>Your Priorities & Non-Negotiables</h1>
       <p style={S.sub}>The Values screen covered why work matters to you. This is the practical side: what a move actually needs to be worth making. Everything here is optional; skip anything that doesn't apply.</p>
       <div style={S.card}>
@@ -8938,7 +8995,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>
 
     case'reputation':return <div>
-      <div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>
+      <div style={S.tag('#8A9BB8')}>Orientation</div>
       <h1 style={S.title}>Your Reputation</h1>
       <CoachingCallout>
         <p style={{margin:0}}>Reimagine reads other people's words about you for patterns you cannot easily see in yourself. The more specific the source material, the sharper the output.</p>
@@ -8984,7 +9041,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>
 
     case'life-events':return <div>
-      {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>}
+      {!isDemo&&<div style={S.tag('#8A9BB8')}>Orientation</div>}
       <h1 style={S.title}>Your Story</h1>
       <p style={S.sub}>We'd love to get to know you better. The things that shape who we are often don't show up on a resume, like the role we played in our family, an identity we carry, a person who shaped us, or a season that changed us. If something like that comes to mind, share it. One thing or several.</p>
       <div style={S.card}>
@@ -9001,7 +9058,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     </div>
 
     case'skills':return <div>
-      {!isDemo&&<div style={S.tag('#8A9BB8')}>Phase 0 · Orientation</div>}
+      {!isDemo&&<div style={S.tag('#8A9BB8')}>Orientation</div>}
       <h1 style={S.title}>Your Skills</h1>
       <p style={S.sub}>Reimagine pulled these from your resume and LinkedIn. Take a look, add what is missing, remove anything that does not belong. This list shapes how the rest of Reimagine reads you: which options fit, which keywords land, which company targets feel right.</p>
       {loading&&<Loading msg={loadMsg||'Reading your resume and LinkedIn for your skills…'} step="skills"/>}
@@ -9042,7 +9099,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     case'p3':return <div>
       {done.includes('complete')&&<div style={{marginBottom:16}}><Btn secondary onClick={()=>nav('complete')}><ArrowLeft size={13}/>Back to My Results</Btn></div>}
 
-      {!isDemo&&<div style={S.tag('#C8924A')}>Phase 1 · Personal Brand</div>}
+      {!isDemo&&<div style={S.tag('#C8924A')}>Personal Brand</div>}
       <h1 id="section-p3" style={S.title}>Your Personal Brand</h1>
       {!isDemo&&<p style={S.sub}>Personal Brand answers the question every job conversation circles back to: who are you at work, and what do you bring? The answer is the through-line that runs through your accomplishments, your wiring, and what others say about you, and it is what makes you distinctive. Everything that comes later — your answer to "tell me about yourself," the companies and people you target, the resume and LinkedIn that match where you are headed, the prep for every conversation ahead — is built on it.</p>}
 
@@ -9058,7 +9115,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>}
 
-      {!isDemo&&!outputs.p3&&!loading&&<><Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn><div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:15,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>A single prose synthesis of who you are at work, roughly 600 to 800 words. About 4 to 5 minutes to generate.</div>{coachNudge('Before I build my Personal Brand, help me understand what it will give me — and whether my inputs so far are enough to make it sharp.','Wondering what this will give you? Ask your coach',{marginTop:12})}</>}
+      {!isDemo&&!outputs.p3&&!loading&&<><Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn><div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:15,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>A structured read of who you are at work, laid out in sections. About 4 to 5 minutes to generate.</div>{coachNudge('Before I build my Personal Brand, help me understand what it will give me — and whether my inputs so far are enough to make it sharp.','Wondering what this will give you? Ask your coach',{marginTop:12})}</>}
       {!isDemo&&!outputs.p3&&!loading&&outputs.p3_prev&&outputs.p3_prev.p3&&<div style={{marginTop:14}}><Btn small secondary onClick={restorePrevP3}><RotateCcw size={12}/>Restore previous version</Btn></div>}
       {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3"/>}
       {outputs.p3&&!loading&&<>
@@ -9332,7 +9389,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>}
         {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav('twoDoors')} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to Put It to Work</button></div>}
         {!isDemo&&<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginBottom:14}}>
-          <div style={{...S.tag('#8A9BB8'),marginBottom:0}}>Phase 2 · Apply Your Foundation</div>
+          <div style={{...S.tag('#8A9BB8'),marginBottom:0}}>Put It to Work</div>
           <div style={{...S.tag(C.gold),marginBottom:0}}>Focus Playbook</div>
         </div>}
         <h1 style={S.title}>{chosen||'Your Focus Playbook'}</h1>
@@ -9522,7 +9579,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {savedPlaybooks.length} of {getSavedCap()} saved.</p>
       </div>
       {_comparable.length>=2&&<div style={{margin:'0 0 16px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({_comparable.length}) <ChevronRight size={14}/></Btn></div>}
-      <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasMySearch}/>
+      <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasMySearch}/>
     </div>
     }
     case'income':{
