@@ -9,24 +9,14 @@
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
-import { fileURLToPath } from 'url'
+import { CHAPTERS_DIR, chapterFiles } from './user-guide-order.mjs'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+export { CHAPTERS_DIR, chapterFiles }
+export { REPO_ROOT } from './user-guide-order.mjs'
 
-export const REPO_ROOT = path.resolve(__dirname, '..', '..')
-export const CHAPTERS_DIR = path.join(REPO_ROOT, 'src', 'data', 'user-guide')
-// Co-located with the source; not a *.md file, so neither the PDF builder's
-// glob nor chapterFiles() below ever picks it up as a chapter.
+// Co-located with the source; not a *.md file, so neither the PDF builder nor
+// chapterFiles() ever picks it up as a chapter.
 export const HASH_FILE = path.join(CHAPTERS_DIR, 'PDF-SOURCE.hash')
-
-// Enumerate chapters exactly as build-user-guide-pdf.py does: every *.md except
-// index.md, sorted by filename.
-export function chapterFiles() {
-  return fs
-    .readdirSync(CHAPTERS_DIR)
-    .filter((n) => n.endsWith('.md') && n !== 'index.md')
-    .sort()
-}
 
 // Deterministic content hash over chapter name + content. CRLF is normalized to
 // LF so a line-ending flip alone never trips the gate.

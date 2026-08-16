@@ -1,0 +1,25 @@
+{
+  "_comment": "SINGLE SOURCE OF TRUTH for user-guide chapter order and numbering. The chapter NUMBER a reader sees is generated from this array position (1-based) by scripts/lib/user-guide-order.mjs -- it is NOT encoded in the filename. To add a chapter: create the file, add one line here in the position it should read, run `npm run build:user-guide-pdf`. Numbering re-flows on its own and no cross-reference breaks, because prose cites chapters by NAME, never by number. index.md is the contents page, not a numbered chapter. Filenames still carry legacy numeric prefixes; those become stable slugs in the restructure and this file is what makes that safe.",
+  "chapters": [
+    "00-tldr.md",
+    "01-what-is-reimagine.md",
+    "02-before-you-begin.md",
+    "03-quality-of-your-inputs.md",
+    "04-orientation-phase.md",
+    "05-know-your-value.md",
+    "06-explore-options.md",
+    "07-tell-your-story.md",
+    "08-find-your-market.md",
+    "09-get-ready.md",
+    "10-your-results.md",
+    "11-income-now.md",
+    "11b-upload-a-live-opportunity.md",
+    "11c-my-coach.md",
+    "11d-negotiating-an-offer.md",
+    "11e-how-an-offer-is-put-together.md",
+    "12-refining-and-regenerating.md",
+    "13-saving-your-work.md",
+    "14-faq-and-troubleshooting.md",
+    "15-glossary.md"
+  ]
+}
