@@ -20,7 +20,7 @@
 // no logic-flip cadence, no banned AI-coach phrases, no typology labels).
 
 import { useState } from 'react'
-import { RotateCcw, Trash2, Briefcase, Pencil } from 'lucide-react'
+import { RotateCcw, Trash2, Briefcase, Pencil, Download } from 'lucide-react'
 
 const LANE_LABEL_MAP = {
   familiar: 'Familiar Ground',
@@ -121,7 +121,7 @@ function SourceBadge({ source, lane, C }) {
   )
 }
 
-function PlaybookCard({ rec, onRestore, onDelete, onRename, C }) {
+function PlaybookCard({ rec, onRestore, onDelete, onRename, onDownload, C }) {
   const { built, total } = sectionsBuilt(rec)
   const door2 = rec.source === 'door2'
   const [titleLead, titleRest] = door2 ? [null, rec.title] : splitFocusTitle(rec.title)
@@ -207,6 +207,19 @@ function PlaybookCard({ rec, onRestore, onDelete, onRename, C }) {
           }}>
           <RotateCcw size={14}/>Open
         </button>
+        {onDownload && (
+          <button
+            onClick={() => onDownload(rec)}
+            aria-label={`Download ${rec.title} as a Markdown file`}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'transparent', color: C.gray, border: `1px solid ${C.border}`,
+              padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
+              fontSize: 15, fontWeight: 500, fontFamily: 'inherit',
+            }}>
+            <Download size={13}/>Markdown
+          </button>
+        )}
         <button
           onClick={handleDelete}
           aria-label={`Remove ${rec.title} from Your playbooks`}
@@ -234,7 +247,7 @@ function AddButton({ label, onClick, C }) {
   )
 }
 
-function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDelete, onRename, C }) {
+function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDelete, onRename, onDownload, C }) {
   const showAdd = typeof onAdd === 'function'
   // Complete-page recap (no add handler) omits empty sections; the dashboard
   // (add handler present) shows the empty state with its add affordance.
@@ -249,7 +262,7 @@ function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDe
         ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
             {records.map(rec => (
-              <PlaybookCard key={rec.id} rec={rec} onRestore={onRestore} onDelete={onDelete} onRename={onRename} C={C}/>
+              <PlaybookCard key={rec.id} rec={rec} onRestore={onRestore} onDelete={onDelete} onRename={onRename} onDownload={onDownload} C={C}/>
             ))}
           </div>
         )
@@ -268,7 +281,7 @@ function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDe
 // hides empty sections. The split is a pure render-layer filter on rec.source;
 // no schema change. The `layout` prop is retained for caller compatibility but
 // the grid is now owned per-section (the legacy wideView path is vestigial).
-export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, onRename, C, layout = 'complete', title, onAddDirection, onAddOpportunity, focusOnly = false }) {
+export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, onRename, onDownload, C, layout = 'complete', title, onAddDirection, onAddOpportunity, focusOnly = false }) {
   const focus = (savedPlaybooks || []).filter(r => r && r.source !== 'door2')
   // focusOnly: My Pipeline owns the Opportunity records, so this component renders
   // Focus only and never shows a duplicate Opportunity section (gated to flagged
@@ -287,7 +300,7 @@ export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, on
         addLabel="Explore More Roles"
         onAdd={onAddDirection}
         emptyCopy="No Focus Playbooks yet. Explore directions across Familiar Ground, Industry Insider, and Work That Matters."
-        onRestore={onRestore} onDelete={onDelete} onRename={onRename} C={C}/>
+        onRestore={onRestore} onDelete={onDelete} onRename={onRename} onDownload={onDownload} C={C}/>
       {!focusOnly && (
         <Section
           heading="Opportunity Playbooks"
@@ -295,7 +308,7 @@ export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, on
           addLabel="Add an Opportunity"
           onAdd={onAddOpportunity}
           emptyCopy="No Opportunity Playbooks yet. Bring a job description and Reimagine builds a playbook tuned to that exact role."
-          onRestore={onRestore} onDelete={onDelete} onRename={onRename} C={C}/>
+          onRestore={onRestore} onDelete={onDelete} onRename={onRename} onDownload={onDownload} C={C}/>
       )}
     </div>
   )

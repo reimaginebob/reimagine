@@ -80,6 +80,9 @@ export const FEATURE_MAP = [
   { slug: 'offer-comparison',     reach: 'opportunity-gated', label: 'Compare offers',
     does: 'lines up the person\'s logged offers side by side, with the priced value of each benefits package on its own line rather than blended into one number; informational, it does not rank the offers or say which to take',
     where: 'in My Playbooks, once two or more opportunities have a logged offer' },
+  { slug: 'playbook-markdown',    reach: 'focus-gated', label: 'Markdown download',
+    does: 'downloads one playbook as a plain text file — the Personal Brand, then every section built for that role — for editing, pasting elsewhere, or feeding into another tool; the Save Playbook as PDF button is the formatted version to hand to a person',
+    where: 'on each card in My Playbooks' },
 
   // Community resources — surfaced in prose only (especially on discouragement
   // turns when someone is carrying the search alone). No step. The Corner pointer
