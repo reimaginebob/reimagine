@@ -48,8 +48,8 @@ Once you are signed in, clearing cache does not affect your work. Sign in again 
 **Can I move my work to another device?**
 Yes, automatically. Sign in from the new device with the same email and your full session is there. No file export needed.
 
-**Can I have more than one Reimagine direction in flight at a time?**
-Not directly. Reimagine holds one active session per account. To explore two different directions in parallel, finish one, download the markdown of all outputs as a snapshot, then come back to the Decision step and pick a different option to generate downstream artifacts for the second direction. Refining and Regenerating covers the mechanics.
+**Can I have more than one direction in flight at a time?**
+Yes. Every role you open becomes its own Focus Playbook, and every job description you bring in becomes its own Opportunity Playbook. They are saved separately and you can work several at once, up to ten. Switch between them from **My Playbooks**. Your Personal Brand is shared across all of them; only the per-role sections are written fresh.
 
 **Why is there only one playbook when I built the same role twice (or uploaded the same job description twice)?**
 Reimagine de-duplicates. If you pick the same role from Career Paths twice, or upload the same job description twice, Reimagine quietly re-links you to the existing playbook instead of creating a second copy. Your work is not lost; you land back in the same record, right where you left it. If you want a clean start on that role or job description, delete the existing playbook from My Playbooks first, then build it again.
@@ -57,7 +57,7 @@ Reimagine de-duplicates. If you pick the same role from Career Paths twice, or u
 ## Inside the journey
 
 **A generation is taking a long time. Is something wrong?**
-Most steps take three to four minutes. The Go-to-Market step (Phase 4) and the Income Now step include live web research and can take four to five minutes. Add an Opportunity is the exception: the page loads instantly and each of the four sections takes about 30 seconds to build on demand. If a step is taking longer than five minutes, refresh the page and try again.
+Most sections take three to four minutes. Go-to-Market and Income Now include live web research and can take four to five. Add an Opportunity is the exception: the page loads instantly and most of its cards take about 30 seconds each, though About This Company and Compensation take longer because they run live web search. If something is taking longer than five minutes, refresh the page and try again.
 
 **The output looks like it cut off.**
 Refresh the page and regenerate the step. If it happens again on the same step, use the refine box to ask for a shorter response and try again.
@@ -87,25 +87,24 @@ If you change your reputation, values, passions, assessment, or Your Story after
 Open the feedback box below the section and tell Reimagine what to change, then regenerate. Examples: "Lead with my sustainability work instead," or "Don't use the word 'leverage,' I would not say that." The same feedback box works for the Bridge Story, LinkedIn copy, and every other section. Factual corrections save to your profile and carry into later sections; wording requests apply to the section you make them on.
 
 **I want to explore a different direction or role after I picked one.**
-Use **Explore another direction** to return to the three directions, or pick a different role in the Lane Option view. Any role you have opened before also appears under **Roles You've Explored** in the sidebar with a Re-explore action. Switching roles regenerates that role's Focus Playbook fresh; if the current playbook has unsaved work, Reimagine offers to save it as a PDF first. Career Paths covers this in detail.
+Use **Explore another direction** to return to the three directions, or pick a different role on the Role Options screen. Every role you have opened before is saved in **My Playbooks**; click **Open** on any card to pick it back up where you left it. Career Paths covers this in detail.
 
 **I want different options, or options in a direction we missed.**
-On the Lane Option view, open **Tell us where else to look** and name a domain or direction we missed, or tell Reimagine what did not fit. Examples: "You missed affordable housing." "Consider education." "Remove consulting roles." "These skew too senior." It re-runs with your input weighted, without repeating the ones you have seen.
+On the Role Options screen, open **Tell us where else to look** and name a domain or direction Reimagine missed, or tell it what did not fit. Examples: "You missed affordable housing." "Consider education." "Remove consulting roles." "These skew too senior." It re-runs with your input weighted, without repeating the ones you have seen.
 
 ## Output and deliverables
 
-**How do I save the final results?**
-Four ways:
-1. Download the one-page PDF from the Results screen. Designed for sharing with a recruiter, coach, or contact.
-2. Download the target company list as a CSV from the **Download CSV** button in Phase 4. This is the most useful artifact for tracking outreach over time.
-3. Download all outputs as one markdown file from the Results screen. The complete record of every generated section.
-4. Click **Copy All** on any section to copy that section's text to your clipboard. The output strips markdown symbols so the paste is clean.
+**How do I save my work?**
+It is already saved to your account, and it follows you across devices. To take a copy with you, three ways:
+1. **Save Playbook as PDF** from the footer of any Focus Playbook or Opportunity Playbook. A clean paged document, each section on its own page. Good for a coach, a mentor, or reading offline.
+2. **Download CSV** in the Go-to-Market section pulls your target company list out as a spreadsheet. This is the most useful artifact for tracking outreach over time.
+3. **Copy All** on any section copies that section's text to your clipboard. The output strips markdown symbols so the paste is clean.
 
 **Can I print the full output?**
-Yes. Press Ctrl+P on Windows or Cmd+P on Mac from the section you want to print. Reimagine produces a clean printout of that section: the full content, paper-friendly type, no sidebar or buttons. From the print dialog you can save it as a PDF or send it to a printer. If you would rather paste into a document first, use **Copy All** at the top of the section. Both paths work, so pick whichever fits how you want to use the output. The one-page PDF on the Complete screen is also printable.
+Yes. Press Ctrl+P on Windows or Cmd+P on Mac from the section you want to print. Reimagine produces a clean printout of that section: the full content, paper-friendly type, no sidebar or buttons. From the print dialog you can save it as a PDF or send it to a printer. If you would rather paste into a document first, use **Copy All** at the top of the section. For the whole playbook at once, use **Save Playbook as PDF** in the footer.
 
 **Where do I share feedback about Reimagine itself?**
-There is a short feedback survey on the **Complete** screen at the end of the journey. Otherwise, email Bob at [bob@career.club](mailto:bob@career.club).
+Email Bob at [bob@career.club](mailto:bob@career.club). The **Does this feel right?** box under any section is the fastest route for feedback about a specific output; email is the right route for anything about the tool itself.
 
 ## When something stays broken
 

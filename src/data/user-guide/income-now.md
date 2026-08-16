@@ -22,7 +22,7 @@ If a job search is going to take longer than your runway, having income flowing 
 
 ## What this module does
 
-Reimagine builds a complete fractional and consulting plan tailored to your background, your seniority, and the focus you chose at the end of Phase 2. The plan has six parts:
+Reimagine builds a complete fractional and consulting plan tailored to your background, your seniority, and the direction you are currently exploring. The plan has six parts:
 
 1. **Where to show up**. Four to six marketplaces and platforms (Catalant, Toptal, Bolste, Business Talent Group, etc.) matched to your function, with realistic rate ranges and the first step to get listed on each.
 2. **Your consulting presence**. A positioning headline, a 150-word bio, four specific service offerings (each with a problem-first title, the buyer, the deliverable, the outcome, and a price), and a complete outreach message you can send to your network.
@@ -67,7 +67,7 @@ Use **Update my plan** to fold the changes in. Use **Show me a fresh plan** to c
 
 ## When you are happy with it
 
-When you finish Income Now, click **Back to Results** to return to the Complete screen. Your Income Now plan is now part of your library of outputs there, alongside everything else you generated in the main journey. Treat it the same way: come back to it whenever you have a conversation that should be a paid one, or when you want to update your rates, your bio, or your service offerings. Refining and Regenerating covers how to refine and regenerate any output you have already produced.
+Your Income Now plan is saved with the playbook for the direction you are exploring, alongside everything else you generated for it, and it is also its own entry in the sidebar. Treat it the way you treat the rest: come back to it whenever you have a conversation that should be a paid one, or when you want to update your rates, your bio, or your service offerings. Refining and Regenerating covers how to refine and regenerate any output you have already produced.
 
 ---
 

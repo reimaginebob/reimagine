@@ -1,10 +1,12 @@
-# Phase 0. Orientation: Telling Reimagine About You
+# Orientation
 
-This is the only phase where you do the work. Everything that follows is generated for you. This chapter walks through each screen so you know what to expect and what good input looks like at each one.
+Orientation is where you tell Reimagine about you. It is the one part of the tool where you do the writing; everything after this is generated from what you put in here.
+
+This chapter walks through each screen so you know what to expect and what good input looks like at each one.
 
 If you have not read **The Quality of Your Inputs** yet, do that first. This chapter assumes you have.
 
-The Orientation phase has nine screens, in this order:
+Orientation has ten screens, in this order:
 
 1. Welcome
 2. Location & Work
@@ -19,7 +21,7 @@ The Orientation phase has nine screens, in this order:
 
 You can navigate them with the **Continue** and **Back** buttons at the bottom of each screen, or jump to any completed step using the sidebar on the left.
 
-[screenshot: the left sidebar showing the seven phases with the Orientation phase expanded]
+[screenshot: the left sidebar with the Orientation steps expanded]
 
 ## Screen 1: Welcome
 
@@ -55,11 +57,11 @@ Click **Continue** when you are done.
 
 Your resume is the raw material for everything Reimagine builds with you next. This screen gives you two ways to provide it.
 
-You do not need to polish or update your resume before you start. If yours is out of date, the builder rebuilds it with you (see Door 2).
+You do not need to polish or update your resume before you start. If yours is out of date, Reimagine rebuilds it with you in the Resume Builder, described below.
 
-### Door 1: Already have an up-to-date resume?
+### If your resume is current
 
-If your resume is current, this is the fast path: Reimagine uses it as-is.
+This is the fast path: Reimagine uses what you give it as-is.
 
 **Upload.** Drag a file onto the upload area or click to browse. PDF, Word (.docx), and plain text all work.
 
@@ -69,9 +71,11 @@ You can do both. The text field is the source of truth for what Reimagine reads,
 
 Once Reimagine has read the file, you will see a green checkmark and a character count. Click **Continue**.
 
-### Door 2: Out of date, or don't have one?
+### Resume Builder: if it's out of date, or you don't have one
 
 If your resume is stale, thin, or missing, Reimagine builds one with you and gets you to a complete, sendable draft fast. You refine a resume that already exists rather than building up to one. Whatever you hand over is a jumpstart only: Reimagine rebuilds it fresh, so an old version you are not proud of never carries through.
+
+This is a real step with its own screen. The sidebar calls it **Resume Builder**, and you can come back to it any time.
 
 Here is how the builder works:
 
@@ -103,7 +107,7 @@ Your LinkedIn profile holds material your resume does not:
 - **Skills with endorsement counts** carry social proof. They show the competencies others have validated, the ones with public backing behind them.
 - **Activity** (what you post, comment on, share) signals values and passions in a way you may not articulate yourself.
 
-There is a second reason worth flagging. In Phase 5 (Get Ready), Reimagine generates a LinkedIn Remix: recommendations for your headline, your About section, and your experience entries. Without your current profile as input, the Remix is generated from scratch. With it, the Remix becomes a true *refresh*. Reimagine can say "your current About section reads X; change Y to Z" rather than producing generic recommendations you have to map onto your real profile yourself.
+There is a second reason worth flagging. The LinkedIn Remix section of your Focus Playbook writes recommendations for your headline, your About section, and your experience entries. Without your current profile as input, the Remix is generated from scratch. With it, the Remix becomes a true *refresh*. Reimagine can say "your current About section reads X; change Y to Z" rather than producing generic recommendations you have to map onto your real profile yourself.
 
 ### How to export your LinkedIn as a PDF
 
@@ -160,7 +164,7 @@ Two short fields. Both have a microphone button. You can speak your answers inst
 
 **Passions, Interests & Causes. 3 to 5 things you care about.** What you read about for fun, volunteer your time for, or could talk about for 30 minutes with no preparation. Hobbies, industries that fascinate you, communities you belong to, causes close to your heart.
 
-**One thing worth knowing:** it can be tempting to filter your answers for what feels professionally relevant. Try not to. The Explore Options phase looks for unexpected combinations between your professional life and the rest of you, so the side project, the cause, the hobby, the industry you read about for fun are all worth including.
+**One thing worth knowing:** it can be tempting to filter your answers for what feels professionally relevant. Try not to. Reimagine looks for unexpected combinations between your professional life and the rest of you when it builds your role options, so the side project, the cause, the hobby, the industry you read about for fun are all worth including.
 
 If you are not sure what belongs here, ask your coach — there is a prompt on the screen that opens the conversation. Once the two of you land on something, your coach offers to save it straight into these fields. You tap once, and you can edit it here afterwards like anything else you typed.
 
@@ -231,14 +235,14 @@ Click **Continue** when you are done.
 
 ## What happens next
 
-When you finish Your Skills, Reimagine shows a short **Orientation complete** card before moving into Phase 1. The card acknowledges that you have finished the input phase: everything from here on is output. Read it, then click Continue.
+When you finish Your Skills, Reimagine shows a short **Orientation complete** card. It acknowledges that the input work is behind you: everything from here on is output. Read it, then click Continue to build your Personal Brand.
 
-From Phase 1 on, you are no longer entering data. You are reviewing what Reimagine generates from your inputs, telling it what to adjust where needed, and advancing to the next phase when each result feels right.
+From here you are no longer entering data. You are reading what Reimagine generates from your inputs, telling it what to adjust where it misses, and moving on when each result feels right.
 
-While Reimagine generates each section, the loading screen shows a short "while you wait" bullet list previewing what is coming, plus rotating quotes from Bob Goodwin's book Making Your Own Weather. Each phase has its own pool of quotes matched to that phase's substance.
+While Reimagine generates each section, the loading screen shows a short "while you wait" bullet list previewing what is coming, plus rotating quotes from Bob Goodwin's book Making Your Own Weather. Each section has its own pool of quotes matched to what it is building.
 
 If at any point you realize an input was wrong or incomplete, click any completed orientation step in the left sidebar to return, fix it, and regenerate from there. Refining and Regenerating explains how to do that without losing your downstream work.
 
 ---
 
-*Next: [Phase 1. Know Your Value →](personal-brand.md)*
+*Next: [Your Personal Brand →](personal-brand.md)*
