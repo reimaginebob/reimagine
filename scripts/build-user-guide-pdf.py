@@ -56,6 +56,12 @@ BULLET_RE = re.compile(r"^[-*]\s+(.*)$")
 NUMBERED_RE = re.compile(r"^(\d+)\.\s+(.*)$")
 BLOCKQUOTE_RE = re.compile(r"^>\s?(.*)$")
 HR_RE = re.compile(r"^-{3,}$|^\*{3,}$")
+# HTML comments are markdown's invisible-to-the-reader construct, and index.md
+# uses a pair of them to fence the generated contents list
+# (scripts/build-guide-toc.mjs). Without this the parser has no rule for them,
+# so they fall through to the paragraph branch and "<!-- toc:start -->" prints
+# on the contents page of the downloadable guide.
+HTML_COMMENT_RE = re.compile(r"^<!--.*-->$")
 
 
 def escape_xml(text: str) -> str:
@@ -173,6 +179,10 @@ def parse_markdown(md_text: str, styles: dict, skip_first_h1: bool = False):
     while i < len(lines):
         line = lines[i].rstrip()
         if not line.strip():
+            flush_all()
+            i += 1
+            continue
+        if HTML_COMMENT_RE.match(line.strip()):
             flush_all()
             i += 1
             continue
