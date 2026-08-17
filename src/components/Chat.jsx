@@ -28,7 +28,11 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, allowGeneralMode = false }) {
+  // General-question mode (Career Club team only): ask a general/client question
+  // without this account's job-search profile loaded. The toggle only renders
+  // when allowGeneralMode is passed; the flag is re-checked server-side.
+  const [generalMode, setGeneralMode] = useState(false)
   const [open, setOpen] = useState(false)
   // App bumps openRequest to open the floating coach programmatically (e.g. the
   // Personal Brand check-in on first arrival at Put it to Work).
@@ -192,6 +196,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           // Entry point for insight logging: the embedded variant is the My
           // Coach sidebar; the floating variant is the help bubble.
           surface: embedded ? 'sidebar' : 'help',
+          // General-question mode (Career Club team only; re-checked server-side).
+          general: generalMode,
         }),
       })
       if (!res.ok || !res.body) {
@@ -407,7 +413,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   )
 
   const inputRow = (
-    <div style={{ padding: 12, borderTop: '1px solid #E2E5EA', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+    <div style={{ borderTop: '1px solid #E2E5EA' }}>
+      {allowGeneralMode && (
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px 0', fontSize: 15, color: generalMode ? '#A06828' : '#8A9BB8', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <input type="checkbox" checked={generalMode} onChange={e => setGeneralMode(e.target.checked)} style={{ margin: 0, cursor: 'pointer' }} />
+          General question — answer without my profile
+        </label>
+      )}
+      <div style={{ padding: 12, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
       <textarea
         autoFocus
         rows={2}
@@ -435,6 +448,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       >
         Send
       </button>
+      </div>
     </div>
   )
 

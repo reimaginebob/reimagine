@@ -502,6 +502,12 @@ MAKING YOUR OWN WEATHER — FULL TEXT BELOW. This is the methodology behind your
 
 ${MYOW_CONTENT}`
 
+// Replaces the per-user profile slice when general-question mode is on. Tells the
+// coach there is no personal profile in play — answer the question directly and
+// expertly, without referencing "their" resume/brand, without asking them to
+// build anything, and without pitching Reimagine features.
+const GENERAL_MODE_BLOCK = `GENERAL QUESTION MODE (no personal profile). The person asking is not sharing their own Reimagine job-search profile right now — they are asking a general career or coaching question, often on behalf of a client or in the abstract. Answer it directly, expertly, and in full, as a career strategist grounded in Making Your Own Weather. Do NOT reference "your resume," "your Personal Brand," or any saved work as if it were theirs; do NOT ask them to build a profile or fill anything in; and do NOT surface or pitch Reimagine features — just give the best possible answer to the question they asked, in the same warm, plain, well-structured voice. When you name a framework from the book, still teach it in the book's words.`
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -512,10 +518,14 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Not signed in' })
   if (user.suspended_at) return res.status(403).json({ error: 'account_suspended' })
 
-  const { message, history = [], currentStep, surface } = req.body || {}
+  const { message, history = [], currentStep, surface, general } = req.body || {}
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'message required' })
   }
+  // General-question mode (Career Club team only): answer a general or client
+  // career question without loading this account's job-search profile. Gated on
+  // the @career.club email server-side so the client flag alone cannot enable it.
+  const generalMode = general === true && /@career\.club$/i.test(user.email || '')
 
   // Read the user's profile server-side (never sent from the client). Same
   // row cross-device profile sync reads and writes. Read-only here.
@@ -531,11 +541,11 @@ export default async function handler(req, res) {
     console.error('coach profile read failed:', err)
     // Fall through with a null profile rather than failing the turn.
   }
-  let profileBlock = buildCoachProfileSlice(profileState, employmentStatus, featureFlags)
+  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags)
   // PR-B: if the conversation is about a specific saved playbook, expand its
   // anchor + intent-matched section into the (uncached) slice. Best-effort — a
-  // malformed record must never break the turn.
-  try {
+  // malformed record must never break the turn. Skipped in general mode (no profile).
+  if (!generalMode) try {
     const inFocus = findInFocusRecord(profileState && profileState.savedPlaybooks, message, history)
     if (inFocus) {
       const expansion = buildPlaybookExpansion(inFocus, detectIntent(message))
