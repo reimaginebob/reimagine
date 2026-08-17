@@ -4280,13 +4280,13 @@ function SubsectionRefineBox({scopeKey,onSubmit,busy,error,label,placeholder,sub
   // bump presetNonce on every click). useEffect deps on BOTH so identical-text
   // re-clicks still fire.
   useEffect(()=>{if(typeof presetText==='string'&&presetText.length>0){setText(presetText);if(!open)setOpen(true)}},[presetText,presetNonce])
-  return <div data-print="hide" style={{marginTop:12,border:`1px solid ${C.border}`,borderRadius:8,background:C.input}}>
-    <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',background:'transparent',border:'none',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-      <span style={{fontSize:15,color:C.gray}}>{open?'Hide feedback':(label||'None of these feel right? Tell us what to fix.')}</span>
-      {open?<ChevronUp size={14} color={C.gray}/>:<ChevronDown size={14} color={C.gray}/>}
+  return <div data-print="hide" style={{marginTop:12,border:`1px solid ${C.gold}55`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,background:`${C.gold}0D`}}>
+    <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',background:'transparent',border:'none',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+      <span style={{fontSize:16,fontWeight:600,color:C.goldL,display:'inline-flex',alignItems:'center',gap:8}}><Sparkles size={15}/>{open?'Hide feedback':(label||'None of these feel right? Tell us what to fix.')}</span>
+      {open?<ChevronUp size={16} color={C.goldL}/>:<ChevronDown size={16} color={C.goldL}/>}
     </button>
-    {open&&<div style={{padding:'10px 14px 14px',borderTop:`1px solid ${C.border}`}}>
-      <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={placeholder||''} style={{...S.ta,minHeight:84,fontSize:15,marginBottom:8}} aria-label="What to refine in this block"/>
+    {open&&<div style={{padding:'10px 16px 14px',borderTop:`1px solid ${C.gold}33`}}>
+      <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={placeholder||''} style={{...S.ta,minHeight:84,fontSize:16,marginBottom:8}} aria-label="What to refine in this block"/>
       <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
         <Btn small disabled={busy} onClick={()=>{onSubmit(text)}}><RotateCcw size={12}/>{busy?'Regenerating…':(submitLabel||'Regenerate this block')}</Btn>
         <span style={{fontSize:15,color:C.gray,fontStyle:'italic'}}>{helperText||'Only this block changes.'}</span>
