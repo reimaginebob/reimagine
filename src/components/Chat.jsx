@@ -81,6 +81,31 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   const noteActionsRef = useRef(null)
   // Caps the in-conversation employment save-offer to once per session.
   const employmentOfferedRef = useRef(false)
+  // Rendered assistant-reply nodes, keyed by message id — so Copy can grab the
+  // real formatted HTML (headings/bold/bullets), not just the plain text.
+  const contentRefs = useRef({})
+
+  // Copy a reply WITH its formatting. Writes rich HTML (from what's actually on
+  // screen) so a paste into an email or doc keeps the headings, bold, and
+  // bullets, plus a plain-text copy for plain targets. Falls back to plain text
+  // where the async Clipboard API or ClipboardItem is unavailable.
+  const copyReply = async (id, content) => {
+    const el = contentRefs.current[id]
+    const html = el ? el.innerHTML : ''
+    try {
+      if (html && navigator.clipboard && typeof window !== 'undefined' && window.ClipboardItem) {
+        await navigator.clipboard.write([new window.ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([content], { type: 'text/plain' }),
+        })])
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(content)
+      }
+      setCopiedId(id)
+    } catch {
+      try { if (navigator.clipboard) await navigator.clipboard.writeText(content); setCopiedId(id) } catch { /* clipboard blocked */ }
+    }
+  }
   // Same cap for the My Search pursuit-status save-offer.
   const pursuitOfferedRef = useRef(false)
 
@@ -305,7 +330,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 18px' }}>
       {messages.map((m, i) => (
         <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
-          <div style={{
+          <div ref={el => { if (m.id) contentRefs.current[m.id] = el }} style={{
             display: 'inline-block', maxWidth: '85%',
             padding: '10px 14px', borderRadius: 12,
             background: m.role === 'user' ? C.gold : '#F4F6F9',
@@ -344,7 +369,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                   style={{ background: m.rating === -1 ? '#FBEBE8' : 'transparent', border: `1px solid ${m.rating === -1 ? '#C0432F' : '#D8DEE8'}`, color: m.rating === -1 ? '#C0432F' : '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Not helpful
                 </button>
-                <button onClick={() => { try { navigator.clipboard && navigator.clipboard.writeText(m.content) } catch {} ; setCopiedId(m.id) }} aria-label="Copy reply"
+                <button onClick={() => copyReply(m.id, m.content)} aria-label="Copy reply"
                   style={{ background: 'transparent', border: '1px solid #D8DEE8', color: copiedId === m.id ? '#2F7D54' : '#8A9BB8', borderRadius: 8, padding: '3px 10px', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {copiedId === m.id ? 'Copied' : 'Copy'}
                 </button>
