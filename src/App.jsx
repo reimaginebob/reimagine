@@ -8567,12 +8567,25 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const sorted=[...ops].sort((a,b)=>{const pa=priority(a),pb=priority(b);if(pa!==pb)return pa-pb;return tieKey(a)-tieKey(b)})
     const fmtDate=(iso)=>{try{return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'})}catch{return ''}}
     const dateInputVal=(iso)=>{try{return iso?new Date(iso).toISOString().slice(0,10):''}catch{return ''}}
+    // Move 2 — deterministic "state of your pipeline" signals (no model, no
+    // storage; pure time math on data we already hold). hasUpcoming = a step or
+    // meeting due today or later; needsAttn = an overdue step or a meeting that
+    // has already passed; quiet = active but nothing scheduled ahead.
+    const hasUpcoming=(s)=>['today','upcoming'].includes(pursuitStepDueState(s.next_step_at))||['today','upcoming'].includes(pursuitStepDueState(s.next_conversation_at))
+    const needsAttn=(s)=>pursuitStepDueState(s.next_step_at)==='overdue'||pursuitStepDueState(s.next_conversation_at)==='overdue'
+    const daysIn=(rec)=>{const t=rec.createdAt?Date.parse(rec.createdAt):NaN;return Number.isNaN(t)?null:Math.max(0,Math.round((now-t)/86400000))}
+    const activeList=sorted.filter(r=>!isClosed(stat(r)))
+    let attnN=0,quietN=0
+    activeList.forEach(r=>{const s=stat(r);if(needsAttn(s))attnN++;else if(!hasUpcoming(s))quietN++})
+    const rollup=activeList.length?`${activeList.length} in play${attnN?` · ${attnN} need${attnN===1?'s':''} attention`:''}${quietN?` · ${quietN} going quiet`:''}`:''
     return wrap(
       <div style={{display:'flex',flexDirection:'column',gap:16}}>
+        {rollup&&<div style={{fontSize:15,color:C.grayL,fontWeight:600,margin:'0 0 2px'}}>{rollup}</div>}
         {sorted.map(rec=>{
           const s=stat(rec);const title=rec.title||rec.company||'Opportunity';const built=builtCount(rec)
           const dueState=isClosed(s)?null:pursuitStepDueState(s.next_step_at)
           const flag=dueState==='overdue'?{text:'#B42318',border:'#FDA29B',bg:'#FEE4E2',inputBg:'#FFF7F6',label:'overdue —',pill:'Overdue'}:dueState==='today'?{text:'#067647',border:'#6CE9A6',bg:'#ECFDF3',inputBg:'#F6FEF9',label:'due today —',pill:'Due today'}:null
+          const inPipe=daysIn(rec);const quiet=!isClosed(s)&&!needsAttn(s)&&!hasUpcoming(s)
           return <div key={rec.id} style={{padding:'18px 20px',background:'#FFFFFF',border:`1.5px solid ${flag?flag.border:C.border}`,borderRadius:14,opacity:isClosed(s)?0.65:1}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:10}}>
               <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
@@ -8581,6 +8594,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </div>
               <button type="button" onClick={()=>openPursuitRecord(rec,'op')} style={{flexShrink:0,background:'transparent',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Open →</button>
             </div>
+            {!isClosed(s)&&(inPipe!=null||quiet)&&<div style={{fontSize:15,color:C.gray,margin:'-4px 0 10px'}}>{inPipe!=null?`In your pipeline ${inPipe} day${inPipe===1?'':'s'}`:''}{quiet?`${inPipe!=null?' · ':''}nothing scheduled yet`:''}</div>}
             <div style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'center'}}>
               <label style={{fontSize:15,color:C.gray}}>Where it stands{' '}
                 <select value={s.stage||''} onChange={e=>savePursuit(rec.id,{stage:e.target.value||null,...(e.target.value==='closed'?{closed_at:new Date().toISOString()}:{})})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}>
