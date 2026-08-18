@@ -98,15 +98,18 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     const title = String(rec.title || 'Opportunity').trim()
     const parts = []
     parts.push(`stage ${isClosed ? 'Closed' + (s.outcome ? ` (${String(s.outcome).replace(/_/g, ' ')})` : '') : (STAGE[s.stage] || 'not set')}`)
-    let overdue = false, hasUpcoming = false
+    let overdue = false, hasUpcoming = false, mtgUpcoming = false
     if (s.next_conversation_at) {
       const d = dayDiff(s.next_conversation_at)
       // A meeting that already happened is not a pending item (the app clears it
       // once its day passes), so it never drives attention — only surface a
       // meeting that is today or still upcoming. Past-due is the next-step date.
-      if (d === 0) { hasUpcoming = true; parts.push('a meeting is scheduled today') }
-      else if (d != null && d < 0) { hasUpcoming = true; parts.push(`next meeting in ${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}`) }
+      if (d === 0) { mtgUpcoming = true; hasUpcoming = true; parts.push('a meeting is scheduled today') }
+      else if (d != null && d < 0) { mtgUpcoming = true; hasUpcoming = true; parts.push(`next meeting in ${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}`) }
     }
+    // The ABSENCE of a scheduled meeting is itself analysis: no meeting on the
+    // calendar means no forward motion is booked. Surface it for active pursuits.
+    if (!isClosed && !mtgUpcoming) parts.push('no next meeting scheduled')
     if (s.next_move || s.next_step_at) {
       const d = s.next_step_at ? dayDiff(s.next_step_at) : null
       let desc = s.next_move ? `their next step: "${String(s.next_move).slice(0, 140)}"` : 'they set a next-step date'
@@ -128,8 +131,8 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     lines.push(`- ${title} — ${parts.join('; ')}`)
   }
   if (!lines.length) return ''
-  const rollup = `${active} active${attention ? `, ${attention} needing attention (an overdue step or a meeting already past)` : ''}${quiet ? `, ${quiet} going quiet (nothing scheduled ahead)` : ''}.`
-  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nWhen they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue or a meeting that has already passed, and one concrete next step they could take. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
+  const rollup = `${active} active${attention ? `, ${attention} needing attention (an overdue next step)` : ''}${quiet ? `, ${quiet} going quiet (nothing scheduled ahead)` : ''}.`
+  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nWhen they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An active opportunity marked "no next meeting scheduled" has no forward motion booked — treat that as a real signal, not a neutral fact: it usually means the next move is to get a conversation on the calendar. Past-due is the next-step date only; a meeting that already happened is not overdue. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
 }
 
 function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows) {

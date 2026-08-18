@@ -28,7 +28,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, allowGeneralMode = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, allowGeneralMode = false }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -58,12 +58,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // (onSaveNote -> setSavedPlaybooks); this component never writes.
   const [copiedId, setCopiedId] = useState(null)
   const [savedAs, setSavedAs] = useState(null)
+  // Holds the latest send() so the seed effect (declared above send) can fire it
+  // for seedAuto without a use-before-define; refreshed each render below.
+  const sendRef = useRef(null)
   // Coach doors (PR-3, item H): when opened with a seed (e.g. "Help me prep for
   // my interview with Renata…"), prefill the input once so the user can review
-  // and send. Consumed and cleared by the parent; never auto-sends.
+  // and send. seedAuto flips that to fire-immediately — the My Pipeline "read"
+  // buttons open the coach and want the question sent, not left in the box.
   useEffect(() => {
     if (seed && seed.trim()) {
-      setInput(seed)
+      if (seedAuto) sendRef.current(seed)
+      else setInput(seed)
       if (typeof onSeedConsumed === 'function') onSeedConsumed()
     }
   }, [seed])
@@ -177,9 +182,11 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     } catch { /* the conversation already continued; the tap is best-effort */ }
   }
 
-  const send = async () => {
-    if (!input.trim() || loading) return
-    const userMsg = { role: 'user', content: input.trim() }
+  const send = async (explicit) => {
+    const text = (typeof explicit === 'string' ? explicit : input).trim()
+    if (!text || loading) return
+    const userMsg = { role: 'user', content: text }
+    // (sendRef is refreshed just below so the seed effect can call the latest send.)
     const historyAtSend = messages
     setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])
     setInput('')
@@ -290,6 +297,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       setLoading(false)
     }
   }
+  sendRef.current = send
 
   // Per-reply rating. Optimistic; reverts on a non-200. Re-clicking the active
   // thumb sends rating:null (undo). A down-vote opens the note box with a stronger
