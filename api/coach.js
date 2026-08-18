@@ -98,12 +98,14 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     const title = String(rec.title || 'Opportunity').trim()
     const parts = []
     parts.push(`stage ${isClosed ? 'Closed' + (s.outcome ? ` (${String(s.outcome).replace(/_/g, ' ')})` : '') : (STAGE[s.stage] || 'not set')}`)
-    let overdue = false, meetingPast = false, hasUpcoming = false
+    let overdue = false, hasUpcoming = false
     if (s.next_conversation_at) {
       const d = dayDiff(s.next_conversation_at)
-      if (d != null && d > 0) { meetingPast = true; parts.push(`last scheduled meeting was ${d} day${d === 1 ? '' : 's'} ago`) }
-      else if (d === 0) { hasUpcoming = true; parts.push('a meeting is scheduled today') }
-      else if (d != null) { hasUpcoming = true; parts.push(`next meeting in ${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}`) }
+      // A meeting that already happened is not a pending item (the app clears it
+      // once its day passes), so it never drives attention — only surface a
+      // meeting that is today or still upcoming. Past-due is the next-step date.
+      if (d === 0) { hasUpcoming = true; parts.push('a meeting is scheduled today') }
+      else if (d != null && d < 0) { hasUpcoming = true; parts.push(`next meeting in ${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}`) }
     }
     if (s.next_move || s.next_step_at) {
       const d = s.next_step_at ? dayDiff(s.next_step_at) : null
@@ -120,7 +122,7 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     if (s.situation_note) parts.push(`assistant's note from their email/calendar: "${String(s.situation_note).slice(0, 280)}"`)
     if (!isClosed) {
       active++
-      if (overdue || meetingPast) attention++
+      if (overdue) attention++
       else if (!hasUpcoming) quiet++
     }
     lines.push(`- ${title} — ${parts.join('; ')}`)

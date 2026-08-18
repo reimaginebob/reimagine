@@ -5207,6 +5207,18 @@ export default function PivotEngine(){
     const ids=savedPlaybooks.filter(r=>r&&r.source==='door2').map(r=>r.id)
     try{fetch('/api/pursuit-status',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({recordIds:ids})}).catch(()=>{})}catch{}
   },[hasMySearch,step,savedPlaybooks,isDemo,isTest])
+  // "Next scheduled meeting" is a forward-looking, calendar-fed field. Once its
+  // day has come and gone it is no longer a NEXT meeting, so clear it on load —
+  // a meeting that already happened is not a pending item and must not read as
+  // overdue. Past-due status is driven by the My Next Steps date, never by a
+  // passed meeting. One-shot per session; fire-and-forget.
+  const pursuitMeetingClearedRef=useRef(false)
+  useEffect(()=>{
+    if(isDemo||isTest||!hasMySearch)return
+    if(pursuitMeetingClearedRef.current||!pursuitStatus.length)return
+    pursuitMeetingClearedRef.current=true
+    pursuitStatus.forEach(s=>{if(s&&s.next_conversation_at&&!(s.stage==='closed'||s.closed_at)&&pursuitStepDueState(s.next_conversation_at)==='overdue')savePursuit(s.record_id,{next_conversation_at:null})})
+  },[hasMySearch,pursuitStatus,isDemo,isTest])
   const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p}}catch{}return[{role:'assistant',content:"Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you."}]})
   const[showPulse,setShowPulse]=useState(false)
   // Coach doors (PR-3, item H): a one-shot seed that prefills the My Coach input
@@ -8562,8 +8574,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const stepMs=(s)=>s.next_step_at?new Date(s.next_step_at).getTime():null
     // Attention-first: overdue next step (you meant to act) > passed meeting >
     // soonest upcoming date (step or meeting) > has a next step > build gap > rest.
-    const priority=(rec)=>{const s=stat(rec);if(isClosed(s))return 600;const st=stepMs(s);const n=ncaMs(s);if(st!=null&&st<now)return 100;if(n!=null&&n<now)return 150;if([st,n].some(x=>x!=null&&x>=now))return 200;if(s.next_move&&String(s.next_move).trim())return 300;if((s.stage==='interviewing'||s.stage==='offer')&&builtCount(rec)<OP_COUNTED_KEYS.length)return 400;return 500}
-    const tieKey=(rec)=>{const s=stat(rec);const p=priority(rec);const st=stepMs(s);const n=ncaMs(s);if(p===100)return st;if(p===150)return n;if(p===200)return Math.min(...[st,n].filter(x=>x!=null&&x>=now));return -(new Date(s.updated_at||rec.updatedAt||0).getTime()||0)}
+    const priority=(rec)=>{const s=stat(rec);if(isClosed(s))return 600;const st=stepMs(s);const n=ncaMs(s);if(st!=null&&st<now)return 100;if([st,n].some(x=>x!=null&&x>=now))return 200;if(s.next_move&&String(s.next_move).trim())return 300;if((s.stage==='interviewing'||s.stage==='offer')&&builtCount(rec)<OP_COUNTED_KEYS.length)return 400;return 500}
+    const tieKey=(rec)=>{const s=stat(rec);const p=priority(rec);const st=stepMs(s);const n=ncaMs(s);if(p===100)return st;if(p===200)return Math.min(...[st,n].filter(x=>x!=null&&x>=now));return -(new Date(s.updated_at||rec.updatedAt||0).getTime()||0)}
     const sorted=[...ops].sort((a,b)=>{const pa=priority(a),pb=priority(b);if(pa!==pb)return pa-pb;return tieKey(a)-tieKey(b)})
     const dateInputVal=(iso)=>{try{return iso?new Date(iso).toISOString().slice(0,10):''}catch{return ''}}
     // Move 2 — deterministic "state of your pipeline" signals (no model, no
@@ -8571,7 +8583,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // meeting due today or later; needsAttn = an overdue step or a meeting that
     // has already passed; quiet = active but nothing scheduled ahead.
     const hasUpcoming=(s)=>['today','upcoming'].includes(pursuitStepDueState(s.next_step_at))||['today','upcoming'].includes(pursuitStepDueState(s.next_conversation_at))
-    const needsAttn=(s)=>pursuitStepDueState(s.next_step_at)==='overdue'||pursuitStepDueState(s.next_conversation_at)==='overdue'
+    const needsAttn=(s)=>pursuitStepDueState(s.next_step_at)==='overdue'
     const daysIn=(rec)=>{const t=rec.createdAt?Date.parse(rec.createdAt):NaN;return Number.isNaN(t)?null:Math.max(0,Math.round((now-t)/86400000))}
     const activeList=sorted.filter(r=>!isClosed(stat(r)))
     let attnN=0,quietN=0
