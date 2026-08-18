@@ -8565,7 +8565,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const priority=(rec)=>{const s=stat(rec);if(isClosed(s))return 600;const st=stepMs(s);const n=ncaMs(s);if(st!=null&&st<now)return 100;if(n!=null&&n<now)return 150;if([st,n].some(x=>x!=null&&x>=now))return 200;if(s.next_move&&String(s.next_move).trim())return 300;if((s.stage==='interviewing'||s.stage==='offer')&&builtCount(rec)<OP_COUNTED_KEYS.length)return 400;return 500}
     const tieKey=(rec)=>{const s=stat(rec);const p=priority(rec);const st=stepMs(s);const n=ncaMs(s);if(p===100)return st;if(p===150)return n;if(p===200)return Math.min(...[st,n].filter(x=>x!=null&&x>=now));return -(new Date(s.updated_at||rec.updatedAt||0).getTime()||0)}
     const sorted=[...ops].sort((a,b)=>{const pa=priority(a),pb=priority(b);if(pa!==pb)return pa-pb;return tieKey(a)-tieKey(b)})
-    const fmtDate=(iso)=>{try{return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'})}catch{return ''}}
     const dateInputVal=(iso)=>{try{return iso?new Date(iso).toISOString().slice(0,10):''}catch{return ''}}
     // Move 2 — deterministic "state of your pipeline" signals (no model, no
     // storage; pure time math on data we already hold). hasUpcoming = a step or
@@ -8580,6 +8579,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const rollup=activeList.length?`${activeList.length} in play${attnN?` · ${attnN} need${attnN===1?'s':''} attention`:''}${quietN?` · ${quietN} going quiet`:''}`:''
     return wrap(
       <div style={{display:'flex',flexDirection:'column',gap:16}}>
+        {!isDemo&&signedInUser&&<button type="button" data-print="hide" onClick={()=>openCoachWith(`Step back and look at my whole pipeline. How is my search going overall — where am I building momentum and where am I stalling — and where should I focus my energy right now?`)} style={{width:'100%',boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:C.gold,color:'#FFFFFF',border:'none',borderRadius:10,padding:'13px 16px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}><MessageCircle size={18}/>Get My Coach's read on your pipeline</button>}
         {rollup&&<div style={{fontSize:15,color:C.grayL,fontWeight:600,margin:'0 0 2px'}}>{rollup}</div>}
         {sorted.map(rec=>{
           const s=stat(rec);const title=rec.title||rec.company||'Opportunity';const built=builtCount(rec)
@@ -8615,7 +8615,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   <input type="date" value={dateInputVal(s.next_step_at)} onChange={e=>savePursuit(rec.id,{next_step_at:e.target.value?new Date(e.target.value).toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${flag?flag.border:C.border}`,borderRadius:7,color:flag?flag.text:'#1A2540',background:flag?flag.inputBg:'#FFF'}}/>
                 </label>
               </div>
-              {coachNudge(`I'm working the ${title} opportunity${s.stage?` — it's at the ${(PURSUIT_STAGE_LABELS[s.stage]||s.stage).toLowerCase()} stage`:''}${s.next_conversation_at?`, and my next meeting is ${fmtDate(s.next_conversation_at)}`:''}. What's a good next step to move it forward?`,"Not sure? Talk it through with your Coach",{margin:'8px 0 0'})}
             </div>
             <div style={{marginTop:10,display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
               <span style={{fontSize:15,color:C.grayL}}>{built} of {OP_COUNTED_KEYS.length} built:</span>
@@ -8623,7 +8622,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 ?<button key={k} type="button" onClick={()=>openPursuitSection(rec,k)} title={`Go to ${label}`} style={{fontSize:15,padding:'3px 8px',borderRadius:20,border:`1px solid ${C.gold}`,background:`${C.gold}22`,color:'#1A2540',cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
                 :<span key={k} title="Not built yet" style={{fontSize:15,padding:'3px 8px',borderRadius:20,border:`1px solid ${C.border}`,background:'transparent',color:C.grayL}}>{label}</span>})}
             </div>
-            <div style={{marginTop:12,display:'flex',justifyContent:'flex-end'}}>
+            <div style={{marginTop:12,display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+              {!isDemo&&signedInUser?<button type="button" data-print="hide" onClick={()=>openCoachWith(`Give me your read on where my ${title} opportunity stands right now — what's going well, what's stalled, and the single most important thing I should do next to move it forward.`)} style={{background:'none',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6,padding:0}}><MessageCircle size={15}/>My Coach's read on this opportunity</button>:<span/>}
               <button type="button" onClick={()=>removeOpportunity(rec)} style={{background:'none',border:'none',color:C.gray,fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>Remove from pipeline</button>
             </div>
           </div>
