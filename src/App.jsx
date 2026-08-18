@@ -3241,6 +3241,11 @@ function pursuitStepDueState(nextStepAtIso){
   if(!due)return null
   const d=new Date()
   const today=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  // Sanity window. A pursuit date more than ~1 year in the past or ~5 years out is
+  // not a real deadline — almost always a wrong-year value (a saved 2001 for 2026
+  // reads as "overdue by 9,131 days"). Flag it as a date to fix, never as a count.
+  const days=Math.round((Date.parse(due)-Date.parse(today))/86400000)
+  if(!Number.isNaN(days)&&(days<-366||days>1827))return 'invalid'
   if(due<today)return 'overdue'
   if(due===today)return 'today'
   return 'upcoming'
@@ -8678,7 +8683,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {sorted.map(rec=>{
           const s=stat(rec);const title=rec.title||rec.company||'Opportunity';const built=builtCount(rec)
           const dueState=isClosed(s)?null:pursuitStepDueState(s.next_step_at)
-          const flag=dueState==='overdue'?{text:'#B42318',border:'#FDA29B',bg:'#FEE4E2',inputBg:'#FFF7F6',label:'overdue —',pill:'Overdue'}:dueState==='today'?{text:'#067647',border:'#6CE9A6',bg:'#ECFDF3',inputBg:'#F6FEF9',label:'due today —',pill:'Due today'}:null
+          const flag=dueState==='overdue'?{text:'#B42318',border:'#FDA29B',bg:'#FEE4E2',inputBg:'#FFF7F6',label:'overdue —',pill:'Overdue'}:dueState==='today'?{text:'#067647',border:'#6CE9A6',bg:'#ECFDF3',inputBg:'#F6FEF9',label:'due today —',pill:'Due today'}:dueState==='invalid'?{text:'#B54708',border:'#FEC84B',bg:'#FEF0C7',inputBg:'#FFFAEB',label:'check date —',pill:'Check date'}:null
           const inPipe=daysIn(rec);const quiet=!isClosed(s)&&!needsAttn(s)&&!hasUpcoming(s)
           return <div key={rec.id} style={{padding:'18px 20px',background:'#FFFFFF',border:`1.5px solid ${flag?flag.border:C.border}`,borderRadius:14,opacity:isClosed(s)?0.65:1}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:10}}>

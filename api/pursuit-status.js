@@ -58,6 +58,11 @@ function parseTs(v) {
   if (v === undefined || v === null || v === '') return { ok: true, value: null }
   const d = new Date(v)
   if (Number.isNaN(d.getTime())) return { ok: false }
+  // Reject a wildly out-of-range date (almost always a wrong-year value, e.g. a
+  // 2001 written for 2026): more than ~1yr past or ~5yr out is not a real pursuit
+  // date. The date picker can't produce this; a bad connector/import value can.
+  const days = (d.getTime() - Date.now()) / 86400000
+  if (days < -400 || days > 1900) return { ok: false }
   return { ok: true, value: d.toISOString() }
 }
 
