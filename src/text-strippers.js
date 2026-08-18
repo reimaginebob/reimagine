@@ -37,6 +37,34 @@ function inflectionReplacer(stem, replByForm) {
   return [re, (_match, suf) => replByForm[suf.toLowerCase()] || replByForm.e || '']
 }
 
+// --- stripUnfoundedBiographicalOrigin --------------------------------------
+// Layer 1 origin guard (2026-08-11). When the person gave NO life-history
+// input, the Personal Brand analysis has no ground for a "where this comes
+// from" origin and has been observed to fabricate one -- an invented
+// childhood, immigrant-parents backstory, or a parent's layoff -- to explain a
+// real theme. This removes first-person biographical-origin sentences from
+// prose. It is applied ONLY when the life-history input is empty (the caller
+// gates it), so any family/upbringing/formative-hardship claim is by
+// definition unsupported. Narrow by design: it targets explicit personal or
+// family history assertions, not thematic prose. Returns { text, stripped } so
+// the caller can log precision. Idempotent.
+// Person-flexible: Personal Brand prose is second-person ("you grew up",
+// "your immigrant parents", "you watched your dad"), but the same passage can
+// arrive first-person from other surfaces, so match my/your/their/his/her.
+export const BIO_ORIGIN_RE = /\b(grew up|as a (?:child|kid|boy|girl|young (?:man|woman))|(?:in (?:my|your|their) )?childhood|when (?:i was|you were|they were|he was|she was) (?:a (?:child|kid|boy|girl)|young|little|growing up|sixteen|seventeen|eighteen|nineteen|twenty|\w+ years old)|(?:my|your|their|his|her) (?:father|mother|dad|mom|mum|parents?|family|upbringing)\b|immigrant (?:parents?|family|household)|raised (?:by|in|on)\b|watched (?:my|your|their|his|her) (?:dad|father|mom|mother|parents?)|comes from (?:my |your |their |a )?(?:childhood|upbringing|immigrant|working[- ]class))\b/i
+
+export function stripUnfoundedBiographicalOrigin(text) {
+  if (typeof text !== 'string' || !text) return { text, stripped: 0 }
+  const parts = text.split(/(?<=[.!?])\s+/)
+  let stripped = 0
+  const kept = parts.filter(s => {
+    if (BIO_ORIGIN_RE.test(s)) { stripped++; return false }
+    return true
+  })
+  if (!stripped) return { text, stripped: 0 }
+  return { text: kept.join(' ').replace(/\s{2,}/g, ' ').trim(), stripped }
+}
+
 export function stripCoachSpeak(text) {
   if (typeof text !== 'string' || !text) return text
   let out = text
