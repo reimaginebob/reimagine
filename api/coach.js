@@ -87,7 +87,13 @@ function buildPursuitStatusBlock(state, pursuitRows) {
   const todayStr = new Date().toISOString().slice(0, 10)
   const todayMs = Date.parse(todayStr)
   // Whole-day difference by calendar date; positive = in the past.
-  const dayDiff = (iso) => { if (!iso) return null; const t = Date.parse(String(iso).slice(0, 10)); return Number.isNaN(t) ? null : Math.round((todayMs - t) / DAY) }
+  // iso may be an ISO string (from the profile_state blob, e.g. createdAt) OR a
+  // Date object — timestamptz columns (next_step_at, next_conversation_at,
+  // updated_at) come back from the driver as Date. Normalize through Date -> ISO
+  // BEFORE slicing: String(dateObj).slice(0,10) yields "Tue Aug 18" (no year), and
+  // Date.parse of a yearless date defaults to 2001 in V8 — which read every
+  // pipeline date as ~9,131 days (25 years) overdue.
+  const dayDiff = (iso) => { if (!iso) return null; let s = ''; try { s = new Date(iso).toISOString().slice(0, 10) } catch { return null } const t = Date.parse(s); return Number.isNaN(t) ? null : Math.round((todayMs - t) / DAY) }
   const STAGE = { researching: 'Researching', applied: 'Applied', in_conversation: 'In conversation', interviewing: 'Interviewing', offer: 'Offer', closed: 'Closed' }
   const lines = []
   let active = 0, attention = 0, quiet = 0
@@ -99,12 +105,18 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     const parts = []
     parts.push(`stage ${isClosed ? 'Closed' + (s.outcome ? ` (${String(s.outcome).replace(/_/g, ' ')})` : '') : (STAGE[s.stage] || 'not set')}`)
     let overdue = false, hasUpcoming = false, mtgUpcoming = false
+    // A date more than ~1yr past or ~5yr out is not a real deadline — almost always
+    // a wrong-year value (a saved 2001 for 2026 = "overdue by 9,131 days"). Treat it
+    // as a bad value to fix, never as a day count.
+    const insane = (d) => d != null && (d > 366 || d < -1827)
+    const yearOf = (iso) => { try { return new Date(iso).toISOString().slice(0, 4) } catch { return '?' } }
     if (s.next_conversation_at) {
       const d = dayDiff(s.next_conversation_at)
       // A meeting that already happened is not a pending item (the app clears it
       // once its day passes), so it never drives attention — only surface a
       // meeting that is today or still upcoming. Past-due is the next-step date.
-      if (d === 0) { mtgUpcoming = true; hasUpcoming = true; parts.push('a meeting is scheduled today') }
+      if (insane(d)) { /* garbage meeting date — ignore, reads as no meeting */ }
+      else if (d === 0) { mtgUpcoming = true; hasUpcoming = true; parts.push('a meeting is scheduled today') }
       else if (d != null && d < 0) { mtgUpcoming = true; hasUpcoming = true; parts.push(`next meeting in ${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}`) }
     }
     // The ABSENCE of a scheduled meeting is itself analysis: no meeting on the
@@ -113,7 +125,8 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     if (s.next_move || s.next_step_at) {
       const d = s.next_step_at ? dayDiff(s.next_step_at) : null
       let desc = s.next_move ? `their next step: "${String(s.next_move).slice(0, 140)}"` : 'they set a next-step date'
-      if (d != null && d > 0) { overdue = true; desc += ` — OVERDUE by ${d} day${d === 1 ? '' : 's'}` }
+      if (insane(d)) { desc += ` — but its saved DATE looks wrong (year ${yearOf(s.next_step_at)}); treat the date as unset, do NOT report any day count, and suggest they reset it` }
+      else if (d != null && d > 0) { overdue = true; desc += ` — OVERDUE by ${d} day${d === 1 ? '' : 's'}` }
       else if (d === 0) { hasUpcoming = true; desc += ' — due today' }
       else if (d != null) { hasUpcoming = true; desc += ` — due in ${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}` }
       parts.push(desc)

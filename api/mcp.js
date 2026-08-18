@@ -226,6 +226,11 @@ function parseTs(v) {
   if (v === undefined || v === null || v === '') return null
   const d = new Date(v)
   if (Number.isNaN(d.getTime())) throw new Error('invalid timestamp')
+  // Reject a wildly out-of-range date (almost always a wrong-year value, e.g. a
+  // 2001 written for 2026): more than ~1yr past or ~5yr out is not a real pursuit
+  // date. Fail loudly so the connector corrects it rather than storing garbage.
+  const days = (d.getTime() - Date.now()) / 86400000
+  if (days < -400 || days > 1900) throw new Error('date out of range (check the year)')
   return d.toISOString()
 }
 
