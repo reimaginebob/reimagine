@@ -4507,7 +4507,7 @@ function SupportPanel({onClose}){
   </div>
 }
 
-function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false}){
+function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0}){
   const navRef=useRef(null)
   const[supportOpen,setSupportOpen]=useState(false)
   // App bumps openSupportReq to open the Support panel programmatically (the
@@ -4552,7 +4552,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       {id:'myCoach',label:NAV_LABELS.myCoach,Icon:MessageCircle},
       // My Pipeline is its own surface for flagged (my_search) users — the daily
       // action home, distinct from the exploration library (My Playbooks).
-      ...(hasPipeline?[{id:'pipeline',label:NAV_LABELS.pipeline,Icon:Target}]:[]),
+      ...(hasPipeline?[{id:'pipeline',label:NAV_LABELS.pipeline,Icon:Target,badge:pipelineOverdue}]:[]),
       {id:'mylib',label:NAV_LABELS.mylib,Icon:Briefcase},
       {id:'p3',label:NAV_LABELS.p3,Icon:Fingerprint},
       {id:'twoDoors',label:NAV_LABELS.twoDoors,Icon:Compass,children:[
@@ -4588,13 +4588,14 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
     const sectionHeaderStyle={fontSize:15,fontWeight:800,letterSpacing:'1.2px',textTransform:'uppercase',color:'#B0BEDE',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8}
     return <div ref={navRef} style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
       <div style={sectionHeaderStyle}>Your work</div>
-      {primaryItems.flatMap(({id,label,Icon,children})=>{
+      {primaryItems.flatMap(({id,label,Icon,children,badge})=>{
         const childActive=Array.isArray(children)&&children.some(c=>(c.activeSteps||[c.id]).includes(step))
         const active=step===id||childActive
         const rows=[
           <div key={id} data-step={id} onClick={()=>onNav(id)} style={primaryItemStyle(active)}>
             <Icon size={16}/>
             <span style={{flex:1}}>{label}</span>
+            {badge>0&&<span title={`${badge} past due`} style={{flexShrink:0,minWidth:20,textAlign:'center',fontSize:15,fontWeight:700,color:'#FFFFFF',background:'#D92D20',borderRadius:20,padding:'0 6px',lineHeight:'20px'}}>{badge}</span>}
           </div>,
         ]
         if(Array.isArray(children)){
@@ -5090,6 +5091,9 @@ export default function PivotEngine(){
   // just toggles the plumbing into view under the automagic pitch.
   const[connectorSetupOpen,setConnectorSetupOpen]=useState(false)
   const pursuitStatusFor=(recordId)=>pursuitStatus.find(r=>r&&r.record_id===recordId)||null
+  // Count of pipeline to-dos (My Next Steps dates) now past due — drives the
+  // card "Overdue" flag's sibling: a count badge on the My Pipeline sidebar item.
+  const pipelineOverdueCount=hasMySearch?savedPlaybooks.filter(r=>r&&r.source==='door2').filter(r=>{const s=pursuitStatusFor(r.id);return !!(s&&s.next_step_at&&new Date(s.next_step_at).getTime()<Date.now()&&!(s.stage==='closed'||s.closed_at))}).length:0
   // Optimistic status write. `patch` uses column names (stage, next_move,
   // next_conversation_at, closed_at, outcome); translated to the endpoint's body
   // keys. Fire-and-forget PUT — a failed write leaves the optimistic value, and
@@ -8486,10 +8490,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     return wrap(
       <div style={{display:'flex',flexDirection:'column',gap:16}}>
         {sorted.map(rec=>{
-          const s=stat(rec);const title=rec.title||rec.company||'Opportunity';const built=builtCount(rec)
-          return <div key={rec.id} style={{padding:'18px 20px',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:14,opacity:isClosed(s)?0.65:1}}>
-            <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:12,marginBottom:10}}>
-              <div style={{fontSize:18,fontWeight:700,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{title}</div>
+          const s=stat(rec);const title=rec.title||rec.company||'Opportunity';const built=builtCount(rec);const overdue=!isClosed(s)&&!!s.next_step_at&&new Date(s.next_step_at).getTime()<now
+          return <div key={rec.id} style={{padding:'18px 20px',background:'#FFFFFF',border:`1.5px solid ${overdue?'#FDA29B':C.border}`,borderRadius:14,opacity:isClosed(s)?0.65:1}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:10}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+                <div style={{fontSize:18,fontWeight:700,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{title}</div>
+                {overdue&&<span style={{flexShrink:0,fontSize:15,fontWeight:700,color:'#B42318',background:'#FEE4E2',border:'1px solid #FDA29B',borderRadius:20,padding:'1px 9px'}}>Overdue</span>}
+              </div>
               <button type="button" onClick={()=>openPursuitRecord(rec,'op')} style={{flexShrink:0,background:'transparent',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Open →</button>
             </div>
             <div style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'center'}}>
@@ -8507,8 +8514,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <div style={{fontSize:15,color:C.gray,marginBottom:6}}>My Next Steps</div>
               <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
                 <input defaultValue={s.next_move||''} placeholder="Your next step (e.g. send a follow-up note)" onBlur={e=>{const v=e.target.value.trim();if(v!==(s.next_move||''))savePursuit(rec.id,{next_move:v||null})}} style={{flex:1,minWidth:220,boxSizing:'border-box',fontSize:16,fontFamily:'inherit',padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
-                <label style={{fontSize:15,color:C.gray,whiteSpace:'nowrap'}}>by{' '}
-                  <input type="date" value={dateInputVal(s.next_step_at)} onChange={e=>savePursuit(rec.id,{next_step_at:e.target.value?new Date(e.target.value).toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
+                <label style={{fontSize:15,color:overdue?'#B42318':C.gray,whiteSpace:'nowrap',fontWeight:overdue?700:400}}>{overdue?'overdue —':'by'}{' '}
+                  <input type="date" value={dateInputVal(s.next_step_at)} onChange={e=>savePursuit(rec.id,{next_step_at:e.target.value?new Date(e.target.value).toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${overdue?'#FDA29B':C.border}`,borderRadius:7,color:overdue?'#B42318':'#1A2540',background:overdue?'#FFF7F6':'#FFF'}}/>
                 </label>
               </div>
               {coachNudge(`I'm working the ${title} opportunity${s.stage?` — it's at the ${(PURSUIT_STAGE_LABELS[s.stage]||s.stage).toLowerCase()} stage`:''}${s.next_conversation_at?`, and my next meeting is ${fmtDate(s.next_conversation_at)}`:''}. What's a good next step to move it forward?`,"Not sure? Talk it through with your Coach",{margin:'8px 0 0'})}
@@ -10770,7 +10777,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {isDemo&&<div style={{pointerEvents:'none'}}>
             <Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog}/>
           </div>}
-          {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>to==='op'?addNewOpportunity():nav(to)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasMySearch}/>}
+          {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>to==='op'?addNewOpportunity():nav(to)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasMySearch} pipelineOverdue={pipelineOverdueCount}/>}
         </div>
         <div ref={contentColumnRef} data-print="content" style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
