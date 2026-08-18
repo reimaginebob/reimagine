@@ -108,7 +108,7 @@ export default async function handler(req, res) {
       <li>See the opportunities in your pipeline and their status</li>
       <li>Update an opportunity's stage, dates, and next step</li>
     </ul>
-    <div style="background:#C8924A10;border-left:3px solid #C8924A;border-radius:8px;padding:12px 16px;font-size:15px;color:#2D3748;line-height:1.6;margin:14px 0 22px">It can only touch your pipeline — nothing else in your account. You can disconnect anytime from Reimagine.</div>
+    <div style="background:#C8924A10;border-left:3px solid #C8924A;border-radius:8px;padding:12px 16px;font-size:15px;color:#2D3748;line-height:1.6;margin:14px 0 22px">It can only touch your pipeline — nothing else in your account. To disconnect it later, email info@career.club and we will revoke it for you.</div>
     <form method="POST" action="${b}/api/oauth/authorize" style="display:flex;gap:12px">
       ${hiddenInputs}
       <button type="submit" name="decision" value="approve" style="flex:1;background:#C8924A;color:#fff;border:none;border-radius:8px;padding:12px 16px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">Allow</button>
