@@ -67,7 +67,69 @@ function isAllowedOrigin(rawOrigin) {
 // CAUSES in ANCHOR 1, so it knows whether it is filling a blank or replacing.
 const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passions & Causes live on a screen in Reimagine called "Values, Passions & Causes", and you can offer to write them there. When a conversation has settled into a statement of their values or their passions and causes that they seem happy with — their words and their conclusions, not a list you proposed and they have not responded to — end your reply with a final line exactly like VALUESCAPTURE: {"values":"Independence; Creative problem solving; Belonging","passions":"Youth mentoring; Faith-based service"} carrying whichever of the two you have. Include a key ONLY for a field the conversation actually settled; omit the other entirely. Write each as a short semicolon-separated list in their own words, not a paragraph and not your paraphrase. If ANCHOR 1 shows a field already has content, only emit it when they have clearly landed somewhere new — the tap replaces what is there. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
 
-function buildCoachProfileSlice(state, employmentStatus, featureFlags) {
+// MY PIPELINE — live status (Move 1, 2026-08-18). coach.js otherwise never sees
+// the pursuit_status table, so the coach knew the feature and the titles but not
+// where anything actually stood. This joins each active Opportunity Playbook to
+// its status row and hands the coach the computable half of "state of this
+// opportunity": stage, the next meeting, the user's own next step (and whether
+// it is overdue), how long it has sat untouched, and how long it has been in the
+// pipeline — plus a one-line rollup for "how is my search going?". Deliberately
+// NOT the email-derived half (employer silence, missed callbacks); that lives in
+// Gmail, which Reimagine cannot see, so the instruction forbids inferring it.
+function buildPursuitStatusBlock(state, pursuitRows) {
+  if (!Array.isArray(pursuitRows) || !pursuitRows.length) return ''
+  const saved = Array.isArray(state && state.savedPlaybooks)
+    ? state.savedPlaybooks.filter(r => r && r.source === 'door2' && !r.archivedAt)
+    : []
+  if (!saved.length) return ''
+  const byId = new Map(pursuitRows.map(r => [r.record_id, r]))
+  const DAY = 86400000
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayMs = Date.parse(todayStr)
+  // Whole-day difference by calendar date; positive = in the past.
+  const dayDiff = (iso) => { if (!iso) return null; const t = Date.parse(String(iso).slice(0, 10)); return Number.isNaN(t) ? null : Math.round((todayMs - t) / DAY) }
+  const STAGE = { researching: 'Researching', applied: 'Applied', in_conversation: 'In conversation', interviewing: 'Interviewing', offer: 'Offer', closed: 'Closed' }
+  const lines = []
+  let active = 0, attention = 0, quiet = 0
+  for (const rec of saved) {
+    const s = byId.get(rec.id)
+    if (!s) continue
+    const isClosed = s.stage === 'closed' || !!s.closed_at
+    const title = String(rec.title || 'Opportunity').trim()
+    const parts = []
+    parts.push(`stage ${isClosed ? 'Closed' + (s.outcome ? ` (${String(s.outcome).replace(/_/g, ' ')})` : '') : (STAGE[s.stage] || 'not set')}`)
+    let overdue = false, meetingPast = false, hasUpcoming = false
+    if (s.next_conversation_at) {
+      const d = dayDiff(s.next_conversation_at)
+      if (d != null && d > 0) { meetingPast = true; parts.push(`last scheduled meeting was ${d} day${d === 1 ? '' : 's'} ago`) }
+      else if (d === 0) { hasUpcoming = true; parts.push('a meeting is scheduled today') }
+      else if (d != null) { hasUpcoming = true; parts.push(`next meeting in ${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}`) }
+    }
+    if (s.next_move || s.next_step_at) {
+      const d = s.next_step_at ? dayDiff(s.next_step_at) : null
+      let desc = s.next_move ? `their next step: "${String(s.next_move).slice(0, 140)}"` : 'they set a next-step date'
+      if (d != null && d > 0) { overdue = true; desc += ` — OVERDUE by ${d} day${d === 1 ? '' : 's'}` }
+      else if (d === 0) { hasUpcoming = true; desc += ' — due today' }
+      else if (d != null) { hasUpcoming = true; desc += ` — due in ${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}` }
+      parts.push(desc)
+    }
+    const stale = dayDiff(s.updated_at)
+    if (!isClosed && stale != null && stale >= 14) parts.push(`no status change in ${stale} days`)
+    const inPipe = dayDiff(rec.createdAt)
+    if (inPipe != null && inPipe >= 1) parts.push(`in pipeline ${inPipe} day${inPipe === 1 ? '' : 's'}`)
+    if (!isClosed) {
+      active++
+      if (overdue || meetingPast) attention++
+      else if (!hasUpcoming) quiet++
+    }
+    lines.push(`- ${title} — ${parts.join('; ')}`)
+  }
+  if (!lines.length) return ''
+  const rollup = `${active} active${attention ? `, ${attention} needing attention (an overdue step or a meeting already past)` : ''}${quiet ? `, ${quiet} going quiet (nothing scheduled ahead)` : ''}.`
+  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nWhen they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue or a meeting that has already passed, and one concrete next step they could take. State only what this data shows. Do NOT infer that an employer went silent, missed a callback, or is slow — those events live in their email, which you cannot see; if they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
+}
+
+function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows) {
   if (!state || typeof state !== 'object') {
     // No profile at all — definitionally pre-Personal-Brand, so the sidebar is the
     // Orientation phase list. Carry the same navigation gate as the main path below
@@ -213,7 +275,8 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags) {
     ? '\n\nMY PIPELINE (this person has it; it is a limited pilot feature most users do not have — never imply it is generally available): My Pipeline is a live view of their saved Opportunity Playbooks, on its own My Pipeline screen (its own item in the sidebar, separate from My Playbooks). Each opportunity shows where it stands, when they will next talk, the next step they are taking, and which playbook cards are built, ordered so the one that needs attention comes first. They keep it current by editing a card, or by telling you when something changes — a date moved, an interview happened, an opportunity ended — and you offer to save it with one tap. They can also connect their own assistant (Gmail and Calendar) to keep it updated automatically if they want; Reimagine never reads their inbox. When they ask how to track their search or where an opportunity stands, this is the answer. Name it plainly in your normal voice; do not pitch it. There is no self-check slug for My Pipeline, so when it is the fitting answer, still help, and end with SELFCHECK: none. INTERVIEW TEAM CAPTURE: when this person names one or more specific people they will be interviewing with for one of their opportunities, end your reply with a final line exactly like INTERVIEWTEAM: {"opportunity":"<the opportunity title from their saved work>","people":[{"name":"Full Name","title":"their title if stated","role":"one of hiring_manager|skip_level|peer|cross_functional|recruiter_screen ONLY if they said how this person fits the loop, else omit role"}]} listing only the people they explicitly named. Map what they said to the role: "she is a peer" -> peer, "the hiring manager" -> hiring_manager, "recruiter screen" -> recruiter_screen, "her skip-level" -> skip_level, "a cross-functional partner" -> cross_functional. If they did not say how the person fits, omit role. The app turns that line into a one-tap "add to your Interview Team" offer and never shows it. Only emit it when they clearly named interviewers; otherwise omit it entirely.'
     : ''
 
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusNote}${VALUES_CAPTURE_NOTE}`
+  const myStatusData = hasMySearch ? buildPursuitStatusBlock(state, pursuitRows) : ''
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusNote}${myStatusData}${VALUES_CAPTURE_NOTE}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -542,7 +605,18 @@ export default async function handler(req, res) {
     console.error('coach profile read failed:', err)
     // Fall through with a null profile rather than failing the turn.
   }
-  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags)
+  // My Pipeline live status (Move 1) — only for flagged users, best-effort. The
+  // pursuit_status table is separate from profile_state, so it needs its own read
+  // to reach the coach; a failure here just drops the status block, never the turn.
+  let pursuitRows = []
+  if (!generalMode && Array.isArray(featureFlags) && featureFlags.includes('my_search')) {
+    try {
+      pursuitRows = await sql`SELECT record_id, stage, next_conversation_at, next_step_at, next_move, closed_at, outcome, updated_at FROM pursuit_status WHERE user_id = ${user.id}`
+    } catch (err) {
+      console.error('coach pursuit read failed:', err)
+    }
+  }
+  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows)
   // PR-B: if the conversation is about a specific saved playbook, expand its
   // anchor + intent-matched section into the (uncached) slice. Best-effort — a
   // malformed record must never break the turn. Skipped in general mode (no profile).
