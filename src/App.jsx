@@ -5226,7 +5226,11 @@ export default function PivotEngine(){
   // The embedded Chat consumes it once and clears it. Read-only: this only
   // prefills the input the user then sends; no write path to the coach.
   const[coachSeed,setCoachSeed]=useState('')
-  const openCoachWith=(seedText)=>{setCoachSeed(seedText||'');nav('myCoach')}
+  // autoSend: the seed is sent immediately instead of just prefilling the input.
+  // Used by the My Pipeline "read" buttons; every other caller leaves it false
+  // so the seed stays a reviewable draft.
+  const[coachSeedAuto,setCoachSeedAuto]=useState(false)
+  const openCoachWith=(seedText,autoSend=false)=>{setCoachSeed(seedText||'');setCoachSeedAuto(!!autoSend);nav('myCoach')}
   // Subtle inline "ask the coach" nudge woven along the journey — the free-text
   // orientation prompts, the direction choice, a section's empty state. A text
   // link, not a gold Btn, so it invites without competing with the step's
@@ -8591,7 +8595,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const rollup=activeList.length?`${activeList.length} in play${attnN?` · ${attnN} need${attnN===1?'s':''} attention`:''}${quietN?` · ${quietN} going quiet`:''}`:''
     return wrap(
       <div style={{display:'flex',flexDirection:'column',gap:16}}>
-        {!isDemo&&signedInUser&&<button type="button" data-print="hide" onClick={()=>openCoachWith(`Step back and look at my whole pipeline. How is my search going overall — where am I building momentum and where am I stalling — and where should I focus my energy right now?`)} style={{width:'100%',boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:C.gold,color:'#FFFFFF',border:'none',borderRadius:10,padding:'13px 16px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}><MessageCircle size={18}/>Get My Coach's read on your pipeline</button>}
+        {!isDemo&&signedInUser&&<button type="button" data-print="hide" onClick={()=>openCoachWith(`Step back and look at my whole pipeline. How is my search going overall — where am I building momentum and where am I stalling — and where should I focus my energy right now?`,true)} style={{width:'100%',boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:C.gold,color:'#FFFFFF',border:'none',borderRadius:10,padding:'13px 16px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}><MessageCircle size={18}/>Get My Coach's read on your pipeline</button>}
         {rollup&&<div style={{fontSize:15,color:C.grayL,fontWeight:600,margin:'0 0 2px'}}>{rollup}</div>}
         {sorted.map(rec=>{
           const s=stat(rec);const title=rec.title||rec.company||'Opportunity';const built=builtCount(rec)
@@ -8635,7 +8639,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 :<span key={k} title="Not built yet" style={{fontSize:15,padding:'3px 8px',borderRadius:20,border:`1px solid ${C.border}`,background:'transparent',color:C.grayL}}>{label}</span>})}
             </div>
             <div style={{marginTop:12,display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-              {!isDemo&&signedInUser?<button type="button" data-print="hide" onClick={()=>openCoachWith(`Give me your read on where my ${title} opportunity stands right now — what's going well, what's stalled, and the single most important thing I should do next to move it forward.`)} style={{background:'none',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6,padding:0}}><MessageCircle size={15}/>My Coach's read on this opportunity</button>:<span/>}
+              {!isDemo&&signedInUser?<button type="button" data-print="hide" onClick={()=>openCoachWith(`Give me your read on where my ${title} opportunity stands right now — what's going well, what's stalled, and the single most important thing I should do next to move it forward.`,true)} style={{background:'none',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6,padding:0}}><MessageCircle size={15}/>My Coach's read on this opportunity</button>:<span/>}
               <button type="button" onClick={()=>removeOpportunity(rec)} style={{background:'none',border:'none',color:C.gray,fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>Remove from pipeline</button>
             </div>
           </div>
@@ -9700,7 +9704,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your coach for the search, grounded in Making Your Own Weather and in what Reimagine knows about you. Ask anything: where to focus, how to tell your story, how to prepare for a conversation.</p>
         <div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} onSeedConsumed={()=>setCoachSeed('')} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>
     case'pipeline':return <div>
       {mySearchPanel()}
