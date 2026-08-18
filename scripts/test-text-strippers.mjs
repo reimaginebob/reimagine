@@ -11,7 +11,7 @@
 //   2. applyContaminationPlaceholders: each of the 5 placeholders applies
 //      on its target phrase; clean input passes through unchanged.
 
-import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers, stripComparativeStanding, stripIntensifiers, stripHireabilityVerdict, stripFrameworkNames, stripFabricatedMarketData, stripRoomsPlaceholder, ensureDistressSupport, detectResidualVoice, applyOutputStrippers } from '../src/text-strippers.mjs'
+import { stripCoachSpeak, applyContaminationPlaceholders, CONTAMINATION_PLACEHOLDERS, stripLogicFlipCadence, stripSincerityQualifiers, stripComparativeStanding, stripIntensifiers, stripHireabilityVerdict, stripFrameworkNames, stripFabricatedMarketData, stripRoomsPlaceholder, ensureDistressSupport, detectResidualVoice, applyOutputStrippers, stripUnfoundedBiographicalOrigin } from '../src/text-strippers.mjs'
 
 const AP19 = String.fromCharCode(0x2019) // typographic apostrophe the model emits
 
@@ -818,6 +818,33 @@ assertTruthy('detectResidualVoice: "according to your resume" + number NOT flagg
   !detectResidualVoice('According to your resume, you managed a $1.2M grant portfolio for 400 families.').citedStat)
 assertTruthy('detectResidualVoice: profile numbers without a source NOT flagged',
   !detectResidualVoice('You served 400 families and ran a 12-year career across three sectors.').citedStat)
+
+// ---- stripUnfoundedBiographicalOrigin (Layer 1 origin guard, 2026-08-11) ----
+// Personal Brand prose is second person; the guard runs only when the user
+// gave no life history, so an unfounded family/upbringing sentence is dropped.
+assertEq('stripUnfoundedBiographicalOrigin: drops immigrant-parents origin sentence (2nd person)',
+  stripUnfoundedBiographicalOrigin('You translate complexity into clarity. You grew up translating between your immigrant parents and the systems they navigated. That belief shapes every program you build.').text,
+  'You translate complexity into clarity. That belief shapes every program you build.')
+
+assertEq('stripUnfoundedBiographicalOrigin: drops parent-layoff origin sentence (2nd person)',
+  stripUnfoundedBiographicalOrigin('Every system you build starts from one question. You watched your dad navigate a layoff after twenty-two years. It shows up in how you lead.').text,
+  'Every system you build starts from one question. It shows up in how you lead.')
+
+assertEq('stripUnfoundedBiographicalOrigin: reports stripped count',
+  stripUnfoundedBiographicalOrigin('You grew up in a small town. Your father taught you discipline. You lead with clarity.').stripped,
+  2)
+
+assertEq('stripUnfoundedBiographicalOrigin: thematic prose with no biographical claim is unchanged',
+  stripUnfoundedBiographicalOrigin('You translate complexity into clarity and embed it into systems that outlast any single project.').text,
+  'You translate complexity into clarity and embed it into systems that outlast any single project.')
+
+assertEq('stripUnfoundedBiographicalOrigin: idempotent',
+  stripUnfoundedBiographicalOrigin(stripUnfoundedBiographicalOrigin('You lead teams. You grew up on a farm. You ship.').text).text,
+  stripUnfoundedBiographicalOrigin('You lead teams. You grew up on a farm. You ship.').text)
+
+assertEq('stripUnfoundedBiographicalOrigin: non-string returns stripped 0',
+  stripUnfoundedBiographicalOrigin(null).stripped,
+  0)
 
 // ---- Report ----------------------------------------------------------
 

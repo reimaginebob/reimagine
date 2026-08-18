@@ -11,7 +11,7 @@ import { findPersonalBrandTailBoundary, parsePersonalBrandTail, validatePersonal
 // their own .mjs module so they can be unit-tested without loading the
 // JSX-bearing App.jsx. stripCoachSpeak wraps the callClaude return chain;
 // applyContaminationPlaceholders runs in the voice gate recovery branch.
-import { stripCoachSpeak, applyContaminationPlaceholders, stripLogicFlipCadence, stripSincerityQualifiers, stripRoomsPlaceholder, stripMetaNarration, stripCoverLetterBoilerplate } from "./text-strippers.mjs"
+import { stripCoachSpeak, applyContaminationPlaceholders, stripLogicFlipCadence, stripSincerityQualifiers, stripRoomsPlaceholder, stripMetaNarration, stripCoverLetterBoilerplate, stripUnfoundedBiographicalOrigin } from "./text-strippers.mjs"
 import { asText, formatSkills, buildSynthesisContext, buildUserProfileBlock } from "./profile-block.mjs"
 import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 // Sign-in clobber guard: the rule deciding when the debounced autosave may PUT.
@@ -2304,6 +2304,8 @@ Say each thing once and build forward. Don't restate a point you've already made
 
 Ground everything in the materials. Don't invent specifics, and where something's missing, say so plainly instead of filling it with something generic.
 
+FORMATIVE ORIGIN, CONDITIONAL: the "where it comes from in their life" thread is drawn only from life-shaping or formative personal history the person actually provided (the LIFE-SHAPING EXPERIENCES below, or explicit personal history elsewhere in the materials). If that material is absent, do not construct a "where this comes from" origin, backstory, upbringing, or family narrative at all. Establish the brand from the work, values, and reputation evidence alone. Never manufacture a personal-history detail, a childhood, a family, a hardship, a layoff, immigrant parents, to explain a theme; a real theme does not need an invented origin. If a correction removes such a detail, do not replace it with a different one.
+
 Close by drawing the brand together and pointing them toward what the next steps open up.
 
 Sensitive specifics in the life experiences below (illness names, family members' names, addiction details, immigration status, divorce specifics) must never be named in the output unless the person surfaced that specific in a way that directly fits a career-brand context.
@@ -4014,18 +4016,82 @@ const LOADING_PREVIEWS = {
   ],
 }
 
+// Corrections are split by intent (Layer 3, 2026-08-11). A correction that
+// REJECTS content (flags it wrong, untrue, invented, not theirs, or asks to
+// remove it) must never be fed under "treat as ground-truth fact": users often
+// reject by quoting the offending line verbatim ("This part is wrong: <the
+// fabrication>. I am not X."), and feeding that quote as a fact re-injects the
+// very thing they are removing (observed: an "immigrant parents" correction
+// rode back in via the user's own correction text). Rejections go under a
+// forbidden framing that reads the quoted claim as the thing to exclude; only
+// purely additive corrections keep the ground-truth-fact framing. The test
+// errs toward the forbidden group: a factual "X not Y" correction lands there
+// too, where the framing still says "use what IS stated true," so no additive
+// fact is lost.
+const CORRECTION_REJECTION_RE = /\b(wrong|not\s+true|untrue|inaccurate|incorrect|false|isn'?t|is\s+not|are\s+not|aren'?t|was\s+not|wasn'?t|were\s+not|weren'?t|not\s+(?:mine|me|an?|from|theirs|true|correct|right)|didn'?t|did\s+not|do\s+not|don'?t|does\s+not|doesn'?t|never|remove|delete|take\s+(?:that|this|it)\s+out|i\s*am\s*not|i'?m\s*not|no\s+longer|fabricat|invent|made\s+up)\b/i
 const correctionsBlock = (corrections) => {
   if (!corrections || corrections.length === 0) return ''
   const recent = corrections.slice(-20)
-  const lines = recent.map(c => `- ${c.text}`).join('\n')
-  // Fed as ground-truth facts in the person's own terms, NOT meta-labeled as
-  // "corrections the user made" — that framing leaks into the prose (the model
-  // narrates the process). Presented this way the model absorbs them as input.
-  return `The person has told us the following directly about themselves and their work. Treat each as established, ground-truth fact and let it shape this read as naturally as any other evidence; where it differs from the resume or other source material, it takes precedence. When any of these says something is inaccurate, invented, exaggerated, or not theirs, that thing is forbidden: do not include it, reintroduce it, or rephrase it anywhere in your output, and do not infer it back from the resume on this or any future pass. Never mention these statements, quote them, or refer to a correction having been made — write as though the corrected facts were always true.
+  const rejections = [], affirmations = []
+  for (const c of recent) {
+    const t = (c && typeof c.text === 'string') ? c.text.trim() : ''
+    if (!t) continue
+    ;(CORRECTION_REJECTION_RE.test(t) ? rejections : affirmations).push(`- ${t}`)
+  }
+  let out = ''
+  // Affirmations: additive facts absorbed as input. Not meta-labeled as
+  // "corrections" — that framing leaks into the prose (the model narrates the
+  // process). Presented this way the model absorbs them as its own evidence.
+  if (affirmations.length) {
+    out += `The person has told us the following directly about themselves and their work. Treat each as established, ground-truth fact and let it shape this read as naturally as any other evidence; where it differs from the resume or other source material, it takes precedence. Never mention these statements, quote them, or refer to a correction having been made — write as though these facts were always true.
 
-${lines}
+${affirmations.join('\n')}
 
 `
+  }
+  // Rejections: read ONLY as corrections telling you what to exclude, never as
+  // facts to state. The claim quoted or described inside is forbidden.
+  if (rejections.length) {
+    out += `The person has flagged the following as inaccurate, invented, exaggerated, or not theirs. Read each ONLY as a correction telling you what to leave out, never as a fact to state. Any specific claim quoted or described inside these statements is forbidden: do not include it, reintroduce it, rephrase it, or infer it back from the resume anywhere in your output, on this or any future pass. Where a statement also says what IS true, use that. Never mention these statements, quote them, or refer to a correction having been made — write as though the corrected facts were always true.
+
+${rejections.join('\n')}
+
+`
+  }
+  return out
+}
+
+// Layer 1 origin guard (2026-08-11): when the person gave no life-history input
+// the "where this comes from" origin has no ground, and the analysis has been
+// seen to fabricate one (an invented backstory) to explain a real theme. Drops
+// the dedicated origin field, any life-shaping topAnchor, and biographical-
+// origin sentences from section bodies. Mutates the structured object in place
+// and returns the count dropped (for precision telemetry). The caller gates
+// this on empty life history, so a family/upbringing claim is by definition
+// unsupported. hero is left untouched: it is the load-bearing throughLine (a
+// theme, not an origin), and stripping it would break the
+// throughLine==hero==first-section-opening invariant.
+function suppressUnfoundedOrigin(structured) {
+  if (!structured || typeof structured !== 'object') return 0
+  let dropped = 0
+  if (Array.isArray(structured.topAnchors)) {
+    const before = structured.topAnchors.length
+    structured.topAnchors = structured.topAnchors.filter(a => !(a && a.type === 'life-shaping'))
+    dropped += before - structured.topAnchors.length
+  }
+  const pres = structured.presentation
+  if (pres && typeof pres === 'object') {
+    if (pres.origin) { pres.origin = null; dropped++ }
+    if (Array.isArray(pres.sections)) {
+      for (const s of pres.sections) {
+        if (s && typeof s.body === 'string') {
+          const r = stripUnfoundedBiographicalOrigin(s.body)
+          if (r.stripped) { s.body = r.text; dropped += r.stripped }
+        }
+      }
+    }
+  }
+  return dropped
 }
 
 // Foundation C-arch Phase D.1 + D.2a (2026-05-27, PR #90 + this PR).
@@ -5901,10 +5967,22 @@ export default function PivotEngine(){
     // Stage two emits the structured presentation ONLY (no duplicated prose),
     // so output is roughly half what it was and 6000 tokens is ample headroom.
     const raw=await callClaudeWithVoiceGate(()=>P.p3(analysis),{voiceMode:'prose-lite',maxTokens:6000},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
+    // Layer 1 origin guard (2026-08-11): with no life-history input the analysis
+    // has no ground for a formative origin and has been seen to fabricate one
+    // (an invented backstory, sometimes echoing an example) to explain a real
+    // theme. Suppress it deterministically on every build/regen so a correction
+    // cannot be replaced by a fresh confabulation. Gated on empty life history
+    // => high precision.
+    const hasLifeHistory=!!(pc.lifeEvents&&pc.lifeEvents.trim())
+    if(structuredP3&&!hasLifeHistory){
+      const dropped=suppressUnfoundedOrigin(structuredP3)
+      if(dropped)try{track('origin_guard_strip',{step:'p3',count:dropped})}catch{}
+    }
     // outputs.p3 (the flowing prose the text consumers read) is derived from the
     // presentation, not generated separately. Fall back to the stripped raw
     // output if the structured emit failed (presentation absent).
-    const brand=(structuredP3&&structuredP3.presentation)?presentationToProse(structuredP3.presentation):stripPersonalBrandTail(raw)
+    const brand0=(structuredP3&&structuredP3.presentation)?presentationToProse(structuredP3.presentation):stripPersonalBrandTail(raw)
+    const brand=hasLifeHistory?brand0:stripUnfoundedBiographicalOrigin(brand0).text
     return {brand,structured:structuredP3}
   }
   const generateChain=async()=>{
