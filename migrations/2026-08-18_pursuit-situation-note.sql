@@ -1,0 +1,12 @@
+-- My Pipeline "State of this opportunity" — Move 3 (2026-08-18).
+--
+-- The connector-written half of an opportunity's state: a short plain-language
+-- "state of play" the user's own Claude composes from what it reads in Gmail /
+-- Calendar during a sync (latest development, who they're waiting on and since
+-- when). Reimagine's server can never compute this — it never sees the inbox —
+-- so it can only arrive via update_pursuit (api/mcp.js). Nullable; absent for
+-- anyone not running the connector. Surfaced read-only on the pipeline card and
+-- relayed (never manufactured) by the Coach.
+--
+-- Forward-only, idempotent (re-run is a no-op). Auto-applies on prod deploy.
+ALTER TABLE pursuit_status ADD COLUMN IF NOT EXISTS situation_note text;

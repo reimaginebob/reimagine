@@ -117,6 +117,7 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     if (!isClosed && stale != null && stale >= 14) parts.push(`no status change in ${stale} days`)
     const inPipe = dayDiff(rec.createdAt)
     if (inPipe != null && inPipe >= 1) parts.push(`in pipeline ${inPipe} day${inPipe === 1 ? '' : 's'}`)
+    if (s.situation_note) parts.push(`assistant's note from their email/calendar: "${String(s.situation_note).slice(0, 280)}"`)
     if (!isClosed) {
       active++
       if (overdue || meetingPast) attention++
@@ -126,7 +127,7 @@ function buildPursuitStatusBlock(state, pursuitRows) {
   }
   if (!lines.length) return ''
   const rollup = `${active} active${attention ? `, ${attention} needing attention (an overdue step or a meeting already past)` : ''}${quiet ? `, ${quiet} going quiet (nothing scheduled ahead)` : ''}.`
-  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nWhen they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue or a meeting that has already passed, and one concrete next step they could take. State only what this data shows. Do NOT infer that an employer went silent, missed a callback, or is slow — those events live in their email, which you cannot see; if they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
+  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nWhen they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue or a meeting that has already passed, and one concrete next step they could take. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
 }
 
 function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows) {
@@ -611,7 +612,7 @@ export default async function handler(req, res) {
   let pursuitRows = []
   if (!generalMode && Array.isArray(featureFlags) && featureFlags.includes('my_search')) {
     try {
-      pursuitRows = await sql`SELECT record_id, stage, next_conversation_at, next_step_at, next_move, closed_at, outcome, updated_at FROM pursuit_status WHERE user_id = ${user.id}`
+      pursuitRows = await sql`SELECT record_id, stage, next_conversation_at, next_step_at, next_move, situation_note, closed_at, outcome, updated_at FROM pursuit_status WHERE user_id = ${user.id}`
     } catch (err) {
       console.error('coach pursuit read failed:', err)
     }

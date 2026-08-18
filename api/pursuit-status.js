@@ -147,7 +147,7 @@ export default async function handler(req, res) {
   try {
     if (method === 'GET') {
       const rows = await sql`
-        SELECT record_id, stage, next_conversation_at, next_step_at, next_move, closed_at, outcome, updated_at
+        SELECT record_id, stage, next_conversation_at, next_step_at, next_move, situation_note, closed_at, outcome, updated_at
         FROM pursuit_status
         WHERE user_id = ${user.id}::uuid
       `
