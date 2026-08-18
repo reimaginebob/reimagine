@@ -618,6 +618,14 @@ export default async function handler(req, res) {
     }
   }
   let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows)
+  // Anchor today's date. The coach is otherwise never told the current date, so
+  // any past/future or elapsed-time reasoning it does itself is unanchored
+  // guesswork — it once called an Aug 24 follow-up "overdue by nine weeks" on
+  // Aug 18. Lives in the uncached per-user block so it never forks the cached
+  // prefix; the precomputed figures in the pipeline block stay authoritative
+  // over the model's own arithmetic.
+  const nowLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+  profileBlock = `TODAY'S DATE: ${nowLabel} (UTC). Use this as the reference point for anything time-related — whether a date is in the past or still upcoming, how long something has been sitting, how overdue a step is. Where the pipeline status below already gives a computed figure ("due in 6 days", "OVERDUE by 12 days", "in pipeline 74 days"), trust that figure over any date math you do yourself, and never assert an elapsed time you cannot derive from the dates you were actually given.\n\n${profileBlock}`
   // PR-B: if the conversation is about a specific saved playbook, expand its
   // anchor + intent-matched section into the (uncached) slice. Best-effort — a
   // malformed record must never break the turn. Skipped in general mode (no profile).
