@@ -405,6 +405,11 @@ export default async function handler(req, res) {
     : reqBody.voiceMode === 'prose-lite' ? SYS_PROSE_NOGUIDE
     : reqBody.voiceMode === 'safety-only' ? SYS_SAFETY_ONLY
     : SYS_BASE
+  // Anchor today's date for date-sensitive generation (recency of company news in
+  // Go-to-Market, "current" phrasing, anything time-relative). A separate,
+  // uncached system block so the big cached SYS prefix stays stable across a day.
+  const _dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+  const dateBlock = { type: 'text', text: `TODAY'S DATE: ${_dateLabel} (UTC). When anything you write depends on the current date — how recent something is, what counts as current, any time-relative phrasing — use this as "now"; do not fall back to a training-cutoff date.` }
   let anthropicBody
 
   if (typeof reqBody.prompt === 'string') {
@@ -416,7 +421,7 @@ export default async function handler(req, res) {
       model: 'claude-sonnet-4-5',
       max_tokens: clampTokens(reqBody.maxTokens),
       temperature: reqBody.highTemp ? 1.0 : 0.7,
-      system: [{ type: 'text', text: sysText, cache_control: { type: 'ephemeral' } }],
+      system: [{ type: 'text', text: sysText, cache_control: { type: 'ephemeral' } }, dateBlock],
       messages: [{ role: 'user', content: reqBody.prompt }],
       ...(reqBody.webSearch ? { tools: [{ type: 'web_search_20250305', name: 'web_search' }] } : {})
     }
@@ -427,7 +432,7 @@ export default async function handler(req, res) {
       ...reqBody,
       model: 'claude-sonnet-4-5',
       max_tokens: clampTokens(reqBody.max_tokens),
-      system: [{ type: 'text', text: sysText, cache_control: { type: 'ephemeral' } }]
+      system: [{ type: 'text', text: sysText, cache_control: { type: 'ephemeral' } }, dateBlock]
     }
   } else {
     return res.status(400).json({ error: 'Invalid request format' })
