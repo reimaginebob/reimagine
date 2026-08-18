@@ -8595,6 +8595,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <button type="button" onClick={()=>openPursuitRecord(rec,'op')} style={{flexShrink:0,background:'transparent',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Open →</button>
             </div>
             {!isClosed(s)&&(inPipe!=null||quiet)&&<div style={{fontSize:15,color:C.gray,margin:'-4px 0 10px'}}>{inPipe!=null?`In your pipeline ${inPipe} day${inPipe===1?'':'s'}`:''}{quiet?`${inPipe!=null?' · ':''}nothing scheduled yet`:''}</div>}
+            {s.situation_note&&<div style={{fontSize:15,color:C.grayL,fontStyle:'italic',borderLeft:`3px solid ${C.gold}`,background:`${C.gold}0D`,borderRadius:6,padding:'8px 12px',margin:'0 0 12px',lineHeight:1.5}}>“{s.situation_note}” <span style={{fontStyle:'normal',color:C.gray}}>— from your assistant</span></div>}
             <div style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'center'}}>
               <label style={{fontSize:15,color:C.gray}}>Where it stands{' '}
                 <select value={s.stage||''} onChange={e=>savePursuit(rec.id,{stage:e.target.value||null,...(e.target.value==='closed'?{closed_at:new Date().toISOString()}:{})})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}>
