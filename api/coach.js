@@ -131,8 +131,11 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags) {
   if (Array.isArray(state.exploredRoleTitles) && state.exploredRoleTitles.length) {
     idx.push(`Roles they have explored: ${state.exploredRoleTitles.filter(Boolean).join('; ')}`)
   }
-  if (Array.isArray(state.savedPlaybooks) && state.savedPlaybooks.length) {
-    const titles = state.savedPlaybooks.map(r => r && r.title).filter(Boolean)
+  // Archived playbooks (archivedAt set) are excluded — the coach should speak to
+  // the user's live work, not what they removed to the 90-day archive.
+  const savedActive = Array.isArray(state.savedPlaybooks) ? state.savedPlaybooks.filter(r => r && !r.archivedAt) : []
+  if (savedActive.length) {
+    const titles = savedActive.map(r => r && r.title).filter(Boolean)
     if (titles.length) idx.push(`Saved playbooks: ${titles.join('; ')}`)
   }
   const indexBlock = `INDEX — OTHER SAVED WORK (titles only here. When the conversation is about a specific one, its key sections are pulled in under IN FOCUS below; the rest stay titles-only):\n${idx.length ? idx.map(s => `- ${s}`).join('\n') : '- nothing saved yet'}`
@@ -142,9 +145,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags) {
   // directly ("based on this offer, should I ask for more base?"). Without this the
   // coach has to tell the user to paste in what Reimagine already holds.
   let offerBlock = ''
-  const offerRecs = Array.isArray(state.savedPlaybooks)
-    ? state.savedPlaybooks.filter(r => r && r.offerStage && r.offerStage.offer && Object.values(r.offerStage.offer).some(v => v && String(v).trim()))
-    : []
+  const offerRecs = savedActive.filter(r => r && r.offerStage && r.offerStage.offer && Object.values(r.offerStage.offer).some(v => v && String(v).trim()))
   if (offerRecs.length) {
     const spaceKey = k => String(k).replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase())
     const fmt = obj => Object.entries(obj || {}).filter(([, v]) => v && String(v).trim()).map(([k, v]) => `${spaceKey(k)}: ${String(v).trim()}`).join('; ')
@@ -546,7 +547,8 @@ export default async function handler(req, res) {
   // anchor + intent-matched section into the (uncached) slice. Best-effort — a
   // malformed record must never break the turn. Skipped in general mode (no profile).
   if (!generalMode) try {
-    const inFocus = findInFocusRecord(profileState && profileState.savedPlaybooks, message, history)
+    const activeSaved = Array.isArray(profileState && profileState.savedPlaybooks) ? profileState.savedPlaybooks.filter(r => r && !r.archivedAt) : []
+    const inFocus = findInFocusRecord(activeSaved, message, history)
     if (inFocus) {
       const expansion = buildPlaybookExpansion(inFocus, detectIntent(message))
       if (expansion) profileBlock += '\n\n' + expansion

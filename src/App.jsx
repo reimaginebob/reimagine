@@ -4886,6 +4886,14 @@ export default function PivotEngine(){
   // currentRoleInSavedSet + currentSavedSlotIdRef track whether the live role
   // is a saved record so generate() can write through to that slot.
   const[savedPlaybooks,setSavedPlaybooks]=useState([])
+  // "Remove" archives a playbook (sets archivedAt) rather than deleting it — an
+  // opportunity that goes quiet can come back. Archived records are kept out of
+  // the active library/pipeline (below), auto-purged after 90 days, and can be
+  // restored or permanently deleted from the Archived section. activePlaybooks
+  // is what every display/count site renders; look-ups by id still use the full
+  // savedPlaybooks so status rows and restore paths survive.
+  const activePlaybooks=savedPlaybooks.filter(r=>r&&!r.archivedAt)
+  const archivedPlaybooks=savedPlaybooks.filter(r=>r&&r.archivedAt)
   const[currentRoleInSavedSet,setCurrentRoleInSavedSet]=useState(false)
   const[atCapModal,setAtCapModal]=useState(null)
   const[inputStaleModal,setInputStaleModal]=useState(null)
@@ -5093,7 +5101,7 @@ export default function PivotEngine(){
   const pursuitStatusFor=(recordId)=>pursuitStatus.find(r=>r&&r.record_id===recordId)||null
   // Count of pipeline to-dos (My Next Steps dates) now past due — drives the
   // card "Overdue" flag's sibling: a count badge on the My Pipeline sidebar item.
-  const pipelineOverdueCount=hasMySearch?savedPlaybooks.filter(r=>r&&r.source==='door2').filter(r=>{const s=pursuitStatusFor(r.id);return !!(s&&s.next_step_at&&new Date(s.next_step_at).getTime()<Date.now()&&!(s.stage==='closed'||s.closed_at))}).length:0
+  const pipelineOverdueCount=hasMySearch?activePlaybooks.filter(r=>r&&r.source==='door2').filter(r=>{const s=pursuitStatusFor(r.id);return !!(s&&s.next_step_at&&new Date(s.next_step_at).getTime()<Date.now()&&!(s.stage==='closed'||s.closed_at))}).length:0
   // Optimistic status write. `patch` uses column names (stage, next_move,
   // next_conversation_at, closed_at, outcome); translated to the endpoint's body
   // keys. Fire-and-forget PUT — a failed write leaves the optimistic value, and
@@ -5139,7 +5147,7 @@ export default function PivotEngine(){
       const people=data&&Array.isArray(data.people)?data.people:[]
       if(!people.length)return false
       const oppName=String(data.opportunity||'').trim().toLowerCase()
-      const match=oppName?savedPlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName)):null
+      const match=oppName?activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName)):null
       const tgt=coachSaveTarget()
       const targetId=(match&&match.id)||(tgt&&tgt.id)||null
       if(!targetId)return false
@@ -5421,7 +5429,7 @@ export default function PivotEngine(){
   // set was cleared (e.g., post-Start-Fresh, since deleteAccount blanket-clears
   // pe_* localStorage including pe_saved_v1, and pe_saved_v1 has no server
   // backup in v1; Neon sync is the durable fix and is deferred to V2).
-  const isReturningExplorer=done.includes('p3')&&(savedPlaybooks.length>0||exploredRoleTitles.length>0)
+  const isReturningExplorer=done.includes('p3')&&(activePlaybooks.length>0||exploredRoleTitles.length>0)
   const hydrationStable=localHydrationDone&&serverLoadDone
   // Landing logic for returning users. Waits for hydrationStable so the
   // decision is made against settled state (pe_v4 hydration AND /api/profile
@@ -5437,7 +5445,7 @@ export default function PivotEngine(){
     if(!done.includes('p3'))return
     landingDecidedRef.current=true
     if(isReturningExplorer){
-      track('landing_dashboard',{savedCount:savedPlaybooks.length,exploredCount:exploredRoleTitles.length})
+      track('landing_dashboard',{savedCount:activePlaybooks.length,exploredCount:exploredRoleTitles.length})
       // Flagged users land on their live pipeline (their daily home); everyone
       // else on the playbook library.
       setStep(hasMySearch?'pipeline':'mylib')
@@ -5465,6 +5473,7 @@ export default function PivotEngine(){
     if(!chosen)return
     const isDoor2=selectedLane==='specific'
     const matches=savedPlaybooks.filter(r=>{
+      if(r.archivedAt)return false
       if(r.title!==chosen)return false
       if(isDoor2)return r.source==='door2'
       return r.lane===selectedLane&&r.source==='door1'
@@ -5481,6 +5490,16 @@ export default function PivotEngine(){
     currentSavedSlotIdRef.current=match.id
     setCurrentRoleInSavedSet(true)
   },[hydrationStable,chosen,selectedLane,savedPlaybooks])
+  // Auto-purge archived playbooks past their 90-day grace window. Runs once
+  // after hydration settles (guarded so it never fires against pre-load empty
+  // state). The write persists through the normal autosave, so a purged record
+  // is gone for good — the 90 days is the user's window to restore it.
+  useEffect(()=>{
+    if(!hydrationStable)return
+    const cutoff=Date.now()-90*24*60*60*1000
+    const isStale=r=>r&&r.archivedAt&&new Date(r.archivedAt).getTime()<cutoff
+    setSavedPlaybooks(prev=>prev.some(isStale)?prev.filter(r=>!isStale(r)):prev)
+  },[hydrationStable])
   useEffect(()=>{
     const sectionName=NAV_LABELS[step]||'Output'
     const su=signedInUser||{}
@@ -6505,7 +6524,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // Silent: no toast, no nav. (Change B stops vectors 1/2 from nulling the
     // ref at all; this dedupe is the belt-and-suspenders backstop for 3/4 and
     // the hard-refresh re-link race.)
-    const existing=savedPlaybooks.find(r=>r.source==='door1'&&r.title===chosen&&r.lane===selectedLane)
+    const existing=activePlaybooks.find(r=>r.source==='door1'&&r.title===chosen&&r.lane===selectedLane)
     if(existing){
       currentSavedSlotIdRef.current=existing.id
       setCurrentRoleInSavedSet(true)
@@ -7845,7 +7864,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // headline pulls in per offer. Informational only — no ranking, no verdict.
   const offerComparable=(r)=>!!(r&&r.source==='door2'&&r.offerStage&&r.offerStage.offer&&String(r.offerStage.offer.base||'').trim())
   const offerCompareView=()=>{
-    const offers=savedPlaybooks.filter(offerComparable)
+    const offers=activePlaybooks.filter(offerComparable)
     const money=n=>n==null?null:'$'+Math.round(n).toLocaleString()
     const data=offers.map(r=>{
       const o=r.offerStage.offer||{}
@@ -8398,8 +8417,29 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // sync when the renamed record is the active one, or the sidebar shows stale.
     if(currentSavedSlotIdRef.current===id)setChosen(t)
   }
+  // "Remove" = archive, not delete. The record stays in savedPlaybooks with an
+  // archivedAt stamp so it can be restored; it just drops out of the active
+  // library/pipeline (via activePlaybooks) and its pursuit status is preserved.
   const deleteFromSavedSet=(id)=>{
-    setSavedPlaybooks(prev=>prev.filter(r=>r.id!==id))
+    const stamp=new Date().toISOString()
+    setSavedPlaybooks(prev=>prev.map(r=>r&&r.id===id?{...r,archivedAt:r.archivedAt||stamp}:r))
+    if(currentSavedSlotIdRef.current===id){
+      currentSavedSlotIdRef.current=null
+      setCurrentRoleInSavedSet(false)
+    }
+  }
+  // Bring an archived playbook back into the active set.
+  const restoreFromArchive=(id)=>{
+    setSavedPlaybooks(prev=>prev.map(r=>{
+      if(!r||r.id!==id)return r
+      const{archivedAt,...rest}=r
+      return rest
+    }))
+  }
+  // Permanent delete — the hard filter-out the old deleteFromSavedSet used to do.
+  // Reached only behind an explicit "delete permanently" confirm.
+  const purgeFromSavedSet=(id)=>{
+    setSavedPlaybooks(prev=>prev.filter(r=>r&&r.id!==id))
     if(currentSavedSlotIdRef.current===id){
       currentSavedSlotIdRef.current=null
       setCurrentRoleInSavedSet(false)
@@ -8461,9 +8501,32 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // scroll target). Delay lets the op page render + the step-change scroll reset
   // fire first, so this scroll wins.
   const openPursuitSection=(rec,key)=>{track('mysearch_section_jump',{recordId:rec.id,section:key});restoreFromSavedSlot(rec);setTimeout(()=>scrollToOutput(key),250)}
-  const removeOpportunity=(rec)=>{if(window.confirm(`Remove "${rec.title||'this opportunity'}" from your pipeline? This deletes its playbook.`))deleteFromSavedSet(rec.id)}
+  const removeOpportunity=(rec)=>{if(window.confirm(`Remove "${rec.title||'this opportunity'}" from your pipeline? It moves to Archived on My Playbooks — restore it any time within 90 days.`))deleteFromSavedSet(rec.id)}
+  // Archived graveyard for both Focus and Opportunity playbooks. "Remove"
+  // archives (90-day grace); this section is where a user restores one or ends
+  // it early. Renders nothing when empty.
+  const archivedSection=()=>{
+    if(!archivedPlaybooks.length)return null
+    const daysLeft=(iso)=>{const ms=new Date(iso).getTime()+90*24*60*60*1000-Date.now();return Math.max(0,Math.ceil(ms/(24*60*60*1000)))}
+    return <div style={{maxWidth:860,margin:'28px 0 24px'}}>
+      <h2 style={{...S.title,fontSize:22,marginBottom:6}}>Archived</h2>
+      <CoachingCallout>Removed playbooks wait here for 90 days before they're deleted for good. Restore one any time, or delete it now if you're sure.</CoachingCallout>
+      <div style={{border:`1px solid ${C.border}`,borderRadius:10,overflow:'hidden'}}>
+        {archivedPlaybooks.map(rec=><div key={rec.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'14px 16px',borderBottom:`1px solid ${C.border}`}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:16,fontWeight:600,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{rec.title||'Untitled'}</div>
+            <div style={{fontSize:15,color:C.gray,marginTop:2}}>{rec.source==='door2'?'Opportunity':laneLabelFor(rec.lane)} · {daysLeft(rec.archivedAt)} days left</div>
+          </div>
+          <div style={{display:'flex',gap:8,flexShrink:0}}>
+            <Btn small secondary onClick={()=>restoreFromArchive(rec.id)}>Restore</Btn>
+            <Btn small secondary onClick={()=>{if(window.confirm(`Permanently delete "${rec.title||'this playbook'}"? This erases the entire playbook and everything in it. It cannot be undone.`))purgeFromSavedSet(rec.id)}}>Delete permanently</Btn>
+          </div>
+        </div>)}
+      </div>
+    </div>
+  }
   const mySearchPanel=()=>{
-    const ops=savedPlaybooks.filter(r=>r&&r.source==='door2')
+    const ops=activePlaybooks.filter(r=>r&&r.source==='door2')
     const wrap=(inner)=><div style={{maxWidth:900,margin:'0 0 32px'}}>
       <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',margin:'0 0 6px'}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:0}}>My Pipeline</h2>
@@ -8640,11 +8703,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // BEFORE the at-cap gate so a re-upload of an existing JD re-links silently —
     // no new record, and no at-cap friction even when the saved set is full.
     const trimmedJd=(jdText||'').trim()
-    const existingDup=trimmedJd?savedPlaybooks.find(r=>r.source==='door2'&&(r.jd||'').trim()===trimmedJd):null
+    const existingDup=trimmedJd?activePlaybooks.find(r=>r.source==='door2'&&(r.jd||'').trim()===trimmedJd):null
     if(existingDup){
       setCurrentRoleInSavedSet(true)
       currentSavedSlotIdRef.current=existingDup.id
-    }else if(savedPlaybooks.length>=getSavedCap()){
+    }else if(activePlaybooks.length>=getSavedCap()){
       setCurrentRoleInSavedSet(false)
       currentSavedSlotIdRef.current=null
       setAtCapModal({source:'door2',proceed:createRecord})
@@ -9598,15 +9661,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {connectAssistantPanel()}
     </div>
     case'mylib':{
-      const _comparable=savedPlaybooks.filter(offerComparable)
+      const _comparable=activePlaybooks.filter(offerComparable)
       if(showOfferCompare&&_comparable.length>=2)return offerCompareView()
       return <div>
       <div style={{marginBottom:8}}>
         <h1 style={{...S.title,marginBottom:6}}>My Playbooks</h1>
-        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {savedPlaybooks.length} of {getSavedCap()} saved.</p>
+        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {activePlaybooks.length} of {getSavedCap()} saved.</p>
       </div>
       {_comparable.length>=2&&<div style={{margin:'0 0 16px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({_comparable.length}) <ChevronRight size={14}/></Btn></div>}
-      <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasMySearch}/>
+      <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasMySearch}/>
+      {archivedSection()}
     </div>
     }
     case'income':{
@@ -9664,8 +9728,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 12px'}}>Your brand, your bridge story, your target companies, your resume, your LinkedIn, your playbook. That is a substantial amount of career-strategy work, and it is all rooted in who you actually are.</p>
         <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:0}}>What you've built here belongs to you. None of it depends on the company you came from or the role you're leaving. The brand, the bridge story, the playbook all go with you into whatever comes next.</p>
       </div>}
-      {!isDemo&&savedPlaybooks.length>0&&<div style={{maxWidth:860,margin:'0 0 24px'}}>
-        <SavedPlaybooks savedPlaybooks={savedPlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title={null}/>
+      {!isDemo&&activePlaybooks.length>0&&<div style={{maxWidth:860,margin:'0 0 24px'}}>
+        <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title={null}/>
       </div>}
       {!isDemo&&<>
         <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10,margin:'0 0 16px'}}>
@@ -10614,7 +10678,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>You're at {getSavedCap()} saved playbooks</h2>
         <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:18}}>{atCapModal.source==='door2'?'To save this opportunity to Your playbooks, remove one of these.':'To save this exploration to Your playbooks, remove one of these.'}</p>
         <div style={{overflowY:'auto',marginBottom:18,border:`1px solid ${C.border}`,borderRadius:10}}>
-          {savedPlaybooks.map(rec=><div key={rec.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'12px 16px',borderBottom:`1px solid ${C.border}`}}>
+          {activePlaybooks.map(rec=><div key={rec.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'12px 16px',borderBottom:`1px solid ${C.border}`}}>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:16,fontWeight:600,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{rec.title}</div>
               <div style={{fontSize:15,color:C.gray,marginTop:2}}>{rec.source==='door2'?'Opportunity':laneLabelFor(rec.lane)}</div>
