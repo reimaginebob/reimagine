@@ -92,6 +92,36 @@ export default function AdminDashboard() {
     } catch { setSuspendMsg("Network error. Try again.") }
     finally { setSuspendBusy(false) }
   }
+  // My Pipeline (my_search) beta access control. Test users are already
+  // registered, so this is a direct grant/revoke by email.
+  const [pipelineEmail, setPipelineEmail] = useState("")
+  const [pipelineBusy, setPipelineBusy] = useState(false)
+  const [pipelineMsg, setPipelineMsg] = useState("")
+  const [testers, setTesters] = useState([])
+  const fetchTesters = useCallback(async (tok) => {
+    try {
+      const res = await fetch("/api/admin/pipeline-access", { headers: { Authorization: `Bearer ${tok}` } })
+      if (res.ok) { const d = await res.json(); setTesters(Array.isArray(d.testers) ? d.testers : []) }
+    } catch { /* leave the list as-is */ }
+  }, [])
+  const doPipeline = async (action) => {
+    const email = pipelineEmail.trim()
+    if (!email) { setPipelineMsg("Enter an email address first."); return }
+    setPipelineBusy(true); setPipelineMsg("")
+    try {
+      const res = await fetch("/api/admin/pipeline-access", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ email, action }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setPipelineMsg(data.error || `Failed (HTTP ${res.status})`); return }
+      setPipelineMsg(data.enabled ? `Granted My Pipeline to ${data.email}.` : `Revoked My Pipeline from ${data.email}.`)
+      setPipelineEmail("")
+      fetchTesters(token)
+    } catch { setPipelineMsg("Network error. Try again.") }
+    finally { setPipelineBusy(false) }
+  }
   const [tab, setTab] = useState("analytics") // "analytics" | "feedback"
 
   // Single call doubles as the auth probe and the data fetch: a 200 means the
@@ -128,6 +158,7 @@ export default function AdminDashboard() {
   // On mount, if a token is present, attempt the fetch. Intentionally runs
   // once; range/token changes are driven explicitly via pickRange/refresh.
   useEffect(() => { if (token) fetchData(token, range) }, [])
+  useEffect(() => { if (authed && token) fetchTesters(token) }, [authed, token, fetchTesters])
 
   const pickRange = (r) => {
     setRange(r)
@@ -267,6 +298,26 @@ export default function AdminDashboard() {
                 style={{ background: "transparent", color: "#1A2540", border: "1px solid #E2E5EA", borderRadius: 8, padding: "9px 18px", fontSize: 15, cursor: suspendBusy ? "default" : "pointer", opacity: suspendBusy ? 0.6 : 1, fontFamily: "inherit" }}>Unpause</button>
             </div>
             {suspendMsg && <div style={{ fontSize: 14, color: "#1A2540", marginTop: 10 }}>{suspendMsg}</div>}
+          </Panel>
+
+          {/* My Pipeline beta access: grant / revoke the my_search flag by email */}
+          <Panel title={`My Pipeline access (${testers.length})`}>
+            <div style={{ fontSize: 14, color: "#4A5568", lineHeight: 1.5, marginBottom: 10 }}>
+              Grant or revoke the My Pipeline beta for a registered user by email. Takes effect on their next page load.
+            </div>
+            <input value={pipelineEmail} onChange={(e) => setPipelineEmail(e.target.value)} placeholder="user@example.com"
+              style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", fontSize: 15, border: "1px solid #E2E5EA", borderRadius: 8, marginBottom: 10, fontFamily: "inherit" }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => doPipeline("grant")} disabled={pipelineBusy}
+                style={{ background: "#C8924A", color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 15, fontWeight: 600, cursor: pipelineBusy ? "default" : "pointer", opacity: pipelineBusy ? 0.6 : 1, fontFamily: "inherit" }}>Grant</button>
+              <button onClick={() => doPipeline("revoke")} disabled={pipelineBusy}
+                style={{ background: "transparent", color: "#1A2540", border: "1px solid #E2E5EA", borderRadius: 8, padding: "9px 18px", fontSize: 15, cursor: pipelineBusy ? "default" : "pointer", opacity: pipelineBusy ? 0.6 : 1, fontFamily: "inherit" }}>Revoke</button>
+            </div>
+            {pipelineMsg && <div style={{ fontSize: 14, color: "#1A2540", marginTop: 10 }}>{pipelineMsg}</div>}
+            {testers.length > 0 && <div style={{ marginTop: 12, fontSize: 14, color: "#4A5568" }}>
+              <div style={{ fontWeight: 600, color: "#1A2540", marginBottom: 4 }}>Current testers</div>
+              {testers.map((e) => <div key={e} style={{ padding: "2px 0" }}>{e}</div>)}
+            </div>}
           </Panel>
 
           {/* Paused accounts: the current hold list, with a per-row Unpause */}
