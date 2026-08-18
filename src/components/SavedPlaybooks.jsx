@@ -138,7 +138,7 @@ function PlaybookCard({ rec, onRestore, onDelete, onRename, onDownload, C }) {
   }
   const cancelEdit = () => { setDraft(rec.title); setEditing(false) }
   const handleDelete = () => {
-    if (typeof window !== 'undefined' && window.confirm(`Remove "${rec.title}" from Your playbooks?`)) {
+    if (typeof window !== 'undefined' && window.confirm(`Remove "${rec.title}"? It moves to Archived — you can restore it any time within 90 days.`)) {
       onDelete(rec.id)
     }
   }
