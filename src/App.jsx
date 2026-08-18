@@ -3226,6 +3226,23 @@ const PURSUIT_STAGES=[
   {value:'closed',label:'Closed'},
 ]
 const PURSUIT_STAGE_LABELS=Object.fromEntries(PURSUIT_STAGES.map(s=>[s.value,s.label]))
+// Calendar-day state for a pursuit's "My Next Step" date. The date input stores
+// midnight-UTC of the day the user picked, so the UTC date slice is exactly that
+// calendar day; we compare it against today's LOCAL calendar day. A step due
+// today is on-deck ('today', shown green) all day long, not overdue — the user
+// gets the whole day to do it. 'overdue' is strictly before today. Returns null
+// when there's no date.
+function pursuitStepDueState(nextStepAtIso){
+  if(!nextStepAtIso)return null
+  let due=''
+  try{due=new Date(nextStepAtIso).toISOString().slice(0,10)}catch{return null}
+  if(!due)return null
+  const d=new Date()
+  const today=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  if(due<today)return 'overdue'
+  if(due===today)return 'today'
+  return 'upcoming'
+}
 const PURSUIT_OUTCOME_LABELS={accepted:'Accepted',declined:'Declined',not_selected:'Not selected',withdrew:'Withdrew',no_response:'No response'}
 const PURSUIT_STAGE_QUICK_REPLIES=PURSUIT_STAGES.map(s=>({label:s.label,value:s.value,followUp:s.value==='closed'?'Saved — I\'ve marked it closed on My Pipeline.':s.value==='interviewing'?'Saved — it\'ll show up first if a conversation is coming.':'Saved to My Pipeline.'}))
 const pursuitOfferMessage=(title)=>({role:'assistant',content:`Sounds like something moved on ${title||'this opportunity'} — where does it stand now? I\'ll save it to My Pipeline so it carries across every session.`,checkinKey:'pursuit-stage',quickReplies:PURSUIT_STAGE_QUICK_REPLIES})
@@ -5101,7 +5118,7 @@ export default function PivotEngine(){
   const pursuitStatusFor=(recordId)=>pursuitStatus.find(r=>r&&r.record_id===recordId)||null
   // Count of pipeline to-dos (My Next Steps dates) now past due — drives the
   // card "Overdue" flag's sibling: a count badge on the My Pipeline sidebar item.
-  const pipelineOverdueCount=hasMySearch?activePlaybooks.filter(r=>r&&r.source==='door2').filter(r=>{const s=pursuitStatusFor(r.id);return !!(s&&s.next_step_at&&new Date(s.next_step_at).getTime()<Date.now()&&!(s.stage==='closed'||s.closed_at))}).length:0
+  const pipelineOverdueCount=hasMySearch?activePlaybooks.filter(r=>r&&r.source==='door2').filter(r=>{const s=pursuitStatusFor(r.id);return !!(s&&!(s.stage==='closed'||s.closed_at)&&pursuitStepDueState(s.next_step_at)==='overdue')}).length:0
   // Optimistic status write. `patch` uses column names (stage, next_move,
   // next_conversation_at, closed_at, outcome); translated to the endpoint's body
   // keys. Fire-and-forget PUT — a failed write leaves the optimistic value, and
@@ -8501,7 +8518,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // scroll target). Delay lets the op page render + the step-change scroll reset
   // fire first, so this scroll wins.
   const openPursuitSection=(rec,key)=>{track('mysearch_section_jump',{recordId:rec.id,section:key});restoreFromSavedSlot(rec);setTimeout(()=>scrollToOutput(key),250)}
-  const removeOpportunity=(rec)=>{if(window.confirm(`Remove "${rec.title||'this opportunity'}" from your pipeline? It moves to Archived on My Playbooks — restore it any time within 90 days.`))deleteFromSavedSet(rec.id)}
+  const removeOpportunity=(rec)=>{if(window.confirm(`Remove "${rec.title||'this opportunity'}" from your pipeline?\n\nIt won't be deleted — it moves to the Archived section at the bottom of My Playbooks, where you can restore it any time in the next 90 days.`))deleteFromSavedSet(rec.id)}
   // Archived graveyard for both Focus and Opportunity playbooks. "Remove"
   // archives (90-day grace); this section is where a user restores one or ends
   // it early. Renders nothing when empty.
@@ -8553,12 +8570,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     return wrap(
       <div style={{display:'flex',flexDirection:'column',gap:16}}>
         {sorted.map(rec=>{
-          const s=stat(rec);const title=rec.title||rec.company||'Opportunity';const built=builtCount(rec);const overdue=!isClosed(s)&&!!s.next_step_at&&new Date(s.next_step_at).getTime()<now
-          return <div key={rec.id} style={{padding:'18px 20px',background:'#FFFFFF',border:`1.5px solid ${overdue?'#FDA29B':C.border}`,borderRadius:14,opacity:isClosed(s)?0.65:1}}>
+          const s=stat(rec);const title=rec.title||rec.company||'Opportunity';const built=builtCount(rec)
+          const dueState=isClosed(s)?null:pursuitStepDueState(s.next_step_at)
+          const flag=dueState==='overdue'?{text:'#B42318',border:'#FDA29B',bg:'#FEE4E2',inputBg:'#FFF7F6',label:'overdue —',pill:'Overdue'}:dueState==='today'?{text:'#067647',border:'#6CE9A6',bg:'#ECFDF3',inputBg:'#F6FEF9',label:'due today —',pill:'Due today'}:null
+          return <div key={rec.id} style={{padding:'18px 20px',background:'#FFFFFF',border:`1.5px solid ${flag?flag.border:C.border}`,borderRadius:14,opacity:isClosed(s)?0.65:1}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:10}}>
               <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
                 <div style={{fontSize:18,fontWeight:700,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{title}</div>
-                {overdue&&<span style={{flexShrink:0,fontSize:15,fontWeight:700,color:'#B42318',background:'#FEE4E2',border:'1px solid #FDA29B',borderRadius:20,padding:'1px 9px'}}>Overdue</span>}
+                {flag&&<span style={{flexShrink:0,fontSize:15,fontWeight:700,color:flag.text,background:flag.bg,border:`1px solid ${flag.border}`,borderRadius:20,padding:'1px 9px'}}>{flag.pill}</span>}
               </div>
               <button type="button" onClick={()=>openPursuitRecord(rec,'op')} style={{flexShrink:0,background:'transparent',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Open →</button>
             </div>
@@ -8577,8 +8596,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <div style={{fontSize:15,color:C.gray,marginBottom:6}}>My Next Steps</div>
               <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
                 <input defaultValue={s.next_move||''} placeholder="Your next step (e.g. send a follow-up note)" onBlur={e=>{const v=e.target.value.trim();if(v!==(s.next_move||''))savePursuit(rec.id,{next_move:v||null})}} style={{flex:1,minWidth:220,boxSizing:'border-box',fontSize:16,fontFamily:'inherit',padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
-                <label style={{fontSize:15,color:overdue?'#B42318':C.gray,whiteSpace:'nowrap',fontWeight:overdue?700:400}}>{overdue?'overdue —':'by'}{' '}
-                  <input type="date" value={dateInputVal(s.next_step_at)} onChange={e=>savePursuit(rec.id,{next_step_at:e.target.value?new Date(e.target.value).toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${overdue?'#FDA29B':C.border}`,borderRadius:7,color:overdue?'#B42318':'#1A2540',background:overdue?'#FFF7F6':'#FFF'}}/>
+                <label style={{fontSize:15,color:flag?flag.text:C.gray,whiteSpace:'nowrap',fontWeight:flag?700:400}}>{flag?flag.label:'by'}{' '}
+                  <input type="date" value={dateInputVal(s.next_step_at)} onChange={e=>savePursuit(rec.id,{next_step_at:e.target.value?new Date(e.target.value).toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${flag?flag.border:C.border}`,borderRadius:7,color:flag?flag.text:'#1A2540',background:flag?flag.inputBg:'#FFF'}}/>
                 </label>
               </div>
               {coachNudge(`I'm working the ${title} opportunity${s.stage?` — it's at the ${(PURSUIT_STAGE_LABELS[s.stage]||s.stage).toLowerCase()} stage`:''}${s.next_conversation_at?`, and my next meeting is ${fmtDate(s.next_conversation_at)}`:''}. What's a good next step to move it forward?`,"Not sure? Talk it through with your Coach",{margin:'8px 0 0'})}
