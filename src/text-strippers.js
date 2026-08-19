@@ -813,13 +813,23 @@ export function ensureDistressSupport(userMessage, output) {
 // it does not have to produce clean output), so the coach can regenerate the
 // flagged response once. Used in api/coach.js (NOT in applyOutputStrippers).
 //
+// Widened 2026-08-16: the comparative test only looked for "most"/"many" sitting
+// directly against a group noun, so "every marketing leader claims to build
+// high-performance teams" passed clean — wrong quantifier, and an adjective in
+// between. It now also catches every/all/any and allows up to two words before
+// the noun. This matters more than it used to: Coach replies are being forwarded
+// as the team's own correspondence, so a construction that used to be a quality
+// wobble in a private chat now ships under someone's name. A false positive here
+// costs one regeneration and the retry keeps whichever version is cleaner, so
+// the detector is deliberately the looser side of the trade.
+//
 // It lives here, in the .js module the api function already imports, because
 // api/* cannot safely import the .mjs voice-patterns detector across the api/src
 // boundary (the FUNCTION_INVOCATION_FAILED bundler-trace issue). The two
 // categories below are exactly the ones the retry targets.
 //
 // voice-allow
-const RESIDUAL_COMPARATIVE_RE = /\b(?:most|many)\s+(?:people|persons|professionals|candidates|leaders|peers|executives|of them|others)\b|\bmost\s+(?:senior|hr|talent|hiring)\b|\bthan most\b|\bunlike (?:most )?(?:other|the average|the typical)\b|\bwhere most\b|\bfewer than most\b|\bthan average\b|-than-average\b|\bthan the (?:average|typical)\b|\bthan\s+\d{1,3}\s?(?:%|percent)\s+of\b|\bpeople who\b[^.\n]{0,60}?\b(?:do not|don['’]t|cannot|can['’]t|never)\b/i
+const RESIDUAL_COMPARATIVE_RE = /\b(?:most|many|every|all|any)\s+(?:[a-z]+\s+){0,2}(?:people|persons?|professionals?|candidates?|applicants?|leaders?|peers?|executives?|managers?|recruiters?|employers?)\b|\b(?:most|many)\s+(?:people|persons|professionals|candidates|leaders|peers|executives|of them|others)\b|\bmost\s+(?:senior|hr|talent|hiring)\b|\bthan most\b|\bunlike (?:most )?(?:other|the average|the typical)\b|\bwhere most\b|\bfewer than most\b|\bthan average\b|-than-average\b|\bthan the (?:average|typical)\b|\bthan\s+\d{1,3}\s?(?:%|percent)\s+of\b|\bpeople who\b[^.\n]{0,60}?\b(?:do not|don['’]t|cannot|can['’]t|never)\b/i
 const RESIDUAL_SINCERITY_RE = /\bfrankly\b|\bcandidly\b|\bthe honest (?:answer|read|reading|truth|take|view|assessment)\b|\bbrutal honesty\b|\bto be honest\b|\b(?:be|being|am being|'?m being) (?:honest|straight) with you\b|\bgive you the honest\b|\bhonest with you\b/i
 // "the move" tic and family (2026-06-11). Flag-and-regenerate, NOT delete:
 // deleting "is the move" mid-sentence mangles the clause, so the retry rewrites.
