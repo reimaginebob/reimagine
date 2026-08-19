@@ -5943,10 +5943,16 @@ export default function PivotEngine(){
     proceed()
     maybeShowUpstreamCheck(sectionId,text)
   }
-  // Navigate the user to an upstream section so they can check it for the same
-  // pattern. Personal Brand (p3) is its own step; Focus Playbook upstreams scroll
-  // into view on the focus surface.
-  const navToUpstream=(u)=>{setUpstreamCheck(null);if(u==='p3'){nav('p3')}else{if(step!=='focus')nav('focus');scrollToOutput(u)}}
+  // Route the user to fix the correction at its source (Layer 2, 2026-08-11).
+  // For Personal Brand (the deepest root, feeding every Focus section) this
+  // rebuilds it in place: the correction is already in the global store, so the
+  // rebuild applies it and out('p3') stamps p3_updated_at, which re-propagates
+  // the clean version to every downstream section. This is the difference from
+  // the old behavior, which only navigated the user to LOOK at the upstream,
+  // leaving them to re-correct it by hand (the whack-a-mole). Other upstreams
+  // (Bridge Story, LinkedIn Remix) scroll into view on the focus surface for a
+  // manual rebuild; the global correction still reaches them when they rebuild.
+  const navToUpstream=(u)=>{setUpstreamCheck(null);if(u==='p3'){nav('p3');generateChain()}else{if(step!=='focus')nav('focus');scrollToOutput(u)}}
   const applyConflictAnyway=()=>{const m=conflictModal;if(!m)return;correctionConflictRef.current=m.phrase;m.proceed();maybeShowUpstreamCheck(m.sectionId,m.text);setConflictModal(null)}
   const rephraseConflict=()=>{const m=conflictModal;if(!m)return;setConflictModal(null);setToast(`Try: ${m.rephrase}`);setTimeout(()=>setToast(t=>t===`Try: ${m.rephrase}`?null:t),6000)}
   const offlineConflict=()=>{const m=conflictModal;if(!m)return;setFb(m.sectionId,'');setConflictModal(null);const msg='Got it — we will write this section the way Reimagine writes. What you generate is yours to edit afterward.';setToast(msg);setTimeout(()=>setToast(t=>t===msg?null:t),5000)}
@@ -10856,10 +10862,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     {upstreamCheck&&(()=>{
       const upLabels=upstreamCheck.upstreams.map(u=>NAV_LABELS[u]||u)
       const who=upLabels.join(' and ')
-      const verb=upLabels.length>1?'were':'was'
       return <div data-print="hide" style={{position:'fixed',bottom:90,left:'50%',transform:'translateX(-50%)',maxWidth:560,width:'calc(100% - 48px)',background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:10,padding:'12px 16px',display:'flex',alignItems:'center',gap:12,boxShadow:'0 6px 20px rgba(0,0,0,0.15)',zIndex:1150}}>
-        <div style={{flex:1,fontSize:15,color:'#8A5E1C',lineHeight:1.5}}>You corrected {NAV_LABELS[upstreamCheck.section]||'this section'}. {who} {verb} written before this correction and may carry the same pattern.</div>
-        {upstreamCheck.upstreams.map(u=><button key={u} type="button" onClick={()=>navToUpstream(u)} style={{background:'transparent',color:'#8A5E1C',border:'1px solid #F0B856',borderRadius:6,padding:'5px 12px',fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>Check {NAV_LABELS[u]||u}</button>)}
+        <div style={{flex:1,fontSize:15,color:'#8A5E1C',lineHeight:1.5}}>You corrected {NAV_LABELS[upstreamCheck.section]||'this section'}. The same thing may live in your {who}, where it can come back in the sections built from it. Fixing it at the source carries the correction through.</div>
+        {upstreamCheck.upstreams.map(u=><button key={u} type="button" onClick={()=>navToUpstream(u)} style={{background:'transparent',color:'#8A5E1C',border:'1px solid #F0B856',borderRadius:6,padding:'5px 12px',fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>{u==='p3'?'Fix in Personal Brand':`Check ${NAV_LABELS[u]||u}`}</button>)}
         <button type="button" onClick={()=>setUpstreamCheck(null)} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#8A5E1C',fontSize:18,lineHeight:1,cursor:'pointer',padding:'0 2px',fontFamily:'inherit'}}>×</button>
       </div>
     })()}

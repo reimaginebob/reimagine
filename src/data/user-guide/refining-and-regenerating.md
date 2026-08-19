@@ -71,7 +71,7 @@ If you submit a correction that asks for one of those phrasings, Reimagine flags
 
 If you choose Apply anyway, the section shows an honest note so nothing is hidden from you: it tells you that you asked for that phrase and that Reimagine writes around it by design, then regenerates aiming at your intent.
 
-When you correct a section that sits downstream of your foundation (your Bridge Story, your LinkedIn copy, and the like), you may also see a short, optional prompt asking whether you want to check the earlier section it came from. It is a reminder, not a step you have to take: if the same wording you just corrected also lives upstream, this is a one-click way to go look. Skip it and nothing changes.
+When you correct a section that sits downstream of your foundation (your Bridge Story, your LinkedIn copy, and the like), you may also see a short, optional prompt. The same wording you just corrected may also live in the earlier section it was built from, where it can keep coming back in everything built from that source. For your Personal Brand, one click rebuilds it with your correction applied and carries the clean version through every section built from it, so you fix it once at the source instead of section by section. It is an offer, not a step you have to take: skip it and nothing changes.
 
 ## How to update an earlier input and regenerate
 
