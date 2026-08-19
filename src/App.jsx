@@ -9733,8 +9733,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {/* Two-column layout: sticky section rail on the left, section
             content on the right. The rail itself owns its sticky positioning
             and prints hidden via data-print="hide" inside the component. */}
-        <div style={{display:'flex',gap:24,alignItems:'flex-start'}}>
+        <div style={{display:'flex',flexDirection:isMobile?'column':'row',gap:isMobile?14:24,alignItems:'flex-start'}}>
           <PlaybookSectionRail
+            mobile={isMobile}
             title={chosen||undefined}
             titleKicker={chosen?'Role':undefined}
             sections={FOCUS_ORDER.map(s=>({id:s.id,label:s.label,num:(()=>{const m={};{let n=1;FOCUS_GROUPS.forEach(g=>g.sectionIds.forEach(sid=>{m[sid]=n++}))}return m[s.id]})(),isBonus:s.id==='income'}))}
@@ -10792,7 +10793,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </div>)}
             </section>}
           </div>}
-          </>;return opIsV2?<div style={{display:'flex',gap:24,alignItems:'flex-start'}}><PlaybookSectionRail title={(_opRec&&_opRec.title&&_opRec.title.trim())||(profile.jd||'').split('\n').find(l=>l.trim())||undefined} titleKicker="Opportunity" sections={opSections} done={opRailDone} onJump={scrollToOutput} C={C} onViewJd={tidyJd(_opRec&&_opRec.jd)?()=>setJdModalOpen(true):undefined}/><div style={{flex:1,minWidth:0}}>{_body}</div></div>:_body})()}
+          </>;return opIsV2?<div style={{display:'flex',flexDirection:isMobile?'column':'row',gap:isMobile?14:24,alignItems:'flex-start'}}><PlaybookSectionRail mobile={isMobile} title={(_opRec&&_opRec.title&&_opRec.title.trim())||(profile.jd||'').split('\n').find(l=>l.trim())||undefined} titleKicker="Opportunity" sections={opSections} done={opRailDone} onJump={scrollToOutput} C={C} onViewJd={tidyJd(_opRec&&_opRec.jd)?()=>setJdModalOpen(true):undefined}/><div style={{flex:1,minWidth:0}}>{_body}</div></div>:_body})()}
         </>:<>
           {!isDemo&&<p style={S.sub}>When you find a role worth pursuing, bring it here. Paste the job description or upload the PDF. Reimagine creates an Opportunity Playbook scoped to that role with five sections you can build on demand, each taking about 30 seconds to generate.</p>}
           {!isDemo&&<p style={S.sub}>You'll know whether the role aligns with the path you chose and where it stretches you. You'll have a Bridge Story tuned to this specific opportunity, a Resume Refresh aimed at this JD, Interview Prep with the questions this role's interview cycle is likely to ask and STAR stories drawn from your background, and an honest About This Company read with industry-specific signal and sources cited.</p>}
@@ -11131,10 +11132,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <p style={{fontSize:18,color:'#2D3748',lineHeight:1.75,margin:0}}>{demoGuide.desc}</p>
           </div>}
           {isDemo&&step!=='welcome'?<div className="demo-content">{rStep()}</div>:rStep()}
-          <footer data-print="hide" style={{marginTop:40,padding:'20px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',textAlign:'center'}}>
+          <footer data-print="hide" style={{marginTop:isMobile?20:40,padding:isMobile?'12px 12px 14px':'20px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',textAlign:'center'}}>
             <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',background:'#FFFFFF',border:`1px solid ${C.gold}`,borderRadius:8,color:C.gold,fontWeight:600,fontSize:17,textDecoration:'none'}}>Read the full User Guide (PDF)</a>
-            <p style={{margin:'8px 0 0',fontSize:15,color:'#718096',lineHeight:1.5}}>Everything Reimagine does, explained in plain English.</p>
-            <p style={{margin:'14px 0 0',fontSize:15,color:'#718096'}}>
+            {!isMobile&&<p style={{margin:'8px 0 0',fontSize:15,color:'#718096',lineHeight:1.5}}>Everything Reimagine does, explained in plain English.</p>}
+            <p style={{margin:isMobile?'10px 0 0':'14px 0 0',fontSize:15,color:'#718096'}}>
               <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{color:'#718096',textDecoration:'underline'}}>Privacy</a>
               <span style={{margin:'0 8px'}}>·</span>
               <a href="/terms" target="_blank" rel="noopener noreferrer" style={{color:'#718096',textDecoration:'underline'}}>Terms</a>

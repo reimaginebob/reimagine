@@ -66,7 +66,7 @@ function Row({ section, isDone, onJump, C }) {
   )
 }
 
-export default function PlaybookSectionRail({ sections, done, onJump, C, title, titleKicker, onViewJd }) {
+export default function PlaybookSectionRail({ sections, done, onJump, C, title, titleKicker, onViewJd, mobile = false }) {
   if (!sections || sections.length === 0) return null
   const isDoneFor = (id) => Array.isArray(done) && done.includes(id)
   // Split sections into the numbered playbook set and the Bonus set
@@ -79,16 +79,16 @@ export default function PlaybookSectionRail({ sections, done, onJump, C, title, 
       data-print="hide"
       aria-label="Playbook sections"
       style={{
-        position: 'sticky',
+        position: mobile ? 'static' : 'sticky',
         top: 16,
-        width: 200,
+        width: mobile ? '100%' : 200,
         flexShrink: 0,
         background: '#FFFFFF',
         border: `1px solid ${C.border}`,
         borderRadius: 12,
         padding: '12px 8px',
-        maxHeight: 'calc(100vh - 80px)',
-        overflowY: 'auto',
+        maxHeight: mobile ? 'none' : 'calc(100dvh - 80px)',
+        overflowY: mobile ? 'visible' : 'auto',
       }}
     >
       {title && (
