@@ -738,7 +738,7 @@ export default async function handler(req, res) {
   const flags = detectResidualVoice(cleaned)
   if (flags.comparative || flags.sincerity || flags.theMove || flags.sitWith || flags.citedStat) {
     const wants = []
-    if (flags.comparative) wants.push('do not compare me to "most people" or "most"/"many" of any group or to anyone else — drop the comparison and state what is true about me directly')
+    if (flags.comparative) wants.push('do not compare me to "most people", or to "most"/"many"/"every"/"all"/"any" of a group (candidates, leaders, professionals, hiring managers, recruiters), or to anyone else — drop the comparison and state what is true about me directly')
     if (flags.sincerity) wants.push('do not announce your own honesty ("frankly", "candidly", "the honest answer", "to be honest", "being straight with you") — just say the thing')
     if (flags.theMove) wants.push('do not say "X is the move", "here\'s the play", "the key is to", or "what you want to do is" — just state the action, or "a good next step is to…"')
     if (flags.sitWith) wants.push('do not use coaching-therapy register ("sit with"/"sitting with", "lean into", "hold space for", "be present with") — say "think about" or "give it some thought"')
