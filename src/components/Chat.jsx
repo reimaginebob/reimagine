@@ -98,9 +98,24 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // screen) so a paste into an email or doc keeps the headings, bold, and
   // bullets, plus a plain-text copy for plain targets. Falls back to plain text
   // where the async Clipboard API or ClipboardItem is unavailable.
+  // MD.jsx sets an explicit fontSize on every block it emits (paragraphs and
+  // bullets at 20, headings 19-26) plus Georgia and Reimagine's palette. Copying
+  // the rendered HTML carried all of that into the paste target: Gmail read the
+  // 20px and showed the whole reply as "Large" against a Normal draft. Strip the
+  // typography from a CLONE — never the live DOM — and keep everything that
+  // carries meaning: bold, headings, lists, the structure itself. The paste then
+  // lands in whatever font the destination is already using.
+  const COPY_STRIP_PROPS = ['font-size', 'font-family', 'line-height', 'color']
   const copyReply = async (id, content) => {
     const el = contentRefs.current[id]
-    const html = el ? el.innerHTML : ''
+    let html = ''
+    if (el) {
+      const clone = el.cloneNode(true)
+      clone.querySelectorAll('*').forEach(n => {
+        if (n.style) COPY_STRIP_PROPS.forEach(p => n.style.removeProperty(p))
+      })
+      html = clone.innerHTML
+    }
     try {
       if (html && navigator.clipboard && typeof window !== 'undefined' && window.ClipboardItem) {
         await navigator.clipboard.write([new window.ClipboardItem({
