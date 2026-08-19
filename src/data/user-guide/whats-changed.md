@@ -40,6 +40,8 @@ Short notes on what moved recently and what it means for you. **These entries ro
 
 **August 2026 — the intake is about 30 minutes.** The guide used to give a shorter estimate in some places and a longer one in others. Thirty minutes is the honest number.
 
+**August 2026 — Reimagine on a phone.** The navigation menu now tucks behind a menu button in the top-left corner on a narrow screen, so the content gets the full width instead of a sliver of it. Holding your phone upright works now; the old advice to turn it sideways is retired, along with the banner that used to say so.
+
 **August 2026 — Resume Builder.** If your resume is out of date, thin, or missing, Reimagine now builds one with you rather than asking you to fix it first. Give it whatever you have, including just companies and titles, and you get a complete editable draft.
 
 ---

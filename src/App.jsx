@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock, Mic } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock, Mic, Menu } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-patterns.mjs"
@@ -28,6 +28,7 @@ import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } fro
 // constant and the deployed JSON are consistent by construction.
 import { BUILD_SHA, BUILT_AT } from "./build-meta.js"
 import { useVersionCheck } from "./version-check"
+import { useIsMobile } from "./use-is-mobile.js"
 import Chat from "./components/Chat"
 import SavedPlaybooks from "./components/SavedPlaybooks"
 import PlaybookSectionRail from "./components/PlaybookSectionRail"
@@ -4540,7 +4541,7 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
   </div>
 }
 function DemoUnavailable(){
-  return <div style={{minHeight:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+  return <div style={{minHeight:'100dvh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
     <div style={{maxWidth:520,textAlign:'center'}}>
       <h1 style={{fontFamily:'Georgia,serif',fontSize:32,fontWeight:700,color:C.cream,margin:'0 0 14px'}}>The demo is being rebuilt.</h1>
       <p style={{fontSize:18,color:C.gray,lineHeight:1.7,margin:'0 0 28px'}}>We've reworked how Reimagine explores your options. The guided demo is coming back soon for the new flow. In the meantime, you can start your own.</p>
@@ -4628,8 +4629,22 @@ function SupportPanel({onClose}){
   </div>
 }
 
-function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0}){
+function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false}){
   const navRef=useRef(null)
+  // Below the breakpoint the rail leaves the flex flow and becomes an off-canvas
+  // drawer, which is what hands the content column the full width. At or above
+  // it railPos is null and the spread below is a no-op, so the desktop rail is
+  // the same element with the same styles it has always had.
+  //
+  // Rail rows are <div onClick>, not buttons, so nothing inside is keyboard
+  // focusable and an off-screen drawer needs no focus containment. aria-hidden
+  // keeps it out of the accessibility tree while closed.
+  const railPos=mobile?{position:'absolute',top:0,bottom:0,left:0,zIndex:30,transform:drawerOpen?'translateX(0)':'translateX(-100%)',transition:'transform 0.26s cubic-bezier(0.4,0,0.2,1)',boxShadow:drawerOpen?'6px 0 24px rgba(0,0,0,0.28)':'none'}:null
+  // Demo mode used to get pointerEvents:none from a wrapper div in App; that
+  // wrapper was a duplicate of this element (same width, same padding) and was
+  // removed, so the guard lives here now.
+  const railBase={width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0,...(isDemo?{pointerEvents:'none'}:null),...railPos}
+  const railProps={id:'reimagine-nav','data-print':'hide','aria-hidden':mobile&&!drawerOpen?'true':undefined}
   const[supportOpen,setSupportOpen]=useState(false)
   // App bumps openSupportReq to open the Support panel programmatically (the
   // returning-user announcement's "Take a look" button routes here), mirroring
@@ -4707,7 +4722,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
     // child-of, not a new section. Same active-state treatment as inputs.
     const subItemStyle=(active)=>({padding:'8px 14px 8px 44px',display:'flex',alignItems:'center',gap:8,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:15,fontWeight:active?700:400,color:active?'#FFFFFF':'#F1F5F9',transition:'all 0.15s'})
     const sectionHeaderStyle={fontSize:15,fontWeight:800,letterSpacing:'1.2px',textTransform:'uppercase',color:'#B0BEDE',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8}
-    return <div ref={navRef} style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
+    return <div ref={navRef} {...railProps} style={railBase}>
       <div style={sectionHeaderStyle}>Your work</div>
       {primaryItems.flatMap(({id,label,Icon,children,badge})=>{
         const childActive=Array.isArray(children)&&children.some(c=>(c.activeSteps||[c.id]).includes(step))
@@ -4751,7 +4766,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
   // and the demo narrative depends on full sidebar visibility.
   const orientationComplete=done.includes('skills')
   const phasesToRender=(orientationComplete||isDemo)?PHASES:PHASES.filter(p=>p.id!==1)
-  return <div ref={navRef} style={{width:260,background:'#1A2540',borderRight:`1px solid #0F1A30`,padding:'16px 0',overflowY:'auto',flexShrink:0}}>
+  return <div ref={navRef} {...railProps} style={railBase}>
   {/* My Coach pinned to the top of the orientation rail so it's reachable from
       the very first screen, not only after the Personal Brand is built (that
       later sidebar carries its own My Coach entry). Gated on signedIn to match
@@ -5349,9 +5364,15 @@ export default function PivotEngine(){
     reputation:'Help me think through what to write about my reputation — the specific moments, and the words other people have used about me at work.',
     'life-events':'Help me think about which life experiences shaped who I am at work and might be worth sharing here.',
   }
-  const[isSmallPortrait,setIsSmallPortrait]=useState(false)
-  const[mobileBannerDismissed,setMobileBannerDismissed]=useState(()=>{try{return sessionStorage.getItem('reimagine_mobile_advisory_dismissed')==='1'}catch{return false}})
-  const dismissMobileBanner=()=>{try{sessionStorage.setItem('reimagine_mobile_advisory_dismissed','1')}catch{};setMobileBannerDismissed(true)}
+  // Narrow-screen layout switch. Below MOBILE_BREAKPOINT the nav rail becomes a
+  // slide-out drawer and the content column takes the full width; at or above it
+  // every style below is byte-identical to what shipped before, so the desktop
+  // layout is unchanged by construction rather than by careful review. Replaces
+  // the old isSmallPortrait check, which existed only to raise the "rotate your
+  // phone" advisory — the limitation it described is what this work removes.
+  const isMobile=useIsMobile()
+  const[drawerOpen,setDrawerOpen]=useState(false)
+  const closeDrawer=()=>setDrawerOpen(false)
   // Migration detector for the p3 output format. Brief 2 collapsed p1/p2
   // into a single Personal Brand step and rewrote p3 to a prose synthesis. The
   // detector reads outputs.p3_version, set to 'v2' on every successful new-
@@ -5509,7 +5530,12 @@ export default function PivotEngine(){
       }
     })()
   },[step])
-  useEffect(()=>{const check=()=>{const portrait=window.matchMedia('(orientation: portrait)').matches;const small=window.innerWidth<500;setIsSmallPortrait(portrait&&small)};check();window.addEventListener('resize',check);window.addEventListener('orientationchange',check);return()=>{window.removeEventListener('resize',check);window.removeEventListener('orientationchange',check)}},[])
+  // Escape closes the nav drawer, matching every other overlay in the app.
+  useEffect(()=>{if(!drawerOpen)return;const onKey=e=>{if(e.key==='Escape')setDrawerOpen(false)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[drawerOpen])
+  // Widening past the breakpoint with the drawer open would leave drawerOpen
+  // stuck true — harmless while wide (the rail is static there), but it would
+  // spring open on the next narrowing.
+  useEffect(()=>{if(!isMobile)setDrawerOpen(false)},[isMobile])
   useEffect(()=>{window.scrollTo({top:0,behavior:'instant'});if(contentColumnRef.current)contentColumnRef.current.scrollTop=0},[step])
   // Record the current step so the top-level ErrorBoundary can stamp its
   // diagnostic record with where the crash happened. sessionStorage so it
@@ -10803,7 +10829,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   if(!signedUp)return <>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
-    <div style={{minHeight:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column'}}>
+    <div style={{minHeight:'100dvh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column'}}>
       <div style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center'}}>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="148" height="34" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
           <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.25"/>
@@ -11008,7 +11034,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <Btn secondary onClick={dismissVoiceMig}>Not Now</Btn>
       </div>
     </div>}
-    <div style={{height:'100vh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+    <div style={{height:'100dvh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
       {migrationOpen&&!signedInUser&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
         <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:520,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
           <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Save your work across devices.</h2>
@@ -11040,14 +11066,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>}
         </div>
       </div>}
-      {isSmallPortrait&&!mobileBannerDismissed&&<div data-print="hide" style={{background:'#1A2540',color:'#FFFFFF',padding:'14px 16px',display:'flex',alignItems:'flex-start',gap:12,fontSize:17,lineHeight:1.5,borderBottom:`2px solid ${C.gold}`,flexShrink:0}}>
-        <div style={{flex:1}}>
-          <div style={{fontWeight:700,marginBottom:4}}>Reimagine works best on a larger screen.</div>
-          <div style={{fontSize:16,color:'#CBD5E0'}}>For the best experience, rotate your phone to landscape, or open this on a tablet or laptop.</div>
-        </div>
-        <button onClick={dismissMobileBanner} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#CBD5E0',fontSize:22,cursor:'pointer',padding:'0 4px',lineHeight:1,fontFamily:'inherit'}}>×</button>
-      </div>}
-      <div data-print="hide" style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+      <div data-print="hide" style={{background:'#1A2540',borderBottom:`1px solid #0F1A30`,padding:isMobile?'10px 12px':'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,flexWrap:'wrap',gap:10}}>
+        {isMobile&&!isDemo&&<button onClick={()=>setDrawerOpen(o=>!o)} aria-label={drawerOpen?'Close menu':'Open menu'} aria-expanded={drawerOpen} aria-controls="reimagine-nav" style={{background:'transparent',border:'1px solid #2A3A55',borderRadius:8,width:42,height:42,flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#E6EAF2',fontFamily:'inherit',padding:0}}><Menu size={20}/></button>}
         <a href="/" style={{textDecoration:'none',cursor:'pointer'}}>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="148" height="34" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
             <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.25"/>
@@ -11098,14 +11118,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <button onClick={()=>{setSeenCoachIntro(true);nav('myCoach')}} style={{background:'#FFFFFF',color:C.gold,border:'none',borderRadius:4,padding:'4px 14px',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Try it</button>
         <button onClick={()=>setSeenCoachIntro(true)} aria-label="Dismiss" style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>×</button>
       </div>}
-      <div style={{display:'flex',flex:1,minHeight:0}}>
-        <div data-print="hide" style={{width:260,background:'#1A2540',borderRight:'1px solid #0F1A30',padding:'16px 0',overflowY:'auto',flexShrink:0}}>
-          {isDemo&&<div style={{pointerEvents:'none'}}>
-            <Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog}/>
-          </div>}
-          {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>to==='op'?addNewOpportunity():nav(to)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasMySearch} pipelineOverdue={pipelineOverdueCount}/>}
-        </div>
-        <div ref={contentColumnRef} data-print="content" style={{flex:1,padding:'40px 56px 60px',overflowY:'auto'}}>
+      <div style={{display:'flex',flex:1,minHeight:0,position:'relative'}}>
+        {isMobile&&drawerOpen&&<div data-print="hide" onClick={closeDrawer} aria-hidden="true" style={{position:'absolute',inset:0,zIndex:20,background:'rgba(15,26,48,0.5)'}}/>}
+        {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasMySearch} pipelineOverdue={pipelineOverdueCount} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,padding:isMobile?'22px 16px 40px':'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
               <h2 style={{fontFamily:'Georgia,serif',fontSize:26,fontWeight:700,color:'#1A2540',margin:0}}>{demoGuide.title}</h2>
