@@ -55,13 +55,11 @@ Click **Continue** when you are done.
 
 ## Screen 3: Your Resume
 
-Your resume is the raw material for everything Reimagine builds with you next. This screen gives you two ways to provide it.
+Your resume is the raw material for everything Reimagine builds with you next. There are two paths, and the first one fits most people.
 
-You do not need to polish or update your resume before you start. If yours is out of date, Reimagine rebuilds it with you in the Resume Builder, described below.
+### If you have a resume, use it, even a dated one
 
-### If your resume is current
-
-This is the fast path: Reimagine uses what you give it as-is.
+This is the fast path, and where most people should start. Reimagine uses what you give it as-is. You do not need a current or polished resume: if yours is a little out of date or missing your latest role, use it anyway. Reimagine reads it for patterns, scope, and trajectory, not for whether the top line is this month's title.
 
 **Upload.** Drag a file onto the upload area or click to browse. PDF, Word (.docx), and plain text all work.
 
@@ -69,9 +67,13 @@ This is the fast path: Reimagine uses what you give it as-is.
 
 You can do both. The text field is the source of truth for what Reimagine reads, so if you want to edit something after uploading, edit it in the text field.
 
-Once Reimagine has read the file, you will see a green checkmark and a character count. Click **Continue**.
+Once Reimagine has read the file, you will see a green checkmark and a character count.
 
-### Resume Builder: if it's out of date, or you don't have one
+**Anything changed since this resume?** Once your resume is loaded, an optional field appears for what has changed since you wrote it: a new role, a promotion, a recent win. Reimagine folds it in, so your Personal Brand reflects where you are now, not only where you have been. A slightly dated resume is never a reason to start over. Type it, or on supported browsers tap the microphone and say what is new.
+
+Click **Continue**.
+
+### If you have no resume, or want a fresh rebuild: the Resume Builder
 
 If your resume is stale, thin, or missing, Reimagine builds one with you and gets you to a complete, sendable draft fast. You refine a resume that already exists rather than building up to one. Whatever you hand over is a jumpstart only: Reimagine rebuilds it fresh, so an old version you are not proud of never carries through.
 

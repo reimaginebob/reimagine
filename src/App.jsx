@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock, Mic } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-patterns.mjs"
@@ -2316,7 +2316,7 @@ RAW ASSESSMENT (${pr.assessType||'provided'}, the person's own instrument output
 ${pr.assess||'not provided'}
 
 RESUME (may be truncated):
-${boundResumeForP3(pr.resume)}
+${boundResumeForP3(pr.resume)}${(pr.resumeDelta&&String(pr.resumeDelta).trim())?`\n\nRECENT UPDATES the person added since the resume above (treat as current, the resume predates these):\n${String(pr.resumeDelta).trim()}`:''}
 
 LINKEDIN:
 ${pr.linkedin||'not provided'}
@@ -4229,6 +4229,20 @@ function InfoTooltip({label,children}){
   </span>
 }
 function CoachingCallout({children}){return <div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:C.grayL,lineHeight:1.65}}>{children}</div>}
+// Thin-input encouragement (2026-08-11). wc counts words; THIN_MIN is the
+// per-field word floor below which an input reads as thin (tune freely). Used by
+// the per-field nudges and the genuinely-bare pre-build heads-up. Reputation is
+// the four rep subfields combined; resume counts the resume plus the
+// what-changed delta.
+const wc=(s)=>(String(s||'').trim().match(/\S+/g)||[]).length
+const THIN_MIN={resume:60,assess:25,life:12,rep:12}
+// Reminds the user they can speak instead of type, to lower the effort of
+// sharing MORE. Only renders when speech capture is available.
+function MicReminder({text}){return hasSpeech?<div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:15,color:'#7A6212',lineHeight:1.5}}><Mic size={15} style={{flexShrink:0}}/><span>{text}</span></div>:null}
+// A gentle, non-blocking invitation shown when a high-value input is thin. Gold
+// callout (guidance treatment) carrying a one-line richness push plus the mic
+// reminder. Never a gate; it disappears once the field clears its floor.
+function ThinNudge({text,mic}){return <div style={{background:`${C.gold}12`,borderLeft:`3px solid ${C.gold}`,padding:'12px 16px',borderRadius:8,margin:'0 0 16px',fontSize:16,color:'#1A2540',lineHeight:1.6}}>{text}{mic&&<MicReminder text={mic}/>}</div>}
 function FileUpload({label,hint,onFile,fileName,accept=".pdf,.doc,.docx,.txt"}){
   const ref=useRef();const[drag,setDrag]=useState(false)
   return <div style={S.field}>
@@ -4954,7 +4968,7 @@ export default function PivotEngine(){
   // current build vs a stale one: build/live SHAs, last check time, and
   // status all render in a fixed corner element. Production users see nothing.
   const isDebug=_params.get('debug')==='1'
-  const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',linkedin:'',linkedinFile:'',linkedinRecs:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',compFloor:'',workReq:'',benefitsWeight:'',riskTolerance:'',dealBreakers:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',skills:{technical:[],systems:[],certifications:[],languages:[],methodologies:[]},corrections:[],frameworks:[],jd:'',jdFile:'',companyReadInput:'',builder:null,baselineResume:null}
+  const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',resumeDelta:'',linkedin:'',linkedinFile:'',linkedinRecs:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',compFloor:'',workReq:'',benefitsWeight:'',riskTolerance:'',dealBreakers:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',skills:{technical:[],systems:[],certifications:[],languages:[],methodologies:[]},corrections:[],frameworks:[],jd:'',jdFile:'',companyReadInput:'',builder:null,baselineResume:null}
   const IO={p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''}
   const initStep=isDemo?'welcome':'welcome'
   const[step,setStep]=useState(initStep)
@@ -4985,6 +4999,7 @@ export default function PivotEngine(){
   const[currentRoleInSavedSet,setCurrentRoleInSavedSet]=useState(false)
   const[atCapModal,setAtCapModal]=useState(null)
   const[inputStaleModal,setInputStaleModal]=useState(null)
+  const[bareInputModal,setBareInputModal]=useState(false)
   const[pbNeedsUpdate,setPbNeedsUpdate]=useState(false)
   const inputEditedRef=useRef(false)
   // PR2 corrections editorial layer: pre-submit conflict modal (Track 6) and the
@@ -5995,6 +6010,14 @@ export default function PivotEngine(){
     const brand0=(structuredP3&&structuredP3.presentation)?presentationToProse(structuredP3.presentation):stripPersonalBrandTail(raw)
     const brand=hasLifeHistory?brand0:stripUnfoundedBiographicalOrigin(brand0).text
     return {brand,structured:structuredP3}
+  }
+  // Thin-input heads-up (2026-08-11): true only when the person is essentially
+  // bare across all four high-value inputs, measured by word count so a stub
+  // resume counts as bare (resume is combined with the what-changed delta).
+  const profileBare=()=>{
+    const rep=profile.rep||{}
+    const repWords=wc([rep.memory,rep.emergency,rep.twoWords,rep.other].filter(Boolean).join(' '))
+    return (wc(profile.resume)+wc(profile.resumeDelta))<THIN_MIN.resume && wc(profile.assess)<THIN_MIN.assess && wc(profile.lifeEvents)<THIN_MIN.life && repWords<THIN_MIN.rep
   }
   const generateChain=async()=>{
     if(loading||generatingSection)return
@@ -9080,25 +9103,34 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={S.tag('#8A9BB8')}>Orientation</div>
       <h1 style={S.title} >Add your resume<InfoTooltip label="Why your resume matters here">Your resume is the single largest input. Reimagine reads it for accomplishments, scope, industry context, and trajectory. You do not need to polish or update it first: if yours is out of date, the builder can rebuild it with you.</InfoTooltip></h1>
       <p style={S.sub}>This is the raw material for everything we build with you next.</p>
-      {/* Two co-equal doors, side by side and both visible without scrolling. */}
-      <div style={{display:'flex',gap:16,alignItems:'stretch',flexWrap:'wrap'}}>
-        {/* Door 1: already have a current resume -> use it as-is. Paste demoted behind a reveal link. */}
-        <div style={{...S.card,flex:'1 1 320px',marginBottom:0,display:'flex',flexDirection:'column'}}>
-          <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>Already have an up-to-date resume?</div>
-          <p style={{fontSize:15,color:C.gray,margin:'0 0 14px'}}>Upload it here and we'll use it as-is. PDF or Word, drag it in and keep going.</p>
-          <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
-          {fileLoading&&<Loading msg="Reading your file…"/>}
-          {!(showPasteResume||(profile.resume&&!profile.resumeFile))&&<button type="button" onClick={()=>setShowPasteResume(true)} style={{alignSelf:'flex-start',background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:'10px 0 0',fontSize:15}}>Or paste it instead</button>}
-          {(showPasteResume||(profile.resume&&!profile.resumeFile))&&<div style={{...S.field,marginTop:14,marginBottom:0}}><label style={S.label}>Paste resume text</label><textarea style={{...S.ta,minHeight:160}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} placeholder="Paste your resume text here…"/></div>}
-          {profile.resume&&<div style={{fontSize:15,color:C.ok,marginTop:10}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
-        </div>
-        {/* Door 2: build/refresh with the person from an old resume, LinkedIn, or scratch. */}
-        <button type="button" onClick={()=>{if(!(profile.builder&&profile.builder.phase)){setBuilder({phase:'intro',source:'',header:{name:'',email:'',phone:'',linkedin:profile.linkedin||''},employers:[],skills:[],education:[],certs:'',extras:'',proudest:''})}nav('resume-builder')}} style={{flex:'1 1 320px',textAlign:'left',background:'#FFFDF8',border:`1.5px solid ${C.gold}`,borderRadius:10,padding:'32px 38px',cursor:'pointer',display:'flex',flexDirection:'column',fontFamily:'inherit'}}>
-          <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>{profile.builder&&profile.builder.phase?'Continue building my resume':"Out of date, or don't have one?"}</div>
-          <p style={{fontSize:15,color:C.gray,margin:0}}>{profile.builder&&profile.builder.phase?'Pick up where you left off. Your entries are saved.':"Bring an old resume, your LinkedIn, or nothing at all. We'll turn it into a fresh draft you can edit."}</p>
-          <div style={{marginTop:'auto',paddingTop:18,color:C.gold,fontWeight:700,fontSize:15,display:'flex',alignItems:'center',gap:6}}>{profile.builder&&profile.builder.phase?'Continue':'Build my resume with help'}<ChevronRight size={15}/></div>
-        </button>
+      {/* Reframed 2026-08-11: Door 1 is the default and welcomes a dated/partial resume; the builder (Door 2) is a slim fallback, not a co-equal choice. */}
+      <div style={{fontSize:15,color:C.gray,lineHeight:1.55,margin:'0 0 14px'}}>Have any resume, even a rough or dated one? Start here. Starting completely fresh, or from your LinkedIn? There's a guided option just below.</div>
+      <div style={{...S.card,marginBottom:14,border:`1.5px solid ${C.gold}`,display:'flex',flexDirection:'column'}}>
+        <div style={{alignSelf:'flex-start',fontSize:15,letterSpacing:'.04em',textTransform:'uppercase',color:'#8A6D10',background:`${C.gold}1F`,borderRadius:12,padding:'3px 12px',marginBottom:10}}>Most people start here</div>
+        <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>Have a resume? Use it.</div>
+        <p style={{fontSize:15,color:C.gray,margin:'0 0 14px',lineHeight:1.55}}>Even if it's a little dated or missing your latest role. Reimagine reads it for patterns, scope, and trajectory, not polish. You don't need to fix it first.</p>
+        <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
+        {fileLoading&&<Loading msg="Reading your file…"/>}
+        {!(showPasteResume||(profile.resume&&!profile.resumeFile))&&<button type="button" onClick={()=>setShowPasteResume(true)} style={{alignSelf:'flex-start',background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:'10px 0 0',fontSize:15}}>Or paste it instead</button>}
+        {(showPasteResume||(profile.resume&&!profile.resumeFile))&&<div style={{...S.field,marginTop:14,marginBottom:0}}><label style={S.label}>Paste resume text</label><textarea style={{...S.ta,minHeight:160}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} placeholder="Paste your resume text here…"/></div>}
+        {profile.resume&&<div style={{fontSize:15,color:C.ok,marginTop:10}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
+        {profile.resume&&<div style={{borderTop:`1px solid ${C.border}`,marginTop:16,paddingTop:16}}>
+          <label style={S.label}>Anything changed since this resume? <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>optional</span></label>
+          <div style={{fontSize:15,color:C.gray,margin:'6px 0 8px',lineHeight:1.55}}>A new role, a promotion, a recent win. Jot it down and we'll fold it in, so your Personal Brand reflects where you are now, not only where you've been.</div>
+          <div style={{position:'relative'}}>
+            <textarea style={{...S.ta,minHeight:80,paddingRight:hasSpeech?44:15}} value={profile.resumeDelta||''} onChange={e=>pr('resumeDelta',e.target.value)} placeholder="e.g. Promoted to VP of Operations in March; led the ERP migration that came in under budget…"/>
+            {hasSpeech&&<SpeechBtn onResult={t=>pr('resumeDelta',(profile.resumeDelta||'')+t)} style={{position:'absolute',right:8,bottom:8}}/>}
+          </div>
+          <MicReminder text="Prefer to talk? Tap the mic and say what's new."/>
+        </div>}
       </div>
+      <button type="button" onClick={()=>{if(!(profile.builder&&profile.builder.phase)){setBuilder({phase:'intro',source:'',header:{name:'',email:'',phone:'',linkedin:profile.linkedin||''},employers:[],skills:[],education:[],certs:'',extras:'',proudest:''})}nav('resume-builder')}} style={{width:'100%',textAlign:'left',background:'#FCFAF3',border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 18px',cursor:'pointer',display:'flex',alignItems:'center',gap:14,fontFamily:'inherit'}}>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:600,fontSize:15,color:'#1A2540'}}>{profile.builder&&profile.builder.phase?'Continue building my resume':'No resume, or want to start fresh from your LinkedIn?'}</div>
+          <div style={{fontSize:15,color:C.gray,lineHeight:1.5}}>{profile.builder&&profile.builder.phase?'Pick up where you left off. Your entries are saved.':"Start from an old resume, your LinkedIn, or a blank page. We'll walk you through it and turn your answers into a draft you can edit."}</div>
+        </div>
+        <span style={{color:C.gold,fontWeight:600,fontSize:15,display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>{profile.builder&&profile.builder.phase?'Continue':'Get started'}<ChevronRight size={15}/></span>
+      </button>
       {profile.baselineResume&&<div style={{...S.note,marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}><Check size={14} color={C.ok}/>Your built resume is saved to your account.<a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume)}>Download (Word)</a><a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume,{ats:true})}>Download ATS version (Word)</a></div>}
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('location')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.resume?advance('resume','linkedin'):setErr('Add your resume to continue, or build one with us.')}>Continue <ChevronRight size={14}/></Btn></div>
@@ -9177,6 +9209,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {fileLoading&&<Loading msg="Reading file…"/>}
         <div style={S.field}><label style={S.label}>Assessment Type</label><select style={S.sel} value={profile.assessType} onChange={e=>pr('assessType',e.target.value)}><option value="">Select…</option><option>Affintus</option><option>CliftonStrengths</option><option>DiSC</option><option>Myers-Briggs (MBTI)</option><option>Hogan</option><option>Predictive Index</option><option>Enneagram</option><option>Other</option></select></div>
         <div style={S.field}><label style={S.label}>Or paste results here</label><textarea ref={assessRef} style={{...S.ta,minHeight:200}} value={profile.assess} onChange={e=>pr('assess',e.target.value)} placeholder="Paste assessment results. Any format works; more detail produces more personalized output."/></div>
+        {wc(profile.assess)<THIN_MIN.assess&&<ThinNudge text="The more of your assessment you add, the fuller Reimagine's read on you as a person: your personality, how you communicate, how you think, and what drives you, not just your work history."/>}
         <div style={{...S.helperText,marginTop:-4,marginBottom:10}}>Have more than one assessment? Paste each one into the field above, separated by a divider line like === CliftonStrengths === or === Hogan ===. Reimagine reads everything between the dividers and synthesizes across all of them.</div>
         <div><Btn secondary small onClick={()=>{const cur=profile.assess||'';const div='\n\n=== Next assessment (rename this label) ===\n\n';const next=cur+div;pr('assess',next);setTimeout(()=>{if(assessRef.current){assessRef.current.focus();assessRef.current.setSelectionRange(next.length,next.length)}},50)}}>+ Add another assessment</Btn></div>
       </div>
@@ -9265,6 +9298,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>}<div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea ref={f==='other'?repOtherRef:null} style={{...S.ta,minHeight:f==='other'?90:62,flex:1}} value={profile.rep[f]} onChange={e=>rep(f,e.target.value)}/>{hasSpeech&&<SpeechBtn onResult={t=>rep(f,t)}/>}</div>{f==='other'&&<><div style={{...S.helperText,marginTop:8}}>Paste anything that gives Reimagine more signal: performance reviews, LinkedIn recommendations, 360 feedback, notes from former managers. A divider line between each source (for example, === LinkedIn recommendations === then the text, then === 2024 performance review === then the text) helps Reimagine attribute what came from where.</div><div style={{marginTop:10}}><Btn secondary small onClick={()=>{const cur=profile.rep.other||'';const div='\n\n=== Source ===\n\n';const next=cur+div;rep('other',next);setTimeout(()=>{if(repOtherRef.current){repOtherRef.current.focus();repOtherRef.current.setSelectionRange(next.length,next.length)}},50)}}>+ Add another source</Btn></div></>}</div>)}
         <div style={S.helperText}>If you leave all blank, we'll generate a reputation hypothesis from your other data and ask you to validate it.</div>
       </div>
+      {wc([profile.rep&&profile.rep.memory,profile.rep&&profile.rep.emergency,profile.rep&&profile.rep.twoWords,profile.rep&&profile.rep.other].filter(Boolean).join(' '))<THIN_MIN.rep&&<ThinNudge text="The more you add here, the more Reimagine can reflect how others actually see you, which is some of the strongest signal it has." mic="Prefer to talk? Tap a field's mic and say it out loud; it's often easier than typing."/>}
       {coachNudge(ASK_COACH_ORIENT.reputation,'Not sure what to write? Ask your coach',{margin:'0 0 16px'})}
       <div style={S.row}><Btn secondary onClick={()=>nav('priorities')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('reputation','life-events')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
@@ -9276,12 +9310,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={S.card}>
         <div style={S.field}>
           <div style={S.helperText}>Optional. Share only what you're comfortable with. <strong style={{color:C.grayL,fontWeight:600}}>This stays private to your account, and you can edit or clear it anytime.</strong></div>
+          <div style={{margin:'0 0 12px'}}>
+            <div style={{fontSize:15,fontWeight:600,color:'#8A6D10',letterSpacing:'.03em',textTransform:'uppercase',marginBottom:8}}>Worth sharing, for example</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+              {['A person who shaped you','Where and how you grew up','A hard season you came through','A turning point that changed your direction','Something you built, led, or lost',"A belief you've had to fight for"].map(c=><span key={c} style={{fontSize:15,color:'#1A2540',background:'#fff',border:`1px solid ${C.border}`,borderRadius:16,padding:'5px 12px'}}>{c}</span>)}
+            </div>
+          </div>
           <div style={{position:'relative'}}>
             <textarea style={{...S.ta,minHeight:180,paddingRight:hasSpeech?44:15}} value={profile.lifeEvents||''} onChange={e=>pr('lifeEvents',e.target.value)}/>
             {hasSpeech&&<SpeechBtn onResult={t=>pr('lifeEvents',(profile.lifeEvents||'')+t)} style={{position:'absolute',right:8,bottom:8}}/>}
           </div>
         </div>
       </div>
+      {wc(profile.lifeEvents)<THIN_MIN.life&&<ThinNudge text="Say as much as you want here. The more of what shaped you that you share, the more of the real you comes through, and finding the connection to your work is our job." mic="Prefer to talk? Tap the mic and say as much as you like; it's often easier than typing it all out."/>}
       {coachNudge(ASK_COACH_ORIENT['life-events'],'Not sure what to share? Ask your coach',{margin:'0 0 16px'})}
       <div style={S.row}><Btn secondary onClick={()=>nav('reputation')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('life-events','skills')}>{(profile.lifeEvents||'').trim()?'Continue':'Continue without sharing'} <ChevronRight size={14}/></Btn></div>
     </div>
@@ -9313,7 +9354,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.gray,lineHeight:1.7,maxWidth:540,margin:'0 auto'}}>You've shared the foundation: where you are, what you've done, how you're wired, what matters to you, and what others say about you. That's the input. Everything that follows is the output: your story, your strategy, your next chapter. Take a breath. Then keep going.</p>
         <p style={{margin:'12px auto 0',fontSize:18,color:C.gray,fontStyle:'italic',maxWidth:540}}>Good stopping point. Phase 1 is where the analysis begins; come back to it with fresh eyes if you have been at this a while.</p>
       </div>
-      <div style={S.row}><Btn secondary onClick={()=>nav('skills')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{advance('orientation-done','p3');generateChain()}}>Build My Personal Brand <ChevronRight size={14}/></Btn></div>
+      <div style={S.row}><Btn secondary onClick={()=>nav('skills')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{if(profileBare()){setBareInputModal(true)}else{advance('orientation-done','p3');generateChain()}}}>Build My Personal Brand <ChevronRight size={14}/></Btn></div>
       <div style={{display:'flex',alignItems:'center',gap:8,marginTop:14,fontSize:15,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>About 4 to 5 minutes (your resume analysis, your wiring, and the synthesis run end to end).</div>
     </div>
 
@@ -10837,6 +10878,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{display:'flex',gap:10,justifyContent:'flex-end',flexWrap:'wrap'}}>
           <Btn secondary onClick={()=>setInputStaleModal(null)}>Later</Btn>
           <Btn onClick={()=>{setInputStaleModal(null);nav('p3');generateChain()}}>Update Personal Brand now</Btn>
+        </div>
+      </div>
+    </div>}
+    {bareInputModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:560,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Want to make your results even better?</h2>
+        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:16}}>The users who get the most from Reimagine bring their whole selves to it: their resume, an assessment, and the experiences and reputation that shaped who they are. The more of that you give it, the more your Personal Brand, and everything built from it, could only be about you.</p>
+        <MicReminder text="The mic on each input makes it quick; tap and talk instead of typing."/>
+        <div style={{display:'flex',gap:10,justifyContent:'flex-end',flexWrap:'wrap',marginTop:22}}>
+          <Btn secondary onClick={()=>{setBareInputModal(false);advance('orientation-done','p3');generateChain()}}>Build with what I have</Btn>
+          <Btn onClick={()=>{setBareInputModal(false);nav('resume')}}>I'll add more</Btn>
         </div>
       </div>
     </div>}

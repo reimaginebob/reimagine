@@ -24,7 +24,7 @@ It has two halves, and they work differently on purpose.
 | Brand Synthesis | **Your Personal Brand** | The label changed; the output is the same thing, now with the through-line, the evidence, the transfer reading, and the fit reading all in one place. |
 | Value Proposition | *folded into* **Your Personal Brand** | It was a separately labelled section. The capability-and-proof entries are now woven into the read, with specific accomplishments and numbers cited inline as evidence. |
 | Quick Takeaway | *retired* | The three-to-five-sentence summary at the top of a section. The lead line of your Personal Brand and the umbrella paragraph on Role Options do that job now. |
-| Door 1 / Door 2 | *never on screen* | Internal shorthand that leaked into an earlier version of this guide. On the Resume screen the two paths are "if your resume is current" and the **Resume Builder**. On Put It to Work they are **Career Paths** and **Add an Opportunity**. |
+| Door 1 / Door 2 | *never on screen* | Internal shorthand that leaked into an earlier version of this guide. On the Resume screen the two paths are "use the resume you have, even a dated one" and the **Resume Builder**. On Put It to Work they are **Career Paths** and **Add an Opportunity**. |
 | Lane | **Direction** | "Lane" was internal vocabulary. The three are Familiar Ground, Industry Insider, and Work That Matters. |
 | Phases | *retired* | Reimagine used to present itself as five numbered phases. It is a set of screens and playbooks you move through in the order that suits you, so the guide describes it that way. |
 

@@ -43,6 +43,8 @@ The resume is the source of every accomplishment Reimagine will translate into y
 
 **Watch out for:** a resume that lists job titles and responsibilities but not outcomes. Reimagine can work with that, but the resulting Value Proposition will be more abstract than you want. If you have time, spend a few minutes adding the numbers you remember before you upload.
 
+**A little dated? Use it anyway.** Reimagine reads your resume for patterns, scope, and trajectory, not for whether the top line is this month's title. When you load one, an optional "anything changed since this resume?" field appears, so you can note a new role, a promotion, or a recent win in a line or two and Reimagine folds it in. A slightly dated resume is never a reason to start over.
+
 **You can always update it later.** If you remember a major project after the fact, go back to the Resume step, replace the file or paste in updated text, and refresh your Personal Brand. Refining and Regenerating explains how.
 
 ### LinkedIn
@@ -157,7 +159,7 @@ Refining and Regenerating covers exactly how to do this without losing the work 
 
 Use this as a quick gut check before you click "Let's get started."
 
-- [ ] My resume is current within the last few months and includes my most recent role.
+- [ ] My resume is ready to upload. If it is a little dated or missing my latest role, that is fine; I can note what has changed in the field that appears.
 - [ ] My resume has numbers attached to my biggest accomplishments where I can.
 - [ ] I have at least one assessment from the last three years, or I am going to take Affintus before I begin.
 - [ ] I am ready to share my real values and passions, including the ones that feel "off-topic."

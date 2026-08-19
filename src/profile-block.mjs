@@ -84,7 +84,7 @@ export const buildSynthesisContext = (s) => {
 export function buildUserProfileBlock(pr, outs) {
   return `PROFILE:
 RESUME:
-${asText(pr.resume)||'not provided'}
+${asText(pr.resume)||'not provided'}${(pr.resumeDelta&&String(pr.resumeDelta).trim())?`\n\nRECENT UPDATES the candidate added since the resume above (treat as current, e.g. a new role or recent win the resume predates):\n${String(pr.resumeDelta).trim()}`:''}
 
 PERSONAL BRAND:
 ${asText(outs.p3)}
