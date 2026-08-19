@@ -3452,7 +3452,9 @@ function RecruitersFindMoreBox({busy,onSubmit}){
 // retained-vs-contingency explainer, the criteria line, firm-prominent match
 // rows, a single editable outreach template (like GTM's), and the GTM-style
 // "add more" box. Pure presentation — state/handlers come from the Focus render.
-function RecruitersCard({data,busy,chosen,onGenerate,onMore,onCopy,copied}){
+function RecruitersCard({data,busy,chosen,onGenerate,onMore,onEditCriteria,onCopy,copied,subhead}){
+  const[editing,setEditing]=useState(false)
+  const[ef,setEf]=useState('');const[ei,setEi]=useState('');const[es,setEs]=useState('');const[eg,setEg]=useState('')
   if(!(chosen&&chosen.length>0))return <div>
     <p style={S.sub}>Recruiters for This Path finds executive-search contacts who specialize in the direction you're exploring. Pick a direction in Career Paths first, then come back and we'll build the list.</p>
   </div>
@@ -3460,13 +3462,30 @@ function RecruitersCard({data,busy,chosen,onGenerate,onMore,onCopy,copied}){
   const template=(data&&data.outreachTemplate)||''
   const built=!!(data&&data.builtAt)
   const c=(data&&data.criteria)||{}
+  const editInput={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',marginTop:4}
+  const startEdit=()=>{setEf(c.function||'');setEi(c.industry||'');setEs(c.seniority||'');setEg(c.geo||'');setEditing(true)}
   return <div>
-    <p style={S.sub}>Executive-search contacts who specialize in your function, industry, and level.</p>
+    <p style={S.sub}>{subhead||'Executive-search contacts who specialize in your function, industry, and level.'}</p>
     <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D',lineHeight:1.6}}>Two kinds of search firms will matter to you. <strong>Retained</strong> firms are hired and paid by the employer to fill a specific senior role; they work a few searches at a time and go deep on each. <strong>Contingency</strong> firms are paid only when they place someone, so they move faster and cast wider. Knowing which is which tells you what to expect when you reach out.</div>
     {!built&&!busy&&<div style={S.row}><Btn disabled={busy} onClick={onGenerate}><Sparkles size={14}/>Find recruiters for this path</Btn></div>}
     {busy&&matches.length===0&&<Loading msg="Finding recruiters who specialize in this path…" step="recruiters"/>}
     {(built||matches.length>0)&&<>
-      {(c.function||c.industry||c.seniority)&&<div style={{fontSize:15,color:C.grayL,margin:'6px 0 14px'}}>Matching on: <strong>{[c.function,c.industry,c.seniority,c.geo].filter(Boolean).join(' · ')}</strong></div>}
+      {(c.function||c.industry||c.seniority)&&(editing
+        ?<div data-print="hide" style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 14px',margin:'6px 0 14px'}}>
+          <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:8}}>Adjust what we're matching on</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+            <label style={{display:'block',fontSize:15,color:C.gray}}>Function<input value={ef} onChange={e=>setEf(e.target.value)} style={editInput}/></label>
+            <label style={{display:'block',fontSize:15,color:C.gray}}>Industry<input value={ei} onChange={e=>setEi(e.target.value)} style={editInput}/></label>
+            <label style={{display:'block',fontSize:15,color:C.gray}}>Seniority<input value={es} onChange={e=>setEs(e.target.value)} style={editInput}/></label>
+            <label style={{display:'block',fontSize:15,color:C.gray}}>Geography<input value={eg} onChange={e=>setEg(e.target.value)} style={editInput}/></label>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <Btn small onClick={()=>{setEditing(false);onEditCriteria&&onEditCriteria({function:ef,industry:ei,seniority:es,geo:eg})}}><Sparkles size={12}/>Update the list</Btn>
+            <Btn small secondary onClick={()=>setEditing(false)}>Cancel</Btn>
+          </div>
+        </div>
+        :<div style={{fontSize:15,color:C.grayL,margin:'6px 0 14px'}}>Matching on: <strong>{[c.function,c.industry,c.seniority,c.geo].filter(Boolean).join(' · ')}</strong>{onEditCriteria&&<button type="button" data-print="hide" onClick={startEdit} style={{marginLeft:10,background:'transparent',border:'none',padding:0,color:C.goldL,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Edit</button>}</div>
+      )}
       {matches.map((m,i)=><RecruiterMatchRow key={(m.firm||'')+i} m={m}/>)}
       {matches.length>0&&<div data-print="hide" style={{display:'flex',gap:8,margin:'2px 0 14px'}}>
         <Btn small secondary onClick={()=>downloadRecruitersCsv(matches,chosen)}><Download size={12}/>Download CSV</Btn>
@@ -8389,21 +8408,37 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // applies the fallback ladder). Phase 2: a concurrency-capped pool writes one
   // personalized outreach note per surviving match, each committed independently
   // so rows fill in progressively. Everything hard-caches onto the door1 record.
+  // buildRecruiters (shared by Focus/door1 and Opportunity/door2). opts.source
+  // selects the record; criteria derive from `chosen` (door1) or the JD (door2),
+  // or come verbatim from opts.criteriaOverride when the user edits them. Writes
+  // the same rec.recruiters shape RecruitersCard consumes.
   const buildRecruiters=async(opts={})=>{
     const slotId=currentSavedSlotIdRef.current
-    if(!(chosen&&chosen.length>0))return
+    const source=opts.source==='door2'?'door2':'door1'
+    const rec0=savedPlaybooks.find(r=>r.id===slotId&&r.source===source)
+    if(source==='door1'){if(!(chosen&&chosen.length>0))return}
+    else{if(!rec0||!((rec0.jd||profile.jd||'').trim()))return}
     if(recruitersBuilding||generatingSection)return
     const reqId=++recruitersReqRef.current
     setRecruitersBuilding(true)
     try{
-      const rec0=savedPlaybooks.find(r=>r.id===slotId&&r.source==='door1')
       const existing=(opts.more&&rec0&&rec0.recruiters&&Array.isArray(rec0.recruiters.matches))?rec0.recruiters.matches:[]
-      const industryKey=await inferIndustry({jd:chosen})
-      const criteria={
-        function:chosen,
-        industry:industryKey==='default'?'':industryKey,
-        seniority:inferSeniorityBand(chosen),
-        geo:[profile.loc.city,profile.loc.country].filter(Boolean).join(', '),
+      let criteria
+      if(opts.criteriaOverride){
+        const o=opts.criteriaOverride
+        criteria={function:(o.function||'').trim(),industry:(o.industry||'').trim(),seniority:(o.seniority||'').trim(),geo:(o.geo||'').trim()}
+      }else if(source==='door2'){
+        const jd=(rec0.jd||profile.jd||'').trim()
+        const meta=await inferJdMetadata(jd)
+        if(reqId!==recruitersReqRef.current)return
+        const industryKey=await inferIndustry({jd})
+        if(reqId!==recruitersReqRef.current)return
+        const role=(rec0.role||meta.role||rec0.title||'').trim()
+        criteria={function:role,industry:industryKey==='default'?'':industryKey,seniority:inferSeniorityBand(role),geo:(rec0.location||meta.location||'').trim()}
+      }else{
+        const industryKey=await inferIndustry({jd:chosen})
+        if(reqId!==recruitersReqRef.current)return
+        criteria={function:chosen,industry:industryKey==='default'?'':industryKey,seniority:inferSeniorityBand(chosen),geo:[profile.loc.city,profile.loc.country].filter(Boolean).join(', ')}
       }
       // Phase 1 — discovery. In "more" mode, pass the focus text + an exclude list
       // of firms already shown so the model returns DIFFERENT ones, then append.
@@ -8414,11 +8449,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const mergedMatches=opts.more?existing.concat(fresh):found.matches
       const prevTemplate=(opts.more&&rec0&&rec0.recruiters&&rec0.recruiters.outreachTemplate)||''
       const base={signature:recruitersSignatureFor(criteria),criteria,matches:mergedMatches,outreachTemplate:prevTemplate,builtAt:new Date().toISOString()}
-      setSavedPlaybooks(prev=>prev.map(rec=>(rec.id===slotId&&rec.source==='door1')?{...rec,recruiters:base}:rec))
+      setSavedPlaybooks(prev=>prev.map(rec=>(rec.id===slotId&&rec.source===source)?{...rec,recruiters:base}:rec))
       // Phase 2 (concurrent): (a) gap-fill — for each firm with no confirmed name,
       // one focused firm-scoped lookup for the leader of the MOST SPECIFIC practice
       // for this target, gated the same way; (b) ONE reusable outreach template.
       const brand=outputs.p3, bridge=outputs.p6, laneLabel=selectedLane?laneLabelFor(selectedLane):''
+      const roleForTemplate=criteria.function||chosen||'this role'
       const GAP_CONCURRENCY=3
       const gapQueue=mergedMatches.map((m,i)=>({m,i})).filter(x=>!x.m.leaderName&&(!opts.more||x.i>=existing.length))
       const gapWorker=async()=>{while(gapQueue.length){
@@ -8427,7 +8463,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         if(reqId!==recruitersReqRef.current)return
         if(got&&got.leaderName&&recruiterLeaderConfirmed({confidence:got.confidence,leaderProfileUrl:got.leaderProfileUrl,url:m.url,practiceUrl:m.practiceUrl,sourceUrl:m.sourceUrl})){
           setSavedPlaybooks(prev=>prev.map(rec=>{
-            if(rec.id!==slotId||rec.source!=='door1'||!rec.recruiters||!Array.isArray(rec.recruiters.matches))return rec
+            if(rec.id!==slotId||rec.source!==source||!rec.recruiters||!Array.isArray(rec.recruiters.matches))return rec
             return{...rec,recruiters:{...rec.recruiters,matches:rec.recruiters.matches.map((mm,j)=>j===i?{...mm,leaderName:got.leaderName,leaderTitle:got.leaderTitle,leaderProfileUrl:got.leaderProfileUrl}:mm)}}
           }))
         }
@@ -8436,11 +8472,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         if(prevTemplate||!mergedMatches.length)return
         let template=''
         try{
-          const raw=await callClaude(P.recruiter_outreach_template(pc,brand,bridge,mergedMatches,chosen,laneLabel),{maxTokens:900,temperature:0.5,step:'recruiters'})
+          const raw=await callClaude(P.recruiter_outreach_template(pc,brand,bridge,mergedMatches,roleForTemplate,laneLabel),{maxTokens:900,temperature:0.5,step:'recruiters'})
           template=(typeof raw==='string'?raw:'').trim()
         }catch(e){template=''}
         if(reqId!==recruitersReqRef.current)return
-        setSavedPlaybooks(prev=>prev.map(rec=>(rec.id===slotId&&rec.source==='door1'&&rec.recruiters)?{...rec,recruiters:{...rec.recruiters,outreachTemplate:template}}:rec))
+        setSavedPlaybooks(prev=>prev.map(rec=>(rec.id===slotId&&rec.source===source&&rec.recruiters)?{...rec,recruiters:{...rec.recruiters,outreachTemplate:template}}:rec))
       }
       await Promise.all([...Array.from({length:Math.min(GAP_CONCURRENCY,gapQueue.length||1)},gapWorker),templateTask()])
     }catch(e){/* leave whatever resolved; the card shows what it has */}
@@ -8448,6 +8484,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   }
   const generateRecruiters=()=>buildRecruiters()
   const moreRecruiters=(focusText)=>buildRecruiters({more:true,focus:(typeof focusText==='string'?focusText:'').trim()})
+  const editRecruiters=(criteria)=>buildRecruiters({criteriaOverride:criteria})
+  const generateOpRecruiters=()=>buildRecruiters({source:'door2'})
+  const moreOpRecruiters=(focusText)=>buildRecruiters({source:'door2',more:true,focus:(typeof focusText==='string'?focusText:'').trim()})
+  const editOpRecruiters=(criteria)=>buildRecruiters({source:'door2',criteriaOverride:criteria})
   // generateOpBridgeStory (v3): adapts the role-level Bridge Story to this
   // specific company + JD via P.p6_op. Writes a plain string to
   // rec.sections.p6. Refine arg folds correction text into the prompt.
@@ -9791,6 +9831,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   chosen={chosen}
                   onGenerate={generateRecruiters}
                   onMore={moreRecruiters}
+                  onEditCriteria={editRecruiters}
                   onCopy={copy}
                   copied={copied}
                 />
@@ -9995,14 +10036,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // interviewer) rather than "built". It sits immediately before Interview
       // Prep, the output it feeds.
       const _panelPopulated=(()=>{const p=getOpPanel(_opRec);return !!((p.opportunity_context&&p.opportunity_context.trim())||p.interviewers.length)})()
-      const opRailDone=['p5','p_res','p_cover','p11','companyRead','salaryRead','offerNegotiation'].filter(opCardDone).concat(_panelPopulated?['panel']:[])
+      const opRailDone=['p5','p_res','p_cover','p11','companyRead','salaryRead','offerNegotiation'].filter(opCardDone).concat(_panelPopulated?['panel']:[]).concat((_opRec&&_opRec.recruiters&&_opRec.recruiters.builtAt)?['recruiters']:[])
       // Sequential 1-N numbering (2026-08-09): number every row in display order
       // so the rail reads as one clean top-down sequence. The earlier scheme left
       // the reference/input cards (Compensation, Interview Team, Offer) unnumbered,
       // which made the numbers look non-sequential and the flow look like it began
       // mid-list. num is computed by index so adding or removing a card renumbers
       // automatically.
-      const opSections=[{id:'companyRead',label:'About This Company'},{id:'salaryRead',label:'Compensation'},{id:'p5',label:'Where you fit'},{id:'p_res',label:'Resume Refresh'},{id:'p_cover',label:'Cover Letter'},{id:'panel',label:'Interview Team'},{id:'p11',label:'Interview Prep'},{id:'offerNegotiation',label:'Offer & Negotiation'}].map((s,i)=>({...s,num:i+1}))
+      const opSections=[{id:'companyRead',label:'About This Company'},{id:'salaryRead',label:'Compensation'},{id:'p5',label:'Where you fit'},{id:'p_res',label:'Resume Refresh'},{id:'p_cover',label:'Cover Letter'},{id:'panel',label:'Interview Team'},{id:'p11',label:'Interview Prep'},{id:'offerNegotiation',label:'Offer & Negotiation'},{id:'recruiters',label:'Recruiters for This Role'}].map((s,i)=>({...s,num:i+1}))
       // cards-only markDone criterion: legacy v1 (outputs.op truthy) OR any v2 card built
       if((outputs.op||_anyOpCardBuilt)&&!done.includes('op'))markDone('op')
       return <div>
@@ -10640,6 +10681,28 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   </div>}
                 </>,'section-offerNegotiation')
               })()}
+              {(()=>{
+                // Recruiters for This Role (door2). You found this specific opening,
+                // so a recruiter is not the way IN here — but a specialist in this
+                // function/industry is the pipeline for the NEXT role like it. Same
+                // RecruitersCard + shared buildRecruiters, criteria derived from the JD,
+                // with an Edit affordance if the JD read is off. Keeps the "search open
+                // now" signal — an adjacent live role is exactly what the user wants.
+                return _cardWrap(<>
+                  <div style={{fontSize:20,fontWeight:700,color:'#1A2540',marginBottom:2}}>Recruiters for This Role</div>
+                  <RecruitersCard
+                    data={(_rec&&_rec.recruiters)||null}
+                    busy={recruitersBuilding}
+                    chosen={_rec.title||'this role'}
+                    subhead="Executive-search recruiters who specialize in this function and industry — for this search, and the next role like it."
+                    onGenerate={generateOpRecruiters}
+                    onMore={moreOpRecruiters}
+                    onEditCriteria={editOpRecruiters}
+                    onCopy={copy}
+                    copied={copied}
+                  />
+                </>,'section-recruiters')
+              })()}
               {/* About This Company moved to the top of the cards (item F round 2): it
                   precedes the team/positioning so reading the company can spark the
                   user's own context. See the companyRead card above _simpleCard('p5'). */}
@@ -10693,6 +10756,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 {body}
               </section>
             })}
+            {_opRec&&_opRec.recruiters&&_opRec.recruiters.builtAt&&Array.isArray(_opRec.recruiters.matches)&&_opRec.recruiters.matches.length>0&&<section className="pe-print-section">
+              <h2 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>Recruiters for This Role</h2>
+              {_opRec.recruiters.matches.map((m,i)=><div key={i} style={{marginBottom:10}}>
+                <div style={{fontWeight:700}}>{m.firm}{m.kind==='practice'&&m.practice?` — ${m.practice} practice`:''}</div>
+                {m.leaderName&&<div style={{fontSize:15}}>{m.leaderName}{m.leaderTitle?`, ${m.leaderTitle}`:''}</div>}
+                {m.specialty&&<div style={{fontSize:15,color:'#2D3748'}}>{m.specialty}</div>}
+                {m.sourceUrl&&<div style={{fontSize:15,color:'#3D4A5C'}}>Source: {m.sourceUrl}</div>}
+              </div>)}
+            </section>}
           </div>}
           </>;return opIsV2?<div style={{display:'flex',gap:24,alignItems:'flex-start'}}><PlaybookSectionRail title={(_opRec&&_opRec.title&&_opRec.title.trim())||(profile.jd||'').split('\n').find(l=>l.trim())||undefined} titleKicker="Opportunity" sections={opSections} done={opRailDone} onJump={scrollToOutput} C={C} onViewJd={tidyJd(_opRec&&_opRec.jd)?()=>setJdModalOpen(true):undefined}/><div style={{flex:1,minWidth:0}}>{_body}</div></div>:_body})()}
         </>:<>
