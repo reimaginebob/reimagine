@@ -3258,7 +3258,7 @@ const pursuitOfferMessage=(title)=>({role:'assistant',content:`Sounds like somet
 const S={
   title:{fontFamily:'Georgia,serif',fontSize:38,fontWeight:700,color:"#1A2540",margin:'0 0 14px',lineHeight:1.2},
   sub:{fontSize:18,color:C.gray,margin:'0 0 28px',lineHeight:1.7,maxWidth:700},
-  card:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'32px 38px',marginBottom:20,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
+  card:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'var(--card-pad)',marginBottom:20,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
   label:{display:'block',fontSize:15,fontWeight:700,color:C.grayL,margin:'0 0 8px',letterSpacing:'1px',textTransform:'uppercase'},
   inp:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 15px',color:C.cream,fontSize:18,fontFamily:'inherit',outline:'none',boxSizing:'border-box'},
   ta:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 15px',color:C.cream,fontSize:18,fontFamily:'inherit',outline:'none',boxSizing:'border-box',lineHeight:1.6,minHeight:140,fieldSizing:'content',maxHeight:'60vh'},
@@ -3267,7 +3267,7 @@ const S={
   sec:{background:'transparent',color:C.grayL,border:`1px solid ${C.border}`,borderRadius:8,padding:'11px 20px',fontSize:17,fontWeight:500,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:8},
   sm:{background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 14px',fontSize:16,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6},
   smSolid:{background:C.gold,color:C.bg,border:'none',borderRadius:6,padding:'8px 15px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6},
-  out:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'32px 38px',marginTop:18,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
+  out:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'var(--card-pad)',marginTop:18,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
   err:{background:`${C.err}15`,border:`1px solid ${C.err}40`,borderRadius:8,padding:'12px 16px',color:C.err,fontSize:16,marginTop:12,display:'flex',gap:8,alignItems:'flex-start'},
   note:{background:`${C.gold}12`,border:`1px solid ${C.gold}30`,borderRadius:8,padding:'14px 18px',color:C.goldL,fontSize:17,marginBottom:16,lineHeight:1.65},
   row:{display:'flex',gap:12,marginTop:24,flexWrap:'wrap'},
@@ -3454,6 +3454,7 @@ function RecruitersFindMoreBox({busy,onSubmit}){
 // rows, a single editable outreach template (like GTM's), and the GTM-style
 // "add more" box. Pure presentation — state/handlers come from the Focus render.
 function RecruitersCard({data,busy,chosen,onGenerate,onMore,onEditCriteria,onCopy,copied,subhead}){
+  const isMobile=useIsMobile()
   const[editing,setEditing]=useState(false)
   const[ef,setEf]=useState('');const[ei,setEi]=useState('');const[es,setEs]=useState('');const[eg,setEg]=useState('')
   if(!(chosen&&chosen.length>0))return <div>
@@ -3474,7 +3475,7 @@ function RecruitersCard({data,busy,chosen,onGenerate,onMore,onEditCriteria,onCop
       {(c.function||c.industry||c.seniority)&&(editing
         ?<div data-print="hide" style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 14px',margin:'6px 0 14px'}}>
           <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:8}}>Adjust what we're matching on</div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+          <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:10,marginBottom:12}}>
             <label style={{display:'block',fontSize:15,color:C.gray}}>Function<input value={ef} onChange={e=>setEf(e.target.value)} style={editInput}/></label>
             <label style={{display:'block',fontSize:15,color:C.gray}}>Industry<input value={ei} onChange={e=>setEi(e.target.value)} style={editInput}/></label>
             <label style={{display:'block',fontSize:15,color:C.gray}}>Seniority<input value={es} onChange={e=>setEs(e.target.value)} style={editInput}/></label>
@@ -9500,7 +9501,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <h1 style={S.title}>Put It to Work</h1>
       <p style={S.sub}>Your foundation is set. In this section, you decide how to explore your options: a wider look at the directions your background opens up, or a focused playbook for a job description you already have in hand. You can come back to this choice anytime from the sidebar.</p>
       <CoachingCallout>If you have a current opportunity you're pursuing, start here. We'll build your playbook around that specific role.<br/><span style={{color:C.gray}}>No specific opportunity in play yet? Start with Career Paths to explore where you could go.</span></CoachingCallout>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,maxWidth:920,marginTop:8}}>
+      <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:isMobile?14:20,maxWidth:920,marginTop:8}}>
         <button onClick={()=>{markDone('twoDoors');addNewOpportunity()}} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
             <Target size={28} color="#4F7CAC" strokeWidth={1.75}/>

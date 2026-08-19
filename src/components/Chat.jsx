@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import MD from './MD'
 import SpeechBtn, { hasSpeech } from './SpeechBtn'
+import { useIsMobile } from '../use-is-mobile.js'
 
 const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
 
@@ -41,6 +42,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // prompt (e.g. the employment one-tap) on coach-open, not only on a hub screen.
   // Floating only; the embedded view is always "open" and handles its own surfacing.
   useEffect(() => { if (open && !embedded && onOpen) onOpen() }, [open])
+  // Below the breakpoint the floating panel renders as a bottom sheet instead;
+  // see the shell further down. The embedded My Coach view is unaffected.
+  const isMobile = useIsMobile()
   // Esc closes the floating panel. There is no backdrop to click and no
   // dismiss-on-outside-click, so before this the header button was the only exit
   // and a bad top edge could take it off the screen. Floating only: the embedded
@@ -544,7 +548,27 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   }
 
   return (
-    <div data-print="hide" style={{
+    <div data-print="hide" style={isMobile ? {
+      // PHONE: a bottom sheet, not a floating card. The corner panel was sized
+      // for a laptop, where it covers a fraction of the screen; on a phone it
+      // resolved to nearly full width and sat on top of the content (and the
+      // buttons) it was answering questions about. The sheet is anchored to the
+      // bottom edge with only its top corners rounded, so a strip of the page
+      // stays visible above it and the reader keeps their place.
+      //
+      // It sits ABOVE the playbook action bar rather than over it (bottom is
+      // bottomOffset, not 0), so Save as PDF stays reachable while it is open,
+      // and its height reserves that same offset plus a 56px strip of page.
+      position: 'fixed', left: 0, right: 0, bottom: bottomOffset, zIndex: 1000,
+      width: '100%', maxWidth: '100%',
+      height: `min(78dvh, calc(100dvh - ${56 + bottomOffset}px))`,
+      background: '#fff',
+      borderTop: '1px solid #E2E5EA',
+      borderRadius: '16px 16px 0 0',
+      boxShadow: '0 -6px 28px rgba(0,0,0,0.22)',
+      display: 'flex', flexDirection: 'column',
+      fontFamily: 'inherit',
+    } : {
       position: 'fixed', bottom: 24 + bottomOffset, right: 24, zIndex: 1000,
       // Sized for reading, but pulled back from PR #358's half-screen footprint
       // (2026-08-09, min(50vw, 760px)) to min(44vw, 620px): the panel floats over

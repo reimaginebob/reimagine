@@ -1,0 +1,52 @@
+/*
+ * Base stylesheet for Reimagine.
+ *
+ * Reimagine has no CSS framework — everything is inline React styles — so this
+ * file stays deliberately tiny and holds only what an inline style genuinely
+ * cannot express:
+ *
+ *   1. The document-level reset. body carries a browser-default 8px margin that
+ *      nobody chose; React never renders <body>, so no inline style can reach
+ *      it. It framed the app in a white border on desktop and, because the app
+ *      shell is height:100dvh, made every page scroll 16px vertically on a
+ *      phone even when the content fit.
+ *
+ *   2. The responsive card padding. S.card / S.out are spread into ~54 inline
+ *      style objects across src/App.jsx. Rather than thread a breakpoint flag
+ *      through all of them, those two declare `padding: var(--card-pad)` and
+ *      the value is swapped here at the breakpoint. The inline style still wins
+ *      the cascade — it just points at a variable — so this needs no
+ *      !important and stays out of the way of every other inline style.
+ *
+ * BREAKPOINT: the 767px below must stay in step with MOBILE_BREAKPOINT in
+ * src/use-is-mobile.js (max-width is BREAKPOINT - 1, since the hook treats
+ * >= 768 as desktop). scripts/test-breakpoint-sync.mjs fails the build if the
+ * two ever drift, so this comment cannot quietly go stale.
+ */
+
+:root {
+  --card-pad: 32px 38px;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --card-pad: 20px 18px;
+  }
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * Long unbroken strings — a pasted URL, a job-posting link, a long email —
+ * would otherwise push a narrow column sideways and scroll the whole page.
+ * break-word only acts on a word that would ACTUALLY overflow its line, so on
+ * a desktop-width column it never fires and the rendering is unchanged (the
+ * before/after pixel diff for this change is zero).
+ */
+body {
+  overflow-wrap: break-word;
+}
