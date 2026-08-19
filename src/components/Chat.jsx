@@ -481,7 +481,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     return (
       <div data-print="hide" style={{
         display: 'flex', flexDirection: 'column',
-        height: 'min(72vh, 720px)', maxWidth: 820,
+        height: 'min(72dvh, 720px)', maxWidth: 820,
         background: '#fff', border: '1px solid #E2E5EA', borderRadius: 14,
         boxShadow: '0 2px 10px rgba(0,0,0,0.06)', overflow: 'hidden',
         fontFamily: 'inherit',
@@ -560,7 +560,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       // and goes negative on any viewport under roughly 686px. On a 1366x768
       // laptop that put the header, and the only close button, above the top of
       // the window. That is the "the X is hidden" report from 2026-08-06.
-      height: 'min(86vh, 900px)', maxHeight: `calc(100vh - ${48 + bottomOffset}px)`,
+      height: 'min(86dvh, 900px)', maxHeight: `calc(100dvh - ${48 + bottomOffset}px)`,
       background: '#fff',
       border: '1px solid #E2E5EA', borderRadius: 14,
       boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
