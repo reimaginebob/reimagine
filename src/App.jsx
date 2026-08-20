@@ -4426,10 +4426,20 @@ function SubsectionRefineBox({scopeKey,onSubmit,busy,error,label,placeholder,sub
 }
 // Practice this answer (2026-08-20). The per-question practice door under every
 // interview-prep question: the user speaks or types their own answer to THIS
-// question and hands it to My Coach for written feedback. Collapsed to a single
-// secondary button by default so the prep list stays scannable. Deliberately not
-// a gold accordion — SubsectionRefineBox already owns that treatment directly
-// below, and two gold accordions stacked read as two versions of one control.
+// question and hands it to My Coach for written feedback.
+//
+// Weighting (revised 2026-08-20 after Bob saw it live): this first shipped as a
+// quiet outline button, on the reasoning that SubsectionRefineBox already owned
+// the gold treatment directly below and two gold blocks would read as two
+// versions of one control. That optimised for not-repeating instead of for
+// hierarchy, and the result was the card's PRIMARY action rendering as its
+// quietest element — buried under a long STAR read and outshouted by the refine
+// accordion beneath it. It is now the one solid-gold control on the card (Btn
+// small prominent, the documented one-primary-action-per-view treatment), in its
+// own footer zone set off by a rule, with a line of framing beside it. The
+// refine box stays gold-OUTLINE, so the reading order is unambiguous: the answer
+// material, the thing to do with it, then the way to fix it.
+//
 // Reuses SpeechBtn exactly as RefineBox does (textarea + hasSpeech-gated mic), so
 // the typed path is the default and voice is the addition, not the requirement.
 // onPracticeAnswer omitted (demo, or signed out) hides the whole block.
@@ -4441,21 +4451,24 @@ function PracticeAnswerBox({questionText,onPracticeAnswer,who}){
   // question it no longer answers. Reset when the question text changes.
   useEffect(()=>{setAnswer('');setOpen(false)},[questionText])
   if(typeof onPracticeAnswer!=='function')return null
-  return <div data-print="hide" style={{marginTop:12}}>
-    {open?<div style={{border:`1px solid ${C.border}`,borderRadius:8,padding:'14px 16px',background:'#FFFFFF'}}>
-      <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:8}}>Your answer to this question</div>
+  return <div data-print="hide" style={{marginTop:18,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
+    {open?<>
+      <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>Your answer to this question</div>
       <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
         {/* Append, not replace: SpeechBtn freezes `answer` at record-start and
             sends the growing transcript, so a typed start survives dictation. */}
-        <textarea style={{...S.ta,minHeight:110,flex:1}} value={answer} onChange={e=>setAnswer(e.target.value)} placeholder="Say it or type it here, the way you would answer it in the interview."/>
+        <textarea autoFocus style={{...S.ta,minHeight:110,flex:1}} value={answer} onChange={e=>setAnswer(e.target.value)} placeholder="Say it or type it here, the way you would answer it in the interview."/>
         {hasSpeech&&<SpeechBtn onResult={t=>setAnswer(answer+t)} style={{marginTop:2}}/>}
       </div>
       <div style={S.helperText}>{hasSpeech?'Tap the microphone to speak your answer, or type it. ':''}My Coach reads what you wrote and tells you what is working and what to sharpen.</div>
       <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-        <Btn small disabled={!answer.trim()} onClick={()=>onPracticeAnswer(questionText,answer,who)}><MessageCircle size={12}/>Get My Coach's feedback</Btn>
+        <Btn small prominent disabled={!answer.trim()} onClick={()=>onPracticeAnswer(questionText,answer,who)}><MessageCircle size={13}/>Get My Coach's feedback</Btn>
         <Btn small secondary onClick={()=>setOpen(false)}>Close</Btn>
       </div>
-    </div>:<Btn small secondary onClick={()=>setOpen(true)}><MessageCircle size={13}/>Practice this answer</Btn>}
+    </>:<div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+      <Btn small prominent onClick={()=>setOpen(true)}><Mic size={14}/>Practice this answer</Btn>
+      <span style={{fontSize:16,color:C.gray,lineHeight:1.5}}>Answer it out loud, then get My Coach's written feedback on it.</span>
+    </div>}
   </div>
 }
 // Per-question Interview Prep card with per-question SubsectionRefineBox
