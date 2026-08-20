@@ -103,9 +103,19 @@ Absent values are simply omitted — no "not provided" line, which would invite 
 
 One light nudge, not a campaign. The value of an intake question is highest at intake; someone six weeks in has given Coach plenty of context already.
 
-A single Coach message on the surfaces the employment prompt uses (`twoDoors`, `mylib`, `myCoach`, or floating-coach open), with one app-owned quick reply that navigates to the Orientation screen. Same dedupe discipline as the employment prompt: a `seen…` flag in the blob plus a session ref, yields to any prompt already pending, fires once and never again.
+A single Coach message on the surfaces the employment prompt uses (`twoDoors`, `mylib`, `myCoach`, or floating-coach open). Same dedupe discipline as the employment prompt: a `seen…` flag in the blob plus a session ref, yields to any prompt already pending, fires once and never again.
 
-Note the real cost of the free-text decision, accepted knowingly: an existing user cannot answer in one tap the way they can for employment status. They have to go to a screen and type, and the completion rate will be correspondingly lower. That is the right trade for richer input on a field whose primary audience is new users.
+**The answer is given in the conversation, not on a form** (revised 2026-08-20 after the first version shipped). The first draft asked the two questions in the chat and then offered a button that navigated to the Orientation screen — Coach asking a question it would not let you answer. The copy read badly because the interaction was wrong.
+
+The shape that replaced it:
+
+1. Coach asks **one** question and stops. One question maps cleanly to one field; nobody answers two questions in one paragraph.
+2. The person types the answer as an ordinary message. Chat sees that the message directly above carries the intake `checkinKey`, so it routes the text to the field instead of the model — the coach asked, so the coach should not also improvise a reply over a scripted exchange. No Claude call in this path.
+3. The acknowledgement asks the second question, and the second answer closes with where both live.
+
+**No permission tap, unlike the employment / pursuit / values offers.** Those confirm because a regex guessed that an ambient remark was worth saving. Here the app asked the question one turn ago and stores the answer verbatim — nothing is inferred, and there is no model judgement to check. Asking "may I remember what you just told me?" is the odd move.
+
+**What replaces the tap is an undo.** Someone who ignores the question and types something else would otherwise have that stored silently, and simulation showed the failure compounds: the chain asks the second question and swallows a second unrelated message, so Coach answers neither. Each acknowledgement therefore carries one `That wasn't my answer` reply that clears the field and hands the conversation back. Cost-free in the common case, recoverable in the bad one.
 
 ### F. Analytics
 
@@ -120,7 +130,7 @@ Employment status got its own analytics PR (#392, status crossed with door usage
 
 - **Any routing.** No answer opens a screen, biases a door, or selects a nudge family.
 - **Any diagnosis.** No Five Ps mapping, no per-answer Coach instructions, no "if they said X, pivot to Y."
-- **Conversational capture.** Employment status has a plain-language detector that offers to save a mention (`EMPLOYMENT_MENTION_RE`, `src/components/Chat.jsx`). Prose does not admit the same clean one-tap save, and a fuzzy detector on a fuzzy field is a bad first move. The Orientation screen is reachable from the sidebar at any time; that is the revision path for now.
+- **Ambient conversational capture.** Employment status has a plain-language detector that offers to save a mention (`EMPLOYMENT_MENTION_RE`, `src/components/Chat.jsx`). Nothing here watches for someone volunteering their search read out of the blue — a fuzzy detector on a fuzzy field is a bad first move. The scripted exchange in section E is a different thing and is in scope: there, the app asked the question one turn earlier, so the routing is certain rather than guessed.
 - **The tag classifier.** Deferred until the corpus is worth classifying.
 - **Composition with pipeline data.** Coach can already see both the stated intake and the live pipeline for `my_search` users and may notice a mismatch on its own. Nothing is built to force that comparison.
 - **Any new Claude call.** The capture path generates nothing. No prompt changes.
@@ -133,7 +143,8 @@ Employment status got its own analytics PR (#392, status crossed with door usage
 | `api/search-intake.js` | new — write endpoint |
 | `api/_lib/session.js` | add columns to the session `SELECT` |
 | `api/coach.js` | profile query + `buildCoachProfileSlice` lines + staleness constant |
-| `src/App.jsx` | Orientation fields, local state, save handler, existing-user prompt |
+| `src/App.jsx` | Orientation fields, local state, save handler, scripted Coach exchange + undo |
+| `src/components/Chat.jsx` | routes an answer to the intake field instead of the model |
 | `api/admin/analytics.js` | new panel |
 | `src/AdminDashboard.jsx` | render the panel |
 | `src/data/user-guide/orientation.md` | screen list + Screen 2 section |

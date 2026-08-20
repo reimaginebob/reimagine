@@ -29,7 +29,13 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, allowGeneralMode = false }) {
+// Search intake: which stored field each scripted question is collecting. The
+// checkinKey on the assistant message is the only thing that routes an answer,
+// so one question maps to exactly one field and a derailed conversation simply
+// stores nothing.
+const SEARCH_INTAKE_FIELDS = { 'search-intake-well': 'goingWell', 'search-intake-focus': 'focus' }
+
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onSearchIntakeAnswer = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, allowGeneralMode = false }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -219,6 +225,26 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     const text = (typeof explicit === 'string' ? explicit : input).trim()
     if (!text || loading) return
     const userMsg = { role: 'user', content: text }
+    // Search-intake answer (consult 2026-08-20). When the message immediately
+    // above is a question THIS COMPONENT asked, the user is answering it, so the
+    // reply is handled here and never sent to the model: the coach asked, so the
+    // coach should not also improvise a response over a scripted two-step.
+    //
+    // No permission tap, unlike the employment / pursuit / values offers above.
+    // Those confirm because a regex guessed that an ambient remark was worth
+    // saving; here the app asked the question one turn ago and stores the answer
+    // verbatim, so nothing is being inferred and there is no model judgement to
+    // check. Asking "may I remember what you just told me?" would be the odd move.
+    // What replaces the tap is disclosure: the follow-up says it was saved and
+    // names the screen where it can be changed.
+    const lastAssistant = [...(messages || [])].reverse().find(mm => mm && mm.role === 'assistant' && mm.content)
+    const answering = lastAssistant && SEARCH_INTAKE_FIELDS[lastAssistant.checkinKey]
+    if (answering && onSearchIntakeAnswer) {
+      const followUp = await onSearchIntakeAnswer(answering, text)
+      setMessages(m => [...m, userMsg, ...(followUp ? [followUp] : [])])
+      setInput('')
+      return
+    }
     // (sendRef is refreshed just below so the seed effect can call the latest send.)
     const historyAtSend = messages
     setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])
