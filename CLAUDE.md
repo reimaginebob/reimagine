@@ -149,6 +149,13 @@ Briefs that come back at 25-80% of their original scope after pre-flight are com
   src/
     App.jsx                        main app, all prompt builders, META, voice-allow regions
     main.jsx                       entry
+    base.css                       document-level reset + --card-pad (responsive card
+                                   padding). Deliberately tiny: only what an inline
+                                   style cannot reach. Its media query must stay in
+                                   step with MOBILE_BREAKPOINT (gated, see scripts/).
+    use-is-mobile.js               useIsMobile() + MOBILE_BREAKPOINT (768). SINGLE
+                                   source of truth for the narrow-screen switch.
+    print.css                      print stylesheet (paper layout)
     components/
       Chat.jsx                     My Coach chat UI (prose-only)
       CookieBanner.jsx
@@ -170,6 +177,10 @@ Briefs that come back at 25-80% of their original scope after pre-flight are com
     check-voice.mjs                voice gate (build-time, also runtime via api/claude.js)
     check-prompt-refs.mjs          pc / prompt-reference checks
     check-coach-nav-map.mjs        coach nav map regenerate-and-compare gate
+    test-breakpoint-sync.mjs       fails the build if src/base.css's media query
+                                   drifts from MOBILE_BREAKPOINT (the breakpoint
+                                   lives in both JS and CSS; drift would be wrong
+                                   only in the band between the two values)
     build-user-guide.mjs           regenerates user-guide artifacts
     reimagine-corrections-log.gs   Apps Script for corrections logging
     ... other build scripts
@@ -203,7 +214,7 @@ Two notes on drift:
 - **Pull before editing.** Workspace copies drift from main. Always sync before editing source files.
 - **Docs stay current with every feature change (no exceptions).** Any PR that adds, changes, or removes a user-facing capability updates, in the SAME PR: (1) the user guide (`src/data/user-guide/`) and (2) the My Coach feature catalog (`FEATURE_MAP` in `src/coach-routing.js`, then `npm run gen:coach-nav-map`). A stale Coach actively misinforms users (e.g., telling them a capability "isn't in the tool" after it shipped), which is worse than no answer. "Guide/coach later" is not a valid scope cut. Briefs must list these as affected files whenever the change is user-facing.
 - **App.jsx integrity.** Check line count and EOF closure before AND after every edit. Never ship a file that ends mid-tag.
-- **Minimum font sizes (legibility floor, no exceptions).** No user-facing text below **15px**; interactive elements — inputs, buttons, tappable labels — at **16px+**. Reimagine has no CSS framework (all inline styles), so reach for the `S` primitives instead of ad-hoc `fontSize`: `S.inp`/`S.ta` (18px inputs), `S.label` (15px), `S.sm`/`S.smSolid` (16px small buttons), `S.helperText` (16px). `scripts/check-fontsize.mjs` (prebuild) is a **ratchet**: it fails the build if the count of sub-15px `fontSize:` values rises above its baseline. Never raise the baseline; lower it as areas are cleaned (goal 0). For a prominent small button (a CTA, e.g. a Build action), use `<Btn small prominent>` (gold) — reserve it for the ONE primary action per view; utility small buttons (Copy, Print) stay outline. The gate scans camelCase `fontSize:` in `src/App.jsx` + `src/components/`; keep new UI files in `src/components/` so they are covered.
+- **Minimum font sizes (legibility floor, no exceptions).** No user-facing text below **15px**; interactive elements — inputs, buttons, tappable labels — at **16px+**. Reimagine has no CSS framework (inline styles, plus `src/base.css` for the few document-level things an inline style cannot reach), so reach for the `S` primitives instead of ad-hoc `fontSize`: `S.inp`/`S.ta` (18px inputs), `S.label` (15px), `S.sm`/`S.smSolid` (16px small buttons), `S.helperText` (16px). `scripts/check-fontsize.mjs` (prebuild) is a **ratchet**: it fails the build if the count of sub-15px `fontSize:` values rises above its baseline. Never raise the baseline; lower it as areas are cleaned (goal 0). For a prominent small button (a CTA, e.g. a Build action), use `<Btn small prominent>` (gold) — reserve it for the ONE primary action per view; utility small buttons (Copy, Print) stay outline. The gate scans camelCase `fontSize:` in `src/App.jsx` + `src/components/`; keep new UI files in `src/components/` so they are covered.
 - **Instructions and directions get a distinct visual treatment (no exceptions).** Explainer text, helper copy, and any "here's how to use this" guidance must be visually distinguishable at a glance from body content, labels, and controls — a reader should never have to parse prose to tell what is instruction versus what is data or an input. Use the established `CoachingCallout` treatment (gold `borderLeft` + tint, `src/App.jsx`) or an equivalent accented block; never style guidance as a plain gray paragraph that reads like body text. New surfaces bake this in; existing ones are brought into line as they are touched.
 - **No effort estimates.** Engineer-days, weeks, hours, t-shirt sizes are not useful. Describe scope in terms of what it touches (files, surfaces, invariants).
 - **Batch updates during beta.** Don't push improvements continuously. Queue and ship in batches so user feedback maps to known builds.
@@ -278,7 +289,8 @@ When CTO / CPO / Consumer Insights / Marketing / Design-UX roles disagree intern
 
 ## 11. Known gaps and deferrals
 
-- **Mobile responsiveness.** Reimagine is desktop-first with hardcoded widths. Portrait phone view is broken; landscape works "good enough." Every brief notes mobile implications until a Complete Mobile Responsiveness brief lands.
+- **Mobile responsiveness — largely CLOSED 2026-08-19** (PRs #469, #470, #471). Portrait phone works: below `MOBILE_BREAKPOINT` (768, `src/use-is-mobile.js`) the nav rail becomes a slide-out drawer, the playbook section rail stacks above its content, card padding tightens via `--card-pad`, the two remaining `1fr 1fr` grids collapse, and the coach opens as a bottom sheet. The shells use `100dvh` rather than `100vh`, which also fixed landscape (the old "good enough" was the address bar covering the bottom of the app). Briefs no longer need a standing mobile caveat.
+  **What is still open:** wide data tables and long generated prose have not been reviewed on a very narrow screen; no real Android device has been tested (verification was Chromium at phone viewports plus one iPhone pass by Bob); and the `check-fontsize` ratchet does not see CSS files, so any future `font-size` added to `src/base.css` is outside the 15px floor.
 - **V2 launch bundle.** Accounts, paywall, referral, analytics, infrastructure, support — bundled launch planned. Brief at `Output/briefs/2026-05-04_reimagine-launch-plan.md`.
 - **MYOW corpus injection** into Personal Brand synthesis. Open verification gate from the KYV consolidation work.
 - **No BLS/Lightcast labor-market integration.** Intentional. Anti-linear by design. Native LLM training produces both linear and lateral answers.
