@@ -63,7 +63,7 @@ export const FEATURE_MAP = [
   { slug: 'resume-refresh',       reach: 'focus-gated', labelId: 'p_res',
     does: 'repoints the resume at a chosen direction, with a Human version for recruiters and an ATS version for online applications behind a toggle; the top Career Highlights and the body bullets are written to complement, not repeat, each other' },
   { slug: 'interview-prep',       reach: 'focus-gated', labelId: 'p11',
-    does: 'works the likely interview questions with worked-through answers' },
+    does: 'works the likely interview questions with worked-through answers; under each question a "Practice this answer" box lets the person speak or type their own answer and send it here for written feedback on it' },
   { slug: 'industry-background',  reach: 'focus-gated', labelId: 'p9',
     does: "builds fluency in a new sector's language and players" },
 
