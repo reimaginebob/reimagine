@@ -148,7 +148,36 @@ function buildPursuitStatusBlock(state, pursuitRows) {
   return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nWhen they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An active opportunity marked "no next meeting scheduled" has no forward motion booked — treat that as a real signal, not a neutral fact: it usually means the next move is to get a conversation on the calendar. Past-due is the next-step date only; a meeting that already happened is not overdue. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
 }
 
-function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows) {
+// Search-intake staleness (consult 2026-08-20). Past this age the two intake
+// answers stop being injected at all. The whole point of the field is to give
+// the coach a warm start in the first weeks; a day-one read is worth a lot then
+// and close to nothing months later, by which time repeating it back would be
+// telling someone their search still has a problem they may have long since
+// solved. Tunable: the number is a judgement call, not a measured threshold.
+const SEARCH_INTAKE_STALE_DAYS = 90
+
+// Renders one intake answer as dated background, or '' when it is absent or
+// stale. Each line names the search as its subject: on screen the two questions
+// sit together and the first one frames the second, but here they are separate
+// lines in a long block, so the framing has to be restated or "what they wanted
+// to improve" reads as a claim about the person.
+function searchIntakeLine(label, value, updatedAt) {
+  const text = typeof value === 'string' ? value.trim() : ''
+  if (!text) return ''
+  const when = updatedAt ? new Date(updatedAt) : null
+  if (!when || Number.isNaN(when.getTime())) return ''
+  const days = Math.floor((Date.now() - when.getTime()) / 86400000)
+  if (days > SEARCH_INTAKE_STALE_DAYS) return ''
+  const monthYear = when.toLocaleDateString('en-US', { year: 'numeric', month: 'long', timeZone: 'UTC' })
+  const months = Math.floor(days / 30)
+  const ago = days < 1 ? 'today'
+    : days < 14 ? `${days} day${days === 1 ? '' : 's'} ago`
+    : months < 2 ? `${Math.floor(days / 7)} weeks ago`
+      : `${months} months ago`
+  return `${label}, in their own words at Orientation in ${monthYear} (${ago}): "${text}"`
+}
+
+function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake) {
   if (!state || typeof state !== 'object') {
     // No profile at all — definitionally pre-Personal-Brand, so the sidebar is the
     // Orientation phase list. Carry the same navigation gate as the main path below
@@ -169,6 +198,20 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   if (Array.isArray(skills.languages) && skills.languages.length) skillLines.push(`Languages: ${skills.languages.join(', ')}`)
   if (Array.isArray(skills.methodologies) && skills.methodologies.length) skillLines.push(`Methodologies: ${skills.methodologies.join(', ')}`)
 
+  // How the person read their own search when they arrived. Dated on purpose and
+  // dropped once stale (searchIntakeLine): it is a starting point, not a standing
+  // label, and the guardrail below says so in as many words. Absent answers are
+  // omitted entirely rather than rendered as "not provided", which would invite
+  // the coach to go fishing for them.
+  const si = searchIntake || {}
+  const intakeLines = [
+    searchIntakeLine('WHAT THEY SAID WAS GOING WELL IN THEIR SEARCH', si.goingWell, si.goingWellAt),
+    searchIntakeLine('WHAT THEY SAID THEY WANTED TO IMPROVE ABOUT THEIR SEARCH', si.focus, si.focusAt),
+  ].filter(Boolean)
+  const searchIntakeBlock = intakeLines.length
+    ? `${intakeLines.join('\n')}\nThat is how they described their search when they started, and it describes the search, not the person. It is background on where they came in — not a current diagnosis, not a standing label, and not a settled read on where things stand today. People move on, and what they named then may be long since handled. Do not open a conversation by returning to it, and never tell them it is still their problem.`
+    : ''
+
   // Anchor 1: the Personal Brand synthesis (the integrated read of values,
   // passions, reputation, resume, and assessments) plus the user's own raw
   // signals. Field labels mirror src/profile-block.mjs buildUserProfileBlock.
@@ -184,6 +227,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
       : employmentStatus === 'in_transition' ? 'EMPLOYMENT STATUS: in transition (not currently employed). This may inform urgency and cadence, but do not assume how much time they have or lecture them on speed — ask.'
       : employmentStatus === 'role_ending' ? 'EMPLOYMENT STATUS: employed with a role that is ending soon (notice period, announced layoff, or a contract winding down). Treat this like an active search on a clock, but ask about their timeline and available time rather than assuming it.'
       : 'EMPLOYMENT STATUS: not yet provided. Do not assume whether they are employed or searching; if it would change your advice, you may ask.'),
+    searchIntakeBlock,
     `PRACTICAL PRIORITIES (their own non-negotiables from Orientation — use these directly when the conversation is about an offer, a role's fit, or compensation):`,
     `  Compensation floor: ${txt(pr.compFloor) || 'not provided'}`,
     `  Commute / remote needs: ${txt(pr.workReq) || 'not provided'}`,
@@ -198,7 +242,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
     `VALIDATED HARD SKILLS:\n${skillLines.length ? skillLines.join('\n') : 'not provided'}`,
     `ASSESSMENT TYPE: ${txt(pr.assessType) || 'not provided'}`,
     `ASSESSMENT NOTES: ${txt(pr.assess) || 'not provided'}`,
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 
   // Anchor 2: the resume itself.
   const resume = txt(pr.resume)
@@ -615,11 +659,18 @@ export default async function handler(req, res) {
   let profileState = null
   let employmentStatus = null
   let featureFlags = []
+  let searchIntake = null
   try {
-    const rows = await sql`SELECT profile_state, employment_status, feature_flags FROM users WHERE id = ${user.id} LIMIT 1`
+    const rows = await sql`SELECT profile_state, employment_status, feature_flags, search_going_well, search_going_well_updated_at, search_focus, search_focus_updated_at FROM users WHERE id = ${user.id} LIMIT 1`
     profileState = rows.length ? rows[0].profile_state : null
     employmentStatus = rows.length ? rows[0].employment_status : null
     featureFlags = rows.length && Array.isArray(rows[0].feature_flags) ? rows[0].feature_flags : []
+    searchIntake = rows.length ? {
+      goingWell: rows[0].search_going_well,
+      goingWellAt: rows[0].search_going_well_updated_at,
+      focus: rows[0].search_focus,
+      focusAt: rows[0].search_focus_updated_at,
+    } : null
   } catch (err) {
     console.error('coach profile read failed:', err)
     // Fall through with a null profile rather than failing the turn.
@@ -635,7 +686,7 @@ export default async function handler(req, res) {
       console.error('coach pursuit read failed:', err)
     }
   }
-  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows)
+  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake)
   // Anchor today's date. The coach is otherwise never told the current date, so
   // any past/future or elapsed-time reasoning it does itself is unanchored
   // guesswork — it once called an Aug 24 follow-up "overdue by nine weeks" on

@@ -3216,6 +3216,16 @@ const EMPLOYMENT_QUICK_REPLIES=[
   {label:'Role Ending Soon',value:'role_ending',followUp:'Got it — we\'ll treat this like a search on a clock when it matters.'},
 ]
 const employmentPromptMessage=(lead)=>({role:'assistant',content:(lead||'One quick thing so your coaching fits where you actually are — ')+'how would you describe your work situation right now?',checkinKey:'employment-status',quickReplies:EMPLOYMENT_QUICK_REPLIES})
+// Search intake, existing users (consult 2026-08-20). Prose does not admit the
+// one-tap answer that employment status gets, so the quick reply navigates to the
+// screen instead of writing a value — the fields themselves do the writing. One
+// nudge, never a campaign: this is an intake question, and someone weeks into
+// their search has already given the coach plenty to work with.
+const SEARCH_INTAKE_QUICK_REPLIES=[
+  {label:'Sure, take me there',value:'go',followUp:'Opening it now — the two questions are at the bottom of the screen.'},
+  {label:'Not now',value:'dismiss',followUp:'No problem. It\'s on the Your Current Situation screen whenever you want it.'},
+]
+const searchIntakePromptMessage=()=>({role:'assistant',content:'Two questions I\'d normally ask at the start, so I can pick up where you are: what\'s going well in your search right now, and what you\'d like to improve. Want to add them?',checkinKey:'search-intake',quickReplies:SEARCH_INTAKE_QUICK_REPLIES})
 // My Search (brief 2026-08-14). Stage vocabulary shared by the card editor and
 // the Coach one-tap capture. value is the stored enum; label is the render-true
 // name. The tap is always the user's — the detector only decides whether to
@@ -5278,6 +5288,13 @@ export default function PivotEngine(){
   const[employmentStatus,setEmploymentStatus]=useState('')
   const[seenEmploymentPrompt,setSeenEmploymentPrompt]=useState(false)
   const employmentPromptFiredRef=useRef(false)
+  // Search intake (consult 2026-08-20). Two free-text answers on the same screen
+  // and in their own columns, for the same clobber reason as employment status.
+  // Local state mirrors the field for editing; the write goes out on blur.
+  const[searchGoingWell,setSearchGoingWell]=useState('')
+  const[searchFocus,setSearchFocus]=useState('')
+  const[seenSearchIntakePrompt,setSeenSearchIntakePrompt]=useState(false)
+  const searchIntakePromptFiredRef=useRef(false)
   const[coachOpenTick,setCoachOpenTick]=useState(0)
   // My Search (brief 2026-08-14). Per-user gate + the pursuit-status list.
   // featureFlags rides on the signed-in user row (via getSessionUser -> /api/me),
@@ -5321,10 +5338,23 @@ export default function PivotEngine(){
     setEmploymentStatus(value)
     try{await fetch('/api/employment',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:value})})}catch{/* best-effort; local state already reflects it */}
   }
+  // Search intake (consult 2026-08-20): the person's own read on their search,
+  // captured on the Your Current Situation screen. Same column-not-blob shape as
+  // employment status, and likewise never marks the Personal Brand stale —
+  // these answers feed My Coach, not generation. Debounced on blur rather than
+  // per-keystroke: prose, not a tap.
+  const saveSearchIntake=(patch)=>{
+    if(isDemo||isTest)return
+    try{fetch('/api/search-intake',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}).catch(()=>{})}catch{}
+  }
   // The handler Chat calls on a quick-reply tap. Returns true for the employment
   // key so Chat does NOT fall back to the pb-checkin log.
   const handleEmploymentQuickReply=async(checkinKey,value)=>{
     if(checkinKey==='employment-status'){await saveEmployment(value);return true}
+    // Search intake: the tap navigates, it does not write. The two fields on the
+    // Orientation screen are the only writers, so the person always sees what they
+    // are saying before it is saved.
+    if(checkinKey==='search-intake'){if(value==='go')nav('location');return true}
     // My Search stage capture. Needs the record id of the open opportunity; if
     // none is open, do nothing rather than write to the wrong record.
     if(checkinKey==='pursuit-stage'){
@@ -5492,7 +5522,7 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
   // Hydrate the saved playbooks set from its own localStorage key on mount.
   // Demo mode skips persistence; test mode wipes the key so test sessions
   // start clean (mirrors the pe_v4 gating one line up).
@@ -5513,7 +5543,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
@@ -5571,6 +5601,25 @@ export default function PivotEngine(){
     setChatMessages(m=>[...m,employmentPromptMessage()])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest])
+  // One-time search-intake prompt for users who signed up before this shipped
+  // (consult 2026-08-20). Same surfaces and same dedupe discipline as the
+  // employment prompt above, and it queues BEHIND that one: a returning user who
+  // owes both answers gets one question per visit, not two at once. Self-limiting
+  // — once either field holds text the guard is false forever, and a dismisser is
+  // never re-asked because the flag rides the profile blob.
+  useEffect(()=>{
+    if(isDemo||isTest)return
+    const onPromptSurface=step==='twoDoors'||step==='mylib'||step==='myCoach'
+    if((!onPromptSurface&&!coachOpenTick)||!signedInUser)return
+    if(searchGoingWell||searchFocus||seenSearchIntakePrompt||searchIntakePromptFiredRef.current)return
+    // Yield to both prompts that can share these surfaces.
+    if(employmentPromptFiredRef.current||(!employmentStatus&&!seenEmploymentPrompt))return
+    if(step==='twoDoors'&&(pbCheckinFiredRef.current||(!seenPbCheckin&&outputs&&outputs.p3)))return
+    searchIntakePromptFiredRef.current=true
+    setSeenSearchIntakePrompt(true)
+    setChatMessages(m=>[...m,searchIntakePromptMessage()])
+    setPbCheckinOpenReq(x=>x+1)
+  },[step,signedInUser,searchGoingWell,searchFocus,seenSearchIntakePrompt,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest])
   // Skills step: on first arrival with empty skills and at least one source
   // document (resume or LinkedIn paste), trigger a JSON-only extraction pass.
   // Subsequent visits or pre-populated skills skip the call. The Re-extract
@@ -5630,7 +5679,7 @@ export default function PivotEngine(){
     if(deletingRef.current)return
     setSaveStatus('saving')
     try{
-      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt})
+      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt})
       localStorage.setItem('pe_v4',blob)
       // The localStorage write above is unconditional; only the server PUT is
       // gated. Holding the PUT until /api/profile/load has settled is what stops
@@ -5644,7 +5693,7 @@ export default function PivotEngine(){
       setLastSaveAt(Date.now())
       setSaveStatus('saved')
     }catch{setSaveStatus('error')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,signedInUser,serverLoadDone,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,signedInUser,serverLoadDone,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // savedPlaybooks rides in the autosave blob above (PUT to /api/profile/save)
@@ -9225,8 +9274,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
     case'location':return <div>
       <div style={S.tag('#8A9BB8')}>Orientation</div>
-      <h1 style={S.title}>Location & Work Preferences</h1>
-      <p style={S.sub}>This shapes every opportunity we generate and every company we identify.</p>
+      <h1 style={S.title}>Your Current Situation</h1>
+      <p style={S.sub}>Where you are and how your search is going right now. This shapes every opportunity we generate and every company we identify, and it gives your coach a place to start.</p>
       <div style={S.card}>
         <div style={S.field}><label style={S.label}>Country / Region<InfoTooltip label="Why we ask">Reimagine uses your location to filter realistic company targets, work arrangements, and market context. Pick the country you are based in or want to work in.</InfoTooltip></label><input list="country-list" style={S.inp} value={profile.loc.country} onChange={e=>loc('country',e.target.value)} placeholder="Start typing or select from the list" autoComplete="off"/><datalist id="country-list">{COUNTRY_OPTIONS.map(c=><option key={c} value={c}/>)}</datalist></div>
         <div style={S.field}><label style={S.label}>City or Metro <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label><input style={S.inp} value={profile.loc.city} onChange={e=>loc('city',e.target.value)} placeholder="e.g. Chicago, Greater London, Munich metro"/></div>
@@ -9254,6 +9303,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             })}
           </div>
         </div>
+        {/* Search intake (consult 2026-08-20). Optional on purpose, unlike the
+            employment radio above it: a thin answer beats a coerced one, and the
+            person who has nothing to say yet is exactly the one for whom a forced
+            answer would be noise. Written to their own columns on blur, read only
+            by My Coach — these never feed generation, so they do not mark the
+            Personal Brand stale. Question one frames question two: it establishes
+            the search as the subject so "improve" lands on the search, not the
+            person. Keep them in this order and keep them adjacent. */}
+        <div style={S.field}><label style={S.label}>What&apos;s going well in your search right now?<InfoTooltip label="Why we ask">Your coach reads this so it can start where you actually are, instead of asking you to re-explain your search every time you open it. Come back and change it whenever you like.</InfoTooltip> <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label>
+          <div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={searchGoingWell} onChange={e=>setSearchGoingWell(e.target.value)} onBlur={()=>saveSearchIntake({goingWell:searchGoingWell})} placeholder="e.g. I'm getting first conversations from my network, my resume is finally saying what I do, I know the two industries I'm aiming at…"/>{hasSpeech&&<SpeechBtn onResult={t=>setSearchGoingWell(searchGoingWell+t)}/>}</div>
+        </div>
+        <div style={S.field}><label style={S.label}>What would you like to improve? <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label>
+          <div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={searchFocus} onChange={e=>setSearchFocus(e.target.value)} onBlur={()=>saveSearchIntake({focus:searchFocus})} placeholder="e.g. applications go quiet after I send them, I want more warm introductions, I get to final rounds and stop there…"/>{hasSpeech&&<SpeechBtn onResult={t=>setSearchFocus(searchFocus+t)}/>}</div>
+        </div>
+        <ThinNudge text="Say as much as you want in both. Whatever you write here is yours to change any time, and it is what lets your coach pick up where you are rather than starting from scratch." mic="Prefer to talk? Tap a mic and say it out loud; it's often easier than typing."/>
       </div>
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('welcome')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{const needEmployment=!done.includes('location')&&!employmentStatus;if(!profile.loc.country||!Array.isArray(profile.loc.work)||profile.loc.work.length===0){setErr('Please complete your country and at least one work preference.');return}if(needEmployment){setErr('Please choose how you\'d describe your work right now.');return}advance('location','resume')}}>Continue <ChevronRight size={14}/></Btn></div>

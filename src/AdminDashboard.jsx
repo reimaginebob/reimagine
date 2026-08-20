@@ -238,6 +238,7 @@ export default function AdminDashboard() {
     return [...m.values()].sort((a, b) => b.total - a.total || b.sections - a.sections)
   })()
   const employment = ((payload && payload.panel_1c_employment) || []).slice().sort((a, b) => EMPLOYMENT_ORDER.indexOf(a.status) - EMPLOYMENT_ORDER.indexOf(b.status))
+  const searchIntake = (payload && payload.panel_1e_search_intake) || []
   const paused = (payload && payload.panel_1d_paused_accounts) || []
   const funnel = (payload && payload.panel_2_funnel) || []
   const nps = (payload && payload.panel_3_nps) || {}
@@ -376,6 +377,29 @@ export default function AdminDashboard() {
                   </tr>
                 ))}
                 {employment.length === 0 && <tr><Td colSpan={4} muted>No employment data yet.</Td></tr>}
+              </tbody>
+            </table>
+          </Panel>
+
+          {/* Panel 1e: search intake, in the users' own words. Raw answers rather
+              than a breakdown on purpose — at this user count reading them is
+              worth more than any chart, and they are what would decide a tag set
+              if one ever earns its keep. */}
+          <Panel title="What people said about their search">
+            <table style={S.table}>
+              <thead><tr>
+                <Th>User</Th><Th>Going well</Th><Th>Would like to improve</Th><Th>Answered</Th>
+              </tr></thead>
+              <tbody>
+                {searchIntake.map((r) => (
+                  <tr key={r.email}>
+                    <Td>{r.email}</Td>
+                    <Td>{r.going_well || <span style={{ opacity: 0.5 }}>—</span>}</Td>
+                    <Td>{r.focus || <span style={{ opacity: 0.5 }}>—</span>}</Td>
+                    <Td>{(r.focus_at || r.going_well_at) ? new Date(r.focus_at || r.going_well_at).toLocaleDateString() : "—"}</Td>
+                  </tr>
+                ))}
+                {searchIntake.length === 0 && <tr><Td colSpan={4} muted>Nobody has answered these yet.</Td></tr>}
               </tbody>
             </table>
           </Panel>

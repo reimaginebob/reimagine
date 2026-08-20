@@ -9,7 +9,7 @@ If you have not read **The Quality of Your Inputs** yet, do that first. This cha
 Orientation has ten screens, in this order:
 
 1. Welcome
-2. Location & Work
+2. Your Current Situation
 3. Your Resume
 4. Your LinkedIn (optional)
 5. Assessments
@@ -35,9 +35,9 @@ If you have used Reimagine before and your session is still active in this brows
 
 Before You Begin has more detail on sign-in and what to do if the link does not arrive.
 
-## Screen 2: Location & Work
+## Screen 2: Your Current Situation
 
-This shapes every option Reimagine generates and every company it identifies later in the journey.
+Where you are and how your search is going right now. The first half shapes every option Reimagine generates and every company it identifies later in the journey. The second half is what your coach reads so it can start where you actually are.
 
 **Country / Region.** The country you are based in or want to work in. Required. The field is an autocomplete dropdown: type the first few letters and a list of common countries appears. You can also type a country not on the list and it accepts free text.
 
@@ -50,6 +50,20 @@ This shapes every option Reimagine generates and every company it identifies lat
 - On-site
 
 If you are open to multiple arrangements, select multiple. If your situation is more specific (e.g., you would relocate only to two specific cities), pick your preferred arrangements here and clarify in the values or in a refine step later.
+
+**Your work right now.** Required. Currently Employed, In Transition, or Role Ending Soon. It helps your playbooks and your coach fit the situation you are actually in. If it changes — and the change is often the good news — come back and change it.
+
+### What's going well in your search right now?
+
+Optional, and free text. Whatever is working: first conversations coming in, a resume that finally says what you do, two industries you have settled on.
+
+### What would you like to improve?
+
+Optional, and free text. Whatever is not moving: applications that go quiet, wanting more warm introductions, getting to final rounds and stopping there.
+
+Both questions are the two a coach would open with, and they exist so My Coach can pick up where you are instead of asking you to re-explain your search every time you open it. Neither is required, there is no right length, and there is a mic on each if talking is easier than typing.
+
+They are also a snapshot, not a label. Your coach treats them as how things looked when you wrote them, and stops referring to them once they are old enough to be out of date. You can change either one any time by coming back to this screen from the sidebar.
 
 Click **Continue** when you are done.
 
