@@ -7514,11 +7514,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // unauthenticated click lands on a sign-in wall instead of a working coach.
     // The seed names no framework on purpose — the coach's own routing picks
     // STAR, SCOPE, the 4 C's or the 5 P's from the situation, and this list
-    // includes non-behavioral questions where STAR is the wrong tool. autoSend
-    // stays false (the convention everywhere but the My Pipeline read buttons) so
-    // a speech-to-text slip is editable before it is sent.
+    // includes non-behavioral questions where STAR is the wrong tool. autoSend is
+    // TRUE here (2026-08-20, Bob): the answer was already composed and reviewed in
+    // the practice box, so landing in the coach with an unsent draft is one more
+    // click for no gain. The reviewable-draft convention applies to seeds the user
+    // has not written; this one they wrote.
     const practiceRole=(ip.role_context&&typeof ip.role_context.target_role==='string')?ip.role_context.target_role.trim():''
-    const onPracticeAnswer=(!isDemo&&signedInUser)?((questionText,answerText,withWhom)=>openCoachWith(`I am practicing for an interview${practiceRole?` for ${practiceRole}`:''}${withWhom?` with ${withWhom}`:''}. The question is: "${questionText}"\n\nHere is my answer:\n\n${(answerText||'').trim()}\n\nWhat feedback do you have?`)):undefined
+    const onPracticeAnswer=(!isDemo&&signedInUser)?((questionText,answerText,withWhom)=>openCoachWith(`I am practicing for an interview${practiceRole?` for ${practiceRole}`:''}${withWhom?` with ${withWhom}`:''}. The question is: "${questionText}"\n\nHere is my answer:\n\n${(answerText||'').trim()}\n\nWhat feedback do you have?`,true)):undefined
     // Interview Team consolidation (PR-4b, item J): per-person prep is the one
     // home when a team exists. Full answers are drafted on demand per story; old
     // STAR shape (below) renders unchanged when there is no team.

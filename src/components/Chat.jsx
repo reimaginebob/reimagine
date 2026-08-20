@@ -65,10 +65,18 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // Holds the latest send() so the seed effect (declared above send) can fire it
   // for seedAuto without a use-before-define; refreshed each render below.
   const sendRef = useRef(null)
+  // The input grows with its content (2026-08-20). It was a fixed 2 rows, which
+  // is fine for "how do I answer this?" and wrong for everything longer — a
+  // prefilled seed or a dictated interview answer arrived scrolled to its last
+  // line with no way to see the whole thing without dragging the resize handle.
+  // Capped so a long message cannot eat the reply thread; past the cap it
+  // scrolls. The CSS min-height holds the resting two-row size.
+  const inputTaRef = useRef(null)
   // Coach doors (PR-3, item H): when opened with a seed (e.g. "Help me prep for
   // my interview with Renata…"), prefill the input once so the user can review
   // and send. seedAuto flips that to fire-immediately — the My Pipeline "read"
-  // buttons open the coach and want the question sent, not left in the box.
+  // buttons and the Interview Prep "Practice this answer" door open the coach
+  // and want the message sent, not left sitting in the box.
   useEffect(() => {
     if (seed && seed.trim()) {
       if (seedAuto) sendRef.current(seed)
@@ -76,6 +84,12 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       if (typeof onSeedConsumed === 'function') onSeedConsumed()
     }
   }, [seed])
+  useEffect(() => {
+    const el = inputTaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 220) + 'px'
+  }, [input])
   const [loading, setLoading] = useState(false)
   const messagesContainerRef = useRef(null)
   // Per-message DOM refs populated by the ref callback in the messages.map
@@ -449,6 +463,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       )}
       <div style={{ padding: 12, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
       <textarea
+        ref={inputTaRef}
         autoFocus
         rows={2}
         value={input}
@@ -459,7 +474,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         style={{
           flex: 1, padding: '8px 12px', border: '1px solid #E2E5EA',
           borderRadius: 8, fontSize: 18, fontFamily: 'inherit', color: '#1A2540',
-          resize: 'vertical', lineHeight: 1.4,
+          resize: 'vertical', lineHeight: 1.4, minHeight: 62, maxHeight: 220, overflowY: 'auto',
         }}
       />
       {hasSpeech && <SpeechBtn onResult={t => setInput((input || '') + t)} C={C} title="Speak your question" />}
