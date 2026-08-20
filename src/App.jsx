@@ -4424,6 +4424,40 @@ function SubsectionRefineBox({scopeKey,onSubmit,busy,error,label,placeholder,sub
     </div>}
   </div>
 }
+// Practice this answer (2026-08-20). The per-question practice door under every
+// interview-prep question: the user speaks or types their own answer to THIS
+// question and hands it to My Coach for written feedback. Collapsed to a single
+// secondary button by default so the prep list stays scannable. Deliberately not
+// a gold accordion — SubsectionRefineBox already owns that treatment directly
+// below, and two gold accordions stacked read as two versions of one control.
+// Reuses SpeechBtn exactly as RefineBox does (textarea + hasSpeech-gated mic), so
+// the typed path is the default and voice is the addition, not the requirement.
+// onPracticeAnswer omitted (demo, or signed out) hides the whole block.
+function PracticeAnswerBox({questionText,onPracticeAnswer,who}){
+  const[open,setOpen]=useState(false)
+  const[answer,setAnswer]=useState('')
+  // A per-question regenerate rewrites the question in place while the React key
+  // (q.id||qi) usually holds, so a draft answer would otherwise survive under a
+  // question it no longer answers. Reset when the question text changes.
+  useEffect(()=>{setAnswer('');setOpen(false)},[questionText])
+  if(typeof onPracticeAnswer!=='function')return null
+  return <div data-print="hide" style={{marginTop:12}}>
+    {open?<div style={{border:`1px solid ${C.border}`,borderRadius:8,padding:'14px 16px',background:'#FFFFFF'}}>
+      <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:8}}>Your answer to this question</div>
+      <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+        {/* Append, not replace: SpeechBtn freezes `answer` at record-start and
+            sends the growing transcript, so a typed start survives dictation. */}
+        <textarea style={{...S.ta,minHeight:110,flex:1}} value={answer} onChange={e=>setAnswer(e.target.value)} placeholder="Say it or type it here, the way you would answer it in the interview."/>
+        {hasSpeech&&<SpeechBtn onResult={t=>setAnswer(answer+t)} style={{marginTop:2}}/>}
+      </div>
+      <div style={S.helperText}>{hasSpeech?'Tap the microphone to speak your answer, or type it. ':''}My Coach reads what you wrote and tells you what is working and what to sharpen.</div>
+      <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+        <Btn small disabled={!answer.trim()} onClick={()=>onPracticeAnswer(questionText,answer,who)}><MessageCircle size={12}/>Get My Coach's feedback</Btn>
+        <Btn small secondary onClick={()=>setOpen(false)}>Close</Btn>
+      </div>
+    </div>:<Btn small secondary onClick={()=>setOpen(true)}><MessageCircle size={13}/>Practice this answer</Btn>}
+  </div>
+}
 // Per-question Interview Prep card with per-question SubsectionRefineBox
 // affordance (PR-B 2026-05-30; chip row removed 2026-05-30). Behavioral
 // questions only; non_behavioral questions get the framing_recommendation but
@@ -4432,7 +4466,16 @@ function SubsectionRefineBox({scopeKey,onSubmit,busy,error,label,placeholder,sub
 // the advice in plain prose and types whatever correction they want.
 // onRegenerateQuestion is wired to regenerateP11Question (Focus) or
 // regenerateOpP11Question (op).
-function InterviewPrepQuestion({q,qi,lbl,fwList,onRegenerateQuestion,regeneratingQuestionIdx,questionErrors,displayNum}){
+// onPracticeAnswer (2026-08-20) is the per-question practice door: the user
+// speaks or types their own answer and hands it to My Coach for written
+// feedback. Supplied by renderInterviewPrep, which closes over openCoachWith
+// directly, so nothing new threads through the shared helper's signature. Both
+// the practice block and the refine box render AFTER the behavioral/non-
+// behavioral ternary so every question gets the same affordances in the same
+// order: the answer material, then practice, then refine. (canRefine already
+// requires isBehavioral, so hoisting the refine box out of that branch changes
+// order only, not which questions show it.)
+function InterviewPrepQuestion({q,qi,lbl,fwList,onRegenerateQuestion,regeneratingQuestionIdx,questionErrors,displayNum,onPracticeAnswer}){
   const isBehavioral=q.type==='behavioral'&&q.star_breakdown
   const busy=regeneratingQuestionIdx===qi
   const err=questionErrors&&questionErrors[qi]
@@ -4447,8 +4490,9 @@ function InterviewPrepQuestion({q,qi,lbl,fwList,onRegenerateQuestion,regeneratin
         {k==='S'&&sec.relevance_bridge_draft&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>Open with:</em> <strong>"{sec.relevance_bridge_draft}"</strong>. Names the parallel between your past and what the interviewer likely faces. Sharpen the second half with company-specific details when you have them.</div>}
         <div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>To strengthen:</em> {sec.to_strengthen}</div>
       </div>})}
-      {canRefine&&<SubsectionRefineBox scopeKey={q.id||qi} onSubmit={(text)=>onRegenerateQuestion(qi,text)} busy={busy} error={err} label="Tell us what to refine here." placeholder="For example: Lead the Action with the specific framework you used, not the outcome." submitLabel="Regenerate this answer" helperText="Only this answer changes. The other questions stay."/>}
     </>:<div style={{fontSize:17,color:C.cream,lineHeight:1.65,marginTop:6}}>{q.framing_recommendation}</div>}
+    <PracticeAnswerBox questionText={q.question} onPracticeAnswer={onPracticeAnswer}/>
+    {canRefine&&<SubsectionRefineBox scopeKey={q.id||qi} onSubmit={(text)=>onRegenerateQuestion(qi,text)} busy={busy} error={err} label="Tell us what to refine here." placeholder="For example: Lead the Action with the specific framework you used, not the outcome." submitLabel="Regenerate this answer" helperText="Only this answer changes. The other questions stay."/>}
   </div>
 }
 
@@ -7459,6 +7503,22 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const renderInterviewPrep=(content,onRegenerateQuestion,regeneratingQuestionIdx,questionErrors,onPrepWithCoach)=>{
     const ip=parseInterviewPrepJSON(content)
     if(!ip)return <><div style={S.note}>This did not come together cleanly on this try. It happens once in a while. Regenerate this section and it usually lands the second time.</div><div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:C.cream,margin:0}}>{content}</pre></div></>
+    // Practice this answer (2026-08-20). renderInterviewPrep is defined inside the
+    // app component, so openCoachWith / isDemo / signedInUser are already in scope
+    // here — the callback is built locally and handed straight to the question
+    // renderers, and the helper's own signature and both of its call sites stay
+    // untouched. Defined above the people/STAR fork on purpose: BOTH shapes get
+    // the practice door, so an Opportunity with an Interview Team filled in (the
+    // people shape, which never mounts InterviewPrepQuestion) is not left without
+    // it. Gated on a signed-in account for the same reason coachNudge is: an
+    // unauthenticated click lands on a sign-in wall instead of a working coach.
+    // The seed names no framework on purpose — the coach's own routing picks
+    // STAR, SCOPE, the 4 C's or the 5 P's from the situation, and this list
+    // includes non-behavioral questions where STAR is the wrong tool. autoSend
+    // stays false (the convention everywhere but the My Pipeline read buttons) so
+    // a speech-to-text slip is editable before it is sent.
+    const practiceRole=(ip.role_context&&typeof ip.role_context.target_role==='string')?ip.role_context.target_role.trim():''
+    const onPracticeAnswer=(!isDemo&&signedInUser)?((questionText,answerText,withWhom)=>openCoachWith(`I am practicing for an interview${practiceRole?` for ${practiceRole}`:''}${withWhom?` with ${withWhom}`:''}. The question is: "${questionText}"\n\nHere is my answer:\n\n${(answerText||'').trim()}\n\nWhat feedback do you have?`)):undefined
     // Interview Team consolidation (PR-4b, item J): per-person prep is the one
     // home when a team exists. Full answers are drafted on demand per story; old
     // STAR shape (below) renders unchanged when there is no team.
@@ -7479,7 +7539,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {typeof p.role==='string'&&p.role.trim()&&<span style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>{p.role.trim()}</span>}
             </div>
             {typeof p.looking_for==='string'&&p.looking_for.trim()&&<div style={{marginBottom:10}}>{H('What '+who+' is really looking for')}<div style={{fontSize:16,color:C.cream,lineHeight:1.6}}>{p.looking_for.trim()}</div></div>}
-            {qs.length>0&&<div style={{marginBottom:10}}>{H('Questions '+who+' is likely to ask')}<ul style={{margin:0,paddingLeft:20}}>{qs.map((q,qi)=><li key={qi} style={{fontSize:16,color:C.cream,lineHeight:1.6,marginBottom:3}}>{q}</li>)}</ul></div>}
+            {qs.length>0&&<div style={{marginBottom:10}}>{H('Questions '+who+' is likely to ask')}<ul style={{margin:0,paddingLeft:20}}>{qs.map((q,qi)=><li key={qi} style={{fontSize:16,color:C.cream,lineHeight:1.6,marginBottom:typeof onPracticeAnswer==='function'?10:3}}>{q}<PracticeAnswerBox questionText={q} onPracticeAnswer={onPracticeAnswer} who={nm||''}/></li>)}</ul></div>}
             {stories.length>0&&<div style={{marginBottom:10}}>{H('Best stories to use')}{stories.map((s,si)=>{const k=(nm||('p'+pi))+'|'+((s&&s.story)||si);const ans=fullAnswers[k];const busy=answerBusy===k;return <div key={si} style={{marginBottom:8}}><div style={{fontSize:16,color:C.cream,lineHeight:1.6}}><strong>{(s&&s.story)||''}</strong>{(s&&s.why)?'. '+s.why:''}</div>{!isDemo&&<div style={{marginTop:5}}>{busy?<span style={{fontSize:15,color:C.gray,display:'inline-flex',alignItems:'center',gap:6}}><Loader2 size={13} style={{animation:'spin 0.9s linear infinite'}}/>Writing the full answer…</span>:<Btn small secondary onClick={()=>generateFullAnswer(nm,(s&&s.story)||'')}><Sparkles size={12}/>{ans?'Rewrite the full answer':'Write the full answer'}</Btn>}</div>}{ans&&!busy&&<div style={{marginTop:8,paddingLeft:12,borderLeft:`2px solid ${C.border}`}}><MD text={ans}/></div>}</div>})}</div>}
             {asks.length>0&&<div style={{marginBottom:10}}>{H('Good questions to ask '+who)}<ul style={{margin:0,paddingLeft:20}}>{asks.map((q,qi)=><li key={qi} style={{fontSize:16,color:C.cream,lineHeight:1.6,marginBottom:3}}>{q}</li>)}</ul></div>}
             {typeof onPrepWithCoach==='function'&&<div style={{marginTop:6}}><Btn small secondary onClick={()=>onPrepWithCoach(who)}><MessageCircle size={13}/>Practice with My Coach</Btn></div>}
@@ -7506,7 +7566,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       qNodes=[]
       let dn=0
       const grpHeader=(txt,key)=><div key={key} style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5,margin:'26px 0 2px'}}>{txt}</div>
-      const pushQ=e=>{dn++;qNodes.push(<InterviewPrepQuestion key={e.q.id||('q'+e.qi)} q={e.q} qi={e.qi} displayNum={dn} lbl={lbl} fwList={fwList} onRegenerateQuestion={onRegenerateQuestion} regeneratingQuestionIdx={regeneratingQuestionIdx} questionErrors={questionErrors}/>)}
+      const pushQ=e=>{dn++;qNodes.push(<InterviewPrepQuestion key={e.q.id||('q'+e.qi)} q={e.q} qi={e.qi} displayNum={dn} lbl={lbl} fwList={fwList} onRegenerateQuestion={onRegenerateQuestion} regeneratingQuestionIdx={regeneratingQuestionIdx} questionErrors={questionErrors} onPracticeAnswer={onPracticeAnswer}/>)}
       const known=new Set(['core',...panelSeats.map(s=>s.seat_id)])
       qNodes.push(grpHeader('Questions the whole team may ask','grp-core'))
       qEntries.filter(e=>!e.q.seat_id||e.q.seat_id==='core').forEach(pushQ)
@@ -7532,7 +7592,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {typeof onPrepWithCoach==='function'&&<div style={{marginTop:10}}><Btn small secondary onClick={()=>onPrepWithCoach((typeof s.name==='string'&&s.name.trim())?s.name.trim():((typeof s.title==='string'&&s.title.trim())?s.title.trim():roleLbl(s.seat_role)))}><MessageCircle size={13}/>Prep with My Coach</Btn></div>}
         </div>})}
       </div>}
-      {grouped?qNodes:ip.questions.map((q,qi)=><InterviewPrepQuestion key={q.id||qi} q={q} qi={qi} lbl={lbl} fwList={fwList} onRegenerateQuestion={onRegenerateQuestion} regeneratingQuestionIdx={regeneratingQuestionIdx} questionErrors={questionErrors}/>)}
+      {grouped?qNodes:ip.questions.map((q,qi)=><InterviewPrepQuestion key={q.id||qi} q={q} qi={qi} lbl={lbl} fwList={fwList} onRegenerateQuestion={onRegenerateQuestion} regeneratingQuestionIdx={regeneratingQuestionIdx} questionErrors={questionErrors} onPracticeAnswer={onPracticeAnswer}/>)}
     </>
   }
   // LinkedIn Remix (p8) structured renderer. Parses the JSON emit; on malformed
@@ -9705,6 +9765,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {part34&&<div style={S.out}><MD text={part34}/></div>}
           </>
         }
+                // The 5th argument (onPrepWithCoach) is deliberately omitted here:
+                // it drives the per-person / per-seat "Prep with My Coach" button,
+                // and the Focus Playbook calls P.p11(pc,O,chosen) with no JD, lane
+                // or panel, so its emit can carry neither `people` nor `panel` and
+                // that button's branch is unreachable from this surface. Passing a
+                // callback would be dead code. The per-question "Practice this
+                // answer" door does render here — renderInterviewPrep wires it
+                // internally, no argument needed.
                 if(id==='p11'){return renderInterviewPrep(outputs.p11,isDemo?undefined:regenerateP11Question,regeneratingP11QuestionIdx,p11QuestionErrors)}
         return <OutPanel text={outputs[id]} onCopy={copy} copied={copied}/>
       }
