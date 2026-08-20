@@ -43,7 +43,7 @@ export const NAV_LABELS = {
   // that laneSelect/op above are the live "Career Paths"/"Add an Opportunity"
   // (META still carried the stale "Pick a Direction"/"Upload a Live Opportunity").
   welcome: 'Welcome',
-  location: 'Location & Work',
+  location: 'Your Current Situation',
   resume: 'Your Resume',
   'resume-builder': 'Resume Builder',
   linkedin: 'Your LinkedIn',

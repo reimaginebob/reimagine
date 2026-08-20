@@ -95,6 +95,7 @@ async function loadAggregate(rangeInterval, adminEmails) {
     drillInRows,
     employmentSplit,
     pausedAccounts,
+    searchIntake,
   ] = await Promise.all([
     // Panel 1: top-line counts (users + Focus / Op proxy counts).
     sql`
@@ -342,6 +343,24 @@ async function loadAggregate(rangeInterval, adminEmails) {
       ORDER BY suspended_at DESC
       LIMIT 200
     `,
+    // Panel 1e: search intake — what people say is going well and what they want
+    // to improve, in their own words (consult 2026-08-20). Deliberately the raw
+    // answers rather than a chart: at this user count reading them tells you more
+    // than any breakdown would, and the answers are what would decide a tag set
+    // if one is ever worth building. Newest first, answered rows only.
+    sql`
+      SELECT email, search_going_well, search_going_well_updated_at,
+             search_focus, search_focus_updated_at
+      FROM users
+      WHERE LOWER(email) <> ALL(${adminEmails}::text[])
+        AND (NULLIF(TRIM(search_going_well), '') IS NOT NULL
+          OR NULLIF(TRIM(search_focus), '') IS NOT NULL)
+      ORDER BY GREATEST(
+        COALESCE(search_going_well_updated_at, '-infinity'::timestamptz),
+        COALESCE(search_focus_updated_at, '-infinity'::timestamptz)
+      ) DESC
+      LIMIT 200
+    `,
   ])
 
   // Database connectivity check is implicit; if we got here, every query
@@ -413,6 +432,13 @@ async function loadAggregate(rangeInterval, adminEmails) {
       users:          r.users,
       focus_complete: r.focus_complete,
       op_started:     r.op_started,
+    })),
+    panel_1e_search_intake: searchIntake.map(r => ({
+      email:          r.email,
+      going_well:     r.search_going_well || '',
+      going_well_at:  r.search_going_well_updated_at,
+      focus:          r.search_focus || '',
+      focus_at:       r.search_focus_updated_at,
     })),
     panel_1d_paused_accounts: pausedAccounts.map(r => ({
       email:        r.email,
