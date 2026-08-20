@@ -5395,7 +5395,25 @@ export default function PivotEngine(){
   // Used by the My Pipeline "read" buttons; every other caller leaves it false
   // so the seed stays a reviewable draft.
   const[coachSeedAuto,setCoachSeedAuto]=useState(false)
-  const openCoachWith=(seedText,autoSend=false)=>{setCoachSeed(seedText||'');setCoachSeedAuto(!!autoSend);nav('myCoach')}
+  // Coach return door (2026-08-20). Opening the coach from anywhere in the app
+  // was a one-way trip: the coach view offered no way back, so after practicing
+  // an interview answer you had to find your way to the playbook and the section
+  // again through the sidebar. openCoachWith now records where it was opened
+  // from — automatically, from the current step, so every existing door gets the
+  // way back without touching its call site — and the coach view renders a
+  // single "Back to X" link. Callers that know which section the user was
+  // reading pass it as the third argument so the return lands on the section,
+  // not the top of the page. Cleared by nav() on any move that is not into the
+  // coach, so the link can never point somewhere the user has since left.
+  const[coachReturn,setCoachReturn]=useState(null)
+  const coachReturnLabel=(fromStep,section)=>{
+    if(section&&NAV_LABELS[section])return NAV_LABELS[section]
+    if(fromStep==='focus')return 'your Focus Playbook'
+    if(fromStep==='op')return 'this opportunity'
+    return NAV_LABELS[fromStep]||'where you were'
+  }
+  const openCoachWith=(seedText,autoSend=false,returnSection=null)=>{setCoachSeed(seedText||'');setCoachSeedAuto(!!autoSend);setCoachReturn(step==='myCoach'?null:{step,section:returnSection||null,label:coachReturnLabel(step,returnSection)});nav('myCoach')}
+  const returnFromCoach=()=>{const r=coachReturn;if(!r)return;setCoachReturn(null);nav(r.step);if(r.section)setTimeout(()=>scrollToOutput(r.section),150)}
   // Subtle inline "ask the coach" nudge woven along the journey — the free-text
   // orientation prompts, the direction choice, a section's empty state. A text
   // link, not a gold Btn, so it invites without competing with the step's
@@ -5932,7 +5950,7 @@ export default function PivotEngine(){
   // Personal Brand. Skips when heading to p3 (they are going there to update).
   const maybeInputStaleNudge=(from,to)=>{if(!isDemo&&INPUT_EDIT_STEPS.has(from)&&inputEditedRef.current&&to!=='p3'&&outputs.p3){inputEditedRef.current=false;setInputStaleModal({from})}}
   const advance=(from,to)=>{maybeInputStaleNudge(from,to);markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
-  const nav=(to)=>{track('step_entered',{step:to});if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
+  const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
   // Scroll new output into view AFTER generation completes. Every generate
   // path already scrolls to 0,0 on click (so the loading panel is visible);
   // none scroll after the API returns, leaving the user wherever they
@@ -7520,7 +7538,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // click for no gain. The reviewable-draft convention applies to seeds the user
     // has not written; this one they wrote.
     const practiceRole=(ip.role_context&&typeof ip.role_context.target_role==='string')?ip.role_context.target_role.trim():''
-    const onPracticeAnswer=(!isDemo&&signedInUser)?((questionText,answerText,withWhom)=>openCoachWith(`I am practicing for an interview${practiceRole?` for ${practiceRole}`:''}${withWhom?` with ${withWhom}`:''}. The question is: "${questionText}"\n\nHere is my answer:\n\n${(answerText||'').trim()}\n\nWhat feedback do you have?`,true)):undefined
+    const onPracticeAnswer=(!isDemo&&signedInUser)?((questionText,answerText,withWhom)=>openCoachWith(`I am practicing for an interview${practiceRole?` for ${practiceRole}`:''}${withWhom?` with ${withWhom}`:''}. The question is: "${questionText}"\n\nHere is my answer:\n\n${(answerText||'').trim()}\n\nWhat feedback do you have?`,true,'p11')):undefined
     // Interview Team consolidation (PR-4b, item J): per-person prep is the one
     // home when a team exists. Full answers are drafted on demand per story; old
     // STAR shape (below) renders unchanged when there is no team.
@@ -9882,7 +9900,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   return <div data-print="hide" style={{display:'flex',alignItems:'center',gap:10,background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:8,padding:'10px 14px',margin:'0 0 12px',fontSize:15,color:'#8A5E1C',lineHeight:1.55}}><div style={{width:8,height:8,borderRadius:'50%',background:'#F0B856',flexShrink:0}}/><div style={{flex:1}}>{head}</div><button type="button" onClick={refresh} style={{background:'transparent',color:'#8A5E1C',border:'1px solid #F0B856',borderRadius:6,padding:'5px 12px',fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',flexShrink:0,whiteSpace:'nowrap'}}>Update this section</button></div>
                 })()}
                 {renderBody(id)}
-                {!isDemo&&<div data-print="hide" style={{marginTop:14}}><Btn small secondary onClick={()=>openCoachWith(ASK_COACH_SEEDS[id]||ASK_COACH_SEED_DEFAULT)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
+                {!isDemo&&<div data-print="hide" style={{marginTop:14}}><Btn small secondary onClick={()=>openCoachWith(ASK_COACH_SEEDS[id]||ASK_COACH_SEED_DEFAULT,false,id)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
                 {!isDemo&&id!=='p6'&&<RefineBox guard={submitCorrection} sectionId={id} value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
                 {!isDemo&&nextSec&&<div data-print="hide" style={{marginTop:18,padding:'12px 16px',background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
                   <div style={{fontSize:15,color:C.grayL}}>Next: {nextNum?nextNum+'. ':''}{nextSec.label}</div>
@@ -9968,6 +9986,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     }
     case'myCoach':return <div>
+      {coachReturn&&<button type="button" onClick={returnFromCoach} style={{background:'none',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6,padding:0,marginBottom:12}}><ArrowLeft size={15}/>Back to {coachReturn.label}</button>}
       <div style={{marginBottom:8}}>
         <h1 style={{...S.title,marginBottom:6}}>My Coach</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your coach for the search, grounded in Making Your Own Weather and in what Reimagine knows about you. Ask anything: where to focus, how to tell your story, how to prepare for a conversation.</p>
@@ -10194,7 +10213,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const _opAutoSeq=_pendingAutoBuildRef.current===currentSavedSlotIdRef.current
             const _renderSection=(key,content)=>{
               if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <ResumeRefreshView resumeJson={j} isDemo={isDemo} copy={copy} copied={copied}/>}
-              if(key==='p11')return renderInterviewPrep(content,isDemo?undefined:regenerateOpP11Question,regeneratingP11QuestionIdx,p11QuestionErrors,isDemo?undefined:(seatName)=>openCoachWith(`Help me prep for my interview with ${seatName} for ${_rec.title||'this role'}.`))
+              if(key==='p11')return renderInterviewPrep(content,isDemo?undefined:regenerateOpP11Question,regeneratingP11QuestionIdx,p11QuestionErrors,isDemo?undefined:(seatName)=>openCoachWith(`Help me prep for my interview with ${seatName} for ${_rec.title||'this role'}.`,false,'p11'))
               return <div style={S.out}><MD text={content}/></div>
             }
             const _cardWrap=(children,id)=><div id={id} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px',marginBottom:14,scrollMarginTop:80}}>{children}</div>
@@ -10319,7 +10338,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     {_busyP6&&<div style={{marginBottom:6}}><Loading msg="Finishing with your bridge story…" step="p6"/></div>}
                     {_p6Built?<><OutPanel text={bridgeStoryToProse(_p6)} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.opP6||''} onChange={v=>setFb('opP6',v)} hint="Does this feel right for this specific role? Tell us what to adjust: the opening, how you connect to the company, or the forward move." placeholder="e.g. Lead with my mission alignment instead… name the specific product line… the close needs to reference their recent funding…" onRegenerate={v=>{recordCorrection('p6',v);generateOpBridgeStory({refine:v})}}/>}</>:(!_busyP6&&!isDemo&&<Btn small secondary onClick={()=>generateOpBridgeStory()} disabled={!!opSectionBuilding}><Sparkles size={12}/>Build the bridge story</Btn>)}
                   </div>}
-                  {_pfBuilt&&!isDemo&&<div style={{marginTop:16}}><Btn small secondary onClick={()=>openCoachWith(`Help me talk through how I fit and how to position myself for ${_rec.title||'this role'}.`)}><MessageCircle size={13}/>Talk it through with My Coach</Btn></div>}
+                  {_pfBuilt&&!isDemo&&<div style={{marginTop:16}}><Btn small secondary onClick={()=>openCoachWith(`Help me talk through how I fit and how to position myself for ${_rec.title||'this role'}.`,false,'p5')}><MessageCircle size={13}/>Talk it through with My Coach</Btn></div>}
                 </>,'section-p5')
               })()}
               {_simpleCard('p_res','Resume Refresh','A repositioned summary and key accomplishments that emphasize the competencies this role asks for. The rest of your resume can stay as it is.')}
@@ -10775,7 +10794,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       points, the back-and-forth to weigh the trade-offs lives in My Coach. */}
                   {_onBuilt&&<div style={{marginTop:18,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
                     <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginBottom:8}}>Ready to weigh it? Talk the trade-offs through with your Coach — who holds this offer, your priorities, and the same reasoning — one at a time.</div>
-                    <Btn small secondary onClick={()=>openCoachWith(`Walk me through the key trade-offs in my ${_rec&&_rec.title?_rec.title:'offer'} one at a time — for each, tell me what I'd gain and what I'd give up given my priorities, ask where I lean, then move to the next, so I can figure out what matters most to me. Don't decide for me.`)}><MessageCircle size={13}/>Talk through the trade-offs with My Coach</Btn>
+                    <Btn small secondary onClick={()=>openCoachWith(`Walk me through the key trade-offs in my ${_rec&&_rec.title?_rec.title:'offer'} one at a time — for each, tell me what I'd gain and what I'd give up given my priorities, ask where I lean, then move to the next, so I can figure out what matters most to me. Don't decide for me.`,false,'offerNegotiation')}><MessageCircle size={13}/>Talk through the trade-offs with My Coach</Btn>
                   </div>}
                 </>,'section-offerNegotiation')
               })()}
