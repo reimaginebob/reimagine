@@ -29,13 +29,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-// Search intake: which stored field each scripted question is collecting. The
-// checkinKey on the assistant message is the only thing that routes an answer,
-// so one question maps to exactly one field and a derailed conversation simply
-// stores nothing.
-const SEARCH_INTAKE_FIELDS = { 'search-intake-well': 'goingWell', 'search-intake-focus': 'focus' }
-
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onSearchIntakeAnswer = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, allowGeneralMode = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, allowGeneralMode = false }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -225,26 +219,6 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     const text = (typeof explicit === 'string' ? explicit : input).trim()
     if (!text || loading) return
     const userMsg = { role: 'user', content: text }
-    // Search-intake answer (consult 2026-08-20). When the message immediately
-    // above is a question THIS COMPONENT asked, the user is answering it, so the
-    // reply is handled here and never sent to the model: the coach asked, so the
-    // coach should not also improvise a response over a scripted two-step.
-    //
-    // No permission tap, unlike the employment / pursuit / values offers above.
-    // Those confirm because a regex guessed that an ambient remark was worth
-    // saving; here the app asked the question one turn ago and stores the answer
-    // verbatim, so nothing is being inferred and there is no model judgement to
-    // check. Asking "may I remember what you just told me?" would be the odd move.
-    // What replaces the tap is disclosure: the follow-up says it was saved and
-    // names the screen where it can be changed.
-    const lastAssistant = [...(messages || [])].reverse().find(mm => mm && mm.role === 'assistant' && mm.content)
-    const answering = lastAssistant && SEARCH_INTAKE_FIELDS[lastAssistant.checkinKey]
-    if (answering && onSearchIntakeAnswer) {
-      const followUp = await onSearchIntakeAnswer(answering, text)
-      setMessages(m => [...m, userMsg, ...(followUp ? [followUp] : [])])
-      setInput('')
-      return
-    }
     // (sendRef is refreshed just below so the seed effect can call the latest send.)
     const historyAtSend = messages
     setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])
@@ -282,6 +256,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const msgId = res.headers.get('X-Coach-Message-Id') || null
         const itHeader = res.headers.get('X-Coach-Interviewers') || null
         const vcHeader = res.headers.get('X-Coach-Values') || null
+        const siHeader = res.headers.get('X-Coach-Search-Intake') || null
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let fullText = ''
@@ -342,6 +317,21 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             if (data && data.passions) parts.push(`Passions, Interests & Causes: ${data.passions}`)
             if (parts.length) {
               setMessages(m => [...m, { role: 'assistant', content: `Want me to save this to your Values, Passions & Causes screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, checkinKey: 'values-capture', quickReplies: [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Values, Passions & Causes.' }, { label: 'Not now', value: 'dismiss' }] }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Search intake: the coach answered the person's message normally, and
+        // judged that what they said is a real answer to one of the two intake
+        // questions and substantive enough to carry in their profile. A thin or
+        // deflecting reply produces no header and therefore no offer — that
+        // judgement is the whole point, since the alternative is storing noise.
+        if (siHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(siHeader), c => c.charCodeAt(0))))
+            const label = data && data.goingWell ? "What's going well" : 'What you\'d like to improve'
+            const body = data && (data.goingWell || data.focus)
+            if (body) {
+              setMessages(m => [...m, { role: 'assistant', content: `Want me to keep this on your profile? I'd read it as background on where things stand, not as a fixed picture, and it lives on your Your Current Situation screen if you want to change it.\n\n${label}: ${body}`, checkinKey: 'search-intake', quickReplies: [{ label: 'Keep it', value: JSON.stringify(data), followUp: 'Kept.' }, { label: 'Not now', value: 'dismiss' }] }])
             }
           } catch { /* malformed header — no offer */ }
         }

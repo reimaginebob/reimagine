@@ -3216,25 +3216,16 @@ const EMPLOYMENT_QUICK_REPLIES=[
   {label:'Role Ending Soon',value:'role_ending',followUp:'Got it — we\'ll treat this like a search on a clock when it matters.'},
 ]
 const employmentPromptMessage=(lead)=>({role:'assistant',content:(lead||'One quick thing so your coaching fits where you actually are — ')+'how would you describe your work situation right now?',checkinKey:'employment-status',quickReplies:EMPLOYMENT_QUICK_REPLIES})
-// Search intake, existing users (consult 2026-08-20). Asked and answered in the
-// conversation rather than handing the person off to a form: the coach asks one
-// question, the person types the answer, Chat routes it here on the checkinKey,
-// and the follow-up asks the second. One question at a time, because that is how
-// the answer maps cleanly to one field, and because nobody answers two questions
-// in one paragraph.
+// Search intake, existing users (consult 2026-08-20). This message only OPENS the
+// exchange. The answer goes to the coach like any other message: it responds to
+// the substance first, then moves to the second question, and only offers to keep
+// an answer that carried something (SEARCH INTAKE note in api/coach.js). An
+// intake question whose answer gets acknowledged and filed is worse than not
+// asking, because it teaches the person that talking here goes nowhere.
 //
 // One nudge, never a campaign: this is an intake question, and someone weeks into
 // their search has already given the coach plenty to work with.
-const searchIntakeAskWell=()=>({role:'assistant',content:"Before we get into it, one thing I'd normally know about you and don't. What's going well in your search right now? Whatever is working, even if it feels small.",checkinKey:'search-intake-well'})
-const searchIntakeAskFocus=(lead)=>({role:'assistant',content:(lead||'')+'And what would you like to improve?',checkinKey:'search-intake-focus',quickReplies:lead?searchIntakeUndo('goingWell'):null})
-// The escape hatch for the case the auto-save gets wrong: someone who ignores the
-// question and types something else has their message stored as the answer. One
-// tap removes it and hands the conversation back to them. This is what earns the
-// right to skip a permission tap in the common case — the person sees what was
-// stored and can drop it, rather than being asked to approve it in advance.
-const searchIntakeUndo=(field)=>[{label:"That wasn't my answer",value:'undo:'+field,followUp:"Removed, and nothing was kept. What were you asking?"}]
-const SEARCH_INTAKE_SAVED_WELL="Got it, that's saved. "
-const SEARCH_INTAKE_SAVED_BOTH='Saved. Both answers live on your Your Current Situation screen under Orientation, so you can change them whenever they stop being true. I will read them as how things looked when you wrote them, not as a fixed picture.'
+const searchIntakeOpener=()=>({role:'assistant',content:"Before we get into it, one thing I'd normally know about you and don't. What's going well in your search right now? Whatever is working, even if it feels small.",checkinKey:'search-intake-opener'})
 // My Search (brief 2026-08-14). Stage vocabulary shared by the card editor and
 // the Coach one-tap capture. value is the stored enum; label is the render-true
 // name. The tap is always the user's — the detector only decides whether to
@@ -5356,30 +5347,19 @@ export default function PivotEngine(){
     if(isDemo||isTest)return
     try{fetch('/api/search-intake',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}).catch(()=>{})}catch{}
   }
-  // Chat calls this when the person answers one of the two questions the coach
-  // asked. Stores that field and returns the next message: the second question
-  // after the first answer, the sign-off after the second. Returning the message
-  // (rather than pushing it) keeps Chat the single owner of the transcript.
-  const handleSearchIntakeAnswer=async(field,text)=>{
-    const value=(text||'').trim()
-    if(!value)return null
-    if(field==='goingWell')setSearchGoingWell(value);else setSearchFocus(value)
-    saveSearchIntake({[field]:value})
-    // The second question only follows if it is still unanswered — someone who
-    // filled it in on the Orientation screen should not be asked for it again.
-    if(field==='goingWell'&&!searchFocus)return searchIntakeAskFocus(SEARCH_INTAKE_SAVED_WELL)
-    return{role:'assistant',content:SEARCH_INTAKE_SAVED_BOTH,checkinKey:'search-intake-saved',quickReplies:searchIntakeUndo(field)}
-  }
   // The handler Chat calls on a quick-reply tap. Returns true for the employment
   // key so Chat does NOT fall back to the pb-checkin log.
   const handleEmploymentQuickReply=async(checkinKey,value)=>{
     if(checkinKey==='employment-status'){await saveEmployment(value);return true}
-    // Undo on a search-intake auto-save. Clears the field it names, locally and in
-    // the column ('' is a valid stored value meaning answered-then-cleared).
-    if(typeof value==='string'&&value.startsWith('undo:')){
-      const f=value.slice(5)
-      if(f==='goingWell')setSearchGoingWell('');else setSearchFocus('')
-      saveSearchIntake({[f]:''})
+    // Search intake: the coach judged this answer worth carrying and showed the
+    // person the exact text; the tap is what writes it. One field per offer.
+    if(checkinKey==='search-intake'){
+      if(value==='dismiss')return true
+      try{
+        const d=JSON.parse(value)
+        if(d&&typeof d.goingWell==='string'&&d.goingWell.trim()){setSearchGoingWell(d.goingWell.trim());saveSearchIntake({goingWell:d.goingWell.trim()})}
+        else if(d&&typeof d.focus==='string'&&d.focus.trim()){setSearchFocus(d.focus.trim());saveSearchIntake({focus:d.focus.trim()})}
+      }catch{/* malformed payload — the conversation already continued */}
       return true
     }
     // My Search stage capture. Needs the record id of the open opportunity; if
@@ -5646,7 +5626,7 @@ export default function PivotEngine(){
     setSeenSearchIntakePrompt(true)
     // The guard above means both fields are empty here, so this always starts at
     // the first question; the answer to it chains to the second.
-    setChatMessages(m=>[...m,searchIntakeAskWell()])
+    setChatMessages(m=>[...m,searchIntakeOpener()])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,searchGoingWell,searchFocus,seenSearchIntakePrompt,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest])
   // Skills step: on first arrival with empty skills and at least one source
@@ -10098,7 +10078,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your coach for the search, grounded in Making Your Own Weather and in what Reimagine knows about you. Ask anything: where to focus, how to tell your story, how to prepare for a conversation.</p>
         <div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onSearchIntakeAnswer={handleSearchIntakeAnswer} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>
     case'pipeline':return <div>
       {mySearchPanel()}
@@ -11352,7 +11332,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onSearchIntakeAnswer={handleSearchIntakeAnswer} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>

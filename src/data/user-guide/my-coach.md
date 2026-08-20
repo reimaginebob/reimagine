@@ -14,7 +14,9 @@ A few ways in, one conversation: the chat button in the corner of every screen o
 
 Answer questions about any part of your search, grounded in what it knows about you; reflect your real experience back to you; and point you to the right Reimagine step when one fits.
 
-It can also save a few things for you. When a conversation lands on something that belongs in your profile — your values and the causes you care about, where your work situation stands — it offers to put it in, and one tap does it. You see the exact wording before you accept, and you can edit it on the screen afterwards like anything else you typed.
+It can also save a few things for you. When a conversation lands on something that belongs in your profile — your values and the causes you care about, where your work situation stands, how your search itself is going — it offers to put it in, and one tap does it. You see the exact wording before you accept, and you can edit it on the screen afterwards like anything else you typed.
+
+Early on it may ask what's going well in your search and what you'd like to improve. Answer as fully or as briefly as you like: it's a conversation, so it will talk through what you say before it moves on, and it only offers to keep an answer that had something in it. Whatever you keep shows up on the Your Current Situation screen in Orientation, and your coach treats it as background on where things stood when you said it, not as a fixed read on you.
 
 ## What it won't do, and why that helps
 
