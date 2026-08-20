@@ -177,6 +177,33 @@ function searchIntakeLine(label, value, updatedAt) {
   return `${label}, in their own words at Orientation in ${monthYear} (${ago}): "${text}"`
 }
 
+// Search intake (consult 2026-08-20). Two things a coach knows about a client by
+// the end of the first conversation and Reimagine had no way to know at all.
+//
+// This is a CONVERSATION, not a form with a chat skin. The coach answers what the
+// person actually said before it does anything else — an intake question whose
+// answer gets acknowledged and filed is worse than not asking, because it teaches
+// the person that talking here goes nowhere. The stored value is a by-product of a
+// real exchange, never its purpose.
+//
+// The model's judgement is the noise filter. It emits the trailer only for an
+// answer with something in it; a shrug, a deflection, or a change of subject
+// produces no trailer and therefore no offer, and nothing reaches the profile.
+// The model still never writes: the trailer becomes a one-tap offer the person
+// accepts or declines, same contract as VALUES CAPTURE above.
+function searchIntakeNote(si) {
+  const has = v => typeof v === 'string' && v.trim()
+  const haveWell = has(si && si.goingWell)
+  const haveFocus = has(si && si.focus)
+  if (haveWell && haveFocus) return ''
+  const missing = !haveWell && !haveFocus
+    ? 'Neither is on file yet. Start with what is going well; ask what they would like to improve only after the first one has been answered and responded to. Never ask both in one message.'
+    : haveWell
+      ? 'You already have what is going well. The open one is what they would like to improve.'
+      : 'You already have what they would like to improve. The open one is what is going well.'
+  return `\n\nSEARCH INTAKE (open): two things are worth knowing about this person's own read on their search — what is going well in it right now, and what they would like to improve. ${missing}\n\nWhen they answer one of these, respond to what they actually said FIRST and properly: reflect the substance back, say what it tells you, and where you can see one, offer a concrete idea that builds on it. Someone who says networking is finally working should hear what that is worth and one way to press the advantage; someone who says applications go quiet should get a real read on where that usually breaks and what to try. Give it the weight you would give any other thing they told you. Only after that reply stands on its own do you move to the other question, in the same message, as a natural next beat rather than a form field.\n\nWhen — and only when — their answer carries something real, end your reply with a final line exactly like SEARCHINTAKE: {"goingWell":"their answer in their own words"} or SEARCHINTAKE: {"focus":"their answer in their own words"}. One key only, for the question they just answered. Keep their words, lightly tidied into a sentence or two; never your paraphrase and never your advice. Emit nothing at all for a shrug, a deflection, a change of subject, an "I don't know", or a reply too thin to be worth carrying — an empty field is better than a noisy one, and you will get another chance later in the conversation. The app turns that line into a one-tap offer and never shows it, so do not mention it, and never ask them to type anything anywhere.`
+}
+
 function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake) {
   if (!state || typeof state !== 'object') {
     // No profile at all — definitionally pre-Personal-Brand, so the sidebar is the
@@ -339,7 +366,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
     : ''
 
   const myStatusData = hasMySearch ? buildPursuitStatusBlock(state, pursuitRows) : ''
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusNote}${myStatusData}${VALUES_CAPTURE_NOTE}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusNote}${myStatusData}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -859,6 +886,28 @@ export default async function handler(req, res) {
       }
     } catch { /* malformed — drop the line, no offer */ }
   }
+  // Search intake: the model may end with a SEARCHINTAKE: {json} line when the
+  // person has just given a real answer to one of the two intake questions. Strip
+  // it, ship it on a header; the client turns it into a one-tap save. No line
+  // means the answer was not worth carrying, which is the intended outcome far
+  // more often than not — a thin field is better than a noisy one.
+  let searchIntakeB64 = null
+  const siMatch = strippedText.match(/^\s*SEARCHINTAKE:\s*(\{[\s\S]*?\})\s*$/im)
+  if (siMatch) {
+    strippedText = strippedText.replace(siMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(siMatch[1])
+      const clean = v => (typeof v === 'string' ? v.trim().slice(0, 2000) : '')
+      const payload = {}
+      // One key only. goingWell wins if the model emits both, so the offer always
+      // shows exactly the one field the tap will write.
+      if (clean(parsed && parsed.goingWell)) payload.goingWell = clean(parsed.goingWell)
+      else if (clean(parsed && parsed.focus)) payload.focus = clean(parsed.focus)
+      if (payload.goingWell || payload.focus) {
+        searchIntakeB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
+      }
+    } catch { /* malformed — drop the line, no offer */ }
+  }
   // Distress safety-net: guarantees a human-pointer on genuine-distress inputs.
   // Runs here (not in applyOutputStrippers) because the triggers live in the
   // user's message.
@@ -884,6 +933,7 @@ export default async function handler(req, res) {
   if (rowId) res.setHeader('X-Coach-Message-Id', String(rowId))
   if (interviewersB64) res.setHeader('X-Coach-Interviewers', interviewersB64)
   if (valuesB64) res.setHeader('X-Coach-Values', valuesB64)
+  if (searchIntakeB64) res.setHeader('X-Coach-Search-Intake', searchIntakeB64)
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.setHeader('Cache-Control', 'no-cache')
   res.status(200)

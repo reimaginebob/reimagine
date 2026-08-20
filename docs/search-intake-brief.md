@@ -105,17 +105,23 @@ One light nudge, not a campaign. The value of an intake question is highest at i
 
 A single Coach message on the surfaces the employment prompt uses (`twoDoors`, `mylib`, `myCoach`, or floating-coach open). Same dedupe discipline as the employment prompt: a `seen…` flag in the blob plus a session ref, yields to any prompt already pending, fires once and never again.
 
-**The answer is given in the conversation, not on a form** (revised 2026-08-20 after the first version shipped). The first draft asked the two questions in the chat and then offered a button that navigated to the Orientation screen — Coach asking a question it would not let you answer. The copy read badly because the interaction was wrong.
+**It is a conversation, and Coach's judgement is the filter** (revised twice on 2026-08-20; the history matters because both wrong versions were wrong the same way).
 
-The shape that replaced it:
+- *v1* asked the two questions in the chat and offered a button that navigated to the Orientation screen — Coach asking a question it would not let you answer.
+- *v2* intercepted the answer before the model, stored it verbatim, and moved on — Coach asking a question and then not listening to the answer.
 
-1. Coach asks **one** question and stops. One question maps cleanly to one field; nobody answers two questions in one paragraph.
-2. The person types the answer as an ordinary message. Chat sees that the message directly above carries the intake `checkinKey`, so it routes the text to the field instead of the model — the coach asked, so the coach should not also improvise a reply over a scripted exchange. No Claude call in this path.
-3. The acknowledgement asks the second question, and the second answer closes with where both live.
+Both treated the conversation as a data-entry channel with a chat skin. An intake question whose answer gets acknowledged and filed is worse than not asking, because it teaches the person that talking here goes nowhere.
 
-**No permission tap, unlike the employment / pursuit / values offers.** Those confirm because a regex guessed that an ambient remark was worth saving. Here the app asked the question one turn ago and stores the answer verbatim — nothing is inferred, and there is no model judgement to check. Asking "may I remember what you just told me?" is the odd move.
+The shape that holds:
 
-**What replaces the tap is an undo.** Someone who ignores the question and types something else would otherwise have that stored silently, and simulation showed the failure compounds: the chain asks the second question and swallows a second unrelated message, so Coach answers neither. Each acknowledgement therefore carries one `That wasn't my answer` reply that clears the field and hands the conversation back. Cost-free in the common case, recoverable in the bad one.
+1. Coach opens with what's going well. The message is an ordinary assistant turn — nothing about it is special-cased on the client.
+2. The person answers, and the message goes to the model like any other. **Coach responds to the substance first**: reflects it back, says what it tells them, and offers a concrete idea that builds on it where there is one.
+3. Only after that reply stands on its own does Coach move to the second question, in the same message, as a next beat rather than a form field.
+4. **Coach decides whether the answer was worth carrying.** A real answer ends the reply with a `SEARCHINTAKE: {json}` trailer in the person's own words; a shrug, a deflection, a change of subject, or anything too thin produces no trailer at all. The server strips the line, ships it on `X-Coach-Search-Intake`, and the client turns it into a one-tap offer showing the exact text.
+
+That judgement is the point. Blind capture fills the profile with noise, and noise in this field is worse than an empty one — it gets read back to the person as their own words months later.
+
+The write stays app-owned: the model decides whether to *offer*, never what lands. Same contract as `VALUES_CAPTURE_NOTE`, which this is modelled on directly.
 
 ### F. Analytics
 
@@ -133,7 +139,7 @@ Employment status got its own analytics PR (#392, status crossed with door usage
 - **Ambient conversational capture.** Employment status has a plain-language detector that offers to save a mention (`EMPLOYMENT_MENTION_RE`, `src/components/Chat.jsx`). Nothing here watches for someone volunteering their search read out of the blue — a fuzzy detector on a fuzzy field is a bad first move. The scripted exchange in section E is a different thing and is in scope: there, the app asked the question one turn earlier, so the routing is certain rather than guessed.
 - **The tag classifier.** Deferred until the corpus is worth classifying.
 - **Composition with pipeline data.** Coach can already see both the stated intake and the live pipeline for `my_search` users and may notice a mismatch on its own. Nothing is built to force that comparison.
-- **Any new Claude call.** The capture path generates nothing. No prompt changes.
+- **Any new Claude call.** The Orientation fields generate nothing, and the Coach path rides the turn the person was already having — no second call, no separate classification pass.
 
 ## Files this touches
 
@@ -143,8 +149,9 @@ Employment status got its own analytics PR (#392, status crossed with door usage
 | `api/search-intake.js` | new — write endpoint |
 | `api/_lib/session.js` | add columns to the session `SELECT` |
 | `api/coach.js` | profile query + `buildCoachProfileSlice` lines + staleness constant |
-| `src/App.jsx` | Orientation fields, local state, save handler, scripted Coach exchange + undo |
-| `src/components/Chat.jsx` | routes an answer to the intake field instead of the model |
+| `src/App.jsx` | Orientation fields, local state, save handler, Coach opener, save-offer tap |
+| `src/components/Chat.jsx` | turns the `X-Coach-Search-Intake` header into a one-tap offer |
+| `src/data/user-guide/my-coach.md` | what the coach asks and what it keeps |
 | `api/admin/analytics.js` | new panel |
 | `src/AdminDashboard.jsx` | render the panel |
 | `src/data/user-guide/orientation.md` | screen list + Screen 2 section |
