@@ -249,7 +249,7 @@ A "Strengthen This Story" note on each one calls out what details (a number, a b
 
 Under every question there is a **Practice this answer** button. Open it and you get a box to answer that specific question in your own words, plus a microphone so you can say the answer out loud instead of typing it. Speaking it is the point: an answer that reads well on a screen and an answer that sounds right coming out of your mouth are two different things, and the second one is what you need in the interview.
 
-When you are done, **Get My Coach's feedback** hands the question and your answer to My Coach and takes you there. Your answer arrives in the chat as a draft you can still edit before you send it, which matters if you dictated it and the transcription garbled a word. My Coach reads what you actually said and tells you what is working and what to sharpen, and it brings in whichever framework fits the question you are answering.
+When you are done, **Get My Coach's feedback** sends the question and your answer straight to My Coach and takes you there. The feedback is already coming back by the time the screen settles. My Coach reads what you actually said and tells you what is working and what to sharpen, and it brings in whichever framework fits the question you are answering. Read your answer in the practice box before you send it, since dictation sometimes garbles a word.
 
 Nothing is saved from the practice box itself. The conversation lives in My Coach like any other, and the answer box clears if you regenerate that question.
 
