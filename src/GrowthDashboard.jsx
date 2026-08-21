@@ -103,6 +103,7 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
   const depth = payload.depth || []
   const ret = payload.retention || {}
   const ses = payload.sessions || {}
+  const pbv = payload.playbooks || {}
   const pipeline = payload.pipeline || []
   const reached = payload.reached || []
   const outcomes = payload.outcomes || []
@@ -118,13 +119,17 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
   const completionRate = rate(f.focus_complete, f.activated)
   const opportunityRate = rate(f.opportunity, f.activated)
 
+  // Four rungs, not five. Building an Opportunity Playbook is not downstream of
+  // finishing all seven Focus sections -- it is a parallel move most people
+  // make without finishing -- so it gets its own panel rather than a rung whose
+  // "conversion" would compare unrelated populations.
   const funnelSteps = [
     { key: "signups", label: "Signed up", value: f.signups },
     { key: "orientation", label: "Personal Brand generated", value: f.orientation },
     { key: "activated", label: "Activated — first playbook", value: f.activated, accent: true },
     { key: "focus_complete", label: "Completed all seven sections", value: f.focus_complete },
-    { key: "opportunity", label: "Built an Opportunity Playbook", value: f.opportunity },
   ]
+  const skippedAhead = Math.max(0, (f.opportunity_any || 0) - (f.opportunity || 0))
   const reachedByStage = reached.reduce((m, r) => { m[r.stage] = r; return m }, {})
   const nowByStage = pipeline.reduce((m, p) => { m[p.stage] = p; return m }, {})
   const maxReached = Math.max(1, ...reached.map((r) => r.opportunities))
@@ -151,13 +156,14 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
       </div>
 
       <div style={S.panelGrid}>
-        {/* The three headline numbers */}
+        {/* The three headline numbers. Three, and only three -- the panel is
+            named for them, and time-to-first-playbook has its own panel below
+            with quartiles rather than a duplicated median here. */}
         <Panel title="The three numbers" wide>
           <div style={S.tileGrid}>
-            <Stat label="Activation rate" value={fmtPct(activationRate)} sub={`${fmtInt(f.activated)} of ${fmtInt(f.signups)}`} accent />
-            <Stat label="Finish all seven sections" value={fmtPct(completionRate)} sub="of activated" />
-            <Stat label="Go on to a real job" value={fmtPct(opportunityRate)} sub="of activated" />
-            <Stat label="Median time to first playbook" value={fmtHours(tta.median_hours)} sub={`${fmtInt(tta.users)} users`} />
+            <Stat label="Activation rate" value={fmtPct(activationRate)} sub={`${fmtInt(f.activated)} of ${fmtInt(f.signups)} signups`} accent />
+            <Stat label="Finish all seven sections" value={fmtPct(completionRate)} sub={`${fmtInt(f.focus_complete)} of ${fmtInt(f.activated)} activated`} />
+            <Stat label="Go on to a real job" value={fmtPct(opportunityRate)} sub={`${fmtInt(f.opportunity)} of ${fmtInt(f.activated)} activated`} />
           </div>
         </Panel>
 
@@ -182,7 +188,7 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
             )
           })}
           <div style={S.calloutTight}>
-            The step with the steepest fall is the product's weak link. Everything on this page uses one activation event, defined at the bottom — it does not move between tellings.
+            The step with the steepest fall is the product's weak link. Each step counts only people who cleared every step above it, so a conversion here can never exceed 100%. Everything on this page uses one activation event, defined at the bottom — it does not move between tellings.
           </div>
         </Panel>
 
@@ -220,6 +226,21 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
           </div>
           <div style={S.calloutTight}>
             Week 0 is a person's first seven days, so it should sit at or near the cohort size. A low W0 means people signed up and never came back. The number to watch over time is the <strong style={{ color: NAVY }}>Rate</strong> column climbing as the product improves — that is the strongest thing a young product can show.
+          </div>
+        </Panel>
+
+        {/* Opportunity Playbooks — counted as playbooks, not just people */}
+        <Panel title="Opportunity Playbooks — how much people build" wide>
+          <div style={S.tileGrid}>
+            <Stat label="People who built one" value={fmtInt(pbv.op_builders)} sub={`${fmtPct(rate(f.opportunity, f.activated))} of activated`} accent />
+            <Stat label="Playbooks built" value={fmtInt(pbv.op_total)} />
+            <Stat label="Per person who built any" value={fmtNum1(pbv.op_per_builder)} sub={`median ${fmtNum1(pbv.median_op_pb)}`} />
+            <Stat label="Most by one person" value={fmtInt(pbv.max_op_pb)} />
+            <Stat label="Focus Playbooks built" value={fmtInt(pbv.focus_total)} sub={`${fmtNum1(pbv.focus_per_builder)} per builder`} />
+          </div>
+          <div style={S.calloutTight}>
+            Every other count on this page counts <strong style={{ color: NAVY }}>people</strong>. This panel counts what they made — one person can run several live opportunities at once, and "{fmtInt(pbv.op_builders)} people built one" and "{fmtInt(pbv.op_total)} playbooks exist" are very different products. Playbooks per builder is the depth-of-use number: it rises when the tool becomes where someone works rather than something they tried.
+            {skippedAhead > 0 && <> {fmtInt(skippedAhead)} {skippedAhead === 1 ? "person" : "people"} built one without first activating, so they sit outside the funnel above.</>}
           </div>
         </Panel>
 
@@ -425,6 +446,7 @@ const DEF_LABELS = {
   opportunity: "Opportunity Playbook", activeDay: "Active day", returnWeek: "Return week",
   resurrection: "Resurrection", workingSession: "Working session", depth: "Depth", recognition: "Recognition",
   reached: "Ever reached", outcome: "Outcome",
+  funnelStep: "Funnel step", playbooksPerBuilder: "Playbooks per builder",
 }
 
 // ---- presentational sub-components (mirrors AdminDashboard.jsx) ----
