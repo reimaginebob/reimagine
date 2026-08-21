@@ -97,6 +97,32 @@ async function writeCore(userId, recordId, patch) {
                   outcome = EXCLUDED.outcome,
                   updated_at = NOW()
   `
+
+  // Append to the stage history. pursuit_status updates in place, so without
+  // this the path an opportunity took is erased the moment it moves on -- and
+  // "reached interview" is the question worth being able to answer.
+  //
+  // Only a real change is logged: a next_move edit or a date change writes
+  // nothing here, and re-saving the same stage is not a transition. prev_stage
+  // is captured from the row we already read above, so this costs no extra
+  // query.
+  //
+  // Best-effort and awaited, never thrown: the status is already saved, and a
+  // failed log write must not turn a successful save into an error for the
+  // user. A dropped row costs one transition in a report; a thrown error costs
+  // someone their update.
+  const prevStage = prev.stage ?? null
+  const prevOutcome = prev.outcome ?? null
+  const stageChanged = has('stage') && stage !== prevStage
+  const outcomeChanged = has('outcome') && outcome !== prevOutcome
+  if (stageChanged || outcomeChanged) {
+    try {
+      await sql`
+        INSERT INTO pursuit_status_events (user_id, record_id, stage, outcome, prev_stage, source)
+        VALUES (${userId}::uuid, ${recordId}, ${stage}, ${outcome}, ${prevStage}, 'live')
+      `
+    } catch { /* table not migrated yet, or a DB hiccup — never surfaces */ }
+  }
 }
 
 export default async function handler(req, res) {

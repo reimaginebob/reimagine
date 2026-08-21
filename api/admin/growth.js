@@ -56,6 +56,8 @@ const DEFINITIONS = {
   workingSession: `A run of actions with no gap longer than ${SESSION_GAP_MIN} minutes. Length is first action to last, so reading time after the final action is not counted — treat it as a floor.`,
   depth: 'How many of the seven Focus sections a person has generated.',
   recognition: 'Answers to "does this sound like you?" — the check-in on Personal Brand.',
+  reached: 'Ever recorded at a stage, from the append-only stage history. An opportunity counts only at stages someone actually set — a jump straight to offer does not credit interviewing.',
+  outcome: 'How an opportunity ended: accepted, declined, not selected, withdrew, or no response.',
 }
 
 // Mirrors parseAdminEmails in api/admin/analytics.js. Duplicated rather than
@@ -86,6 +88,9 @@ async function loadPayload(adminEmails) {
     returnBehaviour,
     sessions,
     pipeline,
+    reached,
+    outcomes,
+    historyCoverage,
     recognition,
     coach,
     sources,
@@ -295,6 +300,45 @@ async function loadPayload(adminEmails) {
       GROUP BY 1
       ORDER BY records DESC`,
 
+    // --- 8b. Stages ever reached, from the append-only history -------------
+    // The counterpart to the query above: that one is where things stand, this
+    // one is where they have been. An opportunity is counted at every stage it
+    // was actually recorded at -- a jump from applied straight to offer does
+    // not silently credit "interviewing", because nobody observed it.
+    sql`
+      SELECT
+        e.stage                                                            AS stage,
+        COUNT(DISTINCT (e.user_id::text || ':' || e.record_id))::int       AS opportunities,
+        COUNT(DISTINCT e.user_id)::int                                     AS users
+      FROM pursuit_status_events e
+      JOIN users u ON u.id = e.user_id
+      WHERE e.stage IS NOT NULL
+        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
+      GROUP BY e.stage`,
+
+    // --- 8c. Outcomes ever recorded ----------------------------------------
+    sql`
+      SELECT
+        e.outcome                                                          AS outcome,
+        COUNT(DISTINCT (e.user_id::text || ':' || e.record_id))::int       AS opportunities,
+        COUNT(DISTINCT e.user_id)::int                                     AS users
+      FROM pursuit_status_events e
+      JOIN users u ON u.id = e.user_id
+      WHERE e.outcome IS NOT NULL
+        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
+      GROUP BY e.outcome`,
+
+    // --- 8d. How much of the history was observed vs seeded ----------------
+    // A backfilled row says only where an opportunity stood the day the log
+    // shipped; the stages a closed record passed through beforehand were never
+    // written and cannot be recovered. Reported so the page can say so.
+    sql`
+      SELECT
+        COUNT(*) FILTER (WHERE source = 'live')::int      AS live_events,
+        COUNT(*) FILTER (WHERE source = 'backfill')::int  AS backfill_events,
+        MIN(created_at) FILTER (WHERE source = 'live')    AS first_live_at
+      FROM pursuit_status_events`,
+
     // --- 9. Recognition: "does this sound like you?" -----------------------
     sql`
       SELECT answer, COUNT(*)::int AS n
@@ -398,6 +442,13 @@ async function loadPayload(adminEmails) {
       single_action_sessions: num(s.single_action_sessions),
     },
     pipeline: pipeline.map((p) => ({ stage: p.stage, records: num(p.records), users: num(p.users) })),
+    reached: reached.map((p) => ({ stage: p.stage, opportunities: num(p.opportunities), users: num(p.users) })),
+    outcomes: outcomes.map((p) => ({ outcome: p.outcome, opportunities: num(p.opportunities), users: num(p.users) })),
+    history_coverage: {
+      live_events: num((historyCoverage[0] || {}).live_events),
+      backfill_events: num((historyCoverage[0] || {}).backfill_events),
+      first_live_at: (historyCoverage[0] || {}).first_live_at || null,
+    },
     recognition: {
       yes: rec.yes || 0,
       mostly: rec.mostly || 0,
