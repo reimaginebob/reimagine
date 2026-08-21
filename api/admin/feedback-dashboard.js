@@ -18,6 +18,29 @@ import {
 
 const RECURRING_MIN = 5 // a concern is "recurring" at >= this many events
 
+// Time slices. Same vocabulary and same mapping as api/admin/analytics.js so
+// the two tabs mean the same thing by "7d" and the shared pill row on
+// /admin/dashboard can drive both.
+//
+// Default is 'all', not '7d': a direct caller with no range parameter gets the
+// whole table, which is what this endpoint returned before slicing existed. The
+// dashboard always sends an explicit range.
+//
+// 'all' returns null rather than a very long interval, and the caller drops the
+// WHERE clause entirely. feedback_event.created_at is nullable -- an event with
+// no timestamp fails ANY comparison, so a 100-year window (the idiom
+// api/admin/analytics.js uses over NOT NULL columns) would silently hide those
+// rows from "all time".
+function rangeToInterval(range) {
+  switch (range) {
+    case '24h': return '24 hours'
+    case '7d':  return '7 days'
+    case '30d': return '30 days'
+    case 'all':
+    default:    return null
+  }
+}
+
 function emptySplit() {
   return { positive: 0, negative: 0, neutral: 0, mixed: 0, total: 0, withSentiment: 0 }
 }
@@ -49,14 +72,29 @@ export default async function handler(req, res) {
   const queryOk = queryToken !== '' && queryToken === expected.trim()
   if (!headerOk && !queryOk) return res.status(403).json({ error: 'Forbidden' })
 
+  const rawRange = (req.query && typeof req.query.range === 'string') ? req.query.range : 'all'
+  const range = ['24h', '7d', '30d', 'all'].includes(rawRange) ? rawRange : 'all'
+  const rangeInterval = rangeToInterval(range)
+
+  // One filtered read feeds every view below, so the KPI row, the theme bars,
+  // the matrix, and the feed can never disagree about which events are in the
+  // window.
   let events
   try {
-    events = await sql`
-      SELECT id, source, surface, lane, sentiment, themes, native_type, native_value,
-             created_at, commit_sha, summary, status, solicited
-      FROM feedback_event
-      ORDER BY created_at DESC NULLS LAST
-    `
+    events = rangeInterval === null
+      ? await sql`
+          SELECT id, source, surface, lane, sentiment, themes, native_type, native_value,
+                 created_at, commit_sha, summary, status, solicited
+          FROM feedback_event
+          ORDER BY created_at DESC NULLS LAST
+        `
+      : await sql`
+          SELECT id, source, surface, lane, sentiment, themes, native_type, native_value,
+                 created_at, commit_sha, summary, status, solicited
+          FROM feedback_event
+          WHERE created_at >= NOW() - (${rangeInterval})::interval
+          ORDER BY created_at DESC NULLS LAST
+        `
   } catch (err) {
     console.error('admin/feedback-dashboard: query failed', err && err.message)
     return res.status(500).json({ error: 'Query failed' })
@@ -173,6 +211,11 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     generatedAt: new Date().toISOString(),
+    range,
+    // The recurring-concern bar is an absolute count, so it is harder to clear
+    // in a short window. Sent to the client so the callout can name the
+    // threshold and the window together rather than reading as "nothing wrong".
+    recurringMin: RECURRING_MIN,
     kpis: {
       totalEvents: total,
       nps,

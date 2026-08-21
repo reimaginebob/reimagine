@@ -124,6 +124,9 @@ export default function AdminDashboard() {
     finally { setPipelineBusy(false) }
   }
   const [tab, setTab] = useState("analytics") // "analytics" | "feedback" | "economics"
+  // Bumped by the header Refresh button so child tabs that own their own fetch
+  // can react to it.
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Single call doubles as the auth probe and the data fetch: a 200 means the
   // token is valid AND we have data; a 403 means the token is wrong.
@@ -166,7 +169,12 @@ export default function AdminDashboard() {
     try { localStorage.setItem(RANGE_KEY, r) } catch {}
     if (token) fetchData(token, r)
   }
-  const refresh = () => { if (token) fetchData(token, range) }
+  // Refresh drives both tabs: the analytics fetch lives here, and the bumped
+  // key is what the Feedback tab's effect watches (it owns its own fetch).
+  const refresh = () => {
+    if (token) fetchData(token, range)
+    setRefreshKey((k) => k + 1)
+  }
   // Per-row Unpause on the Paused-accounts panel: lift the hold, then refresh so
   // the row drops off the list.
   const unpauseRow = async (email) => {
@@ -257,8 +265,12 @@ export default function AdminDashboard() {
               {liveAsOf ? <>Live as of <strong style={{ color: NAVY }}>{liveAsOf}</strong></> : "Loading…"}
             </div>
           </div>
+          {/* The range pills drive Analytics and Feedback from one control, so a
+              range picked on one tab still applies after switching. Economics is
+              left out on purpose: its windows are structural (month to date, the
+              trailing 30 days, six months of P&L), not a filter. */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            {tab === "analytics" && <>
+            {(tab === "analytics" || tab === "feedback") && <>
               {RANGES.map((r) => (
                 <button key={r} onClick={() => pickRange(r)} style={r === range ? S.pillActive : S.pill}>{r}</button>
               ))}
@@ -276,7 +288,7 @@ export default function AdminDashboard() {
           <button onClick={() => setTab("economics")} style={tab === "economics" ? S.tabActive : S.tab}>Economics</button>
         </div>
 
-        {tab === "feedback" && <FeedbackDashboard token={token} />}
+        {tab === "feedback" && <FeedbackDashboard token={token} range={range} refreshKey={refreshKey} />}
         {tab === "economics" && <EconomicsDashboard token={token} />}
 
         {tab === "analytics" && <>

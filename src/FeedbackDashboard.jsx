@@ -25,7 +25,11 @@ const SENT = {
 }
 const SENT_ORDER = ["positive", "negative", "neutral", "mixed"]
 
-export default function FeedbackDashboard({ token }) {
+// Human wording for the shared range pills, used in the subhead so the numbers
+// on screen always say which window they cover.
+const RANGE_LABELS = { "24h": "the last 24 hours", "7d": "the last 7 days", "30d": "the last 30 days", all: "all time" }
+
+export default function FeedbackDashboard({ token, range = "all", refreshKey = 0 }) {
   const [payload, setPayload] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -33,11 +37,11 @@ export default function FeedbackDashboard({ token }) {
   const [filterTheme, setFilterTheme] = useState("")
   const [filterChannel, setFilterChannel] = useState("")
 
-  const fetchData = useCallback(async (tok) => {
+  const fetchData = useCallback(async (tok, rng) => {
     if (!tok) return
     setLoading(true); setError(null)
     try {
-      const res = await fetch(`/api/admin/feedback-dashboard`, { headers: { Authorization: `Bearer ${tok}` } })
+      const res = await fetch(`/api/admin/feedback-dashboard?range=${encodeURIComponent(rng || "all")}`, { headers: { Authorization: `Bearer ${tok}` } })
       if (res.status === 200) {
         setPayload(await res.json())
         setLiveAsOf(new Date().toUTCString())
@@ -51,15 +55,19 @@ export default function FeedbackDashboard({ token }) {
     }
   }, [])
 
-  useEffect(() => { fetchData(token) }, [token, fetchData])
+  // Refetches when the shared range pills change, and when the header Refresh
+  // button bumps refreshKey.
+  useEffect(() => { fetchData(token, range) }, [token, range, refreshKey, fetchData])
 
   if (loading && !payload) return <div style={S.muted}>Loading feedback…</div>
   if (error && !payload) return (
-    <div style={S.errorBanner}><span>{error}</span><button onClick={() => fetchData(token)} style={S.retryBtn}>Retry</button></div>
+    <div style={S.errorBanner}><span>{error}</span><button onClick={() => fetchData(token, range)} style={S.retryBtn}>Retry</button></div>
   )
   if (!payload) return null
 
   const { kpis, byChannel, byTheme, matrix, surfaceSentiment, recurringConcerns, feed } = payload
+  const recurringMin = payload.recurringMin || 5
+  const windowLabel = RANGE_LABELS[payload.range] || RANGE_LABELS[range] || "all time"
 
   const pct = (n) => (n == null ? "—" : `${Math.round(n * 100)}%`)
   const maxThemeTotal = Math.max(1, ...byTheme.map(t => t.total))
@@ -72,8 +80,10 @@ export default function FeedbackDashboard({ token }) {
   return (
     <div>
       <div style={S.subhead}>
-        {liveAsOf ? <>Feedback live as of <strong style={{ color: NAVY }}>{liveAsOf}</strong></> : "Loading…"}
-        <button onClick={() => fetchData(token)} disabled={loading} style={S.miniRefresh}>{loading ? "…" : "Refresh"}</button>
+        {liveAsOf
+          ? <>Feedback over <strong style={{ color: NAVY }}>{RANGE_LABELS[payload.range] || RANGE_LABELS[range] || "all time"}</strong>, live as of <strong style={{ color: NAVY }}>{liveAsOf}</strong></>
+          : "Loading…"}
+        <button onClick={() => fetchData(token, range)} disabled={loading} style={S.miniRefresh}>{loading ? "…" : "Refresh"}</button>
       </div>
 
       {/* KPI ROW */}
@@ -81,7 +91,7 @@ export default function FeedbackDashboard({ token }) {
         <Kpi label="Total events" value={kpis.totalEvents} accent />
         <Kpi label="NPS" value={kpis.nps == null ? "—" : kpis.nps} accent />
         <Kpi label="Negative share" value={pct(kpis.negativeShare)} sub={`${kpis.negativeCount}/${kpis.withSentiment} tagged`} />
-        <Kpi label="Recurring concerns" value={kpis.recurringConcernCount} sub={`themes ≥ 5 & negative-leaning`} />
+        <Kpi label="Recurring concerns" value={kpis.recurringConcernCount} sub={`themes ≥ ${recurringMin} & negative-leaning`} />
       </div>
 
       {/* RECURRING-CONCERN CALLOUT */}
@@ -96,7 +106,11 @@ export default function FeedbackDashboard({ token }) {
             </div>
           </>
         ) : (
-          <span><strong style={{ color: SENT.positive.color }}>No recurring concerns.</strong> No concern theme has reached 5+ negative-leaning events yet.</span>
+          <span>
+            <strong style={{ color: SENT.positive.color }}>No recurring concerns in {windowLabel}.</strong>{" "}
+            No concern theme reached {recurringMin} negative-leaning events in this window.
+            {payload.range && payload.range !== "all" && <> The bar is an absolute count, so a short window clears it easily — widen the range before reading this as all clear.</>}
+          </span>
         )}
       </div>
 
