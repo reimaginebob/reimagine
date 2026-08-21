@@ -1,0 +1,426 @@
+// Growth dashboard — the Growth tab of /admin/dashboard. Usage and progression
+// metrics: the set an investor asks for, read from /api/admin/growth.
+//
+// Built around one framing: Reimagine is a finite-journey product. Someone
+// arrives in transition, works through it, and the goal is that they leave with
+// a job. Habit-product metrics read low here even when the product is working,
+// so the spine is activation → progression → outcome, and return is measured in
+// weeks since each user's own signup rather than against the calendar.
+//
+// Every metric carries its definition, served from the endpoint and rendered at
+// the bottom of the page. A definition that drifts between one telling and the
+// next is the fastest way to lose an audience.
+//
+// Charts are inline SVG and CSS bars. No new dependencies, same rule as the
+// other tabs.
+import { useState, useEffect, useCallback } from "react"
+
+const NAVY = "#1A2540"
+const GOLD = "#C8924A"
+const GOLDL = "#A06828"
+const BORDER = "#E2E5EA"
+const CREAM = "#FBF8F2"
+const GRAY = "#3D4A5C"
+const GRAYL = "#6B7685"
+const OK = "#2E7D52"
+const ERR = "#C0432F"
+
+const fmtInt = (n) => (Number.isFinite(Number(n)) ? Math.round(Number(n)).toLocaleString("en-US") : "—")
+const fmtPct = (n) => (n === null || n === undefined || !Number.isFinite(Number(n)) ? "—" : `${Math.round(Number(n) * 100)}%`)
+const fmtNum1 = (n) => (n === null || n === undefined || !Number.isFinite(Number(n)) ? "—" : Number(n).toFixed(1))
+const fmtHours = (h) => {
+  if (h === null || h === undefined || !Number.isFinite(Number(h))) return "—"
+  const v = Number(h)
+  if (v < 1) return `${Math.round(v * 60)} min`
+  if (v < 48) return `${v.toFixed(1)} hrs`
+  return `${(v / 24).toFixed(1)} days`
+}
+const fmtMinutes = (m) => {
+  if (m === null || m === undefined || !Number.isFinite(Number(m))) return "—"
+  const v = Number(m)
+  if (v < 60) return `${Math.round(v)} min`
+  return `${(v / 60).toFixed(1)} hrs`
+}
+const weekLabel = (iso) => {
+  if (!iso) return "—"
+  const [, m, d] = iso.split("-")
+  const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  return `${names[Number(m) - 1] || m} ${Number(d)}`
+}
+
+const STAGE_LABELS = {
+  researching: "Researching", applied: "Applied", in_conversation: "In conversation",
+  interviewing: "Interviewing", offer: "Offer", closed: "Closed", "(none)": "No stage set",
+}
+const SOURCE_LABELS = {
+  referral: "Someone recommended it", bob: "Bob Goodwin or Career Club", linkedin: "LinkedIn",
+  media: "Newsletter, podcast, or article", search: "Web search", event: "Event or workshop",
+  other: "Something else", "(not asked)": "Predates the question",
+}
+
+export default function GrowthDashboard({ token, refreshKey = 0 }) {
+  const [payload, setPayload] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [liveAsOf, setLiveAsOf] = useState(null)
+
+  const fetchData = useCallback(async (tok) => {
+    if (!tok) return
+    setLoading(true); setError(null)
+    try {
+      const res = await fetch("/api/admin/growth", { headers: { Authorization: `Bearer ${tok}` } })
+      if (res.status === 200) {
+        setPayload(await res.json())
+        setLiveAsOf(new Date().toUTCString())
+      } else {
+        setError(`Request failed (HTTP ${res.status}).`)
+      }
+    } catch {
+      setError("Network error reaching the growth endpoint.")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchData(token) }, [token, refreshKey, fetchData])
+
+  if (loading && !payload) return <div style={S.muted}>Loading growth…</div>
+  if (error && !payload) return (
+    <div style={S.errorBanner}><span>{error}</span><button onClick={() => fetchData(token)} style={S.retryBtn}>Retry</button></div>
+  )
+  if (!payload) return null
+
+  const f = payload.funnel || {}
+  const cohorts = payload.cohorts || []
+  const tta = payload.time_to_activate || {}
+  const depth = payload.depth || []
+  const ret = payload.retention || {}
+  const ses = payload.sessions || {}
+  const pipeline = payload.pipeline || []
+  const rec = payload.recognition || {}
+  const coach = payload.coach || {}
+  const sources = payload.sources || []
+  const defs = payload.definitions || {}
+  const cfg = payload.settings || {}
+
+  const rate = (a, b) => (b > 0 ? a / b : null)
+  const activationRate = rate(f.activated, f.signups)
+  const completionRate = rate(f.focus_complete, f.activated)
+  const opportunityRate = rate(f.opportunity, f.activated)
+
+  const funnelSteps = [
+    { key: "signups", label: "Signed up", value: f.signups },
+    { key: "orientation", label: "Personal Brand generated", value: f.orientation },
+    { key: "activated", label: "Activated — first playbook", value: f.activated, accent: true },
+    { key: "focus_complete", label: "Completed all seven sections", value: f.focus_complete },
+    { key: "opportunity", label: "Built an Opportunity Playbook", value: f.opportunity },
+  ]
+  const maxDepth = Math.max(1, ...depth.map((d) => d.users))
+  const totalDepthUsers = depth.reduce((s, d) => s + d.users, 0)
+  const medianDepth = (() => {
+    if (totalDepthUsers === 0) return null
+    let seen = 0
+    for (const d of depth) { seen += d.users; if (seen >= totalDepthUsers / 2) return d.sections }
+    return null
+  })()
+
+  return (
+    <>
+      <div style={S.headerRow}>
+        <div style={S.muted}>
+          {liveAsOf ? <>Live as of <strong style={{ color: NAVY }}>{liveAsOf}</strong></> : "Loading…"}
+        </div>
+        <button onClick={() => fetchData(token)} disabled={loading} style={S.refreshBtn}>{loading ? "…" : "Refresh"}</button>
+      </div>
+
+      <div style={S.callout}>
+        <strong style={{ color: NAVY }}>Read this as a finite-journey product.</strong> People arrive in transition and the goal is that they finish and leave with a job — so the spine here is activation, then progression, then outcome. Return is counted in weeks from each person's own signup, not against the calendar, and rising time-in-app would be a warning rather than a win. Numbers this small are structured evidence, not trends.
+      </div>
+
+      <div style={S.panelGrid}>
+        {/* The three headline numbers */}
+        <Panel title="The three numbers" wide>
+          <div style={S.tileGrid}>
+            <Stat label="Activation rate" value={fmtPct(activationRate)} sub={`${fmtInt(f.activated)} of ${fmtInt(f.signups)}`} accent />
+            <Stat label="Finish all seven sections" value={fmtPct(completionRate)} sub="of activated" />
+            <Stat label="Go on to a real job" value={fmtPct(opportunityRate)} sub="of activated" />
+            <Stat label="Median time to first playbook" value={fmtHours(tta.median_hours)} sub={`${fmtInt(tta.users)} users`} />
+          </div>
+        </Panel>
+
+        {/* Activation funnel */}
+        <Panel title="Activation funnel" wide>
+          {funnelSteps.map((s, i) => {
+            const prev = i === 0 ? null : funnelSteps[i - 1].value
+            const width = f.signups > 0 ? (s.value / f.signups) * 100 : 0
+            return (
+              <div key={s.key} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, marginBottom: 4 }}>
+                  <span style={{ color: GRAY }}>{s.label}</span>
+                  <span style={{ color: GRAYL }}>
+                    <strong style={{ color: NAVY }}>{fmtInt(s.value)}</strong>
+                    {prev !== null && prev > 0 && <> · {fmtPct(s.value / prev)} of the step above</>}
+                  </span>
+                </div>
+                <div style={S.barTrack}>
+                  <div style={{ width: `${Math.max(width, 0.5)}%`, height: "100%", background: s.accent ? GOLDL : GOLD, opacity: s.accent ? 1 : 0.65, borderRadius: 5 }} />
+                </div>
+              </div>
+            )
+          })}
+          <div style={S.calloutTight}>
+            The step with the steepest fall is the product's weak link. Everything on this page uses one activation event, defined at the bottom — it does not move between tellings.
+          </div>
+        </Panel>
+
+        {/* Cohorts */}
+        <Panel title={`Cohorts by signup week — activation and return`} wide>
+          <div style={{ overflowX: "auto" }}>
+            <table style={S.table}>
+              <thead><tr>
+                <Th>Signed up</Th><Th right>Signups</Th><Th right>Activated</Th><Th right>Rate</Th><Th right>All 7</Th>
+                {Array.from({ length: cfg.return_weeks || 6 }, (_, i) => <Th key={i} right>W{i}</Th>)}
+              </tr></thead>
+              <tbody>
+                {cohorts.map((c) => (
+                  <tr key={c.cohort_week}>
+                    <Td>{weekLabel(c.cohort_week)}</Td>
+                    <Td right>{fmtInt(c.signups)}</Td>
+                    <Td right>{fmtInt(c.activated)}</Td>
+                    <Td right><strong style={{ color: NAVY }}>{fmtPct(c.activation_rate)}</strong></Td>
+                    <Td right>{fmtInt(c.focus_complete)}</Td>
+                    {c.weeks.map((w, i) => {
+                      const share = c.signups > 0 && w !== null ? w / c.signups : 0
+                      return (
+                        <td key={i} style={{
+                          ...S.td, textAlign: "right",
+                          background: w ? `rgba(200,146,74,${Math.min(0.1 + share * 0.55, 0.7)})` : "transparent",
+                          color: share > 0.5 ? NAVY : GRAY, fontWeight: share > 0.5 ? 700 : 400,
+                        }}>{w === null || w === 0 ? <span style={{ opacity: 0.35 }}>—</span> : w}</td>
+                      )
+                    })}
+                  </tr>
+                ))}
+                {cohorts.length === 0 && <tr><Td colSpan={5 + (cfg.return_weeks || 6)} muted>No signups in the last {cfg.cohort_weeks || 12} weeks.</Td></tr>}
+              </tbody>
+            </table>
+          </div>
+          <div style={S.calloutTight}>
+            Week 0 is a person's first seven days, so it should sit at or near the cohort size. A low W0 means people signed up and never came back. The number to watch over time is the <strong style={{ color: NAVY }}>Rate</strong> column climbing as the product improves — that is the strongest thing a young product can show.
+          </div>
+        </Panel>
+
+        {/* Progression depth */}
+        <Panel title="How far people get">
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+            {depth.map((d) => (
+              <div key={d.sections} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 13, color: GRAYL, width: 74, flexShrink: 0 }}>
+                  {d.sections === 0 ? "none" : `${d.sections} of 7`}
+                </span>
+                <div style={{ ...S.barTrack, flex: 1 }}>
+                  <div style={{ width: `${(d.users / maxDepth) * 100}%`, height: "100%", background: d.sections === 7 ? OK : GOLD, opacity: d.sections === 7 ? 1 : 0.7, borderRadius: 5 }} />
+                </div>
+                <span style={{ fontSize: 14, color: NAVY, fontWeight: 600, width: 28, textAlign: "right" }}>{d.users}</span>
+              </div>
+            ))}
+            {depth.length === 0 && <div style={S.muted}>No accounts yet.</div>}
+          </div>
+          <div style={S.muted}>Median: <strong style={{ color: NAVY }}>{medianDepth === null ? "—" : `${medianDepth} of 7`}</strong> sections generated.</div>
+        </Panel>
+
+        {/* Time to activate */}
+        <Panel title="Time from signup to first playbook">
+          <div style={S.tileGrid}>
+            <Stat label="Fastest quarter" value={fmtHours(tta.p25_hours)} />
+            <Stat label="Median" value={fmtHours(tta.median_hours)} accent />
+            <Stat label="Slowest quarter" value={fmtHours(tta.p75_hours)} />
+          </div>
+          <div style={S.calloutTight}>
+            Covers the {fmtInt(tta.users)} account{tta.users === 1 ? "" : "s"} whose playbooks were saved server-side — the only ones carrying a per-playbook timestamp. A long median usually means the orientation is asking for more than someone can give in one sitting.
+          </div>
+        </Panel>
+
+        {/* Return behaviour */}
+        <Panel title="Coming back">
+          <div style={S.tileGrid}>
+            <Stat label="Returned after day one" value={fmtPct(rate(ret.returned_after_day_one, ret.users))} sub={`${fmtInt(ret.returned_after_day_one)} of ${fmtInt(ret.users)}`} accent />
+            <Stat label="Came back after a quiet fortnight" value={fmtInt(ret.resurrected)} sub={`${cfg.resurrect_days || 14}+ idle days`} />
+            <Stat label="Active, last 7 days" value={fmtInt(ret.active_7d)} />
+            <Stat label="Active, last 30 days" value={fmtInt(ret.active_30d)} />
+            <Stat label="Median active days" value={fmtNum1(ret.median_active_days)} sub="per account, all time" />
+          </div>
+          <div style={S.calloutTight}>
+            For a job search the resurrection number carries more weight than a flat retention line. People come back when their search moves — an interview, an offer, a rejection they need to regroup from. A second bump in the cohort table above is the same signal.
+          </div>
+        </Panel>
+
+        {/* Working sessions */}
+        <Panel title="Time in the system">
+          <div style={S.tileGrid}>
+            <Stat label="Median session" value={fmtMinutes(ses.median_minutes)} accent />
+            <Stat label="Longer quarter" value={fmtMinutes(ses.p75_minutes)} />
+            <Stat label="Actions per session" value={fmtNum1(ses.median_actions)} />
+            <Stat label="Sessions" value={fmtInt(ses.sessions)} sub={`${fmtInt(ses.users)} accounts`} />
+          </div>
+          <div style={S.calloutTight}>
+            A session is a run of actions with no gap over {cfg.session_gap_min || 30} minutes, measured first action to last — so whatever someone read after their final click is invisible and these are floors.
+            {ses.earliest && <> Reconstructed from timestamped activity, which starts {new Date(ses.earliest).toISOString().slice(0, 10)}.</>}
+            {" "}Present this as time to a finished section rather than time in app: framed as engagement, a rising number is one you would have to defend.
+          </div>
+        </Panel>
+
+        {/* Recognition */}
+        <Panel title="Does this sound like you?">
+          <div style={S.tileGrid}>
+            <Stat label="Recognition rate" value={fmtPct(rec.rate)} sub={`${fmtInt(rec.total)} answers`} accent />
+            <Stat label="Yes" value={fmtInt(rec.yes)} />
+            <Stat label="Mostly" value={fmtInt(rec.mostly)} />
+            <Stat label="Not quite" value={fmtInt(rec.not_quite)} danger={rec.not_quite > 0} />
+          </div>
+          <div style={S.calloutTight}>
+            A quality measure nobody else in this category reports. It answers the question that actually decides whether someone tells a friend.
+          </div>
+        </Panel>
+
+        {/* Coach */}
+        <Panel title="My Coach">
+          <div style={S.tileGrid}>
+            <Stat label="Accounts using it" value={fmtPct(rate(coach.users, ret.users))} sub={`${fmtInt(coach.users)} of ${fmtInt(ret.users)}`} accent />
+            <Stat label="Median turns" value={fmtNum1(coach.median_turns)} sub="per user" />
+            <Stat label="Total turns" value={fmtInt(coach.turns)} />
+          </div>
+        </Panel>
+
+        {/* Pipeline outcomes */}
+        <Panel title="Where opportunities stand" wide>
+          <table style={S.table}>
+            <thead><tr><Th>Stage</Th><Th right>Opportunities</Th><Th right>People</Th></tr></thead>
+            <tbody>
+              {pipeline.map((p) => (
+                <tr key={p.stage}>
+                  <Td>{STAGE_LABELS[p.stage] || p.stage}</Td>
+                  <Td right>{fmtInt(p.records)}</Td>
+                  <Td right>{fmtInt(p.users)}</Td>
+                </tr>
+              ))}
+              {pipeline.length === 0 && <tr><Td colSpan={3} muted>Nobody is tracking an opportunity yet — My Pipeline is still gated to pilot testers.</Td></tr>}
+            </tbody>
+          </table>
+          <div style={S.calloutTight}>
+            <strong style={{ color: NAVY }}>The metric that would matter most, and the one we can least support today.</strong> "Nine reached interview, three took offers" is the sentence an investor repeats to their partners. Two things stand in the way: My Pipeline is gated to pilot testers, and the stage is stored as a current state rather than a history — so an opportunity that closed cannot be shown as having reached interview. A stage-change log would fix the second.
+          </div>
+        </Panel>
+
+        {/* Signup source */}
+        <Panel title="Where people came from" wide>
+          <table style={S.table}>
+            <thead><tr><Th>Source</Th><Th right>Accounts</Th><Th right>Share</Th><Th right>With detail</Th></tr></thead>
+            <tbody>
+              {(() => {
+                const asked = sources.filter((s) => s.source !== "(not asked)")
+                const askedTotal = asked.reduce((n, s) => n + s.users, 0)
+                return (
+                  <>
+                    {asked.map((s) => (
+                      <tr key={s.source}>
+                        <Td>{SOURCE_LABELS[s.source] || s.source}</Td>
+                        <Td right>{fmtInt(s.users)}</Td>
+                        <Td right><strong style={{ color: NAVY }}>{fmtPct(askedTotal > 0 ? s.users / askedTotal : null)}</strong></Td>
+                        <Td right muted>{s.with_detail || "—"}</Td>
+                      </tr>
+                    ))}
+                    {asked.length === 0 && <tr><Td colSpan={4} muted>Nobody has answered the question yet.</Td></tr>}
+                    {sources.filter((s) => s.source === "(not asked)").map((s) => (
+                      <tr key={s.source}>
+                        <Td muted>Predates the question</Td>
+                        <Td right muted>{fmtInt(s.users)}</Td>
+                        <Td right muted>—</Td>
+                        <Td right muted>—</Td>
+                      </tr>
+                    ))}
+                  </>
+                )
+              })()}
+            </tbody>
+          </table>
+          <div style={S.calloutTight}>
+            Shares are of accounts that were asked. Accounts created before the question shipped sit on their own line rather than inside an "unknown" bucket — folding them in would understate every real share. The line to watch is <strong style={{ color: NAVY }}>someone recommended it</strong>: it is the only direct measure of the growth engine.
+          </div>
+        </Panel>
+
+        {/* Definitions */}
+        <Panel title="Definitions — fixed, and not to be moved" wide>
+          <div style={S.calloutTight}>
+            Write these down before the first conversation. An activation number that changed definition between the first meeting and the second costs more credibility than a low number ever does.
+          </div>
+          <table style={{ ...S.table, marginTop: 12 }}>
+            <tbody>
+              {Object.entries(defs).map(([k, v]) => (
+                <tr key={k}>
+                  <Td><strong style={{ color: NAVY }}>{DEF_LABELS[k] || k}</strong></Td>
+                  <Td>{v}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Panel>
+      </div>
+    </>
+  )
+}
+
+const DEF_LABELS = {
+  activation: "Activated", orientation: "Orientation done", focusComplete: "Focus Playbook complete",
+  opportunity: "Opportunity Playbook", activeDay: "Active day", returnWeek: "Return week",
+  resurrection: "Resurrection", workingSession: "Working session", depth: "Depth", recognition: "Recognition",
+}
+
+// ---- presentational sub-components (mirrors AdminDashboard.jsx) ----
+function Panel({ title, children, wide }) {
+  return (
+    <section style={{ ...S.panel, ...(wide ? { gridColumn: "1 / -1" } : {}) }}>
+      <h2 style={S.panelTitle}>{title}</h2>
+      {children}
+    </section>
+  )
+}
+function Stat({ label, value, sub, accent, danger }) {
+  const color = danger ? ERR : accent ? GOLDL : NAVY
+  return (
+    <div style={S.tile}>
+      <div style={{ ...S.tileValue, color }}>{value === null || value === undefined ? "—" : value}</div>
+      <div style={S.tileLabel}>{label}{sub ? <span style={S.tileSub}> · {sub}</span> : null}</div>
+    </div>
+  )
+}
+function Th({ children, right }) {
+  return <th style={{ ...S.th, textAlign: right ? "right" : "left" }}>{children}</th>
+}
+function Td({ children, right, muted, colSpan }) {
+  return <td colSpan={colSpan} style={{ ...S.td, textAlign: right ? "right" : "left", color: muted ? GRAYL : GRAY }}>{children}</td>
+}
+
+const S = {
+  headerRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 },
+  panelGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 },
+  panel: { background: "#FFFFFF", border: `1px solid ${BORDER}`, borderRadius: 14, padding: "18px 20px", boxShadow: "0 1px 2px rgba(26,37,64,0.04)" },
+  panelTitle: { fontFamily: "Georgia, serif", fontSize: 18, fontWeight: 600, color: GOLDL, margin: "0 0 14px", borderBottom: `1px solid ${BORDER}`, paddingBottom: 8 },
+  // Guidance keeps the gold border-left treatment so it never reads as data
+  // (CLAUDE.md section 8).
+  callout: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 10px 10px 0", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, color: GRAY, marginBottom: 16 },
+  calloutTight: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 8px 8px 0", padding: "10px 12px", fontSize: 14, lineHeight: 1.55, color: GRAY, marginTop: 12 },
+  tileGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12 },
+  tile: { background: CREAM, borderRadius: 10, padding: "12px 14px" },
+  tileValue: { fontSize: 26, fontWeight: 700, lineHeight: 1.1, fontFamily: "Georgia, serif" },
+  tileLabel: { fontSize: 12, color: GRAYL, marginTop: 4, lineHeight: 1.3 },
+  tileSub: { color: GOLDL, fontStyle: "italic" },
+  barTrack: { height: 10, background: CREAM, borderRadius: 5, overflow: "hidden" },
+  table: { width: "100%", borderCollapse: "collapse", fontSize: 14 },
+  th: { color: GRAYL, fontWeight: 600, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
+  td: { padding: "7px 8px", borderBottom: `1px solid ${BORDER}` },
+  muted: { color: GRAYL, fontSize: 14, lineHeight: 1.5 },
+  refreshBtn: { background: NAVY, border: `1px solid ${NAVY}`, color: "#FFFFFF", borderRadius: 8, padding: "8px 16px", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
+  errorBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#FDECEA", border: `1px solid ${ERR}55`, color: ERR, borderRadius: 10, padding: "12px 16px", marginBottom: 18, fontSize: 14 },
+  retryBtn: { background: ERR, border: "none", color: "#FFFFFF", borderRadius: 6, padding: "6px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
+}
