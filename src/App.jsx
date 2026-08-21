@@ -45,6 +45,7 @@ import CookieBanner from "./CookieBanner"
 import { Analytics, track } from "@vercel/analytics/react"
 import LegalReacceptanceModal from "./LegalReacceptanceModal"
 import { PRIVACY_VERSION, TOS_VERSION, PRIVACY_VERSION_MATERIAL, TOS_VERSION_MATERIAL } from "./config/legal"
+import { ACTIVE_SIGNUP_SOURCES, detailPromptFor } from "./signup-sources.js"
 
 // voice-allow
 const SYS_BASE = `You are a Career Strategist within Reimagine, a career strategy tool by Career Club, built on Making Your Own Weather by Bob Goodwin.
@@ -5236,7 +5237,7 @@ export default function PivotEngine(){
     }
   }
   const[signedUp,setSignedUp]=useState(isDemo||isTest)
-  const[signupForm,setSignupForm]=useState({firstName:'',lastName:'',email:''})
+  const[signupForm,setSignupForm]=useState({firstName:'',lastName:'',email:'',source:'',sourceDetail:''})
   const[signupSubmitting,setSignupSubmitting]=useState(false)
   const[signupError,setSignupError]=useState('')
   const[privacyAccepted,setPrivacyAccepted]=useState(false)
@@ -6568,7 +6569,7 @@ export default function PivotEngine(){
     // Keep the existing Apps Script beta-signup pipeline firing on new-user submissions.
     try{fetch('https://script.google.com/macros/s/AKfycbz_wPKjaBRW6wlqmm7X-baYyU1FuuTjKBgZIjc8zp77d4cUDD589dyK5ePqDyLCjunEEw/exec',{method:'POST',body:JSON.stringify({firstName:fn,lastName:ln,email:em,timestamp:new Date().toISOString()})}).catch(()=>{})}catch{}
     try{
-      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln,privacyAccepted:true,privacyVersion:PRIVACY_VERSION,termsAccepted:true,termsVersion:TOS_VERSION})})
+      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln,privacyAccepted:true,privacyVersion:PRIVACY_VERSION,termsAccepted:true,termsVersion:TOS_VERSION,signupSource:signupForm.source||null,signupSourceDetail:signupForm.sourceDetail||null})})
       if(!r.ok){
         const data=await r.json().catch(()=>({}))
         if(r.status===429)setSignupError(data.error||'Too many requests. Try again in an hour.')
@@ -11043,6 +11044,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <div style={S.field}>
                 <label style={S.label}>Last name</label>
                 <input style={S.inp} value={signupForm.lastName} onChange={e=>setSignupForm(f=>({...f,lastName:e.target.value}))} placeholder="Last name" onKeyDown={e=>{if(e.key==='Enter')submitDetailsStep()}}/>
+              </div>
+              {/* Optional, and never gates submit. Word of mouth is the growth
+                  engine and nothing measured it; one glance-sized question at
+                  the only moment a person knows the answer. */}
+              <div style={S.field}>
+                <label style={S.label}>How did you hear about us? <span style={{textTransform:'none',letterSpacing:0,fontWeight:400,color:C.gray}}>(optional)</span></label>
+                <select style={{...S.inp,cursor:'pointer'}} value={signupForm.source} onChange={e=>setSignupForm(f=>({...f,source:e.target.value,sourceDetail:''}))}>
+                  <option value="">Choose one</option>
+                  {ACTIVE_SIGNUP_SOURCES.map(o=><option key={o.code} value={o.code}>{o.label}</option>)}
+                </select>
+                {detailPromptFor(signupForm.source)&&<input style={{...S.inp,marginTop:10}} value={signupForm.sourceDetail} onChange={e=>setSignupForm(f=>({...f,sourceDetail:e.target.value}))} placeholder={detailPromptFor(signupForm.source)}/>}
               </div>
               <div style={{margin:'4px 0 18px'}}>
                 <label style={{display:'flex',alignItems:'flex-start',gap:12,padding:'12px 4px',minHeight:44,cursor:'pointer',fontSize:17,lineHeight:1.55,color:C.cream}}>
