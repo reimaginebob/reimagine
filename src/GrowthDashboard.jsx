@@ -52,6 +52,13 @@ const STAGE_LABELS = {
   researching: "Researching", applied: "Applied", in_conversation: "In conversation",
   interviewing: "Interviewing", offer: "Offer", closed: "Closed", "(none)": "No stage set",
 }
+// The ladder, in order. Rendered in full even where a stage has no rows: a
+// stage nobody has reached is information, not an absent row.
+const STAGE_LADDER = ["researching", "applied", "in_conversation", "interviewing", "offer", "closed"]
+const OUTCOME_LABELS = {
+  accepted: "Accepted an offer", declined: "Declined an offer", not_selected: "Not selected",
+  withdrew: "Withdrew", no_response: "No response",
+}
 const SOURCE_LABELS = {
   referral: "Someone recommended it", bob: "Bob Goodwin or Career Club", linkedin: "LinkedIn",
   media: "Newsletter, podcast, or article", search: "Web search", event: "Event or workshop",
@@ -97,6 +104,9 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
   const ret = payload.retention || {}
   const ses = payload.sessions || {}
   const pipeline = payload.pipeline || []
+  const reached = payload.reached || []
+  const outcomes = payload.outcomes || []
+  const hist = payload.history_coverage || {}
   const rec = payload.recognition || {}
   const coach = payload.coach || {}
   const sources = payload.sources || []
@@ -115,6 +125,9 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
     { key: "focus_complete", label: "Completed all seven sections", value: f.focus_complete },
     { key: "opportunity", label: "Built an Opportunity Playbook", value: f.opportunity },
   ]
+  const reachedByStage = reached.reduce((m, r) => { m[r.stage] = r; return m }, {})
+  const nowByStage = pipeline.reduce((m, p) => { m[p.stage] = p; return m }, {})
+  const maxReached = Math.max(1, ...reached.map((r) => r.opportunities))
   const maxDepth = Math.max(1, ...depth.map((d) => d.users))
   const totalDepthUsers = depth.reduce((s, d) => s + d.users, 0)
   const medianDepth = (() => {
@@ -292,23 +305,60 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
           </div>
         </Panel>
 
-        {/* Pipeline outcomes */}
-        <Panel title="Where opportunities stand" wide>
+        {/* Opportunity outcomes — the ladder, from the stage history */}
+        <Panel title="How far opportunities have got" wide>
+          <div style={{ overflowX: "auto" }}>
+            <table style={S.table}>
+              <thead><tr>
+                <Th>Stage</Th><Th right>Ever reached</Th><Th right>People</Th><Th right>There now</Th>
+              </tr></thead>
+              <tbody>
+                {STAGE_LADDER.map((code) => {
+                  const r = reachedByStage[code] || { opportunities: 0, users: 0 }
+                  const now = nowByStage[code] || { records: 0 }
+                  const width = maxReached > 0 ? (r.opportunities / maxReached) * 100 : 0
+                  return (
+                    <tr key={code}>
+                      <Td>
+                        <div style={{ marginBottom: 4 }}>{STAGE_LABELS[code] || code}</div>
+                        <div style={{ ...S.barTrack, maxWidth: 260 }}>
+                          <div style={{ width: `${Math.max(width, 0.5)}%`, height: "100%", background: code === "offer" ? OK : GOLD, opacity: code === "offer" ? 1 : 0.7, borderRadius: 5 }} />
+                        </div>
+                      </Td>
+                      <Td right><strong style={{ color: NAVY }}>{fmtInt(r.opportunities)}</strong></Td>
+                      <Td right>{fmtInt(r.users)}</Td>
+                      <Td right muted>{now.records || "—"}</Td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={S.subSectionLabel}>How they ended</div>
           <table style={S.table}>
-            <thead><tr><Th>Stage</Th><Th right>Opportunities</Th><Th right>People</Th></tr></thead>
+            <thead><tr><Th>Outcome</Th><Th right>Opportunities</Th><Th right>People</Th></tr></thead>
             <tbody>
-              {pipeline.map((p) => (
-                <tr key={p.stage}>
-                  <Td>{STAGE_LABELS[p.stage] || p.stage}</Td>
-                  <Td right>{fmtInt(p.records)}</Td>
-                  <Td right>{fmtInt(p.users)}</Td>
+              {outcomes.map((o) => (
+                <tr key={o.outcome}>
+                  <Td>{OUTCOME_LABELS[o.outcome] || o.outcome}</Td>
+                  <Td right><strong style={{ color: o.outcome === "accepted" ? OK : NAVY }}>{fmtInt(o.opportunities)}</strong></Td>
+                  <Td right>{fmtInt(o.users)}</Td>
                 </tr>
               ))}
-              {pipeline.length === 0 && <tr><Td colSpan={3} muted>Nobody is tracking an opportunity yet — My Pipeline is still gated to pilot testers.</Td></tr>}
+              {outcomes.length === 0 && <tr><Td colSpan={3} muted>No opportunity has been closed out yet.</Td></tr>}
             </tbody>
           </table>
+
           <div style={S.calloutTight}>
-            <strong style={{ color: NAVY }}>The metric that would matter most, and the one we can least support today.</strong> "Nine reached interview, three took offers" is the sentence an investor repeats to their partners. Two things stand in the way: My Pipeline is gated to pilot testers, and the stage is stored as a current state rather than a history — so an opportunity that closed cannot be shown as having reached interview. A stage-change log would fix the second.
+            <strong style={{ color: NAVY }}>Ever reached</strong> comes from the append-only stage history, so an opportunity still counts at "interviewing" long after it closed. It counts only stages someone actually set — a jump straight to offer does not credit interviewing.
+            {hist.backfill_events > 0 && (
+              <> {fmtInt(hist.backfill_events)} of these are seeded from where things stood when the log shipped, so for anything already closed by then the earlier path is unknown and unrecoverable.</>
+            )}
+            {hist.first_live_at
+              ? <> Observed history starts <strong style={{ color: NAVY }}>{new Date(hist.first_live_at).toISOString().slice(0, 10)}</strong> and is complete from there.</>
+              : <> No stage change has been observed yet; everything here is the seeded snapshot.</>}
+            {pipeline.length === 0 && <> My Pipeline is still gated to pilot testers, so coverage is a handful of people — widening that is what turns this panel into the number worth quoting.</>}
           </div>
         </Panel>
 
@@ -374,6 +424,7 @@ const DEF_LABELS = {
   activation: "Activated", orientation: "Orientation done", focusComplete: "Focus Playbook complete",
   opportunity: "Opportunity Playbook", activeDay: "Active day", returnWeek: "Return week",
   resurrection: "Resurrection", workingSession: "Working session", depth: "Depth", recognition: "Recognition",
+  reached: "Ever reached", outcome: "Outcome",
 }
 
 // ---- presentational sub-components (mirrors AdminDashboard.jsx) ----
@@ -416,6 +467,7 @@ const S = {
   tileLabel: { fontSize: 12, color: GRAYL, marginTop: 4, lineHeight: 1.3 },
   tileSub: { color: GOLDL, fontStyle: "italic" },
   barTrack: { height: 10, background: CREAM, borderRadius: 5, overflow: "hidden" },
+  subSectionLabel: { fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: GRAYL, margin: "18px 0 6px" },
   table: { width: "100%", borderCollapse: "collapse", fontSize: 14 },
   th: { color: GRAYL, fontWeight: 600, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
   td: { padding: "7px 8px", borderBottom: `1px solid ${BORDER}` },
