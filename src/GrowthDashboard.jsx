@@ -105,6 +105,8 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
   const ret = payload.retention || {}
   const ses = payload.sessions || {}
   const pbv = payload.playbooks || {}
+  const doors = payload.doors || {}
+  const crossVol = payload.crossover_by_volume || []
   const pipeline = payload.pipeline || []
   const reached = payload.reached || []
   const outcomes = payload.outcomes || []
@@ -116,21 +118,19 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
   const cfg = payload.settings || {}
 
   const rate = (a, b) => (b > 0 ? a / b : null)
+  const br = f.branch || {}
   const activationRate = rate(f.activated, f.signups)
   const completionRate = rate(f.focus_complete, f.activated)
-  const opportunityRate = rate(f.opportunity, f.activated)
 
-  // Four rungs, not five. Building an Opportunity Playbook is not downstream of
-  // finishing all seven Focus sections -- it is a parallel move most people
-  // make without finishing -- so it gets its own panel rather than a rung whose
-  // "conversion" would compare unrelated populations.
+  // The trunk: what everyone shares before the product offers a choice.
+  // Personal Brand is the real gate -- the sidebar renders behind
+  // done.includes('p3'), so until it exists nobody reaches Put It to Work or
+  // either door. Everything after it is a branch, not a rung.
   const funnelSteps = [
     { key: "signups", label: "Signed up", value: f.signups },
-    { key: "orientation", label: "Personal Brand generated", value: f.orientation },
-    { key: "activated", label: "Activated — first playbook", value: f.activated, accent: true },
-    { key: "focus_complete", label: "Completed all seven sections", value: f.focus_complete },
+    { key: "gave_inputs", label: "Put material in", value: f.gave_inputs },
+    { key: "personal_brand", label: "Generated a Personal Brand", value: f.personal_brand, accent: true },
   ]
-  const skippedAhead = Math.max(0, (f.opportunity_any || 0) - (f.opportunity || 0))
   const reachedByStage = reached.reduce((m, r) => { m[r.stage] = r; return m }, {})
   const nowByStage = pipeline.reduce((m, p) => { m[p.stage] = p; return m }, {})
   const maxReached = Math.max(1, ...reached.map((r) => r.opportunities))
@@ -162,9 +162,12 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
             with quartiles rather than a duplicated median here. */}
         <Panel title="The three numbers" wide>
           <div style={S.tileGrid}>
-            <Stat label="Activation rate" value={fmtPct(activationRate)} sub={`${fmtInt(f.activated)} of ${fmtInt(f.signups)} signups`} accent />
-            <Stat label="Finish all seven sections" value={fmtPct(completionRate)} sub={`${fmtInt(f.focus_complete)} of ${fmtInt(f.activated)} activated`} />
-            <Stat label="Go on to a real job" value={fmtPct(opportunityRate)} sub={`${fmtInt(f.opportunity)} of ${fmtInt(f.activated)} activated`} />
+            <Stat label="Activation rate" value={fmtPct(activationRate)} sub={`${fmtInt(f.activated)} of ${fmtInt(f.signups)} — either door`} accent />
+            <Stat label="Took the recommended door first" value={fmtPct(doors.opportunity_first_share)} sub={`${fmtInt(doors.opportunity_first)} of ${fmtInt(doors.covered)} timed`} />
+            <Stat label="Crossed over to Focus" value={fmtPct(doors.crossover_rate)} sub={`${fmtInt(doors.crossed_to_focus)} of ${fmtInt(doors.opportunity_first)} opportunity-first`} />
+          </div>
+          <div style={S.calloutTight}>
+            Activation now counts a first playbook through <strong style={{ color: NAVY }}>either</strong> door. It previously counted only a Focus Playbook, which is the door most people do not take — changed 2026-08-21, before these numbers went anywhere, and recorded in the definitions below. Finishing all seven Focus sections is {fmtPct(completionRate)} of activated ({fmtInt(f.focus_complete)} people) and sits in the branch panel where it belongs.
           </div>
         </Panel>
 
@@ -188,8 +191,16 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
               </div>
             )
           })}
+          <div style={S.subSectionLabel}>Then the choice: Put It to Work</div>
+          <div style={S.tileGrid}>
+            <Stat label="Add an Opportunity" value={fmtInt(br.opportunity)} sub={`${fmtPct(rate(br.opportunity, f.personal_brand))} of those who got this far`} accent />
+            <Stat label="Career Paths" value={fmtInt(br.career_paths)} sub={fmtPct(rate(br.career_paths, f.personal_brand))} />
+            <Stat label="Both doors" value={fmtInt(br.both)} />
+            <Stat label="Neither" value={fmtInt(br.neither)} danger={br.neither > 0} sub="reached the choice, took no door" />
+          </div>
           <div style={S.calloutTight}>
-            The step with the steepest fall is the product's weak link. Each step counts only people who cleared every step above it, so a conversion here can never exceed 100%. Everything on this page uses one activation event, defined at the bottom — it does not move between tellings.
+            The trunk is cumulative — each rung counts only people who cleared the one above — so a conversion cannot exceed 100%. The two doors are counted side by side rather than stacked: <strong style={{ color: NAVY }}>neither is downstream of the other</strong>, and Add an Opportunity is the one Put It to Work recommends first to anyone with a live opening.
+            {" "}Personal Brand is the real gate — the sidebar renders behind it, so the {fmtInt(Math.max(0, (f.signups || 0) - (f.personal_brand || 0)))} people who never generated one never reached the choice at all. That drop is upstream of everything the product recommends.
           </div>
         </Panel>
 
@@ -241,7 +252,43 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
           </div>
           <div style={S.calloutTight}>
             Every other count on this page counts <strong style={{ color: NAVY }}>people</strong>. This panel counts what they made — one person can run several live opportunities at once, and "{fmtInt(pbv.op_builders)} people built one" and "{fmtInt(pbv.op_total)} playbooks exist" are very different products. Playbooks per builder is the depth-of-use number: it rises when the tool becomes where someone works rather than something they tried.
-            {skippedAhead > 0 && <> {fmtInt(skippedAhead)} {skippedAhead === 1 ? "person" : "people"} built one without first activating, so they sit outside the funnel above.</>}
+          </div>
+        </Panel>
+
+        {/* Which door, and what happens next */}
+        <Panel title="Which door they take, and what happens next" wide>
+          <div style={S.tileGrid}>
+            <Stat label="Opportunity first" value={fmtInt(doors.opportunity_first)} sub={fmtPct(doors.opportunity_first_share)} accent />
+            <Stat label="Career Paths first" value={fmtInt(doors.career_paths_first)} />
+            <Stat label="Time to first playbook — Opportunity" value={fmtHours(doors.median_hours_opportunity)} sub="median" />
+            <Stat label="Time to first playbook — Career Paths" value={fmtHours(doors.median_hours_career_paths)} sub="median" />
+          </div>
+
+          <div style={S.subSectionLabel}>Crossover</div>
+          <div style={S.tileGrid}>
+            <Stat label="Opportunity first, later built Focus" value={fmtPct(doors.crossover_rate)} sub={`${fmtInt(doors.crossed_to_focus)} of ${fmtInt(doors.opportunity_first)}`} accent />
+            <Stat label="Career Paths first, later added an opportunity" value={fmtPct(doors.reverse_crossover_rate)} sub={`${fmtInt(doors.crossed_to_opportunity)} of ${fmtInt(doors.career_paths_first)}`} />
+          </div>
+
+          <div style={S.subSectionLabel}>Crossover against how many opportunities they ran</div>
+          <table style={S.table}>
+            <thead><tr><Th>Opportunities built</Th><Th right>People</Th><Th right>Later opened Focus</Th><Th right>Rate</Th></tr></thead>
+            <tbody>
+              {crossVol.map((r) => (
+                <tr key={r.opportunities}>
+                  <Td>{r.opportunities >= 3 ? "3 or more" : r.opportunities === 1 ? "1" : String(r.opportunities)}</Td>
+                  <Td right>{fmtInt(r.users)}</Td>
+                  <Td right>{fmtInt(r.crossed)}</Td>
+                  <Td right><strong style={{ color: NAVY }}>{fmtPct(r.rate)}</strong></Td>
+                </tr>
+              ))}
+              {crossVol.length === 0 && <tr><Td colSpan={4} muted>No timed playbooks yet.</Td></tr>}
+            </tbody>
+          </table>
+
+          <div style={S.calloutTight}>
+            <strong style={{ color: NAVY }}>This is the beachhead thesis, as a number.</strong> If the rate in that table climbs with the number of opportunities someone ran, repeated value is buying the right to introduce the wider work. If it stays flat, people are using Reimagine to go after jobs and the Focus story has not landed yet — which is worth knowing early either way.
+            {" "}Ordering needs per-playbook timestamps, so this covers the {fmtInt(doors.covered)} account{doors.covered === 1 ? "" : "s"} whose playbooks were saved server-side.
           </div>
         </Panel>
 
@@ -455,6 +502,7 @@ const DEF_LABELS = {
   resurrection: "Resurrection", workingSession: "Working session", depth: "Depth", recognition: "Recognition",
   reached: "Ever reached", outcome: "Outcome",
   funnelStep: "Funnel step", playbooksPerBuilder: "Playbooks per builder",
+  careerPaths: "Career Paths", crossover: "Crossover", trunk: "The trunk",
 }
 
 // ---- presentational sub-components (mirrors AdminDashboard.jsx) ----
