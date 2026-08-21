@@ -13,6 +13,7 @@
 import { useState, useEffect, useCallback, Fragment } from "react"
 import FeedbackDashboard from "./FeedbackDashboard"
 import EconomicsDashboard from "./EconomicsDashboard"
+import GrowthDashboard from "./GrowthDashboard"
 
 const NAVY = "#1A2540"
 const GOLD = "#C8924A"
@@ -123,7 +124,7 @@ export default function AdminDashboard() {
     } catch { setPipelineMsg("Network error. Try again.") }
     finally { setPipelineBusy(false) }
   }
-  const [tab, setTab] = useState("analytics") // "analytics" | "feedback" | "economics"
+  const [tab, setTab] = useState("analytics") // "analytics" | "feedback" | "growth" | "economics"
   // Bumped by the header Refresh button so child tabs that own their own fetch
   // can react to it.
   const [refreshKey, setRefreshKey] = useState(0)
@@ -281,14 +282,17 @@ export default function AdminDashboard() {
         </div>
 
         {/* Tab bar: Analytics (existing) | Feedback (feedback_event views)
+            | Growth (activation, cohorts, progression, outcomes)
             | Economics (unit economics over generation_events cost capture) */}
         <div style={S.tabBar}>
           <button onClick={() => setTab("analytics")} style={tab === "analytics" ? S.tabActive : S.tab}>Analytics</button>
           <button onClick={() => setTab("feedback")} style={tab === "feedback" ? S.tabActive : S.tab}>Feedback</button>
+          <button onClick={() => setTab("growth")} style={tab === "growth" ? S.tabActive : S.tab}>Growth</button>
           <button onClick={() => setTab("economics")} style={tab === "economics" ? S.tabActive : S.tab}>Economics</button>
         </div>
 
         {tab === "feedback" && <FeedbackDashboard token={token} range={range} refreshKey={refreshKey} />}
+        {tab === "growth" && <GrowthDashboard token={token} refreshKey={refreshKey} />}
         {tab === "economics" && <EconomicsDashboard token={token} />}
 
         {tab === "analytics" && <>
