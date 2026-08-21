@@ -14,6 +14,7 @@
 // Charts are inline SVG and CSS bars. No new dependencies, same rule as the
 // other tabs.
 import { useState, useEffect, useCallback } from "react"
+import DormantAccounts from "./DormantAccounts"
 
 const NAVY = "#1A2540"
 const GOLD = "#C8924A"
@@ -242,6 +243,13 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
             Every other count on this page counts <strong style={{ color: NAVY }}>people</strong>. This panel counts what they made — one person can run several live opportunities at once, and "{fmtInt(pbv.op_builders)} people built one" and "{fmtInt(pbv.op_total)} playbooks exist" are very different products. Playbooks per builder is the depth-of-use number: it rises when the tool becomes where someone works rather than something they tried.
             {skippedAhead > 0 && <> {fmtInt(skippedAhead)} {skippedAhead === 1 ? "person" : "people"} built one without first activating, so they sit outside the funnel above.</>}
           </div>
+        </Panel>
+
+        {/* Who signed up and stopped. Placed right under the funnel: the
+            steepest fall on that chart is a list of real people, and this is
+            the list. */}
+        <Panel title="Signed up and stopped" wide>
+          <DormantAccounts token={token} refreshKey={refreshKey} />
         </Panel>
 
         {/* Progression depth */}
