@@ -1,6 +1,7 @@
 import { sql } from '../_lib/db.js'
 import { generateToken, hashToken } from '../_lib/session.js'
 import { sendMagicLinkEmail } from '../_lib/email.js'
+import { isSignupSource } from '../../src/signup-sources.js'
 
 const TOKEN_EXPIRY_MINUTES = 15
 // Rate limits keyed by email. Both windows must clear for a request to pass.
@@ -23,8 +24,8 @@ function formatHHMMUtc(date) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { email, firstName, lastName, privacyAccepted, privacyVersion, termsAccepted, termsVersion } =
-    req.body || {}
+  const { email, firstName, lastName, privacyAccepted, privacyVersion, termsAccepted, termsVersion,
+    signupSource, signupSourceDetail } = req.body || {}
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     return res.status(400).json({ error: 'Invalid email' })
   }
@@ -54,6 +55,16 @@ export default async function handler(req, res) {
   const tokenPrivacyVersion = isNewAccount && typeof privacyVersion === 'string' ? privacyVersion : null
   const tokenTermsAt = isNewAccount ? nowIso : null
   const tokenTermsVersion = isNewAccount && typeof termsVersion === 'string' ? termsVersion : null
+
+  // "How did you hear about us", carried the same way. New accounts only: a
+  // returning user is not asked, and overwriting an existing answer would
+  // replace a real first touch with a later recollection. An unrecognised code
+  // is dropped rather than rejected -- the question is optional, and a failed
+  // sign-in would be a steep price for a stale dropdown on a cached page.
+  const tokenSource = (isNewAccount && isSignupSource(signupSource)) ? signupSource : null
+  const tokenSourceDetail = (tokenSource && typeof signupSourceDetail === 'string' && signupSourceDetail.trim())
+    ? signupSourceDetail.trim().slice(0, 200)
+    : null
 
   // Dual-window rate limit. We query both windows in one round trip, then
   // compute the earliest moment the limiting window opens back up. When both
@@ -96,8 +107,8 @@ export default async function handler(req, res) {
   const ipAddress = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || ''
 
   await sql`
-    INSERT INTO magic_link_tokens (token_hash, email, first_name, last_name, expires_at, user_agent, ip_address, privacy_accepted_at, privacy_version, terms_accepted_at, terms_version)
-    VALUES (${tokenHash}, ${normalizedEmail}, ${firstName || null}, ${lastName || null}, ${expiresAt.toISOString()}, ${userAgent}, ${ipAddress}, ${tokenPrivacyAt}, ${tokenPrivacyVersion}, ${tokenTermsAt}, ${tokenTermsVersion})
+    INSERT INTO magic_link_tokens (token_hash, email, first_name, last_name, expires_at, user_agent, ip_address, privacy_accepted_at, privacy_version, terms_accepted_at, terms_version, signup_source, signup_source_detail)
+    VALUES (${tokenHash}, ${normalizedEmail}, ${firstName || null}, ${lastName || null}, ${expiresAt.toISOString()}, ${userAgent}, ${ipAddress}, ${tokenPrivacyAt}, ${tokenPrivacyVersion}, ${tokenTermsAt}, ${tokenTermsVersion}, ${tokenSource}, ${tokenSourceDetail})
   `
 
   // Build the verify URL from the request origin so preview deploys

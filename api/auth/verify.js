@@ -38,7 +38,8 @@ export default async function handler(req, res) {
   const tokenHash = hashToken(token)
   const rows = await sql`
     SELECT email, first_name, last_name, expires_at, used_at,
-           privacy_accepted_at, privacy_version, terms_accepted_at, terms_version
+           privacy_accepted_at, privacy_version, terms_accepted_at, terms_version,
+           signup_source, signup_source_detail
     FROM magic_link_tokens
     WHERE token_hash = ${tokenHash}
     LIMIT 1
@@ -70,11 +71,17 @@ export default async function handler(req, res) {
     // reach this branch with these populated; the legal gate in
     // request-link.js guarantees a token row cannot exist for a new account
     // without acceptance.
+    // signup_source rides along on the same principle: captured on the form,
+    // parked on the token, written once when the account is created. The
+    // ON CONFLICT branch deliberately touches only last_login_at, so a racing
+    // second redemption cannot overwrite it.
     const created = await sql`
       INSERT INTO users (email, first_name, last_name, last_login_at,
-        privacy_accepted_at, privacy_version, terms_accepted_at, terms_version)
+        privacy_accepted_at, privacy_version, terms_accepted_at, terms_version,
+        signup_source, signup_source_detail)
       VALUES (${row.email}, ${row.first_name}, ${row.last_name}, NOW(),
-        ${row.privacy_accepted_at}, ${row.privacy_version}, ${row.terms_accepted_at}, ${row.terms_version})
+        ${row.privacy_accepted_at}, ${row.privacy_version}, ${row.terms_accepted_at}, ${row.terms_version},
+        ${row.signup_source || null}, ${row.signup_source_detail || null})
       ON CONFLICT (email) DO UPDATE SET last_login_at = NOW()
       RETURNING id
     `
