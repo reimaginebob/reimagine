@@ -12,6 +12,7 @@
 // uses inline styles).
 import { useState, useEffect, useCallback, Fragment } from "react"
 import FeedbackDashboard from "./FeedbackDashboard"
+import EconomicsDashboard from "./EconomicsDashboard"
 
 const NAVY = "#1A2540"
 const GOLD = "#C8924A"
@@ -122,7 +123,7 @@ export default function AdminDashboard() {
     } catch { setPipelineMsg("Network error. Try again.") }
     finally { setPipelineBusy(false) }
   }
-  const [tab, setTab] = useState("analytics") // "analytics" | "feedback"
+  const [tab, setTab] = useState("analytics") // "analytics" | "feedback" | "economics"
 
   // Single call doubles as the auth probe and the data fetch: a 200 means the
   // token is valid AND we have data; a 403 means the token is wrong.
@@ -267,13 +268,16 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Tab bar: Analytics (existing) | Feedback (feedback_event views) */}
+        {/* Tab bar: Analytics (existing) | Feedback (feedback_event views)
+            | Economics (unit economics over generation_events cost capture) */}
         <div style={S.tabBar}>
           <button onClick={() => setTab("analytics")} style={tab === "analytics" ? S.tabActive : S.tab}>Analytics</button>
           <button onClick={() => setTab("feedback")} style={tab === "feedback" ? S.tabActive : S.tab}>Feedback</button>
+          <button onClick={() => setTab("economics")} style={tab === "economics" ? S.tabActive : S.tab}>Economics</button>
         </div>
 
         {tab === "feedback" && <FeedbackDashboard token={token} />}
+        {tab === "economics" && <EconomicsDashboard token={token} />}
 
         {tab === "analytics" && <>
         {error && (

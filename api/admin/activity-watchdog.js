@@ -93,6 +93,10 @@ export default async function handler(req, res) {
   }
 
   // --- Generation-volume spikes (Phase 2; no-ops until generation_events exists) ---
+  // kind = 'coach' rows are excluded from both counts. My Coach turns began
+  // logging to this table for cost reporting; they are not playbook generations
+  // and counting them here would drift the thresholds without anyone changing
+  // them.
   try {
     const genPerUser = await sql`
       SELECT u.email AS email, COUNT(*)::int AS n
@@ -100,12 +104,14 @@ export default async function handler(req, res) {
       JOIN users u ON u.id = g.user_id
       WHERE g.created_at >= NOW() - INTERVAL '1 hour'
         AND lower(u.email) NOT LIKE '%@career.club'
+        AND COALESCE(g.kind, '') <> 'coach'
       GROUP BY u.email
       HAVING COUNT(*) >= ${PER_USER_GENERATIONS_HR}
       ORDER BY n DESC
     `
     const genTotalRows = await sql`
-      SELECT COUNT(*)::int AS total FROM generation_events WHERE created_at >= NOW() - INTERVAL '1 hour'
+      SELECT COUNT(*)::int AS total FROM generation_events
+       WHERE created_at >= NOW() - INTERVAL '1 hour' AND COALESCE(kind, '') <> 'coach'
     `
     const totalGenerations = (genTotalRows[0] && genTotalRows[0].total) || 0
     summary.generations = { totalLastHour: totalGenerations, offenders: genPerUser.length }

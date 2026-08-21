@@ -23,6 +23,7 @@ import { totalCompModel } from '../src/offer-valuation.js'
 import { COMP_KNOWLEDGE } from '../src/comp-knowledge.js'
 import { getSessionUser } from './_lib/session.js'
 import { sql } from './_lib/db.js'
+import { costFromUsage, addUsage } from './_lib/usage-cost.js'
 
 const ALLOWED_HOSTS = new Set([
   'reimagine2-two.vercel.app',
@@ -761,6 +762,13 @@ export default async function handler(req, res) {
   // guide + book) is the cached prefix; the per-user profile slice is a second,
   // uncached system block. Reused by the voice-retry below (same cached prefix,
   // so the retry is a cache hit on the big blocks).
+  // Token usage across every upstream call this turn makes (the voice retry
+  // below is a second billed call). Summed here, logged once at the end as a
+  // single generation_events row -- the Coach is a real line on the cost side
+  // and a dashboard that counted only playbook generations would understate
+  // what a user costs.
+  const coachUsage = {}
+  const COACH_MODEL = 'claude-sonnet-4-5'
   async function generate(msgs) {
     const up = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -770,7 +778,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: COACH_MODEL,
         // 2000, not 1200: long profile-rich replies (a fully worked resume
         // markup, a multi-company outreach plan) ran past the 1200-token cap and
         // were cut off mid-sentence in the baseline battery. 2000 (~8k chars)
@@ -790,6 +798,7 @@ export default async function handler(req, res) {
       throw new Error(`upstream ${up.status} ${errBody.slice(0, 200)}`)
     }
     const data = await up.json()
+    addUsage(coachUsage, data.usage)
     return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n')
   }
 
@@ -950,6 +959,18 @@ export default async function handler(req, res) {
       `
     } catch { /* columns not migrated yet; ignore */ }
   }
+
+  // Cost logging for the Economics tab. Best-effort and awaited (serverless may
+  // freeze after res.end()), but it never throws: the reply is already written,
+  // and a failed insert must not turn a delivered answer into an error.
+  try {
+    const c = costFromUsage(COACH_MODEL, coachUsage)
+    await sql`
+      INSERT INTO generation_events
+        (user_id, kind, model, input_tokens, output_tokens, cache_write_tokens, cache_read_tokens, web_searches, cost_usd)
+      VALUES
+        (${user.id}, 'coach', ${c.model}, ${c.inputTokens}, ${c.outputTokens}, ${c.cacheWriteTokens}, ${c.cacheReadTokens}, ${c.webSearches}, ${c.costUsd})`
+  } catch { /* never surfaces to the caller */ }
 
   res.end()
 }
