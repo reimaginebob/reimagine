@@ -20,6 +20,7 @@ import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { sql } from './_lib/db.js'
 import { getSessionUser } from './_lib/session.js'
 import { sendAccountHoldEmail, sendActivityAlertEmail } from './_lib/email.js'
+import { costFromUsage } from './_lib/usage-cost.js'
 
 // Real-time generation cap (rogue-activity safeguard). Matches the watchdog's
 // per-user generation threshold; a signed-in account that has already generated
@@ -33,11 +34,19 @@ const GENERATION_CAP_HR = 80
 // log a null user_id. Swallows every error (table not migrated yet, no session,
 // DB hiccup) so it can NEVER affect or delay a generation. kind is the internal
 // step tag (e.g. 'p7' = Go-to-Market).
-async function logGeneration(user, step) {
+// Token counts and cost ride along on the same row (Economics tab). They are
+// priced at write time by costFromUsage; a response with no usage object logs a
+// zero-cost row rather than dropping the generation from the count.
+async function logGeneration(user, step, model, usage) {
   try {
     const userId = (user && user.id) ? user.id : null
     const kind = (typeof step === 'string' && step.trim()) ? step.trim().slice(0, 40) : null
-    await sql`INSERT INTO generation_events (user_id, kind) VALUES (${userId}, ${kind})`
+    const c = costFromUsage(model, usage)
+    await sql`
+      INSERT INTO generation_events
+        (user_id, kind, model, input_tokens, output_tokens, cache_write_tokens, cache_read_tokens, web_searches, cost_usd)
+      VALUES
+        (${userId}, ${kind}, ${c.model}, ${c.inputTokens}, ${c.outputTokens}, ${c.cacheWriteTokens}, ${c.cacheReadTokens}, ${c.webSearches}, ${c.costUsd})`
   } catch { /* never surfaces to the caller */ }
 }
 
@@ -386,7 +395,10 @@ export default async function handler(req, res) {
   // @career.club accounts are exempt so admin testing can't self-lock.
   if (sessionUser && sessionUser.id && !/@career\.club$/i.test(sessionUser.email || '')) {
     try {
-      const c = await sql`SELECT COUNT(*)::int AS n FROM generation_events WHERE user_id = ${sessionUser.id} AND created_at >= NOW() - INTERVAL '1 hour'`
+      // kind = 'coach' rows are excluded: My Coach turns started logging here for
+      // cost reporting, and they are neither what this cap is protecting against
+      // nor paced the same way. Counting them would auto-pause a talkative user.
+      const c = await sql`SELECT COUNT(*)::int AS n FROM generation_events WHERE user_id = ${sessionUser.id} AND created_at >= NOW() - INTERVAL '1 hour' AND COALESCE(kind, '') <> 'coach'`
       const n = (c[0] && c[0].n) || 0
       if (n >= GENERATION_CAP_HR) {
         await sql`UPDATE users SET suspended_at = NOW(), suspended_reason = ${'auto: ' + n + ' generations/hr'} WHERE id = ${sessionUser.id} AND suspended_at IS NULL`
@@ -466,7 +478,7 @@ export default async function handler(req, res) {
     console.log(JSON.stringify({ evt: 'claude_usage', step: reqBody.step, usage: data.usage }))
     // Best-effort; awaited so it completes before the function returns (serverless
     // may freeze after the response), but it never throws or blocks the reply.
-    await logGeneration(sessionUser, reqBody.step)
+    await logGeneration(sessionUser, reqBody.step, anthropicBody.model, data.usage)
     return res.status(response.status).json(data)
   } catch (error) {
     return res.status(500).json({ error: error.message })
