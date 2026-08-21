@@ -113,7 +113,7 @@ Briefs that come back at 25-80% of their original scope after pre-flight are com
 - `p11`: Interview Prep (top questions with STAR breakdown + framing recommendations)
 - `p_res`: Resume Refresh
 - `income`: Income Now
-- `op`: Live Opportunity Playbook (post-completion bonus)
+- `op`: Live Opportunity Playbook — **the recommended first move, not a bonus.** After Personal Brand, the sidebar unlocks and users land on **Put It to Work** (`twoDoors`), which offers two doors: **Add an Opportunity** (this one, shown first) and **Career Paths** (`laneSelect` → the Focus Playbook). The screen's callout tells anyone with a live opening to start here. Job seekers overwhelmingly want immediate help with a real opportunity rather than an open-ended exploration, and the fast win is what earns the right to introduce the Focus Playbook later. `reach: 'standalone'` in `FEATURE_MAP` already reflects this. Earlier revisions of this file called it a post-completion bonus; that was never true of the shipped product.
 - `skillsExtract`: Skills capture from resume + LinkedIn (orientation surface)
 
 ### Conventions inside prompt builders

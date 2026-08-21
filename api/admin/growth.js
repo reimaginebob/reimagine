@@ -46,10 +46,13 @@ const SESSION_GAP_MIN = 30
 const RESURRECT_DAYS = 14
 
 const DEFINITIONS = {
-  activation: 'Generated a first playbook: a saved Focus Playbook, or The Role written. One event, chosen once — every activation number on this page uses it.',
+  activation: 'Generated a first playbook through EITHER door — an Opportunity Playbook or a Focus Playbook. Changed on 2026-08-21 from "a Focus Playbook", which counted only the door most people do not take; recorded here so the change is on the page rather than in a recollection.',
   orientation: 'Personal Brand generated. The first thing the product gives back, and the first point where someone can judge it.',
   focusComplete: 'All seven Focus Playbook sections marked done.',
-  opportunity: 'Built an Opportunity Playbook against a real job. The expansion signal — the line between trying the tool and working in it.',
+  opportunity: 'Built an Opportunity Playbook against a real job — the door Put It to Work recommends first to anyone with a live opening.',
+  careerPaths: 'Opened Career Paths, the exploration door, which leads to the Focus Playbook.',
+  crossover: 'Started with an Opportunity Playbook and later built a Focus one. The test of whether an immediate win earns the right to introduce the wider work.',
+  trunk: 'Sign up, put material in, generate a Personal Brand. Personal Brand is the real gate — the sidebar renders behind it, so until it exists nobody can reach Put It to Work or either door.',
   activeDay: 'A day with a sign-in, a generation, or a coach turn. Reconstructed from rows that carry a user id; page views are not counted.',
   returnWeek: 'Weeks counted from each user\'s own signup date, not the calendar. Week 0 is their first seven days.',
   resurrection: `Came back after ${RESURRECT_DAYS}+ quiet days. For a job search this is the retention signal that matters — people return when their search moves.`,
@@ -84,6 +87,8 @@ async function loadPayload(adminEmails) {
   const [
     funnel,
     playbooks,
+    doors,
+    crossoverByVolume,
     cohortSizes,
     cohortReturns,
     timeToActivate,
@@ -99,50 +104,62 @@ async function loadPayload(adminEmails) {
     sources,
   ] = await Promise.all([
 
-    // --- 1. Activation funnel, all-time -----------------------------------
-    // State-based rather than event-based so it covers every account,
-    // including the ones that predate server-side playbook saving.
-    // The per-user flags are computed in a CTE and only then aggregated. Same
-    // result as putting the tests inside FILTER clauses, but the EXISTS
-    // subqueries sit in a plain SELECT list where they are unambiguously legal.
+    // --- 1. Trunk and branch ----------------------------------------------
+    // The product is a trunk with two doors, not one ladder.
+    //
+    // Trunk: sign up -> put material in -> Personal Brand. Personal Brand is
+    // the real gate: the sidebar is rendered behind `done.includes('p3')`, so
+    // until it exists a user cannot reach Put It to Work or either door.
+    //
+    // Branch: Put It to Work offers Add an Opportunity (shown first, and the
+    // one the screen's callout recommends to anyone with a live opening) and
+    // Career Paths (which leads to the Focus Playbook). Neither is downstream
+    // of the other, so they are counted side by side, along with the people
+    // who did both and the people who reached the choice and took neither.
+    //
+    // Trunk counts are cumulative -- each AND-ed with the step above -- so a
+    // step-over-step conversion cannot exceed 100%. Branch counts are all
+    // within the Personal Brand population for the same reason.
     sql`
       WITH flags AS (
         SELECT
-          NULLIF(TRIM(profile_state->'outputs'->>'p3'), '') IS NOT NULL AS orientation,
-          (NULLIF(TRIM(profile_state->'outputs'->>'p5'), '') IS NOT NULL
-            OR EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks', '[]'::jsonb)) pb
-                        WHERE pb->>'source' = 'door1')) AS activated,
-          (profile_state->'done' ?& ${FOCUS_STEP_IDS}::text[]) AS focus_complete,
+          (
+            NULLIF(TRIM(profile_state->'profile'->>'resume'), '')     IS NOT NULL OR
+            NULLIF(TRIM(profile_state->'profile'->>'linkedin'), '')   IS NOT NULL OR
+            NULLIF(TRIM(profile_state->'profile'->>'assess'), '')     IS NOT NULL OR
+            NULLIF(TRIM(profile_state->'profile'->>'values'), '')     IS NOT NULL OR
+            NULLIF(TRIM(profile_state->'profile'->>'passions'), '')   IS NOT NULL OR
+            NULLIF(TRIM(profile_state->'profile'->>'lifeEvents'), '') IS NOT NULL
+          ) AS gave_inputs,
+          NULLIF(TRIM(profile_state->'outputs'->>'p3'), '') IS NOT NULL AS personal_brand,
           ((profile_state->'done') ? 'op'
             OR NULLIF(TRIM(profile_state->'outputs'->>'op'), '') IS NOT NULL
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks', '[]'::jsonb)) pb
-                        WHERE pb->>'source' = 'door2')) AS opportunity
+                        WHERE pb->>'source' = 'door2')) AS opportunity,
+          ((profile_state->'done') ? 'laneSelect'
+            OR NULLIF(TRIM(profile_state->'outputs'->>'p4'), '') IS NOT NULL
+            OR NULLIF(TRIM(profile_state->'outputs'->>'p5'), '') IS NOT NULL
+            OR EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks', '[]'::jsonb)) pb
+                        WHERE pb->>'source' = 'door1')) AS career_paths,
+          (profile_state->'done' ?& ${FOCUS_STEP_IDS}::text[]) AS focus_complete
         FROM users
         WHERE LOWER(email) <> ALL(${adminEmails}::text[])
       )
-      -- Funnel counts are cumulative on purpose: each step is AND-ed with the
-      -- one before it, so every step is a true subset of the step above and a
-      -- step-over-step conversion can never exceed 100%.
-      --
-      -- The steps are not naturally nested. Building an Opportunity Playbook
-      -- does not require finishing all seven Focus sections -- most people who
-      -- do it have not -- so dividing the raw counts produced a 950%
-      -- "conversion" that was arithmetic on two unrelated populations.
-      --
-      -- The raw (un-nested) counts ship alongside so the difference stays
-      -- visible: opportunity_any minus opportunity is the number of people who
-      -- went straight to a live job without activating first.
       SELECT
-        COUNT(*)::int                                                       AS signups,
-        COUNT(*) FILTER (WHERE orientation)::int                            AS orientation,
-        COUNT(*) FILTER (WHERE orientation AND activated)::int              AS activated,
-        COUNT(*) FILTER (WHERE orientation AND activated
-                           AND focus_complete)::int                         AS focus_complete,
-        COUNT(*) FILTER (WHERE orientation AND activated
-                           AND opportunity)::int                            AS opportunity,
-        COUNT(*) FILTER (WHERE activated)::int                              AS activated_any,
-        COUNT(*) FILTER (WHERE focus_complete)::int                         AS focus_complete_any,
-        COUNT(*) FILTER (WHERE opportunity)::int                            AS opportunity_any
+        COUNT(*)::int                                                          AS signups,
+        COUNT(*) FILTER (WHERE gave_inputs)::int                               AS gave_inputs,
+        COUNT(*) FILTER (WHERE gave_inputs AND personal_brand)::int            AS personal_brand,
+        -- Branch, all within the Personal Brand population.
+        COUNT(*) FILTER (WHERE personal_brand AND opportunity)::int            AS door_opportunity,
+        COUNT(*) FILTER (WHERE personal_brand AND career_paths)::int           AS door_career_paths,
+        COUNT(*) FILTER (WHERE personal_brand AND opportunity
+                           AND career_paths)::int                              AS door_both,
+        COUNT(*) FILTER (WHERE personal_brand AND NOT opportunity
+                           AND NOT career_paths)::int                          AS door_neither,
+        -- Activation: a first playbook through EITHER door. The old definition
+        -- counted only the Focus door, which is the one most people do not take.
+        COUNT(*) FILTER (WHERE opportunity OR career_paths)::int               AS activated,
+        COUNT(*) FILTER (WHERE focus_complete)::int                            AS focus_complete
       FROM flags`,
 
     // --- 1b. How much people build ----------------------------------------
@@ -171,14 +188,92 @@ async function loadPayload(adminEmails) {
         (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY op_pb)::float8    FROM pb WHERE op_pb > 0)    AS median_op_pb
       FROM pb`,
 
+    // --- 1c. Which door first, and what happened next ----------------------
+    // The strategic question: does an immediate win through Add an Opportunity
+    // earn the right to introduce the Focus Playbook later?
+    //
+    // Ordering needs timestamps, and savedPlaybooks is the only place that
+    // carries one per playbook, so this covers accounts whose playbooks were
+    // saved server-side. The covered population ships with the result rather
+    // than being implied.
+    sql`
+      WITH pbs AS (
+        SELECT u.id, u.created_at AS signed_up,
+               pb->>'source'                        AS source,
+               NULLIF(pb->>'createdAt', '')::timestamptz AS at
+        FROM users u
+        CROSS JOIN LATERAL jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) pb
+        WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
+          AND pb->>'source' IN ('door1', 'door2')
+      ),
+      timed AS (SELECT * FROM pbs WHERE at IS NOT NULL),
+      first_pb AS (
+        SELECT DISTINCT ON (id) id, signed_up, source, at
+        FROM timed ORDER BY id, at ASC
+      ),
+      per_user AS (
+        SELECT f.id, f.signed_up, f.source AS first_source, f.at AS first_at,
+               EXISTS (SELECT 1 FROM timed t WHERE t.id = f.id AND t.source = 'door1' AND t.at > f.at) AS later_focus,
+               EXISTS (SELECT 1 FROM timed t WHERE t.id = f.id AND t.source = 'door2' AND t.at > f.at) AS later_opportunity,
+               (SELECT COUNT(*) FROM timed t WHERE t.id = f.id AND t.source = 'door2')::int AS op_count
+        FROM first_pb f
+      )
+      SELECT
+        first_source,
+        COUNT(*)::int                                        AS users,
+        COUNT(*) FILTER (WHERE later_focus)::int             AS later_focus,
+        COUNT(*) FILTER (WHERE later_opportunity)::int       AS later_opportunity,
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (first_at - signed_up)) / 3600)::float8 AS median_hours
+      FROM per_user
+      WHERE first_at >= signed_up
+      GROUP BY first_source`,
+
+    // --- 1d. Crossover against how many opportunities they ran -------------
+    // The sharper version of the same question. If someone who ran three
+    // opportunities crosses to Career Paths more often than someone who ran
+    // one, repeated value is buying the education. If it is flat, they are
+    // using Reimagine to apply for jobs and the Focus story has not landed.
+    sql`
+      WITH pbs AS (
+        SELECT u.id,
+               pb->>'source'                             AS source,
+               NULLIF(pb->>'createdAt', '')::timestamptz AS at
+        FROM users u
+        CROSS JOIN LATERAL jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) pb
+        WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
+          AND pb->>'source' IN ('door1', 'door2')
+      ),
+      timed AS (SELECT * FROM pbs WHERE at IS NOT NULL),
+      first_pb AS (
+        SELECT DISTINCT ON (id) id, source, at FROM timed ORDER BY id, at ASC
+      ),
+      op_first AS (
+        SELECT f.id,
+               (SELECT COUNT(*) FROM timed t WHERE t.id = f.id AND t.source = 'door2')::int AS op_count,
+               EXISTS (SELECT 1 FROM timed t WHERE t.id = f.id AND t.source = 'door1' AND t.at > f.at) AS crossed
+        FROM first_pb f WHERE f.source = 'door2'
+      )
+      SELECT
+        LEAST(op_count, 3)::int              AS bucket,
+        COUNT(*)::int                        AS users,
+        COUNT(*) FILTER (WHERE crossed)::int AS crossed
+      FROM op_first
+      GROUP BY 1
+      ORDER BY 1`,
+
     // --- 2. Cohort sizes + activation by signup week ----------------------
     sql`
       WITH flags AS (
         SELECT
           to_char(date_trunc('week', created_at), 'YYYY-MM-DD') AS cohort_week,
-          (NULLIF(TRIM(profile_state->'outputs'->>'p5'), '') IS NOT NULL
+          -- Same activation definition as the headline: a first playbook
+          -- through EITHER door. A cohort table on a different definition from
+          -- the number above it is exactly the drift this page exists to avoid.
+          ((profile_state->'done') ? 'op'
+            OR NULLIF(TRIM(profile_state->'outputs'->>'op'), '') IS NOT NULL
+            OR NULLIF(TRIM(profile_state->'outputs'->>'p5'), '') IS NOT NULL
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks', '[]'::jsonb)) pb
-                        WHERE pb->>'source' = 'door1')) AS activated,
+                        WHERE pb->>'source' IN ('door1', 'door2'))) AS activated,
           (profile_state->'done' ?& ${FOCUS_STEP_IDS}::text[]) AS focus_complete
         FROM users
         WHERE LOWER(email) <> ALL(${adminEmails}::text[])
@@ -223,9 +318,11 @@ async function loadPayload(adminEmails) {
       ORDER BY 1, 2`,
 
     // --- 4. Time from signup to first saved playbook ----------------------
-    // Only savedPlaybooks carries a per-playbook timestamp, so this covers
-    // accounts whose playbooks were saved server-side. Reported with that
-    // population size so the median is read against the right denominator.
+    // Either door, matching the activation definition. Only savedPlaybooks
+    // carries a per-playbook timestamp, so this covers accounts whose
+    // playbooks were saved server-side; the population size ships with it so
+    // the median is read against the right denominator. The per-door split
+    // lives in the doors query above.
     sql`
       WITH firsts AS (
         SELECT u.id, u.created_at,
@@ -233,7 +330,7 @@ async function loadPayload(adminEmails) {
         FROM users u
         CROSS JOIN LATERAL jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) pb
         WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
-          AND pb->>'source' = 'door1'
+          AND pb->>'source' IN ('door1', 'door2')
         GROUP BY u.id, u.created_at
       )
       SELECT
@@ -458,15 +555,44 @@ async function loadPayload(adminEmails) {
     settings: { cohort_weeks: COHORT_WEEKS, return_weeks: RETURN_WEEKS, session_gap_min: SESSION_GAP_MIN, resurrect_days: RESURRECT_DAYS },
     funnel: {
       signups: num(f.signups),
-      orientation: num(f.orientation),
+      gave_inputs: num(f.gave_inputs),
+      personal_brand: num(f.personal_brand),
       activated: num(f.activated),
       focus_complete: num(f.focus_complete),
-      opportunity: num(f.opportunity),
-      // Un-nested totals, for the "did anyone skip a step" note.
-      activated_any: num(f.activated_any),
-      focus_complete_any: num(f.focus_complete_any),
-      opportunity_any: num(f.opportunity_any),
+      branch: {
+        opportunity: num(f.door_opportunity),
+        career_paths: num(f.door_career_paths),
+        both: num(f.door_both),
+        neither: num(f.door_neither),
+      },
     },
+    doors: (() => {
+      const bySource = doors.reduce((m, d) => { m[d.first_source] = d; return m }, {})
+      const op = bySource.door2 || {}
+      const cp = bySource.door1 || {}
+      const opUsers = num(op.users)
+      const cpUsers = num(cp.users)
+      return {
+        covered: opUsers + cpUsers,
+        opportunity_first: opUsers,
+        career_paths_first: cpUsers,
+        opportunity_first_share: (opUsers + cpUsers) > 0 ? opUsers / (opUsers + cpUsers) : null,
+        median_hours_opportunity: op.median_hours === null || op.median_hours === undefined ? null : num(op.median_hours),
+        median_hours_career_paths: cp.median_hours === null || cp.median_hours === undefined ? null : num(cp.median_hours),
+        // Crossover: started with an opportunity, later built a Focus playbook.
+        crossed_to_focus: num(op.later_focus),
+        crossover_rate: opUsers > 0 ? num(op.later_focus) / opUsers : null,
+        // The mirror: started with Career Paths, later added an opportunity.
+        crossed_to_opportunity: num(cp.later_opportunity),
+        reverse_crossover_rate: cpUsers > 0 ? num(cp.later_opportunity) / cpUsers : null,
+      }
+    })(),
+    crossover_by_volume: crossoverByVolume.map((r) => ({
+      opportunities: num(r.bucket),
+      users: num(r.users),
+      crossed: num(r.crossed),
+      rate: num(r.users) > 0 ? num(r.crossed) / num(r.users) : null,
+    })),
     playbooks: {
       focus_total: num(pb.focus_total),
       op_total: num(pb.op_total),
