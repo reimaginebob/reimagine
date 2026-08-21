@@ -58,6 +58,8 @@ const DEFINITIONS = {
   recognition: 'Answers to "does this sound like you?" — the check-in on Personal Brand.',
   reached: 'Ever recorded at a stage, from the append-only stage history. An opportunity counts only at stages someone actually set — a jump straight to offer does not credit interviewing.',
   outcome: 'How an opportunity ended: accepted, declined, not selected, withdrew, or no response.',
+  funnelStep: 'Each funnel step is counted as a subset of the step above it, so a step-over-step conversion can never exceed 100%. The steps are not naturally nested — an Opportunity Playbook does not require finishing all seven sections — so they are nested deliberately.',
+  playbooksPerBuilder: 'Playbooks divided by the people who built at least one. Every other count on this page counts people; this one counts what they made.',
 }
 
 // Mirrors parseAdminEmails in api/admin/analytics.js. Duplicated rather than
@@ -81,6 +83,7 @@ function num(v) {
 async function loadPayload(adminEmails) {
   const [
     funnel,
+    playbooks,
     cohortSizes,
     cohortReturns,
     timeToActivate,
@@ -117,13 +120,56 @@ async function loadPayload(adminEmails) {
         FROM users
         WHERE LOWER(email) <> ALL(${adminEmails}::text[])
       )
+      -- Funnel counts are cumulative on purpose: each step is AND-ed with the
+      -- one before it, so every step is a true subset of the step above and a
+      -- step-over-step conversion can never exceed 100%.
+      --
+      -- The steps are not naturally nested. Building an Opportunity Playbook
+      -- does not require finishing all seven Focus sections -- most people who
+      -- do it have not -- so dividing the raw counts produced a 950%
+      -- "conversion" that was arithmetic on two unrelated populations.
+      --
+      -- The raw (un-nested) counts ship alongside so the difference stays
+      -- visible: opportunity_any minus opportunity is the number of people who
+      -- went straight to a live job without activating first.
       SELECT
-        COUNT(*)::int                                    AS signups,
-        COUNT(*) FILTER (WHERE orientation)::int         AS orientation,
-        COUNT(*) FILTER (WHERE activated)::int           AS activated,
-        COUNT(*) FILTER (WHERE focus_complete)::int      AS focus_complete,
-        COUNT(*) FILTER (WHERE opportunity)::int         AS opportunity
+        COUNT(*)::int                                                       AS signups,
+        COUNT(*) FILTER (WHERE orientation)::int                            AS orientation,
+        COUNT(*) FILTER (WHERE orientation AND activated)::int              AS activated,
+        COUNT(*) FILTER (WHERE orientation AND activated
+                           AND focus_complete)::int                         AS focus_complete,
+        COUNT(*) FILTER (WHERE orientation AND activated
+                           AND opportunity)::int                            AS opportunity,
+        COUNT(*) FILTER (WHERE activated)::int                              AS activated_any,
+        COUNT(*) FILTER (WHERE focus_complete)::int                         AS focus_complete_any,
+        COUNT(*) FILTER (WHERE opportunity)::int                            AS opportunity_any
       FROM flags`,
+
+    // --- 1b. How much people build ----------------------------------------
+    // Every count above is a count of PEOPLE. This one counts playbooks, which
+    // is the other half of the picture: one person can run several live
+    // opportunities at once, and "38 people built one" and "38 playbooks exist"
+    // are very different products. Medians are taken over builders only --
+    // averaged across everyone they would just restate the adoption rate.
+    sql`
+      WITH pb AS (
+        SELECT
+          (SELECT COUNT(*) FROM jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) x
+            WHERE x->>'source' = 'door1')::int AS focus_pb,
+          (SELECT COUNT(*) FROM jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) x
+            WHERE x->>'source' = 'door2')::int AS op_pb
+        FROM users u
+        WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
+      )
+      SELECT
+        COALESCE(SUM(focus_pb), 0)::int                 AS focus_total,
+        COALESCE(SUM(op_pb), 0)::int                    AS op_total,
+        COUNT(*) FILTER (WHERE focus_pb > 0)::int       AS focus_builders,
+        COUNT(*) FILTER (WHERE op_pb > 0)::int          AS op_builders,
+        COALESCE(MAX(op_pb), 0)::int                    AS max_op_pb,
+        (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY focus_pb)::float8 FROM pb WHERE focus_pb > 0) AS median_focus_pb,
+        (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY op_pb)::float8    FROM pb WHERE op_pb > 0)    AS median_op_pb
+      FROM pb`,
 
     // --- 2. Cohort sizes + activation by signup week ----------------------
     sql`
@@ -398,6 +444,7 @@ async function loadPayload(adminEmails) {
   })
 
   const f = funnel[0] || {}
+  const pb = playbooks[0] || {}
   const t = timeToActivate[0] || {}
   const r = returnBehaviour[0] || {}
   const s = sessions[0] || {}
@@ -415,6 +462,21 @@ async function loadPayload(adminEmails) {
       activated: num(f.activated),
       focus_complete: num(f.focus_complete),
       opportunity: num(f.opportunity),
+      // Un-nested totals, for the "did anyone skip a step" note.
+      activated_any: num(f.activated_any),
+      focus_complete_any: num(f.focus_complete_any),
+      opportunity_any: num(f.opportunity_any),
+    },
+    playbooks: {
+      focus_total: num(pb.focus_total),
+      op_total: num(pb.op_total),
+      focus_builders: num(pb.focus_builders),
+      op_builders: num(pb.op_builders),
+      max_op_pb: num(pb.max_op_pb),
+      median_focus_pb: pb.median_focus_pb === null || pb.median_focus_pb === undefined ? null : num(pb.median_focus_pb),
+      median_op_pb: pb.median_op_pb === null || pb.median_op_pb === undefined ? null : num(pb.median_op_pb),
+      op_per_builder: num(pb.op_builders) > 0 ? num(pb.op_total) / num(pb.op_builders) : null,
+      focus_per_builder: num(pb.focus_builders) > 0 ? num(pb.focus_total) / num(pb.focus_builders) : null,
     },
     cohorts,
     time_to_activate: {
