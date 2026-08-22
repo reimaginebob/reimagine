@@ -44,6 +44,8 @@ const SESSION_GAP_MIN = 30
 // A return after this long idle counts as a resurrection rather than continuous
 // use. Two weeks is long enough that the person had stopped.
 const RESURRECT_DAYS = 14
+// Weeks of stage-movement history shown. Twelve matches the cohort table.
+const MOVEMENT_WEEKS = 12
 
 const DEFINITIONS = {
   activation: 'Generated a first playbook through EITHER door — an Opportunity Playbook or a Focus Playbook. Changed on 2026-08-21 from "a Focus Playbook", which counted only the door most people do not take; recorded here so the change is on the page rather than in a recollection.',
@@ -63,6 +65,8 @@ const DEFINITIONS = {
   outcome: 'How an opportunity ended: accepted, declined, not selected, withdrew, or no response.',
   funnelStep: 'Each funnel step is counted as a subset of the step above it, so a step-over-step conversion can never exceed 100%. The steps are not naturally nested — an Opportunity Playbook does not require finishing all seven sections — so they are nested deliberately.',
   playbooksPerBuilder: 'Playbooks divided by the people who built at least one. Every other count on this page counts people; this one counts what they made.',
+  movement: 'The first time an account reached a stage, week by week. Nobody un-generates a Personal Brand, so stages are milestones reached once rather than a membership that moves back and forth.',
+  undated: 'Reached a stage before anything was recording when. Counted, but never placed on a week — dating them to the day the log shipped would invent movement that did not happen.',
 }
 
 // Mirrors parseAdminEmails in api/admin/analytics.js. Duplicated rather than
@@ -89,6 +93,8 @@ async function loadPayload(adminEmails) {
     playbooks,
     doors,
     crossoverByVolume,
+    movement,
+    movementCoverage,
     cohortSizes,
     cohortReturns,
     timeToActivate,
@@ -260,6 +266,41 @@ async function loadPayload(adminEmails) {
       FROM op_first
       GROUP BY 1
       ORDER BY 1`,
+
+    // --- 1e. Movement across stages, week by week --------------------------
+    // The question a lifecycle campaign has to be judged on: did people move,
+    // and when. Reads user_stage_events, which records the first time each
+    // account reached each stage.
+    //
+    // Rows with a NULL entered_at are excluded from the weekly series on
+    // purpose -- those accounts reached the stage before anything was dating
+    // it, and placing them on the week the log shipped would invent a spike
+    // that never happened. Their count ships separately so the picture stays
+    // honest rather than looking artificially thin.
+    sql`
+      SELECT
+        to_char(date_trunc('week', e.entered_at), 'YYYY-MM-DD') AS week,
+        e.stage                                                 AS stage,
+        COUNT(*)::int                                           AS users
+      FROM user_stage_events e
+      JOIN users u ON u.id = e.user_id
+      WHERE e.entered_at IS NOT NULL
+        AND e.entered_at >= date_trunc('week', NOW()) - ${`${MOVEMENT_WEEKS - 1} weeks`}::interval
+        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
+      GROUP BY 1, 2
+      ORDER BY 1, 2`,
+
+    // --- 1f. Coverage of the movement log ----------------------------------
+    sql`
+      SELECT
+        e.stage                                              AS stage,
+        COUNT(*)::int                                        AS total,
+        COUNT(*) FILTER (WHERE e.entered_at IS NULL)::int     AS undated,
+        MIN(e.entered_at)                                    AS first_dated
+      FROM user_stage_events e
+      JOIN users u ON u.id = e.user_id
+      WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
+      GROUP BY e.stage`,
 
     // --- 2. Cohort sizes + activation by signup week ----------------------
     sql`
@@ -587,6 +628,22 @@ async function loadPayload(adminEmails) {
         reverse_crossover_rate: cpUsers > 0 ? num(cp.later_opportunity) / cpUsers : null,
       }
     })(),
+    movement: (() => {
+      const byWeek = new Map()
+      for (const r of movement) {
+        if (!byWeek.has(r.week)) byWeek.set(r.week, { week: r.week, stages: {}, total: 0 })
+        const w = byWeek.get(r.week)
+        w.stages[r.stage] = num(r.users)
+        w.total += num(r.users)
+      }
+      return [...byWeek.values()].sort((a, b) => (a.week < b.week ? -1 : 1))
+    })(),
+    movement_coverage: movementCoverage.map((r) => ({
+      stage: r.stage,
+      total: num(r.total),
+      undated: num(r.undated),
+      first_dated: r.first_dated || null,
+    })),
     crossover_by_volume: crossoverByVolume.map((r) => ({
       opportunities: num(r.bucket),
       users: num(r.users),
