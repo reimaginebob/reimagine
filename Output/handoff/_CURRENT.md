@@ -4,7 +4,7 @@
 
 Both Cowork and Code work from this file. Briefs go stale the moment they are written; this one is meant to be edited in place. If you make a decision, close a question, or get blocked, edit the relevant line and stamp the date. Do not add a new section to record that an old section is wrong — fix the old section.
 
-Last updated: **2026-08-22, late afternoon** (Code — contact count corrected per Cowork, warming risk and data-access question added)
+Last updated: **2026-08-22, evening** (Code — domain verified, analyst token live, tracking still off)
 
 ---
 
@@ -27,8 +27,9 @@ Last updated: **2026-08-22, late afternoon** (Code — contact count corrected p
 
 | What | Waiting on | Notes |
 |---|---|---|
-| `updates.career.club` verification | Amazon SES | DNS is correct and propagated globally (checked against Google, Cloudflare, Quad9). SPF + MX verified; DKIM pending on Amazon's cycle. Nothing to do. |
-| Corner email-list endpoint | **Cowork** | Code needs one sentence: what question does it answer, and what fields come back. Will not be built on a guess. |
+| Open + click tracking on `updates.career.club` | **Bob** | Domain is verified. Three attempts to enable tracking through the API returned success and read back `false` every time — this is not the unverified-domain theory Code first offered, that has been ruled out. Needs toggling in the Resend dashboard UI instead. Until then there is no open or click data. |
+| ~~Corner email-list endpoint~~ | Done | `/api/admin/user-stages` shipped 22 Aug (PR #490). Returns email, stage, active, last activity, suspended for every account. |
+| Cowork data access | Done | `ANALYST_TOKEN` live on the `reimagine2` project, Production, from 22 Aug 20:38 UTC. Read-only, opens `user-stages`, `growth`, `dormant` only. **Note the project name**: `reimagine2` serves `reimagine.career.club`; a sibling project called `reimagine` exists and does not. Code sent Bob to the wrong one first. |
 | First campaign send | The baseline | Movement log only started recording 22 Aug. Sending before a few ordinary weeks accumulate leaves no comparison at all. Target early September. |
 | First campaign send | **Domain warming** | `updates.career.club` has zero sending history. A first send to ~969 mostly-unengaged addresses is the classic pattern for getting throttled or filtered, and it would burn the domain's reputation on day one. Ramp instead: start with the most engaged few dozen, watch bounces and complaints, grow over one to two weeks. This is a real constraint on the send plan, not a nicety. |
 
@@ -74,7 +75,7 @@ Read directly from the Resend account 2026-08-22. None of this lives in the repo
 | | |
 |---|---|
 | `send.career.club` | Verified. Transactional only — magic links, account hold, legal, admin alerts. **Open and click tracking off, and they stay off.** Magic links are the login path; there is no password. |
-| `updates.career.club` | Created 22 Aug, id `4f6e93d8-6f3b-461c-b809-3a0aaecfeff6`. SPF + MX verified, DKIM pending. Tracking to be enabled after verification — the flags do not persist while unverified. |
+| `updates.career.club` | Created 22 Aug, id `4f6e93d8-6f3b-461c-b809-3a0aaecfeff6`. **VERIFIED 22 Aug** — all three DNS records confirmed, sending enabled. **Tracking still off**: the API accepts the change and does not persist it; do it in the Resend dashboard. |
 | Topics | **`Reimagine updates`** (id `2a78469a-...`, default opt-in) — created 22 Aug so a Reimagine unsubscribe cannot touch Corner. No Corner topic yet. |
 | Segments | `General` (empty), `Corner Registrants` — holds the **full** Corner list, not a partial batch |
 | Contacts | **971** — 969 Corner registrants plus 2 unrelated. Corrected 22 Aug by Cowork; Code's earlier "100+" was a paginated read that stopped at the first page and should not have been written as a total. |
