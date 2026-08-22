@@ -4,7 +4,7 @@
 
 Both Cowork and Code work from this file. Briefs go stale the moment they are written; this one is meant to be edited in place. If you make a decision, close a question, or get blocked, edit the relevant line and stamp the date. Do not add a new section to record that an old section is wrong — fix the old section.
 
-Last updated: **2026-08-22, evening** (Code — domain verified and sending, analyst token live, tracking enabled and waiting on one CNAME)
+Last updated: **2026-08-22, evening** (Code — four campaign decisions closed; sender identity is the last one open)
 
 ---
 
@@ -19,6 +19,10 @@ Last updated: **2026-08-22, evening** (Code — domain verified and sending, ana
 | **No opt-in language needed in the legal docs.** The Privacy Agreement already covers "product updates" and commits to an unsubscribe link. Changing the docs would trigger re-acceptance for every user, for no gain. | 22 Aug | Bob + Code |
 | **Campaign domain split from the login domain.** `send.career.club` = transactional, tracking permanently off. `updates.career.club` = campaigns, tracking on. | 22 Aug | Bob + Code |
 | **No custom tracking subdomain.** Does not help provider portability and slightly hurts it. Adding later is harmless; removing later kills every link in already-sent mail. | 22 Aug | Bob + Code |
+| **Two campaigns, not one.** (a) Existing Reimagine users, copy tailored to where each person dropped out. (b) Corner registrants who are not using Reimagine, encouraging them to try it. | 22 Aug | Bob |
+| **Frequency ceiling: two emails a week, and usually fewer.** Corner registrants already get the Monday recap; the "try Reimagine" note is on top of that and is one-off, not recurring. Existing Reimagine users get at most one a week. **Nobody receives both campaigns** — dedupe on email before either send. | 22 Aug | Bob |
+| **Career Club Corner topic: not created.** Corner is already protected from Reimagine unsubscribes by the Reimagine topic. Creating one carries an irreversible default-subscription choice for no current gain. | 22 Aug | Bob |
+| **Orientation is not assumed to be broken.** Bob's read is that people get busy or distracted rather than blocked. The drop-off is not treated as a product defect until there is direct feedback saying so — and the first email to the drop-out group is the way to get it. | 22 Aug | Bob |
 | **Activation = a first playbook through EITHER door**, changed from "a Focus Playbook" on 21 Aug. Recorded on the dashboard. Do not move it again. | 21 Aug | Code |
 
 ---
@@ -49,22 +53,22 @@ Last updated: **2026-08-22, evening** (Code — domain verified and sending, ana
 - Finish `updates.career.club` — verify, then enable open + click tracking and confirm they read back true
 
 **Bob**
-- Whether this is reactivating the existing ~144 or standing infrastructure for everyone from here
-- Who the emails come from — Bob personally, or Reimagine
-- Frequency ceiling per person
-- Whether the Career Club Corner topic should be created (see the open question below — the choice is irreversible)
+- Confirm the sender identity (Code's recommendation is in the open questions below)
+- Confirm the Anthropic API key rotation landed on the `reimagine2` project, not the sibling `reimagine`
 
 ---
 
 ## Open questions
 
-**Should a "Career Club Corner" topic be created in Resend?** Not needed to protect Corner from Reimagine unsubscribes — that is already handled by the Reimagine topic. It would be for giving Corner its own managed preference.
-
-The catch: a topic's default subscription **cannot be changed after creation**. Set it wrong and either Reimagine users get silently added to the newsletter, or existing Corner subscribers stop receiving it. Worth deciding deliberately rather than in passing. Bob's call.
-
 **How does Cowork get data access?** The `ADMIN_TOKEN` is a master key — it unlocks every admin endpoint including all user emails, revenue figures, and **write** operations that can suspend an account or grant beta access. It should not be handed around for a read-only list match. Two better routes: Bob calls `/api/admin/user-stages` himself and passes the JSON on, or Code adds a separate read-only analyst token if this is going to recur. Bob's call.
 
-**Would fixing the Personal Brand drop-off outrank the campaign?** Fewer than half of signups reach that gate, and it sits upstream of everything the product recommends. Email can walk people back to a step that is losing them; it cannot make the step work better.
+**Sender identity — Code's recommendation, awaiting Bob.** Display name **Bob Goodwin**, address `bob@updates.career.club`, **Reply-To set to Bob's real inbox**.
+
+Why not `bob@career.club`: Resend can only send from a domain verified in Resend, and the apex is not one. Verifying it would entangle campaign reputation with Google Workspace, which is the opposite of what the domain split was for. A `bob+tag@` variant has the same problem and reads as suspicious to some filters.
+
+Why the display name carries the recognition: recipients see "Bob Goodwin", not the address. The address only has to be deliverable.
+
+Why Reply-To matters: `updates.career.club` has receiving disabled, so replies would bounce without it — and replies are the direct feedback the drop-off question needs.
 
 ---
 
