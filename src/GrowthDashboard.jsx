@@ -56,6 +56,16 @@ const STAGE_LABELS = {
 // The ladder, in order. Rendered in full even where a stage has no rows: a
 // stage nobody has reached is information, not an absent row.
 const STAGE_LADDER = ["researching", "applied", "in_conversation", "interviewing", "offer", "closed"]
+// The journey milestones, in order, for the movement table. Short labels: this
+// table is wide and the column header has to survive a phone.
+const MOVE_STAGES = [
+  { key: "signed_up", label: "Signed up" },
+  { key: "gave_inputs", label: "Inputs" },
+  { key: "personal_brand", label: "Brand" },
+  { key: "opportunity", label: "Opportunity" },
+  { key: "career_paths", label: "Career Paths" },
+  { key: "focus_complete", label: "All 7" },
+]
 const OUTCOME_LABELS = {
   accepted: "Accepted an offer", declined: "Declined an offer", not_selected: "Not selected",
   withdrew: "Withdrew", no_response: "No response",
@@ -106,6 +116,8 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
   const ses = payload.sessions || {}
   const pbv = payload.playbooks || {}
   const doors = payload.doors || {}
+  const movement = payload.movement || []
+  const moveCov = payload.movement_coverage || []
   const crossVol = payload.crossover_by_volume || []
   const pipeline = payload.pipeline || []
   const reached = payload.reached || []
@@ -131,6 +143,9 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
     { key: "gave_inputs", label: "Put material in", value: f.gave_inputs },
     { key: "personal_brand", label: "Generated a Personal Brand", value: f.personal_brand, accent: true },
   ]
+  const maxMove = Math.max(1, ...movement.flatMap((w) => Object.values(w.stages)))
+  const undatedTotal = moveCov.reduce((n, c) => n + c.undated, 0)
+  const firstDated = moveCov.map((c) => c.first_dated).filter(Boolean).sort()[0] || null
   const reachedByStage = reached.reduce((m, r) => { m[r.stage] = r; return m }, {})
   const nowByStage = pipeline.reduce((m, p) => { m[p.stage] = p; return m }, {})
   const maxReached = Math.max(1, ...reached.map((r) => r.opportunities))
@@ -253,6 +268,50 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
           <div style={S.calloutTight}>
             Every other count on this page counts <strong style={{ color: NAVY }}>people</strong>. This panel counts what they made — one person can run several live opportunities at once, and "{fmtInt(pbv.op_builders)} people built one" and "{fmtInt(pbv.op_total)} playbooks exist" are very different products. Playbooks per builder is the depth-of-use number: it rises when the tool becomes where someone works rather than something they tried.
           </div>
+        </Panel>
+
+        {/* Movement across stages, week by week */}
+        <Panel title="Movement across stages" wide>
+          <div style={S.calloutTight}>
+            How many accounts crossed each threshold, by week. This is the baseline any campaign has to beat — read a normal week first, then compare a week you sent something against it. Aggregate only; no individual account appears here.
+          </div>
+          {movement.length === 0 ? (
+            <div style={{ ...S.muted, marginTop: 12 }}>No dated movement yet. The log starts collecting on its first nightly run.</div>
+          ) : (
+            <div style={{ overflowX: "auto", marginTop: 12 }}>
+              <table style={S.table}>
+                <thead><tr>
+                  <Th>Week of</Th>
+                  {MOVE_STAGES.map((m) => <Th key={m.key} right>{m.label}</Th>)}
+                  <Th right>Total moves</Th>
+                </tr></thead>
+                <tbody>
+                  {movement.map((w) => (
+                    <tr key={w.week}>
+                      <Td>{weekLabel(w.week)}</Td>
+                      {MOVE_STAGES.map((m) => {
+                        const v = w.stages[m.key] || 0
+                        const share = maxMove > 0 ? v / maxMove : 0
+                        return (
+                          <td key={m.key} style={{
+                            ...S.td, textAlign: "right",
+                            background: v ? `rgba(200,146,74,${Math.min(0.1 + share * 0.55, 0.7)})` : "transparent",
+                            fontWeight: share > 0.5 ? 700 : 400,
+                          }}>{v === 0 ? <span style={{ opacity: 0.35 }}>—</span> : v}</td>
+                        )
+                      })}
+                      <Td right><strong style={{ color: NAVY }}>{fmtInt(w.total)}</strong></Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {undatedTotal > 0 && (
+            <div style={{ ...S.muted, marginTop: 10 }}>
+              {fmtInt(undatedTotal)} milestone{undatedTotal === 1 ? "" : "s"} were already reached before anything recorded when, so they are counted but not placed on a week. Everything dated from {firstDated ? new Date(firstDated).toISOString().slice(0, 10) : "the first run"} onward is complete.
+            </div>
+          )}
         </Panel>
 
         {/* Which door, and what happens next */}
@@ -503,6 +562,7 @@ const DEF_LABELS = {
   reached: "Ever reached", outcome: "Outcome",
   funnelStep: "Funnel step", playbooksPerBuilder: "Playbooks per builder",
   careerPaths: "Career Paths", crossover: "Crossover", trunk: "The trunk",
+  movement: "Movement", undated: "Undated",
 }
 
 // ---- presentational sub-components (mirrors AdminDashboard.jsx) ----
