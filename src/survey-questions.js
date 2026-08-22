@@ -19,6 +19,13 @@
 // rows. To retire one, stop offering it and leave the entry here so old rows
 // still resolve to a label.
 //
+// A caution for whoever reads the results: two of these options ('timing' and
+// 'forgot') are socially frictionless — they are the answers a person can give
+// without implying any criticism. Expect them to be over-represented relative to
+// the truth, and read a high count on either as a ceiling rather than a finding.
+// They are here because they are also the most likely real answers, and leaving
+// them out would force people into a reason they do not mean.
+//
 // `sentiment` is a fixed property of each option, not a judgement made later.
 // It is set here so the Feedback tab can chart these alongside everything else
 // on day one, and because the valence of "I did not think it would help me" is
@@ -34,6 +41,12 @@ export const SURVEYS = {
     prompt: 'What got in the way?',
     options: [
       { code: 'timing',      label: 'Life got busy — bad timing',                sentiment: 'neutral'  },
+      // Distinct from 'timing' on purpose, and the two need different remedies:
+      // busy means it lost to competing demands, forgot means it left their head
+      // entirely. This is also the one option that states an INTENTION, which is
+      // why it gets a way back into the product on the thank-you page rather
+      // than a dead end — see returnLink below.
+      { code: 'forgot',      label: "I forgot — I'll be back",                   sentiment: 'neutral', returnLink: true },
       { code: 'effort',      label: 'It asked for more than I had time to give', sentiment: 'negative' },
       { code: 'unclear',     label: "I wasn't sure what to do next",             sentiment: 'negative' },
       { code: 'not_for_me',  label: "I didn't think it would help me",           sentiment: 'negative' },
