@@ -23,6 +23,8 @@ Last updated: **2026-08-22, evening** (Code — four campaign decisions closed; 
 | **Frequency ceiling: two emails a week, and usually fewer.** Corner registrants already get the Monday recap; the "try Reimagine" note is on top of that and is one-off, not recurring. Existing Reimagine users get at most one a week. **Nobody receives both campaigns** — dedupe on email before either send. | 22 Aug | Bob |
 | **Career Club Corner topic: not created.** Corner is already protected from Reimagine unsubscribes by the Reimagine topic. Creating one carries an irreversible default-subscription choice for no current gain. | 22 Aug | Bob |
 | **Orientation is not assumed to be broken.** Bob's read is that people get busy or distracted rather than blocked. The drop-off is not treated as a product defect until there is direct feedback saying so — and the first email to the drop-out group is the way to get it. | 22 Aug | Bob |
+| **Sender identity: "Bob Goodwin" <bob@updates.career.club>, Reply-To `bob@career.club`.** Display name carries the recognition; the address only has to be deliverable. Reply-To is required — `updates.career.club` has receiving disabled, so replies would otherwise bounce. | 22 Aug | Bob |
+| **Registration excludes the "Try Reimagine" email.** Simpler than a dedupe pass: if someone has a Reimagine account they are by definition not a candidate for the try-it campaign. | 22 Aug | Bob |
 | **Activation = a first playbook through EITHER door**, changed from "a Focus Playbook" on 21 Aug. Recorded on the dashboard. Do not move it again. | 21 Aug | Code |
 
 ---
@@ -62,7 +64,11 @@ Last updated: **2026-08-22, evening** (Code — four campaign decisions closed; 
 
 **How does Cowork get data access?** The `ADMIN_TOKEN` is a master key — it unlocks every admin endpoint including all user emails, revenue figures, and **write** operations that can suspend an account or grant beta access. It should not be handed around for a read-only list match. Two better routes: Bob calls `/api/admin/user-stages` himself and passes the JSON on, or Code adds a separate read-only analyst token if this is going to recur. Bob's call.
 
-**Sender identity — Code's recommendation, awaiting Bob.** Display name **Bob Goodwin**, address `bob@updates.career.club`, **Reply-To set to Bob's real inbox**.
+**Survey buttons in the drop-out email — proposed, awaiting Bob.** Real radio buttons do not survive email clients; each answer is a styled link instead. Two options: distinct URLs counted by Resend click tracking (no build, aggregate counts only), or a small Reimagine endpoint that records the answer per person into `feedback_event` and joins to their stage. Code recommends the second. The link must not require sign-in — a magic link before answering would collapse the response rate — so each recipient gets a token that can do one thing only: record a survey answer.
+
+The option list is the load-bearing part and must include the uncomfortable answer, or the exercise only confirms what we already believe. Proposed: bad timing / asked more than I had time for / wasn't sure what to do next / didn't think it would help me / something didn't work / something else.
+
+**Superseded — sender identity, now decided above.** Kept only for the reasoning: `bob@career.club` is not available because Resend can only send from a domain verified in Resend, and verifying the apex would entangle campaign reputation with Google Workspace.
 
 Why not `bob@career.club`: Resend can only send from a domain verified in Resend, and the apex is not one. Verifying it would entangle campaign reputation with Google Workspace, which is the opposite of what the domain split was for. A `bob+tag@` variant has the same problem and reads as suspicious to some filters.
 
