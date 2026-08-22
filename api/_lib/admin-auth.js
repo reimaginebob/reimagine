@@ -11,8 +11,8 @@
 // allowAnalyst: true.
 //
 // Least privilege on purpose: the analyst token opens the three endpoints that
-// serve the lifecycle-email work (user stages, growth, dormant accounts) and
-// nothing else. Economics is financial, analytics carries playbook titles, the
+// serve the lifecycle-email work (user stages, growth, dormant accounts,
+// generation attempts) and nothing else. Economics is financial, analytics carries playbook titles, the
 // suspend and pipeline routes write — those stay master-key only. Widening this
 // later is one flag on one route; narrowing it after a token has been shared is
 // a rotation.
