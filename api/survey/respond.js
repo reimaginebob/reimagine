@@ -130,6 +130,18 @@ export default async function handler(req, res) {
       console.log('survey/respond', { survey: survey.key, answer: option.code })
     }
 
+    // Someone who says they will be back has told us something the other
+    // answers do not: they still intend to use it. That intention is never
+    // higher than in the second after they clicked, so this branch hands them
+    // the door instead of a receipt.
+    if (option.returnLink) {
+      return res.status(200).send(page({
+        heading: 'Noted — and it will be there when you are.',
+        body: 'Your work is saved exactly where you left it.',
+        note: 'If now happens to suit, <a href="https://reimagine.career.club/">pick up where you left off</a>. If not, no rush.',
+      }))
+    }
+
     // "Something else" has no useful follow-up on a click, so it points at the
     // reply path rather than pretending a button captured the whole answer.
     const note = option.code === 'other'
