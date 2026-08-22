@@ -42,13 +42,15 @@ export const CONCERN_CODES = [
 export const SENTIMENT_CODES = ['positive', 'negative', 'neutral', 'mixed']
 
 // The Neon feedback channels, in display order.
-export const SOURCE_CODES = ['share-feedback', 'nps-survey', 'coach-reply', 'pb-checkin']
+export const SOURCE_CODES = ['share-feedback', 'nps-survey', 'coach-reply', 'pb-checkin', 'survey-dropout']
 
 export const SOURCE_LABELS = {
   'share-feedback': 'Share Feedback',
   'nps-survey': 'NPS Survey',
   'coach-reply': 'My Coach Thumbs',
   'pb-checkin': 'Personal Brand check-in',
+  // One-click answers from the drop-out email. See src/survey-questions.js.
+  'survey-dropout': 'Why people stopped',
 }
 
 // Human-readable labels for display in the dashboard.
