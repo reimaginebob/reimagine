@@ -17,6 +17,7 @@
 // profile content, that is a different endpoint with a different name.
 
 import { sql } from '../_lib/db.js'
+import { checkAdminAuth, adminTokenMissing } from '../_lib/admin-auth.js'
 
 // A day-count, not a stage. Someone can be both "opportunity" and recently
 // active, and a campaign wants to segment on the first while suppressing on
@@ -49,14 +50,14 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  const expected = process.env.ADMIN_TOKEN
-  if (!expected) {
+  if (adminTokenMissing()) {
     console.error('admin/user-stages: ADMIN_TOKEN not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  if ((req.headers.authorization || '') !== `Bearer ${expected}`) {
-    return res.status(403).json({ error: 'Forbidden' })
-  }
+  // Read-only, so an analyst token is enough. This is the endpoint the
+  // lifecycle-email work runs on.
+  const level = checkAdminAuth(req, { allowAnalyst: true })
+  if (!level) return res.status(403).json({ error: 'Forbidden' })
 
   // Internal accounts are excluded by default so a caller does not have to
   // remember to. ?include_internal=1 brings them back for reconciliation work.
@@ -140,6 +141,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ok: true,
+      auth: level,
       as_of: new Date().toISOString(),
       active_window_days: ACTIVE_DAYS,
       stage_order: STAGE_ORDER,
