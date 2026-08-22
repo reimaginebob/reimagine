@@ -108,6 +108,38 @@ Read directly from the Resend account 2026-08-22. None of this lives in the repo
 
 ---
 
+## Survey buttons — what Cowork needs to build the email
+
+Shipped 22 Aug (PRs #492, #493). Each answer is a link; clicking records it and shows a thank-you page. No sign-in.
+
+**Link format**
+
+```
+https://reimagine.career.club/api/survey/respond?t={{survey_token}}&q=dropout&a=<code>
+```
+
+`{{survey_token}}` is a Resend merge field. **This is a requirement on the stage sync**: it must push `survey_token` onto each contact as a property, alongside `reimagine_stage`. Without it the merge field renders empty and every link is dead.
+
+**Option codes** — the label text is fixed in `src/survey-questions.js` and the email must match it exactly, or the recorded answer will not mean what the reader thought they clicked.
+
+| `a=` | Label |
+|---|---|
+| `timing` | Life got busy — bad timing |
+| `forgot` | I forgot — I'll be back |
+| `effort` | It asked for more than I had time to give |
+| `unclear` | I wasn't sure what to do next |
+| `not_for_me` | I didn't think it would help me |
+| `broken` | Something didn't work |
+| `other` | Something else |
+
+**Two behaviours the copy should account for.** `forgot` gets a way back into the product rather than a dead end — it is the only answer that states an intention, and that intention peaks the second after the click. `other` points the person at replying to the email, so the email must be replyable (Reply-To is `bob@career.club`).
+
+**Read the results with this caution:** `timing` and `forgot` are the socially frictionless answers, the ones a person can give without implying any criticism. Expect them over-represented; treat a high count on either as a ceiling rather than a finding.
+
+Answers land in `feedback_event` as source `survey-dropout` and appear on the Feedback tab.
+
+---
+
 ## Where things live
 
 | What | Where |
