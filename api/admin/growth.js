@@ -26,6 +26,7 @@
 // reconstructed from timestamped rows that carry a user_id.
 
 import { sql } from '../_lib/db.js'
+import { checkAdminAuth, adminTokenMissing } from '../_lib/admin-auth.js'
 
 // The seven Focus Playbook sections, in sidebar order. Mirrors FOCUS_STEP_IDS
 // in api/admin/analytics.js; p10 is retired and `income` is a separate bonus
@@ -717,12 +718,12 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  const expected = process.env.ADMIN_TOKEN
-  if (!expected) {
+  if (adminTokenMissing()) {
     console.error('admin/growth: ADMIN_TOKEN not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  if ((req.headers.authorization || '') !== `Bearer ${expected}`) {
+  // Read-only aggregates; an analyst token is enough.
+  if (!checkAdminAuth(req, { allowAnalyst: true })) {
     return res.status(403).json({ error: 'Forbidden' })
   }
 

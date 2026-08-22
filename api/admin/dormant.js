@@ -29,6 +29,7 @@
 // case-folded, provider-normalised address, and first+last name.
 
 import { sql } from '../_lib/db.js'
+import { checkAdminAuth, adminTokenMissing } from '../_lib/admin-auth.js'
 
 function parseAdminEmails(envValue) {
   if (typeof envValue !== 'string') return []
@@ -70,12 +71,13 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  const expected = process.env.ADMIN_TOKEN
-  if (!expected) {
+  if (adminTokenMissing()) {
     console.error('admin/dormant: ADMIN_TOKEN not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  if ((req.headers.authorization || '') !== `Bearer ${expected}`) {
+  // Read-only. Returns email addresses, so it is deliberately one of only three
+  // routes an analyst token opens.
+  if (!checkAdminAuth(req, { allowAnalyst: true })) {
     return res.status(403).json({ error: 'Forbidden' })
   }
 
