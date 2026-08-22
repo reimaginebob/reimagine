@@ -4,7 +4,7 @@
 
 Both Cowork and Code work from this file. Briefs go stale the moment they are written; this one is meant to be edited in place. If you make a decision, close a question, or get blocked, edit the relevant line and stamp the date. Do not add a new section to record that an old section is wrong — fix the old section.
 
-Last updated: **2026-08-22, afternoon** (Code)
+Last updated: **2026-08-22, late afternoon** (Code — contact count corrected per Cowork, warming risk and data-access question added)
 
 ---
 
@@ -30,6 +30,7 @@ Last updated: **2026-08-22, afternoon** (Code)
 | `updates.career.club` verification | Amazon SES | DNS is correct and propagated globally (checked against Google, Cloudflare, Quad9). SPF + MX verified; DKIM pending on Amazon's cycle. Nothing to do. |
 | Corner email-list endpoint | **Cowork** | Code needs one sentence: what question does it answer, and what fields come back. Will not be built on a guess. |
 | First campaign send | The baseline | Movement log only started recording 22 Aug. Sending before a few ordinary weeks accumulate leaves no comparison at all. Target early September. |
+| First campaign send | **Domain warming** | `updates.career.club` has zero sending history. A first send to ~969 mostly-unengaged addresses is the classic pattern for getting throttled or filtered, and it would burn the domain's reputation on day one. Ramp instead: start with the most engaged few dozen, watch bounces and complaints, grow over one to two weeks. This is a real constraint on the send plan, not a nicety. |
 
 ---
 
@@ -60,6 +61,8 @@ Last updated: **2026-08-22, afternoon** (Code)
 
 The catch: a topic's default subscription **cannot be changed after creation**. Set it wrong and either Reimagine users get silently added to the newsletter, or existing Corner subscribers stop receiving it. Worth deciding deliberately rather than in passing. Bob's call.
 
+**How does Cowork get data access?** The `ADMIN_TOKEN` is a master key — it unlocks every admin endpoint including all user emails, revenue figures, and **write** operations that can suspend an account or grant beta access. It should not be handed around for a read-only list match. Two better routes: Bob calls `/api/admin/user-stages` himself and passes the JSON on, or Code adds a separate read-only analyst token if this is going to recur. Bob's call.
+
 **Would fixing the Personal Brand drop-off outrank the campaign?** Fewer than half of signups reach that gate, and it sits upstream of everything the product recommends. Email can walk people back to a step that is losing them; it cannot make the step work better.
 
 ---
@@ -73,8 +76,9 @@ Read directly from the Resend account 2026-08-22. None of this lives in the repo
 | `send.career.club` | Verified. Transactional only — magic links, account hold, legal, admin alerts. **Open and click tracking off, and they stay off.** Magic links are the login path; there is no password. |
 | `updates.career.club` | Created 22 Aug, id `4f6e93d8-6f3b-461c-b809-3a0aaecfeff6`. SPF + MX verified, DKIM pending. Tracking to be enabled after verification — the flags do not persist while unverified. |
 | Topics | **`Reimagine updates`** (id `2a78469a-...`, default opt-in) — created 22 Aug so a Reimagine unsubscribe cannot touch Corner. No Corner topic yet. |
-| Segments | `General` (empty), `Corner Registrants` (populated) |
-| Contacts | 100+, bulk-imported 14 Aug. **Larger than the ~144 Reimagine accounts** — the two populations overlap without matching. Any sync joins on email. |
+| Segments | `General` (empty), `Corner Registrants` — holds the **full** Corner list, not a partial batch |
+| Contacts | **971** — 969 Corner registrants plus 2 unrelated. Corrected 22 Aug by Cowork; Code's earlier "100+" was a paginated read that stopped at the first page and should not have been written as a total. |
+| Population gap | 971 contacts against ~144 Reimagine accounts — the contact list is roughly **seven times** the user base. Most Corner registrants have never opened Reimagine. Any sync joins on email; see the warming risk below. |
 | Contact properties | `corner_2025` (string, fallback `no`) |
 | DMARC | `career.club` is `p=none`, no subdomain override — the subdomain inherits, nothing extra needed |
 
