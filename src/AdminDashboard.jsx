@@ -405,23 +405,24 @@ export default function AdminDashboard() {
               than a breakdown on purpose — at this user count reading them is
               worth more than any chart, and they are what would decide a tag set
               if one ever earns its keep. */}
-          <Panel title="What people said about their search">
-            <table style={S.table}>
-              <thead><tr>
-                <Th>User</Th><Th>Going well</Th><Th>Would like to improve</Th><Th>Answered</Th>
-              </tr></thead>
-              <tbody>
-                {searchIntake.map((r) => (
-                  <tr key={r.email}>
-                    <Td>{r.email}</Td>
-                    <Td>{r.going_well || <span style={{ opacity: 0.5 }}>—</span>}</Td>
-                    <Td>{r.focus || <span style={{ opacity: 0.5 }}>—</span>}</Td>
-                    <Td>{(r.focus_at || r.going_well_at) ? new Date(r.focus_at || r.going_well_at).toLocaleDateString() : "—"}</Td>
-                  </tr>
-                ))}
-                {searchIntake.length === 0 && <tr><Td colSpan={4} muted>Nobody has answered these yet.</Td></tr>}
-              </tbody>
-            </table>
+          <Panel title="What people said about their search" wide>
+            {searchIntake.length === 0 && <p style={{ ...S.td, color: GRAYL, margin: 0 }}>Nobody has answered these yet.</p>}
+            {searchIntake.map((r, i) => (
+              <div key={r.email} style={{ padding: "14px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
+                  <span style={{ fontSize: 14, color: NAVY, wordBreak: "break-all" }}>{r.email}</span>
+                  <span style={{ fontSize: 13, color: GRAYL, whiteSpace: "nowrap" }}>{(r.focus_at || r.going_well_at) ? new Date(r.focus_at || r.going_well_at).toLocaleDateString() : "—"}</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+                  {[["Going well", r.going_well], ["Would like to improve", r.focus]].map(([label, text]) => (
+                    <div key={label}>
+                      <div style={{ ...S.th, padding: "0 0 4px" }}>{label}</div>
+                      <div style={{ fontSize: 14, lineHeight: 1.6, color: text ? GRAY : GRAYL }}>{text || "—"}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </Panel>
 
           {/* Panel 2: funnel */}
