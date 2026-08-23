@@ -6,7 +6,7 @@ This file is loaded automatically when Claude Code works in this repo. It captur
 
 ## 1. What this is
 
-Reimagine is a career-strategy tool in beta with ~20 users (as of May 2026). It walks users through a multi-step orientation, then produces a per-direction playbook covering Personal Brand, Role Options, Bridge Story, The Lingo, Interview Prep, Resume Refresh, LinkedIn Remix, Go-to-Market, and Income Now. The product is React + Vite, deployed on Vercel, with Anthropic API for prompt-driven generation, Neon Postgres + Resend for magic-link auth and cross-device profile sync, and Apps Script integrations for signup and corrections logging.
+Reimagine is a career-strategy tool in beta with **145 registered accounts, 71 active in the last 30 days** (as of 2026-08-23; 38 signed up in that window). This file said "~20 users" for months after it stopped being true, and that number was quietly shaping scope calls — "too small to measure" is a defensible argument at 20 accounts and a wrong one at 145. Re-check the Top-line panel of `/admin/dashboard` before reasoning from any figure here. It walks users through a multi-step orientation, then produces a per-direction playbook covering Personal Brand, Role Options, Bridge Story, The Lingo, Interview Prep, Resume Refresh, LinkedIn Remix, Go-to-Market, and Income Now. The product is React + Vite, deployed on Vercel, with Anthropic API for prompt-driven generation, Neon Postgres + Resend for magic-link auth and cross-device profile sync, and Apps Script integrations for signup and corrections logging.
 
 The product owner is Bob Goodwin (Career Club / Decima LLC). Strategic positioning leans on Bob's book *Making Your Own Weather* (the Four Cs and Five Ps frameworks).
 

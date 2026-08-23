@@ -118,6 +118,10 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
   const doors = payload.doors || {}
   const movement = payload.movement || []
   const moveCov = payload.movement_coverage || []
+  const email = payload.email || {}
+  const emailCampaigns = email.campaigns || []
+  const emailClicks = email.clicks || []
+  const emailWindow = email.attribution_days || 7
   const crossVol = payload.crossover_by_volume || []
   const pipeline = payload.pipeline || []
   const reached = payload.reached || []
@@ -531,6 +535,56 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
           </table>
           <div style={S.calloutTight}>
             Shares are of accounts that were asked. Accounts created before the question shipped sit on their own line rather than inside an "unknown" bucket — folding them in would understate every real share. The line to watch is <strong style={{ color: NAVY }}>someone recommended it</strong>: it is the only direct measure of the growth engine.
+          </div>
+        </Panel>
+
+        {/* Lifecycle email. Two reads, deliberately in this order: the campaign
+            rollup answers "did it land", the per-person trace answers "did it
+            move anyone" — which is the only question worth sending for. */}
+        <Panel title="Lifecycle email" wide>
+          <table style={S.table}>
+            <thead><tr>
+              <Th>Campaign</Th><Th right>Delivered</Th><Th right>Opened</Th><Th right>Clicked</Th><Th right>Bounced</Th><Th right>Complaints</Th>
+            </tr></thead>
+            <tbody>
+              {emailCampaigns.map((c) => (
+                <tr key={c.campaign}>
+                  <Td>{c.campaign}</Td>
+                  <Td right>{fmtInt(c.delivered)}</Td>
+                  <Td right>{fmtInt(c.opened)}</Td>
+                  <Td right><strong style={{ color: NAVY }}>{fmtInt(c.clicked)}</strong></Td>
+                  <Td right muted={!c.bounced}>{c.bounced || "—"}</Td>
+                  <Td right muted={!c.complained}><strong style={{ color: c.complained ? ERR : "inherit" }}>{c.complained || "—"}</strong></Td>
+                </tr>
+              ))}
+              {emailCampaigns.length === 0 && <tr><Td colSpan={6} muted>No email events yet. They arrive from Resend as each campaign sends.</Td></tr>}
+            </tbody>
+          </table>
+
+          <div style={{ ...S.th, padding: "18px 0 6px" }}>Who clicked, and what they did next</div>
+          <table style={S.table}>
+            <thead><tr>
+              <Th>Person</Th><Th>Campaign</Th><Th>Clicked</Th><Th>Next milestone reached</Th>
+            </tr></thead>
+            <tbody>
+              {emailClicks.map((c, i) => (
+                <tr key={`${c.recipient}-${c.clicked_at}-${i}`}>
+                  <Td>{c.recipient}</Td>
+                  <Td muted>{c.campaign}</Td>
+                  <Td muted>{c.clicked_at ? new Date(c.clicked_at).toLocaleDateString() : "—"}</Td>
+                  <Td>
+                    {c.next_stage
+                      ? <><strong style={{ color: NAVY }}>{MOVE_STAGES.find((s) => s.key === c.next_stage)?.label || c.next_stage}</strong>{c.stage_at ? <span style={{ color: GRAYL }}> · {new Date(c.stage_at).toLocaleDateString()}</span> : null}</>
+                      : <span style={{ color: GRAYL }}>nothing within {emailWindow} days</span>}
+                  </Td>
+                </tr>
+              ))}
+              {emailClicks.length === 0 && <tr><Td colSpan={4} muted>Nobody has clicked a tracked link yet.</Td></tr>}
+            </tbody>
+          </table>
+
+          <div style={S.calloutTight}>
+            Counts are distinct people, not events — an open fires every time the image loads, so raw event counts overstate reach badly. The right-hand column is a <strong style={{ color: NAVY }}>sequence, not a cause</strong>: it shows the first milestone an account reached within {emailWindow} days of clicking, and someone may well have come back anyway. Read the rows as individual stories rather than a rate. A <strong style={{ color: NAVY }}>complaint</strong> is the number to act on — on a young sending domain it does more damage than a low open rate ever will. Untagged sends collapse into one row, so every campaign needs a <code>campaign</code> tag to be told apart.
           </div>
         </Panel>
 

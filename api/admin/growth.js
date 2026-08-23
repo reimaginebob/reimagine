@@ -47,6 +47,11 @@ const SESSION_GAP_MIN = 30
 const RESURRECT_DAYS = 14
 // Weeks of stage-movement history shown. Twelve matches the cohort table.
 const MOVEMENT_WEEKS = 12
+// How long after a click a stage crossing is still shown next to it. A judgement
+// call, not a measured figure: long enough that a person can read an email, come
+// back at the weekend and do the work; short enough that an unrelated crossing a
+// month later is not lined up beside it as if the email caused it.
+const EMAIL_ATTRIBUTION_DAYS = 7
 
 const DEFINITIONS = {
   activation: 'Generated a first playbook through EITHER door — an Opportunity Playbook or a Focus Playbook. Changed on 2026-08-21 from "a Focus Playbook", which counted only the door most people do not take; recorded here so the change is on the page rather than in a recollection.',
@@ -109,6 +114,8 @@ async function loadPayload(adminEmails) {
     recognition,
     coach,
     sources,
+    emailRollup,
+    emailTrace,
   ] = await Promise.all([
 
     // --- 1. Trunk and branch ----------------------------------------------
@@ -560,6 +567,59 @@ async function loadPayload(adminEmails) {
       WHERE LOWER(email) <> ALL(${adminEmails}::text[])
       GROUP BY 1
       ORDER BY users DESC`,
+
+    // --- 11. Lifecycle email: what each campaign did ------------------------
+    // Counts are DISTINCT recipients, not events: Resend records an open every
+    // time the image loads, so raw event counts overstate reach badly. Grouped
+    // by the `campaign` tag, which is why every real send has to carry one —
+    // an untagged send lands in '(untagged)' and cannot be told apart from any
+    // other untagged send.
+    sql`
+      SELECT
+        COALESCE(tags->>'campaign', '(untagged)')                              AS campaign,
+        COUNT(DISTINCT recipient) FILTER (WHERE event_type = 'delivered')::int AS delivered,
+        COUNT(DISTINCT recipient) FILTER (WHERE event_type = 'opened')::int    AS opened,
+        COUNT(DISTINCT recipient) FILTER (WHERE event_type = 'clicked')::int   AS clicked,
+        COUNT(DISTINCT recipient) FILTER (WHERE event_type = 'bounced')::int   AS bounced,
+        COUNT(DISTINCT recipient) FILTER (WHERE event_type = 'complained')::int AS complained,
+        MAX(occurred_at)                                                       AS last_event
+      FROM email_events
+      GROUP BY 1
+      ORDER BY last_event DESC NULLS LAST
+      LIMIT 50`,
+
+    // --- 12. Lifecycle email: the per-person trace --------------------------
+    // The question the whole table exists for: someone clicked — did they then
+    // cross a stage? One row per click, with the first stage the account
+    // reached inside the attribution window after it.
+    //
+    // This is a SEQUENCE, not a cause. Someone may well have come back anyway,
+    // and at this volume the honest read is the individual story rather than a
+    // rate. The dashboard says so where it renders.
+    sql`
+      SELECT
+        c.recipient                                  AS recipient,
+        COALESCE(c.tags->>'campaign', '(untagged)')  AS campaign,
+        c.link_url                                   AS link_url,
+        c.occurred_at                                AS clicked_at,
+        s.stage                                      AS next_stage,
+        s.entered_at                                 AS stage_at
+      FROM email_events c
+      LEFT JOIN users u ON LOWER(u.email) = c.recipient
+      LEFT JOIN LATERAL (
+        SELECT e.stage, e.entered_at
+        FROM user_stage_events e
+        WHERE e.user_id = u.id
+          AND e.entered_at IS NOT NULL
+          AND e.entered_at >= c.occurred_at
+          AND e.entered_at <= c.occurred_at + ${`${EMAIL_ATTRIBUTION_DAYS} days`}::interval
+        ORDER BY e.entered_at
+        LIMIT 1
+      ) s ON TRUE
+      WHERE c.event_type = 'clicked'
+        AND (u.id IS NULL OR LOWER(u.email) <> ALL(${adminEmails}::text[]))
+      ORDER BY c.occurred_at DESC
+      LIMIT 100`,
   ])
 
   // --- Assemble the cohort matrix ----------------------------------------
@@ -639,6 +699,26 @@ async function loadPayload(adminEmails) {
       }
       return [...byWeek.values()].sort((a, b) => (a.week < b.week ? -1 : 1))
     })(),
+    email: {
+      attribution_days: EMAIL_ATTRIBUTION_DAYS,
+      campaigns: emailRollup.map((r) => ({
+        campaign:   r.campaign,
+        delivered:  num(r.delivered),
+        opened:     num(r.opened),
+        clicked:    num(r.clicked),
+        bounced:    num(r.bounced),
+        complained: num(r.complained),
+        last_event: r.last_event || null,
+      })),
+      clicks: emailTrace.map((r) => ({
+        recipient:  r.recipient,
+        campaign:   r.campaign,
+        link_url:   r.link_url || null,
+        clicked_at: r.clicked_at,
+        next_stage: r.next_stage || null,
+        stage_at:   r.stage_at || null,
+      })),
+    },
     movement_coverage: movementCoverage.map((r) => ({
       stage: r.stage,
       total: num(r.total),
