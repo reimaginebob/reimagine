@@ -29,7 +29,7 @@
 // `sentiment` is a fixed property of each option, not a judgement made later.
 // It is set here so the Feedback tab can chart these alongside everything else
 // on day one, and because the valence of "I did not think it would help me" is
-// not genuinely ambiguous.
+// not in doubt.
 
 export const SURVEYS = {
   // Sent to people who started Reimagine and stopped. The framing is
