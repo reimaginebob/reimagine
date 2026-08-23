@@ -29,29 +29,12 @@
 // case-folded, provider-normalised address, and first+last name.
 
 import { sql } from '../_lib/db.js'
+import { normalizeEmail } from '../_lib/normalize-email.js'
 import { checkAdminAuth, adminTokenMissing } from '../_lib/admin-auth.js'
 
 function parseAdminEmails(envValue) {
   if (typeof envValue !== 'string') return []
   return envValue.split(',').map(e => e.trim().toLowerCase()).filter(e => e.length > 0)
-}
-
-// Provider-normalised address, for spotting the same inbox written two ways.
-// Everywhere: case-folded, and anything after a '+' in the local part dropped
-// (a tag, not a different mailbox). Gmail only: dots in the local part removed,
-// since Gmail ignores them and googlemail.com is the same service.
-function normalizeEmail(raw) {
-  const e = String(raw || '').trim().toLowerCase()
-  const at = e.lastIndexOf('@')
-  if (at < 1) return e
-  let local = e.slice(0, at)
-  const domain = e.slice(at + 1)
-  const plus = local.indexOf('+')
-  if (plus > 0) local = local.slice(0, plus)
-  if (domain === 'gmail.com' || domain === 'googlemail.com') {
-    return `${local.replace(/\./g, '')}@gmail.com`
-  }
-  return `${local}@${domain}`
 }
 
 function nameKey(first, last) {
