@@ -16,6 +16,14 @@ import { patternsFor } from '../src/voice-patterns.mjs'
 const FILES_TO_CHECK = [
   'src/App.jsx',
   'src/demoData.js',
+  // Email is a user-facing surface and the voice rules apply to it in full
+  // (CLAUDE.md section 3). Until 2026-08-23 the gate could not see any of it,
+  // so campaign copy, survey option labels, and the survey thank-you pages were
+  // governed in principle and enforced nowhere. A rule with no detector is a
+  // draft, which is the whole reason this gate exists.
+  'src/campaign-templates.js',
+  'src/survey-questions.js',
+  'api/survey/respond.js',
   ...fs.readdirSync('src/data/user-guide').map(f => path.join('src/data/user-guide', f)),
 ]
 
