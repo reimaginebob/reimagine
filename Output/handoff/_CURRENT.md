@@ -4,7 +4,7 @@
 
 Both Cowork and Code work from this file. Briefs go stale the moment they are written; this one is meant to be edited in place. If you make a decision, close a question, or get blocked, edit the relevant line and stamp the date. Do not add a new section to record that an old section is wrong — fix the old section.
 
-Last updated: **2026-08-22, evening** (Code — four campaign decisions closed; sender identity is the last one open)
+Last updated: **2026-08-23** (Code — segment cap found, send architecture reopened; #495/#496 from the parallel session folded in)
 
 ---
 
@@ -105,6 +105,33 @@ Read directly from the Resend account 2026-08-22. None of this lives in the repo
 **Before quoting any number:** milestones reached before anything recorded the date are stored with `entered_at NULL` and excluded from the weekly chart, because dating them to the day the log shipped would have invented a spike. The panel reports how many are in that bucket and from what date the record is complete.
 
 **Ceiling on claims:** with no hold-out, movement in a send week can be compared only against the historical average of ordinary weeks. Do not write "the email drove X" — the data cannot support it.
+
+---
+
+## OPEN FORK — how the tailored campaign gets sent
+
+Found 2026-08-22 while building the stage-to-Resend sync, and it invalidates the original architecture.
+
+**The Resend plan allows 3 segments; 2 exist.** Creating a third was rejected by the API. **Segments are also static** — membership is assigned per contact, with no filter rules on properties. So "everyone at stage X" cannot be a segment, and broadcasts target segments. Stage-based targeting cannot be expressed the way the brief assumed.
+
+Two ways out, Bob to choose:
+
+- **(a) Broadcasts, one segment rewritten before each send.** Keeps the Resend composer. Fiddly, and a send during a rewrite reaches the wrong people.
+- **(b) The app sends the tailored emails itself** from its own data. No segment cap, targeting from data we already trust, campaign tagging is trivial because we set it, and the `survey_token` merge-field requirement disappears entirely — the app builds the link. Individual sends still carry the Reimagine topic, so unsubscribes work identically. **Cost: no Resend composer for that campaign** — copy lives in a template. That is a real workflow loss for whoever writes it.
+
+Code recommends a split: the Corner "try Reimagine" email is one message to one audience with no per-person variation, so broadcast it. The stage-tailored emails need per-person data, so the app sends those.
+
+**Until this is settled, the stage-to-Resend sync is not being built** — under (b) most of it does not exist.
+
+---
+
+## Shipped by the other Code session, 2026-08-22/23
+
+- **PR #496** (`2635d3c`) — Resend webhook receiver plus a Lifecycle email panel on the Growth tab: campaign rollup (delivered, opened, clicked, bounced, complaints) and a per-person trace of the first milestone crossed within seven days of a click. Counts are distinct people, not events. **Needs `RESEND_WEBHOOK_SECRET` in Vercel plus a redeploy before it does anything**; until then the webhook 500s and Resend retries harmlessly.
+- **PR #495** (`c1fc767`) — search-intake answers made readable.
+- **`CLAUDE.md` headcount corrected** from "~20 users (as of May 2026)" to 145 accounts / 71 active in 30 days. That stale figure had been steering judgment across sessions.
+
+**A question the new number raises, worth Cowork answering with the analyst token:** 71 active in 30 days against 58 activated. If a meaningful number of people are active but not "activated" by our definition, either the definition still misses a real usage pattern, or people are getting value somewhere the funnel does not look. Worth knowing before copy assumes those people are stuck.
 
 ---
 
