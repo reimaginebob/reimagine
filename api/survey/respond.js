@@ -136,9 +136,9 @@ export default async function handler(req, res) {
     // the door instead of a receipt.
     if (option.returnLink) {
       return res.status(200).send(page({
-        heading: 'Noted — and it will be there when you are.',
+        heading: "Good, glad you're coming back.",
         body: 'Your work is saved exactly where you left it.',
-        note: 'If now happens to suit, <a href="https://reimagine.career.club/">pick up where you left off</a>. If not, no rush.',
+        note: '<a href="https://reimagine.career.club/" style="font-weight:600">Pick up where you left off &rarr;</a>',
       }))
     }
 
@@ -149,7 +149,7 @@ export default async function handler(req, res) {
       : 'Changed your mind, or picked the wrong one? Click a different answer in the email — the latest one is the one we keep.'
 
     return res.status(200).send(page({
-      heading: 'Thank you — that helps.',
+      heading: "Thanks, that's useful and I'll take it into account.",
       body: `You told us: <strong>${option.label}</strong>`,
       note,
     }))

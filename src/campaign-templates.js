@@ -66,20 +66,23 @@ export const CAMPAIGNS = {
     // Matches the stage vocabulary in api/admin/user-stages.js.
     stages: ['gave_inputs_no_output'],
     survey: 'dropout',
-    subject: 'What got in the way?',
+    // Copy by Cowork, 2026-08-23, applied verbatim. Passed check-voice with the
+    // gate extended to cover this file (PR #499).
+    subject: 'what got in the way?',
     render({ firstName, surveyToken }) {
       const survey = SURVEYS.dropout
       const buttons = survey.options.map(o => surveyButton(surveyToken, survey.key, o)).join('\n')
-      const hi = firstName ? `Hi ${firstName},` : 'Hi,'
+      // "Hey," alone reads fine; a placeholder that failed to fill would not.
+      const hi = firstName ? `Hey ${firstName},` : 'Hey,'
       return shell(`
     <p style="font-size:17px;line-height:1.65;margin:0 0 16px">${hi}</p>
-    <p style="font-size:17px;line-height:1.65;margin:0 0 16px">You started putting your background into Reimagine a while back and didn't come back to it. I'd like to know what got in the way — if something about it didn't work, that's worth me knowing.</p>
-    <p style="font-size:17px;line-height:1.65;margin:0 0 20px">One click and you're done. Nothing else needed.</p>
+    <p style="font-size:17px;line-height:1.65;margin:0 0 16px">You started putting information into Reimagine a while back, then stopped before it turned into anything. That happens, and I'd rather ask than guess why.</p>
+    <p style="font-size:17px;line-height:1.65;margin:0 0 20px">Could you tell me what got in the way? One click, no sign-in.</p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">
 ${buttons}
     </table>
-    <p style="font-size:17px;line-height:1.65;margin:22px 0 0">Thanks,<br>Bob</p>
-    <p style="font-size:15px;line-height:1.6;color:#6B7685;margin:18px 0 0">Your work is saved exactly where you left it, whenever you want it.</p>`)
+    <p style="font-size:17px;line-height:1.65;margin:22px 0 0">If none of those quite fit, just hit reply and tell me in your own words. I read these myself.</p>
+    <p style="font-size:17px;line-height:1.65;margin:16px 0 0">Bob</p>`)
     },
   },
 }
