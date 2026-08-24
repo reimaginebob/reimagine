@@ -62,6 +62,11 @@ const S = {
   openLink: { fontSize: 15, color: '#12603F', marginLeft: 8, fontFamily: 'system-ui, sans-serif' },
   openNone: { fontSize: 15, color: GRAYL, margin: '8px 0 6px', fontFamily: 'system-ui, sans-serif' },
   bandOk: { fontSize: 15, color: GRAYL, marginTop: 6, fontFamily: 'system-ui, sans-serif' },
+  uncitedBlock: { marginTop: 22, paddingTop: 16, borderTop: `2px dashed ${BORDER}` },
+  uncitedHead: { fontSize: 17, fontWeight: 700, color: GRAYL, margin: '0 0 4px', fontFamily: 'system-ui, sans-serif' },
+  uncitedNote: { fontSize: 15, color: GRAYL, lineHeight: 1.5, margin: '0 0 12px', maxWidth: '60ch', fontFamily: 'system-ui, sans-serif' },
+  uncitedCard: { border: `1px dashed ${BORDER}`, borderRadius: 10, padding: '12px 16px', marginBottom: 10, background: '#FCFCFD' },
+  uncitedName: { fontSize: 17, fontWeight: 600, color: GRAY, margin: '0 0 4px', fontFamily: 'system-ui, sans-serif' },
   refine: { marginTop: 20, paddingTop: 18, borderTop: `1px solid ${BORDER}` },
   working: { display: 'flex', alignItems: 'center', gap: 10, background: '#EEF3FA', border: '1px solid #C3D4EA', borderRadius: 8, padding: '12px 14px', marginBottom: 16, fontSize: 16, color: '#1A3A63', fontFamily: 'system-ui, sans-serif' },
   spinner: { width: 12, height: 12, borderRadius: '50%', background: '#2C5C96', flexShrink: 0, animation: 'deskPulse 1.1s ease-in-out infinite' },
@@ -486,14 +491,14 @@ function SearchSummary({ data, f, band }) {
   const echo = data && data.criteriaEcho
   const returned = data && typeof data.returned === 'number' ? data.returned : null
   const kept = (data && Array.isArray(data.matches)) ? data.matches.length : 0
-  const dropped = returned !== null ? returned - kept : 0
+  const uncited = (data && Array.isArray(data.uncited)) ? data.uncited.length : 0
   return (
     <div style={S.summary}>
       <div><strong>Searched:</strong> {[f.roleTitle && `${f.roleTitle} (${band} level)`, f.industry, f.geo].filter(Boolean).join(' · ')}</div>
       {echo ? <div style={{ marginTop: 4 }}><strong>Read as:</strong> {echo}</div> : null}
       {returned !== null ? (
         <div style={{ marginTop: 4 }}>
-          <strong>{kept}</strong> shown{dropped > 0 ? `, ${dropped} dropped for having no citable source` : ''}. The ceiling is 10, and a short list is on purpose — it is told not to pad.
+          <strong>{kept}</strong> sourced{uncited > 0 ? <> · <strong>{uncited}</strong> named without a citable link, listed separately below</> : null}. The ceiling is 10, and a short list is on purpose — it is told not to pad.
         </div>
       ) : null}
     </div>
@@ -502,7 +507,8 @@ function SearchSummary({ data, f, band }) {
 
 function Recruiters({ data, onMoreLikeThis, busy, acting }) {
   const matches = (data && Array.isArray(data.matches)) ? data.matches : []
-  if (!matches.length) return <p style={S.body}>Nothing came back that could be traced to a first-party source. Try a broader industry, or a different way of naming the function.</p>
+  const uncited = (data && Array.isArray(data.uncited)) ? data.uncited : []
+  if (!matches.length && !uncited.length) return <p style={S.body}>Nothing came back at all. Try a broader industry, or a different way of naming the function.</p>
   return (
     <>
       {matches.map((m, i) => (
@@ -540,6 +546,26 @@ function Recruiters({ data, onMoreLikeThis, busy, acting }) {
           </button>
         </div>
       ))}
+      {/* Named, but with nothing to cite. Previously these were discarded at parse
+          time, which is an automatic screen the operator never sees — the same
+          objection as an arbitrary cap. Shown, marked, and kept out of the CSV,
+          so nothing unsourced can pass as verified. */}
+      {uncited.length ? (
+        <div style={S.uncitedBlock}>
+          <p style={S.uncitedHead}>Named, but nothing to cite ({uncited.length})</p>
+          <p style={S.uncitedNote}>
+            The search returned these without a link that establishes the specialty, so they are not
+            evidence — they are leads. They are excluded from the CSV. Worth a look if you recognise a name.
+          </p>
+          {uncited.map((m, i) => (
+            <div key={i} style={S.uncitedCard}>
+              <p style={S.uncitedName}>{m.firm}</p>
+              {m.practice ? <p style={S.body}><strong>Practice:</strong> {m.practice}</p> : null}
+              {m.specialty ? <p style={S.body}>{m.specialty}</p> : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
     </>
   )
 }

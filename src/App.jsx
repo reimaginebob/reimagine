@@ -1715,8 +1715,14 @@ async function findRecruiterMatches(criteria){
     // is how many rows it sent before the usable-source filter below. Both were
     // parsed and dropped, which is why a short list was unexplainable: you could
     // not tell an honest four from a six with two rows binned for having no link.
+    // A row with no citable link cannot be presented as sourced. It is still a
+    // named firm the operator may recognise, so it is SEPARATED rather than
+    // discarded: `matches` stays the sourced list every existing caller reads,
+    // and `uncited` carries the rest for a surface that chooses to show them.
+    // The Focus Playbook reads only `matches`, so what users see is unchanged.
     const usable=clean.filter(m=>m.url||m.practiceUrl||m.sourceUrl)
-    return{matches:usable,criteriaEcho:typeof obj.criteria_echo==='string'?obj.criteria_echo:'',returned:arr.length}
+    const uncited=clean.filter(m=>!(m.url||m.practiceUrl||m.sourceUrl))
+    return{matches:usable,uncited,criteriaEcho:typeof obj.criteria_echo==='string'?obj.criteria_echo:'',returned:arr.length}
   }catch(e){return{matches:[]}}
 }
 // runDeskTool — the Research Desk's one entry point (brief 2026-08-16).
@@ -1770,7 +1776,10 @@ async function recruiterSearchWithGapFill(criteria,onProgress){
     progress()
   }}
   await Promise.all([worker(),worker(),worker()])
-  return{matches,criteriaEcho:found.criteriaEcho||'',returned:found.returned||matches.length}
+  // Uncited rows are NOT gap-filled: with no firm URL there is nothing for the
+  // confirmation gate to check a profile against, so a name found here could not
+  // be verified anyway. They travel as-is, clearly unsourced.
+  return{matches,uncited:Array.isArray(found.uncited)?found.uncited:[],criteriaEcho:found.criteriaEcho||'',returned:found.returned||matches.length}
 }
 // runDeskRefine — the iterate pass. Both prompts already supported this and the
 // desk was not using it: the recruiter prompt takes `focus` (narrow the search)
@@ -1797,7 +1806,10 @@ async function runDeskRefine(tool,f,note,previous,mode,onProgress){
     const prevMatches=(mode==='append'&&previous&&Array.isArray(previous.matches))?previous.matches:[]
     const seenFirms=new Set(prevMatches.map(m=>String((m&&m.firm)||'').trim().toLowerCase()).filter(Boolean))
     const added=matches.filter(m=>{const k=String(m.firm||'').trim().toLowerCase();if(!k||seenFirms.has(k))return false;seenFirms.add(k);return true})
-    return{matches:prevMatches.concat(added),criteriaEcho:found.criteriaEcho||'',returned:found.returned||matches.length}
+    const prevUncited=(mode==='append'&&previous&&Array.isArray(previous.uncited))?previous.uncited:[]
+    const seenUn=new Set(prevUncited.map(m=>String((m&&m.firm)||'').trim().toLowerCase()).filter(Boolean))
+    const addedUn=(found.uncited||[]).filter(m=>{const k=String(m.firm||'').trim().toLowerCase();if(!k||seenUn.has(k))return false;seenUn.add(k);return true})
+    return{matches:prevMatches.concat(added),uncited:prevUncited.concat(addedUn),criteriaEcho:found.criteriaEcho||'',returned:found.returned||matches.length}
   }
   // Companies. Four regen prompts ship and the desk was using one:
   //   part2_fix   — rebuild the list against a correction   (mode 'replace')
