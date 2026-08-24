@@ -1734,6 +1734,10 @@ async function runDeskTool(tool,f){
       function:(f.roleTitle||'').trim(),
       industry:(f.industry||'').trim(),
       seniority:inferSeniorityBand(f.roleTitle||''),
+      // The discovery prompt already accepts geo and states in its own words that
+      // it is a preference, not a hard filter — retained search at this level is
+      // usually national. #501 left the slot unfilled.
+      geo:(f.geo||'').trim(),
     }
     const found=await findRecruiterMatches(criteria)
     const matches=Array.isArray(found.matches)?found.matches.slice():[]
