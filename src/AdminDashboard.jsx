@@ -265,6 +265,15 @@ export default function AdminDashboard() {
             <div style={S.subhead}>
               {liveAsOf ? <>Live as of <strong style={{ color: NAVY }}>{liveAsOf}</strong></> : "Loading…"}
             </div>
+            {/* The three admin screens are separate URLs with no navigation
+                between them, so each one had to be typed. These are the other
+                two. Plain anchors on purpose: each screen is its own entry into
+                the SPA and holds its own gate. */}
+            <div style={S.adminNav}>
+              <a href="/admin/desk" style={S.adminNavLink}>Reimagine Backdoor</a>
+              <span style={S.adminNavSep}>·</span>
+              <a href="/admin/coach-insights" style={S.adminNavLink}>Coach insights</a>
+            </div>
           </div>
           {/* The range pills drive Analytics and Feedback from one control, so a
               range picked on one tab still applies after switching. Economics is
@@ -583,6 +592,9 @@ const S = {
   headerRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 22 },
   title: { fontFamily: "Georgia, serif", fontSize: "clamp(28px, 5vw, 38px)", fontWeight: 700, color: NAVY, margin: 0, lineHeight: 1.15 },
   subhead: { fontSize: 14, color: GRAYL, marginTop: 6 },
+  adminNav: { display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" },
+  adminNavLink: { fontSize: 16, color: GOLDL, fontWeight: 600, textDecoration: "none" },
+  adminNavSep: { fontSize: 16, color: BORDER },
   tabBar: { display: "flex", gap: 4, marginBottom: 20, borderBottom: `1px solid ${BORDER}` },
   tab: { background: "transparent", border: "none", borderBottom: "2px solid transparent", color: GRAYL, padding: "8px 16px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: -1 },
   tabActive: { background: "transparent", border: "none", borderBottom: `2px solid ${GOLD}`, color: NAVY, padding: "8px 16px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: -1 },

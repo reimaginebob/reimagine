@@ -150,7 +150,7 @@ export default function ResearchDesk({ onRun }) {
 
   return (
     <div style={S.page}>
-      <h1 style={S.h1}>Research Desk</h1>
+      <h1 style={S.h1}>Reimagine Backdoor</h1>
       <p style={S.sub}>
         Reimagine's research, run on what you type instead of on someone's profile — for people who are not users.
       </p>
