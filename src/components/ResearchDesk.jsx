@@ -73,6 +73,23 @@ const LANES = [
 // a paste lands in the destination's own font, and keep everything structural.
 const COPY_STRIP_PROPS = ['font-size', 'font-family', 'line-height', 'color']
 
+// Firm / Practice / Profile / Source are four DIFFERENT pages: the firm, its
+// practice, the person, and the page that establishes the specialty claim. When
+// the model returns the same URL twice, a second link labelled "Source" reads as
+// corroboration and is not — it is the same page wearing a second label. Keep the
+// first label for any given URL and drop the repeats, comparing without a
+// trailing slash so "/about" and "/about/" count as one.
+function dedupeLinks(pairs) {
+  const seen = new Set()
+  return pairs.filter(([, u]) => {
+    if (!u || typeof u !== 'string') return false
+    const key = u.trim().replace(/\/+$/, '').toLowerCase()
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 // Field MUST stay at module scope. Defined inside the component it is a new
 // component type on every render, so React unmounts and remounts the subtree on
 // each keystroke — the input loses focus and only the first character lands.
@@ -309,8 +326,7 @@ function Recruiters({ data }) {
             <p style={S.openNone}>No live search found for this function at this level.</p>
           )}
           <p style={{ margin: 0 }}>
-            {[['Firm', m.url], ['Practice', m.practiceUrl], ['Profile', m.leaderProfileUrl], ['Source', m.sourceUrl]]
-              .filter(([, u]) => u)
+            {dedupeLinks([['Firm', m.url], ['Practice', m.practiceUrl], ['Profile', m.leaderProfileUrl], ['Source', m.sourceUrl]])
               .map(([label, u], k) => <a key={k} href={u} target="_blank" rel="noopener noreferrer" style={{ ...S.link, marginRight: 12 }}>{label}</a>)}
           </p>
         </div>

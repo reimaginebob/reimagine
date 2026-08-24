@@ -1640,6 +1640,7 @@ HONESTY RULES (load-bearing):
 - Specialty search is a narrow world. A short, correct list is the right answer. Do NOT pad the list to hit a number. Return only contacts you can stand behind for THIS function+industry+seniority.
 - Never invent a name, title, firm, or link. Every entry must carry a real sourceUrl you actually found.
 - Do NOT return any email address or guessed contact path. Link to the person's or firm's own page only.
+- sourceUrl is EVIDENCE, not a second link to the same place. It must be the specific page that establishes the specialty you are claiming — a practice page, a sector page, a bio, an about page that names the focus. A homepage is not evidence. If the only page you can point at is the firm's front page, put it in url and leave sourceUrl EMPTY rather than repeating the same URL twice; a duplicate link reads as corroboration and is not.
 
 NAME VERIFICATION (load-bearing — prevents stale, wrong, or namesake names):
 - A named person must be confirmed as CURRENT by a FIRST-PARTY source, and leaderProfileUrl MUST BE that source. Two things count as first-party: (a) the firm's OWN consultant/profile page, or (b) the person's OWN LinkedIn profile (a linkedin.com/in/ URL) whose current employer is this firm. Use whichever you can verify and return it as leaderProfileUrl.
