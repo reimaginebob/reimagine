@@ -1730,11 +1730,30 @@ async function findRecruiterMatches(criteria){
 // dropped. p7 cannot tell it is not looking at a real profile.
 async function runDeskTool(tool,f){
   if(tool==='recruiters'){
-    return await findRecruiterMatches({
+    const criteria={
       function:(f.roleTitle||'').trim(),
       industry:(f.industry||'').trim(),
       seniority:inferSeniorityBand(f.roleTitle||''),
-    })
+    }
+    const found=await findRecruiterMatches(criteria)
+    const matches=Array.isArray(found.matches)?found.matches.slice():[]
+    // Gap-fill, same as the Focus Playbook's Recruiters card: discovery returns a
+    // firm with no name whenever it could not confirm one first-party, so each of
+    // those gets one focused firm-scoped lookup. Without this the desk reports
+    // "no individual confirmed" far more often than the in-app feature does, for
+    // no reason other than the second pass not being wired up.
+    const queue=matches.map((m,i)=>({m,i})).filter(x=>!x.m.leaderName)
+    const worker=async()=>{while(queue.length){
+      const {m,i}=queue.shift()
+      const got=await findRecruiterLeader(m.firm,m.practice||'',criteria)
+      // The same code-level gate the discovery pass uses. A name survives only
+      // when its profile URL is first-party; the model's own claim is not enough.
+      if(got&&got.leaderName&&recruiterLeaderConfirmed({confidence:got.confidence,leaderProfileUrl:got.profileUrl,url:m.url,practiceUrl:m.practiceUrl,sourceUrl:m.sourceUrl})){
+        matches[i]={...matches[i],leaderName:got.leaderName,leaderTitle:got.leaderTitle,leaderProfileUrl:got.profileUrl}
+      }
+    }}
+    await Promise.all([worker(),worker(),worker()])
+    return{matches}
   }
   // Target companies. p7 interpolates the role, the lane and pr.loc.*; everything
   // that ranks the list arrives through the profile block.
