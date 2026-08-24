@@ -57,6 +57,10 @@ const S = {
   body: { fontSize: 17, lineHeight: 1.6, color: GRAY, margin: '0 0 6px', fontFamily: 'system-ui, sans-serif' },
   tag: c => ({ display: 'inline-block', fontSize: 15, color: c, border: `1px solid ${c}`, borderRadius: 20, padding: '2px 10px', marginRight: 6, fontFamily: 'system-ui, sans-serif' }),
   link: { color: GOLDL, fontSize: 15, fontFamily: 'system-ui, sans-serif' },
+  openHit: { marginTop: 10, marginBottom: 6 },
+  openBadge: { display: 'inline-block', padding: '6px 12px', background: '#E4F6EA', border: '1.5px solid #1A7F5A', borderRadius: 8, color: '#12603F', fontSize: 15, fontWeight: 700, fontFamily: 'system-ui, sans-serif' },
+  openLink: { fontSize: 15, color: '#12603F', marginLeft: 8, fontFamily: 'system-ui, sans-serif' },
+  openNone: { fontSize: 15, color: GRAYL, margin: '8px 0 6px', fontFamily: 'system-ui, sans-serif' },
 }
 
 const LANES = [
@@ -82,7 +86,7 @@ function Field({ label, hint, children }) {
   )
 }
 
-export default function ResearchDesk({ onRun }) {
+export default function ResearchDesk({ onRun, onExportCsv }) {
   // Self-gating: App.jsx renders this before signedInUser exists in its scope, so
   // the check lives here. 'checking' and 'denied' both render nothing — a wrong
   // address must not learn that the route exists.
@@ -253,7 +257,16 @@ export default function ResearchDesk({ onRun }) {
         <div style={S.panel}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10 }}>
             <strong style={{ fontSize: 19 }}>{tool === 'recruiters' ? 'Recruiters' : 'Target companies'}</strong>
-            <button style={S.small} onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {/* The recruiter shortlist already had a CSV export in the Focus
+                  Playbook; the desk just was not offering it. Copy keeps the
+                  links live in a rich target (Gmail, Docs); the CSV keeps them
+                  as their own column, which survives anywhere. */}
+              {tool === 'recruiters' && Array.isArray(out.matches) && out.matches.length
+                ? <button style={S.small} onClick={() => onExportCsv(out.matches, f.roleTitle || 'recruiters')}>Download CSV</button>
+                : null}
+              <button style={S.small} onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
+            </div>
           </div>
           <div ref={outRef}>
             {tool === 'recruiters' ? <Recruiters data={out} /> : <Companies data={out} />}
@@ -281,8 +294,20 @@ function Recruiters({ data }) {
           {m.leaderName
             ? <p style={S.body}><strong>{m.leaderName}</strong>{m.leaderTitle ? `, ${m.leaderTitle}` : ''}</p>
             : <p style={{ ...S.body, color: GRAYL }}>No individual confirmed by a first-party source — approach the firm or the practice.</p>}
-          {m.openSearchSignal && m.openSearchSignal.description
-            ? <p style={S.body}><strong>Open search:</strong> {m.openSearchSignal.description}</p> : null}
+          {/* A live search is opportunistic and deliberately narrow — same function
+              AND same seniority, never a guess — so most rows will not have one.
+              Silence made "none found" indistinguishable from "not looked for",
+              so absence is stated. Green badge matches the user-facing card. */}
+          {m.openSearchSignal && m.openSearchSignal.description ? (
+            <div style={S.openHit}>
+              <span style={S.openBadge}>{m.kind === 'practice' ? 'This practice is running a search that fits right now' : 'This firm has a relevant search open right now'}</span>
+              {m.openSearchSignal.sourceUrl
+                ? <a href={m.openSearchSignal.sourceUrl} target="_blank" rel="noopener noreferrer" style={S.openLink}>{m.openSearchSignal.description}</a>
+                : <span style={S.openLink}>{m.openSearchSignal.description}</span>}
+            </div>
+          ) : (
+            <p style={S.openNone}>No live search found for this function at this level.</p>
+          )}
           <p style={{ margin: 0 }}>
             {[['Firm', m.url], ['Practice', m.practiceUrl], ['Profile', m.leaderProfileUrl], ['Source', m.sourceUrl]]
               .filter(([, u]) => u)
