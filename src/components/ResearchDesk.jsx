@@ -102,6 +102,16 @@ function dedupeLinks(pairs) {
   })
 }
 
+// leaderProfileUrl is allowed to be EITHER the person's own LinkedIn profile OR
+// the firm's own consultant/bio page — recruiterLeaderConfirmed accepts both as
+// first-party. So the label is read off the URL rather than fixed: calling a firm
+// bio "LinkedIn profile" would overclaim, and "Profile" alone says too little to
+// know what you are about to open.
+function profileLinkLabel(u) {
+  const s = String(u || '')
+  return /(^|\.)linkedin\.com\//i.test(s) || /\/in\//i.test(s) ? 'LinkedIn profile' : 'Firm bio'
+}
+
 // The seniority band the search actually goes out with is picked by the FIRST
 // matching rule in priority order, so a title naming two levels silently keeps
 // only the higher one: "Director or VP" searches VP and drops Director entirely.
@@ -538,7 +548,7 @@ function Recruiters({ data, onMoreLikeThis, busy, acting }) {
             <p style={S.openNone}>No live search found for this function at this level.</p>
           )}
           <p style={{ margin: 0 }}>
-            {dedupeLinks([['Firm', m.url], ['Practice', m.practiceUrl], ['Profile', m.leaderProfileUrl], ['Source', m.sourceUrl]])
+            {dedupeLinks([['Firm', m.url], ['Practice', m.practiceUrl], [profileLinkLabel(m.leaderProfileUrl), m.leaderProfileUrl], ['Source', m.sourceUrl]])
               .map(([label, u], k) => <a key={k} href={u} target="_blank" rel="noopener noreferrer" style={{ ...S.link, marginRight: 12 }}>{label}</a>)}
           </p>
           <button style={{ ...S.small, marginTop: 10 }} disabled={busy} onClick={() => onMoreLikeThis(m)}>
