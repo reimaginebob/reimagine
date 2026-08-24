@@ -1734,12 +1734,45 @@ async function findRecruiterMatches(criteria){
 // Nothing is persisted and nothing touches profile_state: `synth` below is a
 // local object handed to the same buildUserProfileBlock the app calls, then
 // dropped. p7 cannot tell it is not looking at a real profile.
+// The recruiter search, both passes, in one place. It lived twice — once in
+// runDeskTool and once in runDeskRefine — and the two copies had already drifted
+// apart in their comments, which is exactly how the next real difference would
+// have gone unnoticed. onProgress reports the two stages: discovery is one call,
+// and the gap-fill is N calls whose count is knowable, so it counts rather than
+// spinning.
+async function recruiterSearchWithGapFill(criteria,onProgress){
+  const say=m=>{try{if(onProgress)onProgress(m)}catch{}}
+  say('Searching for firms that specialise in this exact target\u2026')
+  const found=await findRecruiterMatches(criteria)
+  const matches=Array.isArray(found.matches)?found.matches.slice():[]
+  // Discovery returns a firm with no name whenever it could not confirm one from
+  // a first-party source. Each of those gets one focused, firm-scoped lookup.
+  const queue=matches.map((m,i)=>({m,i})).filter(x=>!x.m.leaderName)
+  const total=queue.length
+  let done=0
+  const progress=()=>{if(total)say(`Found ${matches.length}. Confirming who currently leads each one (${done} of ${total})\u2026`)}
+  progress()
+  const worker=async()=>{while(queue.length){
+    const {m,i}=queue.shift()
+    const got=await findRecruiterLeader(m.firm,m.practice||'',criteria)
+    // The same code-level gate the discovery pass uses. A name survives only when
+    // its profile URL is first-party; the model's own claim is not enough.
+    if(got&&got.leaderName&&recruiterLeaderConfirmed({confidence:got.confidence,leaderProfileUrl:got.profileUrl,url:m.url,practiceUrl:m.practiceUrl,sourceUrl:m.sourceUrl})){
+      matches[i]={...matches[i],leaderName:got.leaderName,leaderTitle:got.leaderTitle,leaderProfileUrl:got.profileUrl}
+    }
+    done++
+    progress()
+  }}
+  await Promise.all([worker(),worker(),worker()])
+  return{matches,criteriaEcho:found.criteriaEcho||'',returned:found.returned||matches.length}
+}
 // runDeskRefine — the iterate pass. Both prompts already supported this and the
 // desk was not using it: the recruiter prompt takes `focus` (narrow the search)
 // and `exclude` (do NOT return these firms again), and p7_part2_fix rebuilds the
 // company list against a correction. A note plus the previous result is enough
 // for either; nothing new was needed on the prompt side.
-async function runDeskRefine(tool,f,note,previous,mode){
+async function runDeskRefine(tool,f,note,previous,mode,onProgress){
+  const say=m=>{try{if(onProgress)onProgress(m)}catch{}}
   if(tool==='recruiters'){
     const criteria={
       function:(f.roleTitle||'').trim(),
@@ -1749,17 +1782,8 @@ async function runDeskRefine(tool,f,note,previous,mode){
       focus:(note||'').trim(),
       exclude:((previous&&previous.matches)||[]).map(m=>m&&m.firm).filter(Boolean),
     }
-    const found=await findRecruiterMatches(criteria)
-    const matches=Array.isArray(found.matches)?found.matches.slice():[]
-    const queue=matches.map((m,i)=>({m,i})).filter(x=>!x.m.leaderName)
-    const worker=async()=>{while(queue.length){
-      const {m,i}=queue.shift()
-      const got=await findRecruiterLeader(m.firm,m.practice||'',criteria)
-      if(got&&got.leaderName&&recruiterLeaderConfirmed({confidence:got.confidence,leaderProfileUrl:got.profileUrl,url:m.url,practiceUrl:m.practiceUrl,sourceUrl:m.sourceUrl})){
-        matches[i]={...matches[i],leaderName:got.leaderName,leaderTitle:got.leaderTitle,leaderProfileUrl:got.profileUrl}
-      }
-    }}
-    await Promise.all([worker(),worker(),worker()])
+    const found=await recruiterSearchWithGapFill(criteria,onProgress)
+    const matches=found.matches
     // Append keeps what was already on screen and adds to it — the right shape for
     // "find more like this one". Replace is for "this is off, try again". Dedupe on
     // firm name so an excluded firm coming back anyway cannot double up.
@@ -1783,6 +1807,7 @@ async function runDeskRefine(tool,f,note,previous,mode){
 
   // The two prose regens return text, not a list, so they take the short path.
   if(mode==='part1'||mode==='part3'){
+    say(mode==='part1'?'Redoing the hiring-executive read\u2026':'Rewriting the outreach\u2026')
     const prompt=mode==='part1'
       ? P.p7_part1_regen(sel,companyListText,(note||'').trim())
       : P.p7_part3_regen(sel,part1,companyListText,(note||'').trim())
@@ -1794,6 +1819,9 @@ async function runDeskRefine(tool,f,note,previous,mode){
 
   let refusal='',list=null
   for(let attempt=1;attempt<=3;attempt++){
+    say(mode==='append'
+      ? (attempt>1?`Finding more companies (attempt ${attempt})\u2026`:'Finding more companies\u2026')
+      : (attempt>1?`Rebuilding the list (attempt ${attempt})\u2026`:'Rebuilding the company list\u2026'))
     const existingNames=existing.map(c=>c&&c.name).filter(Boolean).join('; ')
     const prompt=(mode==='append'
       ? P.p7_part2_more(sel,part1,existingNames,(note||'').trim())
@@ -1847,9 +1875,11 @@ function downloadDeskCompaniesCsv(list,sel){
 }
 // The reusable outreach note. ONE example the person edits per firm, not one per
 // contact. Exists for the playbook's recruiter card and had no route into the desk.
-async function runDeskOutreach(f,previous){
+async function runDeskOutreach(f,previous,onProgress){
+  const say=m=>{try{if(onProgress)onProgress(m)}catch{}}
   const matches=(previous&&Array.isArray(previous.matches))?previous.matches:[]
   if(!matches.length)throw new Error('Run a search first — the note is written against the firms it found.')
+  say('Writing the outreach note\u2026')
   const raw=await callClaude(
     P.recruiter_outreach_template(deskSynthProfile(f),deskFoundation(f),'',matches,(f.roleTitle||'this role').trim(),(f.lane||'').trim()),
     {maxTokens:900,temperature:0.5,step:'recruiters'}
@@ -1860,13 +1890,15 @@ async function runDeskOutreach(f,previous){
 }
 // Company Read. jd is EMPTY and mode is 'gtm' — the same shape the playbook uses
 // for its per-company deep dive, which is the proven no-job-description path.
-async function runDeskCompanyRead(f){
+async function runDeskCompanyRead(f,onProgress){
+  const say=m=>{try{if(onProgress)onProgress(m)}catch{}}
   const companyName=(f.companyName||'').trim()
   const industry=(f.companyIndustry||'').trim()
   if(!companyName)throw new Error('Name a company first.')
   const rubricText=INDUSTRY_RUBRICS[industry]||INDUSTRY_RUBRICS.default
   const ask=(f.companyAsk||'').trim()
   const prompt=P.companyRead('',deskFoundation(f),companyName,industry,rubricText,(f.lane||'').trim(),'gtm',ask?`What the person running this research wants to know: ${ask}`:'')
+  say(`Reading ${companyName}\u2026`)
   const raw=await callClaude(prompt,{webSearch:true,maxTokens:4000,step:'gtm-company-read'})
   return(typeof raw==='string'?raw:'').trim()
 }
@@ -1884,8 +1916,9 @@ function deskSynthProfile(f){
     lifeEvents:'',skills:null,assess:'',assessType:'',resumeDelta:'',
   }
 }
-async function runDeskTool(tool,f){
-  if(tool==='company')return await runDeskCompanyRead(f)
+async function runDeskTool(tool,f,onProgress){
+  const say=m=>{try{if(onProgress)onProgress(m)}catch{}}
+  if(tool==='company')return await runDeskCompanyRead(f,onProgress)
   if(tool==='recruiters'){
     const criteria={
       function:(f.roleTitle||'').trim(),
@@ -1896,25 +1929,7 @@ async function runDeskTool(tool,f){
       // usually national. #501 left the slot unfilled.
       geo:(f.geo||'').trim(),
     }
-    const found=await findRecruiterMatches(criteria)
-    const matches=Array.isArray(found.matches)?found.matches.slice():[]
-    // Gap-fill, same as the Focus Playbook's Recruiters card: discovery returns a
-    // firm with no name whenever it could not confirm one first-party, so each of
-    // those gets one focused firm-scoped lookup. Without this the desk reports
-    // "no individual confirmed" far more often than the in-app feature does, for
-    // no reason other than the second pass not being wired up.
-    const queue=matches.map((m,i)=>({m,i})).filter(x=>!x.m.leaderName)
-    const worker=async()=>{while(queue.length){
-      const {m,i}=queue.shift()
-      const got=await findRecruiterLeader(m.firm,m.practice||'',criteria)
-      // The same code-level gate the discovery pass uses. A name survives only
-      // when its profile URL is first-party; the model's own claim is not enough.
-      if(got&&got.leaderName&&recruiterLeaderConfirmed({confidence:got.confidence,leaderProfileUrl:got.profileUrl,url:m.url,practiceUrl:m.practiceUrl,sourceUrl:m.sourceUrl})){
-        matches[i]={...matches[i],leaderName:got.leaderName,leaderTitle:got.leaderTitle,leaderProfileUrl:got.profileUrl}
-      }
-    }}
-    await Promise.all([worker(),worker(),worker()])
-    return{matches,criteriaEcho:found.criteriaEcho||'',returned:found.returned||matches.length}
+    return await recruiterSearchWithGapFill(criteria,onProgress)
   }
   // Target companies. p7 interpolates the role, the lane and pr.loc.*; everything
   // that ranks the list arrives through the profile block.
@@ -1928,6 +1943,7 @@ async function runDeskTool(tool,f){
   const sectorNote=(f.sector||'').trim()
     ? `\n\nTARGET SECTOR (supplied by the person running this search, and more reliable than inferring the industry from the lane): ${f.sector.trim()}. Draw the company list from this sector. A company outside it earns a place only when it fits better than anything inside it, and the fit field must say why.`
     : ''
+  say('Researching companies, and checking each for growth or contraction signals\u2026')
   const raw=await callClaude(P.p7(synth,{},sel,lane)+sectorNote,{
     webSearch:true,maxTokens:16000,profileBlock:buildUserProfileBlock(synth,{}),step:'p7',
   })
