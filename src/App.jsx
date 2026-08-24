@@ -1729,6 +1729,71 @@ async function findRecruiterMatches(criteria){
 // Nothing is persisted and nothing touches profile_state: `synth` below is a
 // local object handed to the same buildUserProfileBlock the app calls, then
 // dropped. p7 cannot tell it is not looking at a real profile.
+// runDeskRefine — the iterate pass. Both prompts already supported this and the
+// desk was not using it: the recruiter prompt takes `focus` (narrow the search)
+// and `exclude` (do NOT return these firms again), and p7_part2_fix rebuilds the
+// company list against a correction. A note plus the previous result is enough
+// for either; nothing new was needed on the prompt side.
+async function runDeskRefine(tool,f,note,previous){
+  if(tool==='recruiters'){
+    const criteria={
+      function:(f.roleTitle||'').trim(),
+      industry:(f.industry||'').trim(),
+      seniority:inferSeniorityBand(f.roleTitle||''),
+      geo:(f.geo||'').trim(),
+      focus:(note||'').trim(),
+      exclude:((previous&&previous.matches)||[]).map(m=>m&&m.firm).filter(Boolean),
+    }
+    const found=await findRecruiterMatches(criteria)
+    const matches=Array.isArray(found.matches)?found.matches.slice():[]
+    const queue=matches.map((m,i)=>({m,i})).filter(x=>!x.m.leaderName)
+    const worker=async()=>{while(queue.length){
+      const {m,i}=queue.shift()
+      const got=await findRecruiterLeader(m.firm,m.practice||'',criteria)
+      if(got&&got.leaderName&&recruiterLeaderConfirmed({confidence:got.confidence,leaderProfileUrl:got.profileUrl,url:m.url,practiceUrl:m.practiceUrl,sourceUrl:m.sourceUrl})){
+        matches[i]={...matches[i],leaderName:got.leaderName,leaderTitle:got.leaderTitle,leaderProfileUrl:got.profileUrl}
+      }
+    }}
+    await Promise.all([worker(),worker(),worker()])
+    return{matches}
+  }
+  // Companies: rebuild PART 2 only and keep the rest of the previous result, the
+  // same way the Focus Playbook's part2fix works. Retry loop mirrors it too — the
+  // shape and the voice check both have to hold before the list is accepted.
+  const prev=previous&&typeof previous==='object'?previous:{}
+  const existing=Array.isArray(prev.part_2_company_list)?prev.part_2_company_list:[]
+  const companyListText=existing.slice(0,100).map((c,i)=>(i+1)+'. '+((c&&c.name)||'')+((c&&c.fit)?' — '+c.fit:'')).join('\n')
+  const sel=(f.roleTitle||'').trim()
+  let refusal='',list=null
+  for(let attempt=1;attempt<=3;attempt++){
+    const prompt=P.p7_part2_fix(sel,prev.part_1_hiring_executive||'',companyListText,(note||'').trim())+(refusal?`\n\n${refusal}`:'')
+    const raw=await callClaude(prompt,{webSearch:true,maxTokens:8000,profileBlock:buildUserProfileBlock(deskSynthProfile(f),{}),step:'p7'})
+    const a=(raw||'').indexOf('{'),b=(raw||'').lastIndexOf('}')
+    if(a<0||b<=a){refusal='Return a single JSON object {"companies":[...]} only. No prose, no code fences.';continue}
+    let obj=null;try{obj=JSON.parse(raw.slice(a,b+1))}catch(_){obj=null}
+    const cand=obj&&Array.isArray(obj.companies)?obj.companies:null
+    if(!cand||!cand.length){refusal='Return a non-empty "companies" array in the exact JSON shape.';continue}
+    const vio=detectVoiceViolations(cand.map(c=>[c&&c.what,c&&c.fit,c&&c.growth].filter(Boolean).join(' ')).join('\n'),{includeSoft:false})
+    if(vio.length){refusal='A voice rule was violated ('+vio[0].name+': "'+String(vio[0].match).slice(0,60)+'"). Rewrite to comply. Same JSON shape.';continue}
+    list=cand.filter(c=>c&&c.name);break
+  }
+  if(!list)throw new Error('That did not come back cleanly. Try rephrasing what is off.')
+  return{...prev,part_2_company_list:list}
+}
+// The synthesised profile, shared by the first pass and the refine pass so a redo
+// is ranked against exactly the same person.
+function deskSynthProfile(f){
+  return{
+    loc:{city:(f.city||'').trim(),country:(f.country||'').trim(),work:(f.remote||'').trim()},
+    values:(f.draw||'').trim(),
+    passions:(f.draw||'').trim(),
+    rep:{twoWords:(f.knownFor||'').trim(),memory:(f.knownFor||'').trim(),emergency:'',other:''},
+    dealBreakers:(f.constraints||'').trim(),
+    riskTolerance:'',
+    resume:(f.background||'').trim(),
+    lifeEvents:'',skills:null,assess:'',assessType:'',resumeDelta:'',
+  }
+}
 async function runDeskTool(tool,f){
   if(tool==='recruiters'){
     const criteria={
@@ -1762,16 +1827,7 @@ async function runDeskTool(tool,f){
   }
   // Target companies. p7 interpolates the role, the lane and pr.loc.*; everything
   // that ranks the list arrives through the profile block.
-  const synth={
-    loc:{city:(f.city||'').trim(),country:(f.country||'').trim(),work:(f.remote||'').trim()},
-    values:(f.draw||'').trim(),
-    passions:(f.draw||'').trim(),
-    rep:{twoWords:(f.knownFor||'').trim(),memory:(f.knownFor||'').trim(),emergency:'',other:''},
-    dealBreakers:(f.constraints||'').trim(),
-    riskTolerance:'',
-    resume:(f.background||'').trim(),
-    lifeEvents:'',skills:null,assess:'',assessType:'',resumeDelta:'',
-  }
+  const synth=deskSynthProfile(f)
   const sel=(f.roleTitle||'').trim()
   const lane=(f.lane||'').trim()
   // The sector field has no equivalent in the user-facing flow: p7 derives the
@@ -5143,7 +5199,7 @@ export default function PivotEngine(){
   // unconditionally because their DATA endpoints hold an ADMIN_TOKEN gate; this
   // one has no endpoint of its own, and signedInUser is not declared until well
   // below this early-return block, so reading it here would be a TDZ crash.
-  if(_path==='/admin/desk')return <ResearchDesk onRun={runDeskTool} onExportCsv={downloadRecruitersCsv} inferBand={inferSeniorityBand}/>
+  if(_path==='/admin/desk')return <ResearchDesk onRun={runDeskTool} onRefine={runDeskRefine} onExportCsv={downloadRecruitersCsv} inferBand={inferSeniorityBand}/>
   const isDemo=_params.get('demo')==='true'
   if(isDemo)return <DemoUnavailable/>
   const isTest=_params.get('test')==='true'

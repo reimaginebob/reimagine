@@ -62,6 +62,7 @@ const S = {
   openLink: { fontSize: 15, color: '#12603F', marginLeft: 8, fontFamily: 'system-ui, sans-serif' },
   openNone: { fontSize: 15, color: GRAYL, margin: '8px 0 6px', fontFamily: 'system-ui, sans-serif' },
   bandOk: { fontSize: 15, color: GRAYL, marginTop: 6, fontFamily: 'system-ui, sans-serif' },
+  refine: { marginTop: 20, paddingTop: 18, borderTop: `1px solid ${BORDER}` },
   bandWarn: { fontSize: 15, color: '#8E5A12', background: '#FDF3E2', border: '1px solid #E2C48B', borderRadius: 6, padding: '8px 10px', marginTop: 6, lineHeight: 1.5, fontFamily: 'system-ui, sans-serif' },
 }
 
@@ -122,7 +123,7 @@ function Field({ label, hint, children }) {
   )
 }
 
-export default function ResearchDesk({ onRun, onExportCsv, inferBand }) {
+export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }) {
   // Self-gating: App.jsx renders this before signedInUser exists in its scope, so
   // the check lives here. 'checking' and 'denied' both render nothing — a wrong
   // address must not learn that the route exists.
@@ -146,6 +147,8 @@ export default function ResearchDesk({ onRun, onExportCsv, inferBand }) {
   const [out, setOut] = useState(null)
   const [copied, setCopied] = useState(false)
   const outRef = useRef(null)
+  const [note, setNote] = useState('')
+  const [refining, setRefining] = useState(false)
 
   // One bag for every tool's fields. Switching tools keeps what was typed, so a
   // role title entered for recruiters is still there for target companies.
@@ -168,6 +171,7 @@ export default function ResearchDesk({ onRun, onExportCsv, inferBand }) {
     try {
       const result = await onRun(tool, f)
       setOut(result)
+      setNote('')
     } catch (e) {
       setErr((e && e.message) || 'That did not come back. Try again in a moment.')
     }
@@ -194,6 +198,23 @@ export default function ResearchDesk({ onRun, onExportCsv, inferBand }) {
     } catch { /* clipboard blocked */ }
   }
 
+
+  // Iterate rather than start over. The recruiter prompt takes the note as a
+  // focus AND skips the firms already shown; the company prompt rebuilds the list
+  // against the note and keeps the rest of the result. Both were already capable
+  // of this — the desk simply was not asking.
+  const refine = async () => {
+    if (!note.trim() || !out) return
+    setRefining(true); setErr(null); setCopied(false)
+    try {
+      const result = await onRefine(tool, f, note, out)
+      setOut(result)
+      setNote('')
+    } catch (e) {
+      setErr((e && e.message) || 'That redo did not come back. Try rephrasing what is off.')
+    }
+    setRefining(false)
+  }
 
   if (access !== 'ok') return null
 
@@ -317,6 +338,25 @@ export default function ResearchDesk({ onRun, onExportCsv, inferBand }) {
           </div>
           <div ref={outRef}>
             {tool === 'recruiters' ? <Recruiters data={out} /> : <Companies data={out} />}
+          </div>
+          <div style={S.refine}>
+            <label style={S.label}>Refine this</label>
+            <div style={S.hint}>
+              {tool === 'recruiters'
+                ? 'Say what is off or what you want more of. It runs again with that in mind and skips the firms above.'
+                : 'Say what is off or what you want more of. It rebuilds the company list against your note and keeps the rest.'}
+            </div>
+            <textarea
+              style={S.ta}
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder={tool === 'recruiters'
+                ? 'More boutiques, fewer of the big generalists. Midwest-based where possible.'
+                : 'Too many enterprise names — lean smaller and founder-led.'}
+            />
+            <button style={S.run(refining || !note.trim())} disabled={refining || !note.trim()} onClick={refine}>
+              {refining ? 'Redoing…' : 'Run it again with this'}
+            </button>
           </div>
         </div>
       ) : null}
