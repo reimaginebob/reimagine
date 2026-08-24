@@ -493,7 +493,7 @@ function SearchSummary({ data, f, band }) {
       {echo ? <div style={{ marginTop: 4 }}><strong>Read as:</strong> {echo}</div> : null}
       {returned !== null ? (
         <div style={{ marginTop: 4 }}>
-          <strong>{kept}</strong> shown{dropped > 0 ? `, ${dropped} dropped for having no citable source` : ''}. The cap is 6, and a short list is on purpose — it is told not to pad.
+          <strong>{kept}</strong> shown{dropped > 0 ? `, ${dropped} dropped for having no citable source` : ''}. The ceiling is 10, and a short list is on purpose — it is told not to pad.
         </div>
       ) : null}
     </div>
