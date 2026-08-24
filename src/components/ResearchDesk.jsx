@@ -69,6 +69,19 @@ const LANES = [
 // a paste lands in the destination's own font, and keep everything structural.
 const COPY_STRIP_PROPS = ['font-size', 'font-family', 'line-height', 'color']
 
+// Field MUST stay at module scope. Defined inside the component it is a new
+// component type on every render, so React unmounts and remounts the subtree on
+// each keystroke — the input loses focus and only the first character lands.
+function Field({ label, hint, children }) {
+  return (
+    <div style={S.field}>
+      <label style={S.label}>{label}</label>
+      {hint ? <div style={S.hint}>{hint}</div> : null}
+      {children}
+    </div>
+  )
+}
+
 export default function ResearchDesk({ onRun }) {
   // Self-gating: App.jsx renders this before signedInUser exists in its scope, so
   // the check lives here. 'checking' and 'denied' both render nothing — a wrong
@@ -138,13 +151,6 @@ export default function ResearchDesk({ onRun }) {
     } catch { /* clipboard blocked */ }
   }
 
-  const Field = ({ label, hint, children }) => (
-    <div style={S.field}>
-      <label style={S.label}>{label}</label>
-      {hint ? <div style={S.hint}>{hint}</div> : null}
-      {children}
-    </div>
-  )
 
   if (access !== 'ok') return null
 
