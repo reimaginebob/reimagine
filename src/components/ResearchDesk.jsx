@@ -97,7 +97,7 @@ export default function ResearchDesk({ onRun }) {
   // One bag for every tool's fields. Switching tools keeps what was typed, so a
   // role title entered for recruiters is still there for target companies.
   const [f, setF] = useState({
-    roleTitle: '', industry: '', sector: '', city: '', country: 'United States',
+    roleTitle: '', industry: '', geo: '', sector: '', city: '', country: 'United States',
     remote: 'Open to remote', lane: 'Industry Insider', draw: '', knownFor: '',
     constraints: '', background: '',
   })
@@ -174,6 +174,9 @@ export default function ResearchDesk({ onRun }) {
             </Field>
             <Field label="Industry">
               <input style={S.inp} value={f.industry} onChange={e => set('industry', e.target.value)} placeholder="Financial services" />
+            </Field>
+            <Field label="Geography" hint="Optional, and a preference rather than a filter — retained search at this level is usually national, so a firm outside the area still shows up when it is the right specialist.">
+              <input style={S.inp} value={f.geo} onChange={e => set('geo', e.target.value)} placeholder="Midwest, or Cincinnati / Chicago" />
             </Field>
           </>
         ) : (
