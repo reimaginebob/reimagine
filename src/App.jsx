@@ -41,6 +41,7 @@ import Terms from "./Terms"
 import QuickStart from "./QuickStart"
 import AdminDashboard from "./AdminDashboard"
 import CoachInsights from "./CoachInsights"
+import ResearchDesk from "./components/ResearchDesk"
 import CookieBanner from "./CookieBanner"
 import { Analytics, track } from "@vercel/analytics/react"
 import LegalReacceptanceModal from "./LegalReacceptanceModal"
@@ -1711,6 +1712,57 @@ async function findRecruiterMatches(criteria){
     }).filter(m=>m.firm)
     return{matches:clean.filter(m=>m.url||m.practiceUrl||m.sourceUrl)}
   }catch(e){return{matches:[]}}
+}
+// runDeskTool — the Research Desk's one entry point (brief 2026-08-16).
+//
+// The desk runs the SHIPPED research prompts on typed input instead of on a
+// user's profile, so someone who is not a Reimagine user can be researched
+// without walking a demo persona far enough to unlock the Focus Playbook (after
+// which that persona's profile drove the ranking — wrong for someone else).
+//
+// Lives here rather than in the component because every piece it needs —
+// callClaude, P, findRecruiterMatches, buildUserProfileBlock — is module-local
+// to this file and unexported. Importing them into src/components would make
+// App.jsx <-> ResearchDesk a cycle.
+//
+// Nothing is persisted and nothing touches profile_state: `synth` below is a
+// local object handed to the same buildUserProfileBlock the app calls, then
+// dropped. p7 cannot tell it is not looking at a real profile.
+async function runDeskTool(tool,f){
+  if(tool==='recruiters'){
+    return await findRecruiterMatches({
+      function:(f.roleTitle||'').trim(),
+      industry:(f.industry||'').trim(),
+      seniority:inferSeniorityBand(f.roleTitle||''),
+    })
+  }
+  // Target companies. p7 interpolates the role, the lane and pr.loc.*; everything
+  // that ranks the list arrives through the profile block.
+  const synth={
+    loc:{city:(f.city||'').trim(),country:(f.country||'').trim(),work:(f.remote||'').trim()},
+    values:(f.draw||'').trim(),
+    passions:(f.draw||'').trim(),
+    rep:{twoWords:(f.knownFor||'').trim(),memory:(f.knownFor||'').trim(),emergency:'',other:''},
+    dealBreakers:(f.constraints||'').trim(),
+    riskTolerance:'',
+    resume:(f.background||'').trim(),
+    lifeEvents:'',skills:null,assess:'',assessType:'',resumeDelta:'',
+  }
+  const sel=(f.roleTitle||'').trim()
+  const lane=(f.lane||'').trim()
+  // The sector field has no equivalent in the user-facing flow: p7 derives the
+  // industry to search from the lane rule, because a real user does not know
+  // where to look. An operator usually does, so when it is supplied it is stated
+  // as a constraint rather than left to inference.
+  const sectorNote=(f.sector||'').trim()
+    ? `\n\nTARGET SECTOR (supplied by the person running this search, and more reliable than inferring the industry from the lane): ${f.sector.trim()}. Draw the company list from this sector. A company outside it earns a place only when it fits better than anything inside it, and the fit field must say why.`
+    : ''
+  const raw=await callClaude(P.p7(synth,{},sel,lane)+sectorNote,{
+    webSearch:true,maxTokens:16000,profileBlock:buildUserProfileBlock(synth,{}),step:'p7',
+  })
+  const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
+  if(a<0||b<=a)return raw
+  try{return JSON.parse(raw.slice(a,b+1))}catch{return raw}
 }
 // RECRUITER_LEADER_LOOKUP_PROMPT: the gap-fill second pass. One focused,
 // firm-scoped web-search call for ONE firm that came back with no confirmed
@@ -5063,6 +5115,11 @@ export default function PivotEngine(){
   if(_path==='/quick-start')return <QuickStart/>
   if(_path==='/admin/dashboard')return <AdminDashboard/>
   if(_path==='/admin/coach-insights')return <CoachInsights/>
+  // ResearchDesk gates itself against /api/me. The two screens above render
+  // unconditionally because their DATA endpoints hold an ADMIN_TOKEN gate; this
+  // one has no endpoint of its own, and signedInUser is not declared until well
+  // below this early-return block, so reading it here would be a TDZ crash.
+  if(_path==='/admin/desk')return <ResearchDesk onRun={runDeskTool}/>
   const isDemo=_params.get('demo')==='true'
   if(isDemo)return <DemoUnavailable/>
   const isTest=_params.get('test')==='true'
