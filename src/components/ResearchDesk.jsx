@@ -124,7 +124,7 @@ function Field({ label, hint, children }) {
   )
 }
 
-export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }) {
+export default function ResearchDesk({ onRun, onRefine, onOutreach, onExportCsv, onExportCompaniesCsv, inferBand }) {
   // Self-gating: App.jsx renders this before signedInUser exists in its scope, so
   // the check lives here. 'checking' and 'denied' both render nothing — a wrong
   // address must not learn that the route exists.
@@ -151,6 +151,8 @@ export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }
   const [note, setNote] = useState('')
   const [refining, setRefining] = useState(false)
   const [seed, setSeed] = useState('')
+  const [outreach, setOutreach] = useState('')
+  const [writing, setWriting] = useState(false)
 
   // "More like this" and "What about X?" are the same mechanic as a refine note —
   // the prompt takes a `focus` string and an `exclude` list — so they compose a
@@ -173,6 +175,7 @@ export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }
     roleTitle: '', industry: '', geo: '', sector: '', city: '', country: 'United States',
     remote: 'Open to remote', lane: 'Industry Insider', draw: '', knownFor: '',
     constraints: '', background: '',
+    companyName: '', companyIndustry: '', companyAsk: '',
   })
   const set = (k, v) => setF(p => ({ ...p, [k]: v }))
 
@@ -181,7 +184,9 @@ export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }
 
   const ready = tool === 'recruiters'
     ? f.roleTitle.trim() && f.industry.trim()
-    : f.roleTitle.trim() && (f.city.trim() || f.remote)
+    : tool === 'company'
+      ? f.companyName.trim()
+      : f.roleTitle.trim() && (f.city.trim() || f.remote)
 
   const run = async () => {
     setBusy(true); setErr(null); setOut(null); setCopied(false)
@@ -189,6 +194,7 @@ export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }
       const result = await onRun(tool, f)
       setOut(result)
       setNote('')
+      setOutreach('')
     } catch (e) {
       setErr((e && e.message) || 'That did not come back. Try again in a moment.')
     }
@@ -234,6 +240,18 @@ export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }
     setRefining(false)
   }
 
+  // One reusable note the person edits per firm, not one per contact. It ships
+  // in the playbook's recruiter card and had no route into the desk.
+  const writeOutreach = async () => {
+    setWriting(true); setErr(null)
+    try {
+      setOutreach(await onOutreach(f, out))
+    } catch (e) {
+      setErr((e && e.message) || 'The note did not come back. Try again.')
+    }
+    setWriting(false)
+  }
+
   if (access !== 'ok') return null
 
   return (
@@ -252,10 +270,32 @@ export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }
       <div style={S.tabs}>
         <button style={S.tab(tool === 'recruiters')} onClick={() => { setTool('recruiters'); setOut(null); setErr(null) }}>Executive Recruiters</button>
         <button style={S.tab(tool === 'companies')} onClick={() => { setTool('companies'); setOut(null); setErr(null) }}>Target Companies</button>
+        <button style={S.tab(tool === 'company')} onClick={() => { setTool('company'); setOut(null); setErr(null) }}>Company Read</button>
       </div>
 
       <div style={S.panel}>
-        {tool === 'recruiters' ? (
+        {tool === 'company' ? (
+          <>
+            <div style={S.row}>
+              <div style={S.half}>
+                <Field label="Company">
+                  <input style={S.inp} value={f.companyName} onChange={e => set('companyName', e.target.value)} placeholder="Whatnot" />
+                </Field>
+              </div>
+              <div style={S.half}>
+                <Field label="Industry" hint="Picks which rubric the read is judged against.">
+                  <input style={S.inp} value={f.companyIndustry} onChange={e => set('companyIndustry', e.target.value)} placeholder="Secondhand and resale marketplaces" />
+                </Field>
+              </div>
+            </div>
+            <Field label="What do you want to know?" hint="Optional. Leave blank for the standard read.">
+              <textarea style={S.ta} value={f.companyAsk} onChange={e => set('companyAsk', e.target.value)} placeholder="How stable are they, and who owns the growth number?" />
+            </Field>
+            <Field label="Who is this for?" hint="Optional. Supply a person and the read covers fit; leave it blank and it stays a cold read on the company and says what it would need to judge fit.">
+              <textarea style={S.ta} value={f.knownFor} onChange={e => set('knownFor', e.target.value)} placeholder="Retail sales and sales management, ten years running his own online vintage business." />
+            </Field>
+          </>
+        ) : tool === 'recruiters' ? (
           <>
             <Field label="Role title" hint="One level per run. The search goes out for a single seniority band, read from this title.">
               <input style={S.inp} value={f.roleTitle} onChange={e => set('roleTitle', e.target.value)} placeholder="VP of Marketing" />
@@ -351,13 +391,38 @@ export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }
               {tool === 'recruiters' && Array.isArray(out.matches) && out.matches.length
                 ? <button style={S.small} onClick={() => onExportCsv(out.matches, f.roleTitle || 'recruiters')}>Download CSV</button>
                 : null}
+              {tool === 'companies' && Array.isArray(out.part_2_company_list) && out.part_2_company_list.length
+                ? <button style={S.small} onClick={() => onExportCompaniesCsv(out.part_2_company_list, f.roleTitle || 'companies')}>Download CSV</button>
+                : null}
               <button style={S.small} onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
             </div>
           </div>
           {tool === 'recruiters' ? <SearchSummary data={out} f={f} band={band} /> : null}
           <div ref={outRef}>
-            {tool === 'recruiters' ? <Recruiters data={out} onMoreLikeThis={moreLikeThis} busy={refining} /> : <Companies data={out} />}
+            {tool === 'recruiters'
+              ? <Recruiters data={out} onMoreLikeThis={moreLikeThis} busy={refining} />
+              : tool === 'company'
+                ? <CompanyRead data={out} />
+                : <Companies data={out} />}
+            {outreach ? (
+              <div style={S.card}>
+                <p style={S.cardName}>Outreach note</p>
+                <p style={{ ...S.body, whiteSpace: 'pre-wrap' }}>{outreach}</p>
+              </div>
+            ) : null}
           </div>
+          {tool === 'recruiters' && !outreach ? (
+            <button style={{ ...S.small, marginTop: 12 }} disabled={writing} onClick={writeOutreach}>
+              {writing ? 'Writing…' : 'Write an outreach note for these firms'}
+            </button>
+          ) : null}
+          {tool === 'companies' ? (
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <button style={S.small} disabled={refining} onClick={() => refine('Find additional companies that fit the same target. Do not repeat any already listed.', 'append')}>Find more companies</button>
+              <button style={S.small} disabled={refining} onClick={() => refine('Redo the hiring-executive read for this target.', 'part1')}>Redo the hiring-executive read</button>
+              <button style={S.small} disabled={refining} onClick={() => refine('Rewrite the outreach template for this target.', 'part3')}>Rewrite the outreach</button>
+            </div>
+          ) : null}
           {tool === 'recruiters' ? (
             <div style={S.refine}>
               <label style={S.label}>Missing something obvious?</label>
@@ -454,6 +519,14 @@ function Recruiters({ data, onMoreLikeThis, busy }) {
       ))}
     </>
   )
+}
+
+// companyRead returns prose, not JSON. Rendered through the same markdown-ish
+// treatment the rest of the desk uses for free text.
+function CompanyRead({ data }) {
+  const text = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+  if (!text.trim()) return <p style={S.body}>Nothing came back. Try again, or add the industry so the read has a rubric to work against.</p>
+  return <p style={{ ...S.body, whiteSpace: 'pre-wrap' }}>{text}</p>
 }
 
 function Companies({ data }) {

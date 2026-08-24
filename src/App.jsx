@@ -1768,16 +1768,36 @@ async function runDeskRefine(tool,f,note,previous,mode){
     const added=matches.filter(m=>{const k=String(m.firm||'').trim().toLowerCase();if(!k||seenFirms.has(k))return false;seenFirms.add(k);return true})
     return{matches:prevMatches.concat(added),criteriaEcho:found.criteriaEcho||'',returned:found.returned||matches.length}
   }
-  // Companies: rebuild PART 2 only and keep the rest of the previous result, the
-  // same way the Focus Playbook's part2fix works. Retry loop mirrors it too — the
-  // shape and the voice check both have to hold before the list is accepted.
+  // Companies. Four regen prompts ship and the desk was using one:
+  //   part2_fix   — rebuild the list against a correction   (mode 'replace')
+  //   part2_more  — find MORE, excluding what is shown      (mode 'append')
+  //   part1_regen — redo the hiring-executive read          (mode 'part1')
+  //   part3_regen — redo the outreach template              (mode 'part3')
+  // Each keeps the rest of the result, so a redo never costs the parts that were
+  // already right. Retry loop mirrors the playbook: shape AND voice must hold.
   const prev=previous&&typeof previous==='object'?previous:{}
   const existing=Array.isArray(prev.part_2_company_list)?prev.part_2_company_list:[]
   const companyListText=existing.slice(0,100).map((c,i)=>(i+1)+'. '+((c&&c.name)||'')+((c&&c.fit)?' — '+c.fit:'')).join('\n')
   const sel=(f.roleTitle||'').trim()
+  const part1=prev.part_1_hiring_executive||''
+
+  // The two prose regens return text, not a list, so they take the short path.
+  if(mode==='part1'||mode==='part3'){
+    const prompt=mode==='part1'
+      ? P.p7_part1_regen(sel,companyListText,(note||'').trim())
+      : P.p7_part3_regen(sel,part1,companyListText,(note||'').trim())
+    const raw=await callClaude(prompt,{webSearch:mode==='part1',maxTokens:3000,profileBlock:buildUserProfileBlock(deskSynthProfile(f),{}),step:'p7'})
+    const text=(typeof raw==='string'?raw:'').trim()
+    if(!text)throw new Error('That redo did not come back. Try rephrasing what is off.')
+    return mode==='part1'?{...prev,part_1_hiring_executive:text}:{...prev,part_3_outreach_template:text}
+  }
+
   let refusal='',list=null
   for(let attempt=1;attempt<=3;attempt++){
-    const prompt=P.p7_part2_fix(sel,prev.part_1_hiring_executive||'',companyListText,(note||'').trim())+(refusal?`\n\n${refusal}`:'')
+    const existingNames=existing.map(c=>c&&c.name).filter(Boolean).join('; ')
+    const prompt=(mode==='append'
+      ? P.p7_part2_more(sel,part1,existingNames,(note||'').trim())
+      : P.p7_part2_fix(sel,part1,companyListText,(note||'').trim()))+(refusal?`\n\n${refusal}`:'')
     const raw=await callClaude(prompt,{webSearch:true,maxTokens:8000,profileBlock:buildUserProfileBlock(deskSynthProfile(f),{}),step:'p7'})
     const a=(raw||'').indexOf('{'),b=(raw||'').lastIndexOf('}')
     if(a<0||b<=a){refusal='Return a single JSON object {"companies":[...]} only. No prose, no code fences.';continue}
@@ -1789,7 +1809,66 @@ async function runDeskRefine(tool,f,note,previous,mode){
     list=cand.filter(c=>c&&c.name);break
   }
   if(!list)throw new Error('That did not come back cleanly. Try rephrasing what is off.')
+  if(mode==='append'){
+    const seen=new Set(existing.map(c=>String((c&&c.name)||'').trim().toLowerCase()).filter(Boolean))
+    const added=list.filter(c=>{const k=String(c.name||'').trim().toLowerCase();if(!k||seen.has(k))return false;seen.add(k);return true})
+    return{...prev,part_2_company_list:existing.concat(added)}
+  }
   return{...prev,part_2_company_list:list}
+}
+// Stands in for buildOpProfileSummary, which is component-scoped and therefore
+// out of reach here. companyRead wants a short read on WHO the research is for so
+// the fit section is about a person rather than a generic profile.
+function deskFoundation(f){
+  const parts=[]
+  if((f.roleTitle||'').trim())parts.push(`Pursuing: ${f.roleTitle.trim()}`)
+  if((f.knownFor||'').trim())parts.push(`Known for: ${f.knownFor.trim()}`)
+  if((f.draw||'').trim())parts.push(`What draws them to this work: ${f.draw.trim()}`)
+  if((f.constraints||'').trim())parts.push(`Constraints: ${f.constraints.trim()}`)
+  if((f.background||'').trim())parts.push(`Background:\n${f.background.trim()}`)
+  return parts.length?parts.join('\n'):'No profile supplied — this is a cold read on the company. Do not invent a candidate; describe the company and say plainly what you would need to judge fit.'
+}
+// Mirrors the Go-to-Market company-list export, which lives inline in the
+// playbook card rather than as a helper. Same columns, same escaping.
+function downloadDeskCompaniesCsv(list,sel){
+  if(!Array.isArray(list)||!list.length)return
+  const esc=s=>`"${String(s||'').replace(/"/g,'""')}"`
+  const header='Company,What they do,Industry,Size,HQ,Why it fits,Growth signal,Contact name & LinkedIn,Source,Email convention,Website'
+  const rows=list.map(c=>{
+    const contactCell=[c.contact,c.contactLinkedIn].filter(Boolean).join(' | ')
+    return [c.name,c.what,c.industry,c.size,c.hq,c.fit,c.growth,contactCell,c.source,c.emailConvention,c.website].map(esc).join(',')
+  })
+  const csv=header+'\n'+rows.join('\n')
+  const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob)
+  const a=document.createElement('a');a.href=url
+  const slug=String(sel||'companies').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'companies'
+  a.download=`companies_${slug}_${new Date().toISOString().slice(0,10)}.csv`
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)
+}
+// The reusable outreach note. ONE example the person edits per firm, not one per
+// contact. Exists for the playbook's recruiter card and had no route into the desk.
+async function runDeskOutreach(f,previous){
+  const matches=(previous&&Array.isArray(previous.matches))?previous.matches:[]
+  if(!matches.length)throw new Error('Run a search first — the note is written against the firms it found.')
+  const raw=await callClaude(
+    P.recruiter_outreach_template(deskSynthProfile(f),deskFoundation(f),'',matches,(f.roleTitle||'this role').trim(),(f.lane||'').trim()),
+    {maxTokens:900,temperature:0.5,step:'recruiters'}
+  )
+  const text=(typeof raw==='string'?raw:'').trim()
+  if(!text)throw new Error('The note did not come back. Try again.')
+  return text
+}
+// Company Read. jd is EMPTY and mode is 'gtm' — the same shape the playbook uses
+// for its per-company deep dive, which is the proven no-job-description path.
+async function runDeskCompanyRead(f){
+  const companyName=(f.companyName||'').trim()
+  const industry=(f.companyIndustry||'').trim()
+  if(!companyName)throw new Error('Name a company first.')
+  const rubricText=INDUSTRY_RUBRICS[industry]||INDUSTRY_RUBRICS.default
+  const ask=(f.companyAsk||'').trim()
+  const prompt=P.companyRead('',deskFoundation(f),companyName,industry,rubricText,(f.lane||'').trim(),'gtm',ask?`What the person running this research wants to know: ${ask}`:'')
+  const raw=await callClaude(prompt,{webSearch:true,maxTokens:4000,step:'gtm-company-read'})
+  return(typeof raw==='string'?raw:'').trim()
 }
 // The synthesised profile, shared by the first pass and the refine pass so a redo
 // is ranked against exactly the same person.
@@ -1806,6 +1885,7 @@ function deskSynthProfile(f){
   }
 }
 async function runDeskTool(tool,f){
+  if(tool==='company')return await runDeskCompanyRead(f)
   if(tool==='recruiters'){
     const criteria={
       function:(f.roleTitle||'').trim(),
@@ -5210,7 +5290,7 @@ export default function PivotEngine(){
   // unconditionally because their DATA endpoints hold an ADMIN_TOKEN gate; this
   // one has no endpoint of its own, and signedInUser is not declared until well
   // below this early-return block, so reading it here would be a TDZ crash.
-  if(_path==='/admin/desk')return <ResearchDesk onRun={runDeskTool} onRefine={runDeskRefine} onExportCsv={downloadRecruitersCsv} inferBand={inferSeniorityBand}/>
+  if(_path==='/admin/desk')return <ResearchDesk onRun={runDeskTool} onRefine={runDeskRefine} onOutreach={runDeskOutreach} onExportCsv={downloadRecruitersCsv} onExportCompaniesCsv={downloadDeskCompaniesCsv} inferBand={inferSeniorityBand}/>
   const isDemo=_params.get('demo')==='true'
   if(isDemo)return <DemoUnavailable/>
   const isTest=_params.get('test')==='true'
