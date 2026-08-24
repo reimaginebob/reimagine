@@ -63,6 +63,9 @@ const S = {
   openNone: { fontSize: 15, color: GRAYL, margin: '8px 0 6px', fontFamily: 'system-ui, sans-serif' },
   bandOk: { fontSize: 15, color: GRAYL, marginTop: 6, fontFamily: 'system-ui, sans-serif' },
   refine: { marginTop: 20, paddingTop: 18, borderTop: `1px solid ${BORDER}` },
+  working: { display: 'flex', alignItems: 'center', gap: 10, background: '#EEF3FA', border: '1px solid #C3D4EA', borderRadius: 8, padding: '12px 14px', marginBottom: 16, fontSize: 16, color: '#1A3A63', fontFamily: 'system-ui, sans-serif' },
+  spinner: { width: 12, height: 12, borderRadius: '50%', background: '#2C5C96', flexShrink: 0, animation: 'deskPulse 1.1s ease-in-out infinite' },
+  stale: { opacity: 0.45, transition: 'opacity 120ms linear' },
   summary: { background: '#F4F6F9', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 14px', marginBottom: 14, fontSize: 15, lineHeight: 1.55, color: GRAY, fontFamily: 'system-ui, sans-serif' },
   bandWarn: { fontSize: 15, color: '#8E5A12', background: '#FDF3E2', border: '1px solid #E2C48B', borderRadius: 6, padding: '8px 10px', marginTop: 6, lineHeight: 1.5, fontFamily: 'system-ui, sans-serif' },
 }
@@ -153,6 +156,11 @@ export default function ResearchDesk({ onRun, onRefine, onOutreach, onExportCsv,
   const [seed, setSeed] = useState('')
   const [outreach, setOutreach] = useState('')
   const [writing, setWriting] = useState(false)
+  // What is happening right now, reported by the work itself. `acting` names
+  // WHICH control started it, so that control can show its own state instead of
+  // the feedback appearing somewhere else on the page.
+  const [status, setStatus] = useState('')
+  const [acting, setActing] = useState('')
 
   // "More like this" and "What about X?" are the same mechanic as a refine note —
   // the prompt takes a `focus` string and an `exclude` list — so they compose a
@@ -160,13 +168,14 @@ export default function ResearchDesk({ onRun, onRefine, onOutreach, onExportCsv,
   // because the intent is "add more of this kind", not "that was wrong".
   const moreLikeThis = (m) => refine(
     `Find more firms like ${m.firm}${m.specialty ? ` — ${m.specialty}` : ''}. Match that shape: ${m.kind === 'practice' ? 'a named practice inside a larger firm' : 'an independent boutique where the firm itself is the specialty'}. Do not return ${m.firm} again.`,
-    'append'
+    'append',
+    'more:' + m.firm
   )
   const askAboutFirm = () => {
     if (!seed.trim()) return
     const q = seed.trim()
     setSeed('')
-    refine(`The person running this search thinks ${q} belongs on this list. Check whether ${q} genuinely specialises in this function, industry and seniority. If it does, include it and find more firms like it. If it does not, leave it out — do not include it just because it was named.`, 'append')
+    refine(`The person running this search thinks ${q} belongs on this list. Check whether ${q} genuinely specialises in this function, industry and seniority. If it does, include it and find more firms like it. If it does not, leave it out — do not include it just because it was named.`, 'append', 'seed')
   }
 
   // One bag for every tool's fields. Switching tools keeps what was typed, so a
@@ -179,6 +188,7 @@ export default function ResearchDesk({ onRun, onRefine, onOutreach, onExportCsv,
   })
   const set = (k, v) => setF(p => ({ ...p, [k]: v }))
 
+  const working = busy || refining || writing
   const band = inferBand ? inferBand(f.roleTitle) : ''
   const mentioned = bandsMentioned(f.roleTitle)
 
@@ -189,16 +199,16 @@ export default function ResearchDesk({ onRun, onRefine, onOutreach, onExportCsv,
       : f.roleTitle.trim() && (f.city.trim() || f.remote)
 
   const run = async () => {
-    setBusy(true); setErr(null); setOut(null); setCopied(false)
+    setBusy(true); setErr(null); setOut(null); setCopied(false); setActing('run'); setStatus('Starting…')
     try {
-      const result = await onRun(tool, f)
+      const result = await onRun(tool, f, setStatus)
       setOut(result)
       setNote('')
       setOutreach('')
     } catch (e) {
       setErr((e && e.message) || 'That did not come back. Try again in a moment.')
     }
-    setBusy(false)
+    setBusy(false); setActing(''); setStatus('')
   }
 
   const copy = async () => {
@@ -226,36 +236,40 @@ export default function ResearchDesk({ onRun, onRefine, onOutreach, onExportCsv,
   // focus AND skips the firms already shown; the company prompt rebuilds the list
   // against the note and keeps the rest of the result. Both were already capable
   // of this — the desk simply was not asking.
-  const refine = async (explicitNote, mode) => {
+  const refine = async (explicitNote, mode, who) => {
     const useNote = (typeof explicitNote === 'string' && explicitNote) ? explicitNote : note
     if (!useNote.trim() || !out) return
-    setRefining(true); setErr(null); setCopied(false)
+    setRefining(true); setErr(null); setCopied(false); setActing(who || 'refine'); setStatus('Starting…')
     try {
-      const result = await onRefine(tool, f, useNote, out, mode || 'replace')
+      const result = await onRefine(tool, f, useNote, out, mode || 'replace', setStatus)
       setOut(result)
       setNote('')
     } catch (e) {
       setErr((e && e.message) || 'That redo did not come back. Try rephrasing what is off.')
     }
-    setRefining(false)
+    setRefining(false); setActing(''); setStatus('')
   }
 
   // One reusable note the person edits per firm, not one per contact. It ships
   // in the playbook's recruiter card and had no route into the desk.
   const writeOutreach = async () => {
-    setWriting(true); setErr(null)
+    setWriting(true); setErr(null); setActing('outreach'); setStatus('Starting…')
     try {
-      setOutreach(await onOutreach(f, out))
+      setOutreach(await onOutreach(f, out, setStatus))
     } catch (e) {
       setErr((e && e.message) || 'The note did not come back. Try again.')
     }
-    setWriting(false)
+    setWriting(false); setActing(''); setStatus('')
   }
 
   if (access !== 'ok') return null
 
   return (
     <div style={S.page}>
+      {/* Inline because there is no CSS framework here. Reduced motion stops the
+          pulse and leaves a solid dot, so the cue survives without the movement. */}
+      <style>{`@keyframes deskPulse{0%,100%{opacity:.25}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){[data-desk-spinner]{animation:none!important;opacity:1!important}}`}</style>
       <h1 style={S.h1}>Reimagine Backdoor</h1>
       <p style={S.sub}>
         Reimagine's research, run on what you type instead of on someone's profile — for people who are not users.
@@ -266,6 +280,13 @@ export default function ResearchDesk({ onRun, onRefine, onOutreach, onExportCsv,
         account to attach their details to. What you type lives on this screen and is gone when you reload it,
         and none of it reaches your own profile.
       </div>
+
+      {working ? (
+        <div style={S.working} role="status" aria-live="polite">
+          <span style={S.spinner} data-desk-spinner aria-hidden="true" />
+          <span>{status || 'Working…'}</span>
+        </div>
+      ) : null}
 
       <div style={S.tabs}>
         <button style={S.tab(tool === 'recruiters')} onClick={() => { setTool('recruiters'); setOut(null); setErr(null) }}>Executive Recruiters</button>
@@ -398,9 +419,9 @@ export default function ResearchDesk({ onRun, onRefine, onOutreach, onExportCsv,
             </div>
           </div>
           {tool === 'recruiters' ? <SearchSummary data={out} f={f} band={band} /> : null}
-          <div ref={outRef}>
+          <div ref={outRef} style={refining ? S.stale : undefined}>
             {tool === 'recruiters'
-              ? <Recruiters data={out} onMoreLikeThis={moreLikeThis} busy={refining} />
+              ? <Recruiters data={out} onMoreLikeThis={moreLikeThis} busy={refining} acting={acting} />
               : tool === 'company'
                 ? <CompanyRead data={out} />
                 : <Companies data={out} />}
@@ -418,9 +439,9 @@ export default function ResearchDesk({ onRun, onRefine, onOutreach, onExportCsv,
           ) : null}
           {tool === 'companies' ? (
             <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-              <button style={S.small} disabled={refining} onClick={() => refine('Find additional companies that fit the same target. Do not repeat any already listed.', 'append')}>Find more companies</button>
-              <button style={S.small} disabled={refining} onClick={() => refine('Redo the hiring-executive read for this target.', 'part1')}>Redo the hiring-executive read</button>
-              <button style={S.small} disabled={refining} onClick={() => refine('Rewrite the outreach template for this target.', 'part3')}>Rewrite the outreach</button>
+              <button style={S.small} disabled={refining} onClick={() => refine('Find additional companies that fit the same target. Do not repeat any already listed.', 'append', 'more')}>{acting === 'more' ? 'Finding…' : 'Find more companies'}</button>
+              <button style={S.small} disabled={refining} onClick={() => refine('Redo the hiring-executive read for this target.', 'part1', 'part1')}>{acting === 'part1' ? 'Redoing…' : 'Redo the hiring-executive read'}</button>
+              <button style={S.small} disabled={refining} onClick={() => refine('Rewrite the outreach template for this target.', 'part3', 'part3')}>{acting === 'part3' ? 'Rewriting…' : 'Rewrite the outreach'}</button>
             </div>
           ) : null}
           {tool === 'recruiters' ? (
@@ -429,7 +450,7 @@ export default function ResearchDesk({ onRun, onRefine, onOutreach, onExportCsv,
               <div style={S.hint}>Name a firm you expected to see. It gets checked against this exact target, and if it fits, more like it are added.</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <input style={{ ...S.inp, flex: '1 1 260px' }} value={seed} onChange={e => setSeed(e.target.value)} placeholder="O'Connell Group" />
-                <button style={S.run(refining || !seed.trim())} disabled={refining || !seed.trim()} onClick={askAboutFirm}>Check it and find more</button>
+                <button style={S.run(refining || !seed.trim())} disabled={refining || !seed.trim()} onClick={askAboutFirm}>{acting === 'seed' ? 'Checking…' : 'Check it and find more'}</button>
               </div>
             </div>
           ) : null}
@@ -449,7 +470,7 @@ export default function ResearchDesk({ onRun, onRefine, onOutreach, onExportCsv,
                 : 'Too many enterprise names — lean smaller and founder-led.'}
             />
             <button style={S.run(refining || !note.trim())} disabled={refining || !note.trim()} onClick={refine}>
-              {refining ? 'Redoing…' : 'Run it again with this'}
+              {acting === 'refine' ? 'Redoing…' : 'Run it again with this'}
             </button>
           </div>
         </div>
@@ -479,7 +500,7 @@ function SearchSummary({ data, f, band }) {
   )
 }
 
-function Recruiters({ data, onMoreLikeThis, busy }) {
+function Recruiters({ data, onMoreLikeThis, busy, acting }) {
   const matches = (data && Array.isArray(data.matches)) ? data.matches : []
   if (!matches.length) return <p style={S.body}>Nothing came back that could be traced to a first-party source. Try a broader industry, or a different way of naming the function.</p>
   return (
@@ -514,7 +535,9 @@ function Recruiters({ data, onMoreLikeThis, busy }) {
             {dedupeLinks([['Firm', m.url], ['Practice', m.practiceUrl], ['Profile', m.leaderProfileUrl], ['Source', m.sourceUrl]])
               .map(([label, u], k) => <a key={k} href={u} target="_blank" rel="noopener noreferrer" style={{ ...S.link, marginRight: 12 }}>{label}</a>)}
           </p>
-          <button style={{ ...S.small, marginTop: 10 }} disabled={busy} onClick={() => onMoreLikeThis(m)}>More firms like this</button>
+          <button style={{ ...S.small, marginTop: 10 }} disabled={busy} onClick={() => onMoreLikeThis(m)}>
+            {acting === 'more:' + m.firm ? 'Finding…' : 'More firms like this'}
+          </button>
         </div>
       ))}
     </>
