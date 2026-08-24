@@ -61,6 +61,8 @@ const S = {
   openBadge: { display: 'inline-block', padding: '6px 12px', background: '#E4F6EA', border: '1.5px solid #1A7F5A', borderRadius: 8, color: '#12603F', fontSize: 15, fontWeight: 700, fontFamily: 'system-ui, sans-serif' },
   openLink: { fontSize: 15, color: '#12603F', marginLeft: 8, fontFamily: 'system-ui, sans-serif' },
   openNone: { fontSize: 15, color: GRAYL, margin: '8px 0 6px', fontFamily: 'system-ui, sans-serif' },
+  bandOk: { fontSize: 15, color: GRAYL, marginTop: 6, fontFamily: 'system-ui, sans-serif' },
+  bandWarn: { fontSize: 15, color: '#8E5A12', background: '#FDF3E2', border: '1px solid #E2C48B', borderRadius: 6, padding: '8px 10px', marginTop: 6, lineHeight: 1.5, fontFamily: 'system-ui, sans-serif' },
 }
 
 const LANES = [
@@ -90,6 +92,23 @@ function dedupeLinks(pairs) {
   })
 }
 
+// The seniority band the search actually goes out with is picked by the FIRST
+// matching rule in priority order, so a title naming two levels silently keeps
+// only the higher one: "Director or VP" searches VP and drops Director entirely.
+// That inference was invisible until now. BANDS is for DISPLAY only — it never
+// decides the band, it just reports which other levels the title mentions so a
+// compound title stops failing quietly.
+const BANDS = [
+  ['C-suite', /(chief|c-?suite|cxo|ceo|cfo|coo|cto|cmo|cro|cpo|ciso|president)/i],
+  ['SVP/EVP', /svp|evp|senior vice president|executive vice president/i],
+  ['VP', /vp|vice president|head of/i],
+  ['Director', /(director|principal|lead)/i],
+]
+function bandsMentioned(title) {
+  const t = String(title || '')
+  return BANDS.filter(([, re]) => re.test(t)).map(([name]) => name)
+}
+
 // Field MUST stay at module scope. Defined inside the component it is a new
 // component type on every render, so React unmounts and remounts the subtree on
 // each keystroke — the input loses focus and only the first character lands.
@@ -103,7 +122,7 @@ function Field({ label, hint, children }) {
   )
 }
 
-export default function ResearchDesk({ onRun, onExportCsv }) {
+export default function ResearchDesk({ onRun, onExportCsv, inferBand }) {
   // Self-gating: App.jsx renders this before signedInUser exists in its scope, so
   // the check lives here. 'checking' and 'denied' both render nothing — a wrong
   // address must not learn that the route exists.
@@ -136,6 +155,9 @@ export default function ResearchDesk({ onRun, onExportCsv }) {
     constraints: '', background: '',
   })
   const set = (k, v) => setF(p => ({ ...p, [k]: v }))
+
+  const band = inferBand ? inferBand(f.roleTitle) : ''
+  const mentioned = bandsMentioned(f.roleTitle)
 
   const ready = tool === 'recruiters'
     ? f.roleTitle.trim() && f.industry.trim()
@@ -196,8 +218,16 @@ export default function ResearchDesk({ onRun, onExportCsv }) {
       <div style={S.panel}>
         {tool === 'recruiters' ? (
           <>
-            <Field label="Role title" hint="The seniority band is read from this — “VP of Marketing”, “Director of Operations”.">
+            <Field label="Role title" hint="One level per run. The search goes out for a single seniority band, read from this title.">
               <input style={S.inp} value={f.roleTitle} onChange={e => set('roleTitle', e.target.value)} placeholder="VP of Marketing" />
+              {f.roleTitle.trim() ? (
+                <div style={mentioned.length > 1 ? S.bandWarn : S.bandOk}>
+                  Searching <strong>{band}</strong> level.
+                  {mentioned.length > 1
+                    ? ` This title also names ${mentioned.filter(b => b !== band).join(' and ')} — those are not included. Run them as separate searches to cover both.`
+                    : ''}
+                </div>
+              ) : null}
             </Field>
             <Field label="Industry">
               <input style={S.inp} value={f.industry} onChange={e => set('industry', e.target.value)} placeholder="Financial services" />
