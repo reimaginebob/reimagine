@@ -5143,7 +5143,7 @@ export default function PivotEngine(){
   // unconditionally because their DATA endpoints hold an ADMIN_TOKEN gate; this
   // one has no endpoint of its own, and signedInUser is not declared until well
   // below this early-return block, so reading it here would be a TDZ crash.
-  if(_path==='/admin/desk')return <ResearchDesk onRun={runDeskTool} onExportCsv={downloadRecruitersCsv}/>
+  if(_path==='/admin/desk')return <ResearchDesk onRun={runDeskTool} onExportCsv={downloadRecruitersCsv} inferBand={inferSeniorityBand}/>
   const isDemo=_params.get('demo')==='true'
   if(isDemo)return <DemoUnavailable/>
   const isTest=_params.get('test')==='true'
