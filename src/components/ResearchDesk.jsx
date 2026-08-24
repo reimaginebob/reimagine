@@ -63,6 +63,7 @@ const S = {
   openNone: { fontSize: 15, color: GRAYL, margin: '8px 0 6px', fontFamily: 'system-ui, sans-serif' },
   bandOk: { fontSize: 15, color: GRAYL, marginTop: 6, fontFamily: 'system-ui, sans-serif' },
   refine: { marginTop: 20, paddingTop: 18, borderTop: `1px solid ${BORDER}` },
+  summary: { background: '#F4F6F9', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 14px', marginBottom: 14, fontSize: 15, lineHeight: 1.55, color: GRAY, fontFamily: 'system-ui, sans-serif' },
   bandWarn: { fontSize: 15, color: '#8E5A12', background: '#FDF3E2', border: '1px solid #E2C48B', borderRadius: 6, padding: '8px 10px', marginTop: 6, lineHeight: 1.5, fontFamily: 'system-ui, sans-serif' },
 }
 
@@ -100,10 +101,10 @@ function dedupeLinks(pairs) {
 // decides the band, it just reports which other levels the title mentions so a
 // compound title stops failing quietly.
 const BANDS = [
-  ['C-suite', /(chief|c-?suite|cxo|ceo|cfo|coo|cto|cmo|cro|cpo|ciso|president)/i],
-  ['SVP/EVP', /svp|evp|senior vice president|executive vice president/i],
-  ['VP', /vp|vice president|head of/i],
-  ['Director', /(director|principal|lead)/i],
+  ['C-suite', /\b(chief|c-?suite|cxo|ceo|cfo|coo|cto|cmo|cro|cpo|ciso|president)\b/i],
+  ['SVP/EVP', /\bsvp\b|\bevp\b|senior vice president|executive vice president/i],
+  ['VP', /\bvp\b|vice president|head of/i],
+  ['Director', /\b(director|principal|lead)\b/i],
 ]
 function bandsMentioned(title) {
   const t = String(title || '')
@@ -149,6 +150,22 @@ export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }
   const outRef = useRef(null)
   const [note, setNote] = useState('')
   const [refining, setRefining] = useState(false)
+  const [seed, setSeed] = useState('')
+
+  // "More like this" and "What about X?" are the same mechanic as a refine note —
+  // the prompt takes a `focus` string and an `exclude` list — so they compose a
+  // good note rather than needing anything new on the prompt side. Both append,
+  // because the intent is "add more of this kind", not "that was wrong".
+  const moreLikeThis = (m) => refine(
+    `Find more firms like ${m.firm}${m.specialty ? ` — ${m.specialty}` : ''}. Match that shape: ${m.kind === 'practice' ? 'a named practice inside a larger firm' : 'an independent boutique where the firm itself is the specialty'}. Do not return ${m.firm} again.`,
+    'append'
+  )
+  const askAboutFirm = () => {
+    if (!seed.trim()) return
+    const q = seed.trim()
+    setSeed('')
+    refine(`The person running this search thinks ${q} belongs on this list. Check whether ${q} genuinely specialises in this function, industry and seniority. If it does, include it and find more firms like it. If it does not, leave it out — do not include it just because it was named.`, 'append')
+  }
 
   // One bag for every tool's fields. Switching tools keeps what was typed, so a
   // role title entered for recruiters is still there for target companies.
@@ -203,11 +220,12 @@ export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }
   // focus AND skips the firms already shown; the company prompt rebuilds the list
   // against the note and keeps the rest of the result. Both were already capable
   // of this — the desk simply was not asking.
-  const refine = async () => {
-    if (!note.trim() || !out) return
+  const refine = async (explicitNote, mode) => {
+    const useNote = (typeof explicitNote === 'string' && explicitNote) ? explicitNote : note
+    if (!useNote.trim() || !out) return
     setRefining(true); setErr(null); setCopied(false)
     try {
-      const result = await onRefine(tool, f, note, out)
+      const result = await onRefine(tool, f, useNote, out, mode || 'replace')
       setOut(result)
       setNote('')
     } catch (e) {
@@ -336,9 +354,20 @@ export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }
               <button style={S.small} onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
             </div>
           </div>
+          {tool === 'recruiters' ? <SearchSummary data={out} f={f} band={band} /> : null}
           <div ref={outRef}>
-            {tool === 'recruiters' ? <Recruiters data={out} /> : <Companies data={out} />}
+            {tool === 'recruiters' ? <Recruiters data={out} onMoreLikeThis={moreLikeThis} busy={refining} /> : <Companies data={out} />}
           </div>
+          {tool === 'recruiters' ? (
+            <div style={S.refine}>
+              <label style={S.label}>Missing something obvious?</label>
+              <div style={S.hint}>Name a firm you expected to see. It gets checked against this exact target, and if it fits, more like it are added.</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <input style={{ ...S.inp, flex: '1 1 260px' }} value={seed} onChange={e => setSeed(e.target.value)} placeholder="O'Connell Group" />
+                <button style={S.run(refining || !seed.trim())} disabled={refining || !seed.trim()} onClick={askAboutFirm}>Check it and find more</button>
+              </div>
+            </div>
+          ) : null}
           <div style={S.refine}>
             <label style={S.label}>Refine this</label>
             <div style={S.hint}>
@@ -364,7 +393,28 @@ export default function ResearchDesk({ onRun, onRefine, onExportCsv, inferBand }
   )
 }
 
-function Recruiters({ data }) {
+// What the search actually went out as. The levers are all here, so a short list
+// reads as a set of choices rather than a black box: narrow the title, drop the
+// industry to something broader, clear the geography, or name a firm below.
+function SearchSummary({ data, f, band }) {
+  const echo = data && data.criteriaEcho
+  const returned = data && typeof data.returned === 'number' ? data.returned : null
+  const kept = (data && Array.isArray(data.matches)) ? data.matches.length : 0
+  const dropped = returned !== null ? returned - kept : 0
+  return (
+    <div style={S.summary}>
+      <div><strong>Searched:</strong> {[f.roleTitle && `${f.roleTitle} (${band} level)`, f.industry, f.geo].filter(Boolean).join(' · ')}</div>
+      {echo ? <div style={{ marginTop: 4 }}><strong>Read as:</strong> {echo}</div> : null}
+      {returned !== null ? (
+        <div style={{ marginTop: 4 }}>
+          <strong>{kept}</strong> shown{dropped > 0 ? `, ${dropped} dropped for having no citable source` : ''}. The cap is 6, and a short list is on purpose — it is told not to pad.
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function Recruiters({ data, onMoreLikeThis, busy }) {
   const matches = (data && Array.isArray(data.matches)) ? data.matches : []
   if (!matches.length) return <p style={S.body}>Nothing came back that could be traced to a first-party source. Try a broader industry, or a different way of naming the function.</p>
   return (
@@ -399,6 +449,7 @@ function Recruiters({ data }) {
             {dedupeLinks([['Firm', m.url], ['Practice', m.practiceUrl], ['Profile', m.leaderProfileUrl], ['Source', m.sourceUrl]])
               .map(([label, u], k) => <a key={k} href={u} target="_blank" rel="noopener noreferrer" style={{ ...S.link, marginRight: 12 }}>{label}</a>)}
           </p>
+          <button style={{ ...S.small, marginTop: 10 }} disabled={busy} onClick={() => onMoreLikeThis(m)}>More firms like this</button>
         </div>
       ))}
     </>

@@ -1711,7 +1711,12 @@ async function findRecruiterMatches(criteria){
       }
       return{...base,...person,confidence:conf}
     }).filter(m=>m.firm)
-    return{matches:clean.filter(m=>m.url||m.practiceUrl||m.sourceUrl)}
+    // criteriaEcho is what the model says it actually searched for, and `returned`
+    // is how many rows it sent before the usable-source filter below. Both were
+    // parsed and dropped, which is why a short list was unexplainable: you could
+    // not tell an honest four from a six with two rows binned for having no link.
+    const usable=clean.filter(m=>m.url||m.practiceUrl||m.sourceUrl)
+    return{matches:usable,criteriaEcho:typeof obj.criteria_echo==='string'?obj.criteria_echo:'',returned:arr.length}
   }catch(e){return{matches:[]}}
 }
 // runDeskTool — the Research Desk's one entry point (brief 2026-08-16).
@@ -1734,7 +1739,7 @@ async function findRecruiterMatches(criteria){
 // and `exclude` (do NOT return these firms again), and p7_part2_fix rebuilds the
 // company list against a correction. A note plus the previous result is enough
 // for either; nothing new was needed on the prompt side.
-async function runDeskRefine(tool,f,note,previous){
+async function runDeskRefine(tool,f,note,previous,mode){
   if(tool==='recruiters'){
     const criteria={
       function:(f.roleTitle||'').trim(),
@@ -1755,7 +1760,13 @@ async function runDeskRefine(tool,f,note,previous){
       }
     }}
     await Promise.all([worker(),worker(),worker()])
-    return{matches}
+    // Append keeps what was already on screen and adds to it — the right shape for
+    // "find more like this one". Replace is for "this is off, try again". Dedupe on
+    // firm name so an excluded firm coming back anyway cannot double up.
+    const prevMatches=(mode==='append'&&previous&&Array.isArray(previous.matches))?previous.matches:[]
+    const seenFirms=new Set(prevMatches.map(m=>String((m&&m.firm)||'').trim().toLowerCase()).filter(Boolean))
+    const added=matches.filter(m=>{const k=String(m.firm||'').trim().toLowerCase();if(!k||seenFirms.has(k))return false;seenFirms.add(k);return true})
+    return{matches:prevMatches.concat(added),criteriaEcho:found.criteriaEcho||'',returned:found.returned||matches.length}
   }
   // Companies: rebuild PART 2 only and keep the rest of the previous result, the
   // same way the Focus Playbook's part2fix works. Retry loop mirrors it too — the
@@ -1823,7 +1834,7 @@ async function runDeskTool(tool,f){
       }
     }}
     await Promise.all([worker(),worker(),worker()])
-    return{matches}
+    return{matches,criteriaEcho:found.criteriaEcho||'',returned:found.returned||matches.length}
   }
   // Target companies. p7 interpolates the role, the lane and pr.loc.*; everything
   // that ranks the list arrives through the profile block.
