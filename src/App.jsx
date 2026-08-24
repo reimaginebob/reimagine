@@ -1655,7 +1655,7 @@ Output JSON only, no preamble:
   {"kind":"boutique","firm":"<name>","leaderName":"<a principal/consultant there, or empty>","leaderTitle":"<their title, or empty>","leaderProfileUrl":"<first-party profile URL, or empty>","specialty":"<one plain sentence on what they specialize in and why it fits>","url":"<firm page>","sourceUrl":"<the page that establishes the specialty>","confidence":"high|medium|low","openSearchSignal":{"description":"<what is open>","sourceUrl":"<link>"}},
   {"kind":"practice","firm":"<firm>","practice":"<practice name>","leaderName":"<current leader, or empty>","leaderTitle":"<their current title, or empty>","leaderProfileUrl":"<first-party profile URL, or empty>","practiceUrl":"<practice page>","specialty":"<one plain sentence on the practice's focus>","sourceUrl":"<first-party source>","confidence":"high|medium|low","openSearchSignal":null}
 ]}
-Return at most 6 matches total. If you can only stand behind 2, return 2. openSearchSignal is optional per match; omit it or use null when there is nothing live to report.`
+Return at most ${c.limit||6} matches total. If you can only stand behind 2, return 2 — the cap is a ceiling, never a target, and padding toward it is the one thing that would make this list worthless. openSearchSignal is optional per match; omit it or use null when there is nothing live to report.`
 // findRecruiterMatches: run the discovery web-search call and parse. Safe-defaults
 // to an empty shortlist on any failure. Applies the fallback ladder at parse time:
 // a Tier-B match keeps leaderName ONLY when confidence 'high' AND a first-party
@@ -1734,6 +1734,12 @@ async function findRecruiterMatches(criteria){
 // Nothing is persisted and nothing touches profile_state: `synth` below is a
 // local object handed to the same buildUserProfileBlock the app calls, then
 // dropped. p7 cannot tell it is not looking at a real profile.
+// Desk-only ceiling. RECRUITERS_DISCOVERY_PROMPT defaults to 6, which is what
+// the Focus Playbook card keeps: its reader is a job seeker scanning a
+// shortlist. An operator is building a working list, so the desk asks for more.
+// A ceiling either way — the prompt is told padding toward it is the one thing
+// that would make the list worthless.
+const DESK_RECRUITER_LIMIT=10
 // The recruiter search, both passes, in one place. It lived twice — once in
 // runDeskTool and once in runDeskRefine — and the two copies had already drifted
 // apart in their comments, which is exactly how the next real difference would
@@ -1779,6 +1785,7 @@ async function runDeskRefine(tool,f,note,previous,mode,onProgress){
       industry:(f.industry||'').trim(),
       seniority:inferSeniorityBand(f.roleTitle||''),
       geo:(f.geo||'').trim(),
+      limit:DESK_RECRUITER_LIMIT,
       focus:(note||'').trim(),
       exclude:((previous&&previous.matches)||[]).map(m=>m&&m.firm).filter(Boolean),
     }
@@ -1928,6 +1935,7 @@ async function runDeskTool(tool,f,onProgress){
       // it is a preference, not a hard filter — retained search at this level is
       // usually national. #501 left the slot unfilled.
       geo:(f.geo||'').trim(),
+      limit:DESK_RECRUITER_LIMIT,
     }
     return await recruiterSearchWithGapFill(criteria,onProgress)
   }
