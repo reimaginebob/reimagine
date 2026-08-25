@@ -6471,7 +6471,14 @@ export default function PivotEngine(){
     window.scrollTo(0,0)
     setLoading(true);setErr(null);setLoadMsg('Reading your inputs and writing your synthesis…')
     try{
-      const {brand,structured}=await runP3TwoStage()
+      // Pass whatever brand exists. generateChain is NOT only the first build: the
+      // input-stale nudge ("Update Personal Brand"), navToUpstream and the bare-input
+      // modal all land here, and those are edits to an EXISTING brand. #515 excluded
+      // this path on the reasoning that a first build has no previous version — true
+      // for a genuine first build, wrong for every input edit after one, which is the
+      // commoner route. outputs.p3 is empty on a real first build, so one expression
+      // covers both.
+      const {brand,structured}=await runP3TwoStage('',outputs.p3||'')
       out('p3',brand,{structured})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
     }catch(e){setErr(e.message)}
