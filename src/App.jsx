@@ -6487,7 +6487,11 @@ export default function PivotEngine(){
   // Refresh path for the p3 format-migration banner: re-runs the Personal
   // Brand two-stage build and cascades into downstream so stale p3_structured
   // does not survive. (p1/p2 retired; the brand reads raw inputs directly.)
-  const refreshP3=async(extraContext='')=>{
+  // prevBrand is passed IN, never read from outputs here: the correction path
+  // calls out('p3','') first to snapshot the prior version for Restore, so by the
+  // time this runs outputs.p3 is empty. #515 read it here and silently anchored on
+  // nothing, which is why a correction still produced a full rewrite.
+  const refreshP3=async(extraContext='',prevBrand='')=>{
     if(loading||generatingSection)return
     window.scrollTo(0,0)
     setLoading(true);setErr(null);setLoadMsg('Writing your Personal Brand in the new format…')
@@ -6498,7 +6502,7 @@ export default function PivotEngine(){
       // correction commissioned a whole new read (Aug 2026: a PTO tweak silently
       // dropped wording the person had accepted). generateChain deliberately
       // passes nothing — a first build has no previous version to preserve.
-      const {brand,structured}=await runP3TwoStage(extraContext,outputs.p3||'')
+      const {brand,structured}=await runP3TwoStage(extraContext,prevBrand)
       out('p3',brand,{structured})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
       cascadeInvalidate('p3')
@@ -9893,7 +9897,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <button type="button" onClick={dismissP3Migration} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
         <p style={{margin:'0 24px 12px 0',fontSize:17,color:'#1A2540',lineHeight:1.65}}>We have updated how we present your Personal Brand. Click Refresh to see it in the new format. The rest of your work (Put It to Work, Bridge Story, anything else you have already built) stays as it is.</p>
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          <Btn onClick={()=>refreshP3('')}>Refresh</Btn>
+          <Btn onClick={()=>refreshP3('',outputs.p3||'')}>Refresh</Btn>
           <Btn secondary onClick={dismissP3Migration}>Keep current view</Btn>
         </div>
       </div>}
@@ -9931,7 +9935,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn small secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={12}/>Save as PDF</Btn>
         </div>
         {!isDemo&&<div data-print="hide" style={{marginBottom:18}}><Btn small secondary onClick={()=>openCoachWith(ASK_COACH_SEEDS.p3)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
-        {!isDemo&&<RefineBox guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{recordCorrection('p3',v);out('p3','');refreshP3(v)}}/>}
+        {!isDemo&&<RefineBox guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{const prevBrand=outputs.p3||'';recordCorrection('p3',v);out('p3','');refreshP3(v,prevBrand)}}/>}
         {!isDemo&&<div style={{margin:'24px 0 14px',fontSize:18,color:'#2D3748',lineHeight:1.7}}>This is your foundation. Next, we put it to work — finding the directions worth exploring and the people worth reaching.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','twoDoors')}>Put It to Work <ChevronRight size={14}/></Btn></div>}
       </>}
@@ -11382,7 +11386,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:17,color:'#4A5568',lineHeight:1.65,marginBottom:22}}>We reworked how Reimagine builds your Personal Brand, and the new version digs deeper into what makes you, you. We would love for you to re-run yours and see the difference. One thing to know first: re-running replaces your current Personal Brand, so if you want to keep it, download or print it before you start.</p>
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
           <Btn secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={13}/>Save my current version</Btn>
-          <Btn onClick={()=>{dismissPbUpgrade();nav('p3');refreshP3('')}}>Re-run my Personal Brand</Btn>
+          <Btn onClick={()=>{const prevBrand=outputs.p3||'';dismissPbUpgrade();nav('p3');refreshP3('',prevBrand)}}>Re-run my Personal Brand</Btn>
         </div>
         <div style={{marginTop:14}}><button type="button" onClick={dismissPbUpgrade} style={{background:'transparent',border:'none',cursor:'pointer',fontSize:15,color:C.gray,fontFamily:'inherit',textDecoration:'underline'}}>Not now</button></div>
       </div>
