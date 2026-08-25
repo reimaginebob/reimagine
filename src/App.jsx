@@ -2555,7 +2555,7 @@ const P={
   // second-person requirement, no structured emit. Stage two handles register,
   // layout, and the structured emit. Output is the raw analysis in whatever
   // register it lands.
-  p3analysis:(pr)=>{
+  p3analysis:(pr,previousBrand='')=>{
     const rep=[pr.rep.memory&&`Praise they receive: ${pr.rep.memory}`,pr.rep.emergency&&`Who calls them in an emergency: ${pr.rep.emergency}`,pr.rep.twoWords&&`How people describe their superpower: "${pr.rep.twoWords}"`,pr.rep.other&&`Other reputation data: ${pr.rep.other}`].filter(Boolean).join('\n')
     return `You are a world-class career coach. Read the materials below and establish this person's personal brand: who they are at their core, and how that shapes the way they do their best work.
 
@@ -2595,7 +2595,7 @@ VALIDATED HARD SKILLS (their confirmed inventory):
 ${formatSkills(pr.skills)}
 
 REPUTATION (what others say about them):
-${rep||'not provided. If absent, you may offer a reputation hypothesis drawn from the work history and stated values, labeled clearly as inference for them to confirm.'}`
+${rep||'not provided. If absent, you may offer a reputation hypothesis drawn from the work history and stated values, labeled clearly as inference for them to confirm.'}${previousBrand?`\n\nWHAT THIS PERSON ALREADY HAS. A previous version of this read has already been presented to them, below, in second person. They have read it, and much of it lands for them. They have now told you one specific thing to change, stated above.\n\nTreat this as an amendment, not a fresh start. Where the materials still support what is already written, keep it: the same observations, the same evidence, the same order, and the same phrasing where the phrasing is doing the work. Change what they asked you to change, and whatever their correction genuinely contradicts. Do not re-derive the whole read because you could phrase it differently \u2014 text they have already accepted is not yours to replace for style, and losing a line they valued costs them more than a better sentence gains them.\n\nIf their correction genuinely reshapes the through-line, follow it and say so plainly, rather than quietly rewriting everything around it.\n\nWHAT THEY ALREADY HAVE:\n${previousBrand}`:''}`
   },
   // Stage two (Personal Brand): the presentation pass. Takes stage one's raw
   // analysis and does exactly three things: (1) mechanical tidy to second
@@ -4957,7 +4957,7 @@ function SupportPanel({onClose}){
   </div>
 }
 
-function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false}){
+function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false}){
   const navRef=useRef(null)
   // Below the breakpoint the rail leaves the flex flow and becomes an off-canvas
   // drawer, which is what hands the content column the full width. At or above
@@ -5113,7 +5113,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
     <div style={{fontSize:18,color:'#FFFFFF',fontWeight:600,marginBottom:8}}>You're {prog}% complete</div>
     <div style={{width:'100%',height:5,background:'#0F1A30',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:3,transition:'width 0.4s'}}/></div>
   </div>}
-  {phasesToRender.map(ph=><div key={ph.id} style={{marginBottom:6}}><div onClick={()=>{if(ph.steps.some(sid=>done.includes(sid)||step===sid))return;const gate=ph.steps.map(sid=>PHASE_UNLOCKED_BY[sid]).find(Boolean);if(gate&&!done.includes(gate))onNav(gate)}} style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`,cursor:ph.steps.some(sid=>done.includes(sid)||step===sid)?'default':'pointer'}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),can=isDone||active,isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>{if(can){onNav(sid);return}const u=PHASE_UNLOCKED_BY[sid];if(u&&!done.includes(u))onNav(u)}} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:(can||PHASE_UNLOCKED_BY[sid])?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{NAV_LABELS[sid]}{sid==='focus'&&chosen?<span style={{display:'block',fontSize:15,fontWeight:400,color:'#8A9BB8',marginTop:2}}>{chosen}</span>:null}{!can&&sid==='twoDoors'?<span style={{display:'block',fontSize:15,fontWeight:400,color:'#8A9BB8',marginTop:2}}>After your Personal Brand</span>:null}</span>{active&&<span style={{fontSize:15,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
+  {phasesToRender.map(ph=><div key={ph.id} style={{marginBottom:6}}><div onClick={()=>{if(ph.steps.some(sid=>done.includes(sid)||step===sid))return;const gate=ph.steps.map(sid=>PHASE_UNLOCKED_BY[sid]).find(Boolean);if(gate&&!done.includes(gate))onNav(gate)}} style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`,cursor:ph.steps.some(sid=>done.includes(sid)||step===sid)?'default':'pointer'}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),/* A written Personal Brand is reachable even before Put It to Work marks it done. Without this, someone who generates their brand and steps away has no way back: the "Your work" sidebar does not appear until p3 is in `done`, and the only remaining route is Skills -> Continue, which REBUILDS the brand. A user hit exactly that on 2026-08-24 and lost wording they wanted. Orientation is untouched \u2014 everyone still earns their first brand the same way. */can=isDone||active||(sid==='p3'&&brandExists),isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>{if(can){onNav(sid);return}const u=PHASE_UNLOCKED_BY[sid];if(u&&!done.includes(u))onNav(u)}} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:(can||PHASE_UNLOCKED_BY[sid])?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{NAV_LABELS[sid]}{sid==='focus'&&chosen?<span style={{display:'block',fontSize:15,fontWeight:400,color:'#8A9BB8',marginTop:2}}>{chosen}</span>:null}{!can&&sid==='twoDoors'?<span style={{display:'block',fontSize:15,fontWeight:400,color:'#8A9BB8',marginTop:2}}>After your Personal Brand</span>:null}</span>{active&&<span style={{fontSize:15,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
   {supportRail}
 </div>}
 
@@ -6428,10 +6428,13 @@ export default function PivotEngine(){
   // the analysis, so they re-run the analysis, not just the layout). Returns
   // the rendered brand text and the captured structured object (incl. its
   // additive presentation field) for the caller's out('p3',...) write.
-  const runP3TwoStage=async(analysisExtra='')=>{
+  // previousBrand anchors STAGE ONE. Stage two is a compositor and already
+  // preserves its input verbatim, so anchoring it would change nothing; the
+  // re-derivation that loses accepted wording happens in the analysis.
+  const runP3TwoStage=async(analysisExtra='',previousBrand='')=>{
     const corr=correctionsBlock(profile.corrections)
     setLoadingStage('Reading your inputs')
-    const analysis=await callClaude(corr+P.p3analysis(pc)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
+    const analysis=await callClaude(corr+P.p3analysis(pc,previousBrand)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
     setLoadingStage('Writing your synthesis')
     let structuredP3=null
     // Stage two emits the structured presentation ONLY (no duplicated prose),
@@ -6483,7 +6486,12 @@ export default function PivotEngine(){
     setLoading(true);setErr(null);setLoadMsg('Writing your Personal Brand in the new format…')
     setLoadingStage('Writing your synthesis')
     try{
-      const {brand,structured}=await runP3TwoStage(extraContext)
+      // The brand on screen goes to stage one so a correction AMENDS it. Without
+      // this the analysis was re-derived from every input each time, so a small
+      // correction commissioned a whole new read (Aug 2026: a PTO tweak silently
+      // dropped wording the person had accepted). generateChain deliberately
+      // passes nothing — a first build has no previous version to preserve.
+      const {brand,structured}=await runP3TwoStage(extraContext,outputs.p3||'')
       out('p3',brand,{structured})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
       cascadeInvalidate('p3')
@@ -11574,7 +11582,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{display:'flex',flex:1,minHeight:0,position:'relative'}}>
         {isMobile&&drawerOpen&&<div data-print="hide" onClick={closeDrawer} aria-hidden="true" style={{position:'absolute',inset:0,zIndex:20,background:'rgba(15,26,48,0.5)'}}/>}
         {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
-        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasMySearch} pipelineOverdue={pipelineOverdueCount} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasMySearch} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} mobile={isMobile} drawerOpen={drawerOpen}/>}
         <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,padding:isMobile?'22px 16px 40px':'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
