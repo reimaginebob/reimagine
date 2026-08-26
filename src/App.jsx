@@ -6502,7 +6502,12 @@ export default function PivotEngine(){
       // correction commissioned a whole new read (Aug 2026: a PTO tweak silently
       // dropped wording the person had accepted). generateChain deliberately
       // passes nothing — a first build has no previous version to preserve.
-      const {brand,structured}=await runP3TwoStage(extraContext,prevBrand,extraContext?'stated':'none')
+      // An empty feedback box means "rebuild, change nothing" ONLY when their
+      // answers have not moved. If they edited an input first (the guide's own
+      // worked example does exactly that), the change is real and lives in the
+      // materials, so this is the same situation generateChain is in.
+      const inputsMoved=pbNeedsUpdate||inputEditedRef.current||sectionStaleUpstreams('p3').includes('resume')
+      const {brand,structured}=await runP3TwoStage(extraContext,prevBrand,extraContext?'stated':(inputsMoved?'inputs':'none'))
       out('p3',brand,{structured})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
       cascadeInvalidate('p3')
@@ -9907,11 +9912,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3"/>}
       {outputs.p3&&!loading&&<>
         {!isDemo&&sectionStaleUpstreams('p3').includes('resume')&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:'#1A2540',lineHeight:1.6,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
-          <span>You updated your resume since this was written. Refresh your Personal Brand so it builds on the new material. This rewrites it; any wording you refined will be regenerated. Your current version is saved, so you can restore it if you prefer it.</span>
+          <span>You updated your resume since this was written. Refresh your Personal Brand so it builds on the new material. It keeps what your new resume still supports and changes what the new material actually affects. Your current version is saved, so you can restore it if you prefer it.</span>
           <Btn small onClick={generateChain}><RotateCcw size={12}/>Refresh</Btn>
         </div>}
         {!isDemo&&pbNeedsUpdate&&!sectionStaleUpstreams('p3').includes('resume')&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:'#1A2540',lineHeight:1.6,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
-          <span>You've changed your inputs since this Personal Brand was written. Refresh it to build on the new material. Your current version is saved, so you can restore it if you prefer it.</span>
+          <span>You've changed your answers since this Personal Brand was written. Refresh it to pick up what you changed. It keeps what still holds and amends what your change actually affects. Your current version is saved, so you can restore it if you prefer it.</span>
           <Btn small onClick={generateChain}><RotateCcw size={12}/>Refresh</Btn>
         </div>}
         {!isDemo&&!hasSeenCorrectionsIntro&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:'#1A2540',lineHeight:1.65,position:'relative'}}>
