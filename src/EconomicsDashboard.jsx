@@ -165,6 +165,7 @@ export default function EconomicsDashboard({ token }) {
   const daily = payload.daily || []
   const unit = payload.unit_cost || {}
   const rate = payload.run_rate || {}
+  const curve = payload.tenure_curve || []
   const months = payload.months || []
   const perUser = payload.per_user || []
 
@@ -284,28 +285,37 @@ export default function EconomicsDashboard({ token }) {
             Built from the two things that are separately reliable rather than one that is not. Generation <strong style={{ color: NAVY }}>volume</strong> has a longer history than cost — counting rows needs no price — and cost <strong style={{ color: NAVY }}>per generation</strong> is stable even over a short sample, because it is a property of the prompt rather than of who showed up this week. Rate = generations per user per day, times thirty, times mean cost per generation.
           </div>
 
-          {(rate.by_tenure || []).length > 0 && (
-            <>
-              <div style={S.subSectionLabel}>Consumption is front-loaded</div>
-              <table style={S.table}>
-                <thead><tr><Th>When</Th><Th right>Accounts</Th><Th right>Generations</Th><Th right>Mean per generation</Th><Th right>Total</Th></tr></thead>
-                <tbody>
-                  {(rate.by_tenure || []).map((t) => (
-                    <tr key={t.tenure}>
-                      <Td>{t.tenure === 'first_30_days' ? 'First 30 days of an account' : 'After the first 30 days'}</Td>
-                      <Td right>{fmtInt(t.users)}</Td>
-                      <Td right>{fmtInt(t.generations)}</Td>
-                      <Td right>{fmtUsd(t.mean_cost_per_generation, true)}</Td>
-                      <Td right><strong style={{ color: NAVY }}>{fmtUsd(t.total_cost, true)}</strong></Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={S.calloutTight}>
-                A career transition is finite, so a flat monthly charge per user models the wrong shape. Most consumption lands while someone is building their playbook; what follows is lighter. A pro forma with one steady monthly figure will run too low for a new cohort and too high for an old one — better to model an onboarding month and a lighter run-rate after it.
-              </div>
-            </>
-          )}
+          <div style={S.subSectionLabel}>Does consumption decay, or find a floor?</div>
+          <div style={S.calloutTight}>
+            Two models predict very different steady states, and a pro forma turns on which is right. Either consumption is front-loaded and decays — somebody builds a playbook in month one and is largely done — or Focus work front-loads while <strong style={{ color: NAVY }}>Add an Opportunity recurs</strong>, because a job search runs for months and new openings keep arriving. The second means cost settles on a floor rather than trending to zero.
+          </div>
+          <div style={{ overflowX: "auto", marginTop: 12 }}>
+            <table style={S.table}>
+              <thead><tr>
+                <Th>Account age</Th><Th right>Accounts</Th>
+                <Th right>Focus</Th><Th right>Opportunity</Th><Th right>Coach</Th>
+                <Th right>Generations per account</Th><Th right>Cost per account</Th>
+              </tr></thead>
+              <tbody>
+                {curve.map((r) => (
+                  <tr key={r.tenure_month}>
+                    <Td>{r.tenure_month === 0 ? "First month" : r.tenure_month >= 6 ? "Month 7+" : `Month ${r.tenure_month + 1}`}</Td>
+                    <Td right>{fmtInt(r.users)}</Td>
+                    <Td right>{fmtInt((r.kinds.focus || {}).generations)}</Td>
+                    <Td right><strong style={{ color: GOLDL }}>{fmtInt((r.kinds.opportunity || {}).generations)}</strong></Td>
+                    <Td right muted>{fmtInt((r.kinds.coach || {}).generations)}</Td>
+                    <Td right>{fmtNum1(r.generations_per_user)}</Td>
+                    <Td right><strong style={{ color: NAVY }}>{fmtUsd(r.cost_per_user, true)}</strong></Td>
+                  </tr>
+                ))}
+                {curve.length === 0 && <tr><Td colSpan={7} muted>No generations recorded yet.</Td></tr>}
+              </tbody>
+            </table>
+          </div>
+          <div style={S.calloutTight}>
+            <strong style={{ color: NAVY }}>Read the Opportunity column down the page.</strong> If it holds up or rises while Focus falls away, the floor model is right and the steady-state cost is well above what a decay model would predict. If both fall, cost per customer drops sharply after the first month.
+            {" "}Later rows are thin today because generation history is only days old. This fills in on its own — which is why it sits on a dashboard rather than being answered once and written down.
+          </div>
 
           <div style={S.subSectionLabel}>Per-customer lifetime, and the spread</div>
           <div style={{ ...S.tileGrid, marginTop: 14 }}>

@@ -337,23 +337,43 @@ async function loadPayload() {
       COALESCE(AVG(gens), 0)::float8                   AS generations_per_user
     FROM vol`
 
-  // --- Front-loading: first 30 days of an account versus after --------------
-  // A career transition is finite, so consumption is not flat. Most of the cost
-  // lands while somebody is building their playbook; what follows is lighter.
-  // A pro forma that assumes a steady monthly charge per user will be wrong in
-  // both directions at once -- too low for a new cohort, too high for an old one.
-  const tenureRows = await sql`
+  // --- The tenure curve: does consumption decay, or find a floor? ----------
+  // The open question on the cost side, and the one a pro forma turns on.
+  //
+  // Two models predict very different steady states. Consumption might be
+  // front-loaded and decay -- somebody builds a playbook in their first month
+  // and is largely done. Or Focus work might front-load while Add an Opportunity
+  // RECURS, because a job search runs for months and new openings keep arriving,
+  // in which case cost settles onto a floor rather than trending to zero.
+  //
+  // A first-30-days-versus-after split cannot separate those, because it hides
+  // which KIND of generation is doing the work. This groups by tenure month and
+  // by kind, so the two curves can be read against each other: if opportunity
+  // generations per account hold up or rise while focus falls away, the floor
+  // model is right and the steady-state number is much higher than a decay model
+  // would suggest.
+  //
+  // Thin for now -- generation history is days old, so later tenure months are
+  // sparse. It fills in on its own, which is the point of putting it on a
+  // dashboard rather than answering it once.
+  const tenureCurveRows = await sql`
     SELECT
-      CASE WHEN g.created_at < u.created_at + INTERVAL '30 days'
-           THEN 'first_30_days' ELSE 'after_30_days' END AS tenure,
+      LEAST(FLOOR(EXTRACT(EPOCH FROM (g.created_at - u.created_at)) / 2592000.0)::int, 6) AS tenure_month,
+      CASE
+        WHEN g.kind = 'op'    THEN 'opportunity'
+        WHEN g.kind = 'coach' THEN 'coach'
+        WHEN g.kind IN ('p3','p4','p5','p6','p7','p8','p9','p11','p_res') THEN 'focus'
+        ELSE 'other'
+      END                                                AS kind_group,
       COUNT(*)::int                                      AS generations,
       COUNT(DISTINCT g.user_id)::int                     AS users,
-      COALESCE(AVG(g.cost_usd), 0)::float8               AS mean_cost_per_generation,
-      COALESCE(SUM(g.cost_usd), 0)::float8               AS total_cost
+      COALESCE(SUM(g.cost_usd), 0)::float8               AS cost
     FROM generation_events g
     JOIN users u ON u.id = g.user_id
     WHERE LOWER(u.email) NOT LIKE ${INTERNAL_EMAIL_SUFFIX}
-    GROUP BY 1`
+      AND g.created_at >= u.created_at
+    GROUP BY 1, 2
+    ORDER BY 1, 2`
 
   const windowCostRows = await sql`
     SELECT COALESCE(SUM(g.cost_usd), 0)::float8 AS cost,
@@ -421,6 +441,34 @@ async function loadPayload() {
       coach_turns: num(r.coach_turns),
       cost: num(r.cost),
     })),
+    tenure_curve: (() => {
+      const byMonth = new Map()
+      for (const r of tenureCurveRows) {
+        const m = num(r.tenure_month)
+        if (!byMonth.has(m)) {
+          byMonth.set(m, { tenure_month: m, kinds: {}, generations: 0, cost: 0, users: 0 })
+        }
+        const row = byMonth.get(m)
+        row.kinds[r.kind_group] = {
+          generations: num(r.generations),
+          users: num(r.users),
+          cost: num(r.cost),
+        }
+        row.generations += num(r.generations)
+        row.cost += num(r.cost)
+        // Distinct users differ per kind, so the month's headcount is the
+        // largest of them rather than a sum, which would double-count anyone
+        // who did two kinds of thing.
+        row.users = Math.max(row.users, num(r.users))
+      }
+      return [...byMonth.values()]
+        .sort((a, b) => a.tenure_month - b.tenure_month)
+        .map(r => ({
+          ...r,
+          generations_per_user: r.users > 0 ? r.generations / r.users : 0,
+          cost_per_user: r.users > 0 ? r.cost / r.users : 0,
+        }))
+    })(),
     run_rate: (() => {
       const r = runRateRows[0] || {}
       const windowDays = Math.max(num(r.window_days), 1)
@@ -435,13 +483,6 @@ async function loadPayload() {
         { n: 0, c: 0 },
       )
       const meanCostPerGen = priced.n > 0 ? priced.c / priced.n : 0
-      const byTenure = tenureRows.map(t => ({
-        tenure: t.tenure,
-        generations: num(t.generations),
-        users: num(t.users),
-        mean_cost_per_generation: num(t.mean_cost_per_generation),
-        total_cost: num(t.total_cost),
-      }))
       return {
         window_days: windowDays,
         active_users: num(r.active_users),
@@ -451,7 +492,6 @@ async function loadPayload() {
         mean_cost_per_generation: meanCostPerGen,
         // THE pro forma number: multiply this by active users.
         monthly_cost_per_active_user: perMonth * meanCostPerGen,
-        by_tenure: byTenure,
         note: 'Generation volume has a longer history than cost, so the rate is built from volume over its own window times mean cost per generation. Both windows are short; treat this as an order of magnitude that firms up as history accumulates.',
       }
     })(),
