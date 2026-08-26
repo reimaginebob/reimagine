@@ -2555,7 +2555,7 @@ const P={
   // second-person requirement, no structured emit. Stage two handles register,
   // layout, and the structured emit. Output is the raw analysis in whatever
   // register it lands.
-  p3analysis:(pr,previousBrand='')=>{
+  p3analysis:(pr,previousBrand='',changeMode='none')=>{
     const rep=[pr.rep.memory&&`Praise they receive: ${pr.rep.memory}`,pr.rep.emergency&&`Who calls them in an emergency: ${pr.rep.emergency}`,pr.rep.twoWords&&`How people describe their superpower: "${pr.rep.twoWords}"`,pr.rep.other&&`Other reputation data: ${pr.rep.other}`].filter(Boolean).join('\n')
     return `You are a world-class career coach. Read the materials below and establish this person's personal brand: who they are at their core, and how that shapes the way they do their best work.
 
@@ -2595,7 +2595,7 @@ VALIDATED HARD SKILLS (their confirmed inventory):
 ${formatSkills(pr.skills)}
 
 REPUTATION (what others say about them):
-${rep||'not provided. If absent, you may offer a reputation hypothesis drawn from the work history and stated values, labeled clearly as inference for them to confirm.'}${previousBrand?`\n\nWHAT THIS PERSON ALREADY HAS. A previous version of this read has already been presented to them, below, in second person. They have read it, and much of it lands for them. Anything they have asked you to change is stated above. If nothing is stated there, they have asked for a rebuild WITHOUT changes, and your job is to leave the read as it stands — do not invent a change to justify the rebuild.\n\nTreat this as an amendment, not a fresh start. Where the materials still support what is already written, keep it: the same observations, the same evidence, the same order, and the same phrasing where the phrasing is doing the work. Change what they asked you to change, and whatever their correction genuinely contradicts. Do not re-derive the whole read because you could phrase it differently \u2014 text they have already accepted is not yours to replace for style, and losing a line they valued costs them more than a better sentence gains them.\n\nIf their correction genuinely reshapes the through-line, follow it and say so plainly, rather than quietly rewriting everything around it.\n\nWHAT THEY ALREADY HAVE:\n${previousBrand}`:''}`
+${rep||'not provided. If absent, you may offer a reputation hypothesis drawn from the work history and stated values, labeled clearly as inference for them to confirm.'}${previousBrand?`\n\nWHAT THIS PERSON ALREADY HAS. A previous version of this read has already been presented to them, below, in second person. They have read it, and much of it lands for them.\n\n${changeMode==='inputs'?`They have now gone back and changed one or more of their own answers, and this rebuild is the result. Nothing is stated in words here \u2014 the change is in the materials above. Read those materials against the read they already have, find what is genuinely different, and amend for that. If nothing in the materials meaningfully changes the read, leave it as it stands rather than inventing a difference.`:changeMode==='stated'?`Anything they have asked you to change is stated above. Amend for it, and for whatever it genuinely contradicts.`:`They have asked for a rebuild WITHOUT changes: nothing is stated and none of their answers have moved. Leave the read as it stands \u2014 do not invent a change to justify the rebuild.`}\n\nTreat this as an amendment, not a fresh start. Where the materials still support what is already written, keep it: the same observations, the same evidence, the same order, and the same phrasing where the phrasing is doing the work. Change what the correction or the new material actually touches, and whatever it genuinely contradicts. Do not re-derive the whole read because you could phrase it differently \u2014 text they have already accepted is not yours to replace for style, and losing a line they valued costs them more than a better sentence gains them.\n\nIf the change genuinely reshapes the through-line, follow it and say so plainly, rather than quietly rewriting everything around it.\n\nWHAT THEY ALREADY HAVE:\n${previousBrand}`:''}`
   },
   // Stage two (Personal Brand): the presentation pass. Takes stage one's raw
   // analysis and does exactly three things: (1) mechanical tidy to second
@@ -6431,10 +6431,10 @@ export default function PivotEngine(){
   // previousBrand anchors STAGE ONE. Stage two is a compositor and already
   // preserves its input verbatim, so anchoring it would change nothing; the
   // re-derivation that loses accepted wording happens in the analysis.
-  const runP3TwoStage=async(analysisExtra='',previousBrand='')=>{
+  const runP3TwoStage=async(analysisExtra='',previousBrand='',changeMode='none')=>{
     const corr=correctionsBlock(profile.corrections)
     setLoadingStage('Reading your inputs')
-    const analysis=await callClaude(corr+P.p3analysis(pc,previousBrand)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
+    const analysis=await callClaude(corr+P.p3analysis(pc,previousBrand,changeMode)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
     setLoadingStage('Writing your synthesis')
     let structuredP3=null
     // Stage two emits the structured presentation ONLY (no duplicated prose),
@@ -6478,7 +6478,7 @@ export default function PivotEngine(){
       // for a genuine first build, wrong for every input edit after one, which is the
       // commoner route. outputs.p3 is empty on a real first build, so one expression
       // covers both.
-      const {brand,structured}=await runP3TwoStage('',outputs.p3||'')
+      const {brand,structured}=await runP3TwoStage('',outputs.p3||'','inputs')
       out('p3',brand,{structured})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
     }catch(e){setErr(e.message)}
@@ -6502,7 +6502,7 @@ export default function PivotEngine(){
       // correction commissioned a whole new read (Aug 2026: a PTO tweak silently
       // dropped wording the person had accepted). generateChain deliberately
       // passes nothing — a first build has no previous version to preserve.
-      const {brand,structured}=await runP3TwoStage(extraContext,prevBrand)
+      const {brand,structured}=await runP3TwoStage(extraContext,prevBrand,extraContext?'stated':'none')
       out('p3',brand,{structured})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
       cascadeInvalidate('p3')
