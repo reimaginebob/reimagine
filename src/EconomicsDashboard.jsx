@@ -14,6 +14,10 @@
 //
 // Self-contained inline styles in the app's cream/navy/amber palette.
 import { useState, useEffect, useCallback } from "react"
+// NAV_LABELS is the single render-true label source (CLAUDE.md section 6).
+// A third copy of the step names in this file would be exactly the drift
+// that rule exists to prevent.
+import { NAV_LABELS } from "./nav-labels"
 
 const NAVY = "#1A2540"
 const GOLD = "#C8924A"
@@ -48,6 +52,17 @@ const monthLabel = (m) => {
   const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
   return `${names[Number(mo) - 1] || mo} ${y}`
 }
+
+const UNIT_STAGE_LABELS = {
+  focus_complete: 'Completed all seven sections',
+  both_doors: 'Both doors',
+  career_paths: 'Career Paths only',
+  opportunity: 'Opportunity only',
+  personal_brand_no_door: 'Personal Brand, no door',
+  earlier: 'Never got a Personal Brand',
+}
+// Most engaged first, so the row a paying customer resembles is at the top.
+const UNIT_STAGE_ORDER = ['focus_complete', 'both_doors', 'career_paths', 'opportunity', 'personal_brand_no_door', 'earlier']
 
 export default function EconomicsDashboard({ token }) {
   const [payload, setPayload] = useState(null)
@@ -147,6 +162,7 @@ export default function EconomicsDashboard({ token }) {
   const mix = payload.token_mix || {}
   const cov = payload.coverage || {}
   const daily = payload.daily || []
+  const unit = payload.unit_cost || {}
   const months = payload.months || []
   const perUser = payload.per_user || []
 
@@ -246,6 +262,72 @@ export default function EconomicsDashboard({ token }) {
             {Number(inputs.price_per_customer) > 0 && head.external_users > 0 && (
               <> If all {fmtInt(head.external_users)} external accounts were paying, revenue would read {fmtUsd(mtd.revenue_if_all_paid)}.</>
             )}
+          </div>
+        </Panel>
+
+        {/* Cost per user - the pro forma input */}
+        <Panel title="What a user costs to serve" wide>
+          <div style={S.calloutTight}>
+            <strong style={{ color: NAVY }}>For a pro forma, use the modelled journey figure rather than the average.</strong> Most accounts have barely touched the product, so an average across all of them understates what a paying customer costs, and understating cost is the dangerous direction. The modelled figure prices one generation of each step a full journey needs, so it does not move with how many people happened to use the product this week.
+          </div>
+
+          <div style={{ ...S.tileGrid, marginTop: 14 }}>
+            <Stat label="Modelled full journey" value={fmtUsd(unit.modelled_full_journey, true)} sub={`${fmtInt(unit.modelled_steps_priced)} of ${fmtInt(unit.modelled_steps_total)} steps priced`} accent />
+            <Stat label="Median, active accounts" value={fmtUsd((unit.spread || {}).median, true)} sub={`${fmtInt((unit.spread || {}).accounts)} accounts`} />
+            <Stat label="Mean, active accounts" value={fmtUsd((unit.spread || {}).mean, true)} />
+            <Stat label="Top 10%" value={fmtUsd((unit.spread || {}).p90, true)} />
+            <Stat label="Heaviest account" value={fmtUsd((unit.spread || {}).max, true)} />
+          </div>
+
+          <div style={S.subSectionLabel}>Cost against how far someone got</div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={S.table}>
+              <thead><tr>
+                <Th>Got as far as</Th><Th right>Accounts</Th><Th right>Spent anything</Th>
+                <Th right>Mean cost</Th><Th right>Generations</Th><Th right>Coach turns</Th>
+              </tr></thead>
+              <tbody>
+                {UNIT_STAGE_ORDER.map((code) => {
+                  const r = (unit.by_stage || []).find((x) => x.stage === code)
+                  if (!r) return null
+                  return (
+                    <tr key={code}>
+                      <Td>{UNIT_STAGE_LABELS[code] || code}</Td>
+                      <Td right>{fmtInt(r.accounts)}</Td>
+                      <Td right>{fmtInt(r.accounts_with_spend)}</Td>
+                      <Td right><strong style={{ color: NAVY }}>{fmtUsd(r.mean_cost, true)}</strong></Td>
+                      <Td right>{fmtInt(r.generations)}</Td>
+                      <Td right muted>{fmtInt(r.coach_turns)}</Td>
+                    </tr>
+                  )
+                })}
+                {(unit.by_stage || []).length === 0 && <tr><Td colSpan={6} muted>No costed generations yet.</Td></tr>}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={S.subSectionLabel}>Cost per generation, by step</div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={S.table}>
+              <thead><tr><Th>Step</Th><Th right>Generations</Th><Th right>Mean</Th><Th right>Median</Th><Th right>Total</Th></tr></thead>
+              <tbody>
+                {(unit.by_step || []).map((r) => (
+                  <tr key={r.step}>
+                    <Td>{r.step === "coach" ? "My Coach turn" : (NAV_LABELS[r.step] || r.step)}</Td>
+                    <Td right>{fmtInt(r.generations)}</Td>
+                    <Td right><strong style={{ color: NAVY }}>{fmtUsd(r.mean_cost, true)}</strong></Td>
+                    <Td right muted>{fmtUsd(r.median_cost, true)}</Td>
+                    <Td right>{fmtUsd(r.total_cost, true)}</Td>
+                  </tr>
+                ))}
+                {(unit.by_step || []).length === 0 && <tr><Td colSpan={5} muted>No costed generations yet.</Td></tr>}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={S.calloutTight}>
+            <strong style={{ color: NAVY }}>Read the modelled figure as a floor.</strong> It counts one generation of each step and nothing else, so no regenerations, no coach turns, no Opportunity Playbooks. Real customers do all three, so budget above it rather than at it. The gap between mean and median in the tiles tells you how lopsided the spread is: a mean far above the median means a few heavy accounts are carrying it, and the median is the safer planning number.
+            {cov.first_costed_at && <> Cost capture began {new Date(cov.first_costed_at).toISOString().slice(0, 10)}, so this is a short window. The per-step figures hold up better than the per-account ones as a result.</>}
           </div>
         </Panel>
 
