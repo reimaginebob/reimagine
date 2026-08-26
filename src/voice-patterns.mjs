@@ -512,6 +512,15 @@ export const HARD_PATTERNS = [
   // The most distinctive signal because the construction is unusual outside
   // the failure mode.
   {
+    name: 'typology-kicker-label',
+    re: /"kicker"\s*:\s*"\s*(?:the\s+)?(?:architect|translator|operator|builder|strategist|connector|integrator|fixer|closer|hunter|farmer|orchestrator|catalyst|visionary)\s*"/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    step: 'p3',
+    surface: 'Section label naming the person as a type ("The Architect", "The Translator")',
+    note: 'Typology label as a section heading. A kicker names what the section is ABOUT, not what the person IS. Use "How You Work", "Track Record", "Where You Thrive" and the like. Matches the kicker value only, so a quoted assessment result such as "People Architect" in the body is untouched.',
+  },
+  {
     name: 'closer-if-that-misses-how-you-experience',
     re: /if (that|this|it) (misses|lands differently|reads differently)\b/i,
     severity: 'hard',

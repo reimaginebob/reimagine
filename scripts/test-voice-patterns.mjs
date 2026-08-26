@@ -810,9 +810,57 @@ for (const [label, expectedName, input, step] of voiceGuideCases) {
   }
 }
 
+// --- typology-kicker-label (2026-08-26) -----------------------------------
+// The layout pass shipped section headings reading "THE ARCHITECT" and
+// "THE TRANSLATOR": the product naming the person as a type. Typology labels
+// had a prompt instruction and no detection, which section 3 of CLAUDE.md
+// calls a draft rather than a fix.
+const kickerCases = [
+  ['typology kicker: The Architect fires', 'typology-kicker-label',
+    '{"kicker": "The Architect", "body": "You built the framework from a blank page."}'],
+  ['typology kicker: bare Translator fires', 'typology-kicker-label',
+    '{"kicker":"Translator","body":"You sit between groups."}'],
+  ['typology kicker: lowercase with spaces fires', 'typology-kicker-label',
+    '{"kicker" : "the closer", "body":"You land the deal."}'],
+  ['typology kicker: real label does not fire', null,
+    '{"kicker": "Track Record", "body":"At Continental, you retained 94%."}'],
+  ['typology kicker: How You Work does not fire', null,
+    '{"kicker": "How You Work", "body":"You translate."}'],
+  // The reason the pattern is anchored to the kicker position at all.
+  ['typology kicker: quoted assessment result in the body does not fire', null,
+    '{"kicker": "How You Work", "body":"The Affintus assessment names you a People Architect, and the resume proves it."}'],
+  ['typology kicker: the word architect in prose does not fire', null,
+    'You are the person who designs the engine in the first place, an architect of the system.'],
+  // A kicker that merely CONTAINS a type word is a description, not a label.
+  ['typology kicker: descriptive kicker containing a type word does not fire', null,
+    '{"kicker": "How You Translate", "body":"You sit between groups."}'],
+]
+let kickerFailed = 0
+for (const [label, expectedName, input] of kickerCases) {
+  const violations = detectVoiceViolations(input, { includeSoft: false, scope: 'runtime', step: 'p3' })
+  const names = violations.map(v => v.name)
+  const fired = names.includes('typology-kicker-label')
+  if (expectedName === null ? fired : !fired) {
+    console.error(`FAIL: ${label}`)
+    console.error(`  input:    ${JSON.stringify(input)}`)
+    console.error(`  expected: ${expectedName === null ? 'no typology-kicker-label match' : expectedName}`)
+    console.error(`  got:      ${names.join(', ') || '(none)'}`)
+    failed++; kickerFailed++
+  }
+}
+// p3-scoped: another step's output must not be judged by it.
+{
+  const v = detectVoiceViolations('{"kicker": "The Architect"}', { includeSoft: false, scope: 'runtime', step: 'p8' })
+  if (v.some(x => x.name === 'typology-kicker-label')) {
+    console.error('FAIL: typology-kicker-label should be scoped to p3 only')
+    failed++; kickerFailed++
+  }
+}
+
+const kickerTotal = kickerCases.length + 1 // kickerCases + the p3 step-scoping check
 const formulaTotal = formulaCases.length + 1 + 4 // formulaCases + combined-detection + 4 step-filter checks (formula-* now universal)
 const voiceGuideTotal = voiceGuideCases.length + 1 + 4 + 2 + 4 + 1 // voiceGuideCases + combined-detection + 4 universal step-filter checks + 2 closer step-filter checks + 4 contamination step-filter checks + 1 verbatim SYS regression
-const total = cases.length + 2 + formulaTotal + voiceGuideTotal
+const total = cases.length + 2 + formulaTotal + voiceGuideTotal + kickerTotal
 if (failed > 0) {
   console.error(`\ntest-voice-patterns: ${failed} of ${total} cases failed.`)
   process.exit(1)
