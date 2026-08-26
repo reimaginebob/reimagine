@@ -293,7 +293,7 @@ export default function EconomicsDashboard({ token }) {
             <table style={S.table}>
               <thead><tr>
                 <Th>Account age</Th><Th right>Accounts</Th>
-                <Th right>Focus</Th><Th right>Opportunity</Th><Th right>Coach</Th>
+                <Th right>Focus</Th><Th right>Opportunity</Th><Th right>Coach</Th><Th right>Other</Th>
                 <Th right>Generations per account</Th><Th right>Cost per account</Th>
               </tr></thead>
               <tbody>
@@ -304,17 +304,18 @@ export default function EconomicsDashboard({ token }) {
                     <Td right>{fmtInt((r.kinds.focus || {}).generations)}</Td>
                     <Td right><strong style={{ color: GOLDL }}>{fmtInt((r.kinds.opportunity || {}).generations)}</strong></Td>
                     <Td right muted>{fmtInt((r.kinds.coach || {}).generations)}</Td>
+                    <Td right muted>{fmtInt((r.kinds.other || {}).generations)}</Td>
                     <Td right>{fmtNum1(r.generations_per_user)}</Td>
                     <Td right><strong style={{ color: NAVY }}>{fmtUsd(r.cost_per_user, true)}</strong></Td>
                   </tr>
                 ))}
-                {curve.length === 0 && <tr><Td colSpan={7} muted>No generations recorded yet.</Td></tr>}
+                {curve.length === 0 && <tr><Td colSpan={8} muted>No generations recorded yet.</Td></tr>}
               </tbody>
             </table>
           </div>
           <div style={S.calloutTight}>
             <strong style={{ color: NAVY }}>Read the Opportunity column down the page.</strong> If it holds up or rises while Focus falls away, the floor model is right and the steady-state cost is well above what a decay model would predict. If both fall, cost per customer drops sharply after the first month.
-            {" "}Later rows are thin today because generation history is only days old. This fills in on its own — which is why it sits on a dashboard rather than being answered once and written down.
+            {" "}Other covers Income Now, Recruiters, skills extraction and anything else tagged at a call site — shown so an unexpected tag is visible rather than missing from every column. Later rows are thin today because generation history is only days old. This fills in on its own — which is why it sits on a dashboard rather than being answered once and written down.
           </div>
 
           <div style={S.subSectionLabel}>Per-customer lifetime, and the spread</div>
