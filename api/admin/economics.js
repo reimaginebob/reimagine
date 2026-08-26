@@ -298,6 +298,63 @@ async function loadPayload() {
     GROUP BY COALESCE(kind, '(untagged)')
     ORDER BY total_cost DESC`
 
+  // --- Monthly run-rate per active user ----------------------------------
+  // The figure a pro forma multiplies by headcount, and it cannot be read off
+  // any of the cumulative numbers above -- those are totals over a window a few
+  // days long, and the modelled journey is a one-off.
+  //
+  // Built from the two things that are separately reliable rather than from one
+  // that is not:
+  //   * generation VOLUME, which has a longer history than cost. Rows exist from
+  //     2026-08-15; cost only from 2026-08-21. Counting rows does not need a
+  //     price, so the volume window is roughly three times the cost window.
+  //   * cost per generation, which is stable even over a short sample because it
+  //     is a property of the prompt rather than of who showed up this week.
+  //
+  // rate = generations per active user per day x 30 x mean cost per generation.
+  //
+  // window_days is measured from the data, so this self-corrects as history
+  // accumulates instead of quietly reporting a stale assumption.
+  const runRateRows = await sql`
+    WITH bounds AS (
+      SELECT MIN(created_at) AS first_ev, MAX(created_at) AS last_ev
+      FROM generation_events
+    ),
+    vol AS (
+      SELECT g.user_id, COUNT(*)::int AS gens
+      FROM generation_events g
+      JOIN users u ON u.id = g.user_id
+      WHERE LOWER(u.email) NOT LIKE ${INTERNAL_EMAIL_SUFFIX}
+      GROUP BY g.user_id
+    )
+    SELECT
+      GREATEST(
+        EXTRACT(EPOCH FROM ((SELECT last_ev FROM bounds) - (SELECT first_ev FROM bounds))) / 86400.0,
+        1
+      )::float8                                        AS window_days,
+      COUNT(*)::int                                    AS active_users,
+      COALESCE(SUM(gens), 0)::int                      AS total_generations,
+      COALESCE(AVG(gens), 0)::float8                   AS generations_per_user
+    FROM vol`
+
+  // --- Front-loading: first 30 days of an account versus after --------------
+  // A career transition is finite, so consumption is not flat. Most of the cost
+  // lands while somebody is building their playbook; what follows is lighter.
+  // A pro forma that assumes a steady monthly charge per user will be wrong in
+  // both directions at once -- too low for a new cohort, too high for an old one.
+  const tenureRows = await sql`
+    SELECT
+      CASE WHEN g.created_at < u.created_at + INTERVAL '30 days'
+           THEN 'first_30_days' ELSE 'after_30_days' END AS tenure,
+      COUNT(*)::int                                      AS generations,
+      COUNT(DISTINCT g.user_id)::int                     AS users,
+      COALESCE(AVG(g.cost_usd), 0)::float8               AS mean_cost_per_generation,
+      COALESCE(SUM(g.cost_usd), 0)::float8               AS total_cost
+    FROM generation_events g
+    JOIN users u ON u.id = g.user_id
+    WHERE LOWER(u.email) NOT LIKE ${INTERNAL_EMAIL_SUFFIX}
+    GROUP BY 1`
+
   const windowCostRows = await sql`
     SELECT COALESCE(SUM(g.cost_usd), 0)::float8 AS cost,
            COUNT(DISTINCT g.user_id)::int       AS users
@@ -364,6 +421,40 @@ async function loadPayload() {
       coach_turns: num(r.coach_turns),
       cost: num(r.cost),
     })),
+    run_rate: (() => {
+      const r = runRateRows[0] || {}
+      const windowDays = Math.max(num(r.window_days), 1)
+      const gensPerUser = num(r.generations_per_user)
+      const perDay = gensPerUser / windowDays
+      const perMonth = perDay * 30
+      // Mean cost across every priced generation. Deliberately the blended
+      // figure rather than a Focus-only one: a real month contains coach turns
+      // and opportunity playbooks as well as sections.
+      const priced = stepCostRows.reduce(
+        (acc, x) => ({ n: acc.n + num(x.generations), c: acc.c + num(x.total_cost) }),
+        { n: 0, c: 0 },
+      )
+      const meanCostPerGen = priced.n > 0 ? priced.c / priced.n : 0
+      const byTenure = tenureRows.map(t => ({
+        tenure: t.tenure,
+        generations: num(t.generations),
+        users: num(t.users),
+        mean_cost_per_generation: num(t.mean_cost_per_generation),
+        total_cost: num(t.total_cost),
+      }))
+      return {
+        window_days: windowDays,
+        active_users: num(r.active_users),
+        total_generations: num(r.total_generations),
+        generations_per_user_in_window: gensPerUser,
+        generations_per_user_per_month: perMonth,
+        mean_cost_per_generation: meanCostPerGen,
+        // THE pro forma number: multiply this by active users.
+        monthly_cost_per_active_user: perMonth * meanCostPerGen,
+        by_tenure: byTenure,
+        note: 'Generation volume has a longer history than cost, so the rate is built from volume over its own window times mean cost per generation. Both windows are short; treat this as an order of magnitude that firms up as history accumulates.',
+      }
+    })(),
     unit_cost: (() => {
       const spread = spreadRows[0] || {}
       const byStage = stageCostRows.map(r => ({
