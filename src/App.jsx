@@ -2606,7 +2606,7 @@ ${rep||'not provided. If absent, you may offer a reputation hypothesis drawn fro
   // genericizes, re-orders, adds, removes, or re-analyzes. The sharp, candid
   // insights are exactly what a "tidy this up" pass tends to sand off; that is
   // forbidden here. Deterministic strippers handle mechanical voice downstream.
-  p3:(analysis)=>{
+  p3:(analysis,prevLayout='')=>{
     return `Below is a finished personal-brand analysis of one person, written by a career coach. Your job is to present it, not to improve it.
 
 THE ANALYSIS:
@@ -2646,12 +2646,12 @@ Schema:
 
 How to populate presentation (this is slotting the analysis text, never rewriting). The section bodies together ARE the brand, read top to bottom; they hold the entire analysis, second-person and verbatim:
 - hero: the brand's opening sentence (the lead of the first section body). Always present.
-- sections: the analysis grouped as it already falls, each given a short plain kicker, the body the verbatim second-person prose for that group. Do not merge, re-order, drop, or summarize. The first section body opens with the hero sentence. Every meaningful part of the analysis lands in a section. This is the whole brand; nothing is left out.
+- sections: the analysis grouped as it already falls, each given a short plain kicker. A kicker names what the section is ABOUT, never what the person IS: "How You Work", "Track Record", "Where You Thrive" are labels; "The Architect", "The Translator", "The Operator", "The Strategist" are not, because they turn the person into a type, which this product refuses everywhere. The kicker is the body the verbatim second-person prose for that group. Do not merge, re-order, drop, or summarize. The first section body opens with the hero sentence. Every meaningful part of the analysis lands in a section. This is the whole brand; nothing is left out.
 - origin: the formative-origin passage ("where it comes from" human material) pulled into its own field for a set-apart treatment, and therefore NOT also left in sections. If the analysis has no such passage, set origin to null. Never invent one.
 - edges: the growth edges as claim-plus-detail pairs, pulled out for cards, and therefore NOT duplicated in sections. If the analysis surfaced none, use an empty array. Never manufacture a weakness.
 - proofPoints: the quantified results that already appear in the analysis, each as value plus a short label. Extract only; invent nothing. The numbers still live in the section prose; this strip is an extra scan layer. If the analysis has none, use an empty array.
 - forwardClose: the warm closing turn. null if the analysis has none.
-
+${prevLayout?`\n\nTHE LAYOUT THEY ALREADY HAVE. This person has read, and may have saved or printed, an earlier version of this document laid out like this:\n\n${prevLayout}\n\nReuse it: the same labels, in the same order, and the same results in the same order. A section that renames itself, splits in two, or trades places with its neighbour reads as a rewrite even when every word is identical, and that is the opposite of what just happened. Introduce a new label only for material that genuinely was not in the analysis before, and drop one only when its material is gone. Do not re-group the analysis to fit a tidier set of labels, and do not swap a label for a better-sounding one.`:''}
 Rules:
 - throughLine MUST equal hero MUST be the exact opening sentence of the first section body, character for character.
 - Every dimensionalFit dimension present; status from the enumerated set; read is one sentence grounded in the analysis (use "thin" honestly where the analysis does not speak to that dimension).
@@ -3444,6 +3444,16 @@ const PHASE_UNLOCKED_BY={twoDoors:'p3'}
 // field the brand cannot read would tell the model something changed when it
 // can have no bearing on the read. Priorities is deliberately absent -- it
 // feeds compensation work downstream, not the brand.
+// The labels and results strip the person already has, handed back to the
+// compositor so it stops re-deciding them. Returns '' for a first build or a
+// profile with no structured presentation, which the prompt handles.
+const describeP3Layout=pres=>{
+  if(!pres||typeof pres!=='object')return ''
+  const kickers=(Array.isArray(pres.sections)?pres.sections:[]).map(x=>x&&x.kicker).filter(Boolean)
+  if(!kickers.length)return ''
+  const proof=(Array.isArray(pres.proofPoints)?pres.proofPoints:[]).map(x=>x&&x.label).filter(Boolean)
+  return `Section labels, in order: ${kickers.join(' | ')}`+(proof.length?`\nResults strip, in order: ${proof.join(' | ')}`:'')
+}
 const P3_INPUT_FIELDS=[
   ['values','Values, Passions & Causes \u2014 values'],
   ['passions','Values, Passions & Causes \u2014 passions and causes'],
@@ -6494,7 +6504,7 @@ export default function PivotEngine(){
   // previousBrand anchors STAGE ONE. Stage two is a compositor and already
   // preserves its input verbatim, so anchoring it would change nothing; the
   // re-derivation that loses accepted wording happens in the analysis.
-  const runP3TwoStage=async(analysisExtra='',previousBrand='',changeMode='none',changedInputs='')=>{
+  const runP3TwoStage=async(analysisExtra='',previousBrand='',changeMode='none',changedInputs='',prevLayout='')=>{
     const corr=correctionsBlock(profile.corrections)
     setLoadingStage('Reading your inputs')
     const analysis=await callClaude(corr+P.p3analysis(pc,previousBrand,changeMode,changedInputs)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
@@ -6502,7 +6512,7 @@ export default function PivotEngine(){
     let structuredP3=null
     // Stage two emits the structured presentation ONLY (no duplicated prose),
     // so output is roughly half what it was and 6000 tokens is ample headroom.
-    const raw=await callClaudeWithVoiceGate(()=>P.p3(analysis),{voiceMode:'prose-lite',maxTokens:6000},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
+    const raw=await callClaudeWithVoiceGate(()=>P.p3(analysis,prevLayout),{voiceMode:'prose-lite',maxTokens:6000},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
     // Layer 1 origin guard (2026-08-11): with no life-history input the analysis
     // has no ground for a formative origin and has been seen to fabricate one
     // (an invented backstory, sometimes echoing an example) to explain a real
@@ -6541,7 +6551,7 @@ export default function PivotEngine(){
       // for a genuine first build, wrong for every input edit after one, which is the
       // commoner route. outputs.p3 is empty on a real first build, so one expression
       // covers both.
-      const {brand,structured}=await runP3TwoStage('',outputs.p3||'','inputs',describeP3InputChanges(profile,outputs.p3_inputs))
+      const {brand,structured}=await runP3TwoStage('',outputs.p3||'','inputs',describeP3InputChanges(profile,outputs.p3_inputs),describeP3Layout(outputs.p3_structured&&outputs.p3_structured.presentation))
       out('p3',brand,{structured,p3_inputs:snapshotP3Inputs(profile)})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
     }catch(e){setErr(e.message)}
@@ -6554,7 +6564,7 @@ export default function PivotEngine(){
   // calls out('p3','') first to snapshot the prior version for Restore, so by the
   // time this runs outputs.p3 is empty. #515 read it here and silently anchored on
   // nothing, which is why a correction still produced a full rewrite.
-  const refreshP3=async(extraContext='',prevBrand='')=>{
+  const refreshP3=async(extraContext='',prevBrand='',prevLayout='')=>{
     if(loading||generatingSection)return
     window.scrollTo(0,0)
     setLoading(true);setErr(null);setLoadMsg('Writing your Personal Brand in the new format…')
@@ -6570,7 +6580,7 @@ export default function PivotEngine(){
       // worked example does exactly that), the change is real and lives in the
       // materials, so this is the same situation generateChain is in.
       const inputsMoved=pbNeedsUpdate||inputEditedRef.current||sectionStaleUpstreams('p3').includes('resume')
-      const {brand,structured}=await runP3TwoStage(extraContext,prevBrand,extraContext?'stated':(inputsMoved?'inputs':'none'),inputsMoved?describeP3InputChanges(profile,outputs.p3_inputs):'')
+      const {brand,structured}=await runP3TwoStage(extraContext,prevBrand,extraContext?'stated':(inputsMoved?'inputs':'none'),inputsMoved?describeP3InputChanges(profile,outputs.p3_inputs):'',prevLayout)
       out('p3',brand,{structured,p3_inputs:snapshotP3Inputs(profile)})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
       cascadeInvalidate('p3')
@@ -9965,7 +9975,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <button type="button" onClick={dismissP3Migration} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
         <p style={{margin:'0 24px 12px 0',fontSize:17,color:'#1A2540',lineHeight:1.65}}>We have updated how we present your Personal Brand. Click Refresh to see it in the new format. The rest of your work (Put It to Work, Bridge Story, anything else you have already built) stays as it is.</p>
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          <Btn onClick={()=>refreshP3('',outputs.p3||'')}>Refresh</Btn>
+          <Btn onClick={()=>refreshP3('',outputs.p3||'',describeP3Layout(outputs.p3_structured&&outputs.p3_structured.presentation))}>Refresh</Btn>
           <Btn secondary onClick={dismissP3Migration}>Keep current view</Btn>
         </div>
       </div>}
@@ -10003,7 +10013,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn small secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={12}/>Save as PDF</Btn>
         </div>
         {!isDemo&&<div data-print="hide" style={{marginBottom:18}}><Btn small secondary onClick={()=>openCoachWith(ASK_COACH_SEEDS.p3)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
-        {!isDemo&&<RefineBox guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{const prevBrand=outputs.p3||'';recordCorrection('p3',v);out('p3','');refreshP3(v,prevBrand)}}/>}
+        {!isDemo&&<RefineBox guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{const prevBrand=outputs.p3||'';const prevLayout=describeP3Layout(outputs.p3_structured&&outputs.p3_structured.presentation);recordCorrection('p3',v);out('p3','');refreshP3(v,prevBrand,prevLayout)}}/>}
         {!isDemo&&<div style={{margin:'24px 0 14px',fontSize:18,color:'#2D3748',lineHeight:1.7}}>This is your foundation. Next, we put it to work — finding the directions worth exploring and the people worth reaching.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','twoDoors')}>Put It to Work <ChevronRight size={14}/></Btn></div>}
       </>}

@@ -108,5 +108,25 @@ const blanked = { ...base, lifeEvents: '' }
 check('clearing an answer is reported as a change',
   H.describeP3InputChanges(blanked, snap).includes('NOW: (blank)'))
 
+
+// --- the layout anchor (2026-08-26) --------------------------------------
+const ls = src.indexOf('${prevLayout?`')
+if (ls < 0) throw new Error('layout anchor block not found')
+const le = src.indexOf("`:''}", ls) + 5
+const renderLayout = new Function('prevLayout', 'return `' + src.slice(ls, le) + '`')
+const LAY = 'Section labels, in order: How You Work | Track Record'
+check('a known layout is handed back to the compositor',
+  renderLayout(LAY).includes(LAY) && renderLayout(LAY).includes('the same labels, in the same order'))
+check('a first build carries no layout anchor', renderLayout('') === '')
+
+const D = new Function(src.slice(src.indexOf('const describeP3Layout='), src.indexOf('const P3_INPUT_FIELDS=[')) +
+  ';return describeP3Layout')()
+check('layout descriptor lists kickers in order',
+  D({sections:[{kicker:'How You Work'},{kicker:'Track Record'}]}) === 'Section labels, in order: How You Work | Track Record')
+check('layout descriptor includes the results strip',
+  D({sections:[{kicker:'A'}],proofPoints:[{value:'94%',label:'retention'},{value:'340',label:'leaders trained'}]})
+    .includes('Results strip, in order: retention | leaders trained'))
+check('no presentation yields no anchor', D(null) === '' && D(undefined) === '' && D({}) === '' && D({sections:[]}) === '')
+
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nall cases correct')
 process.exit(fail ? 1 : 0)
