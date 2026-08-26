@@ -126,7 +126,7 @@ You would:
 3. Click forward to **Personal Brand** in the sidebar.
 4. Open the feedback box, click **Start fresh**, and regenerate the Personal Brand.
 
-The Personal Brand re-runs its two-stage build (a deep read of your inputs, then the synthesis) against your updated inputs. By the time it finishes, the merger integration will be in the foundation.
+The Personal Brand re-runs its two-stage build (a deep read of your inputs, then the synthesis) against your updated inputs. It keeps what your other materials still support and changes what the new material actually affects, so you are not trading the wording you liked for the detail you added. By the time it finishes, the merger integration will be in the foundation.
 
 You can stop regenerating wherever the changes no longer matter. If your edit only affected the early phases and the rest of your journey was already aligned, you do not need to redo it all.
 
