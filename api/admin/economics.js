@@ -362,7 +362,11 @@ async function loadPayload() {
       CASE
         WHEN g.kind = 'op'    THEN 'opportunity'
         WHEN g.kind = 'coach' THEN 'coach'
-        WHEN g.kind IN ('p3','p4','p5','p6','p7','p8','p9','p11','p_res') THEN 'focus'
+        -- p3_analysis is the pass that runs before a Personal Brand is written,
+        -- so a Personal Brand is at least two billed calls, not one. Leaving it
+        -- out of this group put Focus work in 'other' and understated the column
+        -- the whole panel is meant to be read down.
+        WHEN g.kind IN ('p3','p3_analysis','p4','p5','p6','p7','p8','p9','p11','p_res') THEN 'focus'
         ELSE 'other'
       END                                                AS kind_group,
       COUNT(*)::int                                      AS generations,
@@ -518,7 +522,11 @@ async function loadPayload() {
       // regenerations and coach turns, so it is a FLOOR — the cost of a journey
       // where nothing is done twice.
       const stepMean = steps.reduce((m, r) => { m[r.step] = r.mean_cost; return m }, {})
-      const journeySteps = ['p3', 'p5', 'p6', 'p7', 'p8', 'p9', 'p11', 'p_res']
+      // Includes p3_analysis: building a Personal Brand is an analysis call
+      // followed by the write, so pricing p3 alone understates it by a whole
+      // generation. Steps with no priced rows yet contribute nothing, which is
+      // why modelled_steps_priced is reported alongside the total.
+      const journeySteps = ['p3_analysis', 'p3', 'p5', 'p6', 'p7', 'p8', 'p9', 'p11', 'p_res']
       const modelled = journeySteps.reduce((sum, k) => sum + (stepMean[k] || 0), 0)
       const modelledCovered = journeySteps.filter(k => stepMean[k] !== undefined)
       return {
