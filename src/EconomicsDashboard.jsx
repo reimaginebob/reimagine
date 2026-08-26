@@ -40,6 +40,7 @@ const fmtUsd = (n, cents) => {
   return `${neg ? "−" : ""}$${s}`
 }
 const fmtInt = (n) => (Number.isFinite(Number(n)) ? Math.round(Number(n)).toLocaleString("en-US") : "—")
+const fmtNum1 = (n) => (n === null || n === undefined || !Number.isFinite(Number(n)) ? "—" : Number(n).toFixed(1))
 const fmtTokens = (n) => {
   const v = Number(n) || 0
   if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`
@@ -163,6 +164,7 @@ export default function EconomicsDashboard({ token }) {
   const cov = payload.coverage || {}
   const daily = payload.daily || []
   const unit = payload.unit_cost || {}
+  const rate = payload.run_rate || {}
   const months = payload.months || []
   const perUser = payload.per_user || []
 
@@ -271,6 +273,41 @@ export default function EconomicsDashboard({ token }) {
             <strong style={{ color: NAVY }}>For a pro forma, use the modelled journey figure rather than the average.</strong> Most accounts have barely touched the product, so an average across all of them understates what a paying customer costs, and understating cost is the dangerous direction. The modelled figure prices one generation of each step a full journey needs, so it does not move with how many people happened to use the product this week.
           </div>
 
+          <div style={S.subSectionLabel}>The monthly figure — multiply this by active users</div>
+          <div style={S.tileGrid}>
+            <Stat label="Monthly API cost per active user" value={fmtUsd(rate.monthly_cost_per_active_user, true)} accent />
+            <Stat label="Generations per user per month" value={fmtNum1(rate.generations_per_user_per_month)} />
+            <Stat label="Mean cost per generation" value={fmtUsd(rate.mean_cost_per_generation, true)} />
+            <Stat label="Measured over" value={`${fmtNum1(rate.window_days)} days`} sub={`${fmtInt(rate.active_users)} active accounts`} />
+          </div>
+          <div style={S.calloutTight}>
+            Built from the two things that are separately reliable rather than one that is not. Generation <strong style={{ color: NAVY }}>volume</strong> has a longer history than cost — counting rows needs no price — and cost <strong style={{ color: NAVY }}>per generation</strong> is stable even over a short sample, because it is a property of the prompt rather than of who showed up this week. Rate = generations per user per day, times thirty, times mean cost per generation.
+          </div>
+
+          {(rate.by_tenure || []).length > 0 && (
+            <>
+              <div style={S.subSectionLabel}>Consumption is front-loaded</div>
+              <table style={S.table}>
+                <thead><tr><Th>When</Th><Th right>Accounts</Th><Th right>Generations</Th><Th right>Mean per generation</Th><Th right>Total</Th></tr></thead>
+                <tbody>
+                  {(rate.by_tenure || []).map((t) => (
+                    <tr key={t.tenure}>
+                      <Td>{t.tenure === 'first_30_days' ? 'First 30 days of an account' : 'After the first 30 days'}</Td>
+                      <Td right>{fmtInt(t.users)}</Td>
+                      <Td right>{fmtInt(t.generations)}</Td>
+                      <Td right>{fmtUsd(t.mean_cost_per_generation, true)}</Td>
+                      <Td right><strong style={{ color: NAVY }}>{fmtUsd(t.total_cost, true)}</strong></Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={S.calloutTight}>
+                A career transition is finite, so a flat monthly charge per user models the wrong shape. Most consumption lands while someone is building their playbook; what follows is lighter. A pro forma with one steady monthly figure will run too low for a new cohort and too high for an old one — better to model an onboarding month and a lighter run-rate after it.
+              </div>
+            </>
+          )}
+
+          <div style={S.subSectionLabel}>Per-customer lifetime, and the spread</div>
           <div style={{ ...S.tileGrid, marginTop: 14 }}>
             <Stat label="Modelled full journey" value={fmtUsd(unit.modelled_full_journey, true)} sub={`${fmtInt(unit.modelled_steps_priced)} of ${fmtInt(unit.modelled_steps_total)} steps priced`} accent />
             <Stat label="Median, active accounts" value={fmtUsd((unit.spread || {}).median, true)} sub={`${fmtInt((unit.spread || {}).accounts)} accounts`} />
