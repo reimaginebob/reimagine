@@ -6045,6 +6045,17 @@ export default function PivotEngine(){
   // backup in v1; Neon sync is the durable fix and is deferred to V2).
   const isReturningExplorer=done.includes('p3')&&(activePlaybooks.length>0||exploredRoleTitles.length>0)
   const hydrationStable=localHydrationDone&&serverLoadDone
+  // One-time baseline for brands written before input snapshots existed. Uses
+  // setOutputs rather than out(): out('p3',...) would take a "previous version"
+  // snapshot for Restore, and nothing is being replaced here. Waits for
+  // hydrationStable so a pre-hydration profile is never recorded as the
+  // baseline -- that would report every answer as newly filled in on the next
+  // rebuild. Self-disarming: the p3_inputs guard makes every later run a no-op.
+  useEffect(()=>{
+    if(!hydrationStable||isDemo)return
+    if(!outputs.p3||!String(outputs.p3).trim()||outputs.p3_inputs)return
+    setOutputs(o=>(o.p3_inputs||!o.p3?o:{...o,p3_inputs:snapshotP3Inputs(profile)}))
+  },[hydrationStable,isDemo,outputs.p3,outputs.p3_inputs,profile])
   // Landing logic for returning users. Waits for hydrationStable so the
   // decision is made against settled state (pe_v4 hydration AND /api/profile
   // /load resolution, the latter via .finally so it fires for both signed-in
