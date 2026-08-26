@@ -55,6 +55,18 @@ Use **Start fresh** if the current direction is wrong enough that refining it wi
 
 Start fresh does not delete previously submitted corrections from your profile; those still apply to the new generation.
 
+### What changed, without re-reading five pages
+
+Every time your Personal Brand rebuilds, a short note appears above it saying what moved.
+
+It opens with your change: the new lines, quoted, so you can see where what you asked for actually landed. Below that, anything else that shifted — a line that is gone, or a sentence that no longer says something it used to. Each one has a **Put that back** button that drops the missing line into the feedback box for you, so restoring one phrase does not mean throwing away the whole new version.
+
+If the rebuild changed nothing, the note says so plainly. That is worth knowing too: it means what you changed did not shift the read, rather than that something went wrong.
+
+The note compares the writing, not the layout. Section headings and the results strip at the top can be arranged differently from one build to the next without a single word changing, and flagging that would bury the changes that matter.
+
+Take the time to read the new version through. Your Personal Brand is the one thing everything else in Reimagine is built from — your Role Options, your Bridge Story, your resume language all trace back to it — so a line that is not quite you is worth fixing here rather than downstream.
+
 ### Prefer the version you had before?
 
 Each time you refresh or start fresh on your Personal Brand, Reimagine keeps the version just before it. A **Restore previous version** button appears on the Personal Brand screen so you can switch back with one click, and switch again if you change your mind. It keeps the most recent prior version, so you can always compare the two.

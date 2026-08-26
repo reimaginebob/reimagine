@@ -47,6 +47,8 @@ import { Analytics, track } from "@vercel/analytics/react"
 import LegalReacceptanceModal from "./LegalReacceptanceModal"
 import { PRIVACY_VERSION, TOS_VERSION, PRIVACY_VERSION_MATERIAL, TOS_VERSION_MATERIAL } from "./config/legal"
 import { ACTIVE_SIGNUP_SOURCES, detailPromptFor } from "./signup-sources.js"
+import BrandChangeNote from "./components/BrandChangeNote"
+import { brandProse, diffBrandProse } from "./brand-diff.js"
 
 // voice-allow
 const SYS_BASE = `You are a Career Strategist within Reimagine, a career strategy tool by Career Club, built on Making Your Own Weather by Bob Goodwin.
@@ -3485,20 +3487,44 @@ const P3_DIFF_CAP=1200
 const capValue=t=>!t?'(blank)':(t.length<=P3_DIFF_CAP?t:t.slice(0,P3_DIFF_CAP)+'\u2026 [truncated]')
 // Returns the prompt block naming exactly what moved, or '' when we cannot
 // tell (no snapshot on older profiles) so the caller can fall back.
-const describeP3InputChanges=(prof,snap)=>{
-  if(!snap||typeof snap!=='object')return ''
-  const parts=[]
+// The change note compares PROSE only. Section labels and the results strip are
+// the layout pass's business; before #523 they moved on every run, and folding
+// them in would bury one real removal under a dozen cosmetic ones.
+const buildP3Change=(prevBrandText,prevPres,nextBrandText,nextStructured,askedFor)=>{
+  const before=brandProse(prevPres,prevBrandText)
+  if(!before||!before.trim())return null
+  const after=brandProse(nextStructured&&nextStructured.presentation,nextBrandText)
+  const d=diffBrandProse(before,after)
+  return {added:d.added,removed:d.removed,reworded:d.reworded,unchanged:d.unchanged,askedFor:askedFor||''}
+}
+const changedP3Fields=(prof,snap)=>{
+  if(!snap||typeof snap!=='object')return []
+  const out=[]
   for(const [f,label] of P3_INPUT_FIELDS){
     const now=p3FieldValue(prof,f),was=snap[f]
     if(was===undefined||now===was)continue
-    parts.push(`${label}\nPREVIOUSLY: ${capValue(was)}\nNOW: ${capValue(now)}`)
+    out.push({field:f,label,was,now,bulk:false})
   }
   for(const [f,label] of P3_INPUT_BULK){
     const now=String(p3FieldValue(prof,f).length)
     if(snap[f]===undefined||now===snap[f])continue
-    parts.push(`${label}\nThey replaced this document. The current version is in the materials above; the previous one is not available here.`)
+    out.push({field:f,label,bulk:true})
   }
-  return parts.join('\n\n')
+  return out
+}
+// Returns the prompt block naming exactly what moved, or '' when we cannot
+// tell (no snapshot on older profiles) so the caller can fall back.
+const describeP3InputChanges=(prof,snap)=>changedP3Fields(prof,snap).map(c=>c.bulk
+  ?`${c.label}\nThey replaced this document. The current version is in the materials above; the previous one is not available here.`
+  :`${c.label}\nPREVIOUSLY: ${capValue(c.was)}\nNOW: ${capValue(c.now)}`).join('\n\n')
+// The same answer, phrased for the person rather than the model.
+const askedForLine=(correctionText,changes)=>{
+  const t=String(correctionText||'').trim()
+  if(t)return `You asked us to change this: \u201c${t.length>200?t.slice(0,200)+'\u2026':t}\u201d`
+  const labels=(changes||[]).map(c=>c.label)
+  if(!labels.length)return ''
+  const list=labels.length===1?labels[0]:labels.slice(0,-1).join(', ')+' and '+labels[labels.length-1]
+  return `You changed ${list}.`
 }
 const INPUT_EDIT_STEPS=new Set(['location','resume','resume-builder','linkedin','assessment','values','priorities','reputation','life-events','skills'])
 const INPUT_STEP_LABEL={location:'Location',resume:'Résumé','resume-builder':'Résumé',linkedin:'LinkedIn',assessment:'Assessment',values:'Values',reputation:'Reputation','life-events':'Life events',skills:'Skills'}
@@ -4890,7 +4916,7 @@ function WidenCareerOptions({lane,prevTitles,onSubmit,disabled}){
 // specifically the four op v2 cards (Role, Resume Refresh, Interview Prep,
 // About This Company). Default false preserves existing behavior for the
 // Focus per-section, Personal Brand, and op v1 consumers.
-function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel,onlyUpdateButton,guard,sectionId}){
+function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel,onlyUpdateButton,guard,sectionId,openSignal,anchorId}){
   const[open,setOpen]=useState(false)
   // Submit guard (2026-08-11 dead-button fix): the update/fresh regen is a multi-
   // minute call and the button gave no click feedback, so users re-clicked and
@@ -4900,6 +4926,9 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
   const submittingRef=useRef(false)
   const[submitting,setSubmitting]=useState(false)
   const clearSubmit=()=>{submittingRef.current=false;setSubmitting(false)}
+  // "Put that back" in the change note fills this box and needs it open;
+  // a prefilled field behind a collapsed header reads as a dead button.
+  useEffect(()=>{if(openSignal){setOpen(true);submittingRef.current=false;setSubmitting(false)}},[openSignal])
   const submit=fresh=>{
     if(submittingRef.current)return
     submittingRef.current=true;setSubmitting(true)
@@ -4907,7 +4936,7 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
     else if(guard&&value&&value.trim()){guard(sectionId,value,()=>{setOpen(false);onRegenerate(value)})}
     else{setOpen(false);onRegenerate(value)}
   }
-  return <div data-print="hide" style={{marginTop:28,marginBottom:28,border:`2px solid ${C.gold}`,borderRadius:12,overflow:'hidden',background:`${C.gold}10`}}>
+  return <div id={anchorId} data-print="hide" style={{marginTop:28,marginBottom:28,border:`2px solid ${C.gold}`,borderRadius:12,overflow:'hidden',background:`${C.gold}10`}}>
     <button onClick={()=>setOpen(o=>{const n=!o;if(n)clearSubmit();return n})} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <div style={{width:8,height:8,borderRadius:'50%',background:C.gold,flexShrink:0}}/>
@@ -6220,6 +6249,7 @@ export default function PivotEngine(){
       if(v&&typeof v==='string'&&v.trim())u.p3_version='v2'
       else delete u.p3_version
       if(extra&&extra.p3_inputs)u.p3_inputs=extra.p3_inputs
+      if(extra&&'p3_change'in extra){if(extra.p3_change)u.p3_change=extra.p3_change;else delete u.p3_change}
       if(extra&&'structured'in extra&&extra.structured)u.p3_structured=extra.structured
       else delete u.p3_structured
     }
@@ -6551,8 +6581,10 @@ export default function PivotEngine(){
       // for a genuine first build, wrong for every input edit after one, which is the
       // commoner route. outputs.p3 is empty on a real first build, so one expression
       // covers both.
-      const {brand,structured}=await runP3TwoStage('',outputs.p3||'','inputs',describeP3InputChanges(profile,outputs.p3_inputs),describeP3Layout(outputs.p3_structured&&outputs.p3_structured.presentation))
-      out('p3',brand,{structured,p3_inputs:snapshotP3Inputs(profile)})
+      const prevPres=outputs.p3_structured&&outputs.p3_structured.presentation
+      const changes=changedP3Fields(profile,outputs.p3_inputs)
+      const {brand,structured}=await runP3TwoStage('',outputs.p3||'','inputs',describeP3InputChanges(profile,outputs.p3_inputs),describeP3Layout(prevPres))
+      out('p3',brand,{structured,p3_inputs:snapshotP3Inputs(profile),p3_change:buildP3Change(outputs.p3||'',prevPres,brand,structured,askedForLine('',changes))})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
     }catch(e){setErr(e.message)}
     finally{setLoading(false);setLoadingStage('');scrollToOutput('p3')}
@@ -6564,7 +6596,24 @@ export default function PivotEngine(){
   // calls out('p3','') first to snapshot the prior version for Restore, so by the
   // time this runs outputs.p3 is empty. #515 read it here and silently anchored on
   // nothing, which is why a correction still produced a full rewrite.
-  const refreshP3=async(extraContext='',prevBrand='',prevLayout='')=>{
+  const[refineOpenSignal,setRefineOpenSignal]=useState(0)
+  const dismissP3Change=()=>setOutputs(o=>{const u={...o};delete u.p3_change;return u})
+  // "Put that back" hands the sentence to the correction box rather than
+  // splicing it into the brand directly. Two reasons: the text belongs where
+  // the analysis decides it belongs, not where it used to sit, and a
+  // correction is recorded so it survives every later rebuild -- which is the
+  // difference between fixing this version and fixing the problem.
+  const restoreP3Line=(line)=>{
+    const t=String(line||'').trim()
+    if(!t)return
+    const existing=String(feedback.p3||'').trim()
+    const ask=`Put this line back, in whatever place it belongs now: \u201c${t}\u201d`
+    setFb('p3',existing?existing+'\n\n'+ask:ask)
+    setRefineOpenSignal(n=>n+1)
+    setTimeout(()=>{const el=document.getElementById('p3-refine');if(el&&el.scrollIntoView)el.scrollIntoView({behavior:'smooth',block:'center'})},60)
+  }
+  const refreshP3=async(extraContext='',prevBrand='',prevPres=null)=>{
+    const prevLayout=describeP3Layout(prevPres)
     if(loading||generatingSection)return
     window.scrollTo(0,0)
     setLoading(true);setErr(null);setLoadMsg('Writing your Personal Brand in the new format…')
@@ -6580,8 +6629,9 @@ export default function PivotEngine(){
       // worked example does exactly that), the change is real and lives in the
       // materials, so this is the same situation generateChain is in.
       const inputsMoved=pbNeedsUpdate||inputEditedRef.current||sectionStaleUpstreams('p3').includes('resume')
+      const changes=inputsMoved?changedP3Fields(profile,outputs.p3_inputs):[]
       const {brand,structured}=await runP3TwoStage(extraContext,prevBrand,extraContext?'stated':(inputsMoved?'inputs':'none'),inputsMoved?describeP3InputChanges(profile,outputs.p3_inputs):'',prevLayout)
-      out('p3',brand,{structured,p3_inputs:snapshotP3Inputs(profile)})
+      out('p3',brand,{structured,p3_inputs:snapshotP3Inputs(profile),p3_change:buildP3Change(prevBrand,prevPres,brand,structured,askedForLine(extraContext,changes))})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
       cascadeInvalidate('p3')
     }catch(e){setErr(e.message)}
@@ -9975,7 +10025,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <button type="button" onClick={dismissP3Migration} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
         <p style={{margin:'0 24px 12px 0',fontSize:17,color:'#1A2540',lineHeight:1.65}}>We have updated how we present your Personal Brand. Click Refresh to see it in the new format. The rest of your work (Put It to Work, Bridge Story, anything else you have already built) stays as it is.</p>
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          <Btn onClick={()=>refreshP3('',outputs.p3||'',describeP3Layout(outputs.p3_structured&&outputs.p3_structured.presentation))}>Refresh</Btn>
+          <Btn onClick={()=>refreshP3('',outputs.p3||'',(outputs.p3_structured&&outputs.p3_structured.presentation)||null)}>Refresh</Btn>
           <Btn secondary onClick={dismissP3Migration}>Keep current view</Btn>
         </div>
       </div>}
@@ -9984,6 +10034,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&!outputs.p3&&!loading&&outputs.p3_prev&&outputs.p3_prev.p3&&<div style={{marginTop:14}}><Btn small secondary onClick={restorePrevP3}><RotateCcw size={12}/>Restore previous version</Btn></div>}
       {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3"/>}
       {outputs.p3&&!loading&&<>
+        {!isDemo&&outputs.p3_change&&<BrandChangeNote change={outputs.p3_change} askedFor={outputs.p3_change.askedFor} onRestore={restoreP3Line} onDismiss={dismissP3Change}/>}
         {!isDemo&&sectionStaleUpstreams('p3').includes('resume')&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:'#1A2540',lineHeight:1.6,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
           <span>You updated your resume since this was written. Refresh your Personal Brand so it builds on the new material. It keeps what your new resume still supports and changes what the new material actually affects. Your current version is saved, so you can restore it if you prefer it.</span>
           <Btn small onClick={generateChain}><RotateCcw size={12}/>Refresh</Btn>
@@ -10013,7 +10064,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn small secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={12}/>Save as PDF</Btn>
         </div>
         {!isDemo&&<div data-print="hide" style={{marginBottom:18}}><Btn small secondary onClick={()=>openCoachWith(ASK_COACH_SEEDS.p3)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
-        {!isDemo&&<RefineBox guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{const prevBrand=outputs.p3||'';const prevLayout=describeP3Layout(outputs.p3_structured&&outputs.p3_structured.presentation);recordCorrection('p3',v);out('p3','');refreshP3(v,prevBrand,prevLayout)}}/>}
+        {!isDemo&&<RefineBox anchorId="p3-refine" openSignal={refineOpenSignal} guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{const prevBrand=outputs.p3||'';const prevPres=(outputs.p3_structured&&outputs.p3_structured.presentation)||null;recordCorrection('p3',v);out('p3','');refreshP3(v,prevBrand,prevPres)}}/>}
         {!isDemo&&<div style={{margin:'24px 0 14px',fontSize:18,color:'#2D3748',lineHeight:1.7}}>This is your foundation. Next, we put it to work — finding the directions worth exploring and the people worth reaching.</div>}
         {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3','twoDoors')}>Put It to Work <ChevronRight size={14}/></Btn></div>}
       </>}
