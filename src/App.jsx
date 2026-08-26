@@ -2555,7 +2555,7 @@ const P={
   // second-person requirement, no structured emit. Stage two handles register,
   // layout, and the structured emit. Output is the raw analysis in whatever
   // register it lands.
-  p3analysis:(pr,previousBrand='',changeMode='none')=>{
+  p3analysis:(pr,previousBrand='',changeMode='none',changedInputs='')=>{
     const rep=[pr.rep.memory&&`Praise they receive: ${pr.rep.memory}`,pr.rep.emergency&&`Who calls them in an emergency: ${pr.rep.emergency}`,pr.rep.twoWords&&`How people describe their superpower: "${pr.rep.twoWords}"`,pr.rep.other&&`Other reputation data: ${pr.rep.other}`].filter(Boolean).join('\n')
     return `You are a world-class career coach. Read the materials below and establish this person's personal brand: who they are at their core, and how that shapes the way they do their best work.
 
@@ -2595,7 +2595,7 @@ VALIDATED HARD SKILLS (their confirmed inventory):
 ${formatSkills(pr.skills)}
 
 REPUTATION (what others say about them):
-${rep||'not provided. If absent, you may offer a reputation hypothesis drawn from the work history and stated values, labeled clearly as inference for them to confirm.'}${previousBrand?`\n\nWHAT THIS PERSON ALREADY HAS. A previous version of this read has already been presented to them, below, in second person. They have read it, and much of it lands for them.\n\n${changeMode==='inputs'?`They have now gone back and changed one or more of their own answers, and this rebuild is the result. Nothing is stated in words here \u2014 the change is in the materials above. Read those materials against the read they already have, find what is genuinely different, and amend for that. If nothing in the materials meaningfully changes the read, leave it as it stands rather than inventing a difference.`:changeMode==='stated'?`Anything they have asked you to change is stated above. Amend for it, and for whatever it genuinely contradicts.`:`They have asked for a rebuild WITHOUT changes: nothing is stated and none of their answers have moved. Leave the read as it stands \u2014 do not invent a change to justify the rebuild.`}\n\nTreat this as an amendment, not a fresh start. Where the materials still support what is already written, keep it: the same observations, the same evidence, the same order, and the same phrasing where the phrasing is doing the work. Change what the correction or the new material actually touches, and whatever it genuinely contradicts. Do not re-derive the whole read because you could phrase it differently \u2014 text they have already accepted is not yours to replace for style, and losing a line they valued costs them more than a better sentence gains them.\n\nIf the change genuinely reshapes the through-line, follow it and say so plainly, rather than quietly rewriting everything around it.\n\nWHAT THEY ALREADY HAVE:\n${previousBrand}`:''}`
+${rep||'not provided. If absent, you may offer a reputation hypothesis drawn from the work history and stated values, labeled clearly as inference for them to confirm.'}${previousBrand?`\n\nWHAT THIS PERSON ALREADY HAS. A previous version of this read has already been presented to them, below, in second person. They have read it, and much of it lands for them.\n\n${changeMode==='inputs'?`They have now gone back and changed their own answers, and this rebuild is the result. ${changedInputs?`Here is exactly what moved:\n\n${changedInputs}\n\nWork out what that change means for the read they already have, and amend for it. Everything the change does not touch stays exactly as it is. If what they changed genuinely has no bearing on the read \u2014 a typo fix, a detail the read never rested on \u2014 say nothing new rather than inventing a difference.`:`Which answer moved is not recorded for this profile, so read the materials above against the read they already have and amend for whatever is genuinely new. If nothing in the materials meaningfully changes the read, leave it as it stands rather than inventing a difference.`}`:changeMode==='stated'?`Anything they have asked you to change is stated above. Amend for it, and for whatever it genuinely contradicts.`:`They have asked for a rebuild WITHOUT changes: nothing is stated and none of their answers have moved. Leave the read as it stands \u2014 do not invent a change to justify the rebuild.`}\n\nTreat this as an amendment, not a fresh start. Where the materials still support what is already written, keep it: the same observations, the same evidence, the same order, and the same phrasing where the phrasing is doing the work. Change what the correction or the new material actually touches, and whatever it genuinely contradicts. Do not re-derive the whole read because you could phrase it differently \u2014 text they have already accepted is not yours to replace for style, and losing a line they valued costs them more than a better sentence gains them.\n\nIf the change genuinely reshapes the through-line, follow it and say so plainly, rather than quietly rewriting everything around it.\n\nWHAT THEY ALREADY HAVE:\n${previousBrand}`:''}`
   },
   // Stage two (Personal Brand): the presentation pass. Takes stage one's raw
   // analysis and does exactly three things: (1) mechanical tidy to second
@@ -3439,6 +3439,57 @@ const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','resume-builder',
 // the platform wanted their profile steps again. A finished phase's header is
 // inert, as it always was; only a locked one is a door.
 const PHASE_UNLOCKED_BY={twoDoors:'p3'}
+// Which answers the Personal Brand actually reads, with the label the UI
+// renders for each. Derived from what P.p3analysis interpolates: naming a
+// field the brand cannot read would tell the model something changed when it
+// can have no bearing on the read. Priorities is deliberately absent -- it
+// feeds compensation work downstream, not the brand.
+const P3_INPUT_FIELDS=[
+  ['values','Values, Passions & Causes \u2014 values'],
+  ['passions','Values, Passions & Causes \u2014 passions and causes'],
+  ['lifeEvents','Your Story'],
+  ['skills','Your Skills'],
+  ['assess','Assessments'],
+  ['assessType','Assessments \u2014 which assessment'],
+  ['resumeDelta',"Your Resume \u2014 what's changed since you wrote it"],
+  ['rep.memory','Reputation \u2014 The Memory'],
+  ['rep.emergency','Reputation \u2014 The Emergency Call'],
+  ['rep.twoWords','Reputation \u2014 The Two Words'],
+  ['rep.other','Reputation \u2014 Additional Feedback'],
+]
+// Resume and LinkedIn are whole documents. Naming them is useful; printing two
+// full copies into the prompt is not.
+const P3_INPUT_BULK=[['resume','Your Resume'],['linkedin','Your LinkedIn']]
+const p3FieldValue=(prof,path)=>{
+  const v=path.indexOf('.')<0?prof[path]:((prof[path.split('.')[0]]||{})[path.split('.')[1]])
+  if(v==null)return ''
+  return typeof v==='string'?v:JSON.stringify(v)
+}
+const snapshotP3Inputs=prof=>{
+  const o={}
+  for(const [f] of P3_INPUT_FIELDS)o[f]=p3FieldValue(prof,f)
+  for(const [f] of P3_INPUT_BULK)o[f]=String(p3FieldValue(prof,f).length)
+  return o
+}
+const P3_DIFF_CAP=1200
+const capValue=t=>!t?'(blank)':(t.length<=P3_DIFF_CAP?t:t.slice(0,P3_DIFF_CAP)+'\u2026 [truncated]')
+// Returns the prompt block naming exactly what moved, or '' when we cannot
+// tell (no snapshot on older profiles) so the caller can fall back.
+const describeP3InputChanges=(prof,snap)=>{
+  if(!snap||typeof snap!=='object')return ''
+  const parts=[]
+  for(const [f,label] of P3_INPUT_FIELDS){
+    const now=p3FieldValue(prof,f),was=snap[f]
+    if(was===undefined||now===was)continue
+    parts.push(`${label}\nPREVIOUSLY: ${capValue(was)}\nNOW: ${capValue(now)}`)
+  }
+  for(const [f,label] of P3_INPUT_BULK){
+    const now=String(p3FieldValue(prof,f).length)
+    if(snap[f]===undefined||now===snap[f])continue
+    parts.push(`${label}\nThey replaced this document. The current version is in the materials above; the previous one is not available here.`)
+  }
+  return parts.join('\n\n')
+}
 const INPUT_EDIT_STEPS=new Set(['location','resume','resume-builder','linkedin','assessment','values','priorities','reputation','life-events','skills'])
 const INPUT_STEP_LABEL={location:'Location',resume:'Résumé','resume-builder':'Résumé',linkedin:'LinkedIn',assessment:'Assessment',values:'Values',reputation:'Reputation','life-events':'Life events',skills:'Skills'}
 // Per-section "Ask My Coach about this" seeds. Each prefills the coach input
@@ -6147,6 +6198,7 @@ export default function PivotEngine(){
       }
       if(v&&typeof v==='string'&&v.trim())u.p3_version='v2'
       else delete u.p3_version
+      if(extra&&extra.p3_inputs)u.p3_inputs=extra.p3_inputs
       if(extra&&'structured'in extra&&extra.structured)u.p3_structured=extra.structured
       else delete u.p3_structured
     }
@@ -6431,10 +6483,10 @@ export default function PivotEngine(){
   // previousBrand anchors STAGE ONE. Stage two is a compositor and already
   // preserves its input verbatim, so anchoring it would change nothing; the
   // re-derivation that loses accepted wording happens in the analysis.
-  const runP3TwoStage=async(analysisExtra='',previousBrand='',changeMode='none')=>{
+  const runP3TwoStage=async(analysisExtra='',previousBrand='',changeMode='none',changedInputs='')=>{
     const corr=correctionsBlock(profile.corrections)
     setLoadingStage('Reading your inputs')
-    const analysis=await callClaude(corr+P.p3analysis(pc,previousBrand,changeMode)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
+    const analysis=await callClaude(corr+P.p3analysis(pc,previousBrand,changeMode,changedInputs)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
     setLoadingStage('Writing your synthesis')
     let structuredP3=null
     // Stage two emits the structured presentation ONLY (no duplicated prose),
@@ -6478,8 +6530,8 @@ export default function PivotEngine(){
       // for a genuine first build, wrong for every input edit after one, which is the
       // commoner route. outputs.p3 is empty on a real first build, so one expression
       // covers both.
-      const {brand,structured}=await runP3TwoStage('',outputs.p3||'','inputs')
-      out('p3',brand,{structured})
+      const {brand,structured}=await runP3TwoStage('',outputs.p3||'','inputs',describeP3InputChanges(profile,outputs.p3_inputs))
+      out('p3',brand,{structured,p3_inputs:snapshotP3Inputs(profile)})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
     }catch(e){setErr(e.message)}
     finally{setLoading(false);setLoadingStage('');scrollToOutput('p3')}
@@ -6507,8 +6559,8 @@ export default function PivotEngine(){
       // worked example does exactly that), the change is real and lives in the
       // materials, so this is the same situation generateChain is in.
       const inputsMoved=pbNeedsUpdate||inputEditedRef.current||sectionStaleUpstreams('p3').includes('resume')
-      const {brand,structured}=await runP3TwoStage(extraContext,prevBrand,extraContext?'stated':(inputsMoved?'inputs':'none'))
-      out('p3',brand,{structured})
+      const {brand,structured}=await runP3TwoStage(extraContext,prevBrand,extraContext?'stated':(inputsMoved?'inputs':'none'),inputsMoved?describeP3InputChanges(profile,outputs.p3_inputs):'')
+      out('p3',brand,{structured,p3_inputs:snapshotP3Inputs(profile)})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
       cascadeInvalidate('p3')
     }catch(e){setErr(e.message)}
