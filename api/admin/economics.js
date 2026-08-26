@@ -207,6 +207,97 @@ async function loadPayload() {
   // question is how many customers the fixed base needs, given what one costs
   // to serve. Variable cost per customer comes from the trailing window rather
   // than month-to-date so an early-month reading is not divided by two days.
+  // --- Cost by how far someone got -------------------------------------
+  // For a pro forma, the plain average across every account is the wrong
+  // number, and wrong in the dangerous direction: most accounts have barely
+  // touched the product, so an all-accounts mean understates what an engaged
+  // customer costs to serve. The useful figure is cost against how far someone
+  // got, because that is what a paying customer is buying.
+  //
+  // Internal accounts are excluded. Their spend is real money and stays in the
+  // P&L, but it is testing rather than a customer, and folding it into a
+  // per-customer average corrupts the one number this exists to produce.
+  const stageCostRows = await sql`
+    WITH ext AS (
+      SELECT u.id, u.profile_state
+      FROM users u
+      WHERE LOWER(u.email) NOT LIKE ${INTERNAL_EMAIL_SUFFIX}
+    ),
+    staged AS (
+      SELECT e.id,
+        CASE
+          WHEN e.profile_state->'done' ?& ARRAY['p5','p6','p7','p8','p9','p11','p_res'] THEN 'focus_complete'
+          WHEN ((e.profile_state->'done') ? 'op'
+                OR NULLIF(TRIM(e.profile_state->'outputs'->>'op'), '') IS NOT NULL)
+           AND ((e.profile_state->'done') ? 'laneSelect'
+                OR NULLIF(TRIM(e.profile_state->'outputs'->>'p5'), '') IS NOT NULL) THEN 'both_doors'
+          WHEN ((e.profile_state->'done') ? 'laneSelect'
+                OR NULLIF(TRIM(e.profile_state->'outputs'->>'p4'), '') IS NOT NULL
+                OR NULLIF(TRIM(e.profile_state->'outputs'->>'p5'), '') IS NOT NULL) THEN 'career_paths'
+          WHEN ((e.profile_state->'done') ? 'op'
+                OR NULLIF(TRIM(e.profile_state->'outputs'->>'op'), '') IS NOT NULL) THEN 'opportunity'
+          WHEN NULLIF(TRIM(e.profile_state->'outputs'->>'p3'), '') IS NOT NULL THEN 'personal_brand_no_door'
+          ELSE 'earlier'
+        END AS stage
+      FROM ext e
+    ),
+    spend AS (
+      SELECT s.id, s.stage,
+             COALESCE(SUM(g.cost_usd), 0)::float8                              AS cost,
+             COUNT(g.id) FILTER (WHERE COALESCE(g.kind,'') <> 'coach')::int     AS generations,
+             COUNT(g.id) FILTER (WHERE g.kind = 'coach')::int                   AS coach_turns
+      FROM staged s
+      LEFT JOIN generation_events g ON g.user_id = s.id AND g.cost_usd IS NOT NULL
+      GROUP BY s.id, s.stage
+    )
+    SELECT
+      stage,
+      COUNT(*)::int                          AS accounts,
+      COUNT(*) FILTER (WHERE cost > 0)::int  AS accounts_with_spend,
+      COALESCE(SUM(cost), 0)::float8         AS total_cost,
+      COALESCE(AVG(cost), 0)::float8         AS mean_cost,
+      COALESCE(SUM(generations), 0)::int     AS generations,
+      COALESCE(SUM(coach_turns), 0)::int     AS coach_turns
+    FROM spend
+    GROUP BY stage`
+
+  // The spread, over accounts that actually generated something. A mean on its
+  // own hides the shape: if one account is ten times the median, a P&L built on
+  // the mean is a P&L built on that one account.
+  const spreadRows = await sql`
+    WITH spend AS (
+      SELECT u.id, COALESCE(SUM(g.cost_usd), 0)::float8 AS cost
+      FROM users u
+      JOIN generation_events g ON g.user_id = u.id AND g.cost_usd IS NOT NULL
+      WHERE LOWER(u.email) NOT LIKE ${INTERNAL_EMAIL_SUFFIX}
+      GROUP BY u.id
+    )
+    SELECT
+      COUNT(*)::int                                                          AS accounts,
+      COALESCE(AVG(cost), 0)::float8                                         AS mean,
+      COALESCE(percentile_cont(0.5) WITHIN GROUP (ORDER BY cost), 0)::float8 AS median,
+      COALESCE(percentile_cont(0.9) WITHIN GROUP (ORDER BY cost), 0)::float8 AS p90,
+      COALESCE(MAX(cost), 0)::float8                                         AS max
+    FROM spend`
+
+  // Cost per generation, by step. The bottom-up input, and the one that does
+  // not decay as the sample ages: cost history here is only days old, so an
+  // average over accounts is thin, but the cost of generating a given step is
+  // stable and a journey is a known number of steps. Multiplying the two models
+  // a journey cost that does not depend on who happened to use the product this
+  // week.
+  const stepCostRows = await sql`
+    SELECT
+      COALESCE(kind, '(untagged)')                                                AS step,
+      COUNT(*)::int                                                               AS generations,
+      COALESCE(AVG(cost_usd), 0)::float8                                          AS mean_cost,
+      COALESCE(percentile_cont(0.5) WITHIN GROUP (ORDER BY cost_usd), 0)::float8  AS median_cost,
+      COALESCE(SUM(cost_usd), 0)::float8                                          AS total_cost
+    FROM generation_events
+    WHERE cost_usd IS NOT NULL
+    GROUP BY COALESCE(kind, '(untagged)')
+    ORDER BY total_cost DESC`
+
   const windowCostRows = await sql`
     SELECT COALESCE(SUM(g.cost_usd), 0)::float8 AS cost,
            COUNT(DISTINCT g.user_id)::int       AS users
@@ -273,6 +364,48 @@ async function loadPayload() {
       coach_turns: num(r.coach_turns),
       cost: num(r.cost),
     })),
+    unit_cost: (() => {
+      const spread = spreadRows[0] || {}
+      const byStage = stageCostRows.map(r => ({
+        stage: r.stage,
+        accounts: num(r.accounts),
+        accounts_with_spend: num(r.accounts_with_spend),
+        total_cost: num(r.total_cost),
+        mean_cost: num(r.mean_cost),
+        generations: num(r.generations),
+        coach_turns: num(r.coach_turns),
+      }))
+      const steps = stepCostRows.map(r => ({
+        step: r.step,
+        generations: num(r.generations),
+        mean_cost: num(r.mean_cost),
+        median_cost: num(r.median_cost),
+        total_cost: num(r.total_cost),
+      }))
+      // A modelled full journey: one generation of each of the seven Focus
+      // sections plus the Personal Brand that gates them. Deliberately excludes
+      // regenerations and coach turns, so it is a FLOOR — the cost of a journey
+      // where nothing is done twice.
+      const stepMean = steps.reduce((m, r) => { m[r.step] = r.mean_cost; return m }, {})
+      const journeySteps = ['p3', 'p5', 'p6', 'p7', 'p8', 'p9', 'p11', 'p_res']
+      const modelled = journeySteps.reduce((sum, k) => sum + (stepMean[k] || 0), 0)
+      const modelledCovered = journeySteps.filter(k => stepMean[k] !== undefined)
+      return {
+        by_stage: byStage,
+        spread: {
+          accounts: num(spread.accounts),
+          mean: num(spread.mean),
+          median: num(spread.median),
+          p90: num(spread.p90),
+          max: num(spread.max),
+        },
+        by_step: steps,
+        modelled_full_journey: modelled,
+        modelled_steps_priced: modelledCovered.length,
+        modelled_steps_total: journeySteps.length,
+        modelled_note: 'One generation of each Focus section plus Personal Brand. Excludes regenerations and coach turns, so it is a floor rather than an estimate.',
+      }
+    })(),
     breakeven: {
       price_per_customer: price,
       fixed_monthly_cost: fixed,
