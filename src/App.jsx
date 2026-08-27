@@ -3743,6 +3743,17 @@ const INPUT_STEP_LABEL={location:'Location',resume:'Résumé','resume-builder':'
 // can never render a stale or blank title). Keyed by section id;
 // ASK_COACH_SEED_DEFAULT covers anything unmapped.
 const ASK_COACH_SEED_DEFAULT='Help me get the most out of this section.'
+// Practice-track overlay: the standard seeds ask the Coach about a bridge story,
+// interview questions, a refreshed resume and "Income Now options" -- none of
+// which are what this track calls those sections, or what she is doing.
+const INDEPENDENT_ASK_COACH_SEEDS={
+  p6:'Help me practice and sharpen the way I describe what I do out loud.',
+  p11:'Help me practice my answers to the questions a prospective client will ask.',
+  p_res:'Help me make the most of my one-sheet when I send it to a prospect.',
+  p8:'Help me apply these LinkedIn changes so my profile reads as a practice.',
+  p7:'Help me plan my outreach to these companies.',
+  income:'Help me think through my pricing and how I package the work.',
+}
 const ASK_COACH_SEEDS={
   p3:'Help me understand my Personal Brand — what it says about where I should focus, and how to use it.',
   p5:'Help me think through this role — whether it fits me, and what to focus on.',
@@ -4550,6 +4561,44 @@ const COUNTRY_OPTIONS = [
   'Chile', 'South Africa',
 ]
 
+// Practice-track overlay for the previews above, which describe a job search on
+// every line: "your lane", "the hiring executive", "target role" and "postings",
+// "the role you want", "the interviewer", and an Income Now entry that calls the
+// whole thing bridge income running alongside the main search. Sections absent
+// here fall through to the standard copy.
+const INDEPENDENT_LOADING_PREVIEWS = {
+  p6: [
+    'Reading your personal brand and the words you used yourself…',
+    'Writing the 30 seconds you say when someone asks what you do…',
+  ],
+  p7: [
+    'Ten companies that match the buyer you described, with what they do, their industry, size, and headquarters — plus a button to find ten more whenever you want',
+    'A signal on each one that suggests they have the problem you solve right now: recent funding, expansion, or new hires',
+    'The person who owns that problem and holds the budget, sourced from public signals you can verify',
+    'A draft approach for reaching them, in your voice, that you can adapt and send',
+  ],
+  p8: [
+    'Three headline options that say what you do for clients rather than the last title you held',
+    'An About section rewritten so the top of your profile reads as a practice, not a career history',
+    'The words prospects in your market actually search for, and where to put them',
+  ],
+  p_res: [
+    'A summary that opens with what you solve instead of a generic objective',
+    'Your strongest results rewritten as evidence a client can trust',
+    'Your history arranged to answer "why should I trust you with this" rather than "should we hire you"',
+  ],
+  p11: [
+    'The questions a prospect asks before they commit budget to someone outside the company',
+    'An answer to each one built from your own evidence, with what would strengthen it',
+    'What to ask them back, so the call reads as two professionals sizing up a fit',
+  ],
+  income: [
+    'Four services written as the problems they remove, each with the buyer who has it and a price',
+    'The arithmetic: which combinations reach the number you need, and what a realistic first month looks like',
+    'A positioning line, a bio you can paste anywhere, and outreach you can send warm or cold',
+    'Where your buyers already gather, and the specific next steps to take',
+  ],
+}
 const LOADING_PREVIEWS = {
   p3: [
     'Words for who you are at work that you can use in any conversation',
@@ -4777,17 +4826,17 @@ const SHUFFLED_POOLS = (() => {
   return pools
 })()
 
-// noMyow: fall back to the general quote bank instead of the per-step Making
+// independent: the practice track. Falls back to the general quote bank instead of the per-step Making
 // Your Own Weather pools. The book is written for someone running a job search;
-// on the practice track its lines land wrong, so that track passes noMyow and
+// on the practice track its lines land wrong, so that track sets `independent` and
 // gets the Frankl/Covey bank that already backs every step without a pool.
-function Loading({ msg = 'Generating your analysis…', step = '', noMyow = false }) {
+function Loading({ msg = 'Generating your analysis…', step = '', independent = false }) {
   const [qi, setQi] = useState(0)
   const [fade, setFade] = useState(true)
-  const stepPool = noMyow ? null : SHUFFLED_POOLS[step]
+  const stepPool = independent ? null : SHUFFLED_POOLS[step]
   const pool = stepPool || SHUFFLED_POOLS._attitude
   const isStepPool = !!stepPool
-  const previews = LOADING_PREVIEWS[step]
+  const previews = (independent && INDEPENDENT_LOADING_PREVIEWS[step]) || LOADING_PREVIEWS[step]
   useEffect(() => {
     const t = setInterval(() => {
       setFade(false)
@@ -9062,7 +9111,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
       {focusSalaryErr&&<div style={{marginTop:10}}><ErrBox msg={focusSalaryErr}/></div>}
-      {focusSalaryBusy&&<div style={{marginTop:14}}><Loading msg="Building Compensation Read…" step="salaryRead" noMyow={isIndependent}/></div>}
+      {focusSalaryBusy&&<div style={{marginTop:14}}><Loading msg="Building Compensation Read…" step="salaryRead" independent={isIndependent}/></div>}
       {built&&<div style={{marginTop:14}}><div style={S.out}><MD text={focusSalary.content}/></div><div style={{marginTop:10,fontSize:15,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Compensation figures come from public salary sources, which routinely disagree and can lag the market. Treat this as a starting range for your own research, not a definitive number — click through to the sources and weigh them against your specific company, level, and total package.</div></div>}
     </div>
   }
@@ -9116,7 +9165,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <Btn small secondary disabled={buyerReadBusy} onClick={()=>generateIncomeBuyerRead('')}>Clear</Btn>
       </div>}
       {buyerReadErr&&<div style={{marginTop:10}}><ErrBox msg={buyerReadErr}/></div>}
-      {buyerReadBusy&&<div style={{marginTop:14}}><Loading msg="Finding organizations that match your buyers…" step="buyerRead" noMyow={isIndependent}/></div>}
+      {buyerReadBusy&&<div style={{marginTop:14}}><Loading msg="Finding organizations that match your buyers…" step="buyerRead" independent={isIndependent}/></div>}
       {built&&<>
         <div style={{marginTop:14}}><div style={S.out}><MD text={buyerRead.content}/></div><div style={{marginTop:10,fontSize:15,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>These come from a live web search and reflect what public sources showed today. Details change, and a name that fits on paper can still be the wrong fit in practice. Click through before you use one in an outreach note.</div></div>
         <ReshapeBox busy={buyerReadBusy} error={null} onSubmit={(t)=>generateIncomeBuyerRead(t)}
@@ -10593,7 +10642,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&<div style={S.tag('#8A9BB8')}>Orientation</div>}
       <h1 style={S.title}>Your Skills</h1>
       <p style={S.sub}>Reimagine pulled these from your resume and LinkedIn. Take a look, add what is missing, remove anything that does not belong. This list shapes how the rest of Reimagine reads you: which options fit, which keywords land, which company targets feel right.</p>
-      {loading&&<Loading msg={loadMsg||'Reading your resume and LinkedIn for your skills…'} step="skills" noMyow={isIndependent}/>}
+      {loading&&<Loading msg={loadMsg||'Reading your resume and LinkedIn for your skills…'} step="skills" independent={isIndependent}/>}
       {!loading&&<>
         <div style={S.card}>
           {[
@@ -10633,7 +10682,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
       {!isDemo&&<div style={S.tag('#C8924A')}>Personal Brand</div>}
       <h1 id="section-p3" style={S.title}>Your Personal Brand</h1>
-      {!isDemo&&<p style={S.sub}>Personal Brand answers the question every job conversation circles back to: who are you at work, and what do you bring? The answer is the through-line that runs through your accomplishments, your wiring, and what others say about you, and it is what makes you distinctive. Everything that comes later — your answer to "tell me about yourself," the companies and people you target, the resume and LinkedIn that match where you are headed, the prep for every conversation ahead — is built on it.</p>}
+      {!isDemo&&<p style={S.sub}>{isIndependent?'Personal Brand answers the question every conversation about your work circles back to: who are you, and what do you bring?':'Personal Brand answers the question every job conversation circles back to: who are you at work, and what do you bring?'} The answer is the through-line that runs through your accomplishments, your wiring, and what others say about you, and it is what makes you distinctive. Everything that comes later — your answer to "tell me about yourself," the companies and people you target, the resume and LinkedIn that match where you are headed, the prep for every conversation ahead — is built on it.</p>}
 
       {/* Migration banner. Shown only when a v1 p3 exists. Refresh runs p3
           only; downstream content is preserved. The banner suppresses the
@@ -10649,7 +10698,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
       {!isDemo&&!outputs.p3&&!loading&&<><Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn><div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:15,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>A structured read of who you are at work, laid out in sections. About 4 to 5 minutes to generate.</div>{coachNudge('Before I build my Personal Brand, help me understand what it will give me — and whether my inputs so far are enough to make it sharp.','Wondering what this will give you? Ask your coach',{marginTop:12})}</>}
       {!isDemo&&!outputs.p3&&!loading&&outputs.p3_prev&&outputs.p3_prev.p3&&<div style={{marginTop:14}}><Btn small secondary onClick={restorePrevP3}><RotateCcw size={12}/>Restore previous version</Btn></div>}
-      {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3" noMyow={isIndependent}/>}
+      {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3" independent={isIndependent}/>}
       {outputs.p3&&!loading&&<>
         {!isDemo&&outputs.p3_change&&<BrandChangeNote change={outputs.p3_change} askedFor={outputs.p3_change.askedFor} onRestore={restoreP3Line} onDismiss={dismissP3Change}/>}
         {!isDemo&&sectionStaleUpstreams('p3').includes('resume')&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:'#1A2540',lineHeight:1.6,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
@@ -10697,7 +10746,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={S.card}>
         <label style={S.label}>What you do</label>
         {positioningBusy&&!positioningDraft
-          ?<Loading msg="Reading your personal brand and drafting your line…" step="positioning" noMyow={isIndependent}/>
+          ?<Loading msg="Reading your personal brand and drafting your line…" step="positioning" independent={isIndependent}/>
           :<>
             <textarea style={{...S.ta,minHeight:84}} value={positioningDraft} onChange={e=>setPositioningDraft(e.target.value)} placeholder="e.g. Fractional VP of Marketing for Series B and C SaaS companies preparing to scale go-to-market."/>
             <p style={S.helperText}>Say it the way you would out loud, to someone who has never heard of you.</p>
@@ -10859,7 +10908,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         if(id==='p6'){const rawP6=typeof outputs.p6==='string'?outputs.p6:(outputs.p6?bridgeStoryToProse(outputs.p6):'');const hasCoaching=typeof rawP6==='string'&&rawP6.includes('---COACHING NOTE---');const parts=hasCoaching?rawP6.split('---COACHING NOTE---').map(s=>s.trim()):[rawP6,''];const storyPart=parts[0]||'';const coachingPart=parts[1]||'';return <><OutPanel text={storyPart} onCopy={copy} copied={copied}/>{hasCoaching&&coachingPart&&<div data-print="content" style={{margin:'16px 0 24px',padding:'18px 22px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,fontStyle:'italic',color:C.cream,lineHeight:1.65,fontSize:16}}><MD text={coachingPart}/></div>}{!isDemo&&<RefineBox guard={submitCorrection} sectionId="p6" value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? Tell us what to adjust: the opening, the tone, which part of your background to lead with, or how you want to close." placeholder="e.g. The opening does not feel personal enough… I want to lead with my sustainability work instead… the ending needs to connect more directly to the role…" onRegenerate={v=>refineSec('p6',v)}/>}</>}
         if(id==='p9')return <>{!isDemo&&<CoachingCallout><strong style={{color:'#1A2540'}}>How to use this</strong><p style={{margin:'8px 0 0'}}>This section gives you the vocabulary, frameworks, and thought leaders that signal credibility in this space. Use it to prep for conversations and to find people to follow on LinkedIn.</p></CoachingCallout>}<OutPanel text={outputs.p9} onCopy={copy} copied={copied}/></>
         if(id==='p8')return <>{renderLinkedInRemix(outputs.p8)}{!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your LinkedIn profile. Open LinkedIn in another tab and apply the changes yourself.</div>}</>
-        if(id==='income')return <><div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div>{incomeTargetFields()}<OutPanel text={outputs.income} onCopy={copy} copied={copied}/>{focusSalaryCard()}{buyerReadCard()}</>
+        if(id==='income')return <><div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>{isIndependent?'Getting paid for this work is the point, not a stopgap. What you charge and how you package it is what makes the practice hold.':'A job search takes time. Income flowing while you search means you choose from strength, not pressure.'}</div>{incomeTargetFields()}<OutPanel text={outputs.income} onCopy={copy} copied={copied}/>{focusSalaryCard()}{buyerReadCard()}</>
         if(id==='p_res'){
           const resumeJson=outputs.p_res?parseResumeJSON(outputs.p_res):null
           if(resumeJson)return <ResumeRefreshView resumeJson={resumeJson} isDemo={isDemo} copy={copy} copied={copied}/>
@@ -11040,7 +11089,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 {isDoneSec&&<span data-print="hide" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:15,fontWeight:600,color:C.ok,background:`${C.ok}18`,padding:'3px 10px',borderRadius:999}}><Check size={12} color={C.ok} strokeWidth={2.5}/>Built</span>}
               </h2>
               {(()=>{const _ex=(isIndependent&&INDEPENDENT_SECTION_EXPLAINERS[id])||SECTION_EXPLAINERS[id];return _ex?<SectionExplainer subhead={_ex.subhead} detail={_ex.detail}/>:null})()}
-              {isGen&&<Loading msg={sec.load} step={id} noMyow={isIndependent}/>}
+              {isGen&&<Loading msg={sec.load} step={id} independent={isIndependent}/>}
               {!isGen&&sectionErrors[id]&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors[id]} <Btn small secondary onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
               {!isGen&&!sectionErrors[id]&&has&&<>
                 {!isDemo&&(()=>{
@@ -11076,7 +11125,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   return <div data-print="hide" style={{display:'flex',alignItems:'center',gap:10,background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:8,padding:'10px 14px',margin:'0 0 12px',fontSize:15,color:'#8A5E1C',lineHeight:1.55}}><div style={{width:8,height:8,borderRadius:'50%',background:'#F0B856',flexShrink:0}}/><div style={{flex:1}}>{head}</div><button type="button" onClick={refresh} style={{background:'transparent',color:'#8A5E1C',border:'1px solid #F0B856',borderRadius:6,padding:'5px 12px',fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',flexShrink:0,whiteSpace:'nowrap'}}>Update this section</button></div>
                 })()}
                 {renderBody(id)}
-                {!isDemo&&<div data-print="hide" style={{marginTop:14}}><Btn small secondary onClick={()=>openCoachWith(ASK_COACH_SEEDS[id]||ASK_COACH_SEED_DEFAULT,false,id)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
+                {!isDemo&&<div data-print="hide" style={{marginTop:14}}><Btn small secondary onClick={()=>openCoachWith((isIndependent&&INDEPENDENT_ASK_COACH_SEEDS[id])||ASK_COACH_SEEDS[id]||ASK_COACH_SEED_DEFAULT,false,id)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
                 {!isDemo&&id!=='p6'&&<RefineBox guard={submitCorrection} sectionId={id} value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
                 {!isDemo&&nextSec&&<div data-print="hide" style={{marginTop:18,padding:'12px 16px',background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
                   <div style={{fontSize:15,color:C.grayL}}>Next: {nextNum?nextNum+'. ':''}{nextSec.label}</div>
@@ -11102,7 +11151,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           return <>
             {!isDemo&&<div data-print="hide" style={{background:'#FFFFFF',border:`0.5px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'18px 22px',margin:'4px 0 8px'}}>
               <div style={{fontSize:15,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold,marginBottom:10}}>How to use your playbook</div>
-              <p style={{fontSize:18,color:'#1A2540',lineHeight:1.6,margin:'0 0 14px'}}>This page assembles a complete playbook for this role: a single working document you take into your search and update as you learn. {totalNumbered} sections.</p>
+              <p style={{fontSize:18,color:'#1A2540',lineHeight:1.6,margin:'0 0 14px'}}>{isIndependent?'This page assembles your practice plan: a single working document you take into the market and update as you learn.':'This page assembles a complete playbook for this role: a single working document you take into your search and update as you learn.'} {totalNumbered} sections.</p>
               {/* The 4-group structural grid that used to live here was
                   redundant with the PR5 section rail, which lists all
                   sections with their numbers and completion state. The
@@ -11216,9 +11265,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       return <div>
         <h1 id="section-income" style={{...S.title,scrollMarginTop:80}}>Income Now</h1>
         <p style={S.sub}>A bonus section, available anytime you have a direction picked.</p>
-        <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div>
+        <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>{isIndependent?'Getting paid for this work is the point, not a stopgap. What you charge and how you package it is what makes the practice hold.':'A job search takes time. Income flowing while you search means you choose from strength, not pressure.'}</div>
         {incomeTargetFields()}
-        {isGen&&<Loading msg="Building your Income Now plan…" step="income" noMyow={isIndependent}/>}
+        {isGen&&<Loading msg="Building your Income Now plan…" step="income" independent={isIndependent}/>}
         {!isGen&&sectionErrors.income&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors.income} <Btn small secondary onClick={()=>generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,profile.bridgeRunway,isIndependent),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
         {!isGen&&!sectionErrors.income&&!outputs.income&&<div style={S.row}><Btn disabled={!canGenSection('income')} onClick={()=>generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,profile.bridgeRunway,isIndependent),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})}><Sparkles size={14}/>Generate Income Now</Btn></div>}
         {!isGen&&!sectionErrors.income&&outputs.income&&<>
