@@ -118,6 +118,29 @@ const cases = [
     'She knows the work is not easy and chooses it anyway.'],
   ['logic-flip-is-not: negation without [subject] is [positive] follow does NOT fire', null,
     'The vendor is not ready. We will reschedule the launch.'],
+
+  // Comparative standing, widened 2026-08-27. The first case is the verbatim
+  // hero sentence of a shipped Personal Brand: the user was built up by putting
+  // an unnamed crowd down, in the most prominent line of the document, and every
+  // existing comparative-standing pattern missed it.
+  ['comparative-standing: when everyone else (shipped p3 hero failure)', 'comparative-standing-everyone-else',
+    'You are the person who redesigns the structure when everyone else is still treating the symptom.'],
+  ['comparative-standing: while everybody fires', 'comparative-standing-everyone-else',
+    'You ship while everybody argues about the roadmap.'],
+  ['comparative-standing: while the rest fires', 'comparative-standing-everyone-else',
+    'You had the number ready while the rest of the room was still guessing.'],
+  ['comparative-standing: while others (widened from where others)', 'comparative-standing-where-others',
+    'You go deeper while others settle for the surface read.'],
+  ['comparative-standing: where others still fires', 'comparative-standing-where-others',
+    'You build the system where others patch the symptom.'],
+  // The reason the everyone-else pattern is anchored on a contrast conjunction
+  // rather than on "everyone else" alone: the phrase appears in the user's own
+  // quoted reputation evidence, and a hard pattern that eats the user's
+  // evidence is worse than the construction it catches.
+  ['comparative-standing: quoted praise containing "everyone" does NOT fire', null,
+    'The CFO said you were the only one who kept everyone focused on what mattered.'],
+  ['comparative-standing: "everyone else" without a contrast conjunction does NOT fire', null,
+    'You told the team what everyone else in the building already suspected.'],
 ]
 
 let failed = 0
