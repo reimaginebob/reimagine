@@ -21,6 +21,8 @@ import { sql } from './_lib/db.js'
 import { getSessionUser } from './_lib/session.js'
 import { sendAccountHoldEmail, sendActivityAlertEmail } from './_lib/email.js'
 import { costFromUsage } from './_lib/usage-cost.js'
+import { classifyAnthropicError, operatorLine, systemErrorPayload, SYSTEM_ERROR_STATUS } from './_lib/anthropic-error.js'
+import { alertOnce } from './_lib/ops-alerts.js'
 
 // Real-time generation cap (rogue-activity safeguard). Matches the watchdog's
 // per-user generation threshold; a signed-in account that has already generated
@@ -48,6 +50,34 @@ async function logGeneration(user, step, model, usage) {
       VALUES
         (${userId}, ${kind}, ${c.model}, ${c.inputTokens}, ${c.outputTokens}, ${c.cacheWriteTokens}, ${c.cacheReadTokens}, ${c.webSearches}, ${c.costUsd})`
   } catch { /* never surfaces to the caller */ }
+}
+
+// Upstream failure handling (2026-08-15 incident). Anthropic's error text is
+// never returned to a browser: it read as the user's fault ("You have reached
+// your specified API usage limits...") and disclosed the reset date of an
+// internal budget. The raw message is logged, the operator is paged once per
+// window for the classes that need a human, and the caller gets one friendly
+// sentence. Shared with api/coach.js via _lib/anthropic-error.js so both
+// surfaces say the same thing.
+//
+// The pager is deliberately coarse: one key per failure class per hour. During
+// an outage every generation in the app fails, and an email per failure would
+// bury the one that mattered.
+async function reportUpstreamFailure(surface, status, body) {
+  const c = classifyAnthropicError(status, body)
+  console.error('anthropic upstream failure', { surface, kind: c.kind, status: c.status, detail: c.detail })
+  if (c.page) {
+    const subject = c.kind === 'spend_limit'
+      ? 'Reimagine: generation is DOWN — Anthropic spend limit reached'
+      : `Reimagine: generation is DOWN — Anthropic ${c.kind}`
+    try {
+      await alertOnce(`upstream:${c.kind}`, subject, [
+        operatorLine(surface, c),
+        'Users are being told Reimagine is temporarily unable to generate new content, and to email bob@career.club if it persists.',
+      ], { cooldownHours: 6 })
+    } catch { /* alerting must never take the request down */ }
+  }
+  return c
 }
 
 export const config = {
@@ -471,16 +501,32 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify(anthropicBody)
     })
-    const data = await response.json()
+    const data = await response.json().catch(() => null)
+    // Anything non-2xx is an upstream failure: log the real reason, page the
+    // operator if a human has to act, and hand the caller the friendly message.
+    // No generation_events row is written — a rejected call is not billed, and
+    // logging it would both inflate the month's generation count and push a
+    // user toward the hourly cap for calls that never ran.
+    // `data` is null when the body would not parse as JSON — a gateway error
+    // page in front of the API, or a truncated response. Same class of failure
+    // as an explicit error status, and it must not fall through as a success
+    // with no content blocks.
+    if (!response.ok || !data) {
+      await reportUpstreamFailure(reqBody.step ? `generation (${reqBody.step})` : 'generation', response.status, data)
+      return res.status(SYSTEM_ERROR_STATUS).json(systemErrorPayload())
+    }
     // Cache hit-rate telemetry: log usage (cache_creation_input_tokens /
     // cache_read_input_tokens) per surface. Serverless cannot count "first N
     // calls"; log every call (low volume at beta scale) and read manually.
-    console.log(JSON.stringify({ evt: 'claude_usage', step: reqBody.step, usage: data.usage }))
+    console.log(JSON.stringify({ evt: 'claude_usage', step: reqBody.step, usage: data && data.usage }))
     // Best-effort; awaited so it completes before the function returns (serverless
     // may freeze after the response), but it never throws or blocks the reply.
-    await logGeneration(sessionUser, reqBody.step, anthropicBody.model, data.usage)
+    await logGeneration(sessionUser, reqBody.step, anthropicBody.model, data && data.usage)
     return res.status(response.status).json(data)
   } catch (error) {
-    return res.status(500).json({ error: error.message })
+    // Network-level throw (DNS, TLS, socket, function timeout on the fetch).
+    // Same treatment: the message is for the log, not the browser.
+    await reportUpstreamFailure(reqBody.step ? `generation (${reqBody.step})` : 'generation', 0, error)
+    return res.status(SYSTEM_ERROR_STATUS).json(systemErrorPayload())
   }
 }

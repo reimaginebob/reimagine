@@ -241,9 +241,19 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         }),
       })
       if (!res.ok || !res.body) {
+        // When the model itself is unreachable the server sends one written
+        // sentence explaining it (api/_lib/anthropic-error.js), so the coach
+        // says the same thing every other surface says instead of a generic
+        // shrug. Any other failure keeps the short fallback.
+        let systemMsg = null
+        if (res.status === 503) {
+          const body = await res.json().catch(() => null)
+          const m = body && body.error && body.error.message
+          if (typeof m === 'string' && m.trim()) systemMsg = m.trim()
+        }
         const fallback = res.status === 401
           ? 'Sign in first to talk with your coach.'
-          : 'Sorry, something went wrong. Try again in a moment.'
+          : systemMsg || 'Sorry, something went wrong. Try again in a moment.'
         setMessages(m => {
           const copy = [...m]
           copy[copy.length - 1] = { role: 'assistant', content: fallback }

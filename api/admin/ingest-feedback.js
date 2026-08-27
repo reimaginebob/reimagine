@@ -24,6 +24,7 @@ import {
   CONCERN_CODES, CONCERN_LABELS, VALUABLE_TO_SURFACE,
   normalizeThemes, sentimentFromNative, stepToSurface, CHECKIN_ANSWER_VALUE,
 } from '../../src/feedback-taxonomy.js'
+import { logSpend } from '../_lib/spend-log.js'
 
 const MODEL = 'claude-haiku-4-5'
 const CALL_TIMEOUT_MS = 30000
@@ -87,6 +88,10 @@ async function classifyText(ev) {
     })
     if (!up.ok) { console.error('ingest-feedback: model HTTP', up.status); return null }
     const data = await up.json()
+    // Recorded for the same reason as classify-coach: the budget watchdog reads
+    // generation_events against the month's cap, so every billed call belongs
+    // in the table.
+    await logSpend('ingest-feedback', MODEL, data.usage)
     const text = Array.isArray(data.content) ? (data.content.find(b => b.type === 'text') || {}).text : null
     if (!text) return null
     let obj

@@ -18,6 +18,7 @@
 
 import { sql } from '../_lib/db.js'
 import { TAXONOMY_VERSION, TAG_SCHEMA, ATTRIBUTE_KEYS, CATEGORIES, CLASSIFIER_SYSTEM } from '../_lib/coach-taxonomy.js'
+import { logSpend } from '../_lib/spend-log.js'
 
 const MODEL = 'claude-haiku-4-5'
 const CHUNK = 25            // rows fetched per DB round
@@ -58,6 +59,10 @@ async function classifyOne(row) {
     })
     if (!up.ok) { console.error('classify-coach: model HTTP', up.status); return null }
     const data = await up.json()
+    // This spend used to go unrecorded. It is small, but the budget watchdog
+    // reads generation_events against the month's cap, and a number that
+    // silently omits part of the bill is worse than no number.
+    await logSpend('classify-coach', MODEL, data.usage)
     const text = Array.isArray(data.content) ? (data.content.find(b => b.type === 'text') || {}).text : null
     if (!text) return null
     let obj

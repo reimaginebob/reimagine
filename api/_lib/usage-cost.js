@@ -20,8 +20,13 @@
 // because those rows already hold their dollars and only new ones are affected.
 
 const PRICES = {
-  // Claude Sonnet 4.5 -- the only model either generation surface calls.
+  // Claude Sonnet 4.5 -- what both generation surfaces call.
   'claude-sonnet-4-5': { input: 3.00, output: 15.00, cacheWrite: 3.75, cacheRead: 0.30 },
+  // Claude Haiku 4.5 -- the two daily classifier crons (coach insights, feedback
+  // ingest). Added 2026-08-27 with the budget watchdog: those calls used to be
+  // unlogged, and the fallback below would have priced them at Sonnet rates,
+  // overstating them threefold in a number the spend alarm reads.
+  'claude-haiku-4-5': { input: 1.00, output: 5.00, cacheWrite: 1.25, cacheRead: 0.10 },
 }
 
 // Used when a call reports a model with no rate above (a model swap that lands
