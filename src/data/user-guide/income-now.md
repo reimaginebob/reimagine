@@ -22,14 +22,16 @@ If a job search is going to take longer than your runway, having income flowing 
 
 ## What this module does
 
-Reimagine builds a complete fractional and consulting plan tailored to your background, your seniority, and the direction you are currently exploring. The plan has six parts:
+Reimagine builds a complete fractional and consulting plan tailored to your background, your seniority, and the direction you are currently exploring. It runs in six parts, in the order the decision actually runs:
 
-1. **Where to show up**. Four to six marketplaces and platforms (Catalant, Toptal, Bolste, Business Talent Group, etc.) matched to your function, with realistic rate ranges and the first step to get listed on each.
-2. **Your consulting presence**. A positioning headline, a 150-word bio, four specific service offerings (each with a problem-first title, the buyer, the deliverable, the outcome, and a price), and a complete outreach message you can send to your network.
-3. **A fractional pitch**. A one-paragraph cold outreach for LinkedIn or email.
-4. **Passion-adjacent opportunities**. Three engagements at the intersection of your professional skills and your stated passions that could generate income within 60 days.
-5. **A one-sheet**. A problem-first one-page document you can share with prospects.
+1. **What you would sell**. One sentence naming what you sell as the problem you remove, then four service offerings — each with a problem-first title, the buyer, what the engagement includes, the outcome as money made or saved or risk removed, and a price. At least one sits where what you can already do meets something you have said you care about.
+2. **Who buys it**. For each offering, the buyer type: the kind of organization, its size band, the geography or vertical, and the title of the person who owns the problem and holds the budget. Described precisely rather than named — Find Companies Who Fit That Description, below the plan, is where these turn into real organizations with links.
+3. **What it pays**. The arithmetic. Which mixes of those offerings reach which monthly numbers, what month one plausibly looks like next to month three, and what your own number would take if you give us one.
+4. **How you say it**. A positioning statement, a 150-word bio, a warm outreach message for people who know you, a cold one for people who don't, and a one-sheet — all carrying the same message at different lengths, so they can't drift apart.
+5. **Where you find them**. Three channels: direct outreach to the buyers in part 2, four to six marketplaces matched to your function (Catalant, Toptal, Bolste, Business Talent Group and the like), and the funds and firms who already have your buyers.
 6. **Your first 48 hours**. Exactly what to do in the next two days to have a profile live or an outreach message sent.
+
+Where your inputs show a skill worth building, the plan adds an optional last part on closing that gap through real work — paid or volunteer, whichever gets to evidence faster.
 
 ## How to find it
 
@@ -42,9 +44,15 @@ You can access Income Now in two places:
 
 The Income Now entry screen opens with the same framing this chapter does: "When money gets tight, the temptation is to take whatever pays the bills" plus the four value paths. Read it, then click **Build My Income Plan** to generate. This is the most thorough generation in the tool: expect three to four minutes.
 
+Above the button are two optional fields: **what this would need to bring in**, and **for how long**. Fill them in and part 3 anchors its arithmetic on your number, showing which mixes of the work reach it. Leave them blank and part 3 works across a few illustrative monthly levels instead — the plan is complete either way. You can add a number later and rebuild.
+
+This is deliberately not the **compensation floor** you may have set in Practical Priorities. That one is what a permanent move would have to be worth: annual, and set at what you would move *for*. This one is what the bridge needs to cover while the search runs, which is usually a much smaller monthly number. Reimagine keeps them apart on purpose — anchoring bridge arithmetic on a permanent-role floor would make a perfectly workable path look impossible.
+
 ## What good looks like
 
-The platform recommendations should match your function. If you are an HR executive, you should see Catalant, Business Talent Group, Bolste. If you are a finance executive, you should see Toptal Finance, Graphite, the CFO Alliance. If the platforms feel off-target, refine.
+The platform recommendations, in part 5, should match your function. If you are an HR executive, you should see Catalant, Business Talent Group, Bolste. If you are a finance executive, you should see Toptal Finance, Graphite, the CFO Alliance. If the platforms feel off-target, refine. They sit in part 5 rather than at the top because for senior work the marketplaces are usually the weaker of the three channels — direct outreach to the buyers in part 2 tends to do more.
+
+The one-sheet should read like the rest of the plan, because it is assembled from it. If it introduces claims or prices you don't recognise from parts 1 and 4, refine.
 
 The service offerings should be problem-first, not seller-first. A title like "When your best people are leaving and you don't know why" is doing its job. A title like "Retention Consulting" is generic. Refine it.
 
