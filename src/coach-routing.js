@@ -74,7 +74,7 @@ export const FEATURE_MAP = [
   { slug: 'compensation-read',    reach: 'opportunity-gated', label: 'Compensation Read',
     does: 'gives a sourced pay range for a role and market, triangulated across public salary sites and cited so the person can check it themselves; for a specific opportunity it anchors to the company\'s size and industry and sets aside sources that are matching a mislabeled version of the role',
     where: 'inside the Opportunity Playbook, and inside Income Now once a direction is picked' },
-  { slug: 'buyer-read',           reach: 'opportunity-gated', label: 'Who Fits That Description',
+  { slug: 'buyer-read',           reach: 'opportunity-gated', label: 'Find Companies Who Fit That Description',
     does: 'names real, currently-operating organizations matching the buyer types the Income Now plan describes — five to eight of them, each with what they do, which buyer type it fits, and a source link to check; anything found but not sourceable is shown separately rather than dropped. If the list is off on size, industry, geography, stage, or ownership, saying so rebuilds it around that, and the card shows which screen is in force until it is cleared. It names who might buy; the plan itself covers what to say to them',
     where: 'inside Income Now, under the plan, once a direction is picked' },
   { slug: 'offer-negotiation',    reach: 'opportunity-gated', label: 'Offer & Negotiation',
