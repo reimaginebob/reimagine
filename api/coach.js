@@ -105,7 +105,7 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     const title = String(rec.title || 'Opportunity').trim()
     const parts = []
     parts.push(`stage ${isClosed ? 'Closed' + (s.outcome ? ` (${String(s.outcome).replace(/_/g, ' ')})` : '') : (STAGE[s.stage] || 'not set')}`)
-    let overdue = false, hasUpcoming = false, mtgUpcoming = false
+    let overdue = false, hasUpcoming = false, mtgUpcoming = false, mtgPast = false
     // A date more than ~1yr past or ~5yr out is not a real deadline — almost always
     // a wrong-year value (a saved 2001 for 2026 = "overdue by 9,131 days"). Treat it
     // as a bad value to fix, never as a day count.
@@ -113,16 +113,19 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     const yearOf = (iso) => { try { return new Date(iso).toISOString().slice(0, 4) } catch { return '?' } }
     if (s.next_conversation_at) {
       const d = dayDiff(s.next_conversation_at)
-      // A meeting that already happened is not a pending item (the app clears it
-      // once its day passes), so it never drives attention — only surface a
-      // meeting that is today or still upcoming. Past-due is the next-step date.
-      if (insane(d)) { /* garbage meeting date — ignore, reads as no meeting */ }
+      // A meeting is never cleared by the app, so a past one persists and reads as
+      // "last met" — real evidence the opportunity is live, not empty. Only a
+      // today/upcoming meeting counts as forward motion booked; past-due is the
+      // next-step date, never a meeting.
+      if (insane(d)) { /* garbage meeting date — ignore */ }
       else if (d === 0) { mtgUpcoming = true; hasUpcoming = true; parts.push('a meeting is scheduled today') }
       else if (d != null && d < 0) { mtgUpcoming = true; hasUpcoming = true; parts.push(`next meeting in ${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}`) }
+      else if (d != null && d > 0) { mtgPast = true; parts.push(`last met ${d} day${d === 1 ? '' : 's'} ago, nothing booked since`) }
     }
-    // The ABSENCE of a scheduled meeting is itself analysis: no meeting on the
-    // calendar means no forward motion is booked. Surface it for active pursuits.
-    if (!isClosed && !mtgUpcoming) parts.push('no next meeting scheduled')
+    // No meeting booked ahead is analysis: an active pursuit with a past meeting but
+    // nothing next needs the next conversation scheduled; one with no meeting at all
+    // is earlier-stage. Either way it is NOT "nothing going on".
+    if (!isClosed && !mtgUpcoming) parts.push(mtgPast ? 'no NEXT meeting booked yet' : 'no meeting scheduled yet')
     if (s.next_move || s.next_step_at) {
       const d = s.next_step_at ? dayDiff(s.next_step_at) : null
       let desc = s.next_move ? `their next step: "${String(s.next_move).slice(0, 140)}"` : 'they set a next-step date'
@@ -146,7 +149,7 @@ function buildPursuitStatusBlock(state, pursuitRows) {
   }
   if (!lines.length) return ''
   const rollup = `${active} active${attention ? `, ${attention} needing attention (an overdue next step)` : ''}${quiet ? `, ${quiet} going quiet (nothing scheduled ahead)` : ''}.`
-  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nWhen they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An active opportunity marked "no next meeting scheduled" has no forward motion booked — treat that as a real signal, not a neutral fact: it usually means the next move is to get a conversation on the calendar. Past-due is the next-step date only; a meeting that already happened is not overdue. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
+  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nWhen they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
 }
 
 // Search-intake staleness (consult 2026-08-20). Past this age the two intake
