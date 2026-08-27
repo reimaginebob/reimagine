@@ -532,7 +532,34 @@ function normalizePresentation(p){
   }
   const hero=stripSO(p.hero)
   const origin=p.origin&&typeof p.origin==='object'&&String(p.origin.body||'').trim()?{body:stripSO(p.origin.body)}:null
-  const edges=(Array.isArray(p.edges)?p.edges:[]).filter(e=>e&&String(e.claim||'').trim()).map(e=>({claim:stripSO(e.claim),detail:stripSO(e.detail)}))
+  // A growth edge renders as its claim (the card headline) followed by its
+  // detail. The model repeats the claim verbatim inside the detail often enough
+  // to matter -- at either end of it -- and the card then says the same sentence
+  // twice, which is exactly the "say each thing once" rule the prompt states.
+  // Nothing downstream catches it: the paragraph dedupe below compares whole
+  // paragraphs across DIFFERENT fields, never a field against itself.
+  //
+  // Sentence-level and exact-on-normalized: drop a sentence in the detail only
+  // when it normalizes to the claim itself. Deliberately conservative, because
+  // over-deleting turns a growth edge into a bare assertion with no detail, and
+  // that reads worse than the repetition. Split without lookbehind -- Safari did
+  // not ship it until 16.4 and this runs on phones.
+  const stripClaimEcho=(claim,detail)=>{
+    const cn=norm(claim)
+    const d=String(detail||'').trim()
+    if(!d||cn.length<20)return d
+    const parts=d.match(/[^.!?]+[.!?]*\s*/g)
+    if(!parts||parts.length<2)return d
+    const kept=parts.filter(s=>norm(s)!==cn)
+    if(kept.length===parts.length)return d
+    const out=kept.join('').replace(/\s{2,}/g,' ').trim()
+    // Never strip an edge down to nothing; keep the original if we would.
+    return out||d
+  }
+  const edges=(Array.isArray(p.edges)?p.edges:[]).filter(e=>e&&String(e.claim||'').trim()).map(e=>{
+    const claim=stripSO(e.claim)
+    return {claim,detail:stripClaimEcho(claim,stripSO(e.detail))}
+  })
   const dupeTargets=[]
   if(origin)dupeTargets.push(norm(origin.body))
   edges.forEach(e=>{dupeTargets.push(norm(e.claim+' '+e.detail));if(e.detail)dupeTargets.push(norm(e.detail))})
@@ -560,9 +587,19 @@ function normalizePresentation(p){
   const isSeen=para=>{const n=norm(para);return n.length>=40&&seen.some(s=>s.includes(n)||n.includes(s))}
   const remember=para=>{const n=norm(para);if(n.length>=40)seen.push(n)}
   const dedupParas=txt=>{const out=[];String(txt||'').split(/\n\n+/).forEach(pp=>{const t=pp.trim();if(!t)return;if(isSeen(t))return;out.push(t);remember(t)});return out.join('\n\n')}
+  // Edges are seeded BEFORE the sections are deduped, not after. They used to be
+  // remembered further down, which meant sections were compared against a `seen`
+  // set that did not yet contain them -- so a passage that appeared in both a
+  // section and a growth edge printed twice. The whole-body isDup check above
+  // does not cover it either: it only fires when the ENTIRE section body is
+  // contained in an edge, and the common case is one paragraph of several.
+  //
+  // Seeding edges first also settles which copy wins, and the schema already
+  // decided: growth edges are "pulled out for cards, and therefore NOT
+  // duplicated in sections." The card keeps the text; the section loses it.
+  edges.forEach(e=>{remember((e.claim||'')+' '+(e.detail||''));if(e.detail)remember(e.detail)})
   const sectionsD=kept.map(s=>({kicker:s.kicker,body:dedupParas(s.body)})).filter(s=>s.body.trim())
   const originD=origin?(()=>{const b=dedupParas(origin.body);return b.trim()?{body:b}:null})():null
-  edges.forEach(e=>{remember((e.claim||'')+' '+(e.detail||''));if(e.detail)remember(e.detail)})
   const forwardCloseD=forwardClose?(()=>{const b=dedupParas(forwardClose);return b.trim()?b:null})():null
   // Grounding guard: keep a proofPoint only if its number actually appears in the
   // brand's own prose (the p3 prompt guarantees "the numbers still live in the

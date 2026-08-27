@@ -94,11 +94,34 @@ export const HARD_PATTERNS = [
     note: 'Comparative standing against an average: forbidden.',
   },
   {
+    // Widened 2026-08-27 from `where others X` to the other three conjunctions.
+    // "while others settle for" and "when others stop" are the same move and
+    // were passing.
     name: 'comparative-standing-where-others',
-    re: /\bwhere\s+others\s+(?:[a-z]+)/i,
+    re: /\b(?:where|while|when|whereas)\s+others\s+(?:[a-z]+)/i,
     severity: 'hard',
     appliesTo: ['runtime'],
-    note: 'Comparative standing: "where others X" is forbidden.',
+    note: 'Comparative standing: "where/while/when others X" is forbidden.',
+  },
+  {
+    // The gap that put a banned construction in the most prominent sentence of
+    // a shipped Personal Brand (2026-08-27): "You are the person who redesigns
+    // the structure when everyone else is still treating the symptom." It is
+    // the same forbidden move as "where others settle for X" -- the user is
+    // built up by putting an unnamed group down -- and it matched none of the
+    // patterns above, which look for "most/many + group noun", "the average X",
+    // or a literal "others".
+    //
+    // Anchored on the contrast conjunction rather than on "everyone else"
+    // alone, because "everyone else" appears legitimately in quoted praise from
+    // the user's own reputation inputs ("you kept everyone else focused"), and
+    // a hard pattern that eats the user's own evidence is worse than the
+    // construction it catches.
+    name: 'comparative-standing-everyone-else',
+    re: /\b(?:while|when|whereas|where)\s+(?:everyone|everybody|the\s+rest)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Comparative standing against an unnamed everyone: forbidden. Name what the user did; do not measure it against a crowd.',
   },
   {
     name: 'comparative-standing-unlike-ahead',
