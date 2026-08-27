@@ -2876,7 +2876,7 @@ Return only the Markdown described above. No preamble before the first header.`,
   // menu of practice concepts to choose between, she needs the thing she already
   // does said in one sentence a stranger understands. Returns the line and
   // nothing else; the UI puts it straight into an editable field she owns.
-  positioning:(pr,outs,previous='')=>`Write ONE sentence describing what this person sells, as an independent consultant or fractional executive.
+  positioning:(pr,outs,previous='',note='')=>`Write ONE sentence describing what this person sells, as an independent consultant or fractional executive.
 
 This is a first draft they will edit. It goes in a text box under the words "edit it until it sounds like you," so it needs to be close enough to be worth editing rather than close enough to be final.
 
@@ -2905,7 +2905,15 @@ RESUME:
 ${pr.resume||'not provided'}
 
 LOCATION: ${pr.loc.country}${pr.loc.city?', '+pr.loc.city:''} | WORK: ${pr.loc.work}
-${previous?`\nThey asked for a different draft. Do not repeat this one, and do not simply reword it; come at the offer from a genuinely different angle (a different buyer, a different moment, a different level of the same function):\n${previous}\n`:''}
+${previous?`
+Here is the line they have now. Do not hand it back unchanged:
+${previous}
+`:''}${note?`
+THEY TOLD YOU WHAT IS OFF, in their own words: "${note}"
+That is the instruction. Fix what they named and leave alone what they did not.
+`:(previous?`
+They asked for a different draft without saying what was off, so come at the offer from a genuinely different angle: a different buyer, a different moment, or a different level of the same function.
+`:'')}
 Output the sentence and nothing else.`,
   p6:(pr,outs,sel,lane)=>`${AUDIENCE_ANCHORING(sel)}\n\nUser is pursuing: **${sel}**\nLane: **${lane}**\n\nPROFILE:\nRESUME:\n${pr.resume||'not provided'}\n\nPERSONAL BRAND:\n${outs.p3}\n\nORIENTATION:\nValues: ${pr.values}\nPassions: ${pr.passions}\nReputation: ${[pr.rep.memory,pr.rep.emergency,pr.rep.twoWords,pr.rep.other].filter(Boolean).join(' | ')}\n${pr.lifeEvents?`Life and formative experiences: ${pr.lifeEvents}`:''}\n\nVOICE. THIS IS THE MOST IMPORTANT INSTRUCTION:\nYou are Bob Goodwin across the table from this person. Tell them what you see. Never analyze. Never describe your approach. Never use the words "bridge story," "narrative," "reframes," "positions you as," "the core message," "TMAY."\n\nLANE-AWARE ANCHOR SELECTION:\nReview the user's values, passions, reputation themes, and life experiences alongside their Brand Synthesis. Select the human anchor that is most resonant for the ${lane} lane:\n- Familiar Ground: foreground the anchor most connected to professional craft or operating instinct.\n- Industry Insider: foreground the anchor most connected to domain curiosity and insider perspective.\n- Work That Matters: foreground the anchor most connected to values, passion, or cause.
 - Your Practice: foreground the anchor most connected to earned authority to operate on their own. This person is not asking to be hired; they are telling a prospective client why they trust themselves to do this work independently, and the listener is deciding whether to buy. Part 3 lands on why this practice is the natural next chapter, not why a role is.\n\nEVIDENCE-BASED CONFIDENCE (the test for every claim about this person): every trait or quality you name must carry three things in the same breath: (1) an anchor the listener can verify (a specific moment, a named assessment, a sustained passion, a formative training); (2) the user's own words or plain-language definition of what it is; and (3) a recognition move that ties it to lived work ("which is exactly what I did when..."). A claim that floats without those three reads as performance; cut it or anchor it. Apply this test to every sentence about the user.\n\nTHE THREE-PART STORY (write as one flowing answer, no section labels):\n1. Open with the strongest human anchor in this person's inputs. Pick the single anchor that gives the listener the quickest, most distinctive signal of who this person is and that arcs naturally into their work and what they want next. Choose by strength; do NOT default to a childhood or early-life event when another anchor is more telling. The anchor can be any of four kinds:\n   - A formative life experience: a specific moment that shaped how they work.\n   - A hobby or passion: a sustained outside pursuit whose instinct carries into the work.\n   - A training or craft: a skill they were formally trained in whose discipline shows up in how they operate.\n   - An assessment result: a specific signal from an assessment they have taken (CliftonStrengths, Affintus, DiSC, MBTI). Deploy it in THREE moves: (a) a graceful intro that does not assume the listener knows the framework ("I am not sure if you know CliftonStrengths, but..."); (b) the user's own plain-language definition ("the way I understand it is..."); (c) a recognition reflection that locates it in their career ("I never had a name for it, but it describes exactly what I have done for fifteen years"). Without the three moves an assessment anchor reads as a test-score brag; with them it reads as a name for something they already recognized.\n   (Value-based anchors are deliberately not prescribed here yet; if the user's inputs carry a genuinely-held value organically, it can surface, but do not go looking for one.)\n   Never open with a role, title, company, or time-anchor ("I have spent 20 years in," "After 15 years in," "As a senior leader").\n2. Lead the professional part with the THEME, not a list of wins. The theme is the integrating force the Personal Brand analysis already found: the through-line, which is the opening sentence of the Personal Brand read in the PROFILE above. State that force in plain language, then anchor it. Exactly one accomplishment sentence in the work paragraph. A second accomplishment sentence is a defect. If the user has multiple strong accomplishments, choose the one that most directly illustrates the theme from the through-line (the opening sentence of the Personal Brand read above) and refuse the impulse to mention the others. The professional beat is thematic articulation anchored by a single example, not a mini-resume. (Right: "I build the systems institutions use to meet their people at scale, and because of that I designed a referral program that now generates 34% of all hires." One sentence: the force, then the single accomplishment with its number, then stop. Wrong: that same sentence followed by "I also led the Workday migration, redesigned the offer experience, and cut $4.2M in agency costs" — three more accomplishments turn the thematic beat into a resume.)\n3. Why ${sel} is the natural next chapter. Let it fall out of the same force that runs through the first two parts, so the next move reads as the continuation of who this person is, not a role description, not a career change, not a pivot.\n\nMETAPHOR DENSITY: when the anchor is metaphor-rich (music, cycling, fishing, taking things apart), let the metaphor establish the frame strongly in the opening paragraph, then let it recede. In the professional paragraph allow AT MOST ONE callback to it; carry the work in plain operational language with the numbers attached through "because" clauses, not the metaphor repeated each time. In the close allow ONE final light touch, a turn of phrase that completes the frame, not another extended metaphor sentence. Density decreases through the piece: heavy open, light middle, light close. A metaphor returning in every paragraph is over-applied.\n\nTarget: 30-45 seconds spoken. Cohesive prose, one to three paragraphs.\n\nSPECIFICITY RULE: Every sentence must reference something concrete from this person's actual profile: a number, a company, a role, a result, a specific passion, a named cause. No abstract character descriptions. No inflated language.\n\nALTERNATIVE ANCHOR (judgment call):\nAfter writing the story, evaluate: does this person's profile contain a meaningfully different human anchor that was not used, one that would produce a genuinely different opening and would be more resonant in a specific context?\n\nIf YES: output the exact separator ---COACHING NOTE--- on its own line, then write 1-2 sentences naming what you led with and when the alternative would serve better. Specific and plain.\n\nIf NO (one dominant through-line, or the alternative is thin or too similar): do not output the separator. Do not manufacture a second option.`,
@@ -4883,6 +4891,39 @@ function OutPanel({text,onCopy,copied,expandLabel}){
 // always-visible subhead is Tier 1 Body (18px) rather than the original
 // brief's footnote spec; the disclosure toggle is Tier 2 Helper (16px); the
 // expanded detail body is Tier 1 Body (18px) navy.
+// The shipped explainers above are all written for a job search: "screening
+// calls," "the direction you picked," the three career lanes, "the most likely
+// hiring decision-maker," "while you keep searching." Every one of them rendered
+// verbatim on the practice track, under a section named for something else.
+//
+// Overlay rather than a fork: only the sections this track actually shows are
+// listed, and anything missing falls through to the standard copy.
+const INDEPENDENT_SECTION_EXPLAINERS = {
+  p6: {
+    subhead: 'The 30 seconds you say out loud when someone asks what you do.',
+    detail: 'The one line you wrote is the sentence. This is the spoken version of it: how you got here, what you solve, and why you are the person to solve it, in an order that holds a listener. Built from your Personal Brand and your own words, and anchored on the experience that explains why you do this work rather than on a list of jobs. Use it on discovery calls, at events, and any time someone asks what you do and you have more than a sentence to answer.',
+  },
+  income: {
+    subhead: 'What you sell, what it costs, and what to do next.',
+    detail: 'Your services written as the problems they remove rather than the jobs you held, each with the buyer who has that problem and a price. Then the arithmetic: which combinations reach the number you need, and what a realistic first month looks like against a steadier one. Closes with where your buyers already gather and the specific next steps to take.',
+  },
+  p8: {
+    subhead: 'Your LinkedIn profile, rewritten for someone who sells their own services.',
+    detail: 'Headline and About rebuilt around what you do for clients rather than the last title you held, and your experience reframed so a prospect reads a track record rather than a career history. Paste it into LinkedIn yourself; Reimagine never touches your profile.',
+  },
+  p_res: {
+    subhead: 'Your background as a credentials document, not a job application.',
+    detail: 'The same history, arranged to answer "why should I trust you with this" instead of "should we hire you." Downloadable as a Word document you can send with a proposal or hand to someone who asks what you have done. The point is content; the visual style stays yours.',
+  },
+  p7: {
+    subhead: 'Specific companies that fit the buyer you described, and how to reach the right person.',
+    detail: 'Live web research starting from the need and the buyer you named in Where You Think You Fit, treated as a hypothesis to confirm or productively argue with rather than a brief to follow. Named organizations, why each one fits, who owns the problem there, and a draft approach. Runs longer than the other sections because the research is live; expect a longer wait.',
+  },
+  p11: {
+    subhead: 'The questions a prospect asks, worked through before they ask them.',
+    detail: 'What a buyer wants to know before they commit budget to someone outside the company: what you would do first, how you have handled this before, what it costs, and why you and not a firm. Each one with an answer built from your own evidence, plus a box under every question where you can speak or type your own answer and get written feedback on it.',
+  },
+}
 const SECTION_EXPLAINERS = {
   p5: {
     subhead: 'A read on this specific role and how your background maps to it.',
@@ -4956,7 +4997,7 @@ const FOCUS_GROUPS_INDEPENDENT = [
 // names so the Coach can follow either one.
 const INDEPENDENT_SECTION_LABELS = {
   p7:    'Find Your Clients',
-  income:'Price, Pitch & Launch',
+  income:'Price, Package & Launch',
   p6:    'Your Pitch',
   p8:    'Your LinkedIn',
   p_res: 'Your One-Sheet',
@@ -5366,7 +5407,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       ...(isIndependent?[
         {id:'positioning',label:NAV_LABELS.positioning,Icon:Compass,children:[
           {id:'focus',label:'Find Your Clients',activeSteps:['focus']},
-          {id:'income',label:'Price, Pitch & Launch',activeSteps:['income']},
+          {id:'income',label:'Price, Package & Launch',activeSteps:['income']},
         ]},
       ]:[
       {id:'twoDoors',label:NAV_LABELS.twoDoors,Icon:Compass,children:[
@@ -10003,12 +10044,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // outputs.positioning so a reload does not spend another call, and seeds the
   // editable field. `previous` is set by "Draft me another" so the model is told
   // what not to repeat.
-  const draftPositioning=async(previous='')=>{
+  const draftPositioning=async(previous='',note='')=>{
     if(positioningBusy)return
     setPositioningBusy(true);setErr(null)
     try{
       const raw=await callClaudeWithVoiceGate(
-        ()=>correctionsBlock(profile.corrections)+P.positioning(pc,outputs,previous),
+        ()=>correctionsBlock(profile.corrections)+P.positioning(pc,outputs,previous,note),
         {maxTokens:400,profileBlock:buildUserProfileBlock(pc,outputs),step:'positioning'},
         {step:'positioning',onEvent:logVoiceEvent})
       // One sentence is the contract; take the first non-empty line and strip a
@@ -10667,9 +10708,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {err&&<ErrBox msg={err}/>}
             <div style={{display:'flex',gap:12,marginTop:18,flexWrap:'wrap',alignItems:'center'}}>
               <Btn onClick={confirmPositioning} disabled={positioningBusy}>{positioningEdited?'Use this line':'Build my practice plan'} <ChevronRight size={14}/></Btn>
-              <Btn secondary disabled={positioningBusy} onClick={()=>draftPositioning(positioningDraft)}>{positioningBusy?<><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Drafting</>:<><RotateCcw size={13}/>Draft me another</>}</Btn>
+              <Btn secondary disabled={positioningBusy} onClick={()=>draftPositioning(positioningDraft,feedback.positioning||'')}>{positioningBusy?<><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Drafting</>:<><RotateCcw size={13}/>Draft me another</>}</Btn>
             </div>
             {positioningEdited&&<p style={{...S.helperText,color:C.goldL,marginTop:10}}>Your edit is not saved yet. Use this line to keep it and build your plan.</p>}
+            {/* The product has ONE correction idiom and this screen was inventing
+                a second. "Draft me another" also took no input, so a redraft was
+                a reroll rather than a fix. This is the same RefineBox every other
+                output carries, and what gets typed here is handed to the redraft
+                as the instruction. The field above stays directly editable,
+                because a single sentence is faster to retype than to describe. */}
+            {!isDemo&&<RefineBox guard={submitCorrection} sectionId="positioning" value={feedback.positioning||''} onChange={v=>setFb('positioning',v)}
+              hint="Tell us what is off about this line and we will redraft it. Or edit it yourself in the box above; both work."
+              placeholder="e.g. it leads with headcount when the real problem is partner time… it should say what they get, not what I am… too long to say out loud…"
+              onRegenerate={v=>draftPositioning(positioningDraft,v)} onlyUpdateButton={true}/>}
           </>}
       </div>
       <CoachingCallout>
@@ -10988,7 +11039,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 <span>{num?num+'. ':''}{sec.label}</span>
                 {isDoneSec&&<span data-print="hide" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:15,fontWeight:600,color:C.ok,background:`${C.ok}18`,padding:'3px 10px',borderRadius:999}}><Check size={12} color={C.ok} strokeWidth={2.5}/>Built</span>}
               </h2>
-              {SECTION_EXPLAINERS[id]&&<SectionExplainer subhead={SECTION_EXPLAINERS[id].subhead} detail={SECTION_EXPLAINERS[id].detail}/>}
+              {(()=>{const _ex=(isIndependent&&INDEPENDENT_SECTION_EXPLAINERS[id])||SECTION_EXPLAINERS[id];return _ex?<SectionExplainer subhead={_ex.subhead} detail={_ex.detail}/>:null})()}
               {isGen&&<Loading msg={sec.load} step={id} noMyow={isIndependent}/>}
               {!isGen&&sectionErrors[id]&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors[id]} <Btn small secondary onClick={()=>id==='p5'?generate('p5',gp('p5'),go('p5')):genSec(id)} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
               {!isGen&&!sectionErrors[id]&&has&&<>
