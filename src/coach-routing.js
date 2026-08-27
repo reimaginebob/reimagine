@@ -48,22 +48,31 @@ export const FEATURE_MAP = [
   { slug: 'role-options',         reach: 'standalone',  labelId: 'laneSelect', parent: 'twoDoors',
     does: 'opens up directions worth exploring, including off the obvious path' },
   { slug: 'income-now',           reach: 'standalone',  labelId: 'income',     parent: 'twoDoors',
-    does: 'surfaces faster ways to bring in money while the bigger search runs' },
+    does: 'surfaces faster ways to bring in money while the bigger search runs. On the Go Independent track it is called "Price, Pitch & Launch" and is one of the two lead sections rather than a bonus: there the practice IS the goal, so it covers what to charge, how to package the work, where the buyers already gather, and what to do in the next 48 hours, never framed as a stopgap' },
+  // Go Independent (2026-08-27). A second entry track, reached by its own URL,
+  // for someone building a consulting or fractional-executive practice. It reuses
+  // Orientation, Personal Brand, Go-to-Market and Income Now; these two entries
+  // are the parts that exist only there. Named here so the Coach can speak about
+  // them to the people who have them, and does not offer them to anyone else.
+  { slug: 'where-you-fit',        reach: 'standalone',  labelId: 'fit',
+    does: 'captures, during Orientation, the person\'s own read on the problem they solve and the kind of client who needs it. Go Independent track only. It feeds the Personal Brand as raw signal, gives Go-to-Market a hypothesis to start its client research from instead of starting cold, and tells the pricing plan who it is pricing for' },
+  { slug: 'positioning-line',     reach: 'standalone',  labelId: 'positioning',
+    does: 'drafts one editable sentence describing what the person sells, built from their Personal Brand and their own read on where they fit, which they edit until it sounds like them. Go Independent track only. Confirming it is what starts the practice plan, and every section after it is built from that line; it replaces Put It to Work on that track, and can be changed later' },
   { slug: 'opportunity-playbook', reach: 'standalone',  labelId: 'op',         parent: 'twoDoors',
     does: 'turns one specific live opening into a tailored plan of attack' },
 
   { slug: 'bridge-story',         reach: 'focus-gated', labelId: 'p6',
-    does: 'builds the "tell me about yourself" pitch for a chosen direction' },
+    does: 'builds the "tell me about yourself" pitch for a chosen direction. On the Go Independent track it is called "Your Pitch" and is anchored on the person\'s earned authority to operate on their own, told to a prospective client deciding whether to buy rather than to an interviewer deciding whether to hire' },
   { slug: 'go-to-market',         reach: 'focus-gated', labelId: 'p7',
-    does: 'researches target companies live, flags any with a role open right now that fits, and drafts the outreach' },
+    does: 'researches target companies live, flags any with a role open right now that fits, and drafts the outreach. On the Go Independent track it is called "Find Your Clients" and starts from the buyer the person named in Where You Think You Fit, treating that as a hypothesis to confirm or productively contradict rather than a directive' },
   { slug: 'recruiters',           reach: 'focus-gated', labelId: 'recruiters',
     does: 'finds executive-search recruiters who specialize in the target function, industry, and level — boutique firms and named practice leaders at the big firms, with a note to reach out; available for a chosen direction in the Focus Playbook and for a specific role in an Opportunity Playbook' },
   { slug: 'linkedin-remix',       reach: 'focus-gated', labelId: 'p8',
-    does: "rewrites the person's own LinkedIn profile for where they're headed" },
+    does: "rewrites the person's own LinkedIn profile for where they're headed. Called 'Your LinkedIn' on the Go Independent track" },
   { slug: 'resume-refresh',       reach: 'focus-gated', labelId: 'p_res',
-    does: 'repoints the resume at a chosen direction, with a Human version for recruiters and an ATS version for online applications behind a toggle; the top Career Highlights and the body bullets are written to complement, not repeat, each other' },
+    does: 'repoints the resume at a chosen direction, with a Human version for recruiters and an ATS version for online applications behind a toggle; the top Career Highlights and the body bullets are written to complement, not repeat, each other. Called "Your One-Sheet" on the Go Independent track, where it reads as a credentials document rather than a job application' },
   { slug: 'interview-prep',       reach: 'focus-gated', labelId: 'p11',
-    does: 'works the likely interview questions with worked-through answers; under each question a "Practice this answer" box lets the person speak or type their own answer and send it here for written feedback on it' },
+    does: 'works the likely interview questions with worked-through answers; under each question a "Practice this answer" box lets the person speak or type their own answer and send it here for written feedback on it. Called "Discovery Call & Pitch Prep" on the Go Independent track, where the questions are the ones a prospect asks' },
   { slug: 'industry-background',  reach: 'focus-gated', labelId: 'p9',
     does: "builds fluency in a new sector's language and players" },
 

@@ -95,7 +95,10 @@ eq('strips <verdict>none</verdict> element (arbitrary tag), feature null',
 // --- CANONICAL_FEATURE_SLUGS (the SELFCHECK vocabulary) ---
 ok('community slugs are in the canonical set',
   CANONICAL_FEATURE_SLUGS.includes('career-club-corner') && CANONICAL_FEATURE_SLUGS.includes('accountability-partner'))
-ok('CANONICAL_FEATURE_SLUGS has 18 entries', CANONICAL_FEATURE_SLUGS.length === 18)
+// 18 until 2026-08-27, when Go Independent added where-you-fit and
+// positioning-line. The count is a tripwire for an accidental edit to
+// FEATURE_MAP, so it moves deliberately with the map and never on its own.
+ok('CANONICAL_FEATURE_SLUGS has 20 entries', CANONICAL_FEATURE_SLUGS.length === 20)
 
 // --- FEATURE_MAP is the single structured source ---
 eq('CANONICAL_FEATURE_SLUGS derives from FEATURE_MAP (same order)',

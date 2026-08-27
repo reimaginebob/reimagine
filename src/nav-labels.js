@@ -51,10 +51,19 @@ export const NAV_LABELS = {
   values: 'Values, Passions & Causes',
   priorities: 'Practical Priorities',
   reputation: 'Reputation',
+  // Go Independent only. Sits between Reputation and Your Story so the person's
+  // own read on where they fit lands next to what other people say about them.
+  // Never rendered on the standard track (the Sidebar filters it out and the
+  // Reputation step advances straight past it), but it lives here because it is
+  // a real step id and NAV_LABELS is the only label source.
+  fit: 'Where You Think You Fit',
   'life-events': 'Your Story',
   skills: 'Your Skills',
   'orientation-done': 'Orientation Complete',
   p4: 'Role Options',
+  // Go Independent's equivalent of Put It to Work: the one editable line the
+  // whole practice plan is built around. Replaces twoDoors on that track.
+  positioning: 'Your Practice, In One Line',
   focus: 'Focus Playbook',
   complete: 'Complete',
 }
@@ -74,4 +83,13 @@ export const LANE_LABELS = {
   insider: 'Industry Insider',
   wtm: 'Work That Matters',
   specific: 'Specific Role',
+  // Go Independent. Set directly by the positioning step, the same way Door 2
+  // sets 'specific' -- this track never runs the lane picker. Its entry here is
+  // load-bearing rather than cosmetic: laneLabelFor falls back to the LITERAL
+  // string 'Specific Role' for an unknown value, so without this line a
+  // consultant's own practice would be labelled "Specific Role" in the sidebar,
+  // on the playbook header, in the printed PDF, and in what the Coach says back
+  // to her. src/components/SavedPlaybooks.jsx carries its own copy of this map
+  // for the card badge; both need the entry.
+  independent: 'Your Practice',
 }
