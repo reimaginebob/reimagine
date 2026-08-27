@@ -21,6 +21,13 @@
 // history actually starts rather than letting the early months read as cheap.
 
 import { sql } from '../_lib/db.js'
+import { loadBudgetStatus } from '../_lib/budget.js'
+
+// Background jobs: rows written by the daily classifier crons rather than by
+// anyone using the product. They log a NULL user_id like a signed-out
+// generation does, so without this list they would read as customer-acquisition
+// cost instead of overhead.
+const BACKGROUND_KINDS = ['classify-coach', 'ingest-feedback']
 
 // Trailing windows. 30 days for the per-user and per-day views (long enough to
 // smooth a quiet week, short enough to reflect the current product), 6 months
@@ -100,7 +107,8 @@ async function loadPayload() {
     SELECT
       COALESCE(SUM(g.cost_usd) FILTER (WHERE u.id IS NOT NULL AND lower(u.email) NOT LIKE ${INTERNAL_EMAIL_SUFFIX}), 0)::float8 AS customer_cost,
       COALESCE(SUM(g.cost_usd) FILTER (WHERE lower(u.email) LIKE ${INTERNAL_EMAIL_SUFFIX}), 0)::float8                          AS internal_cost,
-      COALESCE(SUM(g.cost_usd) FILTER (WHERE g.user_id IS NULL), 0)::float8                                                     AS unattributed_cost,
+      COALESCE(SUM(g.cost_usd) FILTER (WHERE g.user_id IS NULL AND NOT (COALESCE(g.kind, '') = ANY(${BACKGROUND_KINDS}))), 0)::float8 AS unattributed_cost,
+      COALESCE(SUM(g.cost_usd) FILTER (WHERE COALESCE(g.kind, '') = ANY(${BACKGROUND_KINDS})), 0)::float8                       AS background_cost,
       COUNT(*)::int                                                                                                             AS generations
     FROM generation_events g
     LEFT JOIN users u ON u.id = g.user_id
@@ -200,7 +208,8 @@ async function loadPayload() {
   const customerCost = num(mtd.customer_cost)
   const internalCost = num(mtd.internal_cost)
   const unattributedCost = num(mtd.unattributed_cost)
-  const totalApiCost = customerCost + internalCost + unattributedCost
+  const backgroundCost = num(mtd.background_cost)
+  const totalApiCost = customerCost + internalCost + unattributedCost + backgroundCost
   const revenue = payingCustomers * price
 
   // --- Breakeven. Contribution per customer, not a regression: the honest
@@ -400,8 +409,14 @@ async function loadPayload() {
     ? months.reduce((s, m) => s + m.signups, 0) / months.length
     : 0
 
+  // How much of the month's Anthropic budget is gone. Same computation the
+  // hourly watchdog alerts on (api/_lib/budget.js), surfaced here so the number
+  // can be looked at deliberately rather than only arriving as an email.
+  const budget = await loadBudgetStatus()
+
   return {
     as_of: new Date().toISOString(),
+    budget,
     inputs: current,
     inputs_history: inputsRows.slice().reverse(),
     coverage: {
@@ -422,6 +437,7 @@ async function loadPayload() {
       api_cost_customers: customerCost,
       api_cost_internal: internalCost,
       api_cost_unattributed: unattributedCost,
+      api_cost_background: backgroundCost,
       api_cost_total: totalApiCost,
       net: revenue - fixed - totalApiCost,
       generations: num(mtd.generations),

@@ -241,6 +241,12 @@ export default function EconomicsDashboard({ token }) {
         </div>
       )}
 
+      {/* The budget alarm goes above the P&L: it is the one number on this page
+          that predicts an outage rather than describing a month. */}
+      <div style={{ ...S.panelGrid, marginBottom: 16 }}>
+        <BudgetPanel budget={payload.budget} />
+      </div>
+
       <div style={S.panelGrid}>
         {/* Month-to-date P&L */}
         <Panel title="Month to date">
@@ -252,6 +258,11 @@ export default function EconomicsDashboard({ token }) {
               <Line label="API — internal testing" value={-Math.abs(Number(mtd.api_cost_internal) || 0)} sub="@career.club accounts" cents />
               {Number(mtd.api_cost_unattributed) > 0 &&
                 <Line label="API — signed out" value={-Math.abs(Number(mtd.api_cost_unattributed) || 0)} sub="no account on the generation" cents />}
+              {/* Broken out from "signed out", which it used to be folded into:
+                  a cron classifying yesterday's messages is overhead, not the
+                  cost of acquiring a customer. */}
+              {Number(mtd.api_cost_background) > 0 &&
+                <Line label="API — background jobs" value={-Math.abs(Number(mtd.api_cost_background) || 0)} sub="nightly classifiers" cents />}
               <tr>
                 <td style={{ ...S.td, borderTop: `2px solid ${BORDER}`, fontWeight: 700, color: NAVY }}>Net</td>
                 <td style={{ ...S.td, borderTop: `2px solid ${BORDER}`, textAlign: "right", fontWeight: 700, fontFamily: "Georgia, serif", fontSize: 20, color: profitable ? OK : ERR }}>
@@ -541,6 +552,97 @@ function DailyChart({ rows }) {
 }
 
 // ---- presentational sub-components (mirrors AdminDashboard.jsx) ----
+// API budget — the warning surface for the failure that takes the whole product
+// down at once. On 2026-08-15 the monthly Anthropic spend cap was reached
+// mid-month, generation stopped for everyone, and the first anyone knew of it
+// was users reading the raw upstream error. The hourly watchdog emails on the
+// crossings; this is the same number on a page, so it can be looked at rather
+// than waited for.
+//
+// Two readings, because they fail at different times: where the month stands
+// now, and where the current burn rate lands it by month end. A month that is
+// 40% spent on day 8 passes the first and has already failed the second.
+function BudgetPanel({ budget }) {
+  const b = budget || {}
+  if (!b.ok) {
+    return (
+      <Panel title="API budget" wide>
+        <div style={S.calloutTight}>
+          <strong style={{ color: ERR }}>The budget check did not run.</strong> This panel reads live from the generation log; a query failure here means the number is unknown, not that it is zero.
+        </div>
+      </Panel>
+    )
+  }
+  if (!b.configured) {
+    return (
+      <Panel title="API budget" wide>
+        <div style={S.calloutTight}>
+          <strong style={{ color: ERR }}>No budget is configured, so nothing is watching the spend cap.</strong> Set <code style={S.code}>ANTHROPIC_MONTHLY_BUDGET_USD</code> in Vercel to the same monthly limit that is set on the Anthropic account, then redeploy production — environment values are injected at build time, so a change alone does not reach the running functions. Until then the hourly watchdog can count the spend but cannot tell you when it is close to the line.
+        </div>
+        <div style={{ ...S.tileGrid, marginTop: 12 }}>
+          <Stat label="Spent this month" value={fmtUsd(b.spend_usd, true)} accent />
+          <Stat label="Running at" value={`${fmtUsd(b.daily_run_rate_usd, true)}/day`} />
+          <Stat label="Projected month end" value={fmtUsd(b.projected_month_end_usd)} />
+          <Stat label="Generations" value={fmtInt(b.generations_this_month)} sub={b.month} />
+        </div>
+      </Panel>
+    )
+  }
+
+  const pct = Number(b.pct_of_cap) || 0
+  const projPct = Number(b.projected_pct_of_cap) || 0
+  const state = pct >= 100 ? "over" : pct >= 90 ? "critical" : (b.projection_over_cap || pct >= 75) ? "warning" : "ok"
+  const barColor = state === "over" || state === "critical" ? ERR : state === "warning" ? GOLDL : OK
+  const headline = state === "over"
+    ? "The month's budget is spent."
+    : state === "critical"
+      ? "Almost out of budget for the month."
+      : state === "warning"
+        ? "On course to run out before the month ends."
+        : "Within budget, and on course to stay there."
+
+  return (
+    <Panel title="API budget" wide>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ fontFamily: "Georgia, serif", fontSize: 18, color: barColor, fontWeight: 600 }}>{headline}</div>
+        <div style={{ fontSize: 14, color: GRAYL }}>
+          {fmtUsd(b.spend_usd, true)} of {fmtUsd(b.cap_usd)} · {b.month} · {Number(b.days_remaining).toFixed(1)} days left
+        </div>
+      </div>
+
+      {/* Spend against the cap, with the alert thresholds marked so the bar
+          shows how far the next email is, not just a proportion. */}
+      <div style={S.budgetTrack}>
+        <div style={{ ...S.budgetFill, width: `${Math.min(100, pct)}%`, background: barColor }} />
+        {/* Where the month lands if today's rate holds. Drawn as a line rather
+            than a second fill: it is a forecast, not spend. */}
+        {b.projection_reliable && projPct > pct && (
+          <div style={{ ...S.budgetProjection, left: `${Math.min(100, projPct)}%` }} title="Projected month end" />
+        )}
+        {[50, 75, 90].map((t) => (
+          <div key={t} style={{ ...S.budgetTick, left: `${t}%` }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: GRAYL, marginTop: 4 }}>
+        <span>{Math.round(pct)}% spent</span>
+        <span>{b.projection_reliable ? `projected ${Math.round(projPct)}% by month end` : "too early in the month to project"}</span>
+      </div>
+
+      <div style={{ ...S.tileGrid, marginTop: 14 }}>
+        <Stat label="Spent this month" value={fmtUsd(b.spend_usd, true)} danger={state === "over" || state === "critical"} accent={state === "warning"} />
+        <Stat label="Left in budget" value={fmtUsd(b.remaining_usd, true)} />
+        <Stat label="Running at" value={`${fmtUsd(b.daily_run_rate_usd, true)}/day`} />
+        <Stat label="Projected month end" value={fmtUsd(b.projected_month_end_usd)} danger={b.projection_over_cap} />
+        <Stat label="Today" value={fmtUsd(b.spend_today_usd, true)} sub={`${fmtUsd(b.spend_last_hour_usd, true)} last hour`} />
+      </div>
+
+      <div style={S.calloutTight}>
+        <strong style={{ color: NAVY }}>What happens when this runs out.</strong> Anthropic refuses every call, so every generation in the app fails at once and users are told Reimagine is temporarily unable to generate. The hourly watchdog emails at 50%, 75%, 90% and 100% of this budget, and separately the first time the burn rate projects a month that ends over it — each of those exactly once, so the mail stays worth reading. {b.note}
+      </div>
+    </Panel>
+  )
+}
+
 function Panel({ title, children, wide }) {
   return (
     <section style={{ ...S.panel, ...(wide ? { gridColumn: "1 / -1" } : {}) }}>
@@ -584,6 +686,13 @@ const S = {
   callout: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 10px 10px 0", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, color: GRAY, marginBottom: 16 },
   calloutTight: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 8px 8px 0", padding: "10px 12px", fontSize: 14, lineHeight: 1.55, color: GRAY, marginTop: 12 },
   tileGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12 },
+  code: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 13, background: "#FFFFFF", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "1px 5px" },
+  // Budget bar. A track with the alert thresholds marked, so the distance to
+  // the next warning is visible rather than having to be worked out.
+  budgetTrack: { position: "relative", height: 14, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 7, overflow: "hidden", marginTop: 14 },
+  budgetFill: { position: "absolute", left: 0, top: 0, bottom: 0, borderRadius: 7, transition: "width 200ms ease" },
+  budgetTick: { position: "absolute", top: 0, bottom: 0, width: 1, background: BORDER },
+  budgetProjection: { position: "absolute", top: -2, bottom: -2, width: 2, background: NAVY },
   tile: { background: CREAM, borderRadius: 10, padding: "12px 14px" },
   tileValue: { fontSize: 26, fontWeight: 700, lineHeight: 1.1, fontFamily: "Georgia, serif" },
   tileLabel: { fontSize: 12, color: GRAYL, marginTop: 4, lineHeight: 1.3 },

@@ -24,6 +24,8 @@ import { COMP_KNOWLEDGE } from '../src/comp-knowledge.js'
 import { getSessionUser } from './_lib/session.js'
 import { sql } from './_lib/db.js'
 import { costFromUsage, addUsage } from './_lib/usage-cost.js'
+import { classifyAnthropicError, operatorLine, systemErrorPayload, SYSTEM_ERROR_STATUS } from './_lib/anthropic-error.js'
+import { alertOnce } from './_lib/ops-alerts.js'
 
 const ALLOWED_HOSTS = new Set([
   'reimagine2-two.vercel.app',
@@ -800,8 +802,17 @@ export default async function handler(req, res) {
       }),
     })
     if (!up.ok) {
+      // Carry the upstream status and body on the thrown error so the handler
+      // below can classify it (spend limit, bad key, overload) rather than
+      // reporting every failure as a generic "Coach failed". The text itself
+      // never leaves the server — see api/_lib/anthropic-error.js.
       const errBody = await up.text().catch(() => '')
-      throw new Error(`upstream ${up.status} ${errBody.slice(0, 200)}`)
+      let parsed = null
+      try { parsed = JSON.parse(errBody) } catch { parsed = errBody }
+      const e = new Error(`upstream ${up.status}`)
+      e.upstreamStatus = up.status
+      e.upstreamBody = parsed
+      throw e
     }
     const data = await up.json()
     addUsage(coachUsage, data.usage)
@@ -812,8 +823,24 @@ export default async function handler(req, res) {
   try {
     raw = await generate(messages)
   } catch (err) {
-    console.error('Coach upstream error:', err)
-    return res.status(500).json({ error: 'Coach failed' })
+    // Same treatment as the generation proxy: classify, log the real reason,
+    // page the operator once per window when a human has to act, and give the
+    // user the one friendly sentence both surfaces share. An outage that hits
+    // My Coach first should still reach the operator's inbox.
+    const c = classifyAnthropicError(err && err.upstreamStatus ? err.upstreamStatus : 0, err && err.upstreamBody ? err.upstreamBody : err)
+    console.error('Coach upstream error:', { kind: c.kind, status: c.status, detail: c.detail })
+    if (c.page) {
+      const subject = c.kind === 'spend_limit'
+        ? 'Reimagine: generation is DOWN — Anthropic spend limit reached'
+        : `Reimagine: generation is DOWN — Anthropic ${c.kind}`
+      try {
+        await alertOnce(`upstream:${c.kind}`, subject, [
+          operatorLine('My Coach', c),
+          'Users are being told Reimagine is temporarily unable to generate new content, and to email bob@career.club if it persists.',
+        ], { cooldownHours: 6 })
+      } catch { /* alerting must never take the request down */ }
+    }
+    return res.status(SYSTEM_ERROR_STATUS).json(systemErrorPayload())
   }
 
   // Deterministic voice cleanup must run on the complete text, so the upstream

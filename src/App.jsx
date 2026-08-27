@@ -349,7 +349,13 @@ async function callClaude(prompt, opts={}) {
     // Account paused (auto or manual): surface it to the app so it can show the
     // hold notice promptly, mid-session, without waiting for a reload.
     if(res.status===403&&e.error==='account_suspended'){try{window.dispatchEvent(new Event('pe-account-suspended'))}catch{}}
-    throw new Error(e.error?.message||(typeof e.error==='string'?e.error:'API error'))
+    // System-unavailable (api/_lib/anthropic-error.js): the model could not be
+    // reached at all. The server has already replaced the upstream text with one
+    // written sentence; the flag lets callers that normally fail quietly — see
+    // inferJdMetadata — tell an outage from an input it cannot read.
+    const err=new Error(e.error?.message||(typeof e.error==='string'?e.error:'API error'))
+    if(e.error&&e.error.type==='system_unavailable')err.systemUnavailable=true
+    throw err
   }
   const data=await res.json()
   const raw=data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n")
@@ -1322,14 +1328,27 @@ Return exactly this JSON shape:
 
 Rules: use the company name exactly as written. For role, use the posted title, trimmed. For location, give the primary location or "Remote". If a field is not stated in the JD, use an empty string. Do not guess or invent any field.`
 // inferJdMetadata: pulls company / role / location off a JD via a small focused
-// LLM call. Mirror of inferLaneForOpportunity / inferIndustry. Always resolves to
-// an object with empty-string defaults so callers never null-check.
+// LLM call. Mirror of inferLaneForOpportunity / inferIndustry. Resolves to an
+// object with empty-string defaults so callers never null-check.
+//
+// Failing quietly to empty is the RIGHT behaviour when the job description is
+// one the model cannot read — a pasted URL, a fragment, a posting with no
+// company named. The caller then tells the user to paste the full text, which is the
+// action that fixes it.
+//
+// It is the WRONG behaviour when the model could not be reached at all. During
+// the 2026-08-15 outage this path turned an app-wide failure into "we couldn't
+// identify the company from this posting" on About This Company and the
+// Compensation Read — the user re-pasted a perfectly good JD and it failed
+// again. So the API call is deliberately OUTSIDE the try: an upstream error
+// propagates to the caller, whose catch surfaces the written system message.
+// Only parse failures land on empty.
 async function inferJdMetadata(jd){
   const empty={company:'',role:'',location:''}
+  const text=((jd)||'').slice(0,6000)
+  if(!text.trim())return empty
+  const raw=await callClaude(INFER_JD_METADATA_PROMPT(text),{maxTokens:300,temperature:0.2})
   try{
-    const text=((jd)||'').slice(0,6000)
-    if(!text.trim())return empty
-    const raw=await callClaude(INFER_JD_METADATA_PROMPT(text),{maxTokens:300,temperature:0.2})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<0||b<=a)return empty
     let obj;try{obj=JSON.parse(raw.slice(a,b+1))}catch(e){return empty}
@@ -9770,7 +9789,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         const derived=[company,role].filter(Boolean).join(' · ')
         setSavedPlaybooks(prev=>prev.map(r=>r.id!==id?r:{...r,company,role,location,title:(r.title===derivedTitle&&derived)?derived:r.title}))
         if(derived&&currentSavedSlotIdRef.current===id)setChosen(prev=>prev===derivedTitle?derived:prev)
-      })
+      // inferJdMetadata now lets an upstream failure propagate (it used to
+      // swallow everything into an empty object). This call is fire-and-forget
+      // cosmetics — a nicer record title — so an outage here changes nothing the
+      // user needs: the record keeps its derived title and the section builds
+      // report the outage themselves.
+      }).catch(()=>{})
     }
     // Same-JD dedupe (mirrors PR #207's Door 1 dedupe at saveCurrentDoor1). JD is
     // the source-of-truth key; derivedTitle is computed from the JD so a same-JD
