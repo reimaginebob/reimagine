@@ -22,11 +22,15 @@
 import { useState } from 'react'
 import { RotateCcw, Trash2, Briefcase, Pencil, Download } from 'lucide-react'
 
+// Deliberate duplicate of LANE_LABELS in src/nav-labels.js. Keep the two in
+// step: a lane missing here renders the card badge as "Saved", which reads as a
+// bug rather than a label.
 const LANE_LABEL_MAP = {
   familiar: 'Familiar Ground',
   insider: 'Industry Insider',
   wtm: 'Work That Matters',
   specific: 'Specific Role',
+  independent: 'Your Practice',
 }
 
 // Focus titles nearly all open with a seniority/rank clause ("VP of", "Senior
