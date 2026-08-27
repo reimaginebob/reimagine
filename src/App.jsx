@@ -2614,7 +2614,7 @@ const P={
   // second-person requirement, no structured emit. Stage two handles register,
   // layout, and the structured emit. Output is the raw analysis in whatever
   // register it lands.
-  p3analysis:(pr,previousBrand='',changeMode='none',changedInputs='')=>{
+  p3analysis:(pr,previousBrand='',changeMode='none',changedInputs='',independent=false)=>{
     const rep=[pr.rep.memory&&`Praise they receive: ${pr.rep.memory}`,pr.rep.emergency&&`Who calls them in an emergency: ${pr.rep.emergency}`,pr.rep.twoWords&&`How people describe their superpower: "${pr.rep.twoWords}"`,pr.rep.other&&`Other reputation data: ${pr.rep.other}`].filter(Boolean).join('\n')
     return `You are a world-class career coach. Read the materials below and establish this person's personal brand: who they are at their core, and how that shapes the way they do their best work.
 
@@ -2627,6 +2627,13 @@ Ground everything in the materials. Don't invent specifics, and where something'
 FORMATIVE ORIGIN, CONDITIONAL: the "where it comes from in their life" thread is drawn only from life-shaping or formative personal history the person actually provided (the LIFE-SHAPING EXPERIENCES below, or explicit personal history elsewhere in the materials). If that material is absent, do not construct a "where this comes from" origin, backstory, upbringing, or family narrative at all. Establish the brand from the work, values, and reputation evidence alone. Never manufacture a personal-history detail, a childhood, a family, a hardship, a layoff, immigrant parents, to explain a theme; a real theme does not need an invented origin. If a correction removes such a detail, do not replace it with a different one.
 
 Close by drawing the brand together and pointing them toward what the next steps open up.
+${independent?`
+THIS PERSON IS BUILDING A PRACTICE, NOT LOOKING FOR A JOB. What they need from this read is the foundation of a value proposition they will sell with, so weight it toward the work: the problem they remove, who has it, and the evidence that they can.
+
+Personal and life material still belongs where it EXPLAINS A PROFESSIONAL DECISION they actually made -- a formative experience that accounts for why they built the thing they built is analysis, and it stays. What does not belong is a personal detail that merely repeats something they told you and explains nothing: their age, their children's ages, where they live, how long they have been working. Restating an input is not a finding, and on this track it reads as filler in a document about what they sell.
+
+Close on what they are building and what it would take, not on their circumstances.
+`:''}
 
 Sensitive specifics in the life experiences below (illness names, family members' names, addiction details, immigration status, divorce specifics) must never be named in the output unless the person surfaced that specific in a way that directly fits a career-brand context.
 
@@ -6807,7 +6814,7 @@ export default function PivotEngine(){
   const runP3TwoStage=async(analysisExtra='',previousBrand='',changeMode='none',changedInputs='',prevLayout='')=>{
     const corr=correctionsBlock(profile.corrections)
     setLoadingStage('Reading your inputs')
-    const analysis=await callClaude(corr+P.p3analysis(pc,previousBrand,changeMode,changedInputs)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
+    const analysis=await callClaude(corr+P.p3analysis(pc,previousBrand,changeMode,changedInputs,isIndependent)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
     setLoadingStage('Writing your synthesis')
     let structuredP3=null
     // Stage two emits the structured presentation ONLY (no duplicated prose),

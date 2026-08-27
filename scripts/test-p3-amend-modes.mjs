@@ -10,7 +10,12 @@ const a = src.indexOf(START)
 const b = src.indexOf(END, a) + END.length
 if (a < 0 || b < END.length) throw new Error('amend block not found')
 const block = src.slice(a, b)
-if (!src.slice(0, a).includes("p3analysis:(pr,previousBrand='',changeMode='none',changedInputs='')")) {
+// Signature pin: proves the block above was cut from p3analysis and not from
+// some other prompt that happens to branch on previousBrand. Move it WITH the
+// signature when a parameter is added -- it gained `independent` on 2026-08-27
+// for the practice-track weighting -- but never loosen it into a substring
+// match on the name alone, which is what it exists to be stronger than.
+if (!src.slice(0, a).includes("p3analysis:(pr,previousBrand='',changeMode='none',changedInputs='',independent=false)")) {
   throw new Error('amend block is not inside the patched p3analysis')
 }
 
