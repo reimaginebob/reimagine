@@ -43,6 +43,9 @@ export const NAV_LABELS = {
   // that laneSelect/op above are the live "Career Paths"/"Add an Opportunity"
   // (META still carried the stale "Pick a Direction"/"Upload a Live Opportunity").
   welcome: 'Welcome',
+  // Go Independent only. The roadmap between Welcome and the first form: what we
+  // are about to ask for, why, and what it turns into.
+  'orientation-intro': 'Before We Start',
   location: 'Your Current Situation',
   resume: 'Your Resume',
   'resume-builder': 'Resume Builder',

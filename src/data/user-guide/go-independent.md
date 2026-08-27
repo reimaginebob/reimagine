@@ -8,9 +8,11 @@ The engine underneath is the same one everyone else uses. Your Personal Brand is
 
 ## What is different
 
+**Before we start.** A short screen between Welcome and the first question, laying out what Orientation is about to ask for, why each piece matters, and the three things it turns into. Nothing to fill in; it exists so the screens that follow read as a build rather than a form.
+
 **Orientation is nearly identical.** Your resume, LinkedIn, assessment, values, priorities, reputation, story, and skills are all asked the same way, and they matter for the same reasons. Two things change.
 
-The first is that you are not asked how your job search is going, because you are not running one. The employment-status question and the two optional questions about your search do not appear.
+The first is that you are not asked the questions that only make sense for someone with an employer. How your job search is going, and whether you want remote, hybrid, on-site, or relocation, are all shapes an employer offers. None of them appear. Your country and city stay, because the client research uses them.
 
 The second is a screen the standard track does not have.
 

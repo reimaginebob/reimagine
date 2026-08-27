@@ -3554,16 +3554,17 @@ Keep the whole thing tight — a page they can glance at across the table or pas
 // completes (done.includes('skills')) so users mid-orientation see only
 // what they have earned the right to act on.
 const PHASES=[
-  // 'fit' renders only on the Go Independent track; the Sidebar filters it out
-  // for everyone else rather than this list forking by track.
-  {id:0,label:'Orientation',color:'#8A9BB8',steps:['welcome','location','resume','linkedin','assessment','values','priorities','reputation','fit','life-events','skills']},
+  {id:0,label:'Orientation',color:'#8A9BB8',steps:['welcome','location','resume','linkedin','assessment','values','priorities','reputation','life-events','skills']},
   {id:1,label:'Personal Brand',color:'#C8924A',steps:['p3']},
   {id:2,label:'Put It to Work',color:'#4A9E72',steps:['twoDoors']},
 ]
 // Go Independent's phase 2. Same shape, different destination: this track never
 // reaches Put It to Work, because it has one way forward rather than two doors.
 const PHASES_INDEPENDENT=[
-  PHASES[0],
+  // Its own phase 0 rather than a filter over the shared one: this track adds
+  // two steps (the roadmap interstitial and Where You Think You Fit) in two
+  // different places, and spelling the order out is clearer than two filters.
+  {...PHASES[0],steps:['welcome','orientation-intro','location','resume','linkedin','assessment','values','priorities','reputation','fit','life-events','skills']},
   PHASES[1],
   {id:2,label:'Your Practice',color:'#4A9E72',steps:['positioning']},
 ]
@@ -3578,8 +3579,8 @@ const PHASES_INDEPENDENT=[
 // every hydration -- so an id missing here silently bounces a returning user off
 // the screen they were parked on. Membership here is "this id exists"; whether
 // it RENDERS is the track's business.
-const ALL=['welcome','location','resume','resume-builder','linkedin','assessment','values','priorities','reputation','fit','life-events','skills','orientation-done','p3','twoDoors','positioning','laneSelect','p4','focus','mylib','pipeline','op','complete','myCoach']
-const INPUT_PHASE_STEPS=new Set(['welcome','location','resume','resume-builder','linkedin','assessment','values','priorities','reputation','fit','life-events','skills','orientation-done','p3'])
+const ALL=['welcome','orientation-intro','location','resume','resume-builder','linkedin','assessment','values','priorities','reputation','fit','life-events','skills','orientation-done','p3','twoDoors','positioning','laneSelect','p4','focus','mylib','pipeline','op','complete','myCoach']
+const INPUT_PHASE_STEPS=new Set(['welcome','orientation-intro','location','resume','resume-builder','linkedin','assessment','values','priorities','reputation','fit','life-events','skills','orientation-done','p3'])
 // Editable input surfaces (subset of INPUT_PHASE_STEPS): the screens a returning
 // user changes after the Personal Brand exists. welcome / orientation-done / p3 are
 // not editable inputs. Drives the "your Personal Brand is now out of date" nudge.
@@ -5391,10 +5392,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
   // the staging because demo state is pre-loaded for guided walkthrough
   // and the demo narrative depends on full sidebar visibility.
   const orientationComplete=done.includes('skills')
-  // 'fit' lives in PHASES so the Go Independent track gets a rail row for it in
-  // the right place; every other account never sees the step, so drop it here
-  // rather than forking the PHASES constant by track.
-  const phasesBase=isIndependent?PHASES_INDEPENDENT:PHASES.map(p=>p.steps.includes('fit')?{...p,steps:p.steps.filter(s=>s!=='fit')}:p)
+  const phasesBase=isIndependent?PHASES_INDEPENDENT:PHASES
   const phasesToRender=(orientationComplete||isDemo)?phasesBase:phasesBase.filter(p=>p.id!==1)
   return <div ref={navRef} {...railProps} style={railBase}>
   {/* My Coach pinned to the top of the orientation rail so it's reachable from
@@ -5774,6 +5772,24 @@ export default function PivotEngine(){
   const dismissSupportAnnounce=()=>{try{localStorage.setItem('reimagine_support_announce_v1_dismissed','1')}catch{};setSupportAnnounceDismissed(true)}
   const[supportOpenReq,setSupportOpenReq]=useState(0)
   const takeLookSupport=()=>{dismissSupportAnnounce();setSupportOpenReq(n=>n+1)}
+  // A "what's new" announcement is for people who used the product BEFORE the
+  // thing existed. Every one of the three above was gated only on having a
+  // Personal Brand, which a brand-new account has about ninety seconds after it
+  // finishes Orientation -- so the first brand a person ever generated greeted
+  // them with "Your Personal Brand just got an upgrade," an upgrade from nothing
+  // they had ever seen. Gate on when the account was created instead, which
+  // /api/me already returns. An account created after the ship date never saw
+  // the old version and has nothing to be told.
+  const accountCreatedBefore=(iso)=>{
+    const created=signedInUser&&signedInUser.created_at
+    if(!created)return false
+    const c=Date.parse(created),s=Date.parse(iso)
+    return Number.isFinite(c)&&Number.isFinite(s)&&c<s
+  }
+  // Ship dates for the announcements below. Keep them here rather than inline so
+  // the next person adding a "what's new" popup sees the convention.
+  const PB_UPGRADE_SHIPPED='2026-08-26T00:00:00Z'
+  const INTERVIEW_TEAM_SHIPPED='2026-08-20T00:00:00Z'
   const[deepExpanded,setDeepExpanded]=useState(false)
   const[hasProgress,setHasProgress]=useState(false)
   const[laneTab,setLaneTab]=useState(0)
@@ -6181,6 +6197,11 @@ export default function PivotEngine(){
     // Fire on the hubs a returning user actually lands on — Put It to Work, My
     // Playbooks, My Coach — OR the moment they open the floating coach (coachOpenTick).
     // PR #393 gated only on twoDoors, which an active existing user may never visit.
+    // Never on the practice track. Employment status is not asked there by
+    // design (the entry URL answered it), which means the guard below is true
+    // forever -- so without this line the Coach opens on its own and asks a
+    // consultant what her work situation is, every session, for good.
+    if(isIndependent)return
     const onPromptSurface=step==='twoDoors'||step==='mylib'||step==='myCoach'
     if((!onPromptSurface&&!coachOpenTick)||!signedInUser)return
     if(employmentStatus||seenEmploymentPrompt||employmentPromptFiredRef.current)return
@@ -6200,6 +6221,10 @@ export default function PivotEngine(){
   // never re-asked because the flag rides the profile blob.
   useEffect(()=>{
     if(isDemo||isTest)return
+    // Same reasoning as the employment prompt above: the two search questions
+    // are hidden on the practice track, so their guard never clears and the
+    // Coach would ask someone who is not job hunting how her search is going.
+    if(isIndependent)return
     const onPromptSurface=step==='twoDoors'||step==='mylib'||step==='myCoach'
     if((!onPromptSurface&&!coachOpenTick)||!signedInUser)return
     if(searchGoingWell||searchFocus||seenSearchIntakePrompt||searchIntakePromptFiredRef.current)return
@@ -7401,7 +7426,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // two doors to go back to.
   const hubStep=isIndependent?'positioning':'twoDoors'
   const hubLabel=isIndependent?'Your Practice Plan':'Put It to Work'
-  const pc={loc:{...profile.loc,work:Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||'')},resume:profile.resume,linkedin:[profile.linkedin,profile.linkedinRecs].filter(Boolean).join('\n\n'),lifeEvents:profile.lifeEvents,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,fitNeed:profile.fitNeed,fitBuyer:profile.fitBuyer,dealBreakers:profile.dealBreakers,riskTolerance:profile.riskTolerance,rep:profile.rep,skills:profile.skills,frameworks:profile.frameworks}
+  const pc={loc:{...profile.loc,work:(Array.isArray(profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):(profile.loc.work||''))||'not specified'},resume:profile.resume,linkedin:[profile.linkedin,profile.linkedinRecs].filter(Boolean).join('\n\n'),lifeEvents:profile.lifeEvents,assess:profile.assess,assessType:profile.assessType,values:profile.values,passions:profile.passions,fitNeed:profile.fitNeed,fitBuyer:profile.fitBuyer,dealBreakers:profile.dealBreakers,riskTolerance:profile.riskTolerance,rep:profile.rep,skills:profile.skills,frameworks:profile.frameworks}
   const recordExploredRole=(title,lane)=>setExploredRoleTitles(prev=>{const ts=new Date().toISOString();const i=prev.findIndex(r=>r.title===title);if(i>=0){const n=[...prev];n[i]={...n[i],lane,lastExplored:ts};return n}return[...prev,{title,lane,lastExplored:ts}].slice(-20)})
   // Saved playbooks: record builders + save/delete helpers + restore.
   // Door 1 records hold the ROLE_SUBMODULES subset of outputs/done/feedback
@@ -10068,7 +10093,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
       <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center',marginBottom:20}}>
         {!isDemo&&<>
-          <Btn onClick={()=>advance('welcome','location')}>Let's get started <ChevronRight size={14}/></Btn>
+          <Btn onClick={()=>advance('welcome',isIndependent?'orientation-intro':'location')}>Let's get started <ChevronRight size={14}/></Btn>
           <input ref={importFileRef} type="file" accept=".json" style={{display:'none'}} onChange={e=>e.target.files[0]&&importProfile(e.target.files[0])}/>
           <Btn onClick={()=>importFileRef.current?.click()} style={{background:'#2A3F60'}}><Upload size={14}/>Load a Saved Profile</Btn>
           {Object.values(outputs).some(v=>v&&(typeof v==='string'?v.length>0:true))&&<Btn onClick={exportProfile} style={{background:'#2A3F60'}}><Download size={14}/>Save Profile as JSON</Btn>}
@@ -10106,7 +10131,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={S.card}>
         <div style={S.field}><label style={S.label}>Country / Region<InfoTooltip label="Why we ask">Reimagine uses your location to filter realistic company targets, work arrangements, and market context. Pick the country you are based in or want to work in.</InfoTooltip></label><input list="country-list" style={S.inp} value={profile.loc.country} onChange={e=>loc('country',e.target.value)} placeholder="Start typing or select from the list" autoComplete="off"/><datalist id="country-list">{COUNTRY_OPTIONS.map(c=><option key={c} value={c}/>)}</datalist></div>
         <div style={S.field}><label style={S.label}>City or Metro <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label><input style={S.inp} value={profile.loc.city} onChange={e=>loc('city',e.target.value)} placeholder="e.g. Chicago, Greater London, Munich metro"/></div>
-        <div style={S.field}><label style={S.label}>Work Arrangement <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(select all that apply)</span></label>
+        {/* Remote / hybrid / on-site / open-to-relocation are the shapes an
+            EMPLOYER offers, and none of them is a question someone running their
+            own practice is answering. Country and city stay: the client research
+            needs the geography. Hidden here and dropped from the Continue
+            validator below, the same pairing employment status gets. */}
+        {!isIndependent&&<div style={S.field}><label style={S.label}>Work Arrangement <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(select all that apply)</span></label>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
             {['Fully remote (location is no constraint)','Hybrid (within commuting distance of home base)','On-site (open to commuting daily)','Open to relocation (willing to move for the right opportunity)','Open to relocation with conditions'].map(opt=>{
               const cur=Array.isArray(profile.loc.work)?profile.loc.work:[]
@@ -10118,7 +10148,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             })}
           </div>
           <p style={S.helperText}>Pick any combination. If you are open to multiple arrangements, select multiple.</p>
-        </div>
+        </div>}
         {/* Employment status and the two search-intake questions below it are
             hidden on the Go Independent track. The entry URL already answered
             the question the radio exists to ask, and the two optional questions
@@ -10156,7 +10186,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </>}
       </div>
       {err&&<ErrBox msg={err}/>}
-      <div style={S.row}><Btn secondary onClick={()=>nav('welcome')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{const needEmployment=!isIndependent&&!done.includes('location')&&!employmentStatus;if(!profile.loc.country||!Array.isArray(profile.loc.work)||profile.loc.work.length===0){setErr('Please complete your country and at least one work preference.');return}if(needEmployment){setErr('Please choose how you\'d describe your work right now.');return}advance('location','resume')}}>Continue <ChevronRight size={14}/></Btn></div>
+      <div style={S.row}><Btn secondary onClick={()=>nav(isIndependent?'orientation-intro':'welcome')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{const needEmployment=!isIndependent&&!done.includes('location')&&!employmentStatus;if(!profile.loc.country){setErr(isIndependent?'Please add your country or region.':'Please complete your country and at least one work preference.');return}if(!isIndependent&&(!Array.isArray(profile.loc.work)||profile.loc.work.length===0)){setErr('Please complete your country and at least one work preference.');return}if(needEmployment){setErr('Please choose how you\'d describe your work right now.');return}advance('location','resume')}}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
 
     case'resume':return <div>
@@ -10365,6 +10395,45 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={S.row}><Btn secondary onClick={()=>nav('priorities')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('reputation',isIndependent?'fit':'life-events')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
 
+    // Go Independent only. The gap this closes: after Welcome the product went
+    // straight into asking for a resume, then a dozen more screens, with no
+    // statement of what any of it was for. People filled in forms without
+    // knowing what they were building.
+    case'orientation-intro':return <div>
+      <div style={S.tag('#8A9BB8')}>Orientation</div>
+      <h1 style={S.title}>Before we start</h1>
+      <p style={S.sub}>The next few screens ask for a lot. Here is what happens to all of it, so none of it reads as a form for its own sake.</p>
+      <div style={S.card}>
+        <div style={{fontSize:15,fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',color:C.gold,marginBottom:14}}>What we ask you for</div>
+        {[
+          ['Your background','A resume, a bio, a LinkedIn profile, a one-pager. Whatever describes the work you have actually done. If it is dated, that is fine, and there is a place to say what has changed.'],
+          ['An assessment, if you have one','Optional. It sharpens the read on how you operate. If you do not have one, there is a free option, and skipping it costs you less than you would think.'],
+          ['Your own words','What you value, what you are known for, what shaped you, and who you think needs what you do. These are the answers nothing else can supply, and they are the ones that make the output sound like you rather than like anyone.'],
+        ].map(([t,d])=><div key={t} style={{marginBottom:16}}>
+          <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:5}}>{t}</div>
+          <div style={{fontSize:17,color:'#2D3748',lineHeight:1.65}}>{d}</div>
+        </div>)}
+      </div>
+      <div style={S.card}>
+        <div style={{fontSize:15,fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',color:C.gold,marginBottom:14}}>What it turns into</div>
+        {[
+          ['1','Your Personal Brand','The through-line running under everything you have done, with the evidence that backs it. Written to you, not about you.'],
+          ['2','One line describing your practice','Built from that read plus your own answers, and edited by you until a stranger would understand it in one sentence.'],
+          ['3','Your practice plan','The companies worth pitching and how to reach them, what to charge and how to package it, and the pitch, profile, and one-sheet to carry into the conversation.'],
+        ].map(([n,t,d])=><div key={n} style={{display:'flex',gap:14,alignItems:'flex-start',marginBottom:16}}>
+          <div style={{flexShrink:0,width:30,height:30,borderRadius:'50%',background:C.gold,color:'#FFFFFF',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700}}>{n}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:4}}>{t}</div>
+            <div style={{fontSize:17,color:'#2D3748',lineHeight:1.65}}>{d}</div>
+          </div>
+        </div>)}
+      </div>
+      <CoachingCallout>
+        <strong style={{color:'#1A2540'}}>About half an hour, and it saves as you go.</strong>
+        <p style={{margin:'8px 0 0'}}>Stop whenever you like and pick it back up on any device. Every answer stays yours to change later, and changing one tells you which parts of your plan were built on the old version.</p>
+      </CoachingCallout>
+      <div style={S.row}><Btn secondary onClick={()=>nav('welcome')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('orientation-intro','location')}>Start with where you are <ChevronRight size={14}/></Btn></div>
+    </div>
     // Go Independent only. Reached from Reputation (which advances here instead
     // of straight to Your Story on this track) and never rendered otherwise --
     // both fields stay empty on a standard account, and every consumer treats
@@ -10990,7 +11059,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your coach for the search, grounded in Making Your Own Weather and in what Reimagine knows about you. Ask anything: where to focus, how to tell your story, how to prepare for a conversation.</p>
         <div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>
     case'pipeline':return <div>
       {mySearchPanel()}
@@ -12012,7 +12081,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     <Analytics/>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
-    {!isDemo&&!loading&&outputs.p3&&outputs.p3.trim()&&!pbUpgradeDismissed&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+    {!isDemo&&!loading&&outputs.p3&&outputs.p3.trim()&&accountCreatedBefore(PB_UPGRADE_SHIPPED)&&!pbUpgradeDismissed&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:540,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Your Personal Brand just got an upgrade</h2>
         <p style={{fontSize:17,color:'#4A5568',lineHeight:1.65,marginBottom:22}}>We reworked how Reimagine builds your Personal Brand, and the new version digs deeper into what makes you, you. We would love for you to re-run yours and see the difference. One thing to know first: re-running replaces your current Personal Brand, so if you want to keep it, download or print it before you start.</p>
@@ -12023,7 +12092,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{marginTop:14}}><button type="button" onClick={dismissPbUpgrade} style={{background:'transparent',border:'none',cursor:'pointer',fontSize:15,color:C.gray,fontFamily:'inherit',textDecoration:'underline'}}>Not now</button></div>
       </div>
     </div>}
-    {!isDemo&&!loading&&outputs.p3&&outputs.p3.trim()&&pbUpgradeDismissed&&!itAnnounceDismissed&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+    {!isDemo&&!isIndependent&&!loading&&outputs.p3&&outputs.p3.trim()&&accountCreatedBefore(INTERVIEW_TEAM_SHIPPED)&&pbUpgradeDismissed&&!itAnnounceDismissed&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div style={{position:'relative',background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:560,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
         <button type="button" aria-label="Close" onClick={dismissItAnnounce} style={{position:'absolute',top:12,right:12,background:'transparent',border:'none',cursor:'pointer',color:C.gray,padding:6,lineHeight:0}}><X size={20}/></button>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>New: build your Interview Team</h2>
@@ -12045,7 +12114,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         the Support-panel / feedback overlay primitive: backdrop-click and × both
         dismiss with zero friction, "Take a look" additionally opens the Support
         panel via the supportOpenReq bump. Any dismissal path marks it seen. */}
-    {!isDemo&&hydrationStable&&(hasProgress||done.length>0)&&!supportAnnounceDismissed&&<div data-print="hide" onClick={dismissSupportAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+    {!isDemo&&!isIndependent&&hydrationStable&&(hasProgress||done.length>0)&&!supportAnnounceDismissed&&<div data-print="hide" onClick={dismissSupportAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Support Reimagine announcement" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:480,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
         <button onClick={dismissSupportAnnounce} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 14px',paddingRight:24,lineHeight:1.35}}>{SUPPORT_ANNOUNCEMENT_COPY.header}</h2>
@@ -12259,7 +12328,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>
