@@ -2607,6 +2607,35 @@ const AUDIENCE_PRIORITY_CLAUSE = (sel) => `weighted by what the audience hiring 
 // the outreach template. The main P.p7 keeps its own inline copy for now —
 // unifying that ~50KB template literal is a separate, higher-risk refactor.
 const DIRECT_OUTREACH_VOICE='never condescending about what the company needs; no transactional language about their mission; no sales jargon ("repeatable sales process", "sales engine", "pipeline", "revenue growth"); no logic-flip constructions; no buzzwords ("architecting", "ecosystem", "leverage", "platform", "synergy", "navigate", "journey", "lean in", "double down", "circle back"). It should sound like someone who genuinely cares about what the company does.'
+// The voice anchor, lifted from what actually works rather than invented.
+//
+// Measured 2026-08-27: My Coach carries MORE prohibitions per 1000 characters
+// than any generation prompt (2.5 vs 1.1 for Income Now), so the reason it reads
+// human is not that it is governed less. The difference is that the Coach and
+// the Bridge Story are the only two surfaces that tell the model WHO IS SPEAKING
+// -- "You are My Coach", "You are Bob Goodwin across the table from this person"
+// -- and they are the two that reliably sound like Bob. Everything else names a
+// deliverable ("Complete Go-to-Market Strategy for: X") and gets a document
+// written by nobody, whose tone is then patched afterward with another ban.
+//
+// A prohibition can only remove. It cannot produce. The clinical hero line that
+// prompted this ("when the presenting problem is still being treated as a
+// symptom") is exactly that: the comparative-standing pattern fired and forced a
+// rewrite, and with nothing saying what good sounds like the model retreated
+// into passive voice. This block is the other half of that gate.
+//
+// Scoped to the practice track for now (2026-08-27, Bob's call) so it can be
+// read against a real profile before it governs every generation.
+const COACH_VOICE_ANCHOR = `WHO IS WRITING THIS. You are Bob Goodwin, sitting across the table from this person, telling them what you see. This is not a report being compiled about them, and the difference shows up in every sentence. A person says "you rebuilt onboarding because people were leaving in the first ninety days." A report says "the candidate demonstrates systematic diagnostic capability."
+
+Write it the way you would say it out loud to someone you respect and have twenty minutes with. Plain, direct, warm. Short paragraphs. Contractions are fine. Say the thing rather than announcing that you are about to say it: state what you see, do not write "this analysis suggests" or "the evidence indicates."
+
+Stay in their vocabulary and their industry's. Not the language of assessment.
+
+Never define this person against other people, named or unnamed. No crowd, no average, no "where others" and no "when everyone else." What makes the read distinctive is how specific it is to them, never a comparison. If a sentence needs a crowd to make its point, the point is not earned yet: name what they did and what it produced, and let that carry it.
+
+When a sentence comes out stiff, passive, or clinical, it is usually avoiding something rather than saying something. Write it from the positive side, in the plainest words that are still true.`
+
 const P={
   // Stage one (Personal Brand): the lean analysis. A short coach frame plus the
   // full raw inputs, run "free" against a safety-only system prompt. No
@@ -2628,6 +2657,8 @@ FORMATIVE ORIGIN, CONDITIONAL: the "where it comes from in their life" thread is
 
 Close by drawing the brand together and pointing them toward what the next steps open up.
 ${independent?`
+${COACH_VOICE_ANCHOR}
+
 THIS PERSON IS BUILDING A PRACTICE, NOT LOOKING FOR A JOB. What they need from this read is the foundation of a value proposition they will sell with, so weight it toward the work: the problem they remove, who has it, and the evidence that they can.
 
 Personal and life material still belongs where it EXPLAINS A PROFESSIONAL DECISION they actually made -- a formative experience that accounts for why they built the thing they built is analysis, and it stays. What does not belong is a personal detail that merely repeats something they told you and explains nothing: their age, their children's ages, where they live, how long they have been working. Restating an input is not a finding, and on this track it reads as filler in a document about what they sell.
