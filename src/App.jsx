@@ -3312,7 +3312,7 @@ FABRICATION GUARD:
 
 OUTPUT STRUCTURE: when a company basis was established, open with one short plain clause naming it (size band with source, industry, market), then the bolded headline sentence stating the range and/or typical figure across the RELEVANT sources; otherwise lead with the bolded headline. Follow with two to four sentences of supporting prose naming those sources, the role disambiguation (only if applicable), a half-sentence noting any source set aside as a title-match mismatch (only if you set one aside), and any real disagreement among the relevant sources, each dollar figure cited inline. Target 70-130 words total. No bullet lists, no extra sections, no editorializing on whether the figure is good or bad for this direction.`,
 
-  // Who Fits That Description (income-buyer-read brief 2026-08-26). Names REAL
+  // Find Companies Who Fit That Description (income-buyer-read brief 2026-08-26). Names REAL
   // organizations matching the buyer types the Income Now plan already described.
   // Reuses the {webSearch:true} call + the citation/fabrication gate proven on
   // companyRead and salaryRead (step 'income-buyer-read' is registered in the
@@ -3956,7 +3956,7 @@ function GtmFindMoreBox({busy,error,onSubmit}){
 // collapsed refine box into a full card so the steering control is visible.
 //
 // Renamed from GtmReshapeBox and parameterized 2026-08-27 (income-buyer-read
-// brief) so Income Now's "Who Fits That Description" card can use the same
+// brief) so Income Now's "Find Companies Who Fit That Description" card can use the same
 // control instead of a near-twin. Every prop defaults to the literal Go-to-
 // Market shipped, so the GTM call site passes nothing and renders unchanged.
 function ReshapeBox({busy,error,onSubmit,title,body,label,placeholder,submitLabel,busyLabel,busyNote}){
@@ -7394,7 +7394,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const[focusSalary,setFocusSalary]=useState(null)
   const[focusSalaryBusy,setFocusSalaryBusy]=useState(false)
   const[focusSalaryErr,setFocusSalaryErr]=useState(null)
-  // Who Fits That Description (income-buyer-read brief 2026-08-26). Same transient
+  // Find Companies Who Fit That Description (income-buyer-read brief 2026-08-26). Same transient
   // per-direction shape as focusSalary above, plus `screen`: the user's own steer
   // from the reshape box, carried on the result so a Rebuild keeps it and the card
   // can show it back. Session-only by design; a rebuild costs one call.
@@ -8750,7 +8750,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {built&&<div style={{marginTop:14}}><div style={S.out}><MD text={focusSalary.content}/></div><div style={{marginTop:10,fontSize:15,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Compensation figures come from public salary sources, which routinely disagree and can lag the market. Treat this as a starting range for your own research, not a definitive number — click through to the sources and weigh them against your specific company, level, and total package.</div></div>}
     </div>
   }
-  // Who Fits That Description (income-buyer-read brief 2026-08-26). Lives under the
+  // Find Companies Who Fit That Description (income-buyer-read brief 2026-08-26). Lives under the
   // Income Now plan, next to the Compensation Read, and mirrors its shape. Takes the
   // already-built plan text so the organizations match the buyer types THIS person's
   // plan named. Screen resolution is load-bearing: undefined = keep the applied
@@ -8787,7 +8787,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     return <div style={{marginTop:24,background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
         <div style={{flex:1,minWidth:220}}>
-          <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>Who Fits That Description</div>
+          <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>Find Companies Who Fit That Description</div>
           <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4}}>Real organizations that match the buyers your plan describes, each with a link so you can check it yourself. A starting list for your own research.</div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
