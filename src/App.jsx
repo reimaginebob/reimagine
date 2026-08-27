@@ -5822,18 +5822,12 @@ export default function PivotEngine(){
     const ids=savedPlaybooks.filter(r=>r&&r.source==='door2').map(r=>r.id)
     try{fetch('/api/pursuit-status',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({recordIds:ids})}).catch(()=>{})}catch{}
   },[hasMySearch,step,savedPlaybooks,isDemo,isTest])
-  // "Next scheduled meeting" is a forward-looking, calendar-fed field. Once its
-  // day has come and gone it is no longer a NEXT meeting, so clear it on load —
-  // a meeting that already happened is not a pending item and must not read as
-  // overdue. Past-due status is driven by the My Next Steps date, never by a
-  // passed meeting. One-shot per session; fire-and-forget.
-  const pursuitMeetingClearedRef=useRef(false)
-  useEffect(()=>{
-    if(isDemo||isTest||!hasMySearch)return
-    if(pursuitMeetingClearedRef.current||!pursuitStatus.length)return
-    pursuitMeetingClearedRef.current=true
-    pursuitStatus.forEach(s=>{if(s&&s.next_conversation_at&&!(s.stage==='closed'||s.closed_at)&&pursuitStepDueState(s.next_conversation_at)==='overdue')savePursuit(s.record_id,{next_conversation_at:null})})
-  },[hasMySearch,pursuitStatus,isDemo,isTest])
+  // Reimagine never changes a pursuit date on its own. A "Next scheduled meeting"
+  // whose day has passed stays exactly as the user (or their connected assistant)
+  // set it — the app does not clear or rewrite it. Past-due status is driven by
+  // the My Next Steps date only; a passed meeting simply reads as "last met" (see
+  // the coach status block). The earlier auto-clear was removed: it silently
+  // erased data and made a still-active opportunity look empty.
   const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p}}catch{}return[{role:'assistant',content:"Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you."}]})
   const[showPulse,setShowPulse]=useState(false)
   // Coach doors (PR-3, item H): a one-shot seed that prefills the My Coach input
