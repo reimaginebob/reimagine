@@ -48,7 +48,7 @@ export const FEATURE_MAP = [
   { slug: 'role-options',         reach: 'standalone',  labelId: 'laneSelect', parent: 'twoDoors',
     does: 'opens up directions worth exploring, including off the obvious path' },
   { slug: 'income-now',           reach: 'standalone',  labelId: 'income',     parent: 'twoDoors',
-    does: 'surfaces faster ways to bring in money while the bigger search runs. On the Go Independent track it is called "Price, Pitch & Launch" and is one of the two lead sections rather than a bonus: there the practice IS the goal, so it covers what to charge, how to package the work, where the buyers already gather, and what to do in the next 48 hours, never framed as a stopgap' },
+    does: 'surfaces faster ways to bring in money while the bigger search runs. On the Go Independent track it is called "Price, Pitch & Launch" and is one of the two lead sections rather than a bonus: there the practice IS the goal, so it covers what to charge, how to package the work, where the buyers already gather, and the immediate next steps, never framed as a stopgap' },
   // Go Independent (2026-08-27). A second entry track, reached by its own URL,
   // for someone building a consulting or fractional-executive practice. It reuses
   // Orientation, Personal Brand, Go-to-Market and Income Now; these two entries

@@ -40,7 +40,7 @@ Confirming your one line takes you to your practice plan. It holds the same gene
 
 **1. Find Your Clients.** Live research into specific companies that fit who you help and why, plus how to reach the right person at each one. It starts from the buyer you named in Where You Think You Fit and treats that as a starting point to confirm, sharpen, or argue with, rather than a brief to follow. Where the research lands somewhere you did not expect, it tells you why and shows you what took it there.
 
-**2. Price, Pitch & Launch.** This is Income Now, rebuilt for a practice. On the standard track, Income Now is money coming in while a search runs. Here, the practice is the goal, so the plan covers what to charge, how to package the work, where your buyers already gather, and what to do in the next 48 hours. Nothing in it is framed as a stopgap.
+**2. Price, Pitch & Launch.** This is Income Now, rebuilt for a practice. On the standard track, Income Now is money coming in while a search runs. Here, the practice is the goal, so the plan covers what to charge, how to package the work, where your buyers already gather, and the immediate next steps to take. Nothing in it is framed as a stopgap.
 
 **Everything else you'll need**, built as you want them and in any order:
 
