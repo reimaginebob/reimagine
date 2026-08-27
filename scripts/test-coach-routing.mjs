@@ -95,7 +95,7 @@ eq('strips <verdict>none</verdict> element (arbitrary tag), feature null',
 // --- CANONICAL_FEATURE_SLUGS (the SELFCHECK vocabulary) ---
 ok('community slugs are in the canonical set',
   CANONICAL_FEATURE_SLUGS.includes('career-club-corner') && CANONICAL_FEATURE_SLUGS.includes('accountability-partner'))
-ok('CANONICAL_FEATURE_SLUGS has 17 entries', CANONICAL_FEATURE_SLUGS.length === 17)
+ok('CANONICAL_FEATURE_SLUGS has 18 entries', CANONICAL_FEATURE_SLUGS.length === 18)
 
 // --- FEATURE_MAP is the single structured source ---
 eq('CANONICAL_FEATURE_SLUGS derives from FEATURE_MAP (same order)',

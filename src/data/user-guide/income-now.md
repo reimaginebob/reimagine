@@ -50,9 +50,17 @@ The service offerings should be problem-first, not seller-first. A title like "W
 
 The rates should match your seniority. The standard ranges Reimagine uses are roughly $300–$500/hour for advisory work, $1,000–$3,000 for a defined deliverable, and $4,000–$10,000 for a strategic engagement. If your market is materially different (lower-cost geography, very specialized expertise, etc.), refine with that context.
 
+The buyer descriptions should be specific enough to search on. "Advisory work for purpose-driven CPG brands" is a category. "Emerging functional-food brands in the $5M to $25M revenue band, backed by impact-focused funds" is a buyer — a size, a sector, a way to find them. The plan describes that buyer rather than naming particular companies, on purpose: a company name recalled without a source goes stale. Naming real ones is the job of Who Fits That Description, below the plan.
+
 ## Compensation Read
 
 Below your income plan, Income Now carries a **Compensation Read**: a sourced pay range for the direction you picked, in your market. Click **Build** and Reimagine searches public salary sites (Glassdoor, BuiltIn, Salary.com, PayScale, and similar), triangulates two or three of them, and reports the range with every dollar figure a clickable link to its source so you can check it yourself. It sets aside sources that are matching a mislabeled version of the role, so a stray high or low outlier doesn't distort the range. Because the relevant public sources still disagree among themselves, it names the honest spread rather than one falsely precise number. A disclaimer under the card says what it is: a starting point for your own research, not a verdict. It is context for the direction you are weighing, never a signal for whether to pursue it — that call stays yours. (The same Compensation Read appears inside an Opportunity Playbook for a specific posting, where it also feeds an Offer & Negotiation section; see Add an Opportunity.)
+
+## Who Fits That Description
+
+Under your income plan, Income Now carries **Who Fits That Description**. Your plan describes the kind of organization that buys what you're selling — the type, the size band, the sector. Click **Build** and Reimagine searches for real organizations matching those descriptions and returns five to eight of them, each with what they do, which of your buyer types it fits, its size or stage where a public source confirms one, and a link so you can check it yourself. Anything it found but could not source is listed separately under "Found, not yet confirmed" rather than dropped, so you can see it and decide. Names come from a live search and reflect what public sources showed that day; click through before you use one in an outreach note. It names who might buy — the plan itself covers what to say to them.
+
+If the list is off, say so. Under it, **Not the right organizations?** takes a line in your own words — "smaller, 50 to 200 people," "healthcare rather than tech," "Midwest," "founder-owned, not PE-backed" — and rebuilds the list around it. The card then shows **Screened for:** with what you asked for, so you always know what is being applied, and **Clear** drops it. This shapes the list of organizations; your plan's own description of your buyer stays as it is. To change that, use **Update my plan** on the plan itself.
 
 ## How to refine
 
