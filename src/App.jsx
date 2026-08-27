@@ -47,6 +47,7 @@ import { Analytics, track } from "@vercel/analytics/react"
 import LegalReacceptanceModal from "./LegalReacceptanceModal"
 import { PRIVACY_VERSION, TOS_VERSION, PRIVACY_VERSION_MATERIAL, TOS_VERSION_MATERIAL } from "./config/legal"
 import { ACTIVE_SIGNUP_SOURCES, detailPromptFor } from "./signup-sources.js"
+import { isTrack, TRACK_PARAM, TRACK_INDEPENDENT } from "./tracks.js"
 import BrandChangeNote from "./components/BrandChangeNote"
 import { brandProse, diffBrandProse } from "./brand-diff.js"
 
@@ -5470,6 +5471,16 @@ export default function PivotEngine(){
   // current build vs a stale one: build/live SHAs, last check time, and
   // status all render in a fixed corner element. Production users see nothing.
   const isDebug=_params.get('debug')==='1'
+  // Which product track this visit is on. The URL parameter is only the FRONT
+  // DOOR: it is read here so the sign-up screens can be framed correctly, and
+  // it is posted with the magic-link request so it survives the round trip
+  // through the user's inbox (api/auth/request-link.js parks it on the token,
+  // api/auth/verify.js writes it onto the account). From the first sign-in
+  // onward the account's own `track` column governs, which is why isIndependent
+  // below prefers it and ignores the parameter for anyone already signed in --
+  // otherwise a stray link would reframe a standard user's whole product around
+  // work they never did.
+  const trackParam=isTrack(_params.get(TRACK_PARAM))?_params.get(TRACK_PARAM):null
   const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',resumeDelta:'',linkedin:'',linkedinFile:'',linkedinRecs:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',compFloor:'',bridgeTarget:'',bridgeRunway:'',workReq:'',benefitsWeight:'',riskTolerance:'',dealBreakers:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',skills:{technical:[],systems:[],certifications:[],languages:[],methodologies:[]},corrections:[],frameworks:[],jd:'',jdFile:'',companyReadInput:'',builder:null,baselineResume:null}
   const IO={p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''}
   const initStep=isDemo?'welcome':'welcome'
@@ -5701,6 +5712,12 @@ export default function PivotEngine(){
   // so hasMySearch is false for demo/test (no signedInUser) without special-casing.
   const featureFlags=Array.isArray(signedInUser?.feature_flags)?signedInUser.feature_flags:[]
   const hasMySearch=featureFlags.includes('my_search')
+  // Go Independent (2026-08-27). The account's own track wins the moment there
+  // is an account; the URL parameter only speaks for a visitor who has not
+  // signed in yet, which is exactly the sign-up screens. Deriving it in that
+  // order is what stops a shared link from reframing an existing user's product
+  // around a track their saved work was never built for.
+  const isIndependent=signedInUser?(signedInUser.track===TRACK_INDEPENDENT):(trackParam===TRACK_INDEPENDENT)
   // pursuit_status rows, column-name shape as returned by GET /api/pursuit-status.
   const[pursuitStatus,setPursuitStatus]=useState([])
   const pursuitReconciledRef=useRef(false)
@@ -7019,7 +7036,7 @@ export default function PivotEngine(){
     // Keep the existing Apps Script beta-signup pipeline firing on new-user submissions.
     try{fetch('https://script.google.com/macros/s/AKfycbz_wPKjaBRW6wlqmm7X-baYyU1FuuTjKBgZIjc8zp77d4cUDD589dyK5ePqDyLCjunEEw/exec',{method:'POST',body:JSON.stringify({firstName:fn,lastName:ln,email:em,timestamp:new Date().toISOString()})}).catch(()=>{})}catch{}
     try{
-      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln,privacyAccepted:true,privacyVersion:PRIVACY_VERSION,termsAccepted:true,termsVersion:TOS_VERSION,signupSource:signupForm.source||null,signupSourceDetail:signupForm.sourceDetail||null})})
+      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln,privacyAccepted:true,privacyVersion:PRIVACY_VERSION,termsAccepted:true,termsVersion:TOS_VERSION,signupSource:signupForm.source||null,signupSourceDetail:signupForm.sourceDetail||null,track:trackParam})})
       if(!r.ok){
         const data=await r.json().catch(()=>({}))
         if(r.status===429)setSignupError(data.error||'Too many requests. Try again in an hour.')

@@ -2,6 +2,7 @@ import { sql } from '../_lib/db.js'
 import { generateToken, hashToken } from '../_lib/session.js'
 import { sendMagicLinkEmail } from '../_lib/email.js'
 import { isSignupSource } from '../../src/signup-sources.js'
+import { isTrack } from '../../src/tracks.js'
 
 const TOKEN_EXPIRY_MINUTES = 15
 // Rate limits keyed by email. Both windows must clear for a request to pass.
@@ -25,7 +26,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const { email, firstName, lastName, privacyAccepted, privacyVersion, termsAccepted, termsVersion,
-    signupSource, signupSourceDetail } = req.body || {}
+    signupSource, signupSourceDetail, track } = req.body || {}
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     return res.status(400).json({ error: 'Invalid email' })
   }
@@ -65,6 +66,19 @@ export default async function handler(req, res) {
   const tokenSourceDetail = (tokenSource && typeof signupSourceDetail === 'string' && signupSourceDetail.trim())
     ? signupSourceDetail.trim().slice(0, 200)
     : null
+
+  // Which product track this account is arriving on, carried the same way and
+  // for the same reason: the entry URL holds ?track=independent, but the click
+  // that actually creates the account comes from the user's inbox on a URL that
+  // no longer has it. New accounts only -- a returning user signing in through
+  // the independent URL keeps whatever track they already have, because the
+  // track governs which product they are using and their existing work was
+  // built under it. Moving an existing account is the admin control's job
+  // (api/admin/track-access.js), never a side effect of a sign-in. An
+  // unrecognised code is dropped rather than rejected, on the same principle as
+  // signup_source above: a failed sign-in is far too steep a price for a
+  // mistyped link.
+  const tokenTrack = (isNewAccount && isTrack(track)) ? track : null
 
   // Dual-window rate limit. We query both windows in one round trip, then
   // compute the earliest moment the limiting window opens back up. When both
@@ -107,8 +121,8 @@ export default async function handler(req, res) {
   const ipAddress = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || ''
 
   await sql`
-    INSERT INTO magic_link_tokens (token_hash, email, first_name, last_name, expires_at, user_agent, ip_address, privacy_accepted_at, privacy_version, terms_accepted_at, terms_version, signup_source, signup_source_detail)
-    VALUES (${tokenHash}, ${normalizedEmail}, ${firstName || null}, ${lastName || null}, ${expiresAt.toISOString()}, ${userAgent}, ${ipAddress}, ${tokenPrivacyAt}, ${tokenPrivacyVersion}, ${tokenTermsAt}, ${tokenTermsVersion}, ${tokenSource}, ${tokenSourceDetail})
+    INSERT INTO magic_link_tokens (token_hash, email, first_name, last_name, expires_at, user_agent, ip_address, privacy_accepted_at, privacy_version, terms_accepted_at, terms_version, signup_source, signup_source_detail, track)
+    VALUES (${tokenHash}, ${normalizedEmail}, ${firstName || null}, ${lastName || null}, ${expiresAt.toISOString()}, ${userAgent}, ${ipAddress}, ${tokenPrivacyAt}, ${tokenPrivacyVersion}, ${tokenTermsAt}, ${tokenTermsVersion}, ${tokenSource}, ${tokenSourceDetail}, ${tokenTrack})
   `
 
   // Build the verify URL from the request origin so preview deploys

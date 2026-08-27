@@ -58,7 +58,7 @@ export async function getSessionUser(req, res = null) {
   const rows = await sql`
     SELECT u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login_at,
            u.privacy_version, u.terms_version, u.employment_status, u.suspended_at,
-           u.feature_flags,
+           u.feature_flags, u.track,
            u.search_going_well, u.search_going_well_updated_at,
            u.search_focus, u.search_focus_updated_at
     FROM sessions s

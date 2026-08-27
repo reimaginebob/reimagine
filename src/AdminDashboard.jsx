@@ -124,6 +124,39 @@ export default function AdminDashboard() {
     } catch { setPipelineMsg("Network error. Try again.") }
     finally { setPipelineBusy(false) }
   }
+  // Product track. The track normally arrives with the account (the entry URL
+  // rides the magic-link token), so this is only for moving someone who signed
+  // up through the wrong door.
+  const [trackEmail, setTrackEmail] = useState("")
+  const [trackBusy, setTrackBusy] = useState(false)
+  const [trackMsg, setTrackMsg] = useState("")
+  const [trackMembers, setTrackMembers] = useState([])
+  const fetchTrackMembers = useCallback(async (tok) => {
+    try {
+      const res = await fetch("/api/admin/track-access", { headers: { Authorization: `Bearer ${tok}` } })
+      if (res.ok) { const d = await res.json(); setTrackMembers(Array.isArray(d.members) ? d.members : []) }
+    } catch { /* leave the list as-is */ }
+  }, [])
+  const doTrack = async (track) => {
+    const email = trackEmail.trim()
+    if (!email) { setTrackMsg("Enter an email address first."); return }
+    setTrackBusy(true); setTrackMsg("")
+    try {
+      const res = await fetch("/api/admin/track-access", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ email, track }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setTrackMsg(data.error || `Failed (HTTP ${res.status})`); return }
+      setTrackMsg(data.track
+        ? `${data.email} is now on Go Independent. They'll see it on their next page load.`
+        : `${data.email} is back on the standard product.`)
+      setTrackEmail("")
+      fetchTrackMembers(token)
+    } catch { setTrackMsg("Network error. Try again.") }
+    finally { setTrackBusy(false) }
+  }
   const [tab, setTab] = useState("analytics") // "analytics" | "feedback" | "growth" | "economics"
   // Bumped by the header Refresh button so child tabs that own their own fetch
   // can react to it.
@@ -164,6 +197,7 @@ export default function AdminDashboard() {
   // once; range/token changes are driven explicitly via pickRange/refresh.
   useEffect(() => { if (token) fetchData(token, range) }, [])
   useEffect(() => { if (authed && token) fetchTesters(token) }, [authed, token, fetchTesters])
+  useEffect(() => { if (authed && token) fetchTrackMembers(token) }, [authed, token, fetchTrackMembers])
 
   const pickRange = (r) => {
     setRange(r)
@@ -347,6 +381,27 @@ export default function AdminDashboard() {
             {testers.length > 0 && <div style={{ marginTop: 12, fontSize: 14, color: "#4A5568" }}>
               <div style={{ fontWeight: 600, color: "#1A2540", marginBottom: 4 }}>Current testers</div>
               {testers.map((e) => <div key={e} style={{ padding: "2px 0" }}>{e}</div>)}
+            </div>}
+          </Panel>
+
+          {/* Go Independent: move an account between product tracks by email */}
+          <Panel title={`Go Independent access (${trackMembers.length})`}>
+            <div style={{ fontSize: 15, color: "#4A5568", lineHeight: 1.5, marginBottom: 10 }}>
+              Testers normally arrive on the track by signing up through <code>/?track=independent</code>, which carries
+              it through the sign-in email. Use this when someone signed up through the normal front door instead.
+            </div>
+            <input value={trackEmail} onChange={(e) => setTrackEmail(e.target.value)} placeholder="user@example.com"
+              style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", fontSize: 15, border: "1px solid #E2E5EA", borderRadius: 8, marginBottom: 10, fontFamily: "inherit" }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => doTrack("independent")} disabled={trackBusy}
+                style={{ background: "#C8924A", color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 15, fontWeight: 600, cursor: trackBusy ? "default" : "pointer", opacity: trackBusy ? 0.6 : 1, fontFamily: "inherit" }}>Move to Go Independent</button>
+              <button onClick={() => doTrack(null)} disabled={trackBusy}
+                style={{ background: "transparent", color: "#1A2540", border: "1px solid #E2E5EA", borderRadius: 8, padding: "9px 18px", fontSize: 15, cursor: trackBusy ? "default" : "pointer", opacity: trackBusy ? 0.6 : 1, fontFamily: "inherit" }}>Back to standard</button>
+            </div>
+            {trackMsg && <div style={{ fontSize: 15, color: "#1A2540", marginTop: 10 }}>{trackMsg}</div>}
+            {trackMembers.length > 0 && <div style={{ marginTop: 12, fontSize: 15, color: "#4A5568" }}>
+              <div style={{ fontWeight: 600, color: "#1A2540", marginBottom: 4 }}>On Go Independent</div>
+              {trackMembers.map((m) => <div key={m.email} style={{ padding: "2px 0" }}>{m.email}</div>)}
             </div>}
           </Panel>
 
