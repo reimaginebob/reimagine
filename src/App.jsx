@@ -2915,6 +2915,61 @@ That is the instruction. Fix what they named and leave alone what they did not.
 They asked for a different draft without saying what was off, so come at the offer from a genuinely different angle: a different buyer, a different moment, or a different level of the same function.
 `:'')}
 Output the sentence and nothing else.`,
+  // Go Independent: draft a proposal for ONE named prospect.
+  //
+  // The differentiator is retrieval, not generation. Every proposal tool on the
+  // market re-elicits who you are at proposal time, from a company blurb or a
+  // paste of call notes. This one already holds the Personal Brand, the
+  // positioning line, the person's own read on who needs them, the priced
+  // offerings from their plan, and the live research on this specific company --
+  // so it matches against a real profile instead of inventing from a blank. The
+  // prompt's job is to make it USE that, which is why proof selection is the
+  // rule it repeats.
+  proposal:(pr,outs,sel,client,notes,research)=>`Draft a consulting proposal from this person to ONE named prospect. Write it for the prospect to read.
+
+THE PROSPECT: ${client}
+${notes?`\nWHAT THIS PERSON LEARNED TALKING TO THEM, in their own words. This outranks every other source here, including the research below, because it came from the actual conversation:\n${notes}\n`:`\nThey have not recorded a conversation with this prospect yet. Draft from the research and their profile, and where the proposal depends on something only a conversation could establish, say so in the open questions rather than inventing it.\n`}
+${research?`\nWHAT REIMAGINE RESEARCHED ABOUT THIS COMPANY:\n${research}\n`:''}
+WHAT THIS PERSON SELLS: **${sel}**
+
+THEIR OWN READ ON WHO NEEDS THEM: the need they name is \"${pr.fitNeed||'not provided'}\" and the buyer they picture is \"${pr.fitBuyer||'not provided'}\".
+
+THEIR PERSONAL BRAND (the evidence base to draw proof from):
+${outs.p3||'not provided'}
+
+THEIR PRICED OFFERINGS AND PACKAGING, if a plan exists. Take scope shape and price from here rather than inventing numbers:
+${asText(outs.income)||'not provided'}
+
+RESUME:
+${pr.resume||'not provided'}
+
+PROOF SELECTION IS THE WHOLE JOB. A capabilities list is what everyone else sends. For each claim you make, reach into the brand and the resume and pull the ONE result that maps onto THIS prospect's situation, with its number, and say why it maps. A proof that would fit any client is not proof, it is filler. Three well-chosen proofs beat nine listed ones.
+
+OPEN ON THEM. The first paragraph is the prospect's situation as they would describe it, and what it is costing them: money they are not making, money they are losing, or risk they are carrying. Never open on this person's background, years, or titles.
+
+WRITE THESE SECTIONS, with these headings, in this order:
+
+## What we discussed
+Their situation, in their language, and what it is costing them. Short. If a conversation was recorded above, this is built from it and should sound like it was written by someone who was listening.
+
+## What I would do
+The work itself. Concrete enough that they can picture the first two weeks. Name what is in scope, and name plainly what is NOT, because an unbounded proposal is how scope creep starts before the engagement does.
+
+## Why me for this
+Two or three proofs, chosen by the rule above, each tied to the specific problem named. This is the shortest section, not the longest.
+
+## What it costs
+Structure and price. Use the offerings and prices from their plan above where they fit. If no plan exists, give a defensible structure and mark every number as a placeholder for them to set, rather than inventing a rate and presenting it as decided.
+
+## How we would start
+The first concrete step, and what you need from them to take it.
+
+## Open questions
+What you would need to know to firm this up. This section is a strength, not a gap: it shows the work was thought about rather than templated. Where the draft had to assume something, that assumption belongs here.
+
+RULES. Plain language, first person, addressed to the prospect as you. No buzzwords, no superlatives, no \"proven\" or \"passionate\" or \"trusted advisor\". Never invent a number, a date, a client name, or a credential that is not in the materials above; where the draft needs one, bracket it as [THEIR NUMBER] for the user to fill. This is a draft they will edit and send under their own name, so leave nothing in it they would have to defend and could not.
+
+End with a short italic line, prefixed with ---NOTE--- on its own line, naming the ONE thing that would most strengthen this proposal if they found it out before sending. One sentence.`,
   p6:(pr,outs,sel,lane,independent=false)=>`${AUDIENCE_ANCHORING(sel)}\n\nUser is pursuing: **${sel}**\nLane: **${lane}**\n\nPROFILE:\nRESUME:\n${pr.resume||'not provided'}\n\nPERSONAL BRAND:\n${outs.p3}\n\nORIENTATION:\nValues: ${pr.values}\nPassions: ${pr.passions}\nReputation: ${[pr.rep.memory,pr.rep.emergency,pr.rep.twoWords,pr.rep.other].filter(Boolean).join(' | ')}\n${pr.lifeEvents?`Life and formative experiences: ${pr.lifeEvents}`:''}\n\nVOICE. THIS IS THE MOST IMPORTANT INSTRUCTION:\nYou are Bob Goodwin across the table from this person. Tell them what you see. Never analyze. Never describe your approach. Never use the words "bridge story," "narrative," "reframes," "positions you as," "the core message," "TMAY."\n\nLANE-AWARE ANCHOR SELECTION:\nReview the user's values, passions, reputation themes, and life experiences alongside their Brand Synthesis. Select the human anchor that is most resonant for the ${lane} lane:\n- Familiar Ground: foreground the anchor most connected to professional craft or operating instinct.\n- Industry Insider: foreground the anchor most connected to domain curiosity and insider perspective.\n- Work That Matters: foreground the anchor most connected to values, passion, or cause.
 - Your Practice: foreground the anchor most connected to earned authority to operate on their own. This person is not asking to be hired; they are telling a prospective client why they trust themselves to do this work independently, and the listener is deciding whether to buy. Part 3 lands on why this practice is the natural next chapter, not why a role is.\n\nEVIDENCE-BASED CONFIDENCE (the test for every claim about this person): every trait or quality you name must carry three things in the same breath: (1) an anchor the listener can verify (a specific moment, a named assessment, a sustained passion, a formative training); (2) the user's own words or plain-language definition of what it is; and (3) a recognition move that ties it to lived work ("which is exactly what I did when..."). A claim that floats without those three reads as performance; cut it or anchor it. Apply this test to every sentence about the user.\n\n${independent?`THE PITCH (write as one flowing answer, no section labels, no headers):\n\nTHE LISTENER IS A BUYER, NOT AN INTERVIEWER. Nobody hires an independent because her background is impressive. They hire her because something is costing them money, or is about to, and she is the person who has fixed it before. A pitch that opens on her own history is a highlights reel: the listener waits politely for the part that concerns them. Open on the part that concerns them.\n\n1. THE PROBLEM, IN THEIR WORLD. Open on the situation the buyer is in, specific enough that the right person hears it and thinks that is us. Draw it from the need and the buyer this person named themselves. Never open with a title, a tenure, a formative story, or how many years they have done this.\n\n2. WHAT IT IS COSTING THEM. Name the stake in one of three currencies, in plain language rather than by label: money they are not making, money they are losing, or risk they are carrying unmanaged. Then the other half of that same coin, whichever is true here: the opportunity that opens if it gets solved, or the trap waiting if it does not. Be concrete. A senior person walking out with the client relationship in their pocket is concrete; \"suboptimal retention outcomes\" is not.\n\n3. WHAT THEY DO ABOUT IT, WITH ONE PROOF. What the work actually is, in a sentence, then EXACTLY ONE result from their background, chosen because it maps onto the problem just named and stated in the same currency: money made, money saved, or risk removed, with its number. One. A second proof turns this back into a highlights reel and is a defect.\n\n4. THE NEXT MOVE, HANDED OVER. Close by making it easy to keep talking: what a first conversation would cover, or what they would look at first. Not a request to be considered.\n\nONE HUMAN BEAT, SUBORDINATE. Somewhere in the middle, one sentence on why this person does this work, and only where it makes them more credible on THIS problem rather than more interesting in general. It serves the buyer's decision or it comes out. That sentence is the whole of the personal material here; there is no opening anchor on this track.\n\nTarget: 30-45 seconds spoken. Cohesive prose, one to three paragraphs. Second person throughout, written for them to say out loud.`:`THE THREE-PART STORY (write as one flowing answer, no section labels):\n1. Open with the strongest human anchor in this person's inputs. Pick the single anchor that gives the listener the quickest, most distinctive signal of who this person is and that arcs naturally into their work and what they want next. Choose by strength; do NOT default to a childhood or early-life event when another anchor is more telling. The anchor can be any of four kinds:\n   - A formative life experience: a specific moment that shaped how they work.\n   - A hobby or passion: a sustained outside pursuit whose instinct carries into the work.\n   - A training or craft: a skill they were formally trained in whose discipline shows up in how they operate.\n   - An assessment result: a specific signal from an assessment they have taken (CliftonStrengths, Affintus, DiSC, MBTI). Deploy it in THREE moves: (a) a graceful intro that does not assume the listener knows the framework ("I am not sure if you know CliftonStrengths, but..."); (b) the user's own plain-language definition ("the way I understand it is..."); (c) a recognition reflection that locates it in their career ("I never had a name for it, but it describes exactly what I have done for fifteen years"). Without the three moves an assessment anchor reads as a test-score brag; with them it reads as a name for something they already recognized.\n   (Value-based anchors are deliberately not prescribed here yet; if the user's inputs carry a genuinely-held value organically, it can surface, but do not go looking for one.)\n   Never open with a role, title, company, or time-anchor ("I have spent 20 years in," "After 15 years in," "As a senior leader").\n2. Lead the professional part with the THEME, not a list of wins. The theme is the integrating force the Personal Brand analysis already found: the through-line, which is the opening sentence of the Personal Brand read in the PROFILE above. State that force in plain language, then anchor it. Exactly one accomplishment sentence in the work paragraph. A second accomplishment sentence is a defect. If the user has multiple strong accomplishments, choose the one that most directly illustrates the theme from the through-line (the opening sentence of the Personal Brand read above) and refuse the impulse to mention the others. The professional beat is thematic articulation anchored by a single example, not a mini-resume. (Right: "I build the systems institutions use to meet their people at scale, and because of that I designed a referral program that now generates 34% of all hires." One sentence: the force, then the single accomplishment with its number, then stop. Wrong: that same sentence followed by "I also led the Workday migration, redesigned the offer experience, and cut $4.2M in agency costs" — three more accomplishments turn the thematic beat into a resume.)\n3. Why ${sel} is the natural next chapter. Let it fall out of the same force that runs through the first two parts, so the next move reads as the continuation of who this person is, not a role description, not a career change, not a pivot.`}\n\nMETAPHOR DENSITY: when the anchor is metaphor-rich (music, cycling, fishing, taking things apart), let the metaphor establish the frame strongly in the opening paragraph, then let it recede. In the professional paragraph allow AT MOST ONE callback to it; carry the work in plain operational language with the numbers attached through "because" clauses, not the metaphor repeated each time. In the close allow ONE final light touch, a turn of phrase that completes the frame, not another extended metaphor sentence. Density decreases through the piece: heavy open, light middle, light close. A metaphor returning in every paragraph is over-applied.\n\nTarget: 30-45 seconds spoken. Cohesive prose, one to three paragraphs.\n\nSPECIFICITY RULE: Every sentence must reference something concrete from this person's actual profile: a number, a company, a role, a result, a specific passion, a named cause. No abstract character descriptions. No inflated language.\n\nALTERNATIVE ANCHOR (judgment call):\nAfter writing the story, evaluate: does this person's profile contain a meaningfully different human anchor that was not used, one that would produce a genuinely different opening and would be more resonant in a specific context?\n\nIf YES: output the exact separator ---COACHING NOTE--- on its own line, then write 1-2 sentences naming what you led with and when the alternative would serve better. Specific and plain.\n\nIf NO (one dominant through-line, or the alternative is thin or too similar): do not output the separator. Do not manufacture a second option.`,
   p6_op:(baseFull,sel,lane,jd,pr,outs)=>`${AUDIENCE_ANCHORING(sel)}\n\nUser is pursuing: **${sel}** (${lane} lane)
@@ -3482,7 +3537,7 @@ ${incomeText||'(not built)'}
 
 PLAN GUARD (load-bearing): if THE INCOME NOW PLAN above is empty or carries no buyer description, output exactly this single line and nothing else: "Build your Income Now plan first, then come back and we'll find organizations that match the buyers it describes."
 ${screen&&String(screen).trim()?`\nWHAT THIS PERSON IS AFTER (supplied by them after seeing an earlier list, and more reliable than inferring from the plan alone): ${String(screen).trim()}. Build the list around this. It takes precedence over the size, sector, or geography implied anywhere else above. An organization outside it earns a place only when it fits better than anything inside it, and its entry must say why. Open your lead sentence by naming, in one short clause, the screen you applied.\n`:''}
-WHAT TO RETURN: 5 to 8 real, currently-operating organizations that match the buyer descriptions in the plan. Spread them across the plan's buyer types rather than stacking them on one. Favor THE MARKET named above; when a strong match sits outside it, include it and say plainly that it does.
+WHAT TO RETURN: 8 real, currently-operating organizations that match the buyer descriptions in the plan. Spread them across the plan's buyer types rather than stacking them on one. Return fewer than 8 only when the search genuinely cannot confirm more that fit, and when you do, say how many you found and why the screen limited it rather than padding the list or trimming quietly.\n\nTHE BUYER BAND IS A FILTER, NOT A DESCRIPTION (load-bearing). The plan states who this person's buyer is: a size or headcount range, a stage, a sector, an ownership type. Those are the entry requirements for this list, not adjectives. An organization outside the stated band does not belong here even when it is a great company and even when it is otherwise a good fit. Before you name any organization, check its size against the band and drop it if it misses. State the size in its entry with its own source, so the person can check the filter was applied rather than take your word for it. A list containing organizations the plan's own band excludes is a failed list.\n\nGEOGRAPHY IS A CONSTRAINT HERE, NOT A PREFERENCE. This person sells their own services, which means a client they cannot get to, or cannot serve in the client's own time zone, is not a lead. Build the list inside THE MARKET named above. Where the market is only a country and no city or metro is given, say so plainly in your lead sentence and tell them naming their metro will sharpen the list, rather than silently spreading the list across the whole country. Include an organization outside the market only when the work is plainly remote-deliverable, and say why it still works from where they are.
 
 DEAL-BREAKERS AND PREFERENCES: the profile block above may state industries, ownership structures, or company sizes this person will not consider. Treat those as firm. Do not surface an organization that clearly violates one. Where a strong match is a borderline case, keep it and name the tension in its entry rather than dropping it silently.
 
@@ -4904,7 +4959,7 @@ function FileUpload({label,hint,onFile,fileName,accept=".pdf,.doc,.docx,.txt"}){
     </div>
   </div>
 }
-function OutPanel({text,onCopy,copied,expandLabel}){
+function OutPanel({text,onCopy,copied,expandLabel,noCollapse=false}){
   const[expanded,setExpanded]=useState(false)
   const marker='## QUICK TAKEAWAY'
   const idx=text?text.indexOf(marker):-1
@@ -4920,7 +4975,7 @@ function OutPanel({text,onCopy,copied,expandLabel}){
   }
   return <div data-print="content" style={S.out}>
     <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}><Btn small onClick={()=>onCopy(text)}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn><Btn small onClick={()=>window.print()}><Printer size={11}/>Print</Btn></div>
-    {hasTakeaway&&full?<>
+    {hasTakeaway&&full&&!noCollapse?<>
       <MD text={`## QUICK TAKEAWAY\n${takeaway}`}/>
       <button data-expand="true" onClick={()=>setExpanded(e=>!e)} style={{display:'flex',alignItems:'center',gap:10,margin:'20px 0 8px',padding:'14px 22px',background:expanded?`${C.gold}15`:`${C.gold}10`,border:`2px solid ${C.gold}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:17,fontWeight:700,color:C.goldL,transition:'all 0.2s',width:'100%'}}>
         <ChevronRight size={18} style={{transform:expanded?'rotate(90deg)':'none',transition:'transform 0.2s'}}/>
@@ -9107,7 +9162,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           {built&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:15,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
-          <Btn small secondary={built} onClick={()=>generateDoor1SalaryRead()} disabled={focusSalaryBusy}>{focusSalaryBusy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>}</Btn>
+          <Btn small secondary={built} prominent={!built} onClick={()=>generateDoor1SalaryRead()} disabled={focusSalaryBusy}>{focusSalaryBusy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>}</Btn>
         </div>
       </div>
       {focusSalaryErr&&<div style={{marginTop:10}}><ErrBox msg={focusSalaryErr}/></div>}
@@ -9157,7 +9212,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           {built&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:15,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
-          <Btn small secondary={built} onClick={()=>generateIncomeBuyerRead()} disabled={buyerReadBusy}>{buyerReadBusy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>}</Btn>
+          <Btn small secondary={built} prominent={!built} onClick={()=>generateIncomeBuyerRead()} disabled={buyerReadBusy}>{buyerReadBusy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>}</Btn>
         </div>
       </div>
       {screen&&<div style={{marginTop:12,padding:'10px 14px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
@@ -9202,11 +9257,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(!(chosen&&chosen.length>0))return null
     return <div style={{marginBottom:18}}>
       <CoachingCallout>
-        <p style={{margin:0}}>Optional: tell us what this needs to bring in and we'll show which mixes of work get there. Leave it blank and the plan works in ranges instead.</p>
+        <p style={{margin:0}}>{isIndependent?'Optional: name what the practice needs to earn each month and we\'ll show which mixes of work reach it. Leave it blank and the plan works in ranges instead.':'Optional: tell us what this needs to bring in and we\'ll show which mixes of work get there. Leave it blank and the plan works in ranges instead.'}</p>
       </CoachingCallout>
       <div style={{...S.card,marginTop:12}}>
-        <div style={S.field}><label style={S.label}>What would this need to bring in?</label><input style={S.inp} value={profile.bridgeTarget||''} onChange={e=>pr('bridgeTarget',e.target.value)} placeholder="e.g. $6,000 a month"/></div>
-        <div style={{...S.field,marginBottom:0}}><label style={S.label}>For how long?</label><input style={S.inp} value={profile.bridgeRunway||''} onChange={e=>pr('bridgeRunway',e.target.value)} placeholder="e.g. six months, until I land something"/></div>
+        <div style={{...S.field,marginBottom:isIndependent?0:18}}><label style={S.label}>{isIndependent?'What does the practice need to bring in?':'What would this need to bring in?'}</label><input style={S.inp} value={profile.bridgeTarget||''} onChange={e=>pr('bridgeTarget',e.target.value)} placeholder="e.g. $6,000 a month"/></div>
+        {/* "For how long" is the runway of a BRIDGE, and asks when you expect to
+            stop needing it. There is no bridge on the practice track: the income
+            IS the work. Hidden, and P.income is told to ignore it. */}
+        {!isIndependent&&<div style={{...S.field,marginBottom:0}}><label style={S.label}>For how long?</label><input style={S.inp} value={profile.bridgeRunway||''} onChange={e=>pr('bridgeRunway',e.target.value)} placeholder="e.g. six months, until I land something"/></div>}
       </div>
     </div>
   }
@@ -10278,7 +10336,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         :'Where you are and how your search is going right now. This shapes every opportunity we generate and every company we identify, and it gives your coach a place to start.'}</p>
       <div style={S.card}>
         <div style={S.field}><label style={S.label}>Country / Region<InfoTooltip label="Why we ask">Reimagine uses your location to filter realistic company targets, work arrangements, and market context. Pick the country you are based in or want to work in.</InfoTooltip></label><input list="country-list" style={S.inp} value={profile.loc.country} onChange={e=>loc('country',e.target.value)} placeholder="Start typing or select from the list" autoComplete="off"/><datalist id="country-list">{COUNTRY_OPTIONS.map(c=><option key={c} value={c}/>)}</datalist></div>
-        <div style={S.field}><label style={S.label}>City or Metro <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label><input style={S.inp} value={profile.loc.city} onChange={e=>loc('city',e.target.value)} placeholder="e.g. Chicago, Greater London, Munich metro"/></div>
+        <div style={S.field}><label style={S.label}>City or Metro <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>{isIndependent?'(strongly recommended)':'(optional)'}</span></label><input style={S.inp} value={profile.loc.city} onChange={e=>loc('city',e.target.value)} placeholder="e.g. Chicago, Greater London, Munich metro"/>{isIndependent&&<p style={S.helperText}>This is what we search against when we go looking for your clients. Left blank, the list comes back national and most of it will be too far away to be useful.</p>}</div>
         {/* Remote / hybrid / on-site / open-to-relocation are the shapes an
             EMPLOYER offers, and none of them is a question someone running their
             own practice is answering. Country and city stay: the client research
@@ -10896,7 +10954,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         p_res:()=>P.p_res(pc,O,chosen),
         p8:()=>P.p8(pc,O,chosen),
         p7:()=>P.p7(pc,O,chosen,laneLbl),
-        income:()=>P.income(pc,O,chosen,profile.bridgeTarget,profile.bridgeRunway,isIndependent),
+        income:()=>P.income(pc,O,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent),
       }[id])}
       // Migrated surfaces send the canonical profile as a cached block; profileBlock
       // is built lazily (only at generation time) and step tags telemetry per surface.
@@ -10908,7 +10966,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         if(id==='p6'){const rawP6=typeof outputs.p6==='string'?outputs.p6:(outputs.p6?bridgeStoryToProse(outputs.p6):'');const hasCoaching=typeof rawP6==='string'&&rawP6.includes('---COACHING NOTE---');const parts=hasCoaching?rawP6.split('---COACHING NOTE---').map(s=>s.trim()):[rawP6,''];const storyPart=parts[0]||'';const coachingPart=parts[1]||'';return <><OutPanel text={storyPart} onCopy={copy} copied={copied}/>{hasCoaching&&coachingPart&&<div data-print="content" style={{margin:'16px 0 24px',padding:'18px 22px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,fontStyle:'italic',color:C.cream,lineHeight:1.65,fontSize:16}}><MD text={coachingPart}/></div>}{!isDemo&&<RefineBox guard={submitCorrection} sectionId="p6" value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? Tell us what to adjust: the opening, the tone, which part of your background to lead with, or how you want to close." placeholder="e.g. The opening does not feel personal enough… I want to lead with my sustainability work instead… the ending needs to connect more directly to the role…" onRegenerate={v=>refineSec('p6',v)}/>}</>}
         if(id==='p9')return <>{!isDemo&&<CoachingCallout><strong style={{color:'#1A2540'}}>How to use this</strong><p style={{margin:'8px 0 0'}}>This section gives you the vocabulary, frameworks, and thought leaders that signal credibility in this space. Use it to prep for conversations and to find people to follow on LinkedIn.</p></CoachingCallout>}<OutPanel text={outputs.p9} onCopy={copy} copied={copied}/></>
         if(id==='p8')return <>{renderLinkedInRemix(outputs.p8)}{!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your LinkedIn profile. Open LinkedIn in another tab and apply the changes yourself.</div>}</>
-        if(id==='income')return <><div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>{isIndependent?'Getting paid for this work is the point, not a stopgap. What you charge and how you package it is what makes the practice hold.':'A job search takes time. Income flowing while you search means you choose from strength, not pressure.'}</div>{incomeTargetFields()}<OutPanel text={outputs.income} onCopy={copy} copied={copied}/>{focusSalaryCard()}{buyerReadCard()}</>
+        if(id==='income')return <>{!isIndependent&&<div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div>}{incomeTargetFields()}<OutPanel text={outputs.income} onCopy={copy} copied={copied} noCollapse={isIndependent}/>{!isIndependent&&focusSalaryCard()}{buyerReadCard()}</>
         if(id==='p_res'){
           const resumeJson=outputs.p_res?parseResumeJSON(outputs.p_res):null
           if(resumeJson)return <ResumeRefreshView resumeJson={resumeJson} isDemo={isDemo} copy={copy} copied={copied}/>
@@ -11253,7 +11311,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // playbook. Income content generated here is keyed on `chosen`; the
       // orphan state (chosen cleared via addNewOpportunity while outputs.income
       // survives) intentionally renders the gated screen, never stale content.
-      const refineIncome=(v)=>{recordCorrection('income',v);generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,profile.bridgeRunway,isIndependent)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})}
+      const refineIncome=(v)=>{recordCorrection('income',v);generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})}
       if(!(chosen&&chosen.length>0))return <div>
         <h1 style={S.title}>Income Now</h1>
         <p style={S.sub}>{isIndependent
@@ -11268,8 +11326,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>{isIndependent?'Getting paid for this work is the point, not a stopgap. What you charge and how you package it is what makes the practice hold.':'A job search takes time. Income flowing while you search means you choose from strength, not pressure.'}</div>
         {incomeTargetFields()}
         {isGen&&<Loading msg="Building your Income Now plan…" step="income" independent={isIndependent}/>}
-        {!isGen&&sectionErrors.income&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors.income} <Btn small secondary onClick={()=>generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,profile.bridgeRunway,isIndependent),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
-        {!isGen&&!sectionErrors.income&&!outputs.income&&<div style={S.row}><Btn disabled={!canGenSection('income')} onClick={()=>generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,profile.bridgeRunway,isIndependent),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})}><Sparkles size={14}/>Generate Income Now</Btn></div>}
+        {!isGen&&sectionErrors.income&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors.income} <Btn small secondary onClick={()=>generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
+        {!isGen&&!sectionErrors.income&&!outputs.income&&<div style={S.row}><Btn disabled={!canGenSection('income')} onClick={()=>generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})}><Sparkles size={14}/>Generate Income Now</Btn></div>}
         {!isGen&&!sectionErrors.income&&outputs.income&&<>
           <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
           <RefineBox guard={submitCorrection} sectionId="income" value={feedback.income} onChange={v=>setFb('income',v)} hint="Tell us what to refine here." placeholder="" onRegenerate={v=>refineIncome(v)}/>
