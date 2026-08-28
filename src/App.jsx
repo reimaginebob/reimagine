@@ -330,7 +330,12 @@ const boundResumeForP3 = (r) => {
 }
 
 async function callClaude(prompt, opts={}) {
-  const{webSearch=false,highTemp=false,maxTokens=5000,temperature,voiceMode,profileBlock,step}=opts
+  // `effort` replaced `temperature` in the Sonnet 5 migration (2026-08-28):
+  // a non-default temperature is a 400 on this model, and effort is the lever
+  // that steers how hard it thinks. Omitted means the API default, `high`.
+  // `temperature` and `highTemp` are still accepted from older callers and
+  // deliberately ignored rather than forwarded into a rejected request.
+  const{webSearch=false,highTemp=false,maxTokens=5000,temperature,effort,voiceMode,profileBlock,step}=opts
   const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined
   // When a profileBlock is supplied, send the user message as two content blocks:
   // the canonical profile (cache_control ephemeral = the cached prefix shared
@@ -342,7 +347,7 @@ async function callClaude(prompt, opts={}) {
   }else{
     content=prompt
   }
-  const body={model:"claude-sonnet-4-5",max_tokens:maxTokens,temperature:typeof temperature==='number'?temperature:(highTemp?1.0:0.7),system:[{type:"text",text:SYS_BASE,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content}],...(voiceMode&&{voiceMode}),...(step&&{step}),...(tools&&{tools})}
+  const body={model:"claude-sonnet-5",max_tokens:maxTokens,...(effort&&{output_config:{effort}}),system:[{type:"text",text:SYS_BASE,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content}],...(voiceMode&&{voiceMode}),...(step&&{step}),...(tools&&{tools})}
   const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
   if(!res.ok){
     const e=await res.json().catch(()=>({}))
@@ -1346,7 +1351,7 @@ function opLaneValue(rec){const l=rec&&rec.opLane;if(l&&typeof l==='object'&&(l.
 const OP_LANE_INFER_PROMPT=(jd,profileSummary,quickTakeaway)=>`Determine which of the user's three career lanes best fits a specific opportunity FOR THIS USER. Output JSON only, no preamble.\n\nThe lanes:\n- FAMILIAR GROUND (FG): continues the user's trajectory. Same function, similar industry and altitude. The user can step in and add value from day one.\n- INDUSTRY INSIDER (II): translates the user's expertise across an industry or sector shift. Function carries; context changes. The user brings credibility and an outside perspective.\n- WORK THAT MATTERS (WTM): a deliberate pivot toward something the user cares about more, away from prior trajectory. Hiring requires explaining motivation, learning velocity, and transferable capability beyond resume fit.\n\nTHIS OPPORTUNITY (job description):\n${jd}\n\nTHE USER'S FOUNDATION:\n${profileSummary}\n\nWHAT WE HAVE ALREADY SAID ABOUT ROLE-FIT:\n${quickTakeaway}\n\nReturn exactly this JSON shape:\n{"value":"FG or II or WTM","confidence":"high or medium or low","reasoning":"2 to 4 sentences. Reference at least one specific JD fact and at least one specific user-profile fact. Plain language."}\n\nRules: choose exactly one lane, no between-lanes answers. Confidence is high only when the signal is unambiguous; medium is the common case. Generic reasoning is wrong.`
 async function inferLaneForOpportunity(jd,profileSummary,quickTakeaway){
   try{
-    const raw=await callClaude(OP_LANE_INFER_PROMPT((jd||'').slice(0,8000),(profileSummary||'').slice(0,4000),(quickTakeaway||'').slice(0,2000)),{maxTokens:500,temperature:0.2})
+    const raw=await callClaude(OP_LANE_INFER_PROMPT((jd||'').slice(0,8000),(profileSummary||'').slice(0,4000),(quickTakeaway||'').slice(0,2000)),{maxTokens:1200,effort:'low'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<0||b<=a)return null
     let obj;try{obj=JSON.parse(raw.slice(a,b+1))}catch(e){return null}
@@ -1384,7 +1389,7 @@ async function inferJdMetadata(jd){
   const empty={company:'',role:'',location:''}
   const text=((jd)||'').slice(0,6000)
   if(!text.trim())return empty
-  const raw=await callClaude(INFER_JD_METADATA_PROMPT(text),{maxTokens:300,temperature:0.2})
+  const raw=await callClaude(INFER_JD_METADATA_PROMPT(text),{maxTokens:1000,effort:'low'})
   try{
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<0||b<=a)return empty
@@ -1546,7 +1551,7 @@ async function inferIndustry(ctx){
   try{
     const jd=((ctx&&ctx.jd)||'').slice(0,6000)
     if(!jd.trim())return 'default'
-    const raw=await callClaude(INFER_INDUSTRY_PROMPT(jd),{maxTokens:500,temperature:0.2})
+    const raw=await callClaude(INFER_INDUSTRY_PROMPT(jd),{maxTokens:1200,effort:'low'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<0||b<=a)return 'default'
     let obj;try{obj=JSON.parse(raw.slice(a,b+1))}catch(e){return 'default'}
@@ -1646,7 +1651,7 @@ If no currently open matching role exists, return match_count 0 and an empty mat
 // zero-match result on any failure so the sweep never blocks a card.
 async function findOpeningMatches(company,role,laneLabel){
   try{
-    const raw=await callClaude(OPENINGS_MATCH_PROMPT(company,role,laneLabel),{webSearch:true,maxTokens:1500,temperature:0.2})
+    const raw=await callClaude(OPENINGS_MATCH_PROMPT(company,role,laneLabel),{webSearch:true,maxTokens:2500,effort:'low'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<=a)return{count:0,matches:[]}
     const obj=JSON.parse(raw.slice(a,b+1))
@@ -1738,7 +1743,7 @@ function recruiterLeaderConfirmed(m){
 }
 async function findRecruiterMatches(criteria){
   try{
-    const raw=await callClaude(RECRUITERS_DISCOVERY_PROMPT(criteria),{webSearch:true,maxTokens:4000,temperature:0.2})
+    const raw=await callClaude(RECRUITERS_DISCOVERY_PROMPT(criteria),{webSearch:true,maxTokens:6000,effort:'low'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<=a)return{matches:[]}
     const obj=JSON.parse(raw.slice(a,b+1))
@@ -1960,7 +1965,7 @@ async function runDeskOutreach(f,previous,onProgress){
   say('Writing the outreach note\u2026')
   const raw=await callClaude(
     P.recruiter_outreach_template(deskSynthProfile(f),deskFoundation(f),'',matches,(f.roleTitle||'this role').trim(),(f.lane||'').trim()),
-    {maxTokens:900,temperature:0.5,step:'recruiters'}
+    {maxTokens:1600,effort:'low',step:'recruiters'}
   )
   const text=(typeof raw==='string'?raw:'').trim()
   if(!text)throw new Error('The note did not come back. Try again.')
@@ -2050,7 +2055,7 @@ Output JSON only, no preamble:
 // gate before accepting the name.
 async function findRecruiterLeader(firm,practice,c){
   try{
-    const raw=await callClaude(RECRUITER_LEADER_LOOKUP_PROMPT(firm,practice,c),{webSearch:true,maxTokens:1200,temperature:0.2})
+    const raw=await callClaude(RECRUITER_LEADER_LOOKUP_PROMPT(firm,practice,c),{webSearch:true,maxTokens:2000,effort:'low'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<=a)return null
     const o=JSON.parse(raw.slice(a,b+1))
@@ -2074,7 +2079,7 @@ Output JSON only, no preamble:
 {"contact":"<name or empty>","contactTitle":"<current title or empty>","contactLinkedIn":"<profile URL if found, else empty>","source":"LinkedIn | Company site"}`
 async function findGtmContact(company,role,laneLabel){
   try{
-    const raw=await callClaude(GTM_CONTACT_LOOKUP_PROMPT(company,role,laneLabel),{webSearch:true,maxTokens:1200,temperature:0.2})
+    const raw=await callClaude(GTM_CONTACT_LOOKUP_PROMPT(company,role,laneLabel),{webSearch:true,maxTokens:2000,effort:'low'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<=a)return null
     const o=JSON.parse(raw.slice(a,b+1))
@@ -8984,7 +8989,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     try{
       const text=typeof fileOrText==='string'?fileOrText:await extractText(fileOrText)
       if(!text||!text.trim()||text.trim().length<40){setOfferParseError('We couldn\'t read enough text from that. Try pasting the offer text directly.');return}
-      const raw=await callClaude(OFFER_PARSE_PROMPT(text),{maxTokens:1200,temperature:0.1})
+      const raw=await callClaude(OFFER_PARSE_PROMPT(text),{maxTokens:1200})
       const offer=parseOfferJSON(raw)
       if(!offer){setOfferParseError('We couldn\'t parse that into offer terms. Try pasting the key details directly.');return}
       if(currentSavedSlotIdRef.current!==slotId)return
@@ -9633,7 +9638,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         if(prevTemplate||!mergedMatches.length)return
         let template=''
         try{
-          const raw=await callClaude(P.recruiter_outreach_template(pc,brand,bridge,mergedMatches,roleForTemplate,laneLabel),{maxTokens:900,temperature:0.5,step:'recruiters'})
+          const raw=await callClaude(P.recruiter_outreach_template(pc,brand,bridge,mergedMatches,roleForTemplate,laneLabel),{maxTokens:1600,effort:'low',step:'recruiters'})
           template=(typeof raw==='string'?raw:'').trim()
         }catch(e){template=''}
         if(reqId!==recruitersReqRef.current)return
@@ -9674,7 +9679,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     try{
       const laneLabel=laneLabelFor(selectedLane)
       const buildPrompt=()=>correctionsBlock(profile.corrections)+P.p6_op(baseFull,chosen,laneLabel,jd,pc,outputs)+(refine?`\n\nNEW CORRECTION FROM THIS SECTION: ${refine}`:'')
-      const raw=await callClaudeWithVoiceGate(buildPrompt,{maxTokens:1500,temperature:0.3,voiceMode:'prose'},{step:'p6',onEvent:logVoiceEvent})
+      const raw=await callClaudeWithVoiceGate(buildPrompt,{maxTokens:1500,voiceMode:'prose'},{step:'p6',onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       const adapted=typeof raw==='string'?raw.trim():''
       const finalText=adapted||baseStripped

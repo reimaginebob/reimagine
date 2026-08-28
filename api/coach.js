@@ -812,7 +812,14 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // and a dashboard that counted only playbook generations would understate
   // what a user costs.
   const coachUsage = {}
-  const COACH_MODEL = 'claude-sonnet-4-5'
+  // Claude Sonnet 5 (2026-08-28). Coach sends no temperature, so the sampling
+  // breaking change does not touch it. Two things do: omitting `thinking` now
+  // runs adaptive rather than none, and thinking shares max_tokens with the
+  // reply. effort 'low' keeps a chat surface responsive -- Sonnet 5 at low is
+  // still ahead of where 4.5 ran with no thinking at all -- and max_tokens
+  // doubles so a long profile-rich answer has room alongside it. The 2000 that
+  // replaced 1200 was measured against replies with no thinking in the budget.
+  const COACH_MODEL = 'claude-sonnet-5'
   async function generate(msgs) {
     const up = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -829,7 +836,8 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
         // clears the longest answers observed (~4.6k chars) with headroom. Cost
         // and latency rise only for replies that actually use the extra room;
         // short answers are unaffected.
-        max_tokens: 2000,
+        max_tokens: 4000,
+        output_config: { effort: 'low' },
         system: [
           { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
           ...(goIndependentBlock ? [{ type: 'text', text: goIndependentBlock, cache_control: { type: 'ephemeral' } }] : []),
