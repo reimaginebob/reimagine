@@ -13,8 +13,22 @@ async function handler(req, res) {
 
   const profile = stripNul(rawProfile)
   const serialized = JSON.stringify(profile)
-  if (serialized.length > 1024 * 1024) {
-    return res.status(413).json({ error: 'Profile too large' })
+  // Ceiling raised 1 MB -> 3 MB on 2026-08-28. The old limit was reached by a
+  // real account (1,049,069 bytes — 493 over), and because the client dropped
+  // the 413 on the floor, every save it made for six days failed in silence.
+  // The client now shows a save-failure notice, so crossing this is visible;
+  // 3 MB keeps the request under Vercel's 4.5 MB body limit with room to spare.
+  // This is headroom, not a fix for unbounded growth: profile_state is written
+  // whole on every autosave, so a genuinely large blob is a cost problem before
+  // it is a correctness one. Pruning what savedPlaybooks carries is the real fix.
+  const MAX_PROFILE_BYTES = 3 * 1024 * 1024
+  if (serialized.length > MAX_PROFILE_BYTES) {
+    console.error('profile/save rejected: over size ceiling', {
+      userId: req.user?.id,
+      bodyBytes: serialized.length,
+      ceiling: MAX_PROFILE_BYTES,
+    })
+    return res.status(413).json({ error: 'Profile too large', bytes: serialized.length, ceiling: MAX_PROFILE_BYTES })
   }
 
   try {
