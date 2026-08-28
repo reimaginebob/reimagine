@@ -14,6 +14,8 @@
 // src/* (the 2026-05-27 FUNCTION_INVOCATION_FAILED outage, PR #76).
 
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
+import { GO_INDEPENDENT_KNOWLEDGE } from '../src/data/go-independent-knowledge.js'
+import { TRACK_INDEPENDENT } from '../src/tracks.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
@@ -696,11 +698,13 @@ export default async function handler(req, res) {
   let employmentStatus = null
   let featureFlags = []
   let searchIntake = null
+  let track = null
   try {
-    const rows = await sql`SELECT profile_state, employment_status, feature_flags, search_going_well, search_going_well_updated_at, search_focus, search_focus_updated_at FROM users WHERE id = ${user.id} LIMIT 1`
+    const rows = await sql`SELECT profile_state, employment_status, feature_flags, track, search_going_well, search_going_well_updated_at, search_focus, search_focus_updated_at FROM users WHERE id = ${user.id} LIMIT 1`
     profileState = rows.length ? rows[0].profile_state : null
     employmentStatus = rows.length ? rows[0].employment_status : null
     featureFlags = rows.length && Array.isArray(rows[0].feature_flags) ? rows[0].feature_flags : []
+    track = rows.length ? rows[0].track : null
     searchIntake = rows.length ? {
       goingWell: rows[0].search_going_well,
       goingWellAt: rows[0].search_going_well_updated_at,
@@ -722,6 +726,38 @@ export default async function handler(req, res) {
       console.error('coach pursuit read failed:', err)
     }
   }
+  // Go Independent business-of-consulting grounding (2026-08-28). Six chapters,
+  // roughly 30k tokens, for accounts on that track ONLY -- someone still job
+  // searching should never have Coach reaching into 401(k)-loan risk or B2B
+  // sales methodology to answer them.
+  //
+  // Sent as its OWN cached system block AFTER the shared one, rather than as a
+  // per-user append or a forked stable prefix. Caching is a sequential prefix
+  // match with up to four breakpoints and this file used one, so a second block
+  // gets its own cache entry while the big shared block keeps the single entry
+  // it already shares with every standard-track user. No fork, and no second
+  // copy of the book or the nav map to keep in sync.
+  //
+  // Economics at this model's rates, for ~30k tokens: appending it uncached
+  // costs full input price on EVERY turn; cached it is a 1.25x write on the
+  // first turn of a window and 0.1x on each turn after. A six-turn conversation
+  // is roughly 53 cents uncached against 16 cents cached. The catch is the
+  // five-minute TTL: a user who reads for several minutes between questions
+  // lapses the entry and pays the write premium again, which is WORSE than not
+  // caching. usage-cost.js already records cache_creation_input_tokens and
+  // cache_read_input_tokens per call and the Economics tab surfaces them, so
+  // settle this on real sessions rather than by guessing -- if writes dominate
+  // reads, move this one block to ttl: '1h'.
+  const isIndependentTrack = !generalMode && track === TRACK_INDEPENDENT
+  const goIndependentBlock = isIndependentTrack
+    ? `THIS PERSON IS BUILDING A PRACTICE, NOT LOOKING FOR A JOB. They are on the Go Independent track: they have already left, or decided to leave, and they are standing up a consulting or fractional-executive practice. Do not coach them through a job search, do not reach for interview framing, and do not offer features that only make sense to someone applying for roles. When they ask about handling pushback on a rate, that is a sales conversation with a buyer, not interview prep.
+
+The reference material below is yours to reason from on the mechanics of running that practice: pricing, pipeline, scope and contracts, the fractional model and the business behind it, selling expertise, and the personal side of going independent. Use it the way you use the rest of what you know -- draw on it when it fits what they are actually asking, in your own voice, and never recite it or name it as a document. Where a chapter states something as fact, you can state it as fact. Where it says a judgment depends on the specific person, that is a conversation to have with them, not an answer to hand down.
+
+On money, tax, entity structure, insurance, and retirement accounts specifically: these chapters give you the terrain and the real tradeoffs, and that is what to share. You are not their accountant, financial planner, or attorney, and a decision that turns on their actual numbers belongs with one.
+
+${GO_INDEPENDENT_KNOWLEDGE}`
+    : null
   let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake)
   // Anchor today's date. The coach is otherwise never told the current date, so
   // any past/future or elapsed-time reasoning it does itself is unanchored
@@ -796,6 +832,7 @@ export default async function handler(req, res) {
         max_tokens: 2000,
         system: [
           { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
+          ...(goIndependentBlock ? [{ type: 'text', text: goIndependentBlock, cache_control: { type: 'ephemeral' } }] : []),
           { type: 'text', text: profileBlock },
         ],
         messages: msgs,
