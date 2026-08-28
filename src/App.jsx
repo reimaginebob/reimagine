@@ -4631,6 +4631,7 @@ const INDEPENDENT_LOADING_PREVIEWS = {
     'A signal on each one that suggests they have the problem you solve right now: recent funding, expansion, or new hires',
     'The person who owns that problem and holds the budget, sourced from public signals you can verify',
     'A draft approach for reaching them, in your voice, that you can adapt and send',
+    'A deeper read on any one of them, on demand: what they do, what is going on there now, and where you fit, without leaving the page',
   ],
   p8: [
     'Three headline options that say what you do for clients rather than the last title you held',
