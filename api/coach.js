@@ -26,7 +26,7 @@ import { COMP_KNOWLEDGE } from '../src/comp-knowledge.js'
 import { getSessionUser } from './_lib/session.js'
 import { sql } from './_lib/db.js'
 import { costFromUsage, addUsage } from './_lib/usage-cost.js'
-import { classifyAnthropicError, operatorLine, systemErrorPayload, SYSTEM_ERROR_STATUS } from './_lib/anthropic-error.js'
+import { classifyAnthropicError, operatorLine, operatorSubject, operatorImpactLine, systemErrorPayload, SYSTEM_ERROR_STATUS } from './_lib/anthropic-error.js'
 import { alertOnce } from './_lib/ops-alerts.js'
 
 const ALLOWED_HOSTS = new Set([
@@ -892,13 +892,10 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
     const c = classifyAnthropicError(err && err.upstreamStatus ? err.upstreamStatus : 0, err && err.upstreamBody ? err.upstreamBody : err)
     console.error('Coach upstream error:', { kind: c.kind, status: c.status, detail: c.detail })
     if (c.page) {
-      const subject = c.kind === 'spend_limit'
-        ? 'Reimagine: generation is DOWN — Anthropic spend limit reached'
-        : `Reimagine: generation is DOWN — Anthropic ${c.kind}`
       try {
-        await alertOnce(`upstream:${c.kind}`, subject, [
+        await alertOnce(`upstream:${c.kind}`, operatorSubject(c), [
           operatorLine('My Coach', c),
-          'Users are being told Reimagine is temporarily unable to generate new content, and to email bob@career.club if it persists.',
+          operatorImpactLine(c),
         ], { cooldownHours: 6 })
       } catch { /* alerting must never take the request down */ }
     }
