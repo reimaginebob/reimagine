@@ -40,7 +40,8 @@ export default async function handler(req, res) {
     const rows = action === 'pause'
       ? await sql`
           UPDATE users
-          SET suspended_at = NOW(), suspended_reason = ${reason}
+          SET suspended_at = NOW(), suspended_reason = ${reason},
+              hold_count = hold_count + 1, last_hold_at = NOW(), last_hold_reason = ${reason}
           WHERE lower(email) = lower(${email})
           RETURNING email, suspended_at`
       : await sql`

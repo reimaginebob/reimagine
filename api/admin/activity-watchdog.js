@@ -38,7 +38,7 @@ import { alertOnce } from '../_lib/ops-alerts.js'
 // every hour the account stays over the line. Best-effort; never throws.
 async function autoPause(email, reason) {
   try {
-    const rows = await sql`UPDATE users SET suspended_at = NOW(), suspended_reason = ${reason} WHERE lower(email) = lower(${email}) AND suspended_at IS NULL RETURNING email`
+    const rows = await sql`UPDATE users SET suspended_at = NOW(), suspended_reason = ${reason}, hold_count = hold_count + 1, last_hold_at = NOW(), last_hold_reason = ${reason} WHERE lower(email) = lower(${email}) AND suspended_at IS NULL RETURNING email`
     if (rows.length) {
       try { await sendAccountHoldEmail(email) } catch (e) { console.error('watchdog: hold email failed', e && e.message) }
       return true
@@ -49,14 +49,37 @@ async function autoPause(email, reason) {
 
 export const config = { maxDuration: 30 }
 
-// Tunable starting thresholds. Set well above a real power user's peak so the
-// alert only fires on genuinely abnormal volume; tighten once a baseline is seen.
-const PER_USER_PLAYBOOKS_HR = 6   // a normal user builds a handful total; 6 in one hour is already unusual — alert early
+// Thresholds. These were set before any baseline existed, with a note to tighten
+// once one was seen. The baseline was measured on 2026-08-28 against all 155
+// production accounts, and it said the opposite — the numbers were too TIGHT:
+//
+//   busiest hour any user has ever had, playbooks:    5   (old threshold 6)
+//   busiest hour any user has ever had, generations: 62   (old threshold 80)
+//   average active hour, generations:                9.6
+//
+// A margin of one playbook is not a safeguard, it is a coin flip. Nobody had
+// tripped it yet, which is the only reason this was not already a support load:
+// an auto-pause blocks every authed route and its only user-facing surface is a
+// modal with no self-serve way out, so a false positive costs a real user their
+// session until an operator notices.
+//
+// Set to roughly 2x the observed peak: high enough that no behaviour anyone has
+// actually exhibited trips it, low enough to still catch a runaway loop, which
+// would overshoot by orders of magnitude rather than by one or two.
+//
+// Worth considering separately: playbook count is a proxy, not a cost. The
+// generation cap is what actually protects spend. Making the playbook rule
+// alert-only and leaving auto-pause to the generation cap would remove the
+// false-positive lockout risk entirely.
+const PER_USER_PLAYBOOKS_HR = 15  // observed peak 5; a runaway loop overshoots this by orders of magnitude
 const TOTAL_PLAYBOOKS_HR = 20     // app-wide spike — a runaway loop/bug or coordinated abuse
 
 // Generation thresholds are used only once the Phase 2 generation_events table
 // exists; the query below is wrapped so this file runs safely without it.
-const PER_USER_GENERATIONS_HR = 80   // ~a handful of playbook builds' worth of generation calls
+// Keep PER_USER_GENERATIONS_HR in step with GENERATION_CAP_HR in api/claude.js;
+// the watchdog is the hourly backstop for the same limit the request path
+// enforces in real time.
+const PER_USER_GENERATIONS_HR = 120  // observed peak 62, average active hour 9.6
 const TOTAL_GENERATIONS_HR = 250
 
 function parseRecipients(raw) {

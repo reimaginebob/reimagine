@@ -284,6 +284,9 @@ export default function AdminDashboard() {
   const employment = ((payload && payload.panel_1c_employment) || []).slice().sort((a, b) => EMPLOYMENT_ORDER.indexOf(a.status) - EMPLOYMENT_ORDER.indexOf(b.status))
   const searchIntake = (payload && payload.panel_1e_search_intake) || []
   const paused = (payload && payload.panel_1d_paused_accounts) || []
+  // Currently-held subset. The panel now carries released accounts too, so the
+  // count in its title has to distinguish "act on this" from "this happened".
+  const onHold = paused.filter((p) => p.on_hold)
   const funnel = (payload && payload.panel_2_funnel) || []
   const nps = (payload && payload.panel_3_nps) || {}
   const health = (payload && payload.panel_5_system_health) || {}
@@ -405,23 +408,34 @@ export default function AdminDashboard() {
             </div>}
           </Panel>
 
-          {/* Paused accounts: the current hold list, with a per-row Unpause */}
-          <Panel title={`Paused accounts (${paused.length})`} wide>
+          {/* Account holds: the current hold list plus every account that has been
+              held before and is active again. Lifting a hold nulls both suspension
+              columns, so before the hold_count / last_hold_* columns a released
+              account left no trace at all — and "was this person ever locked out?"
+              is the question a support email actually asks. Held-now rows sort
+              first and keep the per-row Unpause; released rows are history. */}
+          <Panel title={`Account holds (${onHold.length} on hold, ${paused.length - onHold.length} released)`} wide>
             {paused.length === 0
-              ? <div style={{ fontSize: 14, color: "#4A5568" }}>No accounts are on hold right now.</div>
+              ? <div style={{ fontSize: 14, color: "#4A5568" }}>No account has ever been placed on hold.</div>
               : <table style={S.table}>
-                  <thead><tr><Th>Email</Th><Th>Why</Th><Th>Since</Th><Th right>Action</Th></tr></thead>
+                  <thead><tr><Th>Email</Th><Th>Status</Th><Th>Why</Th><Th>When</Th><Th>Times held</Th><Th right>Action</Th></tr></thead>
                   <tbody>
                     {paused.map((p) => (
                       <tr key={p.email}>
                         <Td>{p.email}</Td>
-                        <Td>{p.reason || "—"}</Td>
-                        <Td>{p.suspended_at ? new Date(p.suspended_at).toLocaleString() : "—"}</Td>
+                        <Td>{p.on_hold
+                          ? <span style={{ color: "#C0392B", fontWeight: 600 }}>On hold</span>
+                          : <span style={{ color: "#4A5568" }}>Released</span>}</Td>
+                        <Td>{p.reason || p.last_hold_reason || "—"}</Td>
+                        <Td>{(p.suspended_at || p.last_hold_at) ? new Date(p.suspended_at || p.last_hold_at).toLocaleString() : "—"}</Td>
+                        <Td>{p.hold_count || (p.on_hold ? 1 : 0)}</Td>
                         <Td right>
-                          <button onClick={() => unpauseRow(p.email)} disabled={rowBusy === p.email}
-                            style={{ background: "#2E7D52", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 14, fontWeight: 600, cursor: rowBusy === p.email ? "default" : "pointer", opacity: rowBusy === p.email ? 0.6 : 1, fontFamily: "inherit" }}>
-                            {rowBusy === p.email ? "…" : "Unpause"}
-                          </button>
+                          {p.on_hold
+                            ? <button onClick={() => unpauseRow(p.email)} disabled={rowBusy === p.email}
+                                style={{ background: "#2E7D52", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 14, fontWeight: 600, cursor: rowBusy === p.email ? "default" : "pointer", opacity: rowBusy === p.email ? 0.6 : 1, fontFamily: "inherit" }}>
+                                {rowBusy === p.email ? "…" : "Unpause"}
+                              </button>
+                            : <span style={{ color: "#9CA3AF" }}>—</span>}
                         </Td>
                       </tr>
                     ))}
