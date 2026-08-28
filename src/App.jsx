@@ -7115,12 +7115,25 @@ export default function PivotEngine(){
   const runP3TwoStage=async(analysisExtra='',previousBrand='',changeMode='none',changedInputs='',prevLayout='')=>{
     const corr=correctionsBlock(profile.corrections)
     setLoadingStage('Reading your inputs')
-    const analysis=await callClaude(corr+P.p3analysis(pc,previousBrand,changeMode,changedInputs,isIndependent)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',step:'p3_analysis'})
+    // Both stages ask for the clamp's maximum, and neither number is tuning.
+    // These are the two most demanding generations in the product and they were
+    // running on the 6000-token floor, which on Sonnet 5 is shared with thinking:
+    // stage one spent all of it deliberating and returned nothing (twice, same
+    // prompt), and stage two -- whose JSON carries the ENTIRE brand text verbatim
+    // -- came back cut off mid-object on more than half the builds attempted on
+    // 2026-08-28, including every attempt by a user who signed up that morning.
+    // The successful runs landed at 4664, 4844 and 5339 tokens, so 6000 was not a
+    // ceiling anyone was under; it was one everyone was against. max_tokens is a
+    // ceiling and not an allocation -- headroom that goes unused is not billed --
+    // so there is no reason to sit close to it.
+    const analysis=await callClaude(corr+P.p3analysis(pc,previousBrand,changeMode,changedInputs,isIndependent)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',maxTokens:16000,step:'p3_analysis'})
     setLoadingStage('Writing your synthesis')
     let structuredP3=null
     // Stage two emits the structured presentation ONLY (no duplicated prose),
-    // so output is roughly half what it was and 6000 tokens is ample headroom.
-    await callClaudeWithVoiceGate(()=>P.p3(analysis,prevLayout),{voiceMode:'prose-lite',maxTokens:6000},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
+    // which was the argument for 6000 back when the whole ceiling was answer.
+    // Thinking shares it now, and the emit is not small either way: every section
+    // body is the brand text verbatim. See the note on stage one above.
+    await callClaudeWithVoiceGate(()=>P.p3(analysis,prevLayout),{voiceMode:'prose-lite',maxTokens:16000},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
     // Layer 1 origin guard (2026-08-11): with no life-history input the analysis
     // has no ground for a formative origin and has been seen to fabricate one
     // (an invented backstory, sometimes echoing an example) to explain a real
@@ -8493,7 +8506,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const reqId=++opSectionReqRef.current
     try{
       const rec0=savedPlaybooks.find(r=>r.id===slotId);const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&bridgeStoryToProse(rec0.sections.p6).trim())?rec0.sections.p6:outputs.p6;const opOuts={...outputs,p6:opP6};const lv=(typeof laneOverride==='string')?laneOverride:opLaneValue(rec0);const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:'';const fn=()=>correctionsBlock(profile.corrections)+(key==='p5'?P.p5(pc,opOuts,chosen,'',jd,lv):key==='p_res'?P.p_res(pc,opOuts,chosen,jd):(()=>{const _pnl=getOpPanel(rec0);if(_pnl.interviewers&&_pnl.interviewers.length){const _cr=(rec0&&rec0.sections&&rec0.sections.companyRead&&rec0.sections.companyRead.content)||'';const _pos=(rec0&&rec0.sections&&rec0.sections.p5&&rec0.sections.p5.content)||'';return P.p11Team(_pnl,jd,_cr,_pos)}return P.p11(pc,opOuts,chosen,jd,lv)})())+corrTail
-      const opts={...(key==='p11'?{maxTokens:8000}:{maxTokens:5000}),profileBlock:buildUserProfileBlock(pc,opOuts),step:key}
+      // Interview Prep emits one JSON object holding every question, so it is the
+      // other section whose ceiling is load-bearing. It stopped exactly on 8000
+      // five times in a row on 2026-08-28 (one user, one sitting), which is a
+      // truncated object rendering as a broken section, not a long answer.
+      const opts={...(key==='p11'?{maxTokens:16000}:{maxTokens:5000}),profileBlock:buildUserProfileBlock(pc,opOuts),step:key}
       const r=await callClaudeWithVoiceGate(fn,opts,{step:key,onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       setSavedPlaybooks(prev=>prev.map(rec=>{
@@ -11097,7 +11114,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       }[id])}
       // Migrated surfaces send the canonical profile as a cached block; profileBlock
       // is built lazily (only at generation time) and step tags telemetry per surface.
-      const go=(id)=>{const base={p5:{maxTokens:4000},p6:{maxTokens:7000},p7:{webSearch:true,maxTokens:16000},p8:{maxTokens:8000},p_res:{maxTokens:5000},p9:{maxTokens:4000},p11:{maxTokens:8000},income:{maxTokens:7000}}[id]||{};return ['p5','p7','p8','p11','p_res','income'].includes(id)?{...base,profileBlock:buildUserProfileBlock(pc,sanitizeUpstreamForSection(id,outputs)),step:id}:base}
+      const go=(id)=>{const base={p5:{maxTokens:4000},p6:{maxTokens:7000},p7:{webSearch:true,maxTokens:16000},p8:{maxTokens:8000},p_res:{maxTokens:5000},p9:{maxTokens:4000},p11:{maxTokens:16000},income:{maxTokens:7000}}[id]||{};return ['p5','p7','p8','p11','p_res','income'].includes(id)?{...base,profileBlock:buildUserProfileBlock(pc,sanitizeUpstreamForSection(id,outputs)),step:id}:base}
       const genSec=(id)=>id==='p6'?generateP6():generateSection(id,gp(id),go(id))
       const refineSec=(id,v)=>{recordCorrection(id,v);if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
       const renderBody=(id)=>{
