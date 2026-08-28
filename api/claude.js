@@ -586,6 +586,10 @@ export default async function handler(req, res) {
   // just the tail of it.
   const MAX_PAUSE_CONTINUATIONS = 3
   const PAUSE_DEADLINE_MS = 200000
+  // Headroom for the empty-output retry below: a first leg that burns its whole
+  // ceiling on thinking takes 60-190 seconds, and the retry at `low` takes about
+  // 30. Start one only when the 300-second function can still finish it.
+  const EMPTY_RETRY_DEADLINE_MS = 180000
   const startedAt = Date.now()
 
   try {
@@ -627,6 +631,42 @@ export default async function handler(req, res) {
     if (!response.ok || !data) {
       await reportUpstreamFailure(reqBody.step ? `generation (${reqBody.step})` : 'generation', response.status, data)
       return res.status(SYSTEM_ERROR_STATUS).json(systemErrorPayload())
+    }
+    // Empty is never an answer. On Claude Sonnet 5 thinking shares max_tokens
+    // with the reply, so a demanding prompt can spend the entire ceiling
+    // deliberating and return zero text blocks. Measured in production
+    // 2026-08-28: the same Personal Brand analysis burned all 6000 tokens for
+    // zero characters twice, at the `medium` default this endpoint sets. The
+    // caller cannot recover what was never written, and one of these empties was
+    // pasted into the next prompt in a two-stage chain -- the second model
+    // refused ("no analysis text was provided"), and the refusal was written over
+    // the person's Personal Brand.
+    //
+    // `low` is the measured escape hatch, not a guess: the prompt that returned
+    // nothing at the default returned 6472 characters in 30 seconds at low.
+    // Retried here rather than in the browser so every surface is covered,
+    // including clients still running a cached bundle. Both legs are billed, so
+    // the usage is summed the way a continued turn is.
+    const hasText = (d) => Array.isArray(d && d.content) && d.content.some(b => b && b.type === 'text' && String(b.text || '').trim())
+    if (data.stop_reason === 'max_tokens' && !hasText(data) &&
+        !(anthropicBody.output_config && anthropicBody.output_config.effort === 'low') &&
+        (Date.now() - startedAt) < EMPTY_RETRY_DEADLINE_MS) {
+      console.log(JSON.stringify({ evt: 'claude_empty_retry', step: reqBody.step, maxTokens: anthropicBody.max_tokens, effort: anthropicBody.output_config && anthropicBody.output_config.effort }))
+      const retryRes = await callUpstream({ ...anthropicBody, output_config: { effort: 'low' } })
+      const retryData = await retryRes.json().catch(() => null)
+      if (retryRes.ok && retryData && Array.isArray(retryData.content)) {
+        retryData.usage = sumUsage(data.usage, retryData.usage)
+        response = retryRes
+        data = retryData
+      }
+      console.log(JSON.stringify({ evt: 'claude_empty_retry_result', step: reqBody.step, recovered: hasText(data) }))
+    }
+    // A generation that hit its ceiling is worth saying out loud either way: with
+    // no text it is the failure above, and with text it is a truncated answer
+    // (which is how a Personal Brand layout came back as half a JSON object).
+    // Neither was visible anywhere until someone read a screenshot.
+    if (data.stop_reason === 'max_tokens') {
+      console.log(JSON.stringify({ evt: 'claude_truncated', step: reqBody.step, maxTokens: anthropicBody.max_tokens, hasText: hasText(data) }))
     }
     // Cache hit-rate telemetry: log usage (cache_creation_input_tokens /
     // cache_read_input_tokens) per surface. Serverless cannot count "first N
