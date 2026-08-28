@@ -10972,7 +10972,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         if(id==='p6'){const rawP6=typeof outputs.p6==='string'?outputs.p6:(outputs.p6?bridgeStoryToProse(outputs.p6):'');const hasCoaching=typeof rawP6==='string'&&rawP6.includes('---COACHING NOTE---');const parts=hasCoaching?rawP6.split('---COACHING NOTE---').map(s=>s.trim()):[rawP6,''];const storyPart=parts[0]||'';const coachingPart=parts[1]||'';return <><OutPanel text={storyPart} onCopy={copy} copied={copied}/>{hasCoaching&&coachingPart&&<div data-print="content" style={{margin:'16px 0 24px',padding:'18px 22px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,fontStyle:'italic',color:C.cream,lineHeight:1.65,fontSize:16}}><MD text={coachingPart}/></div>}{!isDemo&&<RefineBox guard={submitCorrection} sectionId="p6" value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? Tell us what to adjust: the opening, the tone, which part of your background to lead with, or how you want to close." placeholder="e.g. The opening does not feel personal enough… I want to lead with my sustainability work instead… the ending needs to connect more directly to the role…" onRegenerate={v=>refineSec('p6',v)}/>}</>}
         if(id==='p9')return <>{!isDemo&&<CoachingCallout><strong style={{color:'#1A2540'}}>How to use this</strong><p style={{margin:'8px 0 0'}}>This section gives you the vocabulary, frameworks, and thought leaders that signal credibility in this space. Use it to prep for conversations and to find people to follow on LinkedIn.</p></CoachingCallout>}<OutPanel text={outputs.p9} onCopy={copy} copied={copied}/></>
         if(id==='p8')return <>{renderLinkedInRemix(outputs.p8)}{!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your LinkedIn profile. Open LinkedIn in another tab and apply the changes yourself.</div>}</>
-        if(id==='income')return <>{!isIndependent&&<div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div>}{incomeTargetFields()}<OutPanel text={outputs.income} onCopy={copy} copied={copied} noCollapse={isIndependent}/>{!isIndependent&&focusSalaryCard()}{buyerReadCard()}</>
+        if(id==='income')return <>{!isIndependent&&<div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div>}{incomeTargetFields()}<OutPanel text={outputs.income} onCopy={copy} copied={copied} noCollapse={isIndependent}/>{!isDemo&&<RefineBox guard={submitCorrection} sectionId="income" value={feedback.income} onChange={v=>setFb('income',v)} hint="If anything in the plan misses, tell us what's off and we'll rebuild it. This changes the plan itself; the company list below has its own control." onRegenerate={v=>refineSec('income',v)}/>}{!isIndependent&&focusSalaryCard()}{buyerReadCard()}</>
         if(id==='p_res'){
           const resumeJson=outputs.p_res?parseResumeJSON(outputs.p_res):null
           if(resumeJson)return <ResumeRefreshView resumeJson={resumeJson} isDemo={isDemo} copy={copy} copied={copied}/>
@@ -11190,7 +11190,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 })()}
                 {renderBody(id)}
                 {!isDemo&&<div data-print="hide" style={{marginTop:14}}><Btn small secondary onClick={()=>openCoachWith((isIndependent&&INDEPENDENT_ASK_COACH_SEEDS[id])||ASK_COACH_SEEDS[id]||ASK_COACH_SEED_DEFAULT,false,id)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
-                {!isDemo&&id!=='p6'&&<RefineBox guard={submitCorrection} sectionId={id} value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
+                {!isDemo&&id!=='p6'&&id!=='income'&&<RefineBox guard={submitCorrection} sectionId={id} value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
                 {!isDemo&&nextSec&&<div data-print="hide" style={{marginTop:18,padding:'12px 16px',background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
                   <div style={{fontSize:15,color:C.grayL}}>Next: {nextNum?nextNum+'. ':''}{nextSec.label}</div>
                   <Btn small secondary onClick={()=>scrollToOutput(nextSec.id)}>Go <ChevronRight size={11}/></Btn>
@@ -11327,18 +11327,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       const isGen=generatingSection==='income'
       return <div>
-        <h1 id="section-income" style={{...S.title,scrollMarginTop:80}}>Income Now</h1>
-        <p style={S.sub}>A bonus section, available anytime you have a direction picked.</p>
-        <div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>{isIndependent?'Getting paid for this work is the point, not a stopgap. What you charge and how you package it is what makes the practice hold.':'A job search takes time. Income flowing while you search means you choose from strength, not pressure.'}</div>
+        <h1 id="section-income" style={{...S.title,scrollMarginTop:80}}>{isIndependent?'Price, Package & Launch':'Income Now'}</h1>
+        <p style={S.sub}>{isIndependent?'What you sell, what it costs, and what to do next.':'A bonus section, available anytime you have a direction picked.'}</p>
+        {!isIndependent&&<div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div>}
         {incomeTargetFields()}
         {isGen&&<Loading msg="Building your Income Now plan…" step="income" independent={isIndependent}/>}
         {!isGen&&sectionErrors.income&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors.income} <Btn small secondary onClick={()=>generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
         {!isGen&&!sectionErrors.income&&!outputs.income&&<div style={S.row}><Btn disabled={!canGenSection('income')} onClick={()=>generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})}><Sparkles size={14}/>Generate Income Now</Btn></div>}
         {!isGen&&!sectionErrors.income&&outputs.income&&<>
-          <OutPanel text={outputs.income} onCopy={copy} copied={copied}/>
-          <RefineBox guard={submitCorrection} sectionId="income" value={feedback.income} onChange={v=>setFb('income',v)} hint="Tell us what to refine here." placeholder="" onRegenerate={v=>refineIncome(v)}/>
+          <OutPanel text={outputs.income} onCopy={copy} copied={copied} noCollapse={isIndependent}/>
+          <RefineBox guard={submitCorrection} sectionId="income" value={feedback.income} onChange={v=>setFb('income',v)} hint={isIndependent?"If anything in the plan misses, tell us what's off and we'll rebuild it. This changes the plan itself; the company list below has its own control.":"Tell us what to refine here."} placeholder="" onRegenerate={v=>refineIncome(v)}/>
         </>}
-        {focusSalaryCard()}
+        {!isIndependent&&focusSalaryCard()}
         {/* Reimagine only. Income Now is a Reimagine feature and this card is
             part of it; Go Independent is a separate product with its own Find
             Your Clients section, and shipping a second company-finder inside its
