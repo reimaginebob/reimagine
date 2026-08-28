@@ -7,7 +7,7 @@ import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-p
 // first-sentence extractor used by callClaudeWithVoiceGate's Phase 3
 // and the lead-drift comparator. See scripts/test-personal-brand-tail.mjs.
 import { stalePlaybookSections } from "./playbook-staleness.mjs"
-import { runRefresh, orderForRefresh } from "./playbook-refresh.mjs"
+import { runRefresh, orderForRefresh, splitRefreshTargets } from "./playbook-refresh.mjs"
 import { findPersonalBrandTailBoundary, parsePersonalBrandTail, validatePersonalBrandTailSchema, extractLeadSentence, stripPersonalBrandTail, stripHeroLead } from "./personal-brand-tail.mjs"
 // Foundation B.1 (PR #85): deterministic post-processors extracted into
 // their own .mjs module so they can be unit-tested without loading the
@@ -11425,10 +11425,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!isDemo&&(()=>{
           const staleHere=ROLE_SUBMODULES.filter(id=>outputs[id]&&isSectionStale(id))
           if(staleHere.length===0||playbookRefresh.running)return null
-          return <div data-print="hide" style={{background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:10,padding:'14px 18px',marginBottom:18,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
-            <span style={{fontSize:16,color:'#1A2540',lineHeight:1.55}}><strong style={{color:'#8A5E1C'}}>{staleHere.length===1?'One section here was':`${staleHere.length} sections here were`} built before your latest changes.</strong> You can update them one at a time, or all at once.</span>
-            <Btn small secondary onClick={()=>refreshFocusPlaybook(staleHere,genSec)}><RotateCcw size={12}/>Bring my playbook up to date</Btn>
-          </div>
+          // Go-to-Market is offered on its own. Its targets are built around the
+          // ROLE, not the person's wording, and refreshing it re-runs the company
+          // search — so a brand edit should not quietly hand someone a different
+          // list of companies to work through.
+          const {together,separately}=splitRefreshTargets(staleHere)
+          return <>
+            {together.length>0&&<div data-print="hide" style={{background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:10,padding:'14px 18px',marginBottom:18,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
+              <span style={{fontSize:16,color:'#1A2540',lineHeight:1.55}}><strong style={{color:'#8A5E1C'}}>{together.length===1?'One section here was':`${together.length} sections here were`} built before your latest changes.</strong> You can update them one at a time, or all at once.</span>
+              <Btn small secondary onClick={()=>refreshFocusPlaybook(together,genSec)}><RotateCcw size={12}/>Bring my playbook up to date</Btn>
+            </div>}
+            {separately.includes('p7')&&<div data-print="hide" style={{background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:10,padding:'14px 18px',marginBottom:18,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
+              <span style={{fontSize:16,color:'#1A2540',lineHeight:1.55}}><strong style={{color:'#8A5E1C'}}>Your Go-to-Market outreach was written before your latest changes.</strong> Updating it searches for companies again, so it takes a few minutes and can come back with a different list. Your target companies are built around the role, so this is worth doing when the outreach wording matters to you.</span>
+              <Btn small secondary onClick={()=>genSec('p7')}><RotateCcw size={12}/>Update Go-to-Market</Btn>
+            </div>}
+          </>
         })()}
         {playbookRefresh.running&&playbookRefresh.slot==='focus'&&<div data-print="hide" style={{background:`${C.gold}12`,border:`1px solid ${C.gold}44`,borderRadius:10,padding:'14px 18px',marginBottom:18,fontSize:16,color:'#1A2540',lineHeight:1.55}}>
           <strong>Bringing your playbook up to date</strong> — {playbookRefresh.label||'starting'} ({playbookRefresh.index+1} of {playbookRefresh.total}).

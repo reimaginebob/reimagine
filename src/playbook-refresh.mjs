@@ -20,6 +20,35 @@
 // watches finish first.
 export const REFRESH_ORDER = ['p6', 'p5', 'p7', 'p_res', 'p8', 'p11', 'p_cover', 'income']
 
+// Sections that do not belong in a one-click update, and why.
+//
+// Go-to-Market is the only one so far. Its dependency on the brand is real --
+// the prompt says the through-line "shapes target companies and outreach copy"
+// and drives the per-company fit line -- but it emits the outreach copy and the
+// ranked company list from ONE call. So refreshing the wording re-runs the
+// company search as a side effect, and can hand back a different set of
+// companies than the person has been working through. Their targets should not
+// move because the wording of their brand did.
+//
+// It is also the most expensive section in the product and the slowest, since
+// that search is a live web search on a 16,000-token ceiling.
+//
+// So it gets its own offer, made with the cost visible, rather than riding
+// along inside a button labelled "bring my playbook up to date". The proper fix
+// is splitting the emit so the copy can refresh without re-sourcing companies;
+// this is the honest interim.
+export const REFRESH_SEPARATELY = ['p7']
+
+// Split what a one-click update should run from what should be offered on its
+// own. Both halves keep dependency order.
+export function splitRefreshTargets(ids, separate = REFRESH_SEPARATELY) {
+  const all = orderForRefresh(ids)
+  return {
+    together: all.filter((id) => !separate.includes(id)),
+    separately: all.filter((id) => separate.includes(id)),
+  }
+}
+
 // Sort the sections to rebuild into dependency order. Anything unrecognised goes
 // last in the order it arrived, so a section added later still runs rather than
 // being silently dropped.
