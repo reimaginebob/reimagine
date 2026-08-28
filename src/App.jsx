@@ -413,6 +413,12 @@ const DIM_MAX_RETRIES = 1
 // 1 (voice) and Phase 2 (dimensional) again rather than landing as an
 // additive pass after them.
 const STRUCTURED_MAX_RETRIES = 1
+// Missing emit, as opposed to malformed. Named separately because the fix is
+// different: nothing to repair, the whole block has to be there.
+const STRUCTURED_MISSING_CORRECTIVE = `\n\nYour previous output contained no JSON block at all. The entire output is a SINGLE triple-backtick json fence containing the object described above, and nothing else: no prose before it, no commentary after it, no explanation of what you did. If a correction was named to you, apply it INSIDE the JSON and still emit only the JSON.`
+// Schema-invalid, as opposed to unparseable. The JSON was read; it was the
+// wrong shape, so the corrective names the specific fields that failed.
+const STRUCTURED_SCHEMA_CORRECTIVE = (errors) => `\n\nYour previous output parsed as JSON but did not match the required shape. Fix exactly these problems and re-emit the whole object, keeping every other value identical:\n${(errors || []).slice(0, 12).map(e => `- ${e}`).join('\n')}\nOutput ONLY the single fenced JSON object.`
 const STRUCTURED_PARSE_CORRECTIVE = `\n\nYour previous output ended with a malformed structured emit. Re-emit your output identically, but ensure the JSON block at the end is parseable. The JSON must be the LAST thing in the output, enclosed in a single triple-backtick json fence, with no commentary after. Every key must be quoted. Every string value must be quoted. No trailing commas. No comments in the JSON. Do not change your prose; only fix the JSON tail.`
 // p_res Professional Summary guard. One retry maximum. The summary must be
 // pronoun-free resume voice (no first person) and at most 4 sentences. On
@@ -668,6 +674,19 @@ function presentationToProse(p){
   return parts.filter(Boolean).join('\n\n')
 }
 
+// One question asked in one place: would this stage-two output actually render
+// as a Personal Brand? Everything downstream — the card layout, the PDF, the
+// prose the text consumers read — is built from presentation, so an output
+// without one is not a document, whatever else is in it.
+function hasUsableLayout(text) {
+  try {
+    const parsed = parsePersonalBrandTail(text)
+    if (!parsed.found || parsed.parseFailed || !parsed.parsed) return false
+    if (!validatePersonalBrandTailSchema(parsed.parsed).valid) return false
+    return !!parsed.parsed.presentation
+  } catch { return false }
+}
+
 async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
   const isP3 = meta.step === 'p3'
   // Callers pass the step in `meta` (the gate reads it for step-scoped patterns
@@ -693,6 +712,15 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
     let lastResult = ''
     let lastViolations = []
     let voiceCleanResult = null
+    // p3 only. The layout pass is a compositor: it is forbidden to rewrite, so
+    // the banned constructions the gate finds in its output were written by
+    // stage one, which runs ungated. The retries therefore almost never clear —
+    // measured 2026-08-28, seven hard violations on a layout that was otherwise
+    // perfect — and the loop ends by returning the LAST attempt. That threw away
+    // a good layout whenever a later attempt came back without one: three
+    // attempts, no brand, "came back without a usable layout" on screen. Keep
+    // the first attempt that carried a usable layout and fall back to it.
+    let usableLayout = null
     for (let attempt = 0; attempt <= VOICE_MAX_RETRIES; attempt++) {
       let prompt = localPromptFn()
       if (attempt > 0 && lastViolations.length > 0) {
@@ -721,6 +749,7 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
       const scanText = meta.step === 'p8' ? (extractP8Strings(parseLinkedInRemixJSON(result)) || result)
         : meta.step === 'p7' ? (extractGtmStrings(parseGtmJSON(result)) || result)
         : result
+      if (isP3 && usableLayout === null && hasUsableLayout(result)) usableLayout = result
       const violations = detectVoiceViolations(scanText, { includeSoft: false, step: meta.step })
       if (violations.length === 0) {
         if (attempt > 0 && typeof meta.onEvent === 'function') {
@@ -731,6 +760,15 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
       }
       lastResult = result
       lastViolations = violations
+      // Do not retry the layout pass on voice. It is a compositor: its prompt
+      // forbids rewriting, so it cannot clear a violation its input carried in,
+      // and measurement says that is where they come from -- seven hard hits on
+      // an otherwise perfect layout, every one of them stage one's cadence. The
+      // retries cost two extra calls of 55-70 seconds each and land in the same
+      // place, which is most of why a rebuild took thirteen minutes on
+      // 2026-08-28. Scan once, log what was found, and move on. Nothing ships
+      // dirtier than before: the gate already fell open after the third attempt.
+      if (isP3) break
     }
     if (voiceCleanResult === null) {
       // Foundation B.1 (PR #85): final-defense substance-contamination
@@ -742,7 +780,11 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
       // retry-exhausted-but-contained case from the clean-retry-exhausted
       // case (which still surfaces unclean prose).
       const hasContamination = lastViolations.some(v => typeof v.name === 'string' && v.name.startsWith('contamination-'))
-      let finalResult = lastResult
+      // Prefer an earlier attempt that carried a layout over a last attempt that
+      // does not. Both are equally unclean on voice — the gate has already given
+      // up on that — so this trades nothing away, and it is the difference
+      // between a finished Personal Brand and an error message.
+      let finalResult = (isP3 && usableLayout && !hasUsableLayout(lastResult)) ? usableLayout : lastResult
       if (hasContamination) {
         finalResult = applyContaminationPlaceholders(lastResult)
       }
@@ -877,7 +919,18 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
     result = await runVoiceAndDimPhases(localPromptFn)
 
     const parsed = parsePersonalBrandTail(result)
+    // A missing emit used to give up on the spot, with no retry at all, while a
+    // malformed one got a second chance — backwards, since a missing block is
+    // the easier of the two to ask for again. Giving up here is what put "came
+    // back without a usable layout" in front of a user on 2026-08-28.
     if (!parsed.found) {
+      if (strAttempt < STRUCTURED_MAX_RETRIES) {
+        if (typeof meta.onEvent === 'function') {
+          try { meta.onEvent({ step: meta.step, attempt: strAttempt, recovered: false, structuredEmit: { status: 'missing', errors: [] } }) } catch {}
+        }
+        structuredCallout = STRUCTURED_MISSING_CORRECTIVE
+        continue
+      }
       if (typeof meta.onEvent === 'function') {
         try { meta.onEvent({ step: meta.step, attempt: strAttempt, recovered: false, structuredEmit: { status: 'missing', errors: [] } }) } catch {}
       }
@@ -899,9 +952,15 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
       return result
     }
     const schema = validatePersonalBrandTailSchema(parsed.parsed)
+    // Same reasoning as the missing case, and better placed: the errors name the
+    // exact fields that failed, so the retry is told precisely what to fix.
     if (!schema.valid) {
       if (typeof meta.onEvent === 'function') {
         try { meta.onEvent({ step: meta.step, attempt: strAttempt, recovered: false, structuredEmit: { status: 'schema-invalid', errors: schema.errors.slice(0,16) } }) } catch {}
+      }
+      if (strAttempt < STRUCTURED_MAX_RETRIES) {
+        structuredCallout = STRUCTURED_SCHEMA_CORRECTIVE(schema.errors)
+        continue
       }
       if (typeof meta.onStructured === 'function') meta.onStructured(null)
       return result
@@ -7133,7 +7192,13 @@ export default function PivotEngine(){
     // which was the argument for 6000 back when the whole ceiling was answer.
     // Thinking shares it now, and the emit is not small either way: every section
     // body is the brand text verbatim. See the note on stage one above.
-    await callClaudeWithVoiceGate(()=>P.p3(analysis,prevLayout),{voiceMode:'prose-lite',maxTokens:16000},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
+    // Stage two thinks at LOW deliberately. Deciding what the read says is stage
+    // one's job; this pass copies finished sentences into a known shape, and
+    // that is not work that rewards deliberation -- at medium it was taking 55
+    // to 70 seconds a call while producing the same object. The ceiling stays
+    // high because the emit itself is long; what comes down is the thinking in
+    // front of it.
+    await callClaudeWithVoiceGate(()=>P.p3(analysis,prevLayout),{voiceMode:'prose-lite',maxTokens:16000,effort:'low'},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
     // Layer 1 origin guard (2026-08-11): with no life-history input the analysis
     // has no ground for a formative origin and has been seen to fabricate one
     // (an invented backstory, sometimes echoing an example) to explain a real
