@@ -5952,6 +5952,13 @@ export default function PivotEngine(){
   const[p7SlotErrors,setP7SlotErrors]=useState({})
   const[lastSaveAt,setLastSaveAt]=useState(0)
   const[saveStatus,setSaveStatus]=useState('idle')
+  // Why the last server save failed, or null when saving is healthy. Read by the
+  // save-failure notice below the app. Until 2026-08-28 saveStatus was written
+  // in four places and read in none: a 413 (profile past the size ceiling), a
+  // 403 (account on hold) or a 500 all failed silently, so the user kept working
+  // into a void and every reload restored them to their last successful save.
+  // One account sat over the ceiling for six days that way without being told.
+  const[saveError,setSaveError]=useState(null)
   const[toast,setToast]=useState(null)
   const saveRef=useRef(null)
   const playbookSavePendingRef=useRef(false)
@@ -6527,11 +6534,20 @@ export default function PivotEngine(){
       // happened to have in localStorage. See src/autosave-gate.js.
       if(signedInUser){
         if(!canPushProfile({signedIn:true,serverLoadDone:serverLoadDoneRef.current,deleting:deletingRef.current})){setSaveStatus('idle');return}
-        try{const r=await fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob});if(!r.ok)throw new Error('save_failed')}catch{setSaveStatus('error');return}
+        // Each failure gets its own reason so the notice can say something the
+        // user can act on. 'paused' is deliberately silent here: the account-hold
+        // modal already owns that screen and a second notice behind it is noise.
+        let reason=null
+        try{
+          const r=await fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob})
+          if(!r.ok)reason=r.status===413?'too_large':r.status===403?'paused':r.status===401?'signed_out':'server'
+        }catch{reason='offline'}
+        if(reason){setSaveStatus('error');setSaveError(reason);return}
       }
       setLastSaveAt(Date.now())
       setSaveStatus('saved')
-    }catch{setSaveStatus('error')}
+      setSaveError(null)
+    }catch{setSaveStatus('error');setSaveError('device_full')}
   };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,signedInUser,serverLoadDone,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
@@ -12589,6 +12605,26 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:'0 0 14px'}}>Your recent activity is well outside the usual pattern, so we've paused things while we take a quick look — a standard safeguard, and nothing is lost.</p>
         <p style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:'0 0 22px'}}>We'll review and follow up with next steps shortly. Questions in the meantime? Reach us at <a href="mailto:info@career.club" style={{color:C.gold,fontWeight:600}}>info@career.club</a>.</p>
         <button onClick={signOut} style={{background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 18px',fontSize:16,cursor:'pointer',fontFamily:'inherit'}}>Sign out</button>
+      </div>
+    </div>}
+    {/* Save-failure notice. Persistent (not a toast) because the condition
+        persists: until it clears, nothing the user types is reaching their
+        account. Offers the one action that actually rescues their work — the
+        same JSON export the sidebar has — so a bad ceiling or a dead network
+        never costs them a session. Suppressed while the account-hold modal is
+        up, which already explains itself. */}
+    {saveError&&saveError!=='paused'&&!accountSuspended&&<div data-print="hide" role="alert" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:1250,maxWidth:560,width:'calc(100% - 32px)',background:'#FFFFFF',border:'1px solid #E2E5EA',borderLeft:'4px solid #C0392B',borderRadius:10,padding:'16px 20px',boxShadow:'0 8px 28px rgba(0,0,0,0.18)'}}>
+      <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:6}}>Your recent work is not being saved</div>
+      <div style={{fontSize:16,color:'#3D4A5C',lineHeight:1.6,marginBottom:12}}>{
+        saveError==='too_large'?'This profile has grown past what we can store in one piece. Everything already saved is safe, but new changes are not sticking. Download a copy and email it to info@career.club so we can lift the limit on your account.'
+        :saveError==='offline'?'We cannot reach the server right now. Your work is still on this device. It will save on its own when the connection comes back.'
+        :saveError==='signed_out'?'You have been signed out, so changes are staying on this device only. Sign in again to save them to your account.'
+        :saveError==='device_full'?'This browser has run out of storage for the app. Download a copy of your work, then clear some space.'
+        :'The server would not accept the last save. Your work is still on this device. Download a copy so nothing is at risk while we look into it.'
+      }</div>
+      <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+        <Btn small onClick={exportProfile}>Download a copy</Btn>
+        {saveError!=='signed_out'&&<Btn small secondary onClick={()=>{if(saveRef.current)saveRef.current()}}>Try again</Btn>}
       </div>
     </div>}
     {toast&&<div data-print="hide" role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'#1A2540',color:'#FFFFFF',padding:'12px 22px',borderRadius:8,fontSize:16,fontWeight:500,boxShadow:'0 4px 16px rgba(0,0,0,0.18)',zIndex:1200}}>{toast}</div>}
