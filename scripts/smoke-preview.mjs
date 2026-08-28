@@ -23,6 +23,12 @@
 
 const USAGE = `Usage: node scripts/smoke-preview.mjs <preview-url>
 
+  The URL must be the reimagine2 project's preview:
+      https://reimagine2-git-<branch>-career-club.vercel.app
+  NOT reimagine-git-<branch>-... . Two Vercel projects build this repo and only
+  reimagine2 holds the bypass secret; reimagine builds previews that serve
+  nothing. Both post CI checks, so the URL from gh pr checks is often the wrong one.
+
 Smokes /api/health (GET) and /api/claude (POST {}) against a Vercel preview
 deployment, exits 0 if both return non-5xx, exits 1 otherwise.
 
@@ -93,10 +99,13 @@ async function probe(label, url, init, token) {
       label, url, ok: false, status: res.status, ms, body: snippet(body),
       error:
         'Deployment Protection blocked this request before the function ran, so nothing was tested. ' +
-        'The bypass token is missing, stale, or not matching. Fix: Vercel → project reimagine2 → ' +
-        'Settings → Deployment Protection → Protection Bypass for Automation, copy or regenerate the ' +
-        'secret, set the Windows user env var VERCEL_PROTECTION_BYPASS to it, then fully close and ' +
-        'reopen Claude Code (env is inherited at process launch; /restart is not enough).',
+        'MOST LIKELY CAUSE: the wrong preview URL. TWO Vercel projects build this repo -- reimagine2 ' +
+        '(production, and the only one holding the claude-code-smoke bypass secret) and reimagine ' +
+        '(previews only, serves nothing). The URL must start with reimagine2-git-, NOT reimagine-git-. ' +
+        'Deriving it from `gh pr checks` gives you the wrong one, because both projects post checks. ' +
+        'If the URL is already reimagine2-git-*, then the token really is missing or stale: Vercel → ' +
+        'project reimagine2 → Settings → Deployment Protection → Protection Bypass for Automation, ' +
+        'copy the secret, set the Windows user env var VERCEL_PROTECTION_BYPASS to it.',
     }
   }
 
