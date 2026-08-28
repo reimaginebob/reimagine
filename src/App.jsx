@@ -402,6 +402,16 @@ async function callClaude(prompt, opts={}) {
 // API errors from callClaude propagate unchanged so existing error UI works.
 const VOICE_MAX_RETRIES = 2
 
+// Voice violations the Personal Brand's LAYOUT pass can actually fix. It copies
+// the analysis verbatim, so the prose it is handed is not its to change -- but
+// the section kickers are its own invention, which makes a typology label there
+// the one thing worth regenerating for. Anything not in this set is scanned,
+// logged, and shipped rather than retried into the same answer.
+const COMPOSITOR_OWNED_VIOLATIONS = new Set(['typology-kicker-label'])
+// And the callout for one, which must not read as "rewrite the passage": on
+// this step that is the one instruction the prompt forbids.
+const KICKER_CORRECTIVE = `\n\nCRITICAL: one of your "kicker" values named the person as a TYPE ("The Architect", "The Translator", "The Operator" and the like). A kicker names what its section is ABOUT, never what the person IS. Re-emit the identical object with those kickers replaced by plain labels drawn from the section's own subject — "How You Work", "Track Record", "Where You Thrive". Change nothing else: every body, every value, every order stays exactly as it is.`
+
 // Second-pass dimensional-fit regression detector for p3 (Personal Brand).
 // The detector itself lives in src/voice-patterns.mjs alongside the other
 // domain-specific detectors so the unit tests in scripts/test-voice-
@@ -729,8 +739,14 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
         // source order / connector / closer, not just away from the literal
         // phrase that fired. Otherwise fall through to the standard
         // single-violation callout used by every other pattern class.
-        const varianceCallout = buildVarianceCorrective(lastViolations)
-        if (varianceCallout) {
+        const kickerHit = lastViolations.some(v => COMPOSITOR_OWNED_VIOLATIONS.has(v.name))
+        const varianceCallout = kickerHit ? null : buildVarianceCorrective(lastViolations)
+        if (kickerHit) {
+          // The only violation this pass is asked to fix, so it is the only one
+          // named. Quoting a prose violation alongside it would invite the
+          // rewrite the prompt spends a paragraph forbidding.
+          prompt += KICKER_CORRECTIVE
+        } else if (varianceCallout) {
           prompt += varianceCallout
         } else {
           const v = lastViolations[0]
@@ -760,15 +776,17 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
       }
       lastResult = result
       lastViolations = violations
-      // Do not retry the layout pass on voice. It is a compositor: its prompt
-      // forbids rewriting, so it cannot clear a violation its input carried in,
-      // and measurement says that is where they come from -- seven hard hits on
-      // an otherwise perfect layout, every one of them stage one's cadence. The
-      // retries cost two extra calls of 55-70 seconds each and land in the same
-      // place, which is most of why a rebuild took thirteen minutes on
-      // 2026-08-28. Scan once, log what was found, and move on. Nothing ships
-      // dirtier than before: the gate already fell open after the third attempt.
-      if (isP3) break
+      // The layout pass is a compositor, so most of what the gate finds in its
+      // output was written by stage one and this pass is forbidden to rewrite
+      // it. Retrying those costs two extra calls of 55-70 seconds and lands in
+      // the same place -- most of why a rebuild took thirteen minutes on
+      // 2026-08-28 -- so they are scanned, logged, and shipped.
+      //
+      // The exception is the violations stage two OWNS. It invents the section
+      // kickers itself, so a typology label there is entirely within its power
+      // to fix, and cutting every retry let "The Translator" ship as a section
+      // heading an hour after the cut. Retry for those, and only those.
+      if (isP3 && !violations.some(v => COMPOSITOR_OWNED_VIOLATIONS.has(v.name))) break
     }
     if (voiceCleanResult === null) {
       // Foundation B.1 (PR #85): final-defense substance-contamination
@@ -5498,7 +5516,12 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
       <div style={S.helperText}>{hasSpeech?'Tip: Tap the microphone to speak, or type. ':''}This is for factual corrections too. If we got something wrong about your experience, your role, or how we read it, tell us. Corrections will apply to future regenerations of other sections as well.</div>
       <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
         <Btn disabled={submitting} onClick={()=>submit(false)}><RotateCcw size={13}/>{submitting?'Working on it…':(updateLabel||'Update with my changes')}</Btn>
-        {!onlyUpdateButton&&<Btn secondary disabled={submitting} onClick={()=>submit(true)}><RotateCcw size={13}/>{freshLabel||'Start fresh'}</Btn>}
+        {/* This button discards what the person typed and regenerates; it does
+            NOT start over from nothing, and on Personal Brand it explicitly
+            anchors on the version already on screen. It was called "Start
+            fresh", which described the opposite, and sat inches from a second
+            button with that same label that really does wipe the section. */}
+        {!onlyUpdateButton&&<Btn secondary disabled={submitting} onClick={()=>submit(true)}><RotateCcw size={13}/>{freshLabel||'Regenerate without my note'}</Btn>}
       </div>
     </div>}
   </div>
@@ -7174,6 +7197,15 @@ export default function PivotEngine(){
   const runP3TwoStage=async(analysisExtra='',previousBrand='',changeMode='none',changedInputs='',prevLayout='')=>{
     const corr=correctionsBlock(profile.corrections)
     setLoadingStage('Reading your inputs')
+    // Stage one runs at LOW, measured on a real profile 2026-08-28 rather than
+    // assumed. Same prompt, same inputs: low returned 8196 characters in 43
+    // seconds for $0.068; medium returned 7944 characters in 76 seconds for
+    // $0.097. Identical opening sentence word for word, and every fact carried
+    // in both -- the 94% retention, the 76% placement, the zero involuntary
+    // separations, the $4.8M rewards refresh, the origin. The extra ~3000
+    // thinking tokens bought nothing that showed up in the read, and they are
+    // where this generation's cost variance lives.
+    //
     // Both stages ask for the clamp's maximum, and neither number is tuning.
     // These are the two most demanding generations in the product and they were
     // running on the 6000-token floor, which on Sonnet 5 is shared with thinking:
@@ -7185,7 +7217,7 @@ export default function PivotEngine(){
     // ceiling anyone was under; it was one everyone was against. max_tokens is a
     // ceiling and not an allocation -- headroom that goes unused is not billed --
     // so there is no reason to sit close to it.
-    const analysis=await callClaude(corr+P.p3analysis(pc,previousBrand,changeMode,changedInputs,isIndependent)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',maxTokens:16000,step:'p3_analysis'})
+    const analysis=await callClaude(corr+P.p3analysis(pc,previousBrand,changeMode,changedInputs,isIndependent)+(analysisExtra?`\n\nThe person has also told us, directly: ${analysisExtra}`:''),{voiceMode:'safety-only',maxTokens:16000,effort:'low',step:'p3_analysis'})
     setLoadingStage('Writing your synthesis')
     let structuredP3=null
     // Stage two emits the structured presentation ONLY (no duplicated prose),
@@ -11011,7 +11043,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!isDemo&&<div data-print="hide" style={{marginBottom:18}}><Btn small secondary onClick={()=>openCoachWith(ASK_COACH_SEEDS.p3)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
         {!isDemo&&<RefineBox anchorId="p3-refine" openSignal={refineOpenSignal} guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{const prevBrand=outputs.p3||'';const prevPres=(outputs.p3_structured&&outputs.p3_structured.presentation)||null;recordCorrection('p3',v);out('p3','');refreshP3(v,prevBrand,prevPres)}}/>}
         {!isDemo&&<div style={{margin:'24px 0 14px',fontSize:18,color:'#2D3748',lineHeight:1.7}}>This is your foundation. Next, we put it to work — finding the directions worth exploring and the people worth reaching.</div>}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Start fresh</Btn><Btn onClick={()=>advance('p3',isIndependent?'positioning':'twoDoors')}>{isIndependent?'Build My Practice Plan':'Put It to Work'} <ChevronRight size={14}/></Btn></div>}
+        {/* The destructive one: it empties the brand and returns the
+            person to the build screen. Named for what it does, because "Start
+            fresh" gave no hint that a finished document was about to go. */}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Delete and start over</Btn><Btn onClick={()=>advance('p3',isIndependent?'positioning':'twoDoors')}>{isIndependent?'Build My Practice Plan':'Put It to Work'} <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
