@@ -673,6 +673,15 @@ ${MYOW_CONTENT}`
 // build anything, and without pitching Reimagine features.
 const GENERAL_MODE_BLOCK = `GENERAL QUESTION MODE (no personal profile). The person asking is not sharing their own Reimagine job-search profile right now — they are asking a general career or coaching question, often on behalf of a client or in the abstract. Answer it directly, expertly, and in full, as a career strategist grounded in Making Your Own Weather. Do NOT reference "your resume," "your Personal Brand," or any saved work as if it were theirs; do NOT ask them to build a profile or fill anything in; and do NOT surface or pitch Reimagine features — just give the best possible answer to the question they asked, in the same warm, plain, well-structured voice. When you name a framework from the book, still teach it in the book's words.`
 
+// Explicit function ceiling, added with the Sonnet 5 migration (2026-08-28).
+// Coach previously declared none and ran on the platform default, which was
+// comfortable when every reply was a straight completion with no thinking in
+// front of it. Adaptive thinking is on by default on this model and runs
+// before the first token, so a hard question could now sit past a default
+// that was never sized for it. 60s is generous for a chat reply and well
+// inside the 300 that api/claude.js uses for the long generations.
+export const config = { maxDuration: 60 }
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -837,7 +846,10 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
         // and latency rise only for replies that actually use the extra room;
         // short answers are unaffected.
         max_tokens: 4000,
-        output_config: { effort: 'low' },
+        // 'medium' rather than 'low': this model respects effort strictly at the
+        // low end and scopes its work to exactly what was asked, which is the
+        // wrong trade for a coach reasoning over someone's whole profile.
+        output_config: { effort: 'medium' },
         system: [
           { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
           ...(goIndependentBlock ? [{ type: 'text', text: goIndependentBlock, cache_control: { type: 'ephemeral' } }] : []),
