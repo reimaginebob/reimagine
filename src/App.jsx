@@ -659,6 +659,15 @@ function presentationToProse(p){
 
 async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
   const isP3 = meta.step === 'p3'
+  // Callers pass the step in `meta` (the gate reads it for step-scoped patterns
+  // and telemetry), but callClaude reads it from `opts` and only forwards it to
+  // /api/claude from there. Nothing merged the two, so EVERY voice-gated
+  // generation reached the server with no step and logGeneration wrote
+  // kind = NULL: 1,249 of 1,808 rows and $77.96 of $132.91 in spend, all
+  // unattributed, which is most of what the Economics dashboard reports on.
+  // Merged once here so both retry phases below inherit it. An explicit
+  // opts.step still wins.
+  const callOpts = (meta.step && !opts.step) ? { ...opts, step: meta.step } : opts
 
   // Phase 1 + Phase 2 wrapped together so an outer Phase 3 retry threads the
   // corrected prompt back through both: the parse-failed regen produces new
@@ -690,7 +699,7 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
         }
       }
       const runner = typeof meta.runner === 'function' ? meta.runner : callClaude
-      const result = await runner(prompt, opts)
+      const result = await runner(prompt, callOpts)
       // Thread meta.step so step-scoped patterns (the formula-* family
       // is p3-only) fire only on the right step. Other steps pass the
       // same option harmlessly; patterns without a step field fire
@@ -772,7 +781,7 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
       }
       const correctivePrompt = localPromptFn() + `\n\nCRITICAL: the previous generation produced ${dimViolation.count} dedicated dimension paragraphs in the dimensional fit section. That is the old Wiring & Compass output shape this output explicitly does not produce. Rewrite the dimensional fit section as 2 or 3 short paragraphs total, with multiple dimensions named per paragraph via bolded inline keywords, and only the decisional dimensions getting fuller treatment. Match the worked example shown in the prompt above.`
       const runner = typeof meta.runner === 'function' ? meta.runner : callClaude
-      dimResult = await runner(correctivePrompt, opts)
+      dimResult = await runner(correctivePrompt, callOpts)
     }
     return dimResult
   }
