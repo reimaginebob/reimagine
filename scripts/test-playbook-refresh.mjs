@@ -1,6 +1,6 @@
 // Unit tests for src/playbook-refresh.mjs — ordering and the sequential runner
 // behind "Bring my playbook up to date".
-import { orderForRefresh, runRefresh, REFRESH_ORDER } from '../src/playbook-refresh.mjs'
+import { orderForRefresh, runRefresh, splitRefreshTargets, REFRESH_ORDER, REFRESH_SEPARATELY } from '../src/playbook-refresh.mjs'
 
 let passed = 0
 const fail = (msg) => { console.error('FAIL: ' + msg); process.exitCode = 1 }
@@ -19,6 +19,14 @@ eq(orderForRefresh(['zzz', 'yyy']), ['zzz', 'yyy'], 'unrecognised sections keep 
 eq(orderForRefresh(null), [], 'a non-array is not an error')
 ok(REFRESH_ORDER.indexOf('p6') < REFRESH_ORDER.indexOf('p11'), 'the order itself puts p6 before p11')
 ok(REFRESH_ORDER.indexOf('p8') < REFRESH_ORDER.indexOf('income'), 'the order itself puts p8 before income')
+
+// Go-to-Market is offered on its own: it re-sources the company list.
+eq(splitRefreshTargets(['p6', 'p7', 'p11']), { together: ['p6', 'p11'], separately: ['p7'] }, 'Go-to-Market is split out of the group update')
+eq(splitRefreshTargets(['p7']), { together: [], separately: ['p7'] }, 'Go-to-Market alone leaves nothing to run together')
+eq(splitRefreshTargets(['p6', 'p11']), { together: ['p6', 'p11'], separately: [] }, 'nothing is split out when Go-to-Market is fresh')
+eq(splitRefreshTargets(['income', 'p6', 'p7']).together, ['p6', 'income'], 'the group half keeps dependency order')
+eq(splitRefreshTargets([]), { together: [], separately: [] }, 'nothing in, nothing out')
+ok(REFRESH_SEPARATELY.includes('p7') && REFRESH_SEPARATELY.length === 1, 'Go-to-Market is the only section held back')
 
 // The runner: sequential, in order, and it reports honestly.
 const run = async () => {
