@@ -69,10 +69,39 @@ async function probe(label, url, init, token) {
     return { label, url, ok: false, status: 0, ms: Date.now() - started, error: err.message }
   }
   const ms = Date.now() - started
-  // Treat 5xx as failure; 2xx/3xx/4xx all prove the function loaded.
-  const ok = res.status < 500
   let body = ''
   try { body = await res.text() } catch { /* ignore */ }
+
+  // Deployment Protection intercepts BEFORE the function runs, so an
+  // SSO-walled response proves nothing about whether the function loaded --
+  // and it looks exactly like a pass under the <500 rule below (a 302 to the
+  // login page, or a 401 carrying the auth-callback JSON). That is not a
+  // stricter-is-better tweak: on 2026-08-28 this script reported OK on a
+  // preview where every single request, with and without the bypass token,
+  // was being redirected to vercel.com/sso-api. The gate had quietly stopped
+  // testing anything, which is worse than failing, because a green run was
+  // being read as proof the functions loaded.
+  //
+  // Detect it explicitly and fail, with the fix in the message.
+  const location = res.headers.get('location') || ''
+  const intercepted =
+    /vercel\.com\/sso-api/.test(location) ||
+    /vercel\.com\/sso-api/.test(body) ||
+    /"vercel_auth_callback"/.test(body)
+  if (intercepted) {
+    return {
+      label, url, ok: false, status: res.status, ms, body: snippet(body),
+      error:
+        'Deployment Protection blocked this request before the function ran, so nothing was tested. ' +
+        'The bypass token is missing, stale, or not matching. Fix: Vercel → project reimagine2 → ' +
+        'Settings → Deployment Protection → Protection Bypass for Automation, copy or regenerate the ' +
+        'secret, set the Windows user env var VERCEL_PROTECTION_BYPASS to it, then fully close and ' +
+        'reopen Claude Code (env is inherited at process launch; /restart is not enough).',
+    }
+  }
+
+  // Everything else: 5xx is a failure; 2xx/3xx/4xx prove the function loaded.
+  const ok = res.status < 500
   return { label, url, ok, status: res.status, ms, body: snippet(body) }
 }
 
@@ -130,7 +159,10 @@ async function main() {
   }
 
   if (failed > 0) {
-    console.error(`\nsmoke-preview: ${failed} of ${results.length} routes returned 5xx. Do not merge.`)
+    // "returned 5xx" was the only failure mode when this was written; an
+    // SSO-intercepted route now fails too and did not return 5xx, so say the
+    // neutral thing and let the per-route error line carry the cause.
+    console.error(`\nsmoke-preview: ${failed} of ${results.length} routes failed. Do not merge.`)
     process.exit(1)
   }
   console.log(`\nsmoke-preview: OK (${results.length} routes loaded)`)
