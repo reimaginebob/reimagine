@@ -6054,6 +6054,12 @@ export default function PivotEngine(){
   const[atCapModal,setAtCapModal]=useState(null)
   const[inputStaleModal,setInputStaleModal]=useState(null)
   const[bareInputModal,setBareInputModal]=useState(false)
+  // Confirmation for the one control on the Personal Brand screen that destroys
+  // work. Renaming it from "Start fresh" to "Delete and start over" made the
+  // consequence legible, but the click was still a single step between a
+  // finished document and an empty screen -- and that document now takes a
+  // couple of minutes and about a quarter to make.
+  const[deleteBrandModal,setDeleteBrandModal]=useState(false)
   const[pbNeedsUpdate,setPbNeedsUpdate]=useState(false)
   const inputEditedRef=useRef(false)
   // PR2 corrections editorial layer: pre-submit conflict modal (Track 6) and the
@@ -11046,7 +11052,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {/* The destructive one: it empties the brand and returns the
             person to the build screen. Named for what it does, because "Start
             fresh" gave no hint that a finished document was about to go. */}
-        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>{out('p3','');window.scrollTo(0,0)}}><RotateCcw size={13}/>Delete and start over</Btn><Btn onClick={()=>advance('p3',isIndependent?'positioning':'twoDoors')}>{isIndependent?'Build My Practice Plan':'Put It to Work'} <ChevronRight size={14}/></Btn></div>}
+        {!isDemo&&<div style={S.row}><Btn secondary onClick={()=>setDeleteBrandModal(true)}><RotateCcw size={13}/>Delete and start over</Btn><Btn onClick={()=>advance('p3',isIndependent?'positioning':'twoDoors')}>{isIndependent?'Build My Practice Plan':'Put It to Work'} <ChevronRight size={14}/></Btn></div>}
       </>}
       {err&&<ErrBox msg={err}/>}
     </div>
@@ -12642,6 +12648,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{display:'flex',gap:10,justifyContent:'flex-end',flexWrap:'wrap',marginTop:22}}>
           <Btn secondary onClick={()=>{setBareInputModal(false);advance('orientation-done','p3');generateChain()}}>Build with what I have</Btn>
           <Btn onClick={()=>{setBareInputModal(false);nav('resume')}}>I'll add more</Btn>
+        </div>
+      </div>
+    </div>}
+    {/* The one destructive control on the Personal Brand screen. The reassurance
+        is true and worth saying: out('p3','') snapshots the outgoing version
+        into p3_prev on its way out, and a later build does not overwrite that
+        snapshot because the slot it would snapshot from is empty by then. So
+        "Restore previous version" really does bring this back. */}
+    {deleteBrandModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:560,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Delete your Personal Brand?</h2>
+        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:22}}>This clears the version on screen and takes you back to the build step. We keep one previous version, so you can bring this one back with Restore previous version afterward.</p>
+        <div style={{display:'flex',gap:10,justifyContent:'flex-end',flexWrap:'wrap'}}>
+          <Btn secondary onClick={()=>setDeleteBrandModal(false)}>Keep it</Btn>
+          <Btn onClick={()=>{setDeleteBrandModal(false);out('p3','');window.scrollTo(0,0)}}>Delete and start over</Btn>
         </div>
       </div>
     </div>}
