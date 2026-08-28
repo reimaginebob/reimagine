@@ -6,6 +6,7 @@ import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-p
 // Foundation A (p3 structured emit): tail parser, schema validator, and
 // first-sentence extractor used by callClaudeWithVoiceGate's Phase 3
 // and the lead-drift comparator. See scripts/test-personal-brand-tail.mjs.
+import { stalePlaybookSections } from "./playbook-staleness.mjs"
 import { findPersonalBrandTailBoundary, parsePersonalBrandTail, validatePersonalBrandTailSchema, extractLeadSentence, stripPersonalBrandTail, stripHeroLead } from "./personal-brand-tail.mjs"
 // Foundation B.1 (PR #85): deterministic post-processors extracted into
 // their own .mjs module so they can be unit-tested without loading the
@@ -11747,6 +11748,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const _rec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)
             if(!_rec||_rec.schemaVersion!==2)return null
             const _sec=_rec.sections||{}
+            // Which cards here were written from a Personal Brand this person has
+            // since changed. Compared on the brand TEXT the playbook carries, so
+            // a rebuild that changed nothing does not light up every card.
+            const _staleCards=stalePlaybookSections(_rec,outputs)
             // IIFE-local lane reads (_lane / _ol / _isOverride / _laneLabel /
             // _reasoning) removed with the lane affordance UI (op surface
             // cleanup brief 2026-05-29). The classifier still runs silently
@@ -11801,6 +11806,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               return _cardWrap(<>
                 {_head(label,sub,built,()=>generateOpSection(key),busy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                 {opSectionErrors[key]&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors[key]}/></div>}
+                {/* This card was written from a Personal Brand that has since
+                    changed. Said plainly and on the card, because this is the
+                    surface people take into interviews and salary conversations:
+                    on 2026-08-28 seven live opportunity playbooks were sitting on
+                    an older read of their owner with nothing on screen to say so.
+                    Same indicator styling as the Focus surface's. */}
+                {built&&_staleCards.includes(key)&&<div data-print="hide" style={{display:'flex',alignItems:'center',gap:10,background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:8,padding:'10px 14px',margin:'10px 0 0',fontSize:16,color:'#1A2540',lineHeight:1.55}}>
+                  <span><strong style={{color:'#8A5E1C'}}>Written from an earlier version of your Personal Brand.</strong> Rebuild it before you use this in a real conversation.</span>
+                </div>}
                 {busy&&<div style={{marginTop:14}}><Loading msg={`Building ${label}…`} step={key}/></div>}
                 {built&&<div style={{marginTop:14}}>{_renderSection(key,_sec[key].content)}</div>}
                 {/* PR-A op-card-refinebox brief 2026-05-30: per-card RefineBox
