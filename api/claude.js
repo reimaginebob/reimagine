@@ -561,6 +561,26 @@ export default async function handler(req, res) {
   // output_config keeps it.
   if (!anthropicBody.output_config) anthropicBody.output_config = { effort: 'medium' }
 
+  // The ceilings that decide whether a build finishes cannot live only in the
+  // browser. #562 raised Personal Brand and Interview Prep to 16000 in App.jsx,
+  // and 44 SECONDS after that deployment a user still stopped on exactly 6000 --
+  // max_tokens is sent by the client, so everyone mid-session keeps the old
+  // number until their bundle refreshes, and the update banner is a manual
+  // prompt they are free to ignore. A truncated Personal Brand is an empty one
+  // on screen, so waiting for a reload is not a neutral wait.
+  //
+  // Floored here for the three steps measured truncating on 2026-08-28: both
+  // Personal Brand stages and Interview Prep. Same reasoning as the effort
+  // default above -- the server is the only place that covers a cached bundle.
+  // A caller asking for MORE keeps what it asked for. Callers too old to send a
+  // step are not covered; nothing here can tell what they are.
+  const STEP_MIN_TOKENS = { p3: 16000, p3_analysis: 16000, p11: 16000 }
+  const stepFloor = STEP_MIN_TOKENS[(typeof reqBody.step === 'string' ? reqBody.step.trim() : '')]
+  if (stepFloor && anthropicBody.max_tokens < stepFloor) {
+    console.log(JSON.stringify({ evt: 'claude_step_floor', step: reqBody.step, asked: anthropicBody.max_tokens, floored: stepFloor }))
+    anthropicBody.max_tokens = stepFloor
+  }
+
   const callUpstream = (body) => fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
