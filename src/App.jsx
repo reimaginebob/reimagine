@@ -336,6 +336,19 @@ async function callClaude(prompt, opts={}) {
   // `temperature` and `highTemp` are still accepted from older callers and
   // deliberately ignored rather than forwarded into a rejected request.
   const{webSearch=false,highTemp=false,maxTokens=5000,temperature,effort,voiceMode,profileBlock,step}=opts
+  // Sonnet 5 regression, found 2026-08-28: Your Pitch asked for 2000 tokens and
+  // came back EMPTY the first time someone refined it. Adaptive thinking shares
+  // max_tokens with the answer on this model, and the tokenizer inflates the
+  // same text by roughly 30%, so a ceiling that was generous for 4.5 can be
+  // spent entirely on thinking and return nothing. Roughly twenty call sites in
+  // this file ask for 2500 or less and every one of them was exposed.
+  //
+  // max_tokens is a CEILING, not an allocation -- the model produces what the
+  // task needs and stops, and nothing is billed for headroom that goes unused.
+  // So floor every request here rather than re-tuning each call site and missing
+  // one. Callers asking for more than the floor keep what they asked for.
+  const MIN_OUTPUT_TOKENS = 6000
+  const effectiveMaxTokens = Math.max(maxTokens, MIN_OUTPUT_TOKENS)
   const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined
   // When a profileBlock is supplied, send the user message as two content blocks:
   // the canonical profile (cache_control ephemeral = the cached prefix shared
@@ -347,7 +360,7 @@ async function callClaude(prompt, opts={}) {
   }else{
     content=prompt
   }
-  const body={model:"claude-sonnet-5",max_tokens:maxTokens,...(effort&&{output_config:{effort}}),system:[{type:"text",text:SYS_BASE,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content}],...(voiceMode&&{voiceMode}),...(step&&{step}),...(tools&&{tools})}
+  const body={model:"claude-sonnet-5",max_tokens:effectiveMaxTokens,...(effort&&{output_config:{effort}}),system:[{type:"text",text:SYS_BASE,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content}],...(voiceMode&&{voiceMode}),...(step&&{step}),...(tools&&{tools})}
   const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
   if(!res.ok){
     const e=await res.json().catch(()=>({}))
@@ -7115,7 +7128,12 @@ export default function PivotEngine(){
       const buildPrompt=()=>correctionsBlock(profile.corrections)+P.p6(pc,sanitizeUpstreamForSection('p6',outputs),chosen,laneLabel,isIndependent)+(refine?`\n\nNEW CORRECTION FROM THIS SECTION: ${refine}`:'')
       const raw=await callClaudeWithVoiceGate(buildPrompt,{maxTokens:2000,voiceMode:'prose'},{step:'p6',onEvent:logVoiceEvent})
       const prose=typeof raw==='string'?raw.trim():''
-      if(!prose){out('p6',null);markDone('p6')}
+      // An empty response used to be written as a real result (out('p6',null)
+      // marks the section BUILT), so a truncated generation rendered as a
+      // finished section containing nothing -- which is exactly how the Sonnet 5
+      // token regression presented to the user: refine, wait, get back silence.
+      // Empty is a failure. Say so, and leave whatever they already had alone.
+      if(!prose){setSectionErrors(prev=>({...prev,p6:'That came back empty. Try again — your previous version is untouched.'}))}
       else{
         out('p6',prose);markDone('p6')
         setOutputs(o=>{if('p6_legacy'in o){const n={...o};delete n.p6_legacy;return n}return o})
