@@ -100,7 +100,30 @@ export function classifyAnthropicError(status, body) {
     // A malformed request means a bug shipped, which is also worth knowing
     // about promptly — it fails every call on that surface until it is fixed.
     page: kind === 'spend_limit' || kind === 'auth' || kind === 'permission' || kind === 'request',
+    // Whether EVERY generation is failing, or only the caller that sent this
+    // one. An exhausted budget or a rejected key stops the whole product; a
+    // request the API would not accept stops whatever sent it, which may be a
+    // shipped surface or may be one script. The alert has to say which, because
+    // an operator who is paged with "generation is DOWN" for a single bad
+    // request learns to skim the next one.
+    blanket: kind === 'spend_limit' || kind === 'auth' || kind === 'permission',
   }
+}
+
+// Subject line for the alert email, built here rather than at each call site so
+// the two surfaces that page cannot drift apart on how loudly they shout.
+export function operatorSubject(c) {
+  if (c.kind === 'spend_limit') return 'Reimagine: generation is DOWN — Anthropic spend limit reached'
+  if (c.blanket) return `Reimagine: generation is DOWN — Anthropic ${c.kind}`
+  return `Reimagine: a generation request was REJECTED — Anthropic ${c.status || 'error'}`
+}
+
+// The line under operatorLine that says who is affected. Only a blanket failure
+// justifies telling the operator that users are seeing the outage message.
+export function operatorImpactLine(c) {
+  return c.blanket
+    ? 'Every generation is failing. Users are being told Reimagine is temporarily unable to generate new content, and to email bob@career.club if it persists.'
+    : 'This is one rejected request, not an outage: anything else generating right now is unaffected. The caller that sent it saw the "temporarily unable to generate" message and will keep seeing it until the request is fixed.'
 }
 
 // Operator-facing one-liner for the alert email. Says what to go and check.
@@ -114,6 +137,9 @@ export function operatorLine(surface, c) {
   }
   if (c.kind === 'permission') {
     return `${where}Anthropic returned a permission error (HTTP ${c.status}). Check the key's workspace and model access. Upstream said: "${c.detail}"`
+  }
+  if (c.kind === 'request') {
+    return `${where}Anthropic rejected the request itself (HTTP ${c.status}) — a field it does not accept, or a body it could not read. Nothing is wrong with the account or the key. If the surface named above is a shipped code path, every call on it fails until the field is fixed; if it came from a script or a one-off caller, nothing else is affected. Upstream said: "${c.detail}"`
   }
   return `${where}Anthropic returned HTTP ${c.status} (${c.kind}). Upstream said: "${c.detail}"`
 }
