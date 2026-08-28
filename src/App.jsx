@@ -7,6 +7,7 @@ import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-p
 // first-sentence extractor used by callClaudeWithVoiceGate's Phase 3
 // and the lead-drift comparator. See scripts/test-personal-brand-tail.mjs.
 import { stalePlaybookSections } from "./playbook-staleness.mjs"
+import { runRefresh, orderForRefresh } from "./playbook-refresh.mjs"
 import { findPersonalBrandTailBoundary, parsePersonalBrandTail, validatePersonalBrandTailSchema, extractLeadSentence, stripPersonalBrandTail, stripHeroLead } from "./personal-brand-tail.mjs"
 // Foundation B.1 (PR #85): deterministic post-processors extracted into
 // their own .mjs module so they can be unit-tested without loading the
@@ -6061,6 +6062,10 @@ export default function PivotEngine(){
   // finished document and an empty screen -- and that document now takes a
   // couple of minutes and about a quarter to make.
   const[deleteBrandModal,setDeleteBrandModal]=useState(false)
+  // Progress for "Bring my playbook up to date". One piece of state for both
+  // surfaces; `slot` is a saved-playbook id on the Opportunity side and the
+  // string 'focus' on the other, so the right screen shows the progress line.
+  const[playbookRefresh,setPlaybookRefresh]=useState({running:false,slot:null,label:'',index:0,total:0})
   const[pbNeedsUpdate,setPbNeedsUpdate]=useState(false)
   const inputEditedRef=useRef(false)
   // PR2 corrections editorial layer: pre-submit conflict modal (Track 6) and the
@@ -7007,6 +7012,40 @@ export default function PivotEngine(){
     // setInvalidationBanner intentionally removed: nothing was destroyed so
     // nothing to announce. Stage 2 adds the per-section staleness banner.
   }
+  // "Bring my playbook up to date": one decision instead of one click per
+  // section, and the only way to guarantee the dependency order. Both surfaces
+  // run the same sequencer from playbook-refresh.mjs and differ only in how a
+  // section is rebuilt, which differs in substance: the Focus playbook writes
+  // to `outputs`, an Opportunity playbook to its own saved record.
+  //
+  // Corrections survive either way — correctionsBlock prepends them to every
+  // section prompt — but accepted PHRASING is re-derived, which is the trade the
+  // Personal Brand's amend path exists to avoid. Anchoring each section on its
+  // own previous text means touching each section prompt, so it is a follow-up
+  // rather than something smuggled in here.
+  const PLAYBOOK_SECTION_LABELS={p5:'Where you fit',p6:'Bridge story',p7:'Go-to-Market',p8:'LinkedIn Remix',p11:'Interview Prep',p_res:'Resume Refresh',p_cover:'Cover Letter',income:'Income Now'}
+  const runPlaybookRefresh=async(slot,ids,rebuild)=>{
+    if(playbookRefresh.running||!ids||ids.length===0)return
+    const label=(id)=>PLAYBOOK_SECTION_LABELS[id]||NAV_LABELS[id]||id
+    setPlaybookRefresh({running:true,slot,label:label(orderForRefresh(ids)[0]),index:0,total:ids.length})
+    const res=await runRefresh(ids,rebuild,{onStep:({id,index,total,phase})=>{
+      if(phase==='start')setPlaybookRefresh(s=>({...s,label:label(id),index,total}))
+    }})
+    setPlaybookRefresh({running:false,slot:null,label:'',index:0,total:0})
+    // Say what happened, including the part that did not. A section that failed
+    // still holds its previous version, which is the only reason it is safe to
+    // carry on past one.
+    const msg=res.failed.length===0
+      ? `Your playbook is up to date (${res.done.length} ${res.done.length===1?'section':'sections'} rebuilt).`
+      : `${res.done.length} of ${res.total} rebuilt. ${res.failed.map(f=>label(f.id)).join(' and ')} did not come back, and the version you had is untouched. Try ${res.failed.length===1?'it':'them'} again.`
+    setToast(msg)
+    setTimeout(()=>setToast(t=>t===msg?null:t),8000)
+  }
+  const refreshFocusPlaybook=(ids,genSec)=>runPlaybookRefresh('focus',ids,async(id)=>{await genSec(id)})
+  const refreshOpPlaybook=(rec,ids)=>runPlaybookRefresh(rec.id,ids,async(id)=>{
+    if(id==='p_cover')await generateOpCoverLetter()
+    else await generateOpSection(id)
+  })
   // Staleness helpers. A section is stale against an upstream when the section
   // was last built before the upstream last changed. The stampable upstreams are
   // p3/p6/p8 (the ones with downstream consumers); their _updated_at advances on
@@ -11379,6 +11418,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             C={C}
           />
           <div style={{flex:1,minWidth:0}}>
+        {/* The same offer the Opportunity surface makes, in a quieter voice. This
+            playbook is a what-if rather than something someone takes into an
+            interview, so it states the fact and hands over the button without the
+            "before you use this" urgency. Same detection, same runner. */}
+        {!isDemo&&(()=>{
+          const staleHere=ROLE_SUBMODULES.filter(id=>outputs[id]&&isSectionStale(id))
+          if(staleHere.length===0||playbookRefresh.running)return null
+          return <div data-print="hide" style={{background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:10,padding:'14px 18px',marginBottom:18,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
+            <span style={{fontSize:16,color:'#1A2540',lineHeight:1.55}}><strong style={{color:'#8A5E1C'}}>{staleHere.length===1?'One section here was':`${staleHere.length} sections here were`} built before your latest changes.</strong> You can update them one at a time, or all at once.</span>
+            <Btn small secondary onClick={()=>refreshFocusPlaybook(staleHere,genSec)}><RotateCcw size={12}/>Bring my playbook up to date</Btn>
+          </div>
+        })()}
+        {playbookRefresh.running&&playbookRefresh.slot==='focus'&&<div data-print="hide" style={{background:`${C.gold}12`,border:`1px solid ${C.gold}44`,borderRadius:10,padding:'14px 18px',marginBottom:18,fontSize:16,color:'#1A2540',lineHeight:1.55}}>
+          <strong>Bringing your playbook up to date</strong> — {playbookRefresh.label||'starting'} ({playbookRefresh.index+1} of {playbookRefresh.total}).
+        </div>}
         {(()=>{
           const focusById=Object.fromEntries(FOCUS_ORDER.map(s=>[s.id,s]))
           // Empty-state coach nudge shows on at most ONE section — the topmost
@@ -11833,6 +11887,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             // inferred lane feeds per-card prompts through opLaneValue(rec).
             // Users adjust output via per-card RefineBox if framing is off.
             return <div style={{marginTop:32}} data-print="hide">
+              {/* Said loudly here, and only here. This is the playbook people take
+                  into interviews and salary conversations, so a card built on an
+                  older read of them is worth interrupting for; the Focus surface
+                  makes the same offer in a quieter place. One notice for the whole
+                  playbook rather than one per card, because the answer is one
+                  decision: bring it up to date. */}
+              {_staleCards.length>0&&!playbookRefresh.running&&<div style={{marginBottom:20,background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:10,padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
+                <span style={{fontSize:16,color:'#1A2540',lineHeight:1.55}}><strong style={{color:'#8A5E1C'}}>Your Personal Brand has changed since {_staleCards.length===1?'one section of this playbook was':`${_staleCards.length} sections of this playbook were`} written.</strong> Bring it up to date before you use it in a real conversation.</span>
+                <Btn small onClick={()=>refreshOpPlaybook(_rec,_staleCards)}><RotateCcw size={12}/>Bring this playbook up to date</Btn>
+              </div>}
+              {playbookRefresh.running&&playbookRefresh.slot===_rec.id&&<div style={{marginBottom:20,background:`${C.gold}12`,border:`1px solid ${C.gold}44`,borderRadius:10,padding:'14px 18px',fontSize:16,color:'#1A2540',lineHeight:1.55}}>
+                <strong>Bringing your playbook up to date</strong> — {playbookRefresh.label||'starting'} ({playbookRefresh.index+1} of {playbookRefresh.total}). Each section is rebuilt in turn; the ones already done are on the page.
+              </div>}
               {_opAutoSeq&&<div style={{marginBottom:20,background:`${C.gold}12`,border:`1px solid ${C.gold}44`,borderRadius:10,padding:'14px 18px',fontSize:16,color:'#1A2540',lineHeight:1.6}}>
                 <strong>Building your first cards now</strong> — About This Company, then Compensation, then Where You Fit. Each appears here as it finishes. The rest of the playbook is yours to build whenever you want them.
               </div>}
