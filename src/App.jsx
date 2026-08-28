@@ -760,6 +760,15 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
       }
       lastResult = result
       lastViolations = violations
+      // Do not retry the layout pass on voice. It is a compositor: its prompt
+      // forbids rewriting, so it cannot clear a violation its input carried in,
+      // and measurement says that is where they come from -- seven hard hits on
+      // an otherwise perfect layout, every one of them stage one's cadence. The
+      // retries cost two extra calls of 55-70 seconds each and land in the same
+      // place, which is most of why a rebuild took thirteen minutes on
+      // 2026-08-28. Scan once, log what was found, and move on. Nothing ships
+      // dirtier than before: the gate already fell open after the third attempt.
+      if (isP3) break
     }
     if (voiceCleanResult === null) {
       // Foundation B.1 (PR #85): final-defense substance-contamination
@@ -7183,7 +7192,13 @@ export default function PivotEngine(){
     // which was the argument for 6000 back when the whole ceiling was answer.
     // Thinking shares it now, and the emit is not small either way: every section
     // body is the brand text verbatim. See the note on stage one above.
-    await callClaudeWithVoiceGate(()=>P.p3(analysis,prevLayout),{voiceMode:'prose-lite',maxTokens:16000},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
+    // Stage two thinks at LOW deliberately. Deciding what the read says is stage
+    // one's job; this pass copies finished sentences into a known shape, and
+    // that is not work that rewards deliberation -- at medium it was taking 55
+    // to 70 seconds a call while producing the same object. The ceiling stays
+    // high because the emit itself is long; what comes down is the thinking in
+    // front of it.
+    await callClaudeWithVoiceGate(()=>P.p3(analysis,prevLayout),{voiceMode:'prose-lite',maxTokens:16000,effort:'low'},{step:'p3',onEvent:logVoiceEvent,onStructured:p=>{structuredP3=p}})
     // Layer 1 origin guard (2026-08-11): with no life-history input the analysis
     // has no ground for a formative origin and has been seen to fabricate one
     // (an invented backstory, sometimes echoing an example) to explain a real
