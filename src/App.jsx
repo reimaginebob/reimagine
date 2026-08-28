@@ -336,17 +336,20 @@ async function callClaude(prompt, opts={}) {
   // `temperature` and `highTemp` are still accepted from older callers and
   // deliberately ignored rather than forwarded into a rejected request.
   const{webSearch=false,highTemp=false,maxTokens=5000,temperature,effort,voiceMode,profileBlock,step}=opts
-  // Sonnet 5 regression, found 2026-08-28: Your Pitch asked for 2000 tokens and
-  // came back EMPTY the first time someone refined it. Adaptive thinking shares
-  // max_tokens with the answer on this model, and the tokenizer inflates the
-  // same text by roughly 30%, so a ceiling that was generous for 4.5 can be
-  // spent entirely on thinking and return nothing. Roughly twenty call sites in
-  // this file ask for 2500 or less and every one of them was exposed.
+  // Every budget in this file was written for Sonnet 4.5, where max_tokens was
+  // the answer and nothing else. On Sonnet 5 thinking shares it, and the new
+  // tokenizer inflates the same text by roughly 30%, so ceilings tuned for 4.5
+  // truncate. max_tokens is a CEILING, not an allocation -- the model produces
+  // what the task needs and stops, and headroom that goes unused is not billed
+  // -- so floor every request rather than re-tuning thirty call sites and
+  // missing one. Callers asking for more than the floor keep what they asked for.
   //
-  // max_tokens is a CEILING, not an allocation -- the model produces what the
-  // task needs and stops, and nothing is billed for headroom that goes unused.
-  // So floor every request here rather than re-tuning each call site and missing
-  // one. Callers asking for more than the floor keep what they asked for.
+  // This floor is NOT what keeps a generation from coming back empty. That is
+  // the `effort` default in api/claude.js: with effort unset, Sonnet 5 runs at
+  // `high` and will spend an ENTIRE budget on thinking and return nothing --
+  // measured at 16000 tokens and 187 seconds for zero characters. Raising the
+  // ceiling makes that failure more expensive, not less likely. Do not treat
+  // this number as the protection against it.
   const MIN_OUTPUT_TOKENS = 6000
   const effectiveMaxTokens = Math.max(maxTokens, MIN_OUTPUT_TOKENS)
   const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined

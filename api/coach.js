@@ -680,7 +680,7 @@ const GENERAL_MODE_BLOCK = `GENERAL QUESTION MODE (no personal profile). The per
 // before the first token, so a hard question could now sit past a default
 // that was never sized for it. 60s is generous for a chat reply and well
 // inside the 300 that api/claude.js uses for the long generations.
-export const config = { maxDuration: 60 }
+export const config = { maxDuration: 120 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -845,7 +845,12 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
         // clears the longest answers observed (~4.6k chars) with headroom. Cost
         // and latency rise only for replies that actually use the extra room;
         // short answers are unaffected.
-        max_tokens: 4000,
+        // 8000, raised from 4000 on 2026-08-28. A profile-rich answer measured
+        // against production ran the 4000 out and stopped mid-sentence: thinking
+        // shares this budget with the reply on Sonnet 5, so the number that fit
+        // when the reply was the whole budget no longer does. This is a ceiling,
+        // not a target -- short answers cost exactly what they did before.
+        max_tokens: 8000,
         // 'medium' rather than 'low': this model respects effort strictly at the
         // low end and scopes its work to exactly what was asked, which is the
         // wrong trade for a coach reasoning over someone's whole profile.
