@@ -392,10 +392,32 @@ function isAllowedOrigin(rawOrigin) {
   }
 }
 
+// Claude Sonnet 5, migrated from Sonnet 4.5 on 2026-08-28.
+//
+// Cheaper and better: $2/$10 per MTok against Sonnet 4.5's $3/$15, and
+// stronger instruction-following, which is what the client research needed
+// (a stated city ignored, a size floor missed, a filled seat unchecked).
+//
+// Three things about this model shape the code around it:
+//   1. A non-default temperature / top_p / top_k is a 400. Every call used to
+//      send temperature; none does now.
+//   2. Omitting `thinking` runs ADAPTIVE thinking here, where on 4.5 it ran
+//      with none. Left on deliberately: these calls lean on web search, and
+//      thinking-off makes the model markedly less willing to reach for a tool.
+//   3. Thinking shares the max_tokens budget, and the new tokenizer produces
+//      roughly 30% more tokens for the same text -- so a ceiling tuned for 4.5
+//      truncates. Hence the clamp below.
+const MODEL = 'claude-sonnet-5'
+
+// Raised 8000 -> 16000 with the Sonnet 5 migration. Two reasons: adaptive
+// thinking now shares this budget with the answer, and the new tokenizer
+// inflates the same text by ~30%. It also un-clamps Go-to-Market, which has
+// been asking for 16000 and silently receiving 8000. Nothing spends more than
+// it needs -- this is a ceiling, not a target.
 function clampTokens(value) {
   const n = parseInt(value, 10)
   if (!Number.isFinite(n)) return 4000
-  return Math.min(Math.max(n, 100), 8000)
+  return Math.min(Math.max(n, 100), 16000)
 }
 
 export default async function handler(req, res) {
@@ -460,11 +482,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid prompt' })
     }
     anthropicBody = {
-      model: 'claude-sonnet-4-5',
+      model: MODEL,
       max_tokens: clampTokens(reqBody.maxTokens),
-      temperature: reqBody.highTemp ? 1.0 : 0.7,
+      // No temperature. Claude Sonnet 5 rejects a non-default temperature,
+      // top_p or top_k with a 400, so the old 0.7 / 1.0 split is gone and
+      // variation is steered by prompting instead. reqBody.highTemp is still
+      // accepted from older clients and deliberately ignored.
       system: [{ type: 'text', text: sysText, cache_control: { type: 'ephemeral' } }, dateBlock],
       messages: [{ role: 'user', content: reqBody.prompt }],
+      ...(reqBody.effort ? { output_config: { effort: reqBody.effort } } : {}),
       ...(reqBody.webSearch ? { tools: [{ type: 'web_search_20250305', name: 'web_search' }] } : {})
     }
   } else if (Array.isArray(reqBody.messages)) {
@@ -472,13 +498,21 @@ export default async function handler(req, res) {
     // Force model and system prompt server-side; clamp max_tokens.
     anthropicBody = {
       ...reqBody,
-      model: 'claude-sonnet-4-5',
+      model: MODEL,
       max_tokens: clampTokens(reqBody.max_tokens),
       system: [{ type: 'text', text: sysText, cache_control: { type: 'ephemeral' } }, dateBlock]
     }
   } else {
     return res.status(400).json({ error: 'Invalid request format' })
   }
+
+  // Sampling parameters are a 400 on Claude Sonnet 5. The legacy branch spreads
+  // the caller's whole body, so a cached older bundle still sending temperature
+  // would fail every generation until it refreshed. Strip them here rather than
+  // trusting the client to have updated.
+  delete anthropicBody.temperature
+  delete anthropicBody.top_p
+  delete anthropicBody.top_k
 
   // voiceMode is a Reimagine-internal request field, read above to select
   // SYS_BASE vs SYS_PROSE. It must NOT be forwarded to the Anthropic API: the

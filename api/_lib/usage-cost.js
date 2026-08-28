@@ -20,7 +20,10 @@
 // because those rows already hold their dollars and only new ones are affected.
 
 const PRICES = {
-  // Claude Sonnet 4.5 -- what both generation surfaces call.
+  // Claude Sonnet 5 -- what both generation surfaces call as of 2026-08-28.
+  'claude-sonnet-5': { input: 2.00, output: 10.00, cacheWrite: 2.50, cacheRead: 0.20 },
+  // Claude Sonnet 4.5 -- what they called before that. Kept because rows
+  // already hold their dollars and historical rows must still price correctly.
   'claude-sonnet-4-5': { input: 3.00, output: 15.00, cacheWrite: 3.75, cacheRead: 0.30 },
   // Claude Haiku 4.5 -- the two daily classifier crons (coach insights, feedback
   // ingest). Added 2026-08-27 with the budget watchdog: those calls used to be
@@ -33,7 +36,7 @@ const PRICES = {
 // before this table is updated). The row still records the real model string,
 // so anything priced on the fallback is findable later:
 //   SELECT DISTINCT model FROM generation_events WHERE model <> 'claude-sonnet-4-5';
-const FALLBACK_MODEL = 'claude-sonnet-4-5'
+const FALLBACK_MODEL = 'claude-sonnet-5'
 
 // Server-side web search, billed per search rather than per token. Only
 // api/claude.js requests the tool, and only on the surfaces that pass
