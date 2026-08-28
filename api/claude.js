@@ -545,6 +545,15 @@ export default async function handler(req, res) {
   // Same as voiceMode: the legacy branch spreads ...reqBody, so it must be
   // removed or Anthropic 400s ("step: Extra inputs are not permitted").
   delete anthropicBody.step
+  // `effort` is a Reimagine-internal field too. The simplified branch reads it
+  // and builds output_config from it; the legacy branch spreads the whole body,
+  // so it reached Anthropic as an unknown field and 400'd the request -- which
+  // this endpoint then reports to the user as "Reimagine is temporarily unable
+  // to generate," and pages the operator for. Honour it the way the other
+  // branch does rather than dropping it, so a caller that asks for an effort
+  // gets one instead of a system error.
+  if (reqBody.effort && !anthropicBody.output_config) anthropicBody.output_config = { effort: reqBody.effort }
+  delete anthropicBody.effort
 
   // Claude Sonnet 5 defaults `effort` to `high` when a request does not set it,
   // and on a demanding prose prompt that is not a nuance -- it is the difference
