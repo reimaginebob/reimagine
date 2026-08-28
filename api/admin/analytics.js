@@ -332,15 +332,20 @@ async function loadAggregate(rangeInterval, adminEmails) {
       WHERE LOWER(email) <> ALL(${adminEmails}::text[])
       GROUP BY employment_status
     `,
-    // Panel 1d: accounts currently on hold (rogue-activity safeguard). Every
-    // paused account, newest first, with why and when — the actionable list the
-    // dashboard shows with a per-row Unpause. No admin exclusion: a manually
-    // paused internal account should still appear so it can be lifted.
+    // Panel 1d: account holds (rogue-activity safeguard). Accounts currently on
+    // hold AND accounts that have been held before and are active again — the
+    // latter used to vanish completely, because unpausing nulls both suspension
+    // columns. "Was this person ever locked out?" is the question a support
+    // email actually asks, and until the hold_count / last_hold_* columns landed
+    // there was no way to answer it. Currently-held rows sort first so the
+    // actionable ones stay at the top. No admin exclusion: a manually paused
+    // internal account should still appear so it can be lifted.
     sql`
-      SELECT email, suspended_at, suspended_reason
+      SELECT email, suspended_at, suspended_reason,
+             hold_count, last_hold_at, last_hold_reason
       FROM users
-      WHERE suspended_at IS NOT NULL
-      ORDER BY suspended_at DESC
+      WHERE suspended_at IS NOT NULL OR hold_count > 0
+      ORDER BY (suspended_at IS NULL), COALESCE(suspended_at, last_hold_at) DESC
       LIMIT 200
     `,
     // Panel 1e: search intake — what people say is going well and what they want
@@ -441,9 +446,13 @@ async function loadAggregate(rangeInterval, adminEmails) {
       focus_at:       r.search_focus_updated_at,
     })),
     panel_1d_paused_accounts: pausedAccounts.map(r => ({
-      email:        r.email,
-      suspended_at: r.suspended_at,
-      reason:       r.suspended_reason,
+      email:           r.email,
+      suspended_at:    r.suspended_at,
+      reason:          r.suspended_reason,
+      on_hold:         !!r.suspended_at,
+      hold_count:      r.hold_count || 0,
+      last_hold_at:    r.last_hold_at,
+      last_hold_reason: r.last_hold_reason,
     })),
     panel_2_funnel: funnel,
     panel_3_nps: {

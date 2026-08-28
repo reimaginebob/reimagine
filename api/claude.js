@@ -27,8 +27,13 @@ import { alertOnce } from './_lib/ops-alerts.js'
 // Real-time generation cap (rogue-activity safeguard). Matches the watchdog's
 // per-user generation threshold; a signed-in account that has already generated
 // this many times in the last hour is auto-paused before the next call spends
-// anything. Tunable alongside PER_USER_GENERATIONS_HR in activity-watchdog.js.
-const GENERATION_CAP_HR = 80
+// anything. Tunable alongside PER_USER_GENERATIONS_HR in activity-watchdog.js —
+// keep the two in step. Raised 80 -> 120 on 2026-08-28 against a measured
+// baseline: the busiest hour any of the 155 production accounts has ever had is
+// 62 generations, and the average active hour is 9.6. A cap of 80 left an
+// 18-call margin over real observed behaviour, and tripping it locks the account
+// out of every authed route with no self-serve way back in.
+const GENERATION_CAP_HR = 120
 
 // Best-effort generation-events logging (rogue-activity watchdog, Phase 2). One
 // row per generation, used by api/admin/activity-watchdog to catch volume
@@ -470,7 +475,7 @@ export default async function handler(req, res) {
       const c = await sql`SELECT COUNT(*)::int AS n FROM generation_events WHERE user_id = ${sessionUser.id} AND created_at >= NOW() - INTERVAL '1 hour' AND COALESCE(kind, '') <> 'coach'`
       const n = (c[0] && c[0].n) || 0
       if (n >= GENERATION_CAP_HR) {
-        await sql`UPDATE users SET suspended_at = NOW(), suspended_reason = ${'auto: ' + n + ' generations/hr'} WHERE id = ${sessionUser.id} AND suspended_at IS NULL`
+        await sql`UPDATE users SET suspended_at = NOW(), suspended_reason = ${'auto: ' + n + ' generations/hr'}, hold_count = hold_count + 1, last_hold_at = NOW(), last_hold_reason = ${'auto: ' + n + ' generations/hr'} WHERE id = ${sessionUser.id} AND suspended_at IS NULL`
         try { await sendAccountHoldEmail(sessionUser.email) } catch (e) { console.error('gen-cap: hold email failed', e && e.message) }
         const admins = (process.env.ADMIN_EMAILS || '').split(',').map(s => s.trim()).filter(Boolean)
         if (admins.length) {
