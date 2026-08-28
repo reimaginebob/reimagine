@@ -420,6 +420,23 @@ function clampTokens(value) {
   return Math.min(Math.max(n, 100), 16000)
 }
 
+
+// Add two usage objects together, for a turn that had to be continued after a
+// 'pause_turn'. Cost accounting has to see the whole turn: billing only the
+// final leg would understate what a long web-search generation actually cost.
+function sumUsage(a, b) {
+  const g = (o, k) => (o && typeof o[k] === 'number') ? o[k] : 0
+  const out = {
+    input_tokens: g(a, 'input_tokens') + g(b, 'input_tokens'),
+    output_tokens: g(a, 'output_tokens') + g(b, 'output_tokens'),
+    cache_creation_input_tokens: g(a, 'cache_creation_input_tokens') + g(b, 'cache_creation_input_tokens'),
+    cache_read_input_tokens: g(a, 'cache_read_input_tokens') + g(b, 'cache_read_input_tokens')
+  }
+  const sa = a && a.server_tool_use, sb = b && b.server_tool_use
+  if (sa || sb) out.server_tool_use = { web_search_requests: g(sa, 'web_search_requests') + g(sb, 'web_search_requests') }
+  return out
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -524,18 +541,75 @@ export default async function handler(req, res) {
   // removed or Anthropic 400s ("step: Extra inputs are not permitted").
   delete anthropicBody.step
 
+  // Claude Sonnet 5 defaults `effort` to `high` when a request does not set it,
+  // and on a demanding prose prompt that is not a nuance -- it is the difference
+  // between an answer and nothing at all. Measured against production on
+  // 2026-08-28 with a real Personal Brand prompt: with no effort set, the model
+  // spent its entire 16000-token budget and 187 seconds on thinking and returned
+  // ZERO characters of text. The same prompt at 'medium' returned 8130
+  // characters in 35 seconds, and at 'low' 6472 characters in 30. Thinking
+  // shares max_tokens with the answer, so raising the ceiling does not rescue
+  // this -- it only makes the failure slower and more expensive.
+  //
+  // Defaulted here rather than in the browser so a client still running a cached
+  // pre-migration bundle is covered too. A caller that sets its own
+  // output_config keeps it.
+  if (!anthropicBody.output_config) anthropicBody.output_config = { effort: 'medium' }
+
+  const callUpstream = (body) => fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'web-search-2025-03-05'
+    },
+    body: JSON.stringify(body)
+  })
+
+  // A long web-search turn does not always finish in one response: the API stops
+  // with stop_reason 'pause_turn' and expects the conversation handed back so the
+  // model can carry on. Nothing here did that, so a paused turn reached the user
+  // as though it were the finished answer. That is why client research came back
+  // naming five companies when it had been asked for more, with the model itself
+  // noting it had not covered the ground -- the research was still in progress
+  // when we published it.
+  //
+  // Continue until the turn ends, concatenating what each leg produced. Bounded
+  // twice over: by leg count, and by wall clock, because this runs inside a
+  // 300-second function and a timeout would lose the whole answer rather than
+  // just the tail of it.
+  const MAX_PAUSE_CONTINUATIONS = 3
+  const PAUSE_DEADLINE_MS = 200000
+  const startedAt = Date.now()
+
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'web-search-2025-03-05'
-      },
-      body: JSON.stringify(anthropicBody)
-    })
-    const data = await response.json().catch(() => null)
+    let response = await callUpstream(anthropicBody)
+    let data = await response.json().catch(() => null)
+    let pauses = 0
+    while (
+      response.ok && data && data.stop_reason === 'pause_turn' &&
+      Array.isArray(data.content) && data.content.length &&
+      pauses < MAX_PAUSE_CONTINUATIONS && (Date.now() - startedAt) < PAUSE_DEADLINE_MS
+    ) {
+      pauses++
+      const carried = data
+      const nextRes = await callUpstream({
+        ...anthropicBody,
+        messages: [...anthropicBody.messages, { role: 'assistant', content: carried.content }]
+      })
+      const nextData = await nextRes.json().catch(() => null)
+      // A failed continuation is not a failed generation: keep what the earlier
+      // legs produced and return that rather than throwing the turn away.
+      if (!nextRes.ok || !nextData || !Array.isArray(nextData.content)) break
+      nextData.content = [...carried.content, ...nextData.content]
+      nextData.usage = sumUsage(carried.usage, nextData.usage)
+      response = nextRes
+      data = nextData
+    }
+    if (pauses > 0) {
+      console.log(JSON.stringify({ evt: 'claude_pause_turn', step: reqBody.step, continuations: pauses, finalStop: data && data.stop_reason }))
+    }
     // Anything non-2xx is an upstream failure: log the real reason, page the
     // operator if a human has to act, and hand the caller the friendly message.
     // No generation_events row is written — a rejected call is not billed, and
