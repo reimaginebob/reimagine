@@ -6338,9 +6338,31 @@ export default function PivotEngine(){
   // employment status, and likewise never marks the Personal Brand stale —
   // these answers feed My Coach, not generation. Debounced on blur rather than
   // per-keystroke: prose, not a tap.
+  //
+  // What the server last stored, so a field that did not change is never re-sent.
+  // Blur fires on every focus-out, edit or not, so tabbing through this screen
+  // used to POST both fields again — and the timestamps it stamps are
+  // load-bearing, not bookkeeping: api/coach.js states their age in words ("five
+  // months ago they said…") and drops the lines past a staleness threshold. A
+  // five-month-old answer someone merely tabbed past this morning read to the
+  // Coach as freshly confirmed. It also stops the never-answered case from
+  // writing an empty string on a bare focus-out, which is indistinguishable in
+  // the column from answering and then deliberately clearing.
+  //
+  // Seeded from /api/me on load (null normalizes to ''), and updated only on a
+  // successful write, so a failed save is retried by the next blur rather than
+  // silently swallowed. Compared trimmed because the endpoint trims before it
+  // writes; the value SENT is untrimmed and the endpoint normalizes it.
+  const searchIntakeSavedRef=useRef({goingWell:'',focus:''})
   const saveSearchIntake=(patch)=>{
     if(isDemo||isTest)return
-    try{fetch('/api/search-intake',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}).catch(()=>{})}catch{}
+    const next={}
+    for(const k of ['goingWell','focus']){
+      if(typeof patch[k]!=='string')continue
+      if(patch[k].trim()!==searchIntakeSavedRef.current[k])next[k]=patch[k]
+    }
+    if(!Object.keys(next).length)return
+    try{fetch('/api/search-intake',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)}).then(r=>{if(r&&r.ok)for(const k of Object.keys(next))searchIntakeSavedRef.current[k]=next[k].trim()}).catch(()=>{})}catch{}
   }
   // The handler Chat calls on a quick-reply tap. Returns true for the employment
   // key so Chat does NOT fall back to the pb-checkin log.
@@ -6540,7 +6562,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
