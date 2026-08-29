@@ -6727,6 +6727,35 @@ export default function PivotEngine(){
     if(isTest)return
     try{localStorage.setItem('pe_saved_v1',JSON.stringify(savedPlaybooks))}catch{}
   },[savedPlaybooks,isDemo,isTest])
+  // Per-record dual-write to the saved_playbooks table (Phase 1 of moving
+  // savedPlaybooks off the whole-blob autosave that lost a user's opportunities).
+  // Reads still come from the blob; this just keeps the table current in parallel.
+  // Diff against the last-synced baseline so only changed records are PUT and
+  // removed ones are DELETEd — a stale tab can no longer wipe a record it never
+  // saw, because it only ever writes the rows it actually touched. The first
+  // settled run seeds the baseline without re-PUTting everything (the migration
+  // backfill already holds what exists). Gated on serverLoadDone so we baseline
+  // from server state, never from a localStorage-only paint.
+  const savedSyncBaselineRef=useRef(null)
+  useEffect(()=>{
+    if(isDemo||isTest||!signedInUser||!serverLoadDone)return
+    const t=setTimeout(()=>{
+      // Full-record signature, not updatedAt: archive/restore change archivedAt
+      // without bumping updatedAt, so a stamp would miss them. Stringify cost is
+      // on par with the existing whole-blob autosave, and it's debounced.
+      const sig=(r)=>{try{return JSON.stringify(r)}catch{return ''}}
+      const cur=new Map(),curSig=new Map()
+      for(const r of savedPlaybooks)if(r&&r.id){cur.set(r.id,r);curSig.set(r.id,sig(r))}
+      const base=savedSyncBaselineRef.current
+      if(base===null){savedSyncBaselineRef.current=curSig;return}
+      const put=(playbook)=>{try{fetch('/api/saved-playbooks',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({playbook})}).catch(()=>{})}catch{}}
+      const del=(playbookId)=>{try{fetch('/api/saved-playbooks',{method:'DELETE',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({playbookId})}).catch(()=>{})}catch{}}
+      for(const[id,r]of cur)if(base.get(id)!==curSig.get(id))put(r)
+      for(const id of base.keys())if(!cur.has(id))del(id)
+      savedSyncBaselineRef.current=curSig
+    },1200)
+    return()=>clearTimeout(t)
+  },[savedPlaybooks,signedInUser,serverLoadDone,isDemo,isTest])
   // Returning-explorer signal. True when Personal Brand is done AND the user
   // has either a saved playbook OR any prior role exploration recorded.
   // exploredRoleTitles is populated by recordExploredRole from both Door 1
