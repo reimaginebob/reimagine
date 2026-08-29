@@ -72,6 +72,37 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // Capped so a long message cannot eat the reply thread; past the cap it
   // scrolls. The CSS min-height holds the resting two-row size.
   const inputTaRef = useRef(null)
+  // Embedded panel sizing. It used a FIXED height of min(72dvh, 720px), which
+  // was wrong in both directions: with a short conversation most of the panel
+  // was empty scroll area, and because the height took no account of the page
+  // header sitting above it (title, description, the never-looks-you-up note —
+  // roughly 200px, more when the back button shows or the text wraps further),
+  // header plus panel ran past the bottom of the viewport and pushed the input
+  // box off screen at 100% zoom.
+  //
+  // Now the panel sizes to its content between a floor and a measured ceiling.
+  // The ceiling is whatever room is left below the panel's own top edge, so it
+  // adapts to however tall the header happens to render rather than assuming.
+  // Measured on mount and on resize; rect.top is taken against an unscrolled
+  // page, which is self-correcting — once the panel fits, the page stops
+  // scrolling, so the measurement stays true.
+  const panelRef = useRef(null)
+  const [panelMaxH, setPanelMaxH] = useState(null)
+  useEffect(() => {
+    if (!embedded) return
+    const measure = () => {
+      const el = panelRef.current
+      if (!el) return
+      const top = el.getBoundingClientRect().top + (window.scrollY || 0)
+      // 24px of breathing room below the panel so it does not sit flush on the
+      // viewport edge. Floored so a very short window still gets a usable panel
+      // rather than a sliver.
+      setPanelMaxH(Math.max(360, Math.round(window.innerHeight - top - 24)))
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [embedded])
   // Coach doors (PR-3, item H): when opened with a seed (e.g. "Help me prep for
   // my interview with Renata…"), prefill the input once so the user can review
   // and send. seedAuto flips that to fire-immediately — the My Pipeline "read"
@@ -399,8 +430,16 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
 
   // Shared inner content: the scrolling transcript, the user-guide footer, and
   // the input row. Rendered into either the floating shell or the embedded one.
+  // The transcript is `1 1 auto` with minHeight 0, not `flex: 1`. The embedded
+  // panel no longer has a fixed height, and a flex-basis of 0% would contribute
+  // nothing to the panel's natural height — the transcript would collapse and
+  // the panel would sit at its floor however long the conversation got. Basis
+  // auto lets the panel grow with the messages; minHeight 0 is what lets it
+  // shrink and scroll inside once the panel hits its ceiling (a flex item
+  // defaults to min-height:auto, which refuses to shrink below its content and
+  // would overflow the panel instead of scrolling).
   const transcript = (
-    <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 18px' }}>
+    <div ref={messagesContainerRef} style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '14px 18px' }}>
       {messages.map((m, i) => (
         <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
           <div ref={el => { if (m.id) contentRefs.current[m.id] = el }} style={{
@@ -524,9 +563,11 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // sidebar view). No fixed positioning, no bubble, no close button.
   if (embedded) {
     return (
-      <div data-print="hide" style={{
+      <div ref={panelRef} data-print="hide" style={{
         display: 'flex', flexDirection: 'column',
-        height: 'min(72dvh, 720px)', maxWidth: 820,
+        minHeight: 360,
+        maxHeight: panelMaxH ? `${panelMaxH}px` : 'min(72dvh, 720px)',
+        maxWidth: 820,
         background: '#fff', border: '1px solid #E2E5EA', borderRadius: 14,
         boxShadow: '0 2px 10px rgba(0,0,0,0.06)', overflow: 'hidden',
         fontFamily: 'inherit',
