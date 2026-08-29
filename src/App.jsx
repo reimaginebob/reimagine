@@ -6709,7 +6709,11 @@ export default function PivotEngine(){
     if(deletingRef.current)return
     setSaveStatus('saving')
     try{
-      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt})
+      // Phase 3: savedPlaybooks is NO LONGER written into the profile blob — it
+      // lives only in the saved_playbooks table (per-record dual-write above), so a
+      // whole-profile save can never touch a playbook again. The server merge shim
+      // stays as belt-and-suspenders for any old cached client still sending it.
+      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt})
       localStorage.setItem('pe_v4',blob)
       // The localStorage write above is unconditional; only the server PUT is
       // gated. Holding the PUT until /api/profile/load has settled is what stops
@@ -6732,7 +6736,7 @@ export default function PivotEngine(){
       setSaveStatus('saved')
       setSaveError(null)
     }catch{setSaveStatus('error');setSaveError('device_full')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,savedPlaybooks,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,signedInUser,serverLoadDone,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,signedInUser,serverLoadDone,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // savedPlaybooks rides in the autosave blob above (PUT to /api/profile/save)
@@ -6757,13 +6761,23 @@ export default function PivotEngine(){
   // re-PUTs on load. Table-read failure still flips the flag (proceed blob-only).
   const[tableHydrateDone,setTableHydrateDone]=useState(false)
   const tableHydrateStartedRef=useRef(false)
+  const savedSyncBaselineRef=useRef(null)
   useEffect(()=>{
     if(isDemo||isTest){setTableHydrateDone(true);return}
     if(!signedInUser||!serverLoadDone||tableHydrateStartedRef.current)return
     tableHydrateStartedRef.current=true
     fetch('/api/saved-playbooks',{credentials:'include'}).then(r=>r.ok?r.json():null).then(data=>{
       const table=data&&Array.isArray(data.playbooks)?data.playbooks:null
-      if(table&&table.length)setSavedPlaybooks(prev=>{const byId=new Map();for(const r of(Array.isArray(prev)?prev:[]))if(r&&r.id)byId.set(r.id,r);for(const r of table)if(r&&r.id)byId.set(r.id,r);const idless=(Array.isArray(prev)?prev:[]).filter(r=>r&&!r.id);return[...byId.values(),...idless]})
+      if(table){
+        // Seed the dual-write baseline from what the TABLE actually holds, so the
+        // dual-write below RECONCILES: a client record the table is missing (a
+        // failed write or an offline add) gets PUT, and anything since deleted gets
+        // DELETEd. Phase 3: the blob no longer carries playbooks, so this — plus
+        // localStorage — is the durability path.
+        const sig=(r)=>{try{return JSON.stringify(r)}catch{return ''}}
+        savedSyncBaselineRef.current=new Map(table.filter(r=>r&&r.id).map(r=>[r.id,sig(r)]))
+        if(table.length)setSavedPlaybooks(prev=>{const byId=new Map();for(const r of(Array.isArray(prev)?prev:[]))if(r&&r.id)byId.set(r.id,r);for(const r of table)if(r&&r.id)byId.set(r.id,r);const idless=(Array.isArray(prev)?prev:[]).filter(r=>r&&!r.id);return[...byId.values(),...idless]})
+      }
     }).catch(()=>{}).finally(()=>setTableHydrateDone(true))
   },[signedInUser,serverLoadDone,isDemo,isTest])
   // Per-record dual-write to the saved_playbooks table (Phase 1 of moving
@@ -6774,7 +6788,8 @@ export default function PivotEngine(){
   // settled run seeds the baseline without re-PUTting everything (backfill + the
   // table hydrate above already hold what exists). Gated on tableHydrateDone so we
   // baseline from the merged server+table state, never a localStorage-only paint.
-  const savedSyncBaselineRef=useRef(null)
+  // (savedSyncBaselineRef is declared above with the table hydrate, which pre-seeds
+  // it from the table so the first run reconciles rather than just seeds.)
   useEffect(()=>{
     if(isDemo||isTest||!signedInUser||!tableHydrateDone)return
     const t=setTimeout(()=>{
