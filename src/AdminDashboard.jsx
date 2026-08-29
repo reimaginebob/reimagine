@@ -283,6 +283,7 @@ export default function AdminDashboard() {
   })()
   const employment = ((payload && payload.panel_1c_employment) || []).slice().sort((a, b) => EMPLOYMENT_ORDER.indexOf(a.status) - EMPLOYMENT_ORDER.indexOf(b.status))
   const searchIntake = (payload && payload.panel_1e_search_intake) || []
+  const searchIntakeCounts = (payload && payload.panel_1e_search_intake_counts) || {}
   const paused = (payload && payload.panel_1d_paused_accounts) || []
   // Currently-held subset. The panel now carries released accounts too, so the
   // count in its title has to distinguish "act on this" from "this happened".
@@ -484,6 +485,24 @@ export default function AdminDashboard() {
               worth more than any chart, and they are what would decide a tag set
               if one ever earns its keep. */}
           <Panel title="What people said about their search" wide>
+            {/* Denominator above the list. The list shows only people who
+                answered, so by itself it cannot say whether that is most of the
+                base or a corner of it. Reach is separated from coverage on
+                purpose: a low answered count with a low prompted count means the
+                question has not been asked yet, which is a different problem
+                from a question people decline to answer. */}
+            {searchIntakeCounts.users > 0 && (
+              <p style={{ ...S.td, color: GRAY, margin: "0 0 14px", lineHeight: 1.6 }}>
+                <strong>{searchIntakeCounts.answered}</strong> of {searchIntakeCounts.users} have answered
+                {searchIntakeCounts.cleared > 0 && <> · {searchIntakeCounts.cleared} answered then cleared</>}
+                {" · "}<strong>{searchIntakeCounts.prompted}</strong> have been asked
+                {searchIntakeCounts.since_users > 0 && (
+                  <> · <strong>{searchIntakeCounts.since_answered} of {searchIntakeCounts.since_users}</strong>{" "}
+                    ({Math.round((searchIntakeCounts.since_answered / searchIntakeCounts.since_users) * 100)}%){" "}
+                    who signed up since the question went live</>
+                )}
+              </p>
+            )}
             {searchIntake.length === 0 && <p style={{ ...S.td, color: GRAYL, margin: 0 }}>Nobody has answered these yet.</p>}
             {searchIntake.map((r, i) => (
               <div key={r.email} style={{ padding: "14px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>

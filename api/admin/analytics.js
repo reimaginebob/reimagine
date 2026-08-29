@@ -96,6 +96,7 @@ async function loadAggregate(rangeInterval, adminEmails) {
     employmentSplit,
     pausedAccounts,
     searchIntake,
+    searchIntakeCounts,
   ] = await Promise.all([
     // Panel 1: top-line counts (users + Focus / Op proxy counts).
     sql`
@@ -366,6 +367,53 @@ async function loadAggregate(rangeInterval, adminEmails) {
       ) DESC
       LIMIT 200
     `,
+    // Panel 1e denominator. The list above shows only people who answered, so on
+    // its own it cannot say whether 19 answers is most of the base or a corner of
+    // it — the original search-intake brief (docs/search-intake-brief.md, section
+    // F) asked for "answered vs unanswered" and only the reading half was built.
+    //
+    // Three numbers, because they answer different questions. `answered` over
+    // `users` is coverage. `prompted` is reach: the one-time prompt for people
+    // who predate the feature is the throttle on coverage, and a low number here
+    // means the question is fine and simply has not been asked yet. The signup
+    // cohort is the durable rate among people who WERE asked, and is the only
+    // one of the three that projects forward.
+    //
+    // The cohort boundary is derived from the earliest answer on record rather
+    // than hardcoded, so it cannot go stale. A fixed recent window is wrong here
+    // and wrong in the direction that matters: a 30-day window currently reaches
+    // back before the question existed, puts 30 never-asked users in the
+    // denominator, and reports 29% where the real rate among people who were
+    // asked is 54%.
+    //
+    // `cleared` counts answered-then-emptied. Kept separate rather than folded
+    // into unanswered because it is a real signal (someone withdrew an answer)
+    // and because a client bug wrote empty strings on a bare focus-out until
+    // 2026-08-29 (PR #576) — a rise here after that fix is a person, not a tab.
+    //
+    // Lifetime, not range-filtered, to match the unfiltered list it sits above.
+    // A half-ranged panel is harder to read than an unranged one.
+    sql`
+      WITH live_since AS (
+        SELECT MIN(LEAST(COALESCE(search_going_well_updated_at, 'infinity'::timestamptz),
+                         COALESCE(search_focus_updated_at,      'infinity'::timestamptz))) AS at
+        FROM users
+      )
+      SELECT
+        COUNT(*)::int                                                                    AS users,
+        COUNT(*) FILTER (WHERE NULLIF(TRIM(search_going_well), '') IS NOT NULL
+                            OR NULLIF(TRIM(search_focus), '') IS NOT NULL)::int          AS answered,
+        COUNT(*) FILTER (WHERE (search_going_well = '' OR search_focus = '')
+                            AND NULLIF(TRIM(search_going_well), '') IS NULL
+                            AND NULLIF(TRIM(search_focus), '') IS NULL)::int             AS cleared,
+        COUNT(*) FILTER (WHERE (profile_state->>'seenSearchIntakePrompt')::boolean)::int AS prompted,
+        COUNT(*) FILTER (WHERE created_at >= (SELECT at FROM live_since))::int           AS since_users,
+        COUNT(*) FILTER (WHERE created_at >= (SELECT at FROM live_since)
+                            AND (NULLIF(TRIM(search_going_well), '') IS NOT NULL
+                              OR NULLIF(TRIM(search_focus), '') IS NOT NULL))::int       AS since_answered
+      FROM users
+      WHERE LOWER(email) <> ALL(${adminEmails}::text[])
+    `,
   ])
 
   // Database connectivity check is implicit; if we got here, every query
@@ -445,6 +493,16 @@ async function loadAggregate(rangeInterval, adminEmails) {
       focus:          r.search_focus || '',
       focus_at:       r.search_focus_updated_at,
     })),
+    // Defaults rather than a bare [0] read: a fresh database returns no row and
+    // the panel should render zeros instead of blanking on undefined.
+    panel_1e_search_intake_counts: {
+      users:           (searchIntakeCounts[0] || {}).users           || 0,
+      answered:        (searchIntakeCounts[0] || {}).answered        || 0,
+      cleared:         (searchIntakeCounts[0] || {}).cleared         || 0,
+      prompted:        (searchIntakeCounts[0] || {}).prompted        || 0,
+      since_users:     (searchIntakeCounts[0] || {}).since_users     || 0,
+      since_answered:  (searchIntakeCounts[0] || {}).since_answered  || 0,
+    },
     panel_1d_paused_accounts: pausedAccounts.map(r => ({
       email:           r.email,
       suspended_at:    r.suspended_at,
