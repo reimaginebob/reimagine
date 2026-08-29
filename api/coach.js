@@ -25,6 +25,7 @@ import { totalCompModel } from '../src/offer-valuation.js'
 import { COMP_KNOWLEDGE } from '../src/comp-knowledge.js'
 import { getSessionUser } from './_lib/session.js'
 import { sql } from './_lib/db.js'
+import { getSavedPlaybooks } from './_lib/saved-playbooks.js'
 import { costFromUsage, addUsage } from './_lib/usage-cost.js'
 import { classifyAnthropicError, operatorLine, operatorSubject, operatorImpactLine, systemErrorPayload, SYSTEM_ERROR_STATUS } from './_lib/anthropic-error.js'
 import { alertOnce } from './_lib/ops-alerts.js'
@@ -751,6 +752,13 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('coach profile read failed:', err)
     // Fall through with a null profile rather than failing the turn.
+  }
+  // Phase 2: playbooks now read from the per-record saved_playbooks table (union'd
+  // with the blob as a transition safety net). buildCoachProfileSlice and the
+  // in-focus lookup below both read profileState.savedPlaybooks, so override it
+  // once here. Best-effort — a failure leaves the blob copy in place.
+  if (!generalMode && profileState && typeof profileState === 'object') {
+    try { profileState.savedPlaybooks = await getSavedPlaybooks(user.id, profileState.savedPlaybooks) } catch (err) { console.error('coach saved_playbooks read failed; using blob', err && err.message) }
   }
   // My Pipeline live status (Move 1) — only for flagged users, best-effort. The
   // pursuit_status table is separate from profile_state, so it needs its own read
