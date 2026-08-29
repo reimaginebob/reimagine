@@ -547,6 +547,43 @@ const INTENSIFIER_LEAD_RE = new RegExp('(^|[.!?]' + EMPH + '\\s+|\\n+)' + EMPH +
 // care**" -> "**care**") and makes adjacent intensifiers ("really actually X")
 // collapse in a single pass, so the function stays idempotent.
 const INTENSIFIER_MID_RE = new RegExp('\\b(?:' + INTENSIFIER_WORDS + ')\\b[^\\S\\n]?', 'gi')
+// --- stripAttributionRepeat -------------------------------------------------
+// Coach over-attributes. Left alone it writes "Bob Goodwin" and the full book
+// title on every reference, which reads like a citation rather than a
+// conversation (Bob's call, 2026-08-29: full name once, then Bob / the book /
+// we / at Career Club Corner).
+//
+// The prompt carries the rule and the worked examples model it, but the real
+// failure is repetition ACROSS turns and a stripper only ever sees one reply,
+// so it cannot know the book was already introduced two messages ago. What it
+// CAN do deterministically is the within-reply half:
+//
+//   * the second and later "Bob Goodwin" in a single reply collapse to "Bob"
+//     (the first is left intact — it may legitimately be the first mention of
+//     the conversation, and the stripper has no way to tell)
+//   * "the Career Club Corner call" becomes "Career Club Corner", which is how
+//     Bob refers to it
+//
+// Deliberately does NOT touch the book title. Collapsing "Making Your Own
+// Weather" to "the book" mid-sentence produces worse prose than it prevents,
+// and the title carries the brand.
+const CCC_CALL_RE = /\b(?:the\s+)?Career Club Corner call\b/gi
+export function stripAttributionRepeat(text) {
+  if (typeof text !== 'string' || !text) return text
+  let count = 0
+  let seenFullName = false
+  let out = text.replace(/\bBob Goodwin\b/g, () => {
+    if (!seenFullName) { seenFullName = true; return 'Bob Goodwin' }
+    count++
+    return 'Bob'
+  })
+  out = out.replace(CCC_CALL_RE, () => { count++; return 'Career Club Corner' })
+  if (count > 0) {
+    console.warn(`[stripAttributionRepeat] shortened ${count} repeated attribution${count === 1 ? '' : 's'} from LLM output`)
+  }
+  return out
+}
+
 export function stripIntensifiers(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
@@ -881,6 +918,7 @@ export function applyOutputStrippers(text) {
   // stay (dormant) in case the structured-generation path ever needs them.
   out = stripLogicFlipCadence(out)
   out = stripSincerityQualifiers(out)
+  out = stripAttributionRepeat(out)
   out = stripIntensifiers(out)
   out = tidyOutput(out)
   return out
