@@ -41,17 +41,33 @@ export const CHECKS = [
   {
     id: 'insight-flagging',
     what: 'announces that a point is worth attention before making it',
-    re: /\bworth\s+(?:naming|surfacing|knowing|noting|mentioning|saying|pulling\s+apart|flagging|calling\s+out)\b|\bthe\s+thing\s+(?:to\s+notice|worth\s+noting)\b|\bwhat\s+stands\s+out\s+(?:here\s+)?is\b|\bhere(?:'s| is)\s+what\s+matters\b/gi,
+    // Attention and speech verbs only. "worth doing / building / having /
+    // reactivating" judge an ACTION and are legitimate; the banned move is
+    // flagging a point as worth notice before making it. Widened 2026-08-29
+    // after the model answered a ban on "worth noting" with "Worth noticing:" —
+    // an enumerated synonym list is a blocklist by another name, which is the
+    // exact failure this whole approach exists to avoid.
+    re: /\bworth\s+(?:nam|not|notic|know|mention|surfac|flag|say|call|point|observ|highlight|underscor|stress|emphasi|ask|repeat|remember|try|tri)\w*\b|\bworth\s+\w+ing\s*:|\bthe\s+thing\s+(?:to\s+notice|worth\s+noting)\b|\bwhat\s+stands\s+out\s+(?:here\s+)?is\b|\bhere(?:'s| is)\s+what\s+matters\b/gi,
   },
   {
     id: 'negative-parallelism',
     what: 'defines a thing by what it is not',
-    re: /\b(?:is|are|was|were|isn't|aren't|it's)\s+not\s+(?:just\s+)?[^.,;:]{2,60}?,\s*(?:it'?s|they'?re|but)\b|\bnot\s+just\s+[^.,;:]{2,60}?\s+but\b|\bless\s+about\s+[^.,;:]{2,60}?\s+and\s+more\s+about\b|\bisn'?t\s+[^.,;:]{2,70}?\s+—\s*it'?s\b/gi,
+    // Negative-FIRST only: "it's not X, it's Y" / "isn't X — that's Y". The
+    // reverse order ("the list has been worked, not that the network is
+    // finished") states the positive first and is ordinary English, so it is
+    // deliberately not matched. Widened 2026-08-29 to cover "that's" as well as
+    // "it's", and em-dash as well as comma, after three instances slipped by.
+    // One adverb may sit before "not" ("it's often not the market"), and both
+    // the contracted and spelled-out forms count ("it is not X, it is Y").
+    re: /\b(?:is|are|was|were|isn'?t|aren'?t|it'?s|that'?s|you'?re)\s+(?:\w+\s+)?not\s+(?:just\s+)?[^.;:]{2,80}?\s*[,—-]\s*(?:it'?s|it is|that'?s|that is|they'?re|they are|you'?re|but)\b|\bnot\s+just\s+[^.,;:]{2,60}?\s+but\b|\bless\s+about\s+[^.,;:]{2,60}?\s+and\s+more\s+about\b/gi,
   },
   {
     id: 'signposting',
     what: 'narrates the structure of its own reply',
-    re: /\bhere(?:'s| is)\s+(?:the\s+thing|how\s+it\s+works|what\s+(?:doesn'?t|does)|why\b)|\bone\s+more\s+thing\b|\bi\s+want\s+to\s+say\s+something\b|\blet\s+me\s+(?:explain|walk|say)\b/gi,
+    // Up to three words may sit between "here's" and the signpost noun, so
+    // "here's part of why" is caught alongside "here's why". Same widening and
+    // same reason as insight-flagging above.
+    re: /\bhere(?:'s| is)\s+(?:\w+\s+){0,3}?(?:thing\b|why\b|how\s+it\s+works|what\s+(?:doesn'?t|does))|\bone\s+more\s+thing\b|\bi\s+want\s+to\s+say\s+something\b|\blet\s+me\s+(?:explain|walk|say)\b/gi,
   },
   {
     id: 'closing-question',

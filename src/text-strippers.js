@@ -183,6 +183,24 @@ const LOGIC_FLIP_APPOSITIVE_RE = new RegExp(
 )
 // (F) "not because X, but because Y" -> "because Y".
 const LOGIC_FLIP_NOT_BECAUSE_RE = /\b(Not|not)\s+because\s+[^.,;:!?\n]+?,?\s+but\s+because\s+/g
+// (F) Single-sentence pivot on a dash or comma, where the whole flip stays
+// inside one sentence: "That's not 'nothing out there' — that's an active
+// pipeline." Every pattern above requires a sentence boundary between the two
+// halves, so this shape slipped all of them. Added 2026-08-29 after measuring
+// Coach output: negative parallelism went UP (2 -> 4) after being banned by
+// name in the prompt with worked examples, which is the point at which §3 says
+// to stop instructing and start stripping.
+//
+// Keeps the affirmative half and deletes the negation, which is the same move
+// the two-sentence patterns make. Requires the second half to open with a
+// pointer so we only cut where a readable clause is left behind.
+const LOGIC_FLIP_DASH_RE = new RegExp(
+  '(^|[.!?]\\s+|\\n+|,\\s+)' +
+  '((?:it|that|they|you|these|those)(?:' + AP + 's|' + AP + 're)?|(?:It|That|They|You|These|Those)(?:' + AP + 's|' + AP + 're)?)' +
+  '\\s+(?:\\w+\\s+)?not\\s+[^.;:!?\\n]{2,80}?\\s*[—,]\\s*' +
+  '(?=((?:it|that|they|you|It|That|They|You)(?:' + AP + 's|' + AP + 're|\\s+is|\\s+are)\\s))',
+  'g'
+)
 export function stripLogicFlipCadence(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
@@ -211,6 +229,12 @@ export function stripLogicFlipCadence(text) {
   out = out.replace(LOGIC_FLIP_APPOSITIVE_RE, (_match, aux, kept) => {
     count++
     return `${aux} ${kept}`
+  })
+  out = out.replace(LOGIC_FLIP_DASH_RE, (_match, lead) => {
+    count++
+    // The affirmative half now starts the sentence, so it has to be capitalised
+    // when the deleted negation was sentence-initial.
+    return lead
   })
   out = out.replace(LOGIC_FLIP_NOT_BECAUSE_RE, (_match, notWord) => {
     count++
@@ -547,6 +571,53 @@ const INTENSIFIER_LEAD_RE = new RegExp('(^|[.!?]' + EMPH + '\\s+|\\n+)' + EMPH +
 // care**" -> "**care**") and makes adjacent intensifiers ("really actually X")
 // collapse in a single pass, so the function stays idempotent.
 const INTENSIFIER_MID_RE = new RegExp('\\b(?:' + INTENSIFIER_WORDS + ')\\b[^\\S\\n]?', 'gi')
+// --- stripInsightFlagging ---------------------------------------------------
+// "Worth noticing: your pipeline already shows this." The move is announcing
+// that a point deserves attention before making it, and it is the single most
+// common tell in this voice — eight instances across seven replies.
+//
+// This is a stripper rather than a rule because instruction has measurably
+// failed on it. The prompt bans the shape by name, lists the phrasings, and
+// carries a corrected example; measured against Coach's own output the count
+// went UP (7 -> 8). CLAUDE.md §3: reach for a deterministic post-processor when
+// the model regenerates a banned construction even when told not to.
+//
+// Two forms, both conservative:
+//   (a) a sentence-initial flag ending in a colon, capped at 80 characters so a
+//       long sentence that happens to contain a colon is never eaten
+//   (b) a trailing ", and it's worth <verb>ing …" clause
+// Anything longer or more tangled is left alone; a mangled sentence reaching a
+// user is worse than a tic reaching a user.
+// Attention and speech verbs. "worth doing / building / having / reactivating"
+// judge an ACTION and stay; these announce that a point deserves notice.
+const FLAG_VERB = '(?:nam|not|notic|know|mention|surfac|flag|say|call|point|observ|highlight|underscor|stress|emphasi|ask|repeat|remember|try|tri)\\w*'
+// The lead-in may be bare ("Worth noticing:") or a short run-up ("Here's the
+// thing worth knowing:", "And there's a second thing worth knowing:"), so allow
+// up to 100 characters before the verb and require the colon within 40 after
+// it. Both caps exist so a long ordinary sentence that happens to contain a
+// colon is never swallowed.
+const INSIGHT_FLAG_COLON_RE = new RegExp(
+  '(^|[.!?]\\s+|\\n+)' +
+  '[^.!?\\n]{0,100}?\\bworth\\s+' + FLAG_VERB + '\\b[^.!?:\\n]{0,40}?:\\s+',
+  'gi'
+)
+const INSIGHT_FLAG_TRAILING_RE = new RegExp(
+  ',\\s+and\\s+(?:it|that)(?:(?:\'|’)s|\\s+is)\\s+worth\\s+' + FLAG_VERB + '\\b[^.!?\\n]{0,60}?(?=[.!?])',
+  'gi'
+)
+export function stripInsightFlagging(text) {
+  if (typeof text !== 'string' || !text) return text
+  let count = 0
+  let out = text.replace(INSIGHT_FLAG_COLON_RE, (_m, lead) => { count++; return lead })
+  out = out.replace(INSIGHT_FLAG_TRAILING_RE, () => { count++; return '' })
+  // Sentence-start capitalisation is repaired centrally in tidyOutput, which
+  // runs last in the chain.
+  if (count > 0) {
+    console.warn(`[stripInsightFlagging] removed ${count} insight flag${count === 1 ? '' : 's'} from LLM output`)
+  }
+  return out
+}
+
 // --- stripAttributionRepeat -------------------------------------------------
 // Coach over-attributes. Left alone it writes "Bob Goodwin" and the full book
 // title on every reference, which reads like a citation rather than a
@@ -756,7 +827,7 @@ function tidyOutput(text) {
   out = out.replace(/[,;:](\s*)([.!?])/g, '$2')          // drop a comma/semicolon/colon left dangling before a sentence-ender ("Yes,." -> "Yes.")
   out = out.replace(/[^\S\n]+([.,;:!?])/g, '$1')         // drop space before punctuation
   out = out.replace(/(?<!\.)\.\.(?!\.)/g, '.')           // collapse a doubled period (keep ellipsis)
-  out = out.replace(/([.!?]\s+|\n{2,})([a-z])/g, (_m, b, c) => b + c.toUpperCase()) // recapitalize sentence starts
+  out = out.replace(/(^|[.!?]\s+|\n{2,})([a-z])/g, (_m, b, c) => b + c.toUpperCase()) // recapitalize sentence starts, including the very first one (a strip can remove the original opening clause)
   // Balance an orphaned bold marker: a strip can drop one half of a **bold** span
   // ("You are a rare one.**"). If the count of ** is odd, remove the last one so
   // the markdown renders cleanly instead of showing literal asterisks.
@@ -919,6 +990,7 @@ export function applyOutputStrippers(text) {
   out = stripLogicFlipCadence(out)
   out = stripSincerityQualifiers(out)
   out = stripAttributionRepeat(out)
+  out = stripInsightFlagging(out)
   out = stripIntensifiers(out)
   out = tidyOutput(out)
   return out
