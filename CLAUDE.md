@@ -79,7 +79,7 @@ Every implementation brief lives at `Output/handoff/YYYY-MM-DD_short-name.md` an
 - **Constraints.** Single PR, no effort estimates, PR title format.
 - **Out of scope.** What this brief does NOT touch.
 - **Commit message.** Pre-written commit message Code uses.
-- **Push.** Always direct to `main`; Vercel auto-deploys.
+- **Push.** Branch, PR, CI, squash-merge — the gh flow in section 9. Vercel auto-deploys from `main` on merge. (This line used to read "always direct to `main`," written before `gh` was set up in May 2026. `main` is protected against force-push and deletion, every recent ship has gone through section 9, and a brief that says otherwise is stale.)
 - **Implementer's checklist.** Numbered steps Code follows: pull, premise-verify, apply changes, run gates, changelog, push, report PR URL + merge SHA.
 
 ### Premise verification
