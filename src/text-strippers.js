@@ -601,6 +601,19 @@ const INSIGHT_FLAG_COLON_RE = new RegExp(
   '[^.!?\\n]{0,100}?\\bworth\\s+' + FLAG_VERB + '\\b[^.!?:\\n]{0,40}?:\\s+',
   'gi'
 )
+// The same announce-then-say move without the word "worth": "I want to put
+// something in front of you:", "Before we go further, I want to say something
+// plain:". Identical shape — a preamble that narrates the reply, terminated by
+// a colon — so it takes the identical conservative treatment. Added 2026-08-29
+// after widening the detector showed signposting had not moved at all (2 -> 2);
+// the earlier reading of zero was the regex missing it, not the model stopping.
+const SIGNPOST_COLON_RE = new RegExp(
+  '(^|[.!?]\\s+|\\n+)' +
+  '(?:but\\s+|and\\s+|so\\s+)?' +
+  '(?:before\\s+we\\s+(?:go\\s+further|get\\s+into|move\\s+on)[^.!?:\\n]{0,40}?,\\s*)?' +
+  'i\\s+(?:want|need)\\s+to\\s+\\w+(?:\\s+\\w+){0,4}?\\s+something[^.!?:\\n]{0,40}?:\\s+',
+  'gi'
+)
 const INSIGHT_FLAG_TRAILING_RE = new RegExp(
   ',\\s+and\\s+(?:it|that)(?:(?:\'|’)s|\\s+is)\\s+worth\\s+' + FLAG_VERB + '\\b[^.!?\\n]{0,60}?(?=[.!?])',
   'gi'
@@ -609,6 +622,7 @@ export function stripInsightFlagging(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
   let out = text.replace(INSIGHT_FLAG_COLON_RE, (_m, lead) => { count++; return lead })
+  out = out.replace(SIGNPOST_COLON_RE, (_m, lead) => { count++; return lead })
   out = out.replace(INSIGHT_FLAG_TRAILING_RE, () => { count++; return '' })
   // Sentence-start capitalisation is repaired centrally in tidyOutput, which
   // runs last in the chain.

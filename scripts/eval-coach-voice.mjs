@@ -67,12 +67,24 @@ export const CHECKS = [
     // Up to three words may sit between "here's" and the signpost noun, so
     // "here's part of why" is caught alongside "here's why". Same widening and
     // same reason as insight-flagging above.
-    re: /\bhere(?:'s| is)\s+(?:\w+\s+){0,3}?(?:thing\b|why\b|how\s+it\s+works|what\s+(?:doesn'?t|does))|\bone\s+more\s+thing\b|\bi\s+want\s+to\s+say\s+something\b|\blet\s+me\s+(?:explain|walk|say)\b/gi,
+    // "I want to <verb> something" is the shape, not the verb — enumerating
+    // "say" alone was routed around by "I want to put something in front of
+    // you" on 2026-08-29, the third time in one day that a synonym list lost to
+    // a substitution. Same widening for "before we go further" style run-ups.
+    re: /\bhere(?:'s| is)\s+(?:\w+\s+){0,3}?(?:thing\b|why\b|how\s+it\s+works|what\s+(?:doesn'?t|does))|\bone\s+more\s+thing\b|\b(?:i|I)\s+(?:want|need)\s+to\s+\w+(?:\s+\w+){0,3}?\s+something\b|\bbefore\s+we\s+(?:go\s+further|get\s+into|move\s+on)\b|\blet\s+me\s+(?:explain|walk|say)\b/gi,
   },
   {
     id: 'closing-question',
-    what: 'ends on a question',
+    what: 'ends on a question (reported, not counted — Bob 2026-08-29: this is fine)',
     perReply: true,
+    // Reported but excluded from the total. It was on the tic list because 6 of
+    // 7 replies ended this way, which read as engagement-fostering; Bob's call
+    // is that a coach ending a coaching turn on a question is normal, and the
+    // two best examples support him — "What's going on?" after naming a
+    // decision someone is avoiding is the strongest line in that reply. The
+    // prompt still bars the empty kind ("Does that resonate?") by asking
+    // whether the answer would change what Coach says next.
+    informational: true,
     re: /\?\s*$/,
   },
   {
@@ -83,7 +95,10 @@ export const CHECKS = [
   {
     id: 'coaching-register',
     what: 'AI-coaching vocabulary',
-    re: /\b(?:sit with|sitting with|lean into|hold space|get curious|notice what comes up|trust the process|honor your journey|let that land)\b/gi,
+    // "sit with" only counts when the object is a feeling or a thought. "an
+    // offer sitting with a decision due" is ordinary English and was a false
+    // positive on 2026-08-29; the banned move is "sit with that feeling".
+    re: /\b(?:sit|sitting)\s+with\s+(?:that|this|it|the\s+(?:feeling|discomfort|question|weight|loss))\b|\blean into\b|\bhold space\b|\bget curious\b|\bnotice what comes up\b|\btrust the process\b|\bhonor your journey\b|\blet that land\b/gi,
   },
 ]
 
@@ -109,9 +124,11 @@ export function score(replies) {
       hits[c.id] = n
       totals[c.id] += n
     }
-    rows.push({ label: r.label, hits, total: Object.values(hits).reduce((a, b) => a + b, 0) })
+    rows.push({ label: r.label, hits, total: CHECKS.filter(c => !c.informational).reduce((n, c) => n + hits[c.id], 0) })
   }
-  const total = Object.values(totals).reduce((a, b) => a + b, 0)
+  // Informational checks are reported but excluded from the total and the
+  // density, so a shape that is deliberately allowed cannot skew the headline.
+  const total = CHECKS.filter(c => !c.informational).reduce((n, c) => n + totals[c.id], 0)
   return { rows, totals, words, total, density: words ? (total / words) * 1000 : 0, replies: replies.length }
 }
 
@@ -121,7 +138,8 @@ function render(name, s) {
   for (const c of CHECKS) {
     const n = s.totals[c.id]
     const suffix = c.perReply ? `${n}/${s.replies}` : String(n)
-    console.log(`  ${(n > 0 ? '! ' : '  ') + c.id.padEnd(24)}${suffix.padEnd(7)}${c.what}`)
+    const mark = c.informational ? '· ' : (n > 0 ? '! ' : '  ')
+    console.log(`  ${mark + c.id.padEnd(24)}${suffix.padEnd(7)}${c.what}`)
   }
   console.log(`  ${'TOTAL'.padEnd(26)}${String(s.total).padEnd(7)}density ${s.density.toFixed(1)} per 1,000 words`)
   const worst = [...s.rows].sort((a, b) => b.total - a.total).slice(0, 3)
@@ -151,7 +169,7 @@ if (baseline) {
   console.log('  by shape:')
   for (const c of CHECKS) {
     const a = before.totals[c.id], b = now.totals[c.id]
-    if (a || b) console.log(`    ${c.id.padEnd(24)} ${a} -> ${b}${b > a ? '   REGRESSION' : ''}`)
+    if (a || b) console.log(`    ${c.id.padEnd(24)} ${a} -> ${b}${c.informational ? '   (not counted)' : (b > a ? '   REGRESSION' : '')}`)
   }
 } else {
   render(file, now)
