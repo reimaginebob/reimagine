@@ -6727,18 +6727,34 @@ export default function PivotEngine(){
     if(isTest)return
     try{localStorage.setItem('pe_saved_v1',JSON.stringify(savedPlaybooks))}catch{}
   },[savedPlaybooks,isDemo,isTest])
+  // Phase 2: also hydrate savedPlaybooks from the per-record table, merged over
+  // the blob-hydrated set (table wins on id for cross-device freshness; blob-only
+  // records are kept as a safety net against a dual-write miss). Runs once after
+  // the server load settles. The dual-write effect below is gated on the resulting
+  // tableHydrateDone so its baseline seeds from the MERGED set — no spurious
+  // re-PUTs on load. Table-read failure still flips the flag (proceed blob-only).
+  const[tableHydrateDone,setTableHydrateDone]=useState(false)
+  const tableHydrateStartedRef=useRef(false)
+  useEffect(()=>{
+    if(isDemo||isTest){setTableHydrateDone(true);return}
+    if(!signedInUser||!serverLoadDone||tableHydrateStartedRef.current)return
+    tableHydrateStartedRef.current=true
+    fetch('/api/saved-playbooks',{credentials:'include'}).then(r=>r.ok?r.json():null).then(data=>{
+      const table=data&&Array.isArray(data.playbooks)?data.playbooks:null
+      if(table&&table.length)setSavedPlaybooks(prev=>{const byId=new Map();for(const r of(Array.isArray(prev)?prev:[]))if(r&&r.id)byId.set(r.id,r);for(const r of table)if(r&&r.id)byId.set(r.id,r);const idless=(Array.isArray(prev)?prev:[]).filter(r=>r&&!r.id);return[...byId.values(),...idless]})
+    }).catch(()=>{}).finally(()=>setTableHydrateDone(true))
+  },[signedInUser,serverLoadDone,isDemo,isTest])
   // Per-record dual-write to the saved_playbooks table (Phase 1 of moving
   // savedPlaybooks off the whole-blob autosave that lost a user's opportunities).
-  // Reads still come from the blob; this just keeps the table current in parallel.
   // Diff against the last-synced baseline so only changed records are PUT and
   // removed ones are DELETEd — a stale tab can no longer wipe a record it never
   // saw, because it only ever writes the rows it actually touched. The first
-  // settled run seeds the baseline without re-PUTting everything (the migration
-  // backfill already holds what exists). Gated on serverLoadDone so we baseline
-  // from server state, never from a localStorage-only paint.
+  // settled run seeds the baseline without re-PUTting everything (backfill + the
+  // table hydrate above already hold what exists). Gated on tableHydrateDone so we
+  // baseline from the merged server+table state, never a localStorage-only paint.
   const savedSyncBaselineRef=useRef(null)
   useEffect(()=>{
-    if(isDemo||isTest||!signedInUser||!serverLoadDone)return
+    if(isDemo||isTest||!signedInUser||!tableHydrateDone)return
     const t=setTimeout(()=>{
       // Full-record signature, not updatedAt: archive/restore change archivedAt
       // without bumping updatedAt, so a stamp would miss them. Stringify cost is
@@ -6755,7 +6771,7 @@ export default function PivotEngine(){
       savedSyncBaselineRef.current=curSig
     },1200)
     return()=>clearTimeout(t)
-  },[savedPlaybooks,signedInUser,serverLoadDone,isDemo,isTest])
+  },[savedPlaybooks,signedInUser,tableHydrateDone,isDemo,isTest])
   // Returning-explorer signal. True when Personal Brand is done AND the user
   // has either a saved playbook OR any prior role exploration recorded.
   // exploredRoleTitles is populated by recordExploredRole from both Door 1

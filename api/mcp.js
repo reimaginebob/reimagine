@@ -22,6 +22,7 @@
 
 import crypto from 'node:crypto'
 import { sql } from './_lib/db.js'
+import { getSavedPlaybooks } from './_lib/saved-playbooks.js'
 import { stripNul } from './_lib/strip-nul.js'
 import { baseUrl } from './_lib/oauth.js'
 
@@ -108,7 +109,7 @@ async function resolveUser(req) {
 async function toolListPursuits(user) {
   const rows = await sql`SELECT profile_state FROM users WHERE id = ${user.id}::uuid LIMIT 1`
   const profile = (rows[0] && rows[0].profile_state) || {}
-  const saved = Array.isArray(profile.savedPlaybooks) ? profile.savedPlaybooks.filter(r => r && !r.archivedAt) : []
+  const saved = (await getSavedPlaybooks(user.id, profile.savedPlaybooks)).filter(r => r && !r.archivedAt)
   const door2 = saved.filter(r => r && r.source === 'door2' && r.id)
 
   const statusRows = await sql`SELECT record_id, stage, next_conversation_at, next_step_at, next_move, situation_note, closed_at, outcome, updated_at FROM pursuit_status WHERE user_id = ${user.id}::uuid`
@@ -141,7 +142,7 @@ async function toolUpdatePursuit(user, args) {
   // can only touch opportunities that exist, never invent one.
   const rows = await sql`SELECT profile_state FROM users WHERE id = ${user.id}::uuid LIMIT 1`
   const profile = (rows[0] && rows[0].profile_state) || {}
-  const saved = Array.isArray(profile.savedPlaybooks) ? profile.savedPlaybooks.filter(r => r && !r.archivedAt) : []
+  const saved = (await getSavedPlaybooks(user.id, profile.savedPlaybooks)).filter(r => r && !r.archivedAt)
   const exists = saved.some(r => r && r.source === 'door2' && r.id === recordId)
   if (!exists) throw new Error('record_id does not match any of your opportunities')
 
@@ -194,7 +195,7 @@ async function toolAddInterviewers(user, args) {
 
   const rows = await sql`SELECT profile_state FROM users WHERE id = ${user.id}::uuid LIMIT 1`
   const profile = (rows[0] && rows[0].profile_state) || {}
-  const saved = Array.isArray(profile.savedPlaybooks) ? profile.savedPlaybooks.filter(r => r && !r.archivedAt) : []
+  const saved = (await getSavedPlaybooks(user.id, profile.savedPlaybooks)).filter(r => r && !r.archivedAt)
   const rec = saved.find(r => r && r.source === 'door2' && r.id === recordId)
   if (!rec) throw new Error('record_id does not match any of your opportunities')
 
