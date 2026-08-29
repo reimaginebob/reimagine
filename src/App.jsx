@@ -6326,6 +6326,19 @@ export default function PivotEngine(){
     for(const k of Object.keys(patch))body[KMAP[k]||k]=patch[k]
     if(!isDemo&&!isTest){try{fetch('/api/pursuit-status',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(()=>{})}catch{}}
   }
+  // "Mark done" on a My Pipeline card. There is no completed_at column and there
+  // should not be one: the card holds what happens NEXT, not a history. So
+  // finishing a step means clearing the step and its date together, which is also
+  // the only thing that clears the Overdue flag (pursuitStepDueState reads the
+  // date and nothing else). The ref lets the cleared input take focus on the
+  // re-render, so the natural follow-on — typing the next step — is one keystroke
+  // away rather than another click.
+  const pursuitStepFocusRef=useRef(null)
+  const markPursuitStepDone=(recordId)=>{
+    if(!recordId)return
+    pursuitStepFocusRef.current=recordId
+    savePursuit(recordId,{next_move:null,next_step_at:null})
+  }
   // App-owned write: the quick-reply tap and (PR 4) the Orientation field both
   // call this. Writes the column, updates local state for immediate UI, and never
   // touches markInputEdited so answering it cannot mark the Personal Brand stale.
@@ -10258,7 +10271,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:0}}>My Pipeline</h2>
         <Btn small secondary onClick={addNewOpportunity}>+ Add an Opportunity</Btn>
       </div>
-      <CoachingCallout>All the opportunities you're pursuing, in one place. As things change, update where each one stands, when you'll next talk, and what you're doing next — it all saves, so it's here whenever you come back.</CoachingCallout>
+      <CoachingCallout>All the opportunities you're pursuing, in one place. As things change, update where each one stands, when you'll next talk, and what you're doing next — it all saves, so it's here whenever you come back. Finished a step? Mark it done and put in whatever comes next.</CoachingCallout>
       {inner}
     </div>
     if(ops.length===0)return wrap(<CoachingCallout>Nothing here yet. When you add an opportunity, it'll show up with its stage and what's next — so you can see where each one is going.</CoachingCallout>)
@@ -10319,10 +10332,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{marginTop:12}}>
               <div style={{fontSize:15,color:C.gray,marginBottom:6}}>My Next Steps</div>
               <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-                <input defaultValue={s.next_move||''} placeholder="Your next step (e.g. send a follow-up note)" onBlur={e=>{const v=e.target.value.trim();if(v!==(s.next_move||''))savePursuit(rec.id,{next_move:v||null})}} style={{flex:1,minWidth:220,boxSizing:'border-box',fontSize:16,fontFamily:'inherit',padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
+                <input key={`ns-${rec.id}-${s.next_move||''}`} ref={el=>{if(el&&pursuitStepFocusRef.current===rec.id){pursuitStepFocusRef.current=null;el.focus()}}} defaultValue={s.next_move||''} placeholder="Your next step (e.g. send a follow-up note)" onBlur={e=>{const v=e.target.value.trim();if(v!==(s.next_move||''))savePursuit(rec.id,{next_move:v||null})}} style={{flex:1,minWidth:220,boxSizing:'border-box',fontSize:16,fontFamily:'inherit',padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
                 <label style={{fontSize:15,color:flag?flag.text:C.gray,whiteSpace:'nowrap',fontWeight:flag?700:400}}>{flag?flag.label:'by'}{' '}
                   <input type="date" value={dateInputVal(s.next_step_at)} onChange={e=>savePursuit(rec.id,{next_step_at:e.target.value?new Date(e.target.value).toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${flag?flag.border:C.border}`,borderRadius:7,color:flag?flag.text:'#1A2540',background:flag?flag.inputBg:'#FFF'}}/>
                 </label>
+                {!isClosed(s)&&(!!String(s.next_move||'').trim()||!!s.next_step_at)&&<Btn small onClick={()=>markPursuitStepDone(rec.id)} style={{whiteSpace:'nowrap'}}><Check size={15}/>Mark done</Btn>}
               </div>
             </div>
             <div style={{marginTop:10,display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
