@@ -5568,16 +5568,16 @@ const SUPPORT_PANEL_COPY={
   ],
 }
 
-// One-time announcement that points returning users to the new Support
-// Reimagine sidebar entry. Purely informational — it does not ask for money
-// itself, it just says where the ask already lives. Copy sits next to
-// SUPPORT_PANEL_COPY so both are edited in one place. Shown once per user
-// (localStorage flag reimagine_support_announce_v1_dismissed, same convention
-// as the Interview Team announcement), returning users only, never on a first
-// visit. "Take a look" opens the existing Support panel; × just dismisses.
+// One-time announcement that points every user at the Support Reimagine sidebar
+// entry. Purely informational — it does not ask for money itself, it just says
+// where the ask already lives. Copy sits next to SUPPORT_PANEL_COPY so both are
+// edited in one place. Shown once per account and never again (seenSupportAnnounce
+// in the synced profile), to new and returning users alike — it introduces an
+// option rather than announcing a change, so the copy does not say "now" and the
+// gate carries no ship date. "Take a look" opens the Support panel; × dismisses.
 const SUPPORT_ANNOUNCEMENT_COPY={
-  header:'There\'s now a way to support Reimagine.',
-  body:'If it\'s been useful, you can help keep it free for the next person, whenever you\'re ready. Look for Support Reimagine in the sidebar.',
+  header:'There\'s a way to support Reimagine.',
+  body:'Reimagine is free and stays free. If it\'s been useful and you have the capacity, you can help keep it that way for the next person, whenever you\'re ready. Look for Support Reimagine in the sidebar.',
   cta:'Take a look',
 }
 
@@ -6143,43 +6143,34 @@ export default function PivotEngine(){
   const[copied,setCopied]=useState(false)
   const[csvCopied,setCsvCopied]=useState(false)
   const[resumeParseFails,setResumeParseFails]=useState(0)
-  // Returning-user notice: the two-stage Personal Brand upgrade. One-time,
-  // dismissible, shown only to users who already have a generated brand.
-  const[pbUpgradeDismissed,setPbUpgradeDismissed]=useState(()=>{try{return localStorage.getItem('reimagine_pb_upgrade_v1_dismissed')==='1'}catch{return true}})
-  const dismissPbUpgrade=()=>{try{localStorage.setItem('reimagine_pb_upgrade_v1_dismissed','1')}catch{};setPbUpgradeDismissed(true)}
-  // One-time "what's new" popup for the Interview Team feature. Mirrors the pb
-  // upgrade announcement surface: shown once to existing users who have a Personal
-  // Brand and have not dismissed it, and sequenced after the pb-upgrade modal so
-  // two overlays never stack. Defaults dismissed on a storage error (no flash).
-  const[itAnnounceDismissed,setItAnnounceDismissed]=useState(()=>{try{return localStorage.getItem('reimagine_interview_team_v1_dismissed')==='1'}catch{return true}})
-  const dismissItAnnounce=()=>{try{localStorage.setItem('reimagine_interview_team_v1_dismissed','1')}catch{};setItAnnounceDismissed(true)}
-  // One-time popup pointing returning users at the Support Reimagine sidebar
-  // entry. Same one-time-flag convention as the two announcements above; defaults
-  // dismissed on a storage error (no flash). supportOpenReq is a bump counter the
-  // "Take a look" button increments to open the Support panel (Sidebar consumes
-  // it via openSupportReq). Marked seen by either the CTA or the × — permanent.
-  const[supportAnnounceDismissed,setSupportAnnounceDismissed]=useState(()=>{try{return localStorage.getItem('reimagine_support_announce_v1_dismissed')==='1'}catch{return true}})
-  const dismissSupportAnnounce=()=>{try{localStorage.setItem('reimagine_support_announce_v1_dismissed','1')}catch{};setSupportAnnounceDismissed(true)}
+  // The Personal Brand upgrade and Interview Team "what's new" modals used to
+  // live here. Both shipped in June 2026 and ran for two months, so every account
+  // that predated them has had them; they were removed rather than left to
+  // re-fire on anyone whose browser storage got cleared. The pattern to copy for
+  // the next one is seenSupportAnnounce below: a flag in the synced profile, not
+  // a localStorage key, so "seen once" survives sign-out and follows the user to
+  // a second device.
+  //
+  // The Support Reimagine announcement is NOT a "what's new" popup, so it is not
+  // gated on a ship date. It is the one time a person is told that voluntary
+  // support exists, and every account gets it, new ones included. It waits until
+  // they have something to show for their time (any completed phase) so the ask
+  // never lands before the value does, and it never returns: seenSupportAnnounce
+  // rides in the autosave blob alongside seenCoachIntro / seenPbCheckin.
+  // supportOpenReq is a bump counter the "Take a look" button increments to open
+  // the Support panel (Sidebar consumes it via openSupportReq). Marked seen by the
+  // CTA, the backdrop, or the ×.
+  //
+  // Two-tier persistence. The initial value is seeded from the old localStorage
+  // flag so the move to blob storage does not re-show the announcement to anyone
+  // who already dismissed it, and the dismissal still writes that key as a
+  // same-device fallback for the window before the debounced blob save fires.
+  // Hydration only ever raises the flag to true (see the two loaders below), so a
+  // stale false arriving from either tier can never un-dismiss it.
+  const[seenSupportAnnounce,setSeenSupportAnnounce]=useState(()=>{try{return localStorage.getItem('reimagine_support_announce_v1_dismissed')==='1'}catch{return false}})
+  const dismissSupportAnnounce=()=>{try{localStorage.setItem('reimagine_support_announce_v1_dismissed','1')}catch{};setSeenSupportAnnounce(true)}
   const[supportOpenReq,setSupportOpenReq]=useState(0)
   const takeLookSupport=()=>{dismissSupportAnnounce();setSupportOpenReq(n=>n+1)}
-  // A "what's new" announcement is for people who used the product BEFORE the
-  // thing existed. Every one of the three above was gated only on having a
-  // Personal Brand, which a brand-new account has about ninety seconds after it
-  // finishes Orientation -- so the first brand a person ever generated greeted
-  // them with "Your Personal Brand just got an upgrade," an upgrade from nothing
-  // they had ever seen. Gate on when the account was created instead, which
-  // /api/me already returns. An account created after the ship date never saw
-  // the old version and has nothing to be told.
-  const accountCreatedBefore=(iso)=>{
-    const created=signedInUser&&signedInUser.created_at
-    if(!created)return false
-    const c=Date.parse(created),s=Date.parse(iso)
-    return Number.isFinite(c)&&Number.isFinite(s)&&c<s
-  }
-  // Ship dates for the announcements below. Keep them here rather than inline so
-  // the next person adding a "what's new" popup sees the convention.
-  const PB_UPGRADE_SHIPPED='2026-08-26T00:00:00Z'
-  const INTERVIEW_TEAM_SHIPPED='2026-08-20T00:00:00Z'
   const[deepExpanded,setDeepExpanded]=useState(false)
   const[hasProgress,setHasProgress]=useState(false)
   const[laneTab,setLaneTab]=useState(0)
@@ -6526,8 +6517,11 @@ export default function PivotEngine(){
   const isP3OldStyle=!!(outputs.p3 && outputs.p3_version !== 'v2')
   const[p3MigrationDismissed,setP3MigrationDismissed]=useState(()=>{try{return sessionStorage.getItem('reimagine_p3_migration_dismissed')==='1'}catch{return false}})
   const dismissP3Migration=()=>{try{sessionStorage.setItem('reimagine_p3_migration_dismissed','1')}catch{};setP3MigrationDismissed(true)}
-  const[hasSeenCorrectionsIntro,setHasSeenCorrectionsIntro]=useState(()=>{try{return localStorage.getItem('reimagine_seen_corrections_intro')==='1'}catch{return false}})
-  const dismissCorrectionsIntro=()=>{try{localStorage.setItem('reimagine_seen_corrections_intro','1')}catch{};setHasSeenCorrectionsIntro(true)}
+  // Same two-tier persistence as seenSupportAnnounce: the localStorage key is the
+  // same-device fallback and the migration seed, seenCorrectionsIntro in the
+  // synced blob is what makes "seen once" survive a sign-out and a new device.
+  const[seenCorrectionsIntro,setSeenCorrectionsIntro]=useState(()=>{try{return localStorage.getItem('reimagine_seen_corrections_intro')==='1'}catch{return false}})
+  const dismissCorrectionsIntro=()=>{try{localStorage.setItem('reimagine_seen_corrections_intro','1')}catch{};setSeenCorrectionsIntro(true)}
   const[repFiles,setRepFiles]=useState([])
   const[assessFiles,setAssessFiles]=useState([])
   const importFileRef=useRef()
@@ -6561,7 +6555,7 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
   // Hydrate the saved playbooks set from its own localStorage key on mount.
   // Demo mode skips persistence; test mode wipes the key so test sessions
   // start clean (mirrors the pe_v4 gating one line up).
@@ -6582,7 +6576,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
@@ -6733,7 +6727,7 @@ export default function PivotEngine(){
       // lives only in the saved_playbooks table (per-record dual-write above), so a
       // whole-profile save can never touch a playbook again. The server merge shim
       // stays as belt-and-suspenders for any old cached client still sending it.
-      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt})
+      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro})
       localStorage.setItem('pe_v4',blob)
       // The localStorage write above is unconditional; only the server PUT is
       // gated. Holding the PUT until /api/profile/load has settled is what stops
@@ -6756,7 +6750,7 @@ export default function PivotEngine(){
       setSaveStatus('saved')
       setSaveError(null)
     }catch{setSaveStatus('error');setSaveError('device_full')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,signedInUser,serverLoadDone,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,signedInUser,serverLoadDone,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
@@ -7845,6 +7839,30 @@ export default function PivotEngine(){
     }
     setSignupSubmitting(false)
   }
+  // Keys sign-out and Start Fresh clear. This used to be a prefix sweep over
+  // every reimagine_* / pe_* key, which also deleted the flags recording which
+  // one-time notices a person had already dismissed -- so signing out brought
+  // back the cookie notice and the Support announcement every single time. Only
+  // account data is cleared now. Deliberately NOT in this list, and why:
+  //   reimagine_cookie_acknowledged_v1  a notice about this browser's storage;
+  //                                     acknowledging it is not account data
+  //   reimagine_support_announce_v1_dismissed / reimagine_seen_corrections_intro
+  //                                     same-device fallbacks for the synced
+  //                                     seen-flags; clearing them re-shows a
+  //                                     notice the person already dismissed
+  //   pe_migration_dismissed / pe_welcome_back_v1
+  //                                     one-time dismissals, same reasoning
+  //   pe_has_signed_in_before           a permanent fact about this browser; it
+  //                                     is what stops the "sign up to save your
+  //                                     work" pitch reaching someone who
+  //                                     obviously already has an account
+  //   reimagine-admin-token             hyphenated, so the old sweep never
+  //                                     caught it either; unrelated surface
+  // Add a key here only if it holds the user's own content or session state.
+  const clearAccountLocalState=()=>{
+    const keys=['pe_v3','pe_v4','pe_saved_v1','pe_signedup','pe_signed_in_at','reimagine_chat_history','reimagine_last_error']
+    keys.forEach(k=>{try{localStorage.removeItem(k)}catch{}})
+  }
   const signOut=async()=>{
     // Verify the server actually cleared the session BEFORE we wipe local state
     // and reload. Previously this swallowed any failure and reloaded regardless,
@@ -7855,7 +7873,7 @@ export default function PivotEngine(){
     let ok=await attempt()
     if(!ok)ok=await attempt()
     if(!ok){alert('Could not sign out — check your connection and try again.');return}
-    try{Object.keys(localStorage).forEach(k=>{if(k.startsWith('reimagine_')||k.startsWith('pe_'))localStorage.removeItem(k)})}catch{}
+    clearAccountLocalState()
     // location.replace forces a synchronous navigation that does not leave
     // a history entry pointing back at the live React tree. Same pattern as
     // deleteAccount above. Reload re-runs all hydration useEffects against
@@ -7874,8 +7892,7 @@ export default function PivotEngine(){
     try{
       const r=await fetch('/api/account/delete',{method:'POST',credentials:'include'})
       if(!r.ok){const e=await r.json().catch(()=>({error:'Delete failed'}));throw new Error(e.error||'Delete failed')}
-      try{localStorage.removeItem('pe_v3')}catch{}
-      try{Object.keys(localStorage).forEach(k=>{if(k.startsWith('reimagine_')||k.startsWith('pe_'))localStorage.removeItem(k)})}catch{}
+      clearAccountLocalState()
       // location.replace forces a synchronous navigation that does not leave
       // a history entry pointing back at the live React tree.
       window.location.replace('/')
@@ -11189,7 +11206,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <span>You've changed your answers since this Personal Brand was written. Refresh it to pick up what you changed. It keeps what still holds and amends what your change actually affects. Your current version is saved, so you can restore it if you prefer it.</span>
           <Btn small onClick={generateChain}><RotateCcw size={12}/>Refresh</Btn>
         </div>}
-        {!isDemo&&!hasSeenCorrectionsIntro&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:'#1A2540',lineHeight:1.65,position:'relative'}}>
+        {!isDemo&&!seenCorrectionsIntro&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:'#1A2540',lineHeight:1.65,position:'relative'}}>
           <button type="button" onClick={dismissCorrectionsIntro} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
           <strong>This brand is yours to shape.</strong>
           <p style={{margin:'8px 0 0',fontSize:16,color:C.creamD,lineHeight:1.65}}>If anything here doesn't sound like you, push Reimagine to sharpen it. Small corrections carry forward and make every later step sharper.</p>
@@ -12797,40 +12814,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     <Analytics/>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
-    {!isDemo&&!loading&&outputs.p3&&outputs.p3.trim()&&accountCreatedBefore(PB_UPGRADE_SHIPPED)&&!pbUpgradeDismissed&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
-      <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:540,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
-        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Your Personal Brand just got an upgrade</h2>
-        <p style={{fontSize:17,color:'#4A5568',lineHeight:1.65,marginBottom:22}}>We reworked how Reimagine builds your Personal Brand, and the new version digs deeper into what makes you, you. We would love for you to re-run yours and see the difference. One thing to know first: re-running replaces your current Personal Brand, so if you want to keep it, download or print it before you start.</p>
-        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          <Btn secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={13}/>Save my current version</Btn>
-          <Btn onClick={()=>{const prevBrand=outputs.p3||'';dismissPbUpgrade();nav('p3');refreshP3('',prevBrand)}}>Re-run my Personal Brand</Btn>
-        </div>
-        <div style={{marginTop:14}}><button type="button" onClick={dismissPbUpgrade} style={{background:'transparent',border:'none',cursor:'pointer',fontSize:15,color:C.gray,fontFamily:'inherit',textDecoration:'underline'}}>Not now</button></div>
-      </div>
-    </div>}
-    {!isDemo&&!isIndependent&&!loading&&outputs.p3&&outputs.p3.trim()&&accountCreatedBefore(INTERVIEW_TEAM_SHIPPED)&&pbUpgradeDismissed&&!itAnnounceDismissed&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
-      <div style={{position:'relative',background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:560,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
-        <button type="button" aria-label="Close" onClick={dismissItAnnounce} style={{position:'absolute',top:12,right:12,background:'transparent',border:'none',cursor:'pointer',color:C.gray,padding:6,lineHeight:0}}><X size={20}/></button>
-        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>New: build your Interview Team</h2>
-        <p style={{fontSize:17,color:'#4A5568',lineHeight:1.65,marginBottom:14}}>When you open an opportunity, you can now build your Interview Team: the people you expect to meet, with prep made for each of them.</p>
-        <ul style={{margin:'0 0 22px',paddingLeft:20}}>
-          <li style={{fontSize:16,color:'#4A5568',lineHeight:1.6,marginBottom:6}}>Prep for each person: what they care about, the questions they may ask, and which of your stories to lead with.</li>
-          <li style={{fontSize:16,color:'#4A5568',lineHeight:1.6,marginBottom:6}}>A clear read on where you fit and how to make your case for the role.</li>
-          <li style={{fontSize:16,color:'#4A5568',lineHeight:1.6}}>My Coach can prep you for a specific person, and you can save a reply to the opportunity.</li>
-        </ul>
-        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          <Btn onClick={()=>{dismissItAnnounce();addNewOpportunity()}}>Add an opportunity</Btn>
-          <Btn secondary onClick={dismissItAnnounce}>Got it</Btn>
-        </div>
-      </div>
-    </div>}
-    {/* One-time Support Reimagine announcement. Returning users only
-        (hasProgress or any completed phase), after hydration settles so it
-        never flashes before saved state loads, and only until dismissed. Reuses
-        the Support-panel / feedback overlay primitive: backdrop-click and × both
-        dismiss with zero friction, "Take a look" additionally opens the Support
-        panel via the supportOpenReq bump. Any dismissal path marks it seen. */}
-    {!isDemo&&!isIndependent&&hydrationStable&&(hasProgress||done.length>0)&&!supportAnnounceDismissed&&<div data-print="hide" onClick={dismissSupportAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+    {/* One-time Support Reimagine announcement. Every signed-in account sees it
+        once -- it is how a person learns voluntary support exists, not a
+        what's-new note -- but only after a completed phase, so the ask never
+        arrives before the value. Waits for hydration so it cannot flash before
+        the saved seen-flag loads, and for signedInUser so the dismissal has
+        somewhere durable to land. Reuses the Support-panel / feedback overlay
+        primitive: backdrop-click and × both dismiss with zero friction, "Take a
+        look" additionally opens the Support panel via the supportOpenReq bump.
+        Any dismissal path marks it seen, permanently and across devices. */}
+    {!isDemo&&!isIndependent&&signedInUser&&hydrationStable&&(hasProgress||done.length>0)&&!seenSupportAnnounce&&<div data-print="hide" onClick={dismissSupportAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Support Reimagine announcement" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:480,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
         <button onClick={dismissSupportAnnounce} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 14px',paddingRight:24,lineHeight:1.35}}>{SUPPORT_ANNOUNCEMENT_COPY.header}</h2>
