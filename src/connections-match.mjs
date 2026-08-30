@@ -354,6 +354,46 @@ export function outreachKey(recordId, person) {
 
 export const firstNameOf = (full) => String(full || '').trim().split(/\s+/)[0] || ''
 
+// ── People added by hand ─────────────────────────────────────────────────────
+
+// Someone the user knows about but the file does not: a connection made since
+// the export, a person who changed jobs after it, or a name they got from
+// outside LinkedIn entirely. Kept in their own store rather than folded into the
+// parsed network, so replacing the connections file does not delete them.
+export const MANUAL_STORAGE_KEY = 'reimagine_conn_manual_v1'
+
+export function manualPerson({ name, company, title, url }) {
+  const n = String(name || '').trim()
+  const c = String(company || '').trim()
+  if (!n || !c) return null
+  return { n, c, t: String(title || '').trim(), u: String(url || '').trim(), d: '', e: '', m: 1 }
+}
+
+// The file is the better source when it has the same person, since it carries
+// the connection date and sometimes an address. Matching on profile URL where
+// there is one, otherwise on name within the same employer.
+function samePerson(a, b) {
+  if (a.u && b.u) return a.u.trim().toLowerCase() === b.u.trim().toLowerCase()
+  // Company compared with companyMatch rather than by exact key, so a person
+  // recorded by hand at "Imerys" is recognised as the same one the next export
+  // lists at "Imerys Financial" instead of appearing twice.
+  return a.n.trim().toLowerCase() === b.n.trim().toLowerCase() && !!companyMatch(a.c, b.c)
+}
+
+/** The parsed file plus anyone added by hand the file does not already hold. */
+export function withManual(people, manual) {
+  const base = Array.isArray(people) ? people : []
+  const extra = Array.isArray(manual) ? manual : []
+  const kept = extra.filter(m => m && m.n && m.c && !base.some(p => samePerson(p, m)))
+  return kept.length ? base.concat(kept) : base
+}
+
+/** Drop one hand-added person. Anything not held by hand is left alone. */
+export function withoutManual(manual, person) {
+  const list = Array.isArray(manual) ? manual : []
+  return list.filter(m => !samePerson(m, person))
+}
+
 // ── Working out an address we were not given ─────────────────────────────────
 
 // Most corporate mail follows a handful of conventions off one domain, so with

@@ -5,6 +5,7 @@ import {
   looseMatch, looseMatchConnections,
   linkedInSecondDegreeUrl, linkedInFirstDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey,
   mailtoUrl, firstNameOf, cleanDomain, emailGuesses, searchQuery, resolveSearch,
+  manualPerson, withManual, withoutManual,
 } from '../src/connections-match.mjs'
 
 let passed = 0
@@ -175,6 +176,37 @@ eq(firstNameOf(''), '', 'no name yields no first name')
 eq(outreachKey('sp_1', { u: 'https://linkedin.com/in/dana', n: 'Dana' }), 'sp_1::https://linkedin.com/in/dana', 'the profile URL keys the draft when present')
 eq(outreachKey('sp_1', { n: 'Dana Whitfield' }), 'sp_1::Dana Whitfield', 'the name keys it when there is no URL')
 ok(outreachKey('sp_1', { n: 'A' }) !== outreachKey('sp_2', { n: 'A' }), 'the same person on two opportunities keys separately')
+
+// ── People added by hand ─────────────────────────────────────────────────────
+
+eq(manualPerson({name:'Dana Whitfield',company:'Imerys',title:'VP Operations'}),
+  {n:'Dana Whitfield',c:'Imerys',t:'VP Operations',u:'',d:'',e:'',m:1}, 'a hand-added person takes the same shape as a parsed one')
+eq(manualPerson({name:'  Dana  ',company:'  Imerys  '}).n, 'Dana', 'padding is trimmed')
+eq(manualPerson({name:'',company:'Imerys'}), null, 'a person with no name is refused')
+eq(manualPerson({name:'Dana',company:''}), null, 'a person with no company is refused')
+ok(manualPerson({name:'Dana',company:'Imerys'}).m === 1, 'hand-added people are flagged as such')
+
+const fileRows=[{n:'Marcus Bell',c:'Imerys',t:'Director',u:'https://linkedin.com/in/marcus',d:'2021',e:''}]
+const byHand=[manualPerson({name:'Dana Whitfield',company:'Imerys',title:'VP Operations'})]
+eq(withManual(fileRows,byHand).map(p=>p.n), ['Marcus Bell','Dana Whitfield'], 'hand-added people join the file rows')
+eq(withManual(fileRows,[]).length, 1, 'nothing added leaves the list alone')
+eq(withManual([],byHand).map(p=>p.n), ['Dana Whitfield'], 'they work with no file rows at all')
+eq(withManual(null,null), [], 'missing inputs yield an empty list')
+
+// A newer export that now contains the person should win, not duplicate them.
+const later=[{n:'Dana Whitfield',c:'Imerys Financial',t:'SVP',u:'',d:'2019',e:''}]
+eq(withManual(later,byHand).length, 1, 'the file version wins when the same name is at the same employer')
+eq(withManual(later,byHand)[0].t, 'SVP', 'and it is the file version that is kept')
+// Same name, genuinely different company: two different people.
+eq(withManual([{n:'Dana Whitfield',c:'Thrivent',t:'',u:'',d:'',e:''}],byHand).length, 2, 'the same name elsewhere is not the same person')
+// URL wins over name when both have one.
+const urlFile=[{n:'D. Whitfield',c:'Imerys',t:'',u:'https://linkedin.com/in/dana',d:'',e:''}]
+const urlHand=[manualPerson({name:'Dana Whitfield',company:'Imerys',url:'https://LinkedIn.com/in/Dana'})]
+eq(withManual(urlFile,urlHand).length, 1, 'a matching profile URL identifies the person whatever the name says')
+
+eq(withoutManual(byHand,{n:'Dana Whitfield',c:'Imerys',u:''}).length, 0, 'a hand-added person can be removed')
+eq(withoutManual(byHand,{n:'Someone Else',c:'Imerys',u:''}).length, 1, 'removing someone else leaves them alone')
+eq(withoutManual([],{n:'Dana',c:'Imerys',u:''}), [], 'removing from nothing is safe')
 
 // ── Working out an address ───────────────────────────────────────────────────
 
