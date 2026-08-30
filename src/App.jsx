@@ -12227,7 +12227,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // interviewer) rather than "built". It sits immediately before Interview
       // Prep, the output it feeds.
       const _panelPopulated=(()=>{const p=getOpPanel(_opRec);return !!((p.opportunity_context&&p.opportunity_context.trim())||p.interviewers.length)})()
-      const opRailDone=['clientRead','clientPlay','p5','p_res','p_cover','p11','companyRead','salaryRead','offerNegotiation'].filter(opCardDone).concat(_panelPopulated?['panel']:[]).concat((_opRec&&_opRec.recruiters&&_opRec.recruiters.builtAt)?['recruiters']:[])
+      // Who You Know Here is checked off once the connections file is loaded, the
+      // same rule Interview Team uses: both are cards the user supplies rather than
+      // generates, so "done" is "you have given it what it needs". Everything after
+      // the file is automatic, and an empty result is a finished check rather than
+      // an outstanding task — there is nothing further the user could do to
+      // complete it. The file is per-device, so loading it once checks this off on
+      // every opportunity, which is accurate: none of them are waiting on anything.
+      const opRailDone=['clientRead','clientPlay','p5','p_res','p_cover','p11','companyRead','salaryRead','offerNegotiation'].filter(opCardDone).concat(_panelPopulated?['panel']:[]).concat((_opRec&&_opRec.recruiters&&_opRec.recruiters.builtAt)?['recruiters']:[]).concat(connNetwork?['knownContacts']:[])
       // Sequential 1-N numbering (2026-08-09): number every row in display order
       // so the rail reads as one clean top-down sequence. The earlier scheme left
       // the reference/input cards (Compensation, Interview Team, Offer) unnumbered,
