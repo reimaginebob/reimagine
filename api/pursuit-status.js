@@ -14,7 +14,8 @@
 //             land here). Empty list prunes all the caller's rows.
 //
 // Auth (phase one): cookie session + origin allowlist, same shape as
-// api/employment.js. Gated on the `my_search` feature flag (defense in depth).
+// api/employment.js. The browser path is GA (any signed-in account); the
+// connector's bearer path still requires CONNECTOR_BETA_FLAG.
 //
 // PHASE-TWO SEAM (do not build, do not violate): auth resolution is separated
 // from the write core, and the origin check is conditional on auth mode. A later
@@ -27,6 +28,7 @@
 import crypto from 'node:crypto'
 import { sql } from './_lib/db.js'
 import { getSessionUser } from './_lib/session.js'
+import { CONNECTOR_BETA_FLAG } from './_lib/feature-flags.js'
 import { stripNul } from './_lib/strip-nul.js'
 
 const ALLOWED_HOSTS = new Set([
@@ -132,10 +134,13 @@ export default async function handler(req, res) {
   }
 
   // Two auth modes, resolving the same user object:
-  //  - Phase-two connector: a per-user bearer token whose SHA-256 hash matches
+  //  - Connector: a per-user bearer token whose SHA-256 hash matches
   //    users.push_token_hash. No cookie, no origin (a connector is not a browser).
-  //  - Phase-one browser: cookie session + allowlisted origin.
-  // Both then pass the same suspended + my_search gates below.
+  //  - Browser: cookie session + allowlisted origin.
+  // Both pass the suspended check. They diverge on one gate: My Pipeline itself
+  // went GA on 2026-08-30 and the browser path is open to every signed-in
+  // account, while the connector -- an outside assistant holding a bearer token
+  // and writing status unattended -- is still a named beta (CONNECTOR_BETA_FLAG).
   const authHeader = req.headers.authorization || ''
   const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
 
@@ -170,9 +175,13 @@ export default async function handler(req, res) {
   if (user.suspended_at) {
     return res.status(403).json({ error: 'account_suspended' })
   }
-  const flags = Array.isArray(user.feature_flags) ? user.feature_flags : []
-  if (!flags.includes('my_search')) {
-    return res.status(403).json({ error: 'Not enabled' })
+  // Connector-only gate. A browser request reaching here is a signed-in user on
+  // a GA feature and needs no flag; a bearer request is the connector.
+  if (bearer) {
+    const flags = Array.isArray(user.feature_flags) ? user.feature_flags : []
+    if (!flags.includes(CONNECTOR_BETA_FLAG)) {
+      return res.status(403).json({ error: 'Not enabled' })
+    }
   }
 
   try {

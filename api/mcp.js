@@ -22,6 +22,7 @@
 
 import crypto from 'node:crypto'
 import { sql } from './_lib/db.js'
+import { hasConnectorBeta } from './_lib/feature-flags.js'
 import { getSavedPlaybooks } from './_lib/saved-playbooks.js'
 import { stripNul } from './_lib/strip-nul.js'
 import { baseUrl } from './_lib/oauth.js'
@@ -101,8 +102,9 @@ async function resolveUser(req) {
   const user = rows[0]
   if (!user) return null
   if (user.suspended_at) return null
-  const flags = Array.isArray(user.feature_flags) ? user.feature_flags : []
-  if (!flags.includes('my_search')) return null
+  // Connector beta, not My Pipeline: the screen went GA on 2026-08-30, this
+  // endpoint did not. See api/_lib/feature-flags.js.
+  if (!hasConnectorBeta(user)) return null
   return user
 }
 

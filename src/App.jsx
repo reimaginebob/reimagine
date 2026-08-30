@@ -5656,8 +5656,9 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
     // coach nav map also reads, so a rename lands here and in the coach together.
     const primaryItems=[
       {id:'myCoach',label:NAV_LABELS.myCoach,Icon:MessageCircle},
-      // My Pipeline is its own surface for flagged (my_search) users — the daily
-      // action home, distinct from the exploration library (My Playbooks).
+      // My Pipeline is its own surface — the daily action home, distinct from the
+      // exploration library (My Playbooks). Signed-in accounts only: it reads and
+      // writes the pursuit_status table, which needs a user to hang off.
       ...(hasPipeline?[{id:'pipeline',label:NAV_LABELS.pipeline,Icon:Target,badge:pipelineOverdue}]:[]),
       {id:'mylib',label:NAV_LABELS.mylib,Icon:Briefcase},
       {id:'p3',label:NAV_LABELS.p3,Icon:Fingerprint},
@@ -6149,6 +6150,15 @@ export default function PivotEngine(){
   // same-device fallback for the window before the debounced blob save fires.
   // Hydration only ever raises the flag to true (see the two loaders below), so a
   // stale false arriving from either tier can never un-dismiss it.
+  // One-time orientation on the My Pipeline screen. Shown in place at the top of
+  // the screen rather than as a modal: the screen introduces itself far better
+  // than a popup can -- a returning person lands on their own opportunities
+  // already laid out -- so this names what they are looking at and gets out of
+  // the way. Persisted in the synced blob like seenCoachIntro, so dismissing it
+  // holds across a sign-out and a second device. No legacy localStorage key to
+  // seed from: it did not exist before GA.
+  const[seenPipelineIntro,setSeenPipelineIntro]=useState(false)
+  const dismissPipelineIntro=()=>setSeenPipelineIntro(true)
   const[seenSupportAnnounce,setSeenSupportAnnounce]=useState(()=>{try{return localStorage.getItem('reimagine_support_announce_v1_dismissed')==='1'}catch{return false}})
   const dismissSupportAnnounce=()=>{try{localStorage.setItem('reimagine_support_announce_v1_dismissed','1')}catch{};setSeenSupportAnnounce(true)}
   const[supportOpenReq,setSupportOpenReq]=useState(0)
@@ -6257,10 +6267,22 @@ export default function PivotEngine(){
   const searchIntakePromptFiredRef=useRef(false)
   const[coachOpenTick,setCoachOpenTick]=useState(0)
   // My Search (brief 2026-08-14). Per-user gate + the pursuit-status list.
-  // featureFlags rides on the signed-in user row (via getSessionUser -> /api/me),
-  // so hasMySearch is false for demo/test (no signedInUser) without special-casing.
-  const featureFlags=Array.isArray(signedInUser?.feature_flags)?signedInUser.feature_flags:[]
-  const hasMySearch=featureFlags.includes('my_search')
+  // My Pipeline went GA on 2026-08-30. It used to hang off the `my_search` entry
+  // in signedInUser.feature_flags; that flag now gates ONLY the assistant
+  // connector (the OAuth consent screen, the MCP endpoint, and the push token
+  // that lets an outside assistant write status). Everything the browser draws
+  // is on for every signed-in account, which is what hasPipeline says.
+  // Demo and test have no signedInUser, so they stay out of it the same way they
+  // did before.
+  const hasPipeline=!!signedInUser
+  // The connector did NOT go GA with the screen. Letting an outside assistant
+  // hold a bearer token and write status unattended is a different risk class
+  // from a screen in the app, so it stays a named beta on the same flag value.
+  // Server-side truth is api/_lib/feature-flags.js (CONNECTOR_BETA_FLAG); this is
+  // the mirror that decides whether to draw the setup panel at all. Without it,
+  // every user would be walked through a four-step setup that dead-ends on a 403
+  // consent screen.
+  const hasConnectorBeta=Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('my_search')
   // Go Independent (2026-08-27). The account's own track wins the moment there
   // is an account; the URL parameter only speaks for a visitor who has not
   // signed in yet, which is exactly the sign-up screens. Deriving it in that
@@ -6279,7 +6301,7 @@ export default function PivotEngine(){
   const pursuitStatusFor=(recordId)=>pursuitStatus.find(r=>r&&r.record_id===recordId)||null
   // Count of pipeline to-dos (My Next Steps dates) now past due — drives the
   // card "Overdue" flag's sibling: a count badge on the My Pipeline sidebar item.
-  const pipelineOverdueCount=hasMySearch?activePlaybooks.filter(r=>r&&r.source==='door2').filter(r=>{const s=pursuitStatusFor(r.id);return !!(s&&!(s.stage==='closed'||s.closed_at)&&pursuitStepDueState(s.next_step_at)==='overdue')}).length:0
+  const pipelineOverdueCount=hasPipeline?activePlaybooks.filter(r=>r&&r.source==='door2').filter(r=>{const s=pursuitStatusFor(r.id);return !!(s&&!(s.stage==='closed'||s.closed_at)&&pursuitStepDueState(s.next_step_at)==='overdue')}).length:0
   // Optimistic status write. `patch` uses column names (stage, next_move,
   // next_conversation_at, closed_at, outcome); translated to the endpoint's body
   // keys. Fire-and-forget PUT — a failed write leaves the optimistic value, and
@@ -6411,24 +6433,24 @@ export default function PivotEngine(){
     return false
   }
   // My Search hydration: load the pursuit-status list once the flag is known.
-  // Fires when hasMySearch flips true (after /api/me resolves signedInUser).
+  // Fires when hasPipeline flips true (after /api/me resolves signedInUser).
   useEffect(()=>{
     if(isDemo||isTest)return
-    if(!hasMySearch)return
+    if(!hasPipeline)return
     fetch('/api/pursuit-status',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitStatus(d.rows)}).catch(()=>{})
     fetch('/api/pursuit-interviewers',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitInterviewers(d.rows)}).catch(()=>{})
-  },[hasMySearch,isDemo,isTest])
+  },[hasPipeline,isDemo,isTest])
   // Orphan reconcile: on first arrival at My Playbooks, tell the server which
   // Door 2 record ids still exist so it can prune status rows for deleted /
   // removed / import-dropped opportunities. Fire-and-forget; never blocks render.
   useEffect(()=>{
     if(isDemo||isTest)return
-    if(!hasMySearch||step!=='mylib')return
+    if(!hasPipeline||step!=='mylib')return
     if(pursuitReconciledRef.current)return
     pursuitReconciledRef.current=true
     const ids=savedPlaybooks.filter(r=>r&&r.source==='door2').map(r=>r.id)
     try{fetch('/api/pursuit-status',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({recordIds:ids})}).catch(()=>{})}catch{}
-  },[hasMySearch,step,savedPlaybooks,isDemo,isTest])
+  },[hasPipeline,step,savedPlaybooks,isDemo,isTest])
   // Reimagine never changes a pursuit date on its own. A "Next scheduled meeting"
   // whose day has passed stays exactly as the user (or their connected assistant)
   // set it — the app does not clear or rewrite it. Past-due status is driven by
@@ -6535,7 +6557,7 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
   // Hydrate the saved playbooks set from its own localStorage key on mount.
   // Demo mode skips persistence; test mode wipes the key so test sessions
   // start clean (mirrors the pe_v4 gating one line up).
@@ -6556,7 +6578,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
@@ -6707,7 +6729,7 @@ export default function PivotEngine(){
       // lives only in the saved_playbooks table (per-record dual-write above), so a
       // whole-profile save can never touch a playbook again. The server merge shim
       // stays as belt-and-suspenders for any old cached client still sending it.
-      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro})
+      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro})
       localStorage.setItem('pe_v4',blob)
       // The localStorage write above is unconditional; only the server PUT is
       // gated. Holding the PUT until /api/profile/load has settled is what stops
@@ -6730,7 +6752,7 @@ export default function PivotEngine(){
       setSaveStatus('saved')
       setSaveError(null)
     }catch{setSaveStatus('error');setSaveError('device_full')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,signedInUser,serverLoadDone,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,signedInUser,serverLoadDone,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
@@ -6840,9 +6862,13 @@ export default function PivotEngine(){
     landingDecidedRef.current=true
     if(isReturningExplorer){
       track('landing_dashboard',{savedCount:activePlaybooks.length,exploredCount:exploredRoleTitles.length})
-      // Flagged users land on their live pipeline (their daily home); everyone
-      // else on the playbook library.
-      setStep(hasMySearch?'pipeline':'mylib')
+      // Signed-in users land on their live pipeline -- the daily home, and since
+      // GA that is everyone with an account. Signed-out returning explorers (no
+      // pursuit_status to read) land on the playbook library instead. This is
+      // also how My Pipeline introduces itself: a returning person arrives on
+      // their own opportunities already laid out, rather than on a popup
+      // describing a screen they have not seen.
+      setStep(hasPipeline?'pipeline':'mylib')
     }else{
       track('landing_skipped',{reason:'no_explorer_signal'})
     }
@@ -10287,6 +10313,27 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     </div>
   }
+  // One-time introduction to the My Pipeline screen. Deliberately an in-place
+  // card and not a modal: the screen is already showing the person their own
+  // opportunities, and a popup would cover the thing it is describing. It says
+  // what the screen is FOR and how the ordering works -- the two things the
+  // controls themselves cannot tell you -- and then hands the floor to My Coach
+  // rather than trying to answer every follow-up in a paragraph. Signed-in only,
+  // for the same reason as coachNudge: the Ask button goes somewhere that needs
+  // an account, and the dismissal needs somewhere durable to land.
+  const pipelineIntroCard=()=>{
+    if(isDemo||isTest||!signedInUser||seenPipelineIntro)return null
+    return <div data-print="hide" style={{position:'relative',background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:14,padding:'20px 22px',margin:'0 0 20px',maxWidth:900}}>
+      <button type="button" onClick={dismissPipelineIntro} aria-label="Dismiss" style={{position:'absolute',top:10,right:12,background:'transparent',border:'none',color:C.gray,fontSize:20,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
+      <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#1A2540',margin:'0 24px 10px 0',lineHeight:1.35}}>This is where you run your search day to day.</div>
+      <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Every opportunity you've added is here, and you don't sort it yourself. It puts whatever needs you at the top: first anything whose next step has slipped past its date, flagged Overdue, then whatever has a date coming up, then the ones that have gone quiet.</p>
+      <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 16px'}}>Give an opportunity a next step and a date and it will keep track from there. When you've done it, press Mark done: the step clears, the flag goes with it, and what you finished is filed onto that opportunity's notes.</p>
+      <div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
+        <Btn onClick={()=>{dismissPipelineIntro();openCoachWith('I\'m looking at My Pipeline for the first time. What is this screen for, how should I be using it day to day, and what should I do with it right now given what I have in there?',true)}}><MessageCircle size={15}/>Have questions about My Pipeline? Ask My Coach here</Btn>
+        <Btn secondary onClick={dismissPipelineIntro}>Got it</Btn>
+      </div>
+    </div>
+  }
   const mySearchPanel=()=>{
     const ops=activePlaybooks.filter(r=>r&&r.source==='door2')
     const wrap=(inner)=><div style={{maxWidth:900,margin:'0 0 32px'}}>
@@ -10295,6 +10342,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <Btn small secondary onClick={addNewOpportunity}>+ Add an Opportunity</Btn>
       </div>
       <CoachingCallout>All the opportunities you're pursuing, in one place. As things change, update where each one stands, when you'll next talk, and what you're doing next — it all saves, so it's here whenever you come back. Finished a step? Mark it done and put in whatever comes next.</CoachingCallout>
+      {pipelineIntroCard()}
       {inner}
     </div>
     if(ops.length===0)return wrap(<CoachingCallout>Nothing here yet. When you add an opportunity, it'll show up with its stage and what's next — so you can see where each one is going.</CoachingCallout>)
@@ -11708,11 +11756,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your coach for the search, grounded in Making Your Own Weather and in what Reimagine knows about you. Ask anything: where to focus, how to tell your story, how to prepare for a conversation.</p>
         <div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>
     case'pipeline':return <div>
       {mySearchPanel()}
-      {connectAssistantPanel()}
+      {hasConnectorBeta&&connectAssistantPanel()}
     </div>
     case'mylib':{
       const _comparable=activePlaybooks.filter(offerComparable)
@@ -11723,7 +11771,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {activePlaybooks.length} of {getSavedCap()} saved.</p>
       </div>
       {_comparable.length>=2&&<div style={{margin:'0 0 16px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({_comparable.length}) <ChevronRight size={14}/></Btn></div>}
-      <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasMySearch}/>
+      <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasPipeline}/>
       {archivedSection()}
     </div>
     }
@@ -12144,7 +12192,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   </div>
                   <div style={{fontSize:16,fontWeight:700,color:'#1A2540',margin:'6px 0 2px'}}>Do you know who you will be meeting with?</div>
                   <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginBottom:10}}>Add each person and what you have learned about them. Even one name sharpens the prep.</div>
-                  {hasMySearch&&(()=>{const _sugs=pursuitInterviewers.filter(x=>x.record_id===_slot);if(!_sugs.length)return null;return <div style={{border:`1.5px solid ${C.gold}`,background:`${C.gold}10`,borderRadius:10,padding:'14px 16px',marginBottom:14}}>
+                  {hasPipeline&&(()=>{const _sugs=pursuitInterviewers.filter(x=>x.record_id===_slot);if(!_sugs.length)return null;return <div style={{border:`1.5px solid ${C.gold}`,background:`${C.gold}10`,borderRadius:10,padding:'14px 16px',marginBottom:14}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:6,flexWrap:'wrap'}}>
                       <div style={{fontSize:15,fontWeight:700,color:'#1A2540'}}>Found by your assistant</div>
                       {_sugs.length>1&&<Btn small secondary onClick={()=>_sugs.forEach(adoptStagedInterviewer)}>Add all</Btn>}
@@ -12968,7 +13016,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{display:'flex',flex:1,minHeight:0,position:'relative'}}>
         {isMobile&&drawerOpen&&<div data-print="hide" onClick={closeDrawer} aria-hidden="true" style={{position:'absolute',inset:0,zIndex:20,background:'rgba(15,26,48,0.5)'}}/>}
         {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
-        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasMySearch} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
         <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,padding:isMobile?'22px 16px 40px':'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
@@ -13002,7 +13050,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasMySearch&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasMySearch} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>

@@ -5,7 +5,7 @@
 // - GET  -> list the caller's staged interviewers (all opportunities).
 // - POST { interviewerId } -> delete that staged row (adopted or dismissed).
 //
-// Browser-only (cookie session + origin allowlist), my_search-gated.
+// Browser-only (cookie session + origin allowlist). GA since 2026-08-30.
 
 import { sql } from './_lib/db.js'
 import { getSessionUser } from './_lib/session.js'
@@ -46,8 +46,6 @@ export default async function handler(req, res) {
   }
   if (!user || !user.id) return res.status(401).json({ error: 'Not authenticated' })
   if (user.suspended_at) return res.status(403).json({ error: 'account_suspended' })
-  const flags = Array.isArray(user.feature_flags) ? user.feature_flags : []
-  if (!flags.includes('my_search')) return res.status(403).json({ error: 'Not enabled' })
 
   try {
     if (req.method === 'GET') {
