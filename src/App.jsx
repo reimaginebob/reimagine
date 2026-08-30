@@ -5486,7 +5486,7 @@ function InterviewPrepQuestion({q,qi,lbl,fwList,onRegenerateQuestion,regeneratin
       {['S','T','A','R'].map(k=>{const sec=q.star_breakdown[k];if(!sec)return null;return <div key={k} style={{marginTop:k==='S'?6:14}}>
         <div style={{fontSize:16,fontWeight:700,color:C.goldL,marginBottom:4}}>{k} - {lbl[k]}</div>
         <div style={{fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>From your inputs:</em> {sec.raw_material}</div>
-        {k==='S'&&sec.relevance_bridge_draft&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>Open with:</em> <strong>"{sec.relevance_bridge_draft}"</strong>. Names the parallel between your past and what the interviewer likely faces. Sharpen the second half with company-specific details when you have them.</div>}
+        {k==='S'&&sec.relevance_bridge_draft&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>Open with:</em> <strong>"{sec.relevance_bridge_draft}"</strong>. Names the parallel between your past and what the person across from you likely faces. Sharpen the second half with company-specific details when you have them.</div>}
         <div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>To strengthen:</em> {sec.to_strengthen}</div>
       </div>})}
     </>:<div style={{fontSize:17,color:C.cream,lineHeight:1.65,marginTop:6}}>{q.framing_recommendation}</div>}
@@ -9119,7 +9119,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>{isIndependent?'Discovery Call & Pitch Prep':'Interview Prep'} for <strong>{ip.role_context.target_role}</strong>. {ip.role_context.role_summary} Below are the questions to expect, with the raw material from your own inputs to build each answer. The strongest version is in your voice, with the specifics only you can add.</div>
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:4}}><Btn small onClick={copyAll}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
       {panelSeats.length>0&&<div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'16px 20px',margin:'14px 0'}}>
-        <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>Your interview team</div>
+        <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>{isIndependent?'Who you are meeting':'Your interview team'}</div>
         <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginBottom:12}}>A quick read on each person and where your own work connects.</div>
         {panelSeats.map((s,i)=>{const reso=Array.isArray(s.resonance)?s.resonance.filter(r=>typeof r==='string'&&r.trim()):[];return <div key={s.seat_id||i} style={{borderTop:i>0?`1px solid ${C.border}`:'none',paddingTop:i>0?14:0,marginTop:i>0?14:0}}>
           <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap'}}>
@@ -11868,7 +11868,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {err&&!generatingSection&&<ErrBox msg={err}/>}
         </div>
         <div data-print="content" className="pe-print-playbook" style={{display:'none'}}>
-          <div className="pe-print-head"><div style={{fontSize:15,fontWeight:700,letterSpacing:'1px',color:'#C8924A',textTransform:'uppercase'}}>Reimagine · career.club</div><div style={{fontSize:26,fontWeight:700,fontFamily:'Georgia,serif',color:'#1A2540',marginTop:4}}>{chosen||'Your Focus Playbook'}</div>{selectedLane&&<div style={{fontSize:15,color:'#4A5568',marginTop:2}}>Direction: {laneLbl}</div>}</div>
+          <div className="pe-print-head"><div style={{fontSize:15,fontWeight:700,letterSpacing:'1px',color:'#C8924A',textTransform:'uppercase'}}>Reimagine · career.club</div><div style={{fontSize:26,fontWeight:700,fontFamily:'Georgia,serif',color:'#1A2540',marginTop:4}}>{isIndependent?'Your Practice Plan':(chosen||'Your Focus Playbook')}</div>{selectedLane&&<div style={{fontSize:15,color:'#4A5568',marginTop:2}}>Direction: {laneLbl}</div>}</div>
           {FOCUS_ORDER.filter(sec=>outputs[sec.id]&&outputs[sec.id].length>0).map(sec=><section key={sec.id} className="pe-print-section">
             <h2 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>{sec.label}</h2>
             {sec.id==='p_res'?<pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',margin:0}}>{(()=>{const j=parseResumeJSON(outputs.p_res);return j?renderResumeText(j):outputs.p_res})()}</pre>:<MD text={sec.id==='p7'?outputs.p7.replace(/```json[\s\S]*?(?:```|$)/gi,'').replace(/\n{3,}/g,'\n\n').trim():outputs[sec.id]}/>}
@@ -11997,7 +11997,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {completeCard('Your Personal Brand','p3',stripPersonalBrandTail(outputs.p3))}
         {chosen&&hasAnyFocusSection&&<div style={{margin:'24px 0 14px'}}>
           <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:6,flexWrap:'wrap'}}>
-            <div style={{fontSize:15,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold}}>Focus Playbook</div>
+            <div style={{fontSize:15,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:C.gold}}>{isIndependent?'Practice Plan':'Focus Playbook'}</div>
             <div style={{fontFamily:'Georgia,serif',fontSize:19,fontWeight:600,color:'#1A2540'}}>{chosen}</div>
           </div>
           <div style={{height:1,background:C.border}}/>
@@ -12213,8 +12213,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {(()=>{const _jd=tidyJd(_rec&&_rec.jd);if(!_jd||!jdModalOpen)return null;return <div data-print="hide" onClick={()=>setJdModalOpen(false)} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
                   <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Job description as submitted" style={{background:'#FFFFFF',borderRadius:14,padding:'28px 32px',maxWidth:760,width:'100%',maxHeight:'calc(100vh - 48px)',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
                     <button onClick={()=>setJdModalOpen(false)} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
-                    <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 4px',paddingRight:28}}>Job description</h2>
-                    <p style={{fontSize:15,color:'#718096',margin:'0 0 16px'}}>The posting as you submitted it — the exact text Reimagine built this playbook from.</p>
+                    <h2 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:700,color:'#1A2540',margin:'0 0 4px',paddingRight:28}}>{isIndependent?'What you told us':'Job description'}</h2>
+                    <p style={{fontSize:15,color:'#718096',margin:'0 0 16px'}}>{isIndependent?'What you wrote about this opportunity — the exact text Reimagine built this from.':'The posting as you submitted it — the exact text Reimagine built this playbook from.'}</p>
                     <div style={{whiteSpace:'pre-wrap',fontSize:15,lineHeight:1.6,color:'#3D4A5C',fontFamily:'inherit'}}>{_jd}</div>
                   </div>
                 </div>})()}
