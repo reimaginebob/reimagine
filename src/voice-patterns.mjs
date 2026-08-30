@@ -34,6 +34,8 @@
 //   - framework-*            (never name Bob's internal frameworks)
 //   - drama-*                (stock attention-grabbing transitions)
 //   - truth-*                (announce-the-truth discourse markers)
+//   - flag-*                 (insight flagging: announcing a point deserves
+//                             attention before making it; universal, runtime)
 //   - meta-*                 (first-person authorial framing)
 //   - formula-*              (stock tripartite enumerations; universal as of #84)
 //   - closer-*               (closer-template variants; p3-only as of #84)
@@ -43,10 +45,25 @@
 // Keep regexes Unicode-aware where it matters; use the case-insensitive flag.
 
 export const HARD_PATTERNS = [
+  // A note on the ['"’”)\]]* runs that follow terminal punctuation and commas
+  // throughout the logic-flip family. American quoting puts the period INSIDE
+  // the closing quotation mark, and the model produces that constantly:
+  //
+  //   The ask is not "can you refer me." It is "do you know who owns this role?"
+  //
+  // Every pattern here used to require whitespace immediately after the
+  // punctuation, so the quoted form of the cadence walked straight through the
+  // gate while the identical unquoted form was caught (verified 2026-08-30,
+  // across is-not, do-not-just and not-but). The class is a RUN rather than a
+  // single optional character because nested quoting closes two marks at once
+  // (.'" and .")) — refuse-pivot already allowed one and still missed those.
+  // Carry it into any future pattern that pivots on a sentence or clause
+  // boundary.
+  //
   // Logic-flip cadence: "X is not Y. It is Z." and "X are not Y. We are Z."
   {
     name: 'logic-flip-is-not',
-    re: /\b(?:is|are|was|were)\s+not\s+(?:a\s+|an\s+|about\s+|just\s+|only\s+)?[^.!?\n]{3,80}[.!?]\s*(?:It|That|They|You|We)\s+(?:is|are|was|were)\s+/i,
+    re: /\b(?:is|are|was|were)\s+not\s+(?:a\s+|an\s+|about\s+|just\s+|only\s+)?[^.!?\n]{3,80}[.!?]['"’”)\]]*\s*(?:It|That|They|You|We)\s+(?:is|are|was|were)\s+/i,
     severity: 'hard',
     appliesTo: ['runtime'],
     note: 'Logic-flip cadence: replace with the positive claim on its own.',
@@ -54,7 +71,7 @@ export const HARD_PATTERNS = [
   // Logic-flip cadence: "You do not just X, you Y" / "You do not X, you Y"
   {
     name: 'logic-flip-do-not-just',
-    re: /\b(?:do|does|did)\s+not\s+(?:just\s+)?[^,.;\n]{3,80},\s*(?:you|we|they)\s+(?:[a-z]+)/i,
+    re: /\b(?:do|does|did)\s+not\s+(?:just\s+)?[^,.;\n]{3,80},['"’”)\]]*\s*(?:you|we|they)\s+(?:[a-z]+)/i,
     severity: 'hard',
     appliesTo: ['runtime'],
     note: 'Logic-flip cadence: replace with the positive claim on its own.',
@@ -62,7 +79,7 @@ export const HARD_PATTERNS = [
   // Logic-flip cadence: "not X, but Y" inside a sentence
   {
     name: 'logic-flip-not-but',
-    re: /\bnot\s+(?:just\s+)?[^,;.\n]{3,60},\s+but\s+(?!a\s+(?:result|consequence|matter|reflection|sign|signal|product))\w+/i,
+    re: /\bnot\s+(?:just\s+)?[^,;.\n]{3,60},['"’”)\]]*\s+but\s+(?!a\s+(?:result|consequence|matter|reflection|sign|signal|product))\w+/i,
     severity: 'hard',
     appliesTo: ['runtime'],
     note: 'Logic-flip "not X, but Y" cadence: rewrite as the positive claim.',
@@ -73,7 +90,7 @@ export const HARD_PATTERNS = [
   // Bob's screenshot that no other pattern caught).
   {
     name: 'logic-flip-refuse-pivot',
-    re: /\b(?:you|we|they)\s+(?:refuse|don't|do\s+not|will\s+not|won't)\s+(?:to\s+)?[^.!?\n]{3,80}[.!?]['"’”)\]]?\s+(?:You|We|They)\s+(?:[a-z]+)/i,
+    re: /\b(?:you|we|they)\s+(?:refuse|don't|do\s+not|will\s+not|won't)\s+(?:to\s+)?[^.!?\n]{3,80}[.!?]['"’”)\]]*\s+(?:You|We|They)\s+(?:[a-z]+)/i,
     severity: 'hard',
     appliesTo: ['runtime'],
     note: 'Logic-flip sentence-boundary pivot: state the positive claim on its own.',
@@ -890,6 +907,83 @@ export const HARD_PATTERNS = [
     appliesTo: ['runtime'],
     surface: 'The honest [read/answer/truth/...]',
     note: 'Noun-phrase sincerity qualifier ("the honest read/answer/truth") that sets up a hierarchy where the default is not honest. State the claim directly.',
+  },
+
+  // Insight flagging (flag-*). Announcing that a point deserves attention
+  // before making it: "Worth naming: your pipeline already shows this."
+  // api/coach.js calls this "the single most common tell in this voice" and
+  // bans it in prose, and My Coach strips it deterministically
+  // (stripInsightFlagging, src/text-strippers.js, wired into
+  // applyOutputStrippers). Neither reaches the generation pipeline, whose
+  // only guard is this file — so until 2026-08-30 the shape shipped
+  // unchallenged in every playbook surface. Same argument the stripper was
+  // built on: a rule with no detector is a draft.
+  //
+  // Scoped to the FLAG SHAPE, never to the word "worth". "worth about
+  // $95,000", "worth having", "worth your time", "worth trying" judge a thing
+  // or an action and are legitimate; only the attention-and-speech verbs below
+  // announce that a point deserves notice. The verb list is deliberately the
+  // stripper's FLAG_VERB list minus its action verbs, so the two layers agree
+  // on what counts as a flag.
+  //
+  // Runtime-only, like the rest of the announce-the-reveal families: authored
+  // source legitimately carries the shape (the Personal Brand card header
+  // "Worth naming, and how to use it" in src/App.jsx, "worth knowing" prose
+  // throughout src/data/user-guide/ and the coach knowledge corpora), and
+  // build-scoping this would fail the build on shipped copy.
+  //
+  // The lead-in may be bare ("Worth naming:") or a short run-up ("Here's the
+  // thing worth naming though:", "One more thing worth surfacing since we're
+  // talking about where your energy goes:"), so allow a run-up before the verb
+  // and a tail after it before the colon. The tail is TEMPERED against a
+  // clause-joining conjunction rather than merely length-capped, which is what
+  // lets it reach the long coach.js worked example while still refusing to
+  // swallow a sentence whose colon belongs to a second clause ("...are worth
+  // knowing by name, and here is where to find them: LinkedIn, ..."). The
+  // stripper (stripInsightFlagging) uses a flat 40-character tail because a
+  // stripper that overreaches mangles prose; a detector only costs a
+  // regeneration, so it can afford the wider, better-guarded window.
+  //
+  // A PLURAL count in the lead-in ("Two things worth knowing:", "There are
+  // three points worth flagging:") is exempt. Announcing a number and then
+  // delivering that many items is structure, and the model has to produce the
+  // items to satisfy it — src/data/user-guide/ uses the shape three times in
+  // authored copy. The singular forms stay banned, which is where the tic
+  // actually lives: "Worth naming:", "One more thing worth surfacing ...:".
+  {
+    name: 'flag-worth-colon',
+    re: /(?:^|[.!?]['"’”)\]]*\s+|\n\s*)(?![^.!?\n]{0,60}?\b(?:two|three|four|five|six|several|a\s+few|a\s+couple\s+of|[2-9]|\d\d+)\s+(?:things|points|items|notes|facts|details)\b)[^.!?\n]{0,60}?\bworth\s+(?:naming|noting|noticing|knowing|mentioning|surfacing|flagging|saying|stating|repeating|highlighting|underscoring|emphasi[sz]ing|calling\s+out|pointing\s+out|pulling\s+apart|unpacking)\b(?:(?!,\s+(?:and|but|so|then|which|where)\b)[^.!?:\n]){0,80}?:/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Worth naming: / Here’s the thing worth knowing:',
+    note: 'Insight flagging: announcing a point deserves attention before making it. Delete the flag and make the point.',
+  },
+  {
+    name: 'flag-worth-trailing',
+    re: /,\s+and\s+(?:it|that)(?:['’]s|\s+is)\s+worth\s+(?:naming|noting|noticing|knowing|mentioning|surfacing|flagging|saying|stating|repeating|highlighting|underscoring|emphasi[sz]ing|calling\s+out|pointing\s+out|pulling\s+apart|unpacking)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: '..., and it’s worth naming',
+    note: 'Insight flagging as a trailing clause. The point is already made; the flag adds nothing.',
+  },
+  // The same announce-then-say move without the word "worth". Both require a
+  // colon or a copula after the frame so ordinary uses survive ("ask them what
+  // stands out about the role", "the part to notice about the market moved").
+  {
+    name: 'flag-the-thing-to-notice',
+    re: /\bthe\s+(?:thing|part|detail|piece)\s+(?:to\s+(?:notice|note|watch)|worth\s+(?:naming|noting|noticing|knowing|mentioning|surfacing|flagging))\b[^.!?\n]{0,40}?(?::|\bis\b)/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'The thing to notice is / The thing worth naming here is',
+    note: 'Insight flagging: announcing a point deserves attention before making it. Delete the flag and make the point.',
+  },
+  {
+    name: 'flag-what-stands-out',
+    re: /\b(?:what\s+stands\s+out\b[^.!?\n]{0,40}?\bis\b|here(?:'|’)?s\s+what\s+matters\b|what\s+matters\s+(?:here|most)\s+is\b)/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'What stands out here is / Here’s what matters',
+    note: 'Insight flagging: announcing a point deserves attention before making it. Delete the flag and make the point.',
   },
 
   // Meta-framing: first-person announcements of authorial intent. The

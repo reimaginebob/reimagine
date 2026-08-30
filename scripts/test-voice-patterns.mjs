@@ -141,6 +141,120 @@ const cases = [
     'The CFO said you were the only one who kept everyone focused on what mattered.'],
   ['comparative-standing: "everyone else" without a contrast conjunction does NOT fire', null,
     'You told the team what everyone else in the building already suspected.'],
+
+  // Punctuation-inside-quotes, 2026-08-30. American quoting puts the period
+  // inside the closing quotation mark, which is what the model writes; every
+  // logic-flip pattern that pivots on a sentence or clause boundary required
+  // whitespace immediately after the punctuation, so the quoted form of each
+  // cadence walked through the gate while the identical unquoted form was
+  // caught. Each pair below is the same sentence quoted and unquoted.
+  ['logic-flip-is-not: period inside closing quote (the reported hole)', 'logic-flip-is-not',
+    'The ask is not "can you refer me." It is "do you know who owns this role?"'],
+  ['logic-flip-is-not: period outside closing quote (was already caught)', 'logic-flip-is-not',
+    'The ask is not "can you refer me". It is "do you know who owns this role".'],
+  ['logic-flip-is-not: unquoted (was already caught)', 'logic-flip-is-not',
+    'The ask is not a referral. It is a name.'],
+  ['logic-flip-is-not: period inside closing paren', 'logic-flip-is-not',
+    'The ask is not a referral (yet.) It is a name.'],
+  ['logic-flip-do-not-just: comma inside closing quote', 'logic-flip-do-not-just',
+    'You do not just "run the process," you design it.'],
+  ['logic-flip-do-not-just: unquoted (was already caught)', 'logic-flip-do-not-just',
+    'You do not just run the process, you design it.'],
+  ['logic-flip-not-but: comma inside closing quote', 'logic-flip-not-but',
+    'The ask is not "a referral," but a name.'],
+  ['logic-flip-not-but: unquoted (was already caught)', 'logic-flip-not-but',
+    'The ask is not a referral, but a name.'],
+  // refuse-pivot already allowed ONE closing mark; nested quoting closes two.
+  ['logic-flip-refuse-pivot: two closing marks', 'logic-flip-refuse-pivot',
+    'You refuse to ask "what is the number?"’ You ask for it.'],
+  ['logic-flip-refuse-pivot: one closing mark (was already caught)', 'logic-flip-refuse-pivot',
+    'You refuse to guess at the number." You ask for it.'],
+  // The widening only permits quote and bracket characters between the
+  // punctuation and the pivot. A quoted sentence that is not the cadence must
+  // stay clean.
+  ['logic-flip-is-not: quoted negation without the pivot does NOT fire', null,
+    'She said the work is not "easy." She chose it anyway.'],
+  ['logic-flip-not-but: quoted list comma does NOT fire', null,
+    'They asked for "a referral," "a name," and a warm intro.'],
+
+  // Insight flagging (flag-*), 2026-08-30. api/coach.js bans this in prose and
+  // My Coach strips it deterministically; the generation pipeline had neither.
+  // Should-fire: the flag shape, bare or with a run-up, colon or copula.
+  ['flag-worth-colon: bare sentence-initial flag', 'flag-worth-colon',
+    'Worth naming: the pipeline already shows this.'],
+  ['flag-worth-colon: worth surfacing', 'flag-worth-colon',
+    'Worth surfacing: your HOPE decision looks overdue.'],
+  ['flag-worth-colon: bolded flag', 'flag-worth-colon',
+    '**Worth knowing:** they promote from within.'],
+  ['flag-worth-colon: mid-paragraph after a sentence', 'flag-worth-colon',
+    'You have two live threads. Worth pulling apart: the second one is warmer.'],
+  ['flag-worth-colon: short run-up (coach.js worked example)', 'flag-worth-colon',
+    "Here's the thing worth naming though: your pipeline already shows this."],
+  ['flag-worth-colon: long run-up (coach.js worked example)', 'flag-worth-colon',
+    "One more thing worth surfacing since we're talking about where your energy goes: your HOPE decision looks overdue."],
+  ['flag-worth-trailing: trailing worth-noting clause', 'flag-worth-trailing',
+    "The role closed in nine days, and it's worth noting for the next one."],
+  ['flag-the-thing-to-notice: copula form', 'flag-the-thing-to-notice',
+    'The thing to notice is how fast that role closed.'],
+  ['flag-the-thing-to-notice: thing worth naming here is', 'flag-the-thing-to-notice',
+    'The thing worth naming here is the gap between the two roles.'],
+  ['flag-the-thing-to-notice: colon form', 'flag-the-thing-to-notice',
+    'The part to notice: they hired three in a quarter.'],
+  ['flag-what-stands-out: what stands out here is', 'flag-what-stands-out',
+    'What stands out here is the pattern across three roles.'],
+  ['flag-what-stands-out: here is what matters', 'flag-what-stands-out',
+    "Here's what matters: the recruiter owns the timeline."],
+  ['flag-what-stands-out: what matters most is', 'flag-what-stands-out',
+    'What matters most is the timeline.'],
+
+  // Should-NOT-fire. The family is scoped to the flag SHAPE, never the word
+  // "worth". Every one of these is legitimate output the gate must leave alone;
+  // a false positive here costs the user a regeneration on clean prose.
+  ['flag: monetary worth does NOT fire', null,
+    'The house is worth about $95,000 in that market.'],
+  ['flag: worth having (judges a thing) does NOT fire', null,
+    'That conversation is worth having.'],
+  ['flag: worth your time does NOT fire', null,
+    'It is worth your time.'],
+  ['flag: worth trying (judges an action) does NOT fire', null,
+    'Worth trying: a warm intro through your former manager.'],
+  ['flag: adjectival worth naming mid-sentence does NOT fire', null,
+    'An organization you found but could not size is still worth naming.'],
+  ['flag: worth knowing by name does NOT fire', null,
+    'Three specialist search firms are worth knowing by name.'],
+  ['flag: worth a dollar figure does NOT fire', null,
+    'The advisory work is worth $4,000 a month at that rate.'],
+  // The tempered tail: the colon here belongs to a second clause, not to the
+  // flag. This is the case a flat length cap would have false-positived on.
+  ['flag: colon owned by a following clause does NOT fire', null,
+    'Three specialist search firms are worth knowing by name, and here is where to find them: LinkedIn, the trade press, and a warm intro.'],
+  ['flag: colon after a but-clause does NOT fire', null,
+    'The two roles are worth knowing, but the deciding factor is different: one reports to the CFO.'],
+  ['flag: what stands out without a copula does NOT fire', null,
+    'Ask them what stands out about the role before you answer.'],
+  ['flag: what matters as an interview question does NOT fire', null,
+    'Ask the hiring manager what matters to the team this quarter.'],
+  ['flag: notice as an imperative does NOT fire', null,
+    'Notice the thing you keep coming back to in your own answers.'],
+  ['flag: a detail to watch for does NOT fire', null,
+    'That is a detail to watch for.'],
+  ['flag: the part of the role does NOT fire', null,
+    'The part of the role you would own is the pipeline.'],
+  // A plural count in the lead-in is an enumeration header, not the tic: the
+  // model has to produce the items to satisfy it. All three of these are the
+  // shape src/data/user-guide/ uses in authored copy (before-you-begin.md,
+  // focus-playbook.md, what-reimagine-is.md).
+  ['flag: "there are two things worth knowing:" does NOT fire', null,
+    "There are two things worth knowing: your inputs travel only to Anthropic's API, and nothing is sold."],
+  ['flag: "two things worth flagging, because ...:" does NOT fire', null,
+    'Two things worth flagging, because the shape is easy to misremember: STAR Stories is not its own section.'],
+  ['flag: "three points worth naming here:" does NOT fire', null,
+    'There are three points worth naming here: scope, price, and timing.'],
+  ['flag: "a few details worth noting:" does NOT fire', null,
+    'A few details worth noting: the deadline, the panel, and the travel.'],
+  // The singular is where the tic lives, so the carve-out must not reach it.
+  ['flag-worth-colon: singular "one thing worth knowing:" still fires', 'flag-worth-colon',
+    'One thing worth knowing: it can be tempting to filter your answers.'],
 ]
 
 let failed = 0
