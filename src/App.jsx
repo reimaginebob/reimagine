@@ -8125,6 +8125,29 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // Interview Prep.
   const newNoteId=()=>`note_${Date.now()}_${Math.random().toString(36).slice(2,7)}`
   const getOpSavedNotes=(rec)=>(rec&&Array.isArray(rec.savedNotes))?rec.savedNotes:[]
+  // The text an opportunity is built from.
+  //
+  // Every generator on this screen used to re-derive this by hand -- the same
+  // expression, copy-pasted ten times -- which is how "the source" stayed an
+  // unnamed concept that only ever meant a job description. It never only meant
+  // that. On the practice track there is no posting to paste: the source is what
+  // the person has written about the client, which is the panel's
+  // opportunity_context plus any notes they have added since.
+  //
+  // One accessor rather than ten conditionals. A generator cannot forget to
+  // branch when there is only one way to ask for the source, and the job-search
+  // path returns byte-identical text to what the ten copies returned.
+  const opSourceText=(rec)=>{
+    const r=rec||savedPlaybooks.find(x=>x.id===currentSavedSlotIdRef.current)||{}
+    if(!isIndependent)return ((r.jd||profile.jd)||'').trim()
+    const ctx=(getOpPanel(r).opportunity_context||'').trim()
+    const notes=getOpSavedNotes(r).map(n=>(n&&typeof n.text==='string')?n.text.trim():'').filter(Boolean).join('\n\n')
+    return [ctx,notes].filter(Boolean).join('\n\n').trim()
+  }
+  // What to say when there is nothing to work from yet. The old copy told every
+  // user to "add a job description", which is the wrong instruction for someone
+  // selling their own services -- there is no posting, and never will be.
+  const opSourceMissingMsg=()=>isIndependent?'Tell us what you know about this opportunity first, even if it is only a few lines.':'Add a job description for this opportunity first.'
   // Composer text for the Notes card. One opportunity playbook is open at a time,
   // so a single draft is enough; it clears on add.
   const [noteDraft,setNoteDraft]=useState('')
@@ -8787,8 +8810,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const generateOpSection=async(key,laneOverride,correctionText)=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||opSectionBuilding)return
-    const jd=((savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)||{}).jd||profile.jd||'').trim()
-    if(!jd){setOpSectionErrors(e=>({...e,[key]:'Add a job description for this opportunity first.'}));return}
+    const jd=opSourceText()
+    if(!jd){setOpSectionErrors(e=>({...e,[key]:opSourceMissingMsg()}));return}
     setOpSectionBuilding(key);setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,[key]:null}))
     const reqId=++opSectionReqRef.current
     try{
@@ -8861,7 +8884,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const rec=savedPlaybooks.find(r=>r.id===slotId)
     if(!rec||rec.schemaVersion!==2||opLaneValue(rec))return
     if(opLaneInferRef.current[slotId])return
-    const jd=((rec.jd||profile.jd)||'').trim()
+    const jd=opSourceText(rec)
     if(!jd)return
     opLaneInferRef.current[slotId]=true
     setOpLaneInferring(true)
@@ -8905,7 +8928,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(!rec||rec.schemaVersion!==2||opLaneValue(rec))return
     if(opLaneInferRef.current[slotId])return
     // cards-only: trigger on JD presence, not artifact presence (artifact never populates for v2 records)
-    const jd=(rec.jd||profile.jd||'').trim()
+    const jd=opSourceText(rec)
     if(!jd)return
     runOpLaneInference(slotId)
   },[savedPlaybooks,outputs.op,opLaneInferring])
@@ -9159,8 +9182,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const generateOpCompanyRead=async(correctionText)=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||opSectionBuilding)return
-    const jd=((savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)||{}).jd||profile.jd||'').trim()
-    if(!jd){setOpSectionErrors(e=>({...e,companyRead:'Add a job description for this opportunity first.'}));return}
+    const jd=opSourceText()
+    if(!jd){setOpSectionErrors(e=>({...e,companyRead:opSourceMissingMsg()}));return}
     setOpSectionBuilding('companyRead');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,companyRead:null}))
     const reqId=++opSectionReqRef.current
     try{
@@ -9231,7 +9254,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const reqId=++opSectionReqRef.current
     try{
       const rec0=savedPlaybooks.find(r=>r.id===slotId)
-      const jd=((savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)||{}).jd||profile.jd||'').trim()
+      const jd=opSourceText()
       let role=((rec0&&rec0.role)||'').trim()
       let location=((rec0&&rec0.location)||'').trim()
       if((!role||!location)&&jd){const meta=await inferJdMetadata(jd);if(!role)role=(meta.role||'').trim();if(!location)location=(meta.location||'').trim()}
@@ -9297,7 +9320,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setOpSectionBuilding('offerNegotiation');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,offerNegotiation:null}))
     const reqId=++opSectionReqRef.current
     try{
-      const jd=((savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)||{}).jd||profile.jd||'').trim()
+      const jd=opSourceText()
       let role=((rec0&&rec0.role)||'').trim()
       let location=((rec0&&rec0.location)||'').trim()
       if((!role||!location)&&jd){const meta=await inferJdMetadata(jd);if(!role)role=(meta.role||'').trim();if(!location)location=(meta.location||'').trim()}
@@ -9391,7 +9414,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setOpSectionBuilding('checklist');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,checklist:null}))
     const reqId=++opSectionReqRef.current
     try{
-      const jd=((savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)||{}).jd||profile.jd||'').trim()
+      const jd=opSourceText()
       let role=((rec0&&rec0.role)||'').trim()
       if(!role&&jd){const meta=await inferJdMetadata(jd);role=(meta.role||'').trim()}
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
@@ -9721,8 +9744,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const generateOpCoverLetter=async(correctionText)=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||opSectionBuilding)return
-    const jd=((savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)||{}).jd||profile.jd||'').trim()
-    if(!jd){setOpSectionErrors(e=>({...e,p_cover:'Add a job description for this opportunity first.'}));return}
+    const jd=opSourceText()
+    if(!jd){setOpSectionErrors(e=>({...e,p_cover:opSourceMissingMsg()}));return}
     setOpSectionBuilding('p_cover');setOpBuildingSlot(slotId);setOpSectionErrors(e=>({...e,p_cover:null}))
     const reqId=++opSectionReqRef.current
     try{
@@ -9803,7 +9826,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const slotId=currentSavedSlotIdRef.current
     setAnswerBusy(key)
     try{
-      const jd=((savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)||{}).jd||profile.jd||'').trim()
+      const jd=opSourceText()
       const rec0=savedPlaybooks.find(r=>r.id===slotId)
       const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&bridgeStoryToProse(rec0.sections.p6).trim())?rec0.sections.p6:outputs.p6
       const opOuts={...outputs,p6:opP6}
@@ -9824,7 +9847,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(!iv)return
     setResearchingIvId(ivId);setResearchErrors(e=>({...e,[ivId]:null}))
     try{
-      const jd=((savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)||{}).jd||profile.jd||'').trim()
+      const jd=opSourceText()
       // Company name from the auto-extracted rec.company (PR #229), not the JD
       // first line (Karen Groll URL-only bug, 2026-06-29). Empty is fine here —
       // P.interviewerResearch renders "(not provided)" — and is strictly better
@@ -10098,7 +10121,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const generateOpBridgeStory=async({refine=''}={})=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||opSectionBuilding)return
-    const jd=((savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)||{}).jd||profile.jd||'').trim()
+    const jd=opSourceText()
     if(!jd){setOpSectionErrors(e=>({...e,p6:'Add a job description for this opportunity first.'}));return}
     const baseStripped=bridgeStoryToProse(outputs.p6)
     // Graceful fallback (mirrors op Cover Letter / p5 / p_res / p11): when the user
@@ -10163,7 +10186,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const currentQuestion=ip.questions[questionIdx]
     if(!currentQuestion||currentQuestion.type!=='behavioral')return
     const otherQuestionTexts=ip.questions.map((q,i)=>i===questionIdx?null:(q&&q.question)||null).filter(Boolean)
-    const jd=((savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current)||{}).jd||profile.jd||'').trim()
+    const jd=opSourceText()
     setRegeneratingP11QuestionIdx(questionIdx);setP11QuestionErrors(e=>({...e,[questionIdx]:null}))
     try{
       let parsedQuestion=null,refusal=''
