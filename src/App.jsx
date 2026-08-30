@@ -5736,7 +5736,23 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
   if(personalBrandDone&&!isDemo){
     // Labels join from NAV_LABELS (src/nav-labels.js) — the single source the
     // coach nav map also reads, so a rename lands here and in the coach together.
-    const primaryItems=[
+    const primaryItems=isIndependent?[
+      {id:'myCoach',label:NAV_LABELS.myCoach,Icon:MessageCircle},
+      // Personal Brand stays top-level rather than nesting under the practice.
+      // It is upstream of everything else and gets revisited, and burying it
+      // cost a user their wording on 2026-08-24 when the only route back
+      // rebuilt the brand.
+      {id:'p3',label:NAV_LABELS.p3,Icon:Fingerprint},
+      // The parent opens the positioning line, which is the practice's headline
+      // and the gate to the plan. The child was previously labelled "Find Your
+      // Clients" -- the plan named after one of its own six sections, which is
+      // why the rail looked like it held less than it does.
+      {id:'positioning',label:'Your Practice',Icon:Compass,children:[
+        {id:'focus',label:'Your Practice Plan',activeSteps:['focus']},
+        {id:'income',label:'Price, Package & Launch',activeSteps:['income']},
+      ]},
+      ...(hasPipeline?[{id:'pipeline',label:NAV_LABELS.pipeline,Icon:Target,badge:pipelineOverdue}]:[]),
+    ]:[
       {id:'myCoach',label:NAV_LABELS.myCoach,Icon:MessageCircle},
       // My Pipeline is its own surface — the daily action home, distinct from the
       // exploration library (My Playbooks). Signed-in accounts only: it reads and
@@ -5747,17 +5763,6 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       // Go Independent has one way forward rather than two doors, so its rail
       // names the practice plan and the two things inside it. Career Paths and
       // Add an Opportunity are not offered: this track never runs them.
-      ...(isIndependent?[
-        {id:'positioning',label:NAV_LABELS.positioning,Icon:Compass,children:[
-          {id:'focus',label:'Find Your Clients',activeSteps:['focus']},
-          {id:'income',label:'Price, Package & Launch',activeSteps:['income']},
-        ]},
-        // Its own entry rather than a child of the practice plan: the plan is
-        // built once, and these accumulate. It sits next to My Pipeline because
-        // that is the surface that tracks them, and it is where someone will
-        // look for a deal they started last week.
-        {id:'op',label:'Client Opportunities',Icon:Network,activeSteps:['op']},
-      ]:[
       {id:'twoDoors',label:NAV_LABELS.twoDoors,Icon:Compass,children:[
         // Door 1 routes to laneSelect; the Career Paths flow then runs
         // through p4 (lane options) and focus (the assembled playbook,
@@ -5771,7 +5776,6 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
         // per Bob's decision for visual consistency with its two icon-less siblings.
         {id:'income',label:NAV_LABELS.income,activeSteps:['income']},
       ]},
-      ]),
     ]
     const inputsItems=[
       {id:'resume',label:'Resume'},
@@ -11878,6 +11882,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>
     case'pipeline':return <div>
+      {isIndependent&&!isDemo&&<div style={{margin:'0 0 20px'}}><Btn onClick={addNewOpportunity}><Plus size={14}/>Add a client opportunity</Btn></div>}
       {mySearchPanel()}
       {hasConnectorBeta&&connectAssistantPanel()}
     </div>
@@ -13077,6 +13082,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {/* Footer simplified post-PR5: per-section completion + the section
           rail now show progress explicitly, so the progress text is gone.
           Save as PDF stays as the only persistent footer action. */}
+      {isIndependent&&step==='focus'&&currentSavedSlotIdRef.current&&<Btn secondary onClick={()=>{const r=savedPlaybooks.find(x=>x.id===currentSavedSlotIdRef.current);if(r)downloadPlaybookMarkdown(r)}} style={{background:'transparent',border:`1.5px solid ${C.gold}`,color:'#FFFFFF'}}><Download size={14}/>Markdown</Btn>}
       <Btn secondary onClick={savePlaybookPdf} style={{background:'transparent',border:`1.5px solid ${C.gold}`,color:'#FFFFFF'}}><Printer size={14}/>Save as PDF</Btn>
     </div>}
     <div style={{height:'100dvh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
