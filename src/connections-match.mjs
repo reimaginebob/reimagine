@@ -195,6 +195,25 @@ export function matchConnections(people, targetCompany) {
 // without notice — when this breaks it is a one-line fix here. The failure is
 // soft by design: if `network` stops being honored the user still lands on a
 // LinkedIn people search for the company, which beats starting from scratch.
+//
+// BY KEYWORD, NOT BY LINKEDIN'S "CURRENT COMPANIES" FACET, AND ON PURPOSE. The
+// facet needs the company's internal LinkedIn id, which we do not have — but
+// even given the id the keyword is the better search here:
+//
+//   - It matches anywhere on a profile, so it returns FORMER employees as well
+//     as current ones. An alumnus is usually the most candid conversation
+//     available about why a seat is open and who really fills it, because they
+//     are no longer protecting a relationship. The facet drops every one of
+//     them. Our own matcher cannot find them either — LinkedIn's export carries
+//     only each connection's CURRENT employer, no history — so this search is
+//     the only place they surface at all.
+//   - It survives a company trading under several entities. "Imerys", "Imerys
+//     USA, Inc." and "Imerys Americas" are separate LinkedIn pages; the facet
+//     makes the user pick one and silently drops the rest.
+//
+// The cost is noise when the company's name is a common word, which is the one
+// case worth narrowing — so the card points at LinkedIn's own filters for it
+// rather than guessing on the user's behalf.
 export function linkedInSecondDegreeUrl(company) {
   const q = String(company || '').trim()
   if (!q) return 'https://www.linkedin.com/search/results/people/'

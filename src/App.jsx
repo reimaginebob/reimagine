@@ -12384,6 +12384,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _linkBtn=<div>
                   <a href={linkedInSecondDegreeUrl(_company)} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:15,fontWeight:600,color:C.gold,textDecoration:'none'}}>See who is one step away<ArrowUpRight size={14}/></a>
                   <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:6}}>Under every name LinkedIn lists your <strong style={{color:'#1A2540'}}>mutual connections</strong>. That line is the point: it names the people who can introduce you. Find someone senior enough to matter, see who you both know, and ask that person.</div>
+                  <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:6}}>That list is deliberately wide, so it also turns up people who <strong style={{color:'#1A2540'}}>used to work there</strong> — often the most candid conversation you can get about why a seat is open and who really fills it, since they are not protecting a relationship. It also catches the company where it trades under more than one name. If {_where} is a common word and the results run to strangers, LinkedIn&rsquo;s own filters on that page will tighten it.</div>
                 </div>
                 return _cardWrap(<>
                   <div style={{flex:1,minWidth:220}}>
