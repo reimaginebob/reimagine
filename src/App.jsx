@@ -2854,7 +2854,7 @@ const OUTREACH_PURPOSE_CHOICES=[
 ]
 const OUTREACH_PURPOSES={
   hiring:`PURPOSE — FIND OUT WHO OWNS THE ROLE. They are probably not the hiring manager and probably not on the hiring team, so do not treat them as the decision-maker. Ask who owns this role, or who would know: it costs them a moment to answer, and the answer is the name the writer needs. Do NOT ask for a referral, a recommendation, or for a resume to be passed along in this version. Say plainly that they have applied or are about to. Keep the offer light here — the ask is small, so a large offer alongside it reads as overpaying for it. Email body 120 words maximum, three short paragraphs.`,
-  learn:`PURPOSE — LEARN ABOUT THE PLACE. This is a request for a short conversation, not for help getting hired, and it must not read as a referral ask wearing a disguise. Ask what it is actually like to work there, how the team runs, what they have made of it — the things that do not appear in a posting. Name that the writer is looking at a role there so the request is not mysterious, then keep the focus on their experience. Offer a specific, small commitment: fifteen or twenty minutes, at their convenience, on a call or over email if that is easier. Do NOT ask them to refer, introduce, or forward anything. The offer carries weight here: this person is being asked for their time, and something useful coming back is what makes it a fair trade rather than a favor. Email body 120 words maximum, three short paragraphs.`,
+  learn:`PURPOSE — LEARN ABOUT THE PLACE. This is a request for a short conversation, not for help getting hired, and it must not read as a referral ask wearing a disguise. Ask what it is actually like to work there, how the team runs, what they have made of it — the things that do not appear in a posting. Where the ABOUT THIS COMPANY research below gives you something concrete — a tension in the employee reviews, a recent change, a way the place is structured — build ONE question on it rather than asking broadly. "The reviews praise the safety culture but a few describe management as a numbers culture; is that how it feels from inside?" gets a real answer where "how do you like it there?" gets a polite one. Ask at most two questions in total, and never list them as bullets: this is a note, not a questionnaire. Name that the writer is looking at a role there so the request is not mysterious, then keep the focus on their experience. Offer a specific, small commitment: fifteen or twenty minutes, at their convenience, on a call or over email if that is easier. Do NOT ask them to refer, introduce, or forward anything. The offer carries weight here: this person is being asked for their time, and something useful coming back is what makes it a fair trade rather than a favor. Email body 120 words maximum, three short paragraphs.`,
   word:`PURPOSE — ASK THEM TO PUT IN A WORD. This is the heaviest ask in the set and only works on a real relationship, so write it as one adult asking another for a favor, without groveling and without pretending it is small. Say what the role is, say in one line why the writer is a serious candidate for it rather than a hopeful one, and ask directly whether they would be willing to flag the application internally or pass their name to whoever owns it. Give them an unembarrassing exit: they may not know the team, or may not feel able to vouch, and the note should say so before they have to. If the HOW THEY KNOW EACH OTHER note is empty, keep the ask noticeably lighter — a stranger cannot be asked to vouch. This is the ask where giving something back matters most, so the offer should be the most substantial of the four and has to be real; a token one here is worse than none at all. Email body 140 words maximum.`,
   reconnect:`PURPOSE — RECONNECT, WITH NO ASK. Make NO request in this note: no name, no meeting, no favor, no "let me know if you hear of anything". The job of these words is to be back in touch with someone the writer has lost contact with, and to mention in passing that they are looking, so the door is open for a later conversation. Warm, brief, genuinely interested in them. If it says how they know each other, lead with that; otherwise lead honestly on having seen where they are now. Ending on a real question about them is good, and so is ending on something the writer could do for them — an offer is not a request, and here it is often the most natural close there is. Ending on a request is a failure. Email body 90 words maximum, two short paragraphs.`,
 }
@@ -3608,7 +3608,7 @@ ${asText(bridgeStory)}`,
   //
   // Returns both versions in ONE call. Keys are deliberately single-word so the
   // underscore-key-drift failure mode cannot occur; no repair pass needed.
-  known_outreach:(pc,brand,roleFit,companyName,roleTitle,contactFirst,contactTitle,connectedSince,candidateName,purpose,relContext)=>`Write a short outreach note from this person to someone they already know who works at ${companyName||'the company'}, where this person is pursuing a role. Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end with }.
+  known_outreach:(pc,brand,roleFit,companyRead,companyName,roleTitle,contactFirst,contactTitle,connectedSince,candidateName,purpose,relContext)=>`Write a short outreach note from this person to someone they already know who works at ${companyName||'the company'}, where this person is pursuing a role. Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end with }.
 
 THE SITUATION. The recipient is an existing first-degree LinkedIn connection — a real professional relationship, however warm or cool it has gone. This is NOT a cold approach and must never read like one. They are not the hiring manager and are probably not on the hiring team.
 
@@ -3616,7 +3616,7 @@ THE ASK — the whole point of the note, and it is given to you below. Write the
 
 ${OUTREACH_PURPOSES[purpose]||OUTREACH_PURPOSES.hiring}
 
-NEVER claim a shared history you were not given. Unless the HOW THEY KNOW EACH OTHER note below says otherwise, you know only their job title and roughly how long they have been connected: do not invent a project they worked on together, a mutual colleague, where they met, or a past conversation. With nothing concrete to reference, open honestly on the present ("I saw you are at ${companyName||'the company'} now"). Where that note IS present it is the user's own account of the relationship, so use it, and let it set how familiar the note is allowed to sound.
+NEVER claim a shared history you were not given. Unless the HOW THEY KNOW EACH OTHER note below says otherwise, you know only their job title and roughly how long they have been connected: do not invent a project they worked on together, a mutual colleague, where they met, or a past conversation. With nothing concrete to reference, open honestly on the present ("I saw you are at ${companyName||'the company'} now"). Where that note IS present it is the user's own account of the relationship, so use it, and let it set how familiar the note is allowed to sound. OPEN ON THE RELATIONSHIP, NOT THE ASK: lead with how they know each other and where things left off, then come to the company and the role. A line acknowledging their move ("I saw you are at ${companyName||'the company'} now — hope the move has gone well") does real work before anything is requested of them. Coming straight to the ask reads as a favor request from someone who only got in touch because they wanted something.
 
 RETURN THIS SHAPE:
 {
@@ -3648,6 +3648,9 @@ THE ROLE THIS PERSON IS PURSUING: ${roleTitle||'(not specified)'}
 
 WHERE THEY FIT (the one sentence of context should be drawn from here):
 ${(roleFit||'').slice(0,1500)||'(not built)'}
+
+ABOUT THIS COMPANY — research already done on this employer. Use it to make the note specific to ${companyName||'this company'} rather than one that would fit any company. Draw ONLY on what is written here: never invent a review, a rating, a number, a news item or a person's name. Where this is empty, keep the note general rather than reaching for a fact you do not have.
+${(companyRead||'').slice(0,3000)||'(not built)'}
 
 PERSONAL BRAND (their voice and the through-line of their background):
 ${(brand||'').slice(0,2500)||'(not built yet)'}
@@ -6701,9 +6704,10 @@ export default function PivotEngine(){
       const companyName=((rec0&&rec0.company)||'').trim()
       const roleTitle=((rec0&&rec0.role)||'').trim()
       const roleFit=((_s.p5&&_s.p5.content)||'').trim()
+      const companyRead=((_s.companyRead&&_s.companyRead.content)||'').trim()
       const brand=asText(outputs.p3)
       const candidateName=deriveDisplayName(profile.resume)
-      const fn=()=>correctionsBlock(profile.corrections)+P.known_outreach(pc,brand,roleFit,companyName,roleTitle,firstNameOf(person.n),person.t,person.d,candidateName,purpose||'hiring',relContext)
+      const fn=()=>correctionsBlock(profile.corrections)+P.known_outreach(pc,brand,roleFit,companyRead,companyName,roleTitle,firstNameOf(person.n),person.t,person.d,candidateName,purpose||'hiring',relContext)
       const r=await callClaudeWithVoiceGate(fn,{maxTokens:1400,voiceMode:'prose',profileBlock:buildUserProfileBlock(pc,outputs),step:'known-outreach'},{step:'known-outreach',onEvent:logVoiceEvent})
       const parsed=parseOutreachJSON(typeof r==='string'?r:'')
       if(!parsed){setOutreachErr(e=>({...e,[key]:'That draft came back in a shape we could not read. Try again.'}));return}
@@ -10051,6 +10055,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const resumeRefresh=((_s.p_res&&_s.p_res.content)||'').trim()||asText(pc.resume)
       const companyReadText=((_s.companyRead&&_s.companyRead.content)||'').trim()
       const roleFit=((_s.p5&&_s.p5.content)||'').trim()
+      const companyRead=((_s.companyRead&&_s.companyRead.content)||'').trim()
       const brand=asText(outputs.p3)
       const candidateName=deriveDisplayName(profile.resume)
       const lv=opLaneValue(rec0)
@@ -12454,6 +12459,34 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 // the outlined secondary for the two diagnostic steps.
                 const _secBtn={...S.sec,textDecoration:'none'}
                 const _goldBtn={...S.btn,textDecoration:'none'}
+                const _addSomeone=(()=>{
+                      // Someone the file does not have: a connection made since the
+                      // export, a person who moved after it, or a name that came from
+                      // outside LinkedIn. Fifteen seconds of typing beats a two-day
+                      // wait for a fresh export, and everything on the card — the
+                      // purposes, the drafts, the address patterns — works on them
+                      // immediately. Stored separately from the parsed file so
+                      // replacing the file does not wipe them.
+                      if(!_company||isDemo)return null
+                      const _mOpen=!!manualOpen[_slotForSearch]
+                      const _mInput={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',marginTop:4}
+                      if(!_mOpen)return <Btn secondary onClick={()=>{setManualErr(null);setManualOpen(x=>({...x,[_slotForSearch]:true}))}}><Plus size={14}/>Add someone yourself</Btn>
+                      return <div style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 14px'}}>
+                        <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:8}}>Add someone at {_company}</div>
+                        <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Their name is enough. A title helps the note sound like you know what they do.</div>
+                        <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:10,marginBottom:12}}>
+                          <label style={{display:'block',fontSize:15,color:C.gray}}>Name<input value={manualDraft.name} onChange={e=>setManualDraft(d=>({...d,name:e.target.value}))} placeholder="Dana Whitfield" style={_mInput}/></label>
+                          <label style={{display:'block',fontSize:15,color:C.gray}}>Their job there (optional)<input value={manualDraft.title} onChange={e=>setManualDraft(d=>({...d,title:e.target.value}))} placeholder="VP Operations" style={_mInput}/></label>
+                          <label style={{display:'block',fontSize:15,color:C.gray}}>Link to their profile (optional)<input value={manualDraft.url} onChange={e=>setManualDraft(d=>({...d,url:e.target.value}))} placeholder="https://www.linkedin.com/in/..." style={_mInput}/></label>
+                        </div>
+                        {manualErr&&<div style={{marginBottom:10}}><ErrBox msg={manualErr}/></div>}
+                        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                          <Btn small onClick={()=>addManualPerson(_company)}><Check size={12}/>Add them</Btn>
+                          <Btn small secondary onClick={()=>{setManualOpen(x=>({...x,[_slotForSearch]:false}));setManualErr(null)}}>Done</Btn>
+                        </div>
+                        <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:10}}>They stay on this computer with the rest of your connections, and a newer file will not remove them.</div>
+                      </div>
+                    })()
                 const _linkBtn=<div>
                   <a href={linkedInSecondDegreeUrl(searchQuery(_company,_srch.extra))} target="_blank" rel="noopener noreferrer" style={_goldBtn}>See who can introduce you<ArrowUpRight size={16}/></a>
                   <CoachingCallout>
@@ -12486,18 +12519,22 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     {!isDemo&&<FileUpload label="Your LinkedIn connections file" hint="The Connections.csv from LinkedIn's data export. We read it here in your browser; it never reaches our servers." accept=".csv,.txt" onFile={loadConnectionsFile}/>}
                     {connBusy&&<div style={{marginTop:10,fontSize:15,color:C.gray}}>Reading your file…</div>}
                     {connError&&<div style={{marginTop:10}}><ErrBox msg={connError}/></div>}
+                    {_company&&<div style={{marginTop:18,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                      <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:10}}>Already know someone at {_company}? You do not have to wait for the file. Add them now and everything on this card works for them straight away.</div>
+                      {_addSomeone}
+                    </div>}
                   </>}
-                  {connNetwork&&<>
+                  {(connNetwork||_hits.length>0)&&<>
                     {/* The date is the reason a person would want to replace the file,
                         so the offer sits in the same sentence as the date rather than
                         pushed to the far edge of the row where the two read as
                         unrelated. */}
-                    <div style={{marginTop:14,fontSize:16,color:C.gray,lineHeight:1.6}}>
+                    {connNetwork&&<div style={{marginTop:14,fontSize:16,color:C.gray,lineHeight:1.6}}>
                       {connNetwork.people.length.toLocaleString()} connections{_loadedLabel?`, loaded ${_loadedLabel}`:''}.{' '}
                       {connStepsOpen
                         ?<button type="button" onClick={()=>setConnStepsOpen(false)} style={{background:'none',border:'none',color:C.goldL,fontWeight:600,cursor:'pointer',padding:0,fontSize:16,fontFamily:'inherit'}}>Never mind</button>
                         :<>Have a newer one from LinkedIn? <button type="button" onClick={()=>setConnStepsOpen(true)} style={{background:'none',border:'none',color:C.goldL,fontWeight:700,cursor:'pointer',padding:0,fontSize:16,fontFamily:'inherit'}}>Upload it here</button></>}
-                    </div>
+                    </div>}
                     {connStepsOpen&&!isDemo&&<div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
                       <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Ask LinkedIn for a new Connections file on <a href={LINKEDIN_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer" style={{color:C.goldL,fontWeight:600}}>your data download page</a>, then drop it below. It takes the place of the one you have now, and everything on this card re-runs against it.</div>
                       <FileUpload label="A newer connections file" hint="Connections.csv from LinkedIn. Read in your browser, same as before." accept=".csv,.txt" onFile={loadConnectionsFile}/>
@@ -12621,34 +12658,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       })}
                       <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                         <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>Know someone else at {_company} who is not listed? Add them and they get the same treatment.</div>
-                    {(()=>{
-                      // Someone the file does not have: a connection made since the
-                      // export, a person who moved after it, or a name that came from
-                      // outside LinkedIn. Fifteen seconds of typing beats a two-day
-                      // wait for a fresh export, and everything on the card — the
-                      // purposes, the drafts, the address patterns — works on them
-                      // immediately. Stored separately from the parsed file so
-                      // replacing the file does not wipe them.
-                      if(!_company||isDemo)return null
-                      const _mOpen=!!manualOpen[_slotForSearch]
-                      const _mInput={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',marginTop:4}
-                      if(!_mOpen)return <Btn secondary onClick={()=>{setManualErr(null);setManualOpen(x=>({...x,[_slotForSearch]:true}))}}><Plus size={14}/>Add someone yourself</Btn>
-                      return <div style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 14px'}}>
-                        <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:8}}>Add someone at {_company}</div>
-                        <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Their name is enough. A title helps the note sound like you know what they do.</div>
-                        <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:10,marginBottom:12}}>
-                          <label style={{display:'block',fontSize:15,color:C.gray}}>Name<input value={manualDraft.name} onChange={e=>setManualDraft(d=>({...d,name:e.target.value}))} placeholder="Dana Whitfield" style={_mInput}/></label>
-                          <label style={{display:'block',fontSize:15,color:C.gray}}>Their job there (optional)<input value={manualDraft.title} onChange={e=>setManualDraft(d=>({...d,title:e.target.value}))} placeholder="VP Operations" style={_mInput}/></label>
-                          <label style={{display:'block',fontSize:15,color:C.gray}}>Link to their profile (optional)<input value={manualDraft.url} onChange={e=>setManualDraft(d=>({...d,url:e.target.value}))} placeholder="https://www.linkedin.com/in/..." style={_mInput}/></label>
-                        </div>
-                        {manualErr&&<div style={{marginBottom:10}}><ErrBox msg={manualErr}/></div>}
-                        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                          <Btn small onClick={()=>addManualPerson(_company)}><Check size={12}/>Add them</Btn>
-                          <Btn small secondary onClick={()=>{setManualOpen(x=>({...x,[_slotForSearch]:false}));setManualErr(null)}}>Done</Btn>
-                        </div>
-                        <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:10}}>They stay on this computer with the rest of your connections, and a newer file will not remove them.</div>
-                      </div>
-                    })()}
+                    {_addSomeone}
                       </div>
                       <div style={{marginTop:16}}>{_linkBtn}</div>
                     </div>}
@@ -12669,34 +12679,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
                           <a href={linkedInFirstDegreeUrl(_company)} target="_blank" rel="noopener noreferrer" style={_secBtn}>Look on LinkedIn<ArrowUpRight size={15}/></a>
                         </div>
-                    {(()=>{
-                      // Someone the file does not have: a connection made since the
-                      // export, a person who moved after it, or a name that came from
-                      // outside LinkedIn. Fifteen seconds of typing beats a two-day
-                      // wait for a fresh export, and everything on the card — the
-                      // purposes, the drafts, the address patterns — works on them
-                      // immediately. Stored separately from the parsed file so
-                      // replacing the file does not wipe them.
-                      if(!_company||isDemo)return null
-                      const _mOpen=!!manualOpen[_slotForSearch]
-                      const _mInput={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',marginTop:4}
-                      if(!_mOpen)return <Btn secondary onClick={()=>{setManualErr(null);setManualOpen(x=>({...x,[_slotForSearch]:true}))}}><Plus size={14}/>Add someone yourself</Btn>
-                      return <div style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 14px'}}>
-                        <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:8}}>Add someone at {_company}</div>
-                        <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Their name is enough. A title helps the note sound like you know what they do.</div>
-                        <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:10,marginBottom:12}}>
-                          <label style={{display:'block',fontSize:15,color:C.gray}}>Name<input value={manualDraft.name} onChange={e=>setManualDraft(d=>({...d,name:e.target.value}))} placeholder="Dana Whitfield" style={_mInput}/></label>
-                          <label style={{display:'block',fontSize:15,color:C.gray}}>Their job there (optional)<input value={manualDraft.title} onChange={e=>setManualDraft(d=>({...d,title:e.target.value}))} placeholder="VP Operations" style={_mInput}/></label>
-                          <label style={{display:'block',fontSize:15,color:C.gray}}>Link to their profile (optional)<input value={manualDraft.url} onChange={e=>setManualDraft(d=>({...d,url:e.target.value}))} placeholder="https://www.linkedin.com/in/..." style={_mInput}/></label>
-                        </div>
-                        {manualErr&&<div style={{marginBottom:10}}><ErrBox msg={manualErr}/></div>}
-                        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                          <Btn small onClick={()=>addManualPerson(_company)}><Check size={12}/>Add them</Btn>
-                          <Btn small secondary onClick={()=>{setManualOpen(x=>({...x,[_slotForSearch]:false}));setManualErr(null)}}>Done</Btn>
-                        </div>
-                        <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:10}}>They stay on this computer with the rest of your connections, and a newer file will not remove them.</div>
-                      </div>
-                    })()}
+                    {_addSomeone}
                       </div>
                       <div style={{marginBottom:16}}>
                         <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>They may go by another name. Try the parent company, one of its divisions, or what they were called before, and we will search your connections again.</div>
