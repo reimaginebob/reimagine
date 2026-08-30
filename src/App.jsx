@@ -4175,7 +4175,7 @@ function ResumeVersionSeg({variant,setVariant}){
 // Resume Refresh view with a Human / ATS version toggle. Both versions render from
 // the SAME parsed record; the toggle only changes arrangement and the download
 // target. Self-contained state so it does not touch the parent's hooks.
-function ResumeRefreshView({resumeJson,isDemo,copy,copied}){
+function ResumeRefreshView({resumeJson,isDemo,copy,copied,independent=false}){
   const [variant,setVariant]=useState('human')
   const ats=variant==='ats'
   const resumeText=renderResumeText(resumeJson,ats)
@@ -4183,7 +4183,7 @@ function ResumeRefreshView({resumeJson,isDemo,copy,copied}){
     ?'Tuned for the parser: a Core Competencies keyword bank up top, standard headings, and plain type. Best when you apply through a company portal like Workday, Greenhouse, or iCIMS.'
     :'Tuned for a person: your strongest wins above the fold, with bold drawing the eye. Best for a recruiter hand-off, a referral, or walking into an interview.'
   return <>
-    <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Below is your Resume Refresh, ready to download and print as a Word document. Switch between the version a recruiter reads and the version an applicant tracking system reads. Both are built from the same content.</div>
+    <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>{independent?'Below is your One-Sheet, ready to download and print as a Word document. Switch between the version a person reads and the plain-text version, which travels better when someone forwards it. Both are built from the same content.':'Below is your Resume Refresh, ready to download and print as a Word document. Switch between the version a recruiter reads and the version an applicant tracking system reads. Both are built from the same content.'}</div>
     <ResumeVersionSeg variant={variant} setVariant={setVariant}/>
     <div style={{...S.footnote,marginTop:0,marginBottom:12,color:C.gray}}>{helper}</div>
     <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:17,lineHeight:1.65,color:C.cream,margin:0}}>{resumeText}</pre></div>
@@ -5443,7 +5443,7 @@ function PracticeAnswerBox({questionText,onPracticeAnswer,who}){
       <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
         {/* Append, not replace: SpeechBtn freezes `answer` at record-start and
             sends the growing transcript, so a typed start survives dictation. */}
-        <textarea autoFocus style={{...S.ta,minHeight:110,flex:1}} value={answer} onChange={e=>setAnswer(e.target.value)} placeholder="Say it or type it here, the way you would answer it in the interview."/>
+        <textarea autoFocus style={{...S.ta,minHeight:110,flex:1}} value={answer} onChange={e=>setAnswer(e.target.value)} placeholder="Say it or type it here, the way you would say it out loud."/>
         {hasSpeech&&<SpeechBtn onResult={t=>setAnswer(answer+t)} style={{marginTop:2}}/>}
       </div>
       <div style={S.helperText}>{hasSpeech?'Tap the microphone to speak your answer, or type it. ':''}My Coach reads what you wrote and tells you what is working and what to sharpen.</div>
@@ -9116,7 +9116,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if(orphans.length){qNodes.push(grpHeader('More questions','grp-other'));orphans.forEach(pushQ)}
     }
     return <>
-      <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Interview Prep for <strong>{ip.role_context.target_role}</strong>. {ip.role_context.role_summary} Below are the questions to expect, with the raw material from your own inputs to build each answer. The strongest version is in your voice, with the specifics only you can add.</div>
+      <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>{isIndependent?'Discovery Call & Pitch Prep':'Interview Prep'} for <strong>{ip.role_context.target_role}</strong>. {ip.role_context.role_summary} Below are the questions to expect, with the raw material from your own inputs to build each answer. The strongest version is in your voice, with the specifics only you can add.</div>
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:4}}><Btn small onClick={copyAll}>{copied?<><CheckCheck size={11}/>Copied</>:<><Copy size={11}/>Copy All</>}</Btn></div>
       {panelSeats.length>0&&<div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'16px 20px',margin:'14px 0'}}>
         <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>Your interview team</div>
@@ -11323,7 +11323,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
       {!isDemo&&<div style={S.tag('#C8924A')}>Personal Brand</div>}
       <h1 id="section-p3" style={S.title}>Your Personal Brand</h1>
-      {!isDemo&&<p style={S.sub}>{isIndependent?'Personal Brand answers the question every conversation about your work circles back to: who are you, and what do you bring?':'Personal Brand answers the question every job conversation circles back to: who are you at work, and what do you bring?'} The answer is the through-line that runs through your accomplishments, your wiring, and what others say about you, and it is what makes you distinctive. Everything that comes later — your answer to "tell me about yourself," the companies and people you target, the resume and LinkedIn that match where you are headed, the prep for every conversation ahead — is built on it.</p>}
+      {!isDemo&&<p style={S.sub}>{isIndependent?'Personal Brand answers the question every conversation about your work circles back to: who are you, and what do you bring?':'Personal Brand answers the question every job conversation circles back to: who are you at work, and what do you bring?'} The answer is the through-line that runs through your accomplishments, your wiring, and what others say about you, and it is what makes you distinctive. Everything that comes later {isIndependent?'— the way you introduce yourself to a prospect, the clients you go after, the LinkedIn and one-sheet that say what you sell, the prep for every conversation ahead —':'— your answer to "tell me about yourself," the companies and people you target, the resume and LinkedIn that match where you are headed, the prep for every conversation ahead —'} is built on it.</p>}
 
       {/* Migration banner. Shown only when a v1 p3 exists. Refresh runs p3
           only; downstream content is preserved. The banner suppresses the
@@ -12117,7 +12117,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             // manual single-card Build/Rebuild never shows the banner.
             const _opAutoSeq=_pendingAutoBuildRef.current===currentSavedSlotIdRef.current
             const _renderSection=(key,content)=>{
-              if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <ResumeRefreshView resumeJson={j} isDemo={isDemo} copy={copy} copied={copied}/>}
+              if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <ResumeRefreshView resumeJson={j} isDemo={isDemo} copy={copy} copied={copied} independent={isIndependent}/>}
               if(key==='p11')return renderInterviewPrep(content,isDemo?undefined:regenerateOpP11Question,regeneratingP11QuestionIdx,p11QuestionErrors,isDemo?undefined:(seatName)=>openCoachWith(`Help me prep for my interview with ${seatName} for ${_rec.title||'this role'}.`,false,'p11'))
               return <div style={S.out}><MD text={content}/></div>
             }
