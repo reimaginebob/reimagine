@@ -10462,11 +10462,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const wrap=(inner)=><div style={{maxWidth:900,margin:'0 0 32px'}}>
       <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',margin:'0 0 6px'}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:0}}>My Pipeline</h2>
-        <Btn small secondary onClick={addNewOpportunity}>+ Add {isIndependent?'a Client Opportunity':'an Opportunity'}</Btn>
+        {/* The practice track carries one gold button below the list instead.
+            Two controls for the same action, one muted and one prominent, made
+            the screen read as though they did different things. */}
+        {!isIndependent&&<Btn small secondary onClick={addNewOpportunity}>+ Add an Opportunity</Btn>}
       </div>
       <CoachingCallout>All the opportunities you're pursuing, in one place. As things change, update where each one stands, when you'll next talk, and what you're doing next — it all saves, so it's here whenever you come back. Finished a step? Mark it done and put in whatever comes next.</CoachingCallout>
       {pipelineIntroCard()}
       {inner}
+      {isIndependent&&!isDemo&&<div style={{marginTop:18}}><Btn onClick={addNewOpportunity}><Plus size={14}/>Add a client opportunity</Btn></div>}
     </div>
     if(ops.length===0)return wrap(<CoachingCallout>Nothing here yet. When you add an opportunity, it'll show up with its stage and what's next — so you can see where each one is going.</CoachingCallout>)
     const now=Date.now()
@@ -11882,7 +11886,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>
     case'pipeline':return <div>
-      {isIndependent&&!isDemo&&<div style={{margin:'0 0 20px'}}><Btn onClick={addNewOpportunity}><Plus size={14}/>Add a client opportunity</Btn></div>}
       {mySearchPanel()}
       {hasConnectorBeta&&connectAssistantPanel()}
     </div>
