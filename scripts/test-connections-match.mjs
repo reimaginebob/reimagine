@@ -1,0 +1,118 @@
+// Unit tests for src/connections-match.mjs — the LinkedIn connections parse and
+// the company matching behind "Who You Know Here".
+import {
+  parseCsv, parseConnectionsCsv, normalizeCompany, companyMatch, matchConnections,
+  linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince,
+} from '../src/connections-match.mjs'
+
+let passed = 0
+const fail = (msg) => { console.error('FAIL: ' + msg); process.exitCode = 1 }
+const ok = (cond, msg) => { if (cond) passed++; else fail(msg) }
+const eq = (a, b, msg) => ok(JSON.stringify(a) === JSON.stringify(b), `${msg} — got ${JSON.stringify(a)}, wanted ${JSON.stringify(b)}`)
+
+// ── CSV parsing ──────────────────────────────────────────────────────────────
+
+eq(parseCsv('a,b\n1,2'), [['a', 'b'], ['1', '2']], 'plain rows')
+eq(parseCsv('a,"b,c"\n1,2'), [['a', 'b,c'], ['1', '2']], 'a quoted field keeps its comma')
+eq(parseCsv('a,"say ""hi"""'), [['a', 'say "hi"']], 'doubled quotes unescape')
+eq(parseCsv('a,b\r\n1,2'), [['a', 'b'], ['1', '2']], 'CRLF line endings')
+eq(parseCsv('a,"line\nbreak"'), [['a', 'line\nbreak']], 'a newline inside quotes stays in the field')
+eq(parseCsv(''), [], 'empty input yields no rows')
+
+// The real export, preamble and all. LinkedIn has changed the number of notes
+// lines over time, so the header is found by content rather than by offset.
+const REAL = `Notes:
+"When exporting your connection data, you may notice that some of the email addresses are missing."
+"Members can choose whether to share their email address."
+
+First Name,Last Name,URL,Email Address,Company,Position,Connected On
+Dana,Whitfield,https://www.linkedin.com/in/danawhitfield,,"Ameriprise Financial Services, Inc.",VP Operations,"14 Mar 2019"
+Marcus,Bell,https://www.linkedin.com/in/marcusbell,marcus@example.com,Ameriprise Financial,Director of Client Service,"02 Feb 2021"
+Priya,Raman,https://www.linkedin.com/in/priyaraman,,Thrivent,Portfolio Manager,"09 Sep 2020"
+NoCompany,Person,https://www.linkedin.com/in/nocompany,,,,"01 Jan 2022"
+`
+
+const parsed = parseConnectionsCsv(REAL)
+ok(parsed.error === null, 'the real export parses without error')
+eq(parsed.people.length, 3, 'three usable rows')
+eq(parsed.skipped, 1, 'the row with no company is skipped, not carried')
+eq(parsed.people[0], {
+  n: 'Dana Whitfield', c: 'Ameriprise Financial Services, Inc.', t: 'VP Operations',
+  u: 'https://www.linkedin.com/in/danawhitfield', d: '14 Mar 2019',
+}, 'the first row maps to compact keys with its comma intact')
+
+// A header with no preamble at all, in case LinkedIn drops it.
+ok(parseConnectionsCsv('First Name,Last Name,Company\nA,B,Acme\n').people.length === 1, 'a bare header still parses')
+// A BOM on the first line must not hide the header.
+ok(parseConnectionsCsv('﻿First Name,Last Name,Company\nA,B,Acme\n').people.length === 1, 'a BOM does not hide the header')
+// Wrong file entirely.
+eq(parseConnectionsCsv('Date,Subject,Body\n2026-01-01,hi,there\n').error, 'no-header', 'a different export is rejected')
+eq(parseConnectionsCsv('').error, 'no-header', 'empty input is rejected')
+
+// ── Company normalization ────────────────────────────────────────────────────
+
+eq(normalizeCompany('Ameriprise Financial Services, Inc.').key, 'ameriprise financial services', 'legal suffix dropped')
+eq(normalizeCompany('  ACME   Corp.  ').key, 'acme', 'case, padding and suffix dropped')
+eq(normalizeCompany('Johnson & Johnson').key, 'johnson and johnson', 'ampersand spelled out')
+eq(normalizeCompany('').key, '', 'empty stays empty')
+eq(normalizeCompany('LLC').key, '', 'a name that is only a suffix normalizes away')
+
+// ── Company matching ─────────────────────────────────────────────────────────
+
+eq(companyMatch('Ameriprise Financial Services, Inc.', 'Ameriprise Financial Services'), 'exact', 'suffix-only difference is exact')
+eq(companyMatch('ameriprise financial', 'Ameriprise Financial'), 'exact', 'case-only difference is exact')
+eq(companyMatch('Ameriprise', 'Ameriprise Financial Services'), 'likely', 'a distinctive leading token is a likely match')
+eq(companyMatch('Ameriprise Financial Services', 'Ameriprise'), 'likely', 'likely works in either direction')
+eq(companyMatch('Thrivent', 'Ameriprise'), null, 'unrelated companies do not match')
+eq(companyMatch('', 'Ameriprise'), null, 'a blank employer never matches')
+eq(companyMatch('Ameriprise', ''), null, 'a blank target never matches')
+
+// The false-positive guard: a single generic leading word is not identity.
+eq(companyMatch('First National Bank', 'First Republic'), null, 'a shared generic first word is not a match')
+eq(companyMatch('United', 'United Airlines'), null, 'one weak token alone does not match')
+// "Holdings" is left out of the legal-suffix list on purpose: it is part of a
+// real name (United Airlines Holdings is the actual parent), so this lands as
+// likely rather than exact. The person still surfaces, labelled honestly.
+eq(companyMatch('United Airlines', 'United Airlines Holdings'), 'likely', 'a parent-entity name is likely, not exact')
+eq(companyMatch('American Express', 'American Express Global'), 'likely', 'two leading tokens carry the match even when the first is generic')
+// A prefix run, not a bag of words: order has to hold.
+eq(companyMatch('Bank of Apple', 'Apple'), null, 'a token appearing later does not make a prefix match')
+
+// ── Match listing ────────────────────────────────────────────────────────────
+
+const people = parsed.people
+const hits = matchConnections(people, 'Ameriprise Financial Services')
+eq(hits.map(h => h.n), ['Dana Whitfield', 'Marcus Bell'], 'both Ameriprise people are found')
+eq(hits[0].match, 'exact', 'the exact match sorts first')
+eq(hits[1].match, 'likely', 'the likely match sorts after it')
+eq(matchConnections(people, 'Thrivent').map(h => h.n), ['Priya Raman'], 'a different company finds its own person')
+eq(matchConnections(people, 'Nowhere Corp'), [], 'no match yields an empty list')
+eq(matchConnections(people, ''), [], 'no target yields an empty list')
+eq(matchConnections(null, 'Ameriprise'), [], 'no network yields an empty list')
+
+// Two exact matches sort alphabetically, so the list does not shuffle.
+const twoExact = [{ n: 'Zoe Adams', c: 'Acme' }, { n: 'Al Brown', c: 'Acme' }]
+eq(matchConnections(twoExact, 'Acme').map(h => h.n), ['Al Brown', 'Zoe Adams'], 'equal matches sort by name')
+
+// ── LinkedIn hand-off ────────────────────────────────────────────────────────
+
+ok(linkedInSecondDegreeUrl('Ameriprise Financial').includes('keywords=Ameriprise%20Financial'), 'the company is encoded into the search')
+ok(linkedInSecondDegreeUrl('Ameriprise').includes('network='), 'the network filter is present')
+ok(!linkedInSecondDegreeUrl('').includes('keywords='), 'no company yields a plain people search rather than a broken query')
+
+// ── Storage ──────────────────────────────────────────────────────────────────
+
+const packed = packNetwork([{ n: 'A', c: 'B' }], '2026-08-30T12:00:00Z')
+eq(unpackNetwork(packed).people.length, 1, 'a packed network unpacks')
+eq(unpackNetwork(packed).loadedAt, '2026-08-30T12:00:00Z', 'the load date survives the round trip')
+eq(unpackNetwork({ v: 2, people: [] }), null, 'a future version is refused rather than misread')
+eq(unpackNetwork({ v: 1 }), null, 'a malformed blob is refused')
+eq(unpackNetwork(null), null, 'nothing stored yields nothing')
+
+const NOW = Date.parse('2026-08-30T00:00:00Z')
+eq(daysSince('2026-08-30T00:00:00Z', NOW), 0, 'today is zero days')
+eq(daysSince('2026-05-30T00:00:00Z', NOW), 92, 'three months back counts the days')
+eq(daysSince(null, NOW), null, 'no date yields no answer')
+eq(daysSince('not a date', NOW), null, 'an unparseable date yields no answer')
+
+console.log(`test-connections-match: OK (${passed} cases passed)`)

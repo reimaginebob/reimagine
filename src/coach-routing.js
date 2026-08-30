@@ -96,6 +96,13 @@ export const FEATURE_MAP = [
   { slug: 'offer-negotiation',    reach: 'opportunity-gated', label: 'Offer & Negotiation',
     does: 'takes the offer (typed, or uploaded as a letter that it parses into its parts), places it against the sourced range, frames the ask as an evidence case from the person\'s own accomplishments, checks it against the Practical Priorities they set in Orientation, lets them price the benefits package, generates a printable set of talking points for the conversation (what to confirm, what to ask for with the words to use, what to get in writing, condensed from the analysis), and carries a static total-compensation checklist plus negotiation scripts; judgment calls (severance timing, algorithmic offers, reading layoff history, who to talk to) route here to Coach, whose ground truth is the "How an offer is put together" guide chapter',
     where: 'inside the Opportunity Playbook, built on the Compensation Read' },
+  // Who You Know Here (2026-08-30). A card, not a nav step, so it carries its own
+  // label and `where`. The limits matter more than the feature here: the coach
+  // must never imply Reimagine can see a LinkedIn network on its own, and must
+  // never promise second-degree connections, which LinkedIn exports to nobody.
+  { slug: 'known-contacts',       reach: 'opportunity-gated', label: 'Who You Know Here',
+    does: 'shows which of the person\'s own LinkedIn connections already work at the company on an opportunity, so they can ask for an introduction instead of applying cold. It works only after they load their LinkedIn connections export into Reimagine themselves — a file they request from LinkedIn on a computer, which can take up to two days to arrive. That file is read in their browser and never reaches Reimagine, so you cannot see it, cannot see who they know, and must ask rather than assume. It matches first-degree connections only: LinkedIn exports no data about who their connections are connected to, so second-degree introductions are handed off to a pre-filtered LinkedIn search link on the card rather than computed. A blank result can mean an out-of-date file as easily as no connection',
+    where: 'inside the Opportunity Playbook, under About This Company' },
   { slug: 'offer-comparison',     reach: 'opportunity-gated', label: 'Compare offers',
     does: 'lines up the person\'s logged offers side by side, with the priced value of each benefits package on its own line rather than blended into one number; informational, it does not rank the offers or say which to take',
     where: 'in My Playbooks, once two or more opportunities have a logged offer' },

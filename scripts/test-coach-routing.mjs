@@ -96,11 +96,12 @@ eq('strips <verdict>none</verdict> element (arbitrary tag), feature null',
 ok('community slugs are in the canonical set',
   CANONICAL_FEATURE_SLUGS.includes('career-club-corner') && CANONICAL_FEATURE_SLUGS.includes('accountability-partner'))
 // 18 until 2026-08-27, when Go Independent added where-you-fit and
-// positioning-line; 21 since 2026-08-30, when My Pipeline went GA and moved out
-// of the uncached per-user block in api/coach.js into the catalog. The count is a
-// tripwire for an accidental edit to FEATURE_MAP, so it moves deliberately with
-// the map and never on its own.
-ok('CANONICAL_FEATURE_SLUGS has 21 entries', CANONICAL_FEATURE_SLUGS.length === 21)
+// positioning-line; 21 when My Pipeline went GA and moved out of the uncached
+// per-user block in api/coach.js into the catalog; 22 since 2026-08-30, when Who
+// You Know Here (known-contacts) was added. The count is a tripwire for an
+// accidental edit to FEATURE_MAP, so it moves deliberately with the map and
+// never on its own.
+ok('CANONICAL_FEATURE_SLUGS has 22 entries', CANONICAL_FEATURE_SLUGS.length === 22)
 
 // --- FEATURE_MAP is the single structured source ---
 eq('CANONICAL_FEATURE_SLUGS derives from FEATURE_MAP (same order)',
