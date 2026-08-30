@@ -12381,7 +12381,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _loadedLabel=connNetwork&&connNetwork.loadedAt?new Date(connNetwork.loadedAt).toLocaleDateString(undefined,{month:'long',day:'numeric'}):null
                 const _stale=_age!=null&&_age>=STALE_AFTER_DAYS
                 const _where=_company||'this company'
-                const _linkBtn=<a href={linkedInSecondDegreeUrl(_company)} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:15,fontWeight:600,color:C.gold,textDecoration:'none'}}>See who is one step away<ArrowUpRight size={14}/></a>
+                const _linkBtn=<div>
+                  <a href={linkedInSecondDegreeUrl(_company)} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:15,fontWeight:600,color:C.gold,textDecoration:'none'}}>See who is one step away<ArrowUpRight size={14}/></a>
+                  <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:6}}>Under every name LinkedIn lists your <strong style={{color:'#1A2540'}}>mutual connections</strong>. That line is the point: it names the people who can introduce you. Find someone senior enough to matter, see who you both know, and ask that person.</div>
+                </div>
                 return _cardWrap(<>
                   <div style={{flex:1,minWidth:220}}>
                     <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>Who You Know Here</div>
@@ -12499,7 +12502,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{marginTop:10}}>{_linkBtn}</div>
                       {_stale&&<CoachingCallout>That file is {Math.floor(_age/30)} months old. Refreshing it takes about two minutes.</CoachingCallout>}
                     </div>}
-                    <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.border}`,fontSize:15,color:C.gray,lineHeight:1.6}}>LinkedIn does not let any outside tool see who your connections are connected to. So we can tell you who you know directly; for the people one step past that, the link above drops you onto LinkedIn with the search already set up. Your connections file is never uploaded. Asking for a draft note is the one thing that sends anything: that person's first name, title and connection date, all of it public on their profile.</div>
+                    <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.border}`,fontSize:15,color:C.gray,lineHeight:1.6}}>LinkedIn does not let any outside tool see who your connections are connected to, which is why the people one step past your own network are handed to LinkedIn's own search rather than worked out here. Your connections file is never uploaded. Asking for a draft note is the one thing that sends anything: that person's first name, title and connection date, all of it public on their profile.</div>
                   </>}
                 </>,'section-knownContacts')
               })()}
