@@ -9,12 +9,13 @@
 //
 // Security: response_type must be `code`; client_id must be registered; the
 // redirect_uri must exactly match a registered one (checked BEFORE we ever
-// redirect, to avoid open redirects); PKCE S256 required; only users with the
-// my_search flag can grant.
+// redirect, to avoid open redirects); PKCE S256 required; only users in the
+// connector beta can grant (CONNECTOR_BETA_FLAG, api/_lib/feature-flags.js).
 
 import { sql } from '../_lib/db.js'
 import { getSessionUser } from '../_lib/session.js'
 import { randToken, sha256Hex, baseUrl, esc } from '../_lib/oauth.js'
+import { hasConnectorBeta } from '../_lib/feature-flags.js'
 
 function readParams(req) {
   if (req.method === 'POST') {
@@ -73,8 +74,9 @@ export default async function handler(req, res) {
   if (!user || !user.id) {
     return errorPage(res, 401, 'Sign in to Reimagine first', 'Open <a href="https://reimagine.career.club" style="color:#C8924A">reimagine.career.club</a> in this browser and sign in, then come back and click Connect again.')
   }
-  const flags = Array.isArray(user.feature_flags) ? user.feature_flags : []
-  if (!flags.includes('my_search')) {
+  // Connector beta, not My Pipeline: the screen went GA on 2026-08-30, granting
+  // an outside assistant a credential did not. See api/_lib/feature-flags.js.
+  if (!hasConnectorBeta(user)) {
     return errorPage(res, 403, 'Not available yet', 'The assistant connector is in limited beta and is not enabled on your account.')
   }
 

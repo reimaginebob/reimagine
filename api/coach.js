@@ -16,6 +16,7 @@
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { GO_INDEPENDENT_KNOWLEDGE } from '../src/data/go-independent-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
+import { hasConnectorBeta } from './_lib/feature-flags.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
@@ -71,6 +72,8 @@ function isAllowedOrigin(rawOrigin) {
 // throughout", and this is the narrow, explicit exception to that, exactly as the
 // interview-team trailer is. The model already sees current VALUES / PASSIONS AND
 // CAUSES in ANCHOR 1, so it knows whether it is filling a blank or replacing.
+const INTERVIEW_TEAM_CAPTURE_NOTE = '\n\nINTERVIEW TEAM CAPTURE: when this person names one or more specific people they will be interviewing with for one of their opportunities, end your reply with a final line exactly like INTERVIEWTEAM: {"opportunity":"<the opportunity title from their saved work>","people":[{"name":"Full Name","title":"their title if stated","role":"one of hiring_manager|skip_level|peer|cross_functional|recruiter_screen ONLY if they said how this person fits the loop, else omit role"}]} listing only the people they explicitly named. Map what they said to the role: "she is a peer" -> peer, "the hiring manager" -> hiring_manager, "recruiter screen" -> recruiter_screen, "her skip-level" -> skip_level, "a cross-functional partner" -> cross_functional. If they did not say how the person fits, omit role. The app turns that line into a one-tap "add to your Interview Team" offer and never shows it. Only emit it when they clearly named interviewers; otherwise omit it entirely.'
+
 const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passions & Causes live on a screen in Reimagine called "Values, Passions & Causes", and you can offer to write them there. When a conversation has settled into a statement of their values or their passions and causes that they seem happy with — their words and their conclusions, not a list you proposed and they have not responded to — end your reply with a final line exactly like VALUESCAPTURE: {"values":"Independence; Creative problem solving; Belonging","passions":"Youth mentoring; Faith-based service"} carrying whichever of the two you have. Include a key ONLY for a field the conversation actually settled; omit the other entirely. Write each as a short semicolon-separated list in their own words, not a paragraph and not your paraphrase. If ANCHOR 1 shows a field already has content, only emit it when they have clearly landed somewhere new — the tap replaces what is there. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
 
 // MY PIPELINE — live status (Move 1, 2026-08-18). coach.js otherwise never sees
@@ -366,19 +369,18 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
     ? ''
     : '\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.'
 
-  // My Search — a gated pilot feature (brief 2026-08-14). Lives here in the
-  // UNCACHED per-user block, keyed on the server-side feature flag, so an
-  // unflagged user's cached prompt prefix is unchanged and the feature stays
-  // hidden. It is deliberately NOT in FEATURE_MAP / COACH_NAV_MAP / the user
-  // guide during the pilot (that would leak it to everyone and fork the cache);
-  // this note is the only place the Coach learns of it until GA.
-  const hasMySearch = Array.isArray(featureFlags) && featureFlags.includes('my_search')
-  const myStatusNote = hasMySearch
-    ? '\n\nMY PIPELINE (this person has it; it is a limited pilot feature most users do not have — never imply it is generally available): My Pipeline is a live view of their saved Opportunity Playbooks, on its own My Pipeline screen (its own item in the sidebar, separate from My Playbooks). Each opportunity shows where it stands, when they will next talk, the next step they are taking, and which playbook cards are built, ordered so the one that needs attention comes first. They keep it current by editing a card, or by telling you when something changes — a date moved, an interview happened, an opportunity ended — and you offer to save it with one tap. A next step whose date has passed is flagged Overdue on its card. There is no separate completion log: when they finish a step they press Mark done on that card, which clears the step and its date together and takes the Overdue flag with it, then they type whatever comes next. The step they finished is filed onto the Notes card for that opportunity, so Mark done never loses it. If they ask how to clear an Overdue flag or how to log that a step is finished, that is the answer. They can also connect their own assistant (Gmail and Calendar) to keep it updated automatically if they want; Reimagine never reads their inbox. When they ask how to track their search or where an opportunity stands, this is the answer. Name it plainly in your normal voice; do not pitch it. There is no self-check slug for My Pipeline, so when it is the fitting answer, still help, and end with SELFCHECK: none. INTERVIEW TEAM CAPTURE: when this person names one or more specific people they will be interviewing with for one of their opportunities, end your reply with a final line exactly like INTERVIEWTEAM: {"opportunity":"<the opportunity title from their saved work>","people":[{"name":"Full Name","title":"their title if stated","role":"one of hiring_manager|skip_level|peer|cross_functional|recruiter_screen ONLY if they said how this person fits the loop, else omit role"}]} listing only the people they explicitly named. Map what they said to the role: "she is a peer" -> peer, "the hiring manager" -> hiring_manager, "recruiter screen" -> recruiter_screen, "her skip-level" -> skip_level, "a cross-functional partner" -> cross_functional. If they did not say how the person fits, omit role. The app turns that line into a one-tap "add to your Interview Team" offer and never shows it. Only emit it when they clearly named interviewers; otherwise omit it entirely.'
+  // My Pipeline went GA on 2026-08-30. What the feature IS now lives in
+  // FEATURE_MAP -> COACH_NAV_MAP and in the user guide chapter, both of which
+  // ride in the ONE cached system block every user already receives — so the
+  // description costs nothing per turn. Only the two things that cannot be
+  // cached stay here: this person's live pipeline rows, and the capture protocol.
+  // The connector half (Gmail/Calendar keeping it current unattended) is still a
+  // named beta, so the Coach is told about it separately, only for those users.
+  const myStatusData = buildPursuitStatusBlock(state, pursuitRows)
+  const connectorNote = hasConnectorBeta({ feature_flags: featureFlags })
+    ? '\n\nASSISTANT CONNECTOR (this person has it; it is a limited beta most users do not have — never imply it is generally available): they can connect their own assistant to Gmail and Calendar so their pipeline keeps itself current without them typing anything. Reimagine never reads their inbox. Mention it only if it fits what they are asking; do not pitch it.'
     : ''
-
-  const myStatusData = hasMySearch ? buildPursuitStatusBlock(state, pursuitRows) : ''
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusNote}${myStatusData}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -791,11 +793,14 @@ export default async function handler(req, res) {
   if (!generalMode && profileState && typeof profileState === 'object') {
     try { profileState.savedPlaybooks = await getSavedPlaybooks(user.id, profileState.savedPlaybooks) } catch (err) { console.error('coach saved_playbooks read failed; using blob', err && err.message) }
   }
-  // My Pipeline live status (Move 1) — only for flagged users, best-effort. The
-  // pursuit_status table is separate from profile_state, so it needs its own read
-  // to reach the coach; a failure here just drops the status block, never the turn.
+  // My Pipeline live status (Move 1) — every signed-in user since GA,
+  // best-effort. The pursuit_status table is separate from profile_state, so it
+  // needs its own read to reach the coach; a failure here just drops the status
+  // block, never the turn. An account with nothing in its pipeline comes back
+  // empty and buildPursuitStatusBlock renders nothing, so the ungated read costs
+  // one indexed lookup and adds no tokens for someone not using the feature.
   let pursuitRows = []
-  if (!generalMode && Array.isArray(featureFlags) && featureFlags.includes('my_search')) {
+  if (!generalMode) {
     try {
       pursuitRows = await sql`SELECT record_id, stage, next_conversation_at, next_step_at, next_move, situation_note, closed_at, outcome, updated_at FROM pursuit_status WHERE user_id = ${user.id}`
     } catch (err) {

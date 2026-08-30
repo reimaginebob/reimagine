@@ -94,8 +94,12 @@ export default function AdminDashboard() {
     } catch { setSuspendMsg("Network error. Try again.") }
     finally { setSuspendBusy(false) }
   }
-  // My Pipeline (my_search) beta access control. Test users are already
-  // registered, so this is a direct grant/revoke by email.
+  // Assistant connector beta access. My Pipeline itself went GA on 2026-08-30
+  // and needs no grant; this now controls only the connector -- letting someone's
+  // own assistant hold a token and write pipeline status unattended. The
+  // underlying flag value is still `my_search` (see api/_lib/feature-flags.js);
+  // only its meaning narrowed. Testers are already registered, so this is a
+  // direct grant/revoke by email.
   const [pipelineEmail, setPipelineEmail] = useState("")
   const [pipelineBusy, setPipelineBusy] = useState(false)
   const [pipelineMsg, setPipelineMsg] = useState("")
@@ -368,10 +372,10 @@ export default function AdminDashboard() {
             {suspendMsg && <div style={{ fontSize: 14, color: "#1A2540", marginTop: 10 }}>{suspendMsg}</div>}
           </Panel>
 
-          {/* My Pipeline beta access: grant / revoke the my_search flag by email */}
-          <Panel title={`My Pipeline access (${testers.length})`}>
+          {/* Connector beta access: grant / revoke by email */}
+          <Panel title={`Assistant connector access (${testers.length})`}>
             <div style={{ fontSize: 14, color: "#4A5568", lineHeight: 1.5, marginBottom: 10 }}>
-              Grant or revoke the My Pipeline beta for a registered user by email. Takes effect on their next page load.
+              Grant or revoke the assistant-connector beta for a registered user by email — letting their own Claude keep their pipeline current from Gmail and Calendar. My Pipeline itself is generally available and needs no grant. Takes effect on their next page load.
             </div>
             <input value={pipelineEmail} onChange={(e) => setPipelineEmail(e.target.value)} placeholder="user@example.com"
               style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", fontSize: 15, border: "1px solid #E2E5EA", borderRadius: 8, marginBottom: 10, fontFamily: "inherit" }} />

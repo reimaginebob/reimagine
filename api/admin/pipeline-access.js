@@ -1,4 +1,4 @@
-// Admin control to grant / revoke My Pipeline (the `my_search` flag) for an
+// Admin control to grant / revoke the assistant connector beta for an
 // existing user, by email. In the test-user phase everyone invited is already a
 // registered user, so this is a direct row update — no signup timing to track.
 //
@@ -6,8 +6,11 @@
 // this). GET lists current testers; POST { email, action: 'grant'|'revoke' }.
 
 import { sql } from '../_lib/db.js'
+import { CONNECTOR_BETA_FLAG } from '../_lib/feature-flags.js'
 
-const FLAG = 'my_search'
+// Named in api/_lib/feature-flags.js; the value is unchanged from the pilot,
+// its meaning narrowed to the connector when My Pipeline went GA (2026-08-30).
+const FLAG = CONNECTOR_BETA_FLAG
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')

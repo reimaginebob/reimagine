@@ -3,7 +3,7 @@
 // pursuit status into My Search.
 //
 // Browser-only surface (cookie session + origin allowlist), gated on the
-// my_search feature flag. Only the SHA-256 hash is stored; the plaintext token
+// connector beta flag. Only the SHA-256 hash is stored; the plaintext token
 // is returned exactly once, on mint (POST), and never again.
 //
 //   GET    -> { connected: bool, createdAt }         (does a token exist?)
@@ -13,6 +13,7 @@
 import crypto from 'node:crypto'
 import { sql } from './_lib/db.js'
 import { getSessionUser } from './_lib/session.js'
+import { hasConnectorBeta } from './_lib/feature-flags.js'
 
 const ALLOWED_HOSTS = new Set([
   'reimagine2-two.vercel.app',
@@ -62,8 +63,9 @@ export default async function handler(req, res) {
   if (user.suspended_at) {
     return res.status(403).json({ error: 'account_suspended' })
   }
-  const flags = Array.isArray(user.feature_flags) ? user.feature_flags : []
-  if (!flags.includes('my_search')) {
+  // Connector beta, not My Pipeline: the screen went GA on 2026-08-30, minting a
+  // long-lived bearer token did not. See api/_lib/feature-flags.js.
+  if (!hasConnectorBeta(user)) {
     return res.status(403).json({ error: 'Not enabled' })
   }
 

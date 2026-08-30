@@ -45,6 +45,13 @@
 export const FEATURE_MAP = [
   { slug: 'personal-brand',       reach: 'standalone',  labelId: 'p3',
     does: 'finds the through-line that ties a varied background together' },
+  // My Pipeline (GA 2026-08-30). It spent its pilot described only in the
+  // uncached per-user block of api/coach.js, because naming it here would have
+  // put it in the cached prefix every user receives and leaked a gated feature.
+  // GA removes that reason: it belongs in the catalog like everything else, and
+  // the chapter in the user guide carries the operating detail.
+  { slug: 'my-pipeline',          reach: 'standalone',  labelId: 'pipeline',
+    does: 'is the daily home for a live search: every saved Opportunity Playbook with where it stands, when they next talk, the next step they are taking, and which cards are built, ordered so whatever needs attention comes first. A next step whose date has passed is flagged Overdue; Mark done clears the step, its date, and the flag together and files what they finished onto that opportunity\'s Notes. Distinct from My Playbooks, which is the library of everything they have built. They keep it current by editing a card or by telling the coach what changed, and accepting the one-tap save' },
   { slug: 'role-options',         reach: 'standalone',  labelId: 'laneSelect', parent: 'twoDoors',
     does: 'opens up directions worth exploring, including off the obvious path' },
   { slug: 'income-now',           reach: 'standalone',  labelId: 'income',     parent: 'twoDoors',
