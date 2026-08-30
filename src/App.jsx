@@ -4687,33 +4687,15 @@ const normalizeProfileState = (loaded) => {
   return { normalizedState: s, didMigrate: migrated }
 }
 
-// Detection mirrors the build-time voice guard (scripts/check-voice.mjs):
-// the five HARD_BAN patterns plus the AI-coaching SOFT_WARN list. The pattern
-// data is wrapped in voice-allow so the banned phrases held here as detection
-// data do not trip the guard's own scan of App.jsx.
-// voice-allow
-const VOICE_MIGRATION_PATTERNS = [
-  /—/,
-  /\bnot just\s+\w+[,.]?\s+you\s+\w+/i,
-  /\byou do not just\s+\w+[,.]?\s+you\s+\w+/i,
-  /(This|It|That) (is|was) not [^.]+\.\s+(This|It|That) (is|was) [^.]+\./i,
-  /\b(most (people|others|folks|peers)|than most|unlike most|than the (typical|average) [a-zA-Z]+|what most [a-zA-Z]+ (do|miss|will|cannot))\b/i,
-  /\b(worth sitting with|sit with (this|that)|let that land|lean into|hold space for|get curious about|notice what comes up|take a moment to consider|trust the process|honor your journey)\b/i,
-]
-// voice-allow-end
-
-function detectStaleVoice(outputs) {
-  const counts = {}
-  let total = 0
-  if (!outputs) return { found: false, counts, total }
-  for (const [key, val] of Object.entries(outputs)) {
-    if (!val || typeof val !== 'string') continue
-    let c = 0
-    for (const re of VOICE_MIGRATION_PATTERNS) { if (re.test(val)) c++ }
-    if (c > 0) { counts[key] = c; total += c }
-  }
-  return { found: total > 0, counts, total }
-}
+// VOICE_MIGRATION_PATTERNS and detectStaleVoice used to live here, feeding the
+// "Reimagine's writing has improved since you completed this" banner. That banner
+// is gone (2026-08-30): it re-appeared on every visit until dismissed three
+// separate times, which is a nag rather than a notice, and the work it offered --
+// a full 10-15 minute regeneration to change wording only -- is available any
+// time from Refresh without being interrupted for it. Deleting the detector also
+// retires a voice-allow region, since the patterns held banned phrases as data.
+// Old profiles still carry voiceMigrationDismissed / voiceMigrationDismissCount;
+// nothing reads them now and they are harmless to leave in the blob.
 
 const stripMarkdown = (text) => {
   return (text || '')
@@ -6246,8 +6228,6 @@ export default function PivotEngine(){
   // Dismiss state survives generation but not a full reload. Tab-session
   // local; intentionally NOT persisted so a fresh load re-prompts.
   const[updateBannerDismissed,setUpdateBannerDismissed]=useState(false)
-  const[voiceMigBanner,setVoiceMigBanner]=useState(false)
-  const[voiceBannerDismissed,setVoiceBannerDismissed]=useState(false)
   // One-time My Coach intro banner. seenCoachIntro rides in the autosave blob
   // (synced profile_state + pe_v4 mirror) so "once" holds across devices, set on
   // either dismissal or click-through.
@@ -6430,7 +6410,6 @@ export default function PivotEngine(){
     }
     return false
   }
-  const voiceMigCheckedRef=useRef(false)
   // My Search hydration: load the pursuit-status list once the flag is known.
   // Fires when hasMySearch flips true (after /api/me resolves signedInUser).
   useEffect(()=>{
@@ -6945,7 +6924,6 @@ export default function PivotEngine(){
       window.removeEventListener('afterprint',onAfterPrint)
     }
   },[step,signedInUser,profile.resume,signupForm.firstName,signupForm.lastName,chosen])
-  useEffect(()=>{if(isDemo||isTest)return;if(voiceMigCheckedRef.current)return;if(profile.voiceMigrationDismissed)return;if(!done.includes('complete'))return;if(!Object.values(outputs).some(v=>v&&v.length>0))return;voiceMigCheckedRef.current=true;if(detectStaleVoice(outputs).found)setVoiceMigBanner(true)},[done,outputs,profile.voiceMigrationDismissed])
 
   useEffect(()=>{
     const onAfter=()=>{
@@ -10639,17 +10617,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const seeMoreOptions=(lane,fb,prevTitles)=>generateLane(lane,{feedback:fb,previous:prevTitles,msg:'Finding more options for this direction…'})
   const dismissWelcomeBack=()=>{setMigratedFromPreV1(false);try{localStorage.setItem('pe_welcome_back_v1','true')}catch{}}
   const showWelcomeBack=migratedFromPreV1&&(()=>{try{return !localStorage.getItem('pe_welcome_back_v1')}catch{return true}})()
-  const dismissVoiceMig=()=>{setVoiceBannerDismissed(true);setProfile(p=>{const n=(p.voiceMigrationDismissCount||0)+1;return{...p,voiceMigrationDismissCount:n,...(n>=3?{voiceMigrationDismissed:true}:{})}})}
-  // Brief 2: voice-migration refresh now drives the Phase 1 chain instead
-  // of the retired user-visible p1 step. Cascades to clear all downstream
-  // before re-running the chain so stale-voice content does not survive.
-  const regenVoiceMig=()=>{setProfile(p=>({...p,voiceMigrationDismissed:true}));setVoiceBannerDismissed(true);cascadeInvalidate('p3');out('p3','');nav('p3');generateChain()}
-  // Brief 2: the p3 format-migration banner suppresses the older stale-voice
-  // banner while showing. A user who is both stale-voice-flagged AND old-
-  // format-p3-flagged should only see one prompt at a time. Once they
-  // refresh (or dismiss) the format banner, the stale-voice banner can
-  // surface on subsequent visits if still applicable.
-  const showVoiceMigBanner=voiceMigBanner&&!voiceBannerDismissed&&!profile.voiceMigrationDismissed&&!isDemo&&!isTest&&!(isP3OldStyle&&!p3MigrationDismissed)
 
   const rStep=()=>{switch(step){
     case'welcome':return isDemo?<div>
@@ -12920,16 +12887,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           rail now show progress explicitly, so the progress text is gone.
           Save as PDF stays as the only persistent footer action. */}
       <Btn secondary onClick={savePlaybookPdf} style={{background:'transparent',border:`1.5px solid ${C.gold}`,color:'#FFFFFF'}}><Printer size={14}/>Save as PDF</Btn>
-    </div>}
-    {showVoiceMigBanner&&<div data-print="hide" style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',zIndex:1001,background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:12,padding:'18px 22px',boxShadow:'0 4px 16px rgba(0,0,0,0.1)',display:'flex',flexDirection:'column',gap:14,maxWidth:560,width:'calc(100% - 32px)'}}>
-      <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-        <div style={{fontSize:18,color:'#1A2540',lineHeight:1.55}}>Reimagine's writing has improved since you completed this. Refreshing your work updates it to use the cleaner version. Your choices stay the same; only the language reads better. Takes 10 to 15 minutes. Worth doing now if you have the time.</div>
-        <button onClick={dismissVoiceMig} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#718096',fontSize:18,cursor:'pointer',padding:4,fontFamily:'inherit',flexShrink:0}}>×</button>
-      </div>
-      <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-        <Btn onClick={regenVoiceMig}>Refresh My Work</Btn>
-        <Btn secondary onClick={dismissVoiceMig}>Not Now</Btn>
-      </div>
     </div>}
     <div style={{height:'100dvh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
       {migrationOpen&&!signedInUser&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
