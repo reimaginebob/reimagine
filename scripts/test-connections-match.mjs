@@ -2,8 +2,8 @@
 // the company matching behind "Who You Know Here".
 import {
   parseCsv, parseConnectionsCsv, normalizeCompany, companyMatch, matchConnections,
-  linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey, applyName,
-  hasUnfilledName, mailtoUrl, firstNameOf, cleanDomain, emailGuesses,
+  linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey,
+  mailtoUrl, firstNameOf, cleanDomain, emailGuesses,
 } from '../src/connections-match.mjs'
 
 let passed = 0
@@ -124,22 +124,6 @@ eq(parsed.people[0].e, '', 'a connection who withheld their email has none')
 eq(firstNameOf('Dana Whitfield'), 'Dana', 'the greeting uses the first name')
 eq(firstNameOf('  Priya   Raman '), 'Priya', 'padding does not leak into the greeting')
 eq(firstNameOf(''), '', 'no name yields no first name')
-
-// The privacy mechanic: the model is given {{NAME}}, the browser fills it in.
-eq(applyName('{{NAME}},\n\nGood to see you at Acme.', 'Dana Whitfield'), 'Dana,\n\nGood to see you at Acme.', 'the token is replaced with the first name')
-eq(applyName('Hi {{ NAME }} —', 'Marcus Bell'), 'Hi Marcus —', 'whitespace inside the token is tolerated')
-eq(applyName('Hi [First Name],', 'Marcus Bell'), 'Hi Marcus,', 'a bracketed placeholder is caught as a backstop')
-eq(applyName('Hi [name],', 'Marcus Bell'), 'Hi Marcus,', 'the backstop is case-insensitive')
-eq(applyName('{{NAME}} and {{NAME}}', 'Dana Whitfield'), 'Dana and Dana', 'every occurrence is replaced')
-eq(applyName('No placeholder here.', 'Dana Whitfield'), 'No placeholder here.', 'text without a token is untouched')
-eq(applyName('{{NAME}},', ''), '{{NAME}},', 'with no name the token is left visible rather than silently dropped')
-eq(applyName('', 'Dana'), '', 'empty text stays empty')
-
-ok(hasUnfilledName('Hi {{NAME}},'), 'an unfilled token is detected')
-ok(!hasUnfilledName('Hi Dana,'), 'a filled greeting is not flagged')
-ok(!hasUnfilledName(''), 'empty text is not flagged')
-// Regex state must not leak between calls — a /g regex with .test() is stateful.
-ok(hasUnfilledName('Hi {{NAME}},') && hasUnfilledName('Hi {{NAME}},'), 'repeated checks give the same answer')
 
 eq(outreachKey('sp_1', { u: 'https://linkedin.com/in/dana', n: 'Dana' }), 'sp_1::https://linkedin.com/in/dana', 'the profile URL keys the draft when present')
 eq(outreachKey('sp_1', { n: 'Dana Whitfield' }), 'sp_1::Dana Whitfield', 'the name keys it when there is no URL')

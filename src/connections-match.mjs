@@ -240,8 +240,14 @@ export const STALE_AFTER_DAYS = 90
 // ── Outreach drafts ──────────────────────────────────────────────────────────
 
 // Drafts live beside the network, on the device, for the same reason the network
-// does: the connection they name is a real person the user has not agreed to
-// share with us. Keyed by opportunity and by person.
+// does: the file itself is never uploaded, so what is derived from it stays with
+// it. Keyed by opportunity and by person.
+//
+// The recipient's name IS sent when a draft is generated. It is on a public
+// LinkedIn profile, and the user is about to send this very person a message —
+// the relationship is the premise of the action, not a secret. An earlier build
+// wrote the greeting as a {{NAME}} token and substituted it in the browser; that
+// bought nothing real and cost a placeholder that could leak into a sent message.
 export const OUTREACH_STORAGE_KEY = 'reimagine_outreach_v1'
 
 export function outreachKey(recordId, person) {
@@ -250,29 +256,6 @@ export function outreachKey(recordId, person) {
 }
 
 export const firstNameOf = (full) => String(full || '').trim().split(/\s+/)[0] || ''
-
-// The generated note is written with a literal {{NAME}} token where the greeting
-// name goes, and the real name is substituted HERE, in the browser. That is the
-// point: the person's name never leaves the device — only their job title and
-// how long they have been a connection are sent to write the draft.
-//
-// The bracketed variants are a backstop for a model that reaches for a
-// conventional placeholder instead of the token it was given.
-const NAME_TOKENS = /\{\{\s*NAME\s*\}\}|\[\s*(?:first\s*name|name)\s*\]/gi
-
-export function applyName(text, fullName) {
-  const first = firstNameOf(fullName)
-  if (!text) return ''
-  if (!first) return String(text)
-  return String(text).replace(NAME_TOKENS, first)
-}
-
-// True when the draft still carries an unfilled placeholder — the caller shows a
-// plain note rather than letting "{{NAME}}" reach a real message.
-export function hasUnfilledName(text) {
-  NAME_TOKENS.lastIndex = 0
-  return NAME_TOKENS.test(String(text || ''))
-}
 
 // ── Working out an address we were not given ─────────────────────────────────
 
