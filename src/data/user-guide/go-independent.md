@@ -42,7 +42,7 @@ Confirming your one line takes you to your practice plan. It holds the same gene
 
 **2. Price, Package & Launch.** This is Income Now, rebuilt for a practice. On the standard track, Income Now is money coming in while a search runs. Here, the practice is the goal, so the plan covers what to charge, how to package the work, where your buyers already gather, and the immediate next steps to take. Nothing in it is framed as a stopgap.
 
-**3. Client Opportunities.** A place for the specific companies you are pursuing, one record each. Open one before you have spoken to anyone or after a first conversation, and tell it what you know so far — who they are, how it came to you, what they said they need, who you have spoken to. Rough notes are fine, and the mic is there if talking is easier than typing.
+**3. Client opportunities, in My Pipeline.** A record for each specific company you are pursuing. They live in My Pipeline, alongside their stage and next step, and you add one from there. Open one before you have spoken to anyone or after a first conversation, and tell it what you know so far — who they are, how it came to you, what they said they need, who you have spoken to. Rough notes are fine, and the mic is there if talking is easier than typing.
 
 *Where this stands* reads it back fast: which of the four selling conversations you are actually in, the single move to make this week, at most three things worth finding out before you go further, and anything worth changing in how you are selling it. Each question is marked as either something you may already know and simply did not write down, or something you never asked and should ask next time — so you are never sent back to a client to ask something you already know.
 

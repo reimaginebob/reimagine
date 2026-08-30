@@ -5804,7 +5804,23 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
   if(personalBrandDone&&!isDemo){
     // Labels join from NAV_LABELS (src/nav-labels.js) — the single source the
     // coach nav map also reads, so a rename lands here and in the coach together.
-    const primaryItems=[
+    const primaryItems=isIndependent?[
+      {id:'myCoach',label:NAV_LABELS.myCoach,Icon:MessageCircle},
+      // Personal Brand stays top-level rather than nesting under the practice.
+      // It is upstream of everything else and gets revisited, and burying it
+      // cost a user their wording on 2026-08-24 when the only route back
+      // rebuilt the brand.
+      {id:'p3',label:NAV_LABELS.p3,Icon:Fingerprint},
+      // The parent opens the positioning line, which is the practice's headline
+      // and the gate to the plan. The child was previously labelled "Find Your
+      // Clients" -- the plan named after one of its own six sections, which is
+      // why the rail looked like it held less than it does.
+      {id:'positioning',label:'Your Practice',Icon:Compass,children:[
+        {id:'focus',label:'Your Practice Plan',activeSteps:['focus']},
+        {id:'income',label:'Price, Package & Launch',activeSteps:['income']},
+      ]},
+      ...(hasPipeline?[{id:'pipeline',label:NAV_LABELS.pipeline,Icon:Target,badge:pipelineOverdue}]:[]),
+    ]:[
       {id:'myCoach',label:NAV_LABELS.myCoach,Icon:MessageCircle},
       // My Pipeline is its own surface — the daily action home, distinct from the
       // exploration library (My Playbooks). Signed-in accounts only: it reads and
@@ -5815,17 +5831,6 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       // Go Independent has one way forward rather than two doors, so its rail
       // names the practice plan and the two things inside it. Career Paths and
       // Add an Opportunity are not offered: this track never runs them.
-      ...(isIndependent?[
-        {id:'positioning',label:NAV_LABELS.positioning,Icon:Compass,children:[
-          {id:'focus',label:'Find Your Clients',activeSteps:['focus']},
-          {id:'income',label:'Price, Package & Launch',activeSteps:['income']},
-        ]},
-        // Its own entry rather than a child of the practice plan: the plan is
-        // built once, and these accumulate. It sits next to My Pipeline because
-        // that is the surface that tracks them, and it is where someone will
-        // look for a deal they started last week.
-        {id:'op',label:'Client Opportunities',Icon:Network,activeSteps:['op']},
-      ]:[
       {id:'twoDoors',label:NAV_LABELS.twoDoors,Icon:Compass,children:[
         // Door 1 routes to laneSelect; the Career Paths flow then runs
         // through p4 (lane options) and focus (the assembled playbook,
@@ -5839,7 +5844,6 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
         // per Bob's decision for visual consistency with its two icon-less siblings.
         {id:'income',label:NAV_LABELS.income,activeSteps:['income']},
       ]},
-      ]),
     ]
     const inputsItems=[
       {id:'resume',label:'Resume'},
@@ -12011,6 +12015,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>
     case'pipeline':return <div>
+      {isIndependent&&!isDemo&&<div style={{margin:'0 0 20px'}}><Btn onClick={addNewOpportunity}><Plus size={14}/>Add a client opportunity</Btn></div>}
       {mySearchPanel()}
       {hasConnectorBeta&&connectAssistantPanel()}
     </div>
@@ -12020,10 +12025,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       return <div>
       <div style={{marginBottom:8}}>
         <h1 style={{...S.title,marginBottom:6}}>My Playbooks</h1>
-        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {activePlaybooks.length} of {getSavedCap()} saved.</p>
+        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>{isIndependent?'Your practice plan and the clients you are working.':'Your collection of role-strategy work.'} {activePlaybooks.length} of {getSavedCap()} saved.</p>
       </div>
       {_comparable.length>=2&&<div style={{margin:'0 0 16px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({_comparable.length}) <ChevronRight size={14}/></Btn></div>}
-      <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasPipeline}/>
+      <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={isIndependent?undefined:startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasPipeline} independent={isIndependent}/>
       {archivedSection()}
     </div>
     }
@@ -13105,28 +13110,35 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {!isDemo&&!isIndependent&&<p style={S.sub}>When you find a role worth pursuing, bring it here. Paste the job description or upload the PDF. Reimagine creates an Opportunity Playbook scoped to that role with five sections you can build on demand, each taking about 30 seconds to generate.</p>}
           {!isDemo&&!isIndependent&&<p style={S.sub}>You'll know whether the role aligns with the path you chose and where it stretches you. You'll have a Bridge Story tuned to this specific opportunity, a Resume Refresh aimed at this JD, Interview Prep with the questions this role's interview cycle is likely to ask and STAR stories drawn from your background, and an honest About This Company read with industry-specific signal and sources cited.</p>}
           {!isDemo&&isIndependent&&<CoachingCallout>
-            <strong style={{color:'#1A2540'}}>Tell us what you know so far.</strong>
-            <p style={{margin:'8px 0 0'}}>Who they are, how it came to you, what they said they need, who you spoke to, anything you picked up along the way. Rough notes are fine — say it out loud with the mic if that is easier. If you have not spoken to anyone yet, say that too; a thin record still gets you a read, and it will tell you what to find out first.</p>
+            <p style={{margin:0}}>Rough is fine. If you have not spoken to anyone yet, say so — a thin record still gets you a read, and it will tell you what to find out first.</p>
           </CoachingCallout>}
           {!isDemo&&!isIndependent&&<CoachingCallout>
             <strong style={{color:'#1A2540'}}>What to bring.</strong>
             <p style={{margin:'8px 0 0'}}>Paste the full job description or upload the PDF. Reimagine works best with the actual posting text. If you have your own context about the role (who told you about it, what they said about the team, why you are interested), add it to the text field below the JD. The richer the context, the sharper the playbook.</p>
           </CoachingCallout>}
-          {!isDemo&&<CoachingCallout>
+          {!isDemo&&!isIndependent&&<CoachingCallout>
             <strong style={{color:'#1A2540'}}>One thing to know.</strong>
-            <p style={{margin:'8px 0 0'}}>Each {isIndependent?'client':'opportunity'} is saved separately. You can work several at once without one replacing another. Your Personal Brand stays the same across all of them; only the {isIndependent?'client-specific':'opportunity-specific'} sections change.</p>
+            <p style={{margin:'8px 0 0'}}>Each opportunity is saved separately. You can work several at once without one replacing another. Your Personal Brand stays the same across all of them; only the opportunity-specific sections change.</p>
           </CoachingCallout>}
           {!isDemo&&<div style={S.card}>
             <div style={{fontSize:18,color:C.gray,fontStyle:'italic',marginBottom:14,textAlign:'center'}}>The richer the input, the sharper the output.</div>
-            <FileUpload label={isIndependent?'Upload a PDF, if you have one':'Upload a PDF of the job description'} hint={isIndependent?'A scope document, an RFP, a brief — anything they sent you. Optional; most client opportunities do not come with one.':'PDF only. For other formats, paste the text below.'} fileName={profile.jdFile} onFile={async f=>{pr('jdFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('jd',t);setErr(null)}catch(e){setErr(e&&e.message?e.message:'Could not read this PDF. Try pasting the text instead.')}finally{setFileLoading(false)}}}/>
+            <FileUpload label={isIndependent?'Upload a PDF, if you have one':'Upload a PDF of the job description'} hint={isIndependent?'A scope document, an RFP, a brief — anything they sent you.':'PDF only. For other formats, paste the text below.'} fileName={profile.jdFile} onFile={async f=>{pr('jdFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('jd',t);setErr(null)}catch(e){setErr(e&&e.message?e.message:'Could not read this PDF. Try pasting the text instead.')}finally{setFileLoading(false)}}}/>
             {fileLoading&&<div style={{fontSize:16,color:C.gray,marginTop:8}}>Reading the PDF…</div>}
+            {/* Above the divider, not beside the textarea. Below it, the mic read
+                as a decoration on the typing box -- a way to fill a field rather
+                than a way to answer. Here it is a peer of the upload: three ways
+                in, and the one most people will actually find easiest is the one
+                they can see. The read is only as good as what goes in, and a
+                client opportunity is the kind of thing people recount easily and
+                write down badly. */}
+            {isIndependent&&hasSpeech&&<div style={{display:'flex',alignItems:'center',gap:12,marginTop:16}}>
+              <SpeechBtn C={{border:C.gold,gray:C.goldL}} title="Speak instead of typing" onResult={t=>pr('jd',(profile.jd||'')+t)} style={{width:48,height:48,background:`${C.gold}14`}}/>
+              <span style={{fontSize:16,fontWeight:600,color:C.goldL,lineHeight:1.4}}>Talk it through — most people say more out loud than they type.</span>
+            </div>}
             <div style={{textAlign:'center',color:C.gray,fontSize:16,margin:'14px 0',fontStyle:'italic'}}>or</div>
             <div style={S.field}>
               <label style={S.label}>{isIndependent?'What do you know about this opportunity?':'Paste the job description'}</label>
-              <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
-                <textarea style={{...S.ta,minHeight:240,flex:1}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder={isIndependent?'Who they are, how this came to you, what they said they need, who you have spoken to, what you think is really going on...':'Paste the full job description here...'}/>
-                {isIndependent&&hasSpeech&&<SpeechBtn onResult={t=>pr('jd',(profile.jd||'')+t)}/>}
-              </div>
+              <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder={isIndependent?'Who they are, how this came to you, what they said they need, who you have spoken to, what you think is really going on...':'Paste the full job description here...'}/>
               {!isIndependent&&jdLooksLinkOnly(profile.jd)&&<div style={{marginTop:8,fontSize:15,color:'#B45309',lineHeight:1.55}}>That looks like a link. Reimagine can't read a posting from a URL — open the job posting, copy the full description text, and paste it here instead.</div>}
             </div>
           </div>}
@@ -13344,6 +13356,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {/* Footer simplified post-PR5: per-section completion + the section
           rail now show progress explicitly, so the progress text is gone.
           Save as PDF stays as the only persistent footer action. */}
+      {isIndependent&&step==='focus'&&currentSavedSlotIdRef.current&&<Btn secondary onClick={()=>{const r=savedPlaybooks.find(x=>x.id===currentSavedSlotIdRef.current);if(r)downloadPlaybookMarkdown(r)}} style={{background:'transparent',border:`1.5px solid ${C.gold}`,color:'#FFFFFF'}}><Download size={14}/>Markdown</Btn>}
       <Btn secondary onClick={savePlaybookPdf} style={{background:'transparent',border:`1.5px solid ${C.gold}`,color:'#FFFFFF'}}><Printer size={14}/>Save as PDF</Btn>
     </div>}
     <div style={{height:'100dvh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
