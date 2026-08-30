@@ -74,7 +74,13 @@ const TERMS = [
   'hiring manager', 'interviewer', 'interview', 'recruiter', 'employer',
   'candidate', 'the posting', 'applying', 'where you are headed',
   'job conversation', 'cover letter', 'get hired', 'hire you', 'a job',
-  'applicant tracking', 'role-strategy', 'explore more roles', 'focus playbook',
+  'applicant tracking', 'role-strategy', 'explore more roles',
+  // Feature names from the job-search track. A heading reading "Income Now"
+  // survived two sweeps because it contains no job-search vocabulary at all --
+  // it is simply the name of a thing that does not exist over here.
+  'focus playbook', 'income now', 'opportunity playbook', 'career paths',
+  'put it to work', 'wide view', 'resume refresh', 'linkedin remix',
+  'bridge story', 'interview prep', 'industry background', 'the lingo',
 ]
 
 // Markers of a rendered string rather than a prompt or a comment. Prompt text

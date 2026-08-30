@@ -5748,8 +5748,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       // Clients" -- the plan named after one of its own six sections, which is
       // why the rail looked like it held less than it does.
       {id:'positioning',label:'Your Practice',Icon:Compass,children:[
-        {id:'focus',label:'Your Practice Plan',activeSteps:['focus']},
-        {id:'income',label:'Price, Package & Launch',activeSteps:['income']},
+        {id:'focus',label:'Your Practice Plan',activeSteps:['focus','income']},
       ]},
       ...(hasPipeline?[{id:'pipeline',label:NAV_LABELS.pipeline,Icon:Target,badge:pipelineOverdue}]:[]),
     ]:[
@@ -11363,7 +11362,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
         {!isDemo&&<div data-print="hide" style={{marginBottom:18}}><Btn small secondary onClick={()=>openCoachWith(ASK_COACH_SEEDS.p3)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
         {!isDemo&&<RefineBox anchorId="p3-refine" openSignal={refineOpenSignal} guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{const prevBrand=outputs.p3||'';const prevPres=(outputs.p3_structured&&outputs.p3_structured.presentation)||null;recordCorrection('p3',v);out('p3','');refreshP3(v,prevBrand,prevPres)}}/>}
-        {!isDemo&&<div style={{margin:'24px 0 14px',fontSize:18,color:'#2D3748',lineHeight:1.7}}>This is your foundation. Next, we put it to work — finding the directions worth exploring and the people worth reaching.</div>}
+        {/* The closing line of Personal Brand, which renders on both tracks. It
+            promised Put It to Work by name and described Career Paths, neither of
+            which exists over here: the practice track goes to the positioning
+            line next, and nobody on it is exploring directions. */}
+        {!isDemo&&<div style={{margin:'24px 0 14px',fontSize:18,color:'#2D3748',lineHeight:1.7}}>{isIndependent?'This is your foundation. Next you write the one line that says what you sell, and your practice plan is built from it.':'This is your foundation. Next, we put it to work — finding the directions worth exploring and the people worth reaching.'}</div>}
         {/* The destructive one: it empties the brand and returns the
             person to the build screen. Named for what it does, because "Start
             fresh" gave no hint that a finished document was about to go. */}
@@ -11916,7 +11919,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // survives) intentionally renders the gated screen, never stale content.
       const refineIncome=(v)=>{recordCorrection('income',v);generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})}
       if(!(chosen&&chosen.length>0))return <div>
-        <h1 style={S.title}>Income Now</h1>
+        <h1 style={S.title}>{isIndependent?'Price, Package & Launch':'Income Now'}</h1>
         <p style={S.sub}>{isIndependent
           ?'This plan is built around the one line describing what you sell. Settle that line first and we\'ll build your pricing, your pitch, and your immediate next steps.'
           :'Income Now builds gig and bridge-income options tailored to the direction you\'re exploring. Pick a direction in Career Paths first, then come back here and we\'ll build a plan you can act on this week.'}</p>
@@ -11928,7 +11931,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={S.sub}>{isIndependent?'What you sell, what it costs, and what to do next.':'A bonus section, available anytime you have a direction picked.'}</p>
         {!isIndependent&&<div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div>}
         {incomeTargetFields()}
-        {isGen&&<Loading msg="Building your Income Now plan…" step="income" independent={isIndependent}/>}
+        {isGen&&<Loading msg={isIndependent?'Building your pricing and launch plan…':'Building your Income Now plan…'} step="income" independent={isIndependent}/>}
         {!isGen&&sectionErrors.income&&<div style={{...S.note,background:`${C.err}12`,border:`1px solid ${C.err}40`,color:C.err}}>{sectionErrors.income} <Btn small secondary onClick={()=>generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})} style={{marginLeft:10}}><RotateCcw size={11}/>Try again</Btn></div>}
         {!isGen&&!sectionErrors.income&&!outputs.income&&<div style={S.row}><Btn disabled={!canGenSection('income')} onClick={()=>generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})}><Sparkles size={14}/>Generate Income Now</Btn></div>}
         {!isGen&&!sectionErrors.income&&outputs.income&&<>
