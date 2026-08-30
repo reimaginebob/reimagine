@@ -2,6 +2,7 @@
 // the company matching behind "Who You Know Here".
 import {
   parseCsv, parseConnectionsCsv, normalizeCompany, companyMatch, matchConnections,
+  looseMatch, looseMatchConnections,
   linkedInSecondDegreeUrl, linkedInFirstDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey,
   mailtoUrl, firstNameOf, cleanDomain, emailGuesses, searchQuery, resolveSearch,
 } from '../src/connections-match.mjs'
@@ -78,6 +79,32 @@ eq(companyMatch('United Airlines', 'United Airlines Holdings'), 'likely', 'a par
 eq(companyMatch('American Express', 'American Express Global'), 'likely', 'two leading tokens carry the match even when the first is generic')
 // A prefix run, not a bag of words: order has to hold.
 eq(companyMatch('Bank of Apple', 'Apple'), null, 'a token appearing later does not make a prefix match')
+
+// ── Loose matches: the name buried mid-string ────────────────────────────────
+
+// The real case, from LinkedIn's own entity list for Imerys.
+ok(looseMatch('Gimpex Imerys India Private Limited', 'Imerys'), 'a name in the middle is a loose match')
+ok(looseMatch('Imerys', 'Gimpex Imerys India'), 'loose matching works in either direction')
+ok(!looseMatch('Imerys Performance Minerals', 'Imerys'), 'a leading-token match is NOT loose — companyMatch already has it')
+ok(!looseMatch('Imerys', 'Imerys'), 'an exact match is not also a loose one')
+ok(!looseMatch('Thrivent', 'Imerys'), 'unrelated companies are not loosely matched')
+ok(!looseMatch('', 'Imerys'), 'a blank employer is not loosely matched')
+// The same weak-token guard, so "Bank of the First" does not loosely match "First".
+ok(!looseMatch('Bank of the First', 'First'), 'a single generic token mid-string is refused')
+ok(looseMatch('Bank of the Old Republic', 'Old Republic'), 'two tokens mid-string carry it')
+
+const loosePeople = [
+  { n: 'Ravi Kumar', c: 'Gimpex Imerys India Private Limited' },
+  { n: 'Ada Fox', c: 'Imerys Performance Minerals' },
+  { n: 'Zed Ali', c: 'Consolidated Imerys Holdings' },
+  { n: 'Mia Chen', c: 'Thrivent' },
+]
+eq(looseMatchConnections(loosePeople, 'Imerys').map(p => p.n), ['Ravi Kumar', 'Zed Ali'].sort(), 'only mid-string mentions come back, alphabetically')
+eq(looseMatchConnections(loosePeople, ''), [], 'no target yields no loose matches')
+eq(looseMatchConnections(null, 'Imerys'), [], 'no network yields no loose matches')
+// A person can never be in both lists.
+const strict = matchConnections(loosePeople, 'Imerys').map(p => p.n)
+ok(!looseMatchConnections(loosePeople, 'Imerys').some(p => strict.includes(p.n)), 'the two lists never overlap')
 
 // ── Match listing ────────────────────────────────────────────────────────────
 

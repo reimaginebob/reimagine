@@ -170,6 +170,45 @@ function matchNormalized(a, b) {
   return 'likely'
 }
 
+function isRunWithin(short, long) {
+  if (!short.length || short.length >= long.length) return false
+  for (let i = 0; i + short.length <= long.length; i++) {
+    let hit = true
+    for (let j = 0; j < short.length; j++) if (long[i + j] !== short[j]) { hit = false; break }
+    if (hit) return true
+  }
+  return false
+}
+
+/**
+ * A weaker signal than companyMatch: the company name appears SOMEWHERE in the
+ * employer rather than at the front. "Gimpex Imerys India" and "British Lithium
+ * (an Imerys company)" are real entities of a real parent, and a strict
+ * leading-token match drops both.
+ *
+ * Deliberately not folded into companyMatch. Matching mid-string is loose enough
+ * to catch coincidence, so these are surfaced as "worth a look" when a search
+ * comes back empty, never mixed into the confident list.
+ */
+export function looseMatch(connectionCompany, targetCompany) {
+  const a = normalizeCompany(connectionCompany)
+  const b = normalizeCompany(targetCompany)
+  if (!a.key || !b.key) return false
+  if (matchNormalized(a, b)) return false
+  const short = a.tokens.length <= b.tokens.length ? a.tokens : b.tokens
+  const long = short === a.tokens ? b.tokens : a.tokens
+  if (short.length === 1 && WEAK_FIRST_TOKENS.has(short[0])) return false
+  return isRunWithin(short, long)
+}
+
+/** Everyone whose employer merely mentions the company. Alphabetical. */
+export function looseMatchConnections(people, targetCompany) {
+  if (!targetCompany || !Array.isArray(people) || !people.length) return []
+  return people
+    .filter(p => looseMatch(p.c, targetCompany))
+    .sort((x, y) => x.n.localeCompare(y.n))
+}
+
 /**
  * Everyone in `people` who appears to work at `targetCompany`.
  * Exact matches first, then likely ones; alphabetical inside each group so the
