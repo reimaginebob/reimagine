@@ -12619,7 +12619,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:10}}>If one of these is the right company, type that name into Try another name below and we will search for it instead.</div>
                       </div>}
                       <div style={{marginBottom:16}}>
-                        <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>Think someone is missing? LinkedIn will tell you. It knows who you are connected to right now, while your file only knows{_loadedLabel?` ${_loadedLabel}`:' the day you downloaded it'}. If LinkedIn shows someone who is not here, they changed jobs since then — download a new file and they will show up.</div>
+                        <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>Think someone is missing? LinkedIn will tell you. It knows who you are connected to right now, while your file only knows{_loadedLabel?` ${_loadedLabel}`:' the day you downloaded it'}. Anyone LinkedIn shows who is not here changed jobs since then, and you can message them on LinkedIn straight away. They will not appear on this card, though, until you load a newer file — LinkedIn does not send their names back to us.</div>
                         <a href={linkedInFirstDegreeUrl(_company)} target="_blank" rel="noopener noreferrer" style={_secBtn}>Check LinkedIn<ArrowUpRight size={15}/></a>
                       </div>
                       <div style={{marginBottom:16}}>
