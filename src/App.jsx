@@ -12845,13 +12845,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{fontSize:18,color:C.gray,fontStyle:'italic',marginBottom:14,textAlign:'center'}}>The richer the input, the sharper the output.</div>
             <FileUpload label={isIndependent?'Upload a PDF, if you have one':'Upload a PDF of the job description'} hint={isIndependent?'A scope document, an RFP, a brief — anything they sent you.':'PDF only. For other formats, paste the text below.'} fileName={profile.jdFile} onFile={async f=>{pr('jdFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('jd',t);setErr(null)}catch(e){setErr(e&&e.message?e.message:'Could not read this PDF. Try pasting the text instead.')}finally{setFileLoading(false)}}}/>
             {fileLoading&&<div style={{fontSize:16,color:C.gray,marginTop:8}}>Reading the PDF…</div>}
+            {/* Above the divider, not beside the textarea. Below it, the mic read
+                as a decoration on the typing box -- a way to fill a field rather
+                than a way to answer. Here it is a peer of the upload: three ways
+                in, and the one most people will actually find easiest is the one
+                they can see. The read is only as good as what goes in, and a
+                client opportunity is the kind of thing people recount easily and
+                write down badly. */}
+            {isIndependent&&hasSpeech&&<div style={{display:'flex',alignItems:'center',gap:12,marginTop:16}}>
+              <SpeechBtn C={{border:C.gold,gray:C.goldL}} title="Speak instead of typing" onResult={t=>pr('jd',(profile.jd||'')+t)} style={{width:48,height:48,background:`${C.gold}14`}}/>
+              <span style={{fontSize:16,fontWeight:600,color:C.goldL,lineHeight:1.4}}>Talk it through — most people say more out loud than they type.</span>
+            </div>}
             <div style={{textAlign:'center',color:C.gray,fontSize:16,margin:'14px 0',fontStyle:'italic'}}>or</div>
             <div style={S.field}>
               <label style={S.label}>{isIndependent?'What do you know about this opportunity?':'Paste the job description'}</label>
-              {isIndependent&&hasSpeech&&<div style={{display:'flex',alignItems:'center',gap:12,margin:'0 0 12px'}}>
-                <SpeechBtn C={{border:C.gold,gray:C.goldL}} title="Speak instead of typing" onResult={t=>pr('jd',(profile.jd||'')+t)} style={{width:48,height:48,background:`${C.gold}14`}}/>
-                <span style={{fontSize:16,fontWeight:600,color:C.goldL,lineHeight:1.4}}>Talk it through instead — most people say more out loud than they type.</span>
-              </div>}
               <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder={isIndependent?'Who they are, how this came to you, what they said they need, who you have spoken to, what you think is really going on...':'Paste the full job description here...'}/>
               {!isIndependent&&jdLooksLinkOnly(profile.jd)&&<div style={{marginTop:8,fontSize:15,color:'#B45309',lineHeight:1.55}}>That looks like a link. Reimagine can't read a posting from a URL — open the job posting, copy the full description text, and paste it here instead.</div>}
             </div>
