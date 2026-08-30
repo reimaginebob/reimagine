@@ -6675,6 +6675,7 @@ export default function PivotEngine(){
   // and the link is a URL, so there is nothing to regenerate.
   const[connSearch,setConnSearch]=useState(()=>{try{const r=localStorage.getItem(SEARCH_STORAGE_KEY);if(r){const p=JSON.parse(r);if(p&&typeof p==='object')return p}}catch{}return{}})
   const[connSearchOpen,setConnSearchOpen]=useState({})
+  const[connSearchDraft,setConnSearchDraft]=useState({})
   const setSearchOverride=(recId,patch)=>setConnSearch(prev=>{const next={...prev,[recId]:{...(prev[recId]||{}),...patch}};try{localStorage.setItem(SEARCH_STORAGE_KEY,JSON.stringify(next))}catch{};return next})
   const clearSearchOverride=(recId)=>setConnSearch(prev=>{const next={...prev};delete next[recId];try{localStorage.setItem(SEARCH_STORAGE_KEY,JSON.stringify(next))}catch{};return next})
   const generateOutreachNote=async(person,purpose,relContext)=>{
@@ -12474,25 +12475,35 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{marginTop:10}}><Btn small secondary onClick={clearConnections}><X size={12}/>Remove it from this device</Btn></div>
                     </div>}
                     {!_company&&<CoachingCallout>This opportunity does not have a company name on it yet, so there is nothing to match against. Use Edit below to name the company yourself.</CoachingCallout>}
-                    <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
-                      <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap',fontSize:15,color:C.gray}}>
-                        <span style={{fontSize:16}}>Matching on <strong style={{color:'#1A2540'}}>{_company||'(no company)'}</strong>{_srch.extra?<span>, searching LinkedIn for <strong style={{color:'#1A2540'}}>{searchQuery(_company,_srch.extra)}</strong></span>:null}</span>
-                        <button type="button" onClick={()=>setConnSearchOpen(x=>({...x,[_slotForSearch]:!x[_slotForSearch]}))} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit'}}>{connSearchOpen[_slotForSearch]?'Hide':'Edit'}</button>
-                        {_srch.edited&&<button type="button" onClick={()=>clearSearchOverride(_slotForSearch)} style={{background:'none',border:'none',color:C.gray,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit',textDecoration:'underline'}}>Reset</button>}
-                      </div>
-                      {connSearchOpen[_slotForSearch]&&<div style={{marginTop:10}}>
-                        <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginBottom:8}}>Reimagine took the company off the posting. Change it if the name is wrong, or if you want a parent, a subsidiary, or what they used to be called — the list above and the LinkedIn search both re-run as you type.</div>
-                        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-                          <label style={{fontSize:15,color:C.gray,minWidth:80}}>Company</label>
-                          <input style={{width:260,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_srch.company} onChange={e=>setSearchOverride(_slotForSearch,{company:e.target.value})} placeholder={_recCompany||'Company name'}/>
+                    {(()=>{
+                      // Same component shape as Recruiters for This Path's "Matching
+                      // on" control: a contained panel with an uppercase header, a
+                      // label grid, and an explicit commit. Editing is a draft until
+                      // Update, even though re-running is instant here, because a
+                      // field that takes effect per keystroke reads as a live filter
+                      // rather than a correction the user is making.
+                      const _open=!!connSearchOpen[_slotForSearch]
+                      const _draft=connSearchDraft[_slotForSearch]||{company:_srch.company,extra:_srch.extra}
+                      const _editInput={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',marginTop:4}
+                      const _start=()=>{setConnSearchDraft(d=>({...d,[_slotForSearch]:{company:_srch.company,extra:_srch.extra}}));setConnSearchOpen(x=>({...x,[_slotForSearch]:true}))}
+                      const _setDraft=(patch)=>setConnSearchDraft(d=>({...d,[_slotForSearch]:{..._draft,...patch}}))
+                      return _open
+                        ?<div style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 14px',margin:'14px 0 0'}}>
+                          <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:8}}>Adjust what we&rsquo;re matching on</div>
+                          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>We took the company off the posting. Change it if the name is wrong, or to try a parent, a subsidiary, or what they used to be called — a company that trades under several names will not match under all of them.</div>
+                          <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:10,marginBottom:12}}>
+                            <label style={{display:'block',fontSize:15,color:C.gray}}>Company<input value={_draft.company} onChange={e=>_setDraft({company:e.target.value})} placeholder={_recCompany||'Company name'} style={_editInput}/></label>
+                            <label style={{display:'block',fontSize:15,color:C.gray}}>Narrow the LinkedIn search (optional)<input value={_draft.extra} onChange={e=>_setDraft({extra:e.target.value})} placeholder="e.g. operations, Atlanta" style={_editInput}/></label>
+                          </div>
+                          <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginBottom:12}}>The company decides both who matches below and what LinkedIn searches for. The second field only steers the LinkedIn search — which of your own connections match is always the employer each of them has listed.</div>
+                          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                            <Btn small onClick={()=>{setSearchOverride(_slotForSearch,{company:_draft.company,extra:_draft.extra});setConnSearchOpen(x=>({...x,[_slotForSearch]:false}))}}><Check size={12}/>Update the list</Btn>
+                            <Btn small secondary onClick={()=>setConnSearchOpen(x=>({...x,[_slotForSearch]:false}))}>Cancel</Btn>
+                            {_srch.edited&&<Btn small secondary onClick={()=>{clearSearchOverride(_slotForSearch);setConnSearchOpen(x=>({...x,[_slotForSearch]:false}))}}><RotateCcw size={11}/>Back to {_recCompany||'the posting'}</Btn>}
+                          </div>
                         </div>
-                        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginTop:8}}>
-                          <label style={{fontSize:15,color:C.gray,minWidth:80}}>Narrow to</label>
-                          <input style={{width:260,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={_srch.extra} onChange={e=>setSearchOverride(_slotForSearch,{extra:e.target.value})} placeholder="optional, e.g. operations, Atlanta"/>
-                        </div>
-                        <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:8}}>Narrowing terms steer the LinkedIn search only. They never change which of your own connections are matched, because that is decided by the employer each one has listed.</div>
-                      </div>}
-                    </div>
+                        :<div style={{fontSize:15,color:C.grayL,margin:'14px 0 0'}}>Matching on: <strong>{[_company||'(no company)',_srch.extra].filter(Boolean).join(' · ')}</strong><button type="button" onClick={_start} style={{marginLeft:10,background:'transparent',border:'none',padding:0,color:C.goldL,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Edit</button></div>
+                    })()}
                     {_company&&_hits.length>0&&<div style={{marginTop:16}}>
                       <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:10}}>{_hits.length===1?'One person you already know':`${_hits.length} people you already know`} at {_company}</div>
                       <CoachingCallout>
