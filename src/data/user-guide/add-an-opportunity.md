@@ -84,6 +84,20 @@ When you have logged an offer on two or more opportunities, a **Compare offers**
 
 Opportunities you saved before the card-based rebuild keep their original shape, exactly as you built them, with their own Refine box. Nothing you did is lost. New opportunities use the card shape described above. If you want the card shape for an older opportunity, paste its job description again through Add an Opportunity and build the sections you need.
 
+## Notes
+
+Every opportunity has a **Notes** card for anything worth remembering about it. Write what happened after a call, a detail someone mentioned in passing, a name you want to keep straight — whatever you would otherwise lose track of between conversations.
+
+Three kinds of thing collect there:
+
+- **Your note** — anything you type in yourself.
+- **From My Coach** — a reply you chose to save onto this opportunity while chatting with My Coach.
+- **Completed** — a next step you finished, filed automatically with the date so the record survives after you clear it.
+
+Notes are yours alone. Nothing you write there feeds what Reimagine generates for you, so you can be as rough and unedited as you like — it will not turn up in your Resume Refresh or your Interview Prep. If you want something to shape what gets written, put it in the context box on Interview Team instead, which is read when your sections are built.
+
+Remove any note with the Remove button on it.
+
 ## Save as PDF
 
 Save as PDF builds a polished single-document version you can keep, share, or come back to. The persistent gold footer button appears as soon as one card is built, and an inline cue appears at the bottom once the generated sections are all done. The output is a clean, paged PDF with each section on its own page.

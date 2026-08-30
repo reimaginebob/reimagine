@@ -59,7 +59,7 @@ export const FEATURE_MAP = [
   { slug: 'positioning-line',     reach: 'standalone',  labelId: 'positioning',
     does: 'drafts one editable sentence describing what the person sells, built from their Personal Brand and their own read on where they fit, which they edit until it sounds like them. Go Independent track only. Confirming it is what starts the practice plan, and every section after it is built from that line; it replaces Put It to Work on that track, and can be changed later' },
   { slug: 'opportunity-playbook', reach: 'standalone',  labelId: 'op',         parent: 'twoDoors',
-    does: 'turns one specific live opening into a tailored plan of attack' },
+    does: 'turns one specific live opening into a tailored plan of attack. Each opportunity also keeps a Notes card, where they can write anything worth remembering about it, keep a reply of yours they chose to save, and collect the steps they have finished. Those notes are private to them: nothing there feeds what Reimagine generates, and you never see them, so ask what they have written rather than assuming' },
 
   { slug: 'bridge-story',         reach: 'focus-gated', labelId: 'p6',
     does: 'builds the "tell me about yourself" pitch for a chosen direction. On the Go Independent track it is called "Your Pitch" and is anchored on the person\'s earned authority to operate on their own, told to a prospective client deciding whether to buy rather than to an interviewer deciding whether to hire' },

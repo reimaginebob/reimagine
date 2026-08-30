@@ -6336,6 +6336,13 @@ export default function PivotEngine(){
   const pursuitStepFocusRef=useRef(null)
   const markPursuitStepDone=(recordId)=>{
     if(!recordId)return
+    // The finished step IS the history. Clearing it without filing it is what
+    // pushed a pilot user to type "- did this" into the step text: the product
+    // gave the record nowhere to go. File first, then clear. A bare date with no
+    // step text files nothing.
+    const st=pursuitStatusFor(recordId)
+    const finished=(st&&typeof st.next_move==='string')?st.next_move.trim():''
+    if(finished)addOpNote(recordId,{text:finished,source:'step'})
     pursuitStepFocusRef.current=recordId
     savePursuit(recordId,{next_move:null,next_step_at:null})
   }
@@ -6752,8 +6759,9 @@ export default function PivotEngine(){
   };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,signedInUser,serverLoadDone,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
-  // savedPlaybooks rides in the autosave blob above (PUT to /api/profile/save)
-  // and is rehydrated from /api/profile/load on sign-in (server-wins on load).
+  // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
+  // is written per record to the saved_playbooks table by the dual-write effect
+  // and rehydrated from GET /api/saved-playbooks on sign-in (server-wins).
   // This pe_saved_v1 write stays as a fast-path / offline cache: it restores
   // the saved set instantly before /api/profile/load resolves and keeps it
   // available offline or signed out. Do not remove it.
@@ -8085,10 +8093,28 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // Save to this opportunity (PR-5, item I): the user saves a chosen My Coach
   // reply onto the in-focus door2 record. The write goes through the app's own
   // save path (setSavedPlaybooks -> /api/profile/save autosave); the coach has no
-  // write path of its own and stays read-only. savedNotes rides in profile_state,
-  // so account deletion already purges it; nothing reaches any analytics path.
+  // write path of its own and stays read-only. savedNotes rides on the saved
+  // playbook record, which since PR #579 lives in the saved_playbooks table
+  // (user_id FK ON DELETE CASCADE), so account deletion still purges it. Nothing
+  // reaches any analytics path, and no prompt or Coach block reads it -- which is
+  // why this, and not panel.opportunity_context, is the safe home for a history:
+  // that box feeds p11 and the Coach, so activity chatter there would degrade
+  // Interview Prep.
   const newNoteId=()=>`note_${Date.now()}_${Math.random().toString(36).slice(2,7)}`
   const getOpSavedNotes=(rec)=>(rec&&Array.isArray(rec.savedNotes))?rec.savedNotes:[]
+  // Composer text for the Notes card. One opportunity playbook is open at a time,
+  // so a single draft is enough; it clears on add.
+  const [noteDraft,setNoteDraft]=useState('')
+  const noteStampDate=(iso)=>{try{return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'})}catch{return ''}}
+  // One append path for every non-Coach note. `source` is 'step' (filed by Mark
+  // done on My Pipeline) or 'user' (typed on the opportunity's Notes card). Same
+  // row shape saveCoachNoteToOpportunity writes, so the render stays one list.
+  // personName is Coach-only and stays null here.
+  const addOpNote=(slotId,{text,source})=>{
+    const t=(typeof text==='string'?text:'').trim();if(!slotId||!t)return
+    const note={id:newNoteId(),text:t,source:source==='step'?'step':'user',personName:null,createdAt:new Date().toISOString()}
+    setSavedPlaybooks(prev=>prev.map(r=>r.id===slotId?{...r,savedNotes:[...getOpSavedNotes(r),note],updatedAt:new Date().toISOString()}:r))
+  }
   const coachSaveTarget=()=>{const r=savedPlaybooks.find(x=>x&&x.id===currentSavedSlotIdRef.current&&x.source==='door2');return r?{id:r.id,title:r.title||'this opportunity'}:null}
   const saveCoachNoteToOpportunity=(text,personName)=>{
     const t=(typeof text==='string'?text:'').trim();if(!t)return ''
@@ -10341,6 +10367,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </div>
             <div style={{marginTop:10,display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
               <span style={{fontSize:15,color:C.grayL}}>{built} of {OP_COUNTED_KEYS.length} built:</span>
+              {(()=>{const _n=getOpSavedNotes(rec).length;return _n?<button type="button" onClick={()=>openPursuitRecord(rec,'op')} style={{background:'none',border:'none',color:C.gold,fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',padding:0}}>{_n} note{_n===1?'':'s'}</button>:null})()}
               {OP_COUNTED_KEYS.map(k=>{const on=_opSectionBuilt(sec(rec),k);const label=OP_CARD_LABELS[k]||k;return on
                 ?<button key={k} type="button" onClick={()=>openPursuitSection(rec,k)} title={`Go to ${label}`} style={{fontSize:15,padding:'3px 8px',borderRadius:20,border:`1px solid ${C.gold}`,background:`${C.gold}22`,color:'#1A2540',cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
                 :<span key={k} title="Not built yet" style={{fontSize:15,padding:'3px 8px',borderRadius:20,border:`1px solid ${C.border}`,background:'transparent',color:C.grayL}}>{label}</span>})}
@@ -12570,16 +12597,29 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {/* About This Company moved to the top of the cards (item F round 2): it
                   precedes the team/positioning so reading the company can spark the
                   user's own context. See the companyRead card above _simpleCard('p5'). */}
-              {(()=>{const _notes=getOpSavedNotes(_rec);if(!_notes.length)return null;return _cardWrap(<>
-                <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>Saved notes</div>
-                <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4,marginBottom:14}}>Replies you saved from My Coach for this opportunity.</div>
-                {_notes.map(n=><div key={n.id} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 14px',marginBottom:10,background:C.bg}}>
+              {/* Notes. The list held only saved My Coach replies and hid itself when
+                  empty, so most people never learned it existed -- which is why a pilot
+                  user typed his completion status into the next-step text instead. It now
+                  renders for every opportunity, takes a note of the user's own, and
+                  receives the finished step that Mark done used to discard. Read by
+                  nothing: no prompt, no Coach block, no analytics path. */}
+              {_rec.source==='door2'&&(()=>{const _notes=getOpSavedNotes(_rec);const _draft=noteDraft.trim();return _cardWrap(<>
+                <div style={{fontSize:20,fontWeight:700,color:'#1A2540',marginBottom:10}}>Notes</div>
+                <CoachingCallout>Anything worth remembering about this opportunity — what you did, what you heard, a reply you saved from My Coach. It's yours alone; nothing here feeds what Reimagine writes for you.</CoachingCallout>
+                <div style={{display:'flex',gap:10,alignItems:'flex-start',marginBottom:_notes.length?18:0}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <textarea style={{...S.ta,minHeight:80,fontSize:16}} value={noteDraft} onChange={e=>setNoteDraft(e.target.value)} placeholder="What happened, or anything you want to remember"/>
+                    <Btn small prominent disabled={!_draft} onClick={()=>{addOpNote(_rec.id,{text:noteDraft,source:'user'});setNoteDraft('')}} style={{marginTop:8}}><Plus size={15}/>Add note</Btn>
+                  </div>
+                  {hasSpeech&&<SpeechBtn onResult={t=>setNoteDraft(x=>x+t)}/>}
+                </div>
+                {_notes.map(n=>{const _stamp=n.source==='coach'?`From My Coach${n.personName?` · ${n.personName}`:''}`:`${n.source==='step'?'Completed':'Your note'}${noteStampDate(n.createdAt)?` · ${noteStampDate(n.createdAt)}`:''}`;return <div key={n.id} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 14px',marginBottom:10,background:C.bg}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:6,flexWrap:'wrap'}}>
-                    <span style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>From My Coach{n.personName?` · ${n.personName}`:''}</span>
+                    <span style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>{_stamp}</span>
                     {!isDemo&&<Btn small secondary onClick={()=>removeOpSavedNote(_rec.id,n.id)} style={{padding:'4px 10px'}}><X size={12}/>Remove</Btn>}
                   </div>
                   <div style={{fontSize:15,color:C.cream,lineHeight:1.6}}><MD text={n.text||''}/></div>
-                </div>)}
+                </div>})}
               </>,'section-savednotes')})()}
               {/* Inline "All five sections built → Save as PDF" cue. Parallel to
                   Focus's line ~5430 cue. Fires once every one of p5/p6/p_res/p11/
