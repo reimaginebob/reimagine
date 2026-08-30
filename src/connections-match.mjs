@@ -99,6 +99,11 @@ export function parseConnectionsCsv(text) {
       t: String(rec.position || '').trim(),
       u: String(rec.url || '').trim(),
       d: String(rec.connectedOn || '').trim(),
+      // Present only when that connection allowed email export in their own
+      // privacy settings, so most rows have none. Kept because Making Your Own
+      // Weather prefers email over a LinkedIn message, and knowing whether we
+      // already have the address decides which draft the card leads with.
+      e: String(rec.email || '').trim(),
     })
   }
   return { people, skipped, error: people.length ? null : 'no-rows' }
@@ -231,3 +236,96 @@ export function daysSince(iso, nowMs) {
 }
 
 export const STALE_AFTER_DAYS = 90
+
+// ── Outreach drafts ──────────────────────────────────────────────────────────
+
+// Drafts live beside the network, on the device, for the same reason the network
+// does: the connection they name is a real person the user has not agreed to
+// share with us. Keyed by opportunity and by person.
+export const OUTREACH_STORAGE_KEY = 'reimagine_outreach_v1'
+
+export function outreachKey(recordId, person) {
+  const who = (person && (person.u || person.n)) || ''
+  return `${recordId || ''}::${who}`
+}
+
+export const firstNameOf = (full) => String(full || '').trim().split(/\s+/)[0] || ''
+
+// The generated note is written with a literal {{NAME}} token where the greeting
+// name goes, and the real name is substituted HERE, in the browser. That is the
+// point: the person's name never leaves the device — only their job title and
+// how long they have been a connection are sent to write the draft.
+//
+// The bracketed variants are a backstop for a model that reaches for a
+// conventional placeholder instead of the token it was given.
+const NAME_TOKENS = /\{\{\s*NAME\s*\}\}|\[\s*(?:first\s*name|name)\s*\]/gi
+
+export function applyName(text, fullName) {
+  const first = firstNameOf(fullName)
+  if (!text) return ''
+  if (!first) return String(text)
+  return String(text).replace(NAME_TOKENS, first)
+}
+
+// True when the draft still carries an unfilled placeholder — the caller shows a
+// plain note rather than letting "{{NAME}}" reach a real message.
+export function hasUnfilledName(text) {
+  NAME_TOKENS.lastIndex = 0
+  return NAME_TOKENS.test(String(text || ''))
+}
+
+// ── Working out an address we were not given ─────────────────────────────────
+
+// Most corporate mail follows a handful of conventions off one domain, so with
+// the domain supplied by the USER we can lay out the likely forms rather than
+// invent one. These are candidates to verify, never "their address" — the UI
+// must never present one as known, and nothing here is ever sent anywhere.
+export const HUNTER_URL = 'https://hunter.io'
+
+// Accepts "ameriprise.com", "@ameriprise.com", or a pasted URL, and returns the
+// bare domain. Returns '' for anything that is not plausibly one.
+export function cleanDomain(raw) {
+  let s = String(raw || '').trim().toLowerCase()
+  if (!s) return ''
+  s = s.replace(/^mailto:/, '').replace(/^https?:\/\//, '').replace(/^www\./, '')
+  s = s.split('/')[0].split('?')[0]
+  const at = s.lastIndexOf('@')
+  if (at !== -1) s = s.slice(at + 1)
+  s = s.replace(/^[^a-z0-9]+/, '').replace(/[^a-z0-9.-]+$/, '')
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(s)) return ''
+  if (!s.includes('.')) return ''
+  return s
+}
+
+const asciiPart = (s) => String(s || '')
+  .normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .toLowerCase().replace(/[^a-z]/g, '')
+
+/**
+ * The likely address forms for a name at a domain, most common first.
+ * Empty when either input is missing or the name has no usable letters.
+ */
+export function emailGuesses(fullName, domain) {
+  const d = cleanDomain(domain)
+  if (!d) return []
+  const parts = String(fullName || '').trim().split(/\s+/).map(asciiPart).filter(Boolean)
+  if (!parts.length) return []
+  const first = parts[0]
+  const last = parts.length > 1 ? parts[parts.length - 1] : ''
+  const forms = last
+    ? [`${first}.${last}`, `${first}${last}`, `${first[0]}${last}`, `${first}_${last}`, `${first}`]
+    : [first]
+  const seen = new Set()
+  return forms.filter(f => f && !seen.has(f) && seen.add(f)).map(f => `${f}@${d}`)
+}
+
+export const DOMAIN_STORAGE_KEY = 'reimagine_conn_domains_v1'
+
+export function mailtoUrl(email, subject, body) {
+  const to = String(email || '').trim()
+  if (!to) return null
+  const q = []
+  if (subject) q.push('subject=' + encodeURIComponent(subject))
+  if (body) q.push('body=' + encodeURIComponent(body))
+  return 'mailto:' + encodeURIComponent(to).replace(/%40/g, '@') + (q.length ? '?' + q.join('&') : '')
+}

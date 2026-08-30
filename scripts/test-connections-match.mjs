@@ -2,7 +2,8 @@
 // the company matching behind "Who You Know Here".
 import {
   parseCsv, parseConnectionsCsv, normalizeCompany, companyMatch, matchConnections,
-  linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince,
+  linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey, applyName,
+  hasUnfilledName, mailtoUrl, firstNameOf, cleanDomain, emailGuesses,
 } from '../src/connections-match.mjs'
 
 let passed = 0
@@ -38,7 +39,7 @@ eq(parsed.people.length, 3, 'three usable rows')
 eq(parsed.skipped, 1, 'the row with no company is skipped, not carried')
 eq(parsed.people[0], {
   n: 'Dana Whitfield', c: 'Ameriprise Financial Services, Inc.', t: 'VP Operations',
-  u: 'https://www.linkedin.com/in/danawhitfield', d: '14 Mar 2019',
+  u: 'https://www.linkedin.com/in/danawhitfield', d: '14 Mar 2019', e: '',
 }, 'the first row maps to compact keys with its comma intact')
 
 // A header with no preamble at all, in case LinkedIn drops it.
@@ -114,5 +115,62 @@ eq(daysSince('2026-08-30T00:00:00Z', NOW), 0, 'today is zero days')
 eq(daysSince('2026-05-30T00:00:00Z', NOW), 92, 'three months back counts the days')
 eq(daysSince(null, NOW), null, 'no date yields no answer')
 eq(daysSince('not a date', NOW), null, 'an unparseable date yields no answer')
+
+// ── Outreach drafts ──────────────────────────────────────────────────────────
+
+eq(parsed.people[1].e, 'marcus@example.com', 'an exported email is captured when the connection allowed it')
+eq(parsed.people[0].e, '', 'a connection who withheld their email has none')
+
+eq(firstNameOf('Dana Whitfield'), 'Dana', 'the greeting uses the first name')
+eq(firstNameOf('  Priya   Raman '), 'Priya', 'padding does not leak into the greeting')
+eq(firstNameOf(''), '', 'no name yields no first name')
+
+// The privacy mechanic: the model is given {{NAME}}, the browser fills it in.
+eq(applyName('{{NAME}},\n\nGood to see you at Acme.', 'Dana Whitfield'), 'Dana,\n\nGood to see you at Acme.', 'the token is replaced with the first name')
+eq(applyName('Hi {{ NAME }} —', 'Marcus Bell'), 'Hi Marcus —', 'whitespace inside the token is tolerated')
+eq(applyName('Hi [First Name],', 'Marcus Bell'), 'Hi Marcus,', 'a bracketed placeholder is caught as a backstop')
+eq(applyName('Hi [name],', 'Marcus Bell'), 'Hi Marcus,', 'the backstop is case-insensitive')
+eq(applyName('{{NAME}} and {{NAME}}', 'Dana Whitfield'), 'Dana and Dana', 'every occurrence is replaced')
+eq(applyName('No placeholder here.', 'Dana Whitfield'), 'No placeholder here.', 'text without a token is untouched')
+eq(applyName('{{NAME}},', ''), '{{NAME}},', 'with no name the token is left visible rather than silently dropped')
+eq(applyName('', 'Dana'), '', 'empty text stays empty')
+
+ok(hasUnfilledName('Hi {{NAME}},'), 'an unfilled token is detected')
+ok(!hasUnfilledName('Hi Dana,'), 'a filled greeting is not flagged')
+ok(!hasUnfilledName(''), 'empty text is not flagged')
+// Regex state must not leak between calls — a /g regex with .test() is stateful.
+ok(hasUnfilledName('Hi {{NAME}},') && hasUnfilledName('Hi {{NAME}},'), 'repeated checks give the same answer')
+
+eq(outreachKey('sp_1', { u: 'https://linkedin.com/in/dana', n: 'Dana' }), 'sp_1::https://linkedin.com/in/dana', 'the profile URL keys the draft when present')
+eq(outreachKey('sp_1', { n: 'Dana Whitfield' }), 'sp_1::Dana Whitfield', 'the name keys it when there is no URL')
+ok(outreachKey('sp_1', { n: 'A' }) !== outreachKey('sp_2', { n: 'A' }), 'the same person on two opportunities keys separately')
+
+// ── Working out an address ───────────────────────────────────────────────────
+
+eq(cleanDomain('ameriprise.com'), 'ameriprise.com', 'a bare domain passes through')
+eq(cleanDomain('  Ameriprise.COM '), 'ameriprise.com', 'case and padding are normalized')
+eq(cleanDomain('@ameriprise.com'), 'ameriprise.com', 'a leading @ is dropped')
+eq(cleanDomain('someone@ameriprise.com'), 'ameriprise.com', 'a full address yields its domain')
+eq(cleanDomain('https://www.ameriprise.com/careers'), 'ameriprise.com', 'a pasted URL yields its domain')
+eq(cleanDomain('mail.ameriprise.co.uk'), 'mail.ameriprise.co.uk', 'a multi-level domain survives')
+eq(cleanDomain('ameriprise'), '', 'a bare word is not a domain')
+eq(cleanDomain(''), '', 'empty input is not a domain')
+eq(cleanDomain('not a domain at all'), '', 'a sentence is not a domain')
+
+eq(emailGuesses('Dana Whitfield', 'ameriprise.com'),
+  ['dana.whitfield@ameriprise.com', 'danawhitfield@ameriprise.com', 'dwhitfield@ameriprise.com', 'dana_whitfield@ameriprise.com', 'dana@ameriprise.com'],
+  'the common conventions are laid out, most likely first')
+eq(emailGuesses('Dana Whitfield', '@Ameriprise.com')[0], 'dana.whitfield@ameriprise.com', 'the domain is cleaned before use')
+eq(emailGuesses('Priya', 'acme.com'), ['priya@acme.com'], 'a single name yields the one form')
+eq(emailGuesses('José Álvarez', 'acme.com')[0], 'jose.alvarez@acme.com', 'accents are folded to ASCII')
+eq(emailGuesses("Mary-Jane O'Connor", 'acme.com')[0], 'maryjane.oconnor@acme.com', 'punctuation in a name is dropped')
+eq(emailGuesses('Ann Marie Chen', 'acme.com')[0], 'ann.chen@acme.com', 'a middle name is skipped, first and last are used')
+eq(emailGuesses('Dana Whitfield', ''), [], 'no domain yields no guesses')
+eq(emailGuesses('', 'acme.com'), [], 'no name yields no guesses')
+eq(emailGuesses('   ', 'acme.com'), [], 'a blank name yields no guesses')
+
+ok(mailtoUrl('marcus@example.com', 'Quick one', 'Hi').startsWith('mailto:marcus@example.com?'), 'the address survives encoding intact')
+ok(mailtoUrl('a@b.com', 'S & T', '').includes('subject=S%20%26%20T'), 'the subject is encoded')
+eq(mailtoUrl('', 'S', 'B'), null, 'no address yields no mail link')
 
 console.log(`test-connections-match: OK (${passed} cases passed)`)
