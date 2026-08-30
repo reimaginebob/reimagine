@@ -2847,16 +2847,16 @@ HONESTY. The source material is what one person recalled, and it is uneven by na
 // what the note is called; the hint is shown under the row so the difference
 // between "find the name" and "learn about the place" is legible before drafting.
 const OUTREACH_PURPOSE_CHOICES=[
-  {id:'hiring',   label:'Find out who’s hiring',  hint:'Ask who owns the role, or who would know. A small question with a useful answer, and the one to send when your application needs to land on the right desk.'},
-  {id:'learn',    label:'Learn about the place',      hint:'Ask for fifteen minutes on what it is actually like there. Send this when you want a real read on the company before you commit, or when the connection is too distant to ask for anything else.'},
-  {id:'word',     label:'Ask them to put in a word',  hint:'Ask them to flag your application internally. The heaviest ask here, and the strongest move you have with someone who genuinely knows your work.'},
-  {id:'reconnect',label:'Just reconnect',             hint:'No ask at all. Get back in touch and mention you are looking, so the door is open later. The right note for someone you have not spoken to in years.'},
+  {id:'hiring',   label:'Find out who’s hiring',  hint:'Ask who the hiring manager is, or who would know. It takes them a moment to answer and it tells you who your application needs to reach.'},
+  {id:'learn',    label:'Learn about the place',      hint:'Ask for fifteen minutes on what the company is actually like to work for. Use this when you want to know that before you go further, or when you do not know the person well enough to ask for more.'},
+  {id:'word',     label:'Ask them to put in a word',  hint:'Ask them to mention your application to the right people inside. This is the biggest favor on the list, and the best thing you can do with someone who has seen you work.'},
+  {id:'reconnect',label:'Just reconnect',             hint:'Ask for nothing. Just get back in touch and mention you are looking, so it is easier to ask them something later. Use this for someone you have not spoken to in years.'},
 ]
 const OUTREACH_PURPOSES={
   hiring:`PURPOSE — FIND OUT WHO OWNS THE ROLE. They are probably not the hiring manager and probably not on the hiring team, so do not treat them as the decision-maker. Ask who owns this role, or who would know: it costs them a moment to answer, and the answer is the name the writer needs. Do NOT ask for a referral, a recommendation, or for a resume to be passed along in this version. Say plainly that they have applied or are about to. Email body 120 words maximum, three short paragraphs.`,
   learn:`PURPOSE — LEARN ABOUT THE PLACE. This is a request for a short conversation, not for help getting hired, and it must not read as a referral ask wearing a disguise. Ask what it is actually like to work there, how the team runs, what they have made of it — the things that do not appear in a posting. Name that the writer is looking at a role there so the request is not mysterious, then keep the focus on their experience. Offer a specific, small commitment: fifteen or twenty minutes, at their convenience, on a call or over email if that is easier. Do NOT ask them to refer, introduce, or forward anything. Email body 120 words maximum, three short paragraphs.`,
-  word:`PURPOSE — ASK THEM TO PUT IN A WORD. This is the heaviest ask in the set and only works on a real relationship, so write it as one adult asking another for a favour, without grovelling and without pretending it is small. Say what the role is, say in one line why the writer is a serious candidate for it rather than a hopeful one, and ask directly whether they would be willing to flag the application internally or pass their name to whoever owns it. Give them an unembarrassing exit: they may not know the team, or may not feel able to vouch, and the note should say so before they have to. If the HOW THEY KNOW EACH OTHER note is empty, keep the ask noticeably lighter — a stranger cannot be asked to vouch. Email body 140 words maximum.`,
-  reconnect:`PURPOSE — RECONNECT, WITH NO ASK. Make NO request in this note: no name, no meeting, no favour, no "let me know if you hear of anything". The job of these words is to be back in touch with someone the writer has lost contact with, and to mention in passing that they are looking, so the door is open for a later conversation. Warm, brief, genuinely interested in them. If it says how they know each other, lead with that; otherwise lead honestly on having seen where they are now. Ending on a real question about them is good; ending on a request is a failure. Email body 90 words maximum, two short paragraphs.`,
+  word:`PURPOSE — ASK THEM TO PUT IN A WORD. This is the heaviest ask in the set and only works on a real relationship, so write it as one adult asking another for a favor, without groveling and without pretending it is small. Say what the role is, say in one line why the writer is a serious candidate for it rather than a hopeful one, and ask directly whether they would be willing to flag the application internally or pass their name to whoever owns it. Give them an unembarrassing exit: they may not know the team, or may not feel able to vouch, and the note should say so before they have to. If the HOW THEY KNOW EACH OTHER note is empty, keep the ask noticeably lighter — a stranger cannot be asked to vouch. Email body 140 words maximum.`,
+  reconnect:`PURPOSE — RECONNECT, WITH NO ASK. Make NO request in this note: no name, no meeting, no favor, no "let me know if you hear of anything". The job of these words is to be back in touch with someone the writer has lost contact with, and to mention in passing that they are looking, so the door is open for a later conversation. Warm, brief, genuinely interested in them. If it says how they know each other, lead with that; otherwise lead honestly on having seen where they are now. Ending on a real question about them is good; ending on a request is a failure. Email body 90 words maximum, two short paragraphs.`,
 }
 const P={
   // Stage one (Personal Brand): the lean analysis. A short coach frame plus the
@@ -3292,7 +3292,7 @@ ${src}
 Produce exactly these sections, in this order, with these headers.
 
 ## QUICK TAKE
-Four or five sentences. What this is, where it sits in the sequence, the biggest thing in their favour, the biggest risk, and the move this week.
+Four or five sentences. What this is, where it sits in the sequence, the biggest thing in their favor, the biggest risk, and the move this week.
 
 ## 1. WHAT ALREADY DID THE SELLING
 The probative work that has happened, whether they engineered it or not, and what it means they do not have to prove again. Name what is still unproven, and with whom.
@@ -12429,13 +12429,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _loadedLabel=connNetwork&&connNetwork.loadedAt?new Date(connNetwork.loadedAt).toLocaleDateString(undefined,{month:'long',day:'numeric'}):null
                 const _stale=_age!=null&&_age>=STALE_AFTER_DAYS
                 const _where=_company||'this company'
-                const _secBtn={display:'inline-flex',alignItems:'center',gap:8,padding:'9px 16px',borderRadius:8,border:`1.5px solid ${C.border}`,background:'#FFFFFF',color:'#1A2540',fontWeight:600,fontSize:16,fontFamily:'inherit',textDecoration:'none',cursor:'pointer'}
-                const _goldBtn={display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',borderRadius:8,border:`1.5px solid ${C.gold}`,background:C.gold,color:'#1A2540',fontWeight:700,fontSize:16,fontFamily:'inherit',textDecoration:'none',cursor:'pointer'}
+                // The app's own primitives, not a third button language: S.btn is the
+                // gold primary and carries the one forward move on this card; S.sec is
+                // the outlined secondary for the two diagnostic steps.
+                const _secBtn={...S.sec,textDecoration:'none'}
+                const _goldBtn={...S.btn,textDecoration:'none'}
                 const _linkBtn=<div>
-                  <a href={linkedInSecondDegreeUrl(searchQuery(_company,_srch.extra))} target="_blank" rel="noopener noreferrer" style={_goldBtn}>See who is one step away<ArrowUpRight size={16}/></a>
+                  <a href={linkedInSecondDegreeUrl(searchQuery(_company,_srch.extra))} target="_blank" rel="noopener noreferrer" style={_goldBtn}>See who can introduce you<ArrowUpRight size={16}/></a>
                   <CoachingCallout>
-                    Under every name LinkedIn lists your <strong style={{color:'#1A2540'}}>mutual connections</strong>. That line is the point: it names the people who can introduce you. Find someone senior enough to matter, see who you both know, and ask that person.
-                    <div style={{marginTop:10}}>That list is deliberately wide, so it also turns up people who <strong style={{color:'#1A2540'}}>used to work there</strong> — often the most candid conversation you can get about why a seat is open and who really fills it, since they are not protecting a relationship. It also catches the company where it trades under more than one name. If {_where} is a common word and the results run to strangers, LinkedIn&rsquo;s own filters on that page will tighten it.</div>
+                    Under each person, LinkedIn shows the connections you and they have in common. Those are the people who can introduce you: pick someone at {_where} worth meeting, look at who you both know, and ask that person to introduce you.
+                    <div style={{marginTop:10}}>This search is loose on purpose, so it also finds people who <strong style={{color:'#1A2540'}}>used to work there</strong>. They will usually tell you more than someone still on the payroll — why the job is open, who really decides — because they have nothing to protect. Being loose also finds the company when it uses more than one name. If {_where} is a common word and you get strangers, use LinkedIn&rsquo;s own filters on that page to narrow it down.</div>
                   </CoachingCallout>
                 </div>
                 return _cardWrap(<>
@@ -12545,7 +12548,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                             </div>
                             <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginBottom:8}}>{(OUTREACH_PURPOSE_CHOICES.find(c=>c.id===_purpose)||OUTREACH_PURPOSE_CHOICES[0]).hint}</div>
                             <input style={{width:'100%',maxWidth:520,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={outreachCtx[_pk]||''} onChange={e=>setOutreachCtx(m=>({...m,[_pk]:e.target.value}))} placeholder={`How do you know ${firstNameOf(h.n)}? (optional)`}/>
-                            <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:6}}>Worth a line if you have one. Without it the note stays on the present, because Reimagine will not invent a history you did not describe.</div>
+                            <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:6}}>One line helps a lot. Without it the note only talks about now, because we will not make up a shared history you did not tell us about.</div>
                             <div style={{marginTop:10}}><Btn small secondary={!!_d} onClick={()=>generateOutreachNote(h,_purpose,outreachCtx[_pk]||'')} disabled={!!outreachBusy}>{_busy?'Writing…':_d?<><RotateCcw size={11}/>Redo this one</>:<><Sparkles size={12}/>Draft the note</>}</Btn></div>
                           </div>}
                           {outreachErr[_k]&&<div style={{marginTop:10}}><ErrBox msg={outreachErr[_k]}/></div>}
@@ -12591,28 +12594,28 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{marginTop:14}}>{_linkBtn}</div>
                     </div>}
                     {_company&&_hits.length===0&&<div style={{marginTop:16}}>
-                      <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>No one in your network turned up under &ldquo;{_company}&rdquo;</div>
-                      <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:16}}>Which is not the same as knowing nobody there. Big employers run divisions and subsidiaries under their own names, people list a business unit or a former employer rather than the parent, and your file only knows where each person worked on the day you exported it.</div>
+                      <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>We looked for &ldquo;{_company}&rdquo; and did not find anyone in your connections</div>
+                      <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:16}}>That does not mean you know nobody there. Large companies own smaller ones that go by their own names, people often list a division or an old employer instead of the parent company, and your file only knows where everyone worked on the day you downloaded it.</div>
                       {_loose.length>0&&<div style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 14px',marginBottom:14}}>
-                        <div style={{fontSize:16,color:'#1A2540',lineHeight:1.6,marginBottom:8}}>{_loose.length===1?'One person in your network lists':`${_loose.length} people in your network list`} &ldquo;{_company}&rdquo; as part of a longer employer name. Worth a look — it may be a division or a joint venture.</div>
+                        <div style={{fontSize:16,color:'#1A2540',lineHeight:1.6,marginBottom:8}}>{_loose.length===1?'One person in your connections works':`${_loose.length} people in your connections work`} somewhere with &ldquo;{_company}&rdquo; in the name. One of these may be the same company under a different one.</div>
                         {_loose.slice(0,8).map((h,i)=><div key={`${h.u||h.n}_loose_${i}`} style={{fontSize:16,color:'#33405C',lineHeight:1.6,paddingTop:i===0?0:6}}>
                           <strong style={{color:'#1A2540'}}>{h.n}</strong> — {h.c}{h.t?` · ${h.t}`:''}
                           {h.u&&<> · <a href={h.u} target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:600}}>profile</a></>}
                         </div>)}
-                        {_loose.length>8&&<div style={{fontSize:15,color:C.gray,marginTop:8}}>and {_loose.length-8} more. Use Try another name below to see them all.</div>}
-                        <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:10}}>If one of these is the right company, use Try another name below and Reimagine will match this opportunity against it instead.</div>
+                        {_loose.length>8&&<div style={{fontSize:15,color:C.gray,marginTop:8}}>and {_loose.length-8} more. Type the fuller name into Try another name below to see all of them.</div>}
+                        <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:10}}>If one of these is the right company, type that name into Try another name below and we will search for it instead.</div>
                       </div>}
                       <div style={{marginBottom:16}}>
-                        <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>If you expected to see someone, settle it first. LinkedIn knows who you are connected to today; your file knows who you were connected to{_loadedLabel?` on ${_loadedLabel}`:' when you exported it'}. Anyone who appears there and not here moved since, and replacing your file picks them up.</div>
-                        <a href={linkedInFirstDegreeUrl(_company)} target="_blank" rel="noopener noreferrer" style={_secBtn}>Check on LinkedIn<ArrowUpRight size={15}/></a>
+                        <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>Think someone is missing? LinkedIn will tell you. It knows who you are connected to right now, while your file only knows{_loadedLabel?` ${_loadedLabel}`:' the day you downloaded it'}. If LinkedIn shows someone who is not here, they changed jobs since then — download a new file and they will show up.</div>
+                        <a href={linkedInFirstDegreeUrl(_company)} target="_blank" rel="noopener noreferrer" style={_secBtn}>Check LinkedIn<ArrowUpRight size={15}/></a>
                       </div>
                       <div style={{marginBottom:16}}>
-                        <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>If they go by another name — a division, a subsidiary, or what they were called before — put that in and this rebuilds against it.</div>
-                        <button type="button" onClick={()=>{setConnSearchDraft(d=>({...d,[_slotForSearch]:{company:_srch.company,extra:_srch.extra}}));setConnSearchOpen(x=>({...x,[_slotForSearch]:true}))}} style={_secBtn}>Try another name</button>
+                        <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>Do they go by another name? Try the parent company, a division, or what they were called before. We will search your connections again for whatever you type.</div>
+                        <Btn secondary onClick={()=>{setConnSearchDraft(d=>({...d,[_slotForSearch]:{company:_srch.company,extra:_srch.extra}}));setConnSearchOpen(x=>({...x,[_slotForSearch]:true}))}}>Try another name</Btn>
                       </div>
-                      <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>Either way, the people one step out are still there. Someone you know knows someone at {_company}.</div>
+                      <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>Even with nobody inside, you may know someone who knows someone at {_company}. LinkedIn can show you who.</div>
                       {_linkBtn}
-                      {_stale&&<CoachingCallout>The file you loaded is {Math.floor(_age/30)} months old. At that age a blank result says as much about the file as about your network. A fresh export takes about two minutes to request.</CoachingCallout>}
+                      {_stale&&<CoachingCallout>Your file is {Math.floor(_age/30)} months old. Enough people will have changed jobs since then that an empty result may just mean the file is out of date. Asking LinkedIn for a new one takes about two minutes.</CoachingCallout>}
                     </div>}
                     <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.border}`,fontSize:16,color:C.gray,lineHeight:1.6}}>LinkedIn does not let any outside tool see who your connections are connected to, which is why the people one step past your own network are handed to LinkedIn's own search rather than worked out here. Your connections file is never uploaded. Asking for a draft note is the one thing that sends anything: that person's first name, title and connection date, all of it public on their profile.</div>
                   </>}
