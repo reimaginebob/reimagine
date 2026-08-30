@@ -12468,12 +12468,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     {connError&&<div style={{marginTop:10}}><ErrBox msg={connError}/></div>}
                   </>}
                   {connNetwork&&<>
-                    <div style={{marginTop:14,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
-                      <div style={{fontSize:16,color:C.gray}}>{connNetwork.people.length.toLocaleString()} connections{_loadedLabel?`, loaded ${_loadedLabel}`:''}.</div>
-                      <button type="button" onClick={()=>setConnStepsOpen(o=>!o)} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit'}}>{connStepsOpen?'Hide':'Replace this file'}</button>
+                    {/* The date is the reason a person would want to replace the file,
+                        so the offer sits in the same sentence as the date rather than
+                        pushed to the far edge of the row where the two read as
+                        unrelated. */}
+                    <div style={{marginTop:14,fontSize:16,color:C.gray,lineHeight:1.6}}>
+                      {connNetwork.people.length.toLocaleString()} connections{_loadedLabel?`, loaded ${_loadedLabel}`:''}.{' '}
+                      {connStepsOpen
+                        ?<button type="button" onClick={()=>setConnStepsOpen(false)} style={{background:'none',border:'none',color:C.goldL,fontWeight:600,cursor:'pointer',padding:0,fontSize:16,fontFamily:'inherit'}}>Never mind</button>
+                        :<>Have a newer one from LinkedIn? <button type="button" onClick={()=>setConnStepsOpen(true)} style={{background:'none',border:'none',color:C.goldL,fontWeight:700,cursor:'pointer',padding:0,fontSize:16,fontFamily:'inherit'}}>Upload it here</button></>}
                     </div>
                     {connStepsOpen&&!isDemo&&<div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
-                      <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginBottom:10}}>Request a fresh Connections export from <a href={LINKEDIN_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:600}}>your LinkedIn data download page</a>, then drop it here. The new file replaces the old one.</div>
+                      <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Ask LinkedIn for a new Connections file on <a href={LINKEDIN_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer" style={{color:C.goldL,fontWeight:600}}>your data download page</a>, then drop it below. It takes the place of the one you have now, and everything on this card re-runs against it.</div>
                       <FileUpload label="A newer connections file" hint="Connections.csv from LinkedIn. Read in your browser, same as before." accept=".csv,.txt" onFile={loadConnectionsFile}/>
                       {connBusy&&<div style={{marginTop:10,fontSize:15,color:C.gray}}>Reading your file…</div>}
                       {connError&&<div style={{marginTop:10}}><ErrBox msg={connError}/></div>}
