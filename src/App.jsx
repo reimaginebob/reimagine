@@ -6853,8 +6853,12 @@ export default function PivotEngine(){
     landingDecidedRef.current=true
     if(isReturningExplorer){
       track('landing_dashboard',{savedCount:activePlaybooks.length,exploredCount:exploredRoleTitles.length})
-      // Flagged users land on their live pipeline (their daily home); everyone
-      // else on the playbook library.
+      // Signed-in users land on their live pipeline -- the daily home, and since
+      // GA that is everyone with an account. Signed-out returning explorers (no
+      // pursuit_status to read) land on the playbook library instead. This is
+      // also how My Pipeline introduces itself: a returning person arrives on
+      // their own opportunities already laid out, rather than on a popup
+      // describing a screen they have not seen.
       setStep(hasPipeline?'pipeline':'mylib')
     }else{
       track('landing_skipped',{reason:'no_explorer_signal'})
