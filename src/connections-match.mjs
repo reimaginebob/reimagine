@@ -207,9 +207,14 @@ export function matchConnections(people, targetCompany) {
 //     them. Our own matcher cannot find them either — LinkedIn's export carries
 //     only each connection's CURRENT employer, no history — so this search is
 //     the only place they surface at all.
-//   - It survives a company trading under several entities. "Imerys", "Imerys
-//     USA, Inc." and "Imerys Americas" are separate LinkedIn pages; the facet
-//     makes the user pick one and silently drops the rest.
+//   - It survives a company trading under several entities, which is the common
+//     case rather than the exception. Checked live on 2026-08-30: LinkedIn's
+//     Current companies filter for "Imerys" offers Imerys, Imerys British
+//     Lithium, Gimpex Imerys India, Imerys Performance Minerals, Imerys Fused
+//     Minerals Salto, Imerys Unidade Ipixuna do Pará and imerys samrec
+//     vermiculite, with more below the scroll — and "Imerys USA, Inc.", where
+//     one of the actual results worked, was not among them. Picking any single
+//     entity drops most of the people worth reaching.
 //
 // The cost is noise when the company's name is a common word, which is the one
 // case worth narrowing — so the card points at LinkedIn's own filters for it
@@ -224,6 +229,28 @@ export function linkedInSecondDegreeUrl(company) {
 // Deep link straight to the export page, which skips the four-step menu walk
 // (Me -> Settings & Privacy -> Data Privacy -> Download your data). Verified
 // 2026-08-30: signed out this redirects to login and returns here afterward.
+// What the LinkedIn search actually asks for: the company, plus anything the
+// user added to narrow it. Kept separate from the company itself because the
+// extra terms steer the SEARCH only — they never touch which of the user's own
+// connections are matched, and the card says so.
+export function searchQuery(company, extra) {
+  return [String(company || '').trim(), String(extra || '').trim()].filter(Boolean).join(' ')
+}
+
+export const SEARCH_STORAGE_KEY = 'reimagine_conn_search_v1'
+
+// The company this card matches and searches on, and any narrowing terms. Falls
+// back to the company Reimagine pulled off the posting, which is right almost
+// always — this exists for when it is not, or when the user wants a parent, a
+// subsidiary, or a former name instead.
+export function resolveSearch(override, recordCompany) {
+  const o = override && typeof override === 'object' ? override : {}
+  const company = typeof o.company === 'string' && o.company.trim() ? o.company.trim() : String(recordCompany || '').trim()
+  const extra = typeof o.extra === 'string' ? o.extra.trim() : ''
+  const edited = company !== String(recordCompany || '').trim() || !!extra
+  return { company, extra, edited }
+}
+
 export const LINKEDIN_DOWNLOAD_URL = 'https://www.linkedin.com/mypreferences/d/download-my-data'
 export const LINKEDIN_HELP_URL = 'https://www.linkedin.com/help/linkedin/answer/a1339364'
 

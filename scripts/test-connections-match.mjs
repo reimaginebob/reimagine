@@ -3,7 +3,7 @@
 import {
   parseCsv, parseConnectionsCsv, normalizeCompany, companyMatch, matchConnections,
   linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey,
-  mailtoUrl, firstNameOf, cleanDomain, emailGuesses,
+  mailtoUrl, firstNameOf, cleanDomain, emailGuesses, searchQuery, resolveSearch,
 } from '../src/connections-match.mjs'
 
 let passed = 0
@@ -100,6 +100,22 @@ eq(matchConnections(twoExact, 'Acme').map(h => h.n), ['Al Brown', 'Zoe Adams'], 
 ok(linkedInSecondDegreeUrl('Ameriprise Financial').includes('keywords=Ameriprise%20Financial'), 'the company is encoded into the search')
 ok(linkedInSecondDegreeUrl('Ameriprise').includes('network='), 'the network filter is present')
 ok(!linkedInSecondDegreeUrl('').includes('keywords='), 'no company yields a plain people search rather than a broken query')
+
+// ── What the search asks for ─────────────────────────────────────────────────
+
+eq(searchQuery('Imerys', ''), 'Imerys', 'no narrowing terms leaves the company alone')
+eq(searchQuery('Imerys', 'operations'), 'Imerys operations', 'narrowing terms are appended')
+eq(searchQuery('Imerys', '  '), 'Imerys', 'blank narrowing terms are ignored')
+eq(searchQuery('', 'operations'), 'operations', 'terms alone still make a query')
+eq(searchQuery('', ''), '', 'nothing yields nothing')
+
+eq(resolveSearch(null, 'Imerys'), { company: 'Imerys', extra: '', edited: false }, 'with no override the posting company is used')
+eq(resolveSearch({}, 'Imerys'), { company: 'Imerys', extra: '', edited: false }, 'an empty override is the same as none')
+eq(resolveSearch({ company: '  ' }, 'Imerys'), { company: 'Imerys', extra: '', edited: false }, 'a blank company falls back rather than searching for nothing')
+eq(resolveSearch({ company: 'Imerys USA' }, 'Imerys'), { company: 'Imerys USA', extra: '', edited: true }, 'a changed company is marked as edited')
+eq(resolveSearch({ extra: 'plant manager' }, 'Imerys'), { company: 'Imerys', extra: 'plant manager', edited: true }, 'narrowing terms alone count as an edit')
+eq(resolveSearch({ company: 'Imerys' }, 'Imerys'), { company: 'Imerys', extra: '', edited: false }, 'retyping the same company is not an edit')
+eq(resolveSearch({ company: 'Imerys' }, '  Imerys  '), { company: 'Imerys', extra: '', edited: false }, 'padding on the record does not read as an edit')
 
 // ── Storage ──────────────────────────────────────────────────────────────────
 
