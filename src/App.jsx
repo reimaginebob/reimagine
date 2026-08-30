@@ -12429,6 +12429,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _loadedLabel=connNetwork&&connNetwork.loadedAt?new Date(connNetwork.loadedAt).toLocaleDateString(undefined,{month:'long',day:'numeric'}):null
                 const _stale=_age!=null&&_age>=STALE_AFTER_DAYS
                 const _where=_company||'this company'
+                const _secBtn={display:'inline-flex',alignItems:'center',gap:8,padding:'9px 16px',borderRadius:8,border:`1.5px solid ${C.border}`,background:'#FFFFFF',color:'#1A2540',fontWeight:600,fontSize:16,fontFamily:'inherit',textDecoration:'none',cursor:'pointer'}
                 const _goldBtn={display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',borderRadius:8,border:`1.5px solid ${C.gold}`,background:C.gold,color:'#1A2540',fontWeight:700,fontSize:16,fontFamily:'inherit',textDecoration:'none',cursor:'pointer'}
                 const _linkBtn=<div>
                   <a href={linkedInSecondDegreeUrl(searchQuery(_company,_srch.extra))} target="_blank" rel="noopener noreferrer" style={_goldBtn}>See who is one step away<ArrowUpRight size={16}/></a>
@@ -12476,7 +12477,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{marginTop:10}}><Btn small secondary onClick={clearConnections}><X size={12}/>Remove it from this device</Btn></div>
                     </div>}
                     {!_company&&<CoachingCallout>This opportunity does not have a company name on it yet, so there is nothing to match against. Use Edit below to name the company yourself.</CoachingCallout>}
-                    {(()=>{
+                    {(_hits.length>0||connSearchOpen[_slotForSearch])&&(()=>{
                       // Same component shape as Recruiters for This Path's "Matching
                       // on" control: a contained panel with an uppercase header, a
                       // label grid, and an explicit commit. Editing is a draft until
@@ -12591,22 +12592,27 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     </div>}
                     {_company&&_hits.length===0&&<div style={{marginTop:16}}>
                       <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>No one in your network turned up under &ldquo;{_company}&rdquo;</div>
-                      <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:12}}>Which is not the same as knowing nobody there. Big employers run divisions and subsidiaries under their own names, people list a former employer or a business unit rather than the parent, and your file only knows where each person worked on the day you exported it.</div>
+                      <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:16}}>Which is not the same as knowing nobody there. Big employers run divisions and subsidiaries under their own names, people list a business unit or a former employer rather than the parent, and your file only knows where each person worked on the day you exported it.</div>
                       {_loose.length>0&&<div style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 14px',marginBottom:14}}>
                         <div style={{fontSize:16,color:'#1A2540',lineHeight:1.6,marginBottom:8}}>{_loose.length===1?'One person in your network lists':`${_loose.length} people in your network list`} &ldquo;{_company}&rdquo; as part of a longer employer name. Worth a look — it may be a division or a joint venture.</div>
                         {_loose.slice(0,8).map((h,i)=><div key={`${h.u||h.n}_loose_${i}`} style={{fontSize:16,color:'#33405C',lineHeight:1.6,paddingTop:i===0?0:6}}>
                           <strong style={{color:'#1A2540'}}>{h.n}</strong> — {h.c}{h.t?` · ${h.t}`:''}
                           {h.u&&<> · <a href={h.u} target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:600}}>profile</a></>}
                         </div>)}
-                        {_loose.length>8&&<div style={{fontSize:15,color:C.gray,marginTop:8}}>and {_loose.length-8} more. Put the fuller name into Matching on to see them all.</div>}
-                        <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:10}}>If one of these is the right company, put that name into Matching on below and Reimagine will treat it as the employer for this opportunity.</div>
+                        {_loose.length>8&&<div style={{fontSize:15,color:C.gray,marginTop:8}}>and {_loose.length-8} more. Use Try another name below to see them all.</div>}
+                        <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:10}}>If one of these is the right company, use Try another name below and Reimagine will match this opportunity against it instead.</div>
                       </div>}
-                      <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:14}}>Two ways to widen it: <button type="button" onClick={()=>{setConnSearchDraft(d=>({...d,[_slotForSearch]:{company:_srch.company,extra:_srch.extra}}));setConnSearchOpen(x=>({...x,[_slotForSearch]:true}))}} style={{background:'none',border:'none',padding:0,color:C.goldL,fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>try a different company name</button> — a parent, a division, or what they used to be called — or go one step out into your wider network.</div>
-                      {_linkBtn}
-                      <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.border}`,fontSize:16,color:C.gray,lineHeight:1.6}}>
-                        Expecting to see someone in particular? <a href={linkedInFirstDegreeUrl(_company)} target="_blank" rel="noopener noreferrer" style={{color:C.gold,fontWeight:700}}>Check it on LinkedIn</a> — that opens your own first-degree connections there. Anyone who shows up on LinkedIn but not here moved after your file was exported, and replacing it above will pick them up.
+                      <div style={{marginBottom:16}}>
+                        <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>If you expected to see someone, settle it first. LinkedIn knows who you are connected to today; your file knows who you were connected to{_loadedLabel?` on ${_loadedLabel}`:' when you exported it'}. Anyone who appears there and not here moved since, and replacing your file picks them up.</div>
+                        <a href={linkedInFirstDegreeUrl(_company)} target="_blank" rel="noopener noreferrer" style={_secBtn}>Check on LinkedIn<ArrowUpRight size={15}/></a>
                       </div>
-                      {_stale&&<CoachingCallout>The file you loaded is {Math.floor(_age/30)} months old. People change jobs constantly enough that a blank result at this age is worth a second look — a fresh export takes about two minutes to request.</CoachingCallout>}
+                      <div style={{marginBottom:16}}>
+                        <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>If they go by another name — a division, a subsidiary, or what they were called before — put that in and this rebuilds against it.</div>
+                        <button type="button" onClick={()=>{setConnSearchDraft(d=>({...d,[_slotForSearch]:{company:_srch.company,extra:_srch.extra}}));setConnSearchOpen(x=>({...x,[_slotForSearch]:true}))}} style={_secBtn}>Try another name</button>
+                      </div>
+                      <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>Either way, the people one step out are still there. Someone you know knows someone at {_company}.</div>
+                      {_linkBtn}
+                      {_stale&&<CoachingCallout>The file you loaded is {Math.floor(_age/30)} months old. At that age a blank result says as much about the file as about your network. A fresh export takes about two minutes to request.</CoachingCallout>}
                     </div>}
                     <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.border}`,fontSize:16,color:C.gray,lineHeight:1.6}}>LinkedIn does not let any outside tool see who your connections are connected to, which is why the people one step past your own network are handed to LinkedIn's own search rather than worked out here. Your connections file is never uploaded. Asking for a draft note is the one thing that sends anything: that person's first name, title and connection date, all of it public on their profile.</div>
                   </>}
