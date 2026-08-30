@@ -2831,6 +2831,33 @@ NAMING THE METHOD. The four conversations are worth naming: their coach teaches 
 
 HONESTY. The source material is what one person recalled, and it is uneven by nature. Read it closely for what is stated, what is implied, and what is absent. Never state as fact anything they were unsure of; where they hedged, carry the hedge. Where something important is missing, name it as something they still need rather than inventing it. Distinguish what the buyer actually said from what the user concluded, and say so plainly when the user's read is their own inference.`
 
+// Who You Know Here — the four reasons a person actually writes to someone inside
+// a company they are pursuing. Held as separate instruction blocks rather than one
+// paragraph with the purpose slotted in, because the ask is not a parameter of the
+// note: it changes the shape, the length, and how much standing the writer can
+// assume. Reaching out is not one-track — the same contact is worth a different
+// note depending on whether you want a name, a read on the place, a word put in,
+// or simply to be back in touch.
+//
+// "Put in a word" is the heaviest ask here and is offered anyway. For someone the
+// user genuinely worked with it is the strongest move available, and withholding
+// it would be the product second-guessing a relationship it cannot see. The block
+// itself carries the honesty constraint instead.
+// The same four, as the card renders them. Labels are what the user wants, not
+// what the note is called; the hint is shown under the row so the difference
+// between "find the name" and "learn about the place" is legible before drafting.
+const OUTREACH_PURPOSE_CHOICES=[
+  {id:'hiring',   label:'Find out who’s hiring',  hint:'Ask who owns the role, or who would know. A small question with a useful answer, and the one to send when your application needs to land on the right desk.'},
+  {id:'learn',    label:'Learn about the place',      hint:'Ask for fifteen minutes on what it is actually like there. Send this when you want a real read on the company before you commit, or when the connection is too distant to ask for anything else.'},
+  {id:'word',     label:'Ask them to put in a word',  hint:'Ask them to flag your application internally. The heaviest ask here, and the strongest move you have with someone who genuinely knows your work.'},
+  {id:'reconnect',label:'Just reconnect',             hint:'No ask at all. Get back in touch and mention you are looking, so the door is open later. The right note for someone you have not spoken to in years.'},
+]
+const OUTREACH_PURPOSES={
+  hiring:`PURPOSE — FIND OUT WHO OWNS THE ROLE. They are probably not the hiring manager and probably not on the hiring team, so do not treat them as the decision-maker. Ask who owns this role, or who would know: it costs them a moment to answer, and the answer is the name the writer needs. Do NOT ask for a referral, a recommendation, or for a resume to be passed along in this version. Say plainly that they have applied or are about to. Email body 120 words maximum, three short paragraphs.`,
+  learn:`PURPOSE — LEARN ABOUT THE PLACE. This is a request for a short conversation, not for help getting hired, and it must not read as a referral ask wearing a disguise. Ask what it is actually like to work there, how the team runs, what they have made of it — the things that do not appear in a posting. Name that the writer is looking at a role there so the request is not mysterious, then keep the focus on their experience. Offer a specific, small commitment: fifteen or twenty minutes, at their convenience, on a call or over email if that is easier. Do NOT ask them to refer, introduce, or forward anything. Email body 120 words maximum, three short paragraphs.`,
+  word:`PURPOSE — ASK THEM TO PUT IN A WORD. This is the heaviest ask in the set and only works on a real relationship, so write it as one adult asking another for a favour, without grovelling and without pretending it is small. Say what the role is, say in one line why the writer is a serious candidate for it rather than a hopeful one, and ask directly whether they would be willing to flag the application internally or pass their name to whoever owns it. Give them an unembarrassing exit: they may not know the team, or may not feel able to vouch, and the note should say so before they have to. If the HOW THEY KNOW EACH OTHER note is empty, keep the ask noticeably lighter — a stranger cannot be asked to vouch. Email body 140 words maximum.`,
+  reconnect:`PURPOSE — RECONNECT, WITH NO ASK. Make NO request in this note: no name, no meeting, no favour, no "let me know if you hear of anything". The job of these words is to be back in touch with someone the writer has lost contact with, and to mention in passing that they are looking, so the door is open for a later conversation. Warm, brief, genuinely interested in them. If it says how they know each other, lead with that; otherwise lead honestly on having seen where they are now. Ending on a real question about them is good; ending on a request is a failure. Email body 90 words maximum, two short paragraphs.`,
+}
 const P={
   // Stage one (Personal Brand): the lean analysis. A short coach frame plus the
   // full raw inputs, run "free" against a safety-only system prompt. No
@@ -3581,13 +3608,15 @@ ${asText(bridgeStory)}`,
   //
   // Returns both versions in ONE call. Keys are deliberately single-word so the
   // underscore-key-drift failure mode cannot occur; no repair pass needed.
-  known_outreach:(pc,brand,roleFit,companyName,roleTitle,contactFirst,contactTitle,connectedSince,candidateName)=>`Write a short outreach note from this person to someone they already know who works at ${companyName||'the company'}, where this person is pursuing a role. Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end with }.
+  known_outreach:(pc,brand,roleFit,companyName,roleTitle,contactFirst,contactTitle,connectedSince,candidateName,purpose,relContext)=>`Write a short outreach note from this person to someone they already know who works at ${companyName||'the company'}, where this person is pursuing a role. Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end with }.
 
 THE SITUATION. The recipient is an existing first-degree LinkedIn connection — a real professional relationship, however warm or cool it has gone. This is NOT a cold approach and must never read like one. They are not the hiring manager and are probably not on the hiring team.
 
-THE ASK — this is the whole point of the note. Do NOT ask them to refer, recommend, or pass along a resume. Ask who owns the role, or who would know: an easy question to answer, and the answer is the name this person actually needs. A referral ask puts the recipient on the hook and often gets no reply; a "who should I be talking to" question costs them thirty seconds. If it fits naturally, offer a way for them to say no without friction.
+THE ASK — the whole point of the note, and it is given to you below. Write the one you were asked for; do not substitute another. Whatever the purpose, leave the recipient an easy way to say no or to say nothing. A note that corners someone gets no reply.
 
-NEVER claim a shared history you were not given. You know only their job title and roughly how long they have been connected. Do not invent a project you worked on together, a mutual colleague, where you met, or a past conversation. If there is nothing concrete to reference, open honestly on the present ("I saw you are at ${companyName||'the company'} now").
+${OUTREACH_PURPOSES[purpose]||OUTREACH_PURPOSES.hiring}
+
+NEVER claim a shared history you were not given. Unless the HOW THEY KNOW EACH OTHER note below says otherwise, you know only their job title and roughly how long they have been connected: do not invent a project they worked on together, a mutual colleague, where they met, or a past conversation. With nothing concrete to reference, open honestly on the present ("I saw you are at ${companyName||'the company'} now"). Where that note IS present it is the user's own account of the relationship, so use it, and let it set how familiar the note is allowed to sound.
 
 RETURN THIS SHAPE:
 {
@@ -3596,9 +3625,9 @@ RETURN THIS SHAPE:
   "linkedin": "the LinkedIn message version"
 }
 
-EMAIL VERSION. Open with "${contactFirst||'there'}," on its own line — their first name only, no "Dear" and no title. Then 3 short paragraphs, 120 words maximum for the body: why you are writing (you are pursuing ${roleTitle?`the ${roleTitle} role`:'a role'} there), one sentence of context on what you do that makes the pursuit make sense, then the ask. Sign off "Thanks," on its own line, then ${candidateName||'the name on the resume'}.
+EMAIL VERSION. Open with "${contactFirst||'there'}," on its own line — their first name only, no "Dear" and no title. Then the shape THE ASK gives you, inside its word limit. Sign off "Thanks," on its own line, then ${candidateName||'the name on the resume'}.
 
-LINKEDIN VERSION. The same ask, rebuilt for a direct message read on a phone: 60 words maximum, no subject line, no formal sign-off, one or two short paragraphs. Open with "Hi ${contactFirst||'there'}," and get to the ask fast. This is not the email with the greeting deleted; it is shorter and more casual, the way a person actually writes a DM.
+LINKEDIN VERSION. The same ask, rebuilt for a direct message read on a phone: half the email's length or less, no subject line, no formal sign-off, one or two short paragraphs. Open with "Hi ${contactFirst||'there'}," and get to the ask fast. This is not the email with the greeting deleted; it is shorter and more casual, the way a person actually writes a DM.
 
 VOICE: you are writing AS this person to someone they know. Warm, direct, first person, no throat-clearing. ${DIRECT_OUTREACH_VOICE}
 - No consultant-register or thought-leader phrasing: no "at the intersection of", "moves the needle", "the real X is Y", "in today's landscape".
@@ -3611,6 +3640,9 @@ WHAT YOU KNOW ABOUT THE RECIPIENT (all of it — do not infer more):
 - Their title: ${contactTitle||'(not listed)'}
 - At: ${companyName||'(unspecified)'}
 - Connected since: ${connectedSince||'(not recorded)'}
+
+HOW THEY KNOW EACH OTHER (the user's own words; absent when they did not say):
+${(relContext||'').slice(0,600)||'(not given — assume only a professional connection, and invent nothing beyond it)'}
 
 THE ROLE THIS PERSON IS PURSUING: ${roleTitle||'(not specified)'}
 
@@ -6628,6 +6660,8 @@ export default function PivotEngine(){
   const[outreachBusy,setOutreachBusy]=useState(null)
   const[outreachErr,setOutreachErr]=useState({})
   const[outreachMode,setOutreachMode]=useState({})
+  const[outreachPurpose,setOutreachPurpose]=useState({})
+  const[outreachCtx,setOutreachCtx]=useState({})
   const persistOutreach=(next)=>{setOutreach(next);try{localStorage.setItem(OUTREACH_STORAGE_KEY,JSON.stringify(next))}catch{}}
   // The mail domain the USER supplies for a company, remembered per company so it
   // is typed once rather than per person. Cleaned on the way in; a value that is
@@ -6643,10 +6677,10 @@ export default function PivotEngine(){
   const[connSearchOpen,setConnSearchOpen]=useState({})
   const setSearchOverride=(recId,patch)=>setConnSearch(prev=>{const next={...prev,[recId]:{...(prev[recId]||{}),...patch}};try{localStorage.setItem(SEARCH_STORAGE_KEY,JSON.stringify(next))}catch{};return next})
   const clearSearchOverride=(recId)=>setConnSearch(prev=>{const next={...prev};delete next[recId];try{localStorage.setItem(SEARCH_STORAGE_KEY,JSON.stringify(next))}catch{};return next})
-  const generateOutreachNote=async(person)=>{
+  const generateOutreachNote=async(person,purpose,relContext)=>{
     const slotId=currentSavedSlotIdRef.current
     if(!slotId||!person||outreachBusy)return
-    const key=outreachKey(slotId,person)
+    const key=outreachKey(slotId,person)+'::'+(purpose||'hiring')
     setOutreachBusy(key);setOutreachErr(e=>({...e,[key]:null}))
     try{
       const rec0=savedPlaybooks.find(r=>r.id===slotId)
@@ -6656,11 +6690,11 @@ export default function PivotEngine(){
       const roleFit=((_s.p5&&_s.p5.content)||'').trim()
       const brand=asText(outputs.p3)
       const candidateName=deriveDisplayName(profile.resume)
-      const fn=()=>correctionsBlock(profile.corrections)+P.known_outreach(pc,brand,roleFit,companyName,roleTitle,firstNameOf(person.n),person.t,person.d,candidateName)
+      const fn=()=>correctionsBlock(profile.corrections)+P.known_outreach(pc,brand,roleFit,companyName,roleTitle,firstNameOf(person.n),person.t,person.d,candidateName,purpose||'hiring',relContext)
       const r=await callClaudeWithVoiceGate(fn,{maxTokens:1400,voiceMode:'prose',profileBlock:buildUserProfileBlock(pc,outputs),step:'known-outreach'},{step:'known-outreach',onEvent:logVoiceEvent})
       const parsed=parseOutreachJSON(typeof r==='string'?r:'')
       if(!parsed){setOutreachErr(e=>({...e,[key]:'That draft came back in a shape we could not read. Try again.'}));return}
-      persistOutreach({...outreach,[key]:{...parsed,builtAt:new Date().toISOString()}})
+      persistOutreach({...outreach,[key]:{...parsed,purpose:purpose||'hiring',builtAt:new Date().toISOString()}})
     }catch(e){
       setOutreachErr(er=>({...er,[key]:e.message||'Generation failed. Try again.'}))
     }finally{setOutreachBusy(null)}
@@ -12459,11 +12493,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     {_company&&_hits.length>0&&<div style={{marginTop:16}}>
                       <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:10}}>{_hits.length===1?'One person you already know':`${_hits.length} people you already know`} at {_company}</div>
                       <CoachingCallout>
-                        Ask who owns the role. It is an easy question for someone to answer, and the answer is the name you need.
+                        People here are worth writing to for different reasons, so each one below asks what you want before it drafts anything: the name of whoever owns the role, a real read on what the place is like, a word put in for you, or simply getting back in touch. The person you worked with for four years and the person you met once at a conference need different notes.
                         <div style={{marginTop:10}}>Send it by email whenever you have the address. A LinkedIn message only lands if they happen to be checking LinkedIn. Each draft comes both ways, so the LinkedIn version is there for the people whose address you do not have.</div>
                       </CoachingCallout>
                       {_hits.map((h,i)=>{
-                        const _k=outreachKey(currentSavedSlotIdRef.current,h)
+                        const _pk=outreachKey(currentSavedSlotIdRef.current,h)
+                        const _purpose=outreachPurpose[_pk]||'hiring'
+                        const _k=_pk+'::'+_purpose
                         const _d=outreach[_k]
                         const _busy=outreachBusy===_k
                         // Email is the default because more people read email than
@@ -12485,8 +12521,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                               <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:2}}>{[h.t,h.d?`connected ${h.d}`:'',h.e?'you have their email':''].filter(Boolean).join(' · ')}</div>
                               {h.u&&<a href={h.u} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:15,fontWeight:600,color:C.gold,textDecoration:'none',marginTop:4}}>Open their profile<ArrowUpRight size={13}/></a>}
                             </div>
-                            {!isDemo&&<Btn small secondary={!!_d} onClick={()=>generateOutreachNote(h)} disabled={!!outreachBusy}>{_busy?'Writing…':_d?<><RotateCcw size={11}/>Redo</>:<><Sparkles size={12}/>Draft a note</>}</Btn>}
                           </div>
+                          {!isDemo&&<div style={{marginTop:10}}>
+                            <div style={{fontSize:15,color:C.gray,marginBottom:6}}>What do you want from {firstNameOf(h.n)}?</div>
+                            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}}>
+                              {OUTREACH_PURPOSE_CHOICES.map(c=><button key={c.id} type="button" title={c.hint} onClick={()=>setOutreachPurpose(m=>({...m,[_pk]:c.id}))} style={{padding:'6px 12px',borderRadius:8,border:`1.5px solid ${_purpose===c.id?C.gold:C.border}`,background:_purpose===c.id?`${C.gold}1F`:C.input,color:C.cream,fontWeight:_purpose===c.id?700:500,fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>{c.label}</button>)}
+                            </div>
+                            <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginBottom:8}}>{(OUTREACH_PURPOSE_CHOICES.find(c=>c.id===_purpose)||OUTREACH_PURPOSE_CHOICES[0]).hint}</div>
+                            <input style={{width:'100%',maxWidth:520,background:C.input,border:`1px solid ${C.border}`,borderRadius:6,padding:'7px 10px',color:C.cream,fontSize:16,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} value={outreachCtx[_pk]||''} onChange={e=>setOutreachCtx(m=>({...m,[_pk]:e.target.value}))} placeholder={`How do you know ${firstNameOf(h.n)}? (optional)`}/>
+                            <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:6}}>Worth a line if you have one. Without it the note stays on the present, because Reimagine will not invent a history you did not describe.</div>
+                            <div style={{marginTop:10}}><Btn small secondary={!!_d} onClick={()=>generateOutreachNote(h,_purpose,outreachCtx[_pk]||'')} disabled={!!outreachBusy}>{_busy?'Writing…':_d?<><RotateCcw size={11}/>Redo this one</>:<><Sparkles size={12}/>Draft the note</>}</Btn></div>
+                          </div>}
                           {outreachErr[_k]&&<div style={{marginTop:10}}><ErrBox msg={outreachErr[_k]}/></div>}
                           {_busy&&<div style={{marginTop:10,fontSize:15,color:C.gray}}>Writing your note to {firstNameOf(h.n)}…</div>}
                           {_d&&!_busy&&<div style={{marginTop:12}}>
