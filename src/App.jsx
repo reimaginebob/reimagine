@@ -12831,28 +12831,28 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {!isDemo&&!isIndependent&&<p style={S.sub}>When you find a role worth pursuing, bring it here. Paste the job description or upload the PDF. Reimagine creates an Opportunity Playbook scoped to that role with five sections you can build on demand, each taking about 30 seconds to generate.</p>}
           {!isDemo&&!isIndependent&&<p style={S.sub}>You'll know whether the role aligns with the path you chose and where it stretches you. You'll have a Bridge Story tuned to this specific opportunity, a Resume Refresh aimed at this JD, Interview Prep with the questions this role's interview cycle is likely to ask and STAR stories drawn from your background, and an honest About This Company read with industry-specific signal and sources cited.</p>}
           {!isDemo&&isIndependent&&<CoachingCallout>
-            <strong style={{color:'#1A2540'}}>Tell us what you know so far.</strong>
-            <p style={{margin:'8px 0 0'}}>Who they are, how it came to you, what they said they need, who you spoke to, anything you picked up along the way. Rough notes are fine — say it out loud with the mic if that is easier. If you have not spoken to anyone yet, say that too; a thin record still gets you a read, and it will tell you what to find out first.</p>
+            <p style={{margin:0}}>Rough is fine. If you have not spoken to anyone yet, say so — a thin record still gets you a read, and it will tell you what to find out first.</p>
           </CoachingCallout>}
           {!isDemo&&!isIndependent&&<CoachingCallout>
             <strong style={{color:'#1A2540'}}>What to bring.</strong>
             <p style={{margin:'8px 0 0'}}>Paste the full job description or upload the PDF. Reimagine works best with the actual posting text. If you have your own context about the role (who told you about it, what they said about the team, why you are interested), add it to the text field below the JD. The richer the context, the sharper the playbook.</p>
           </CoachingCallout>}
-          {!isDemo&&<CoachingCallout>
+          {!isDemo&&!isIndependent&&<CoachingCallout>
             <strong style={{color:'#1A2540'}}>One thing to know.</strong>
-            <p style={{margin:'8px 0 0'}}>Each {isIndependent?'client':'opportunity'} is saved separately. You can work several at once without one replacing another. Your Personal Brand stays the same across all of them; only the {isIndependent?'client-specific':'opportunity-specific'} sections change.</p>
+            <p style={{margin:'8px 0 0'}}>Each opportunity is saved separately. You can work several at once without one replacing another. Your Personal Brand stays the same across all of them; only the opportunity-specific sections change.</p>
           </CoachingCallout>}
           {!isDemo&&<div style={S.card}>
             <div style={{fontSize:18,color:C.gray,fontStyle:'italic',marginBottom:14,textAlign:'center'}}>The richer the input, the sharper the output.</div>
-            <FileUpload label={isIndependent?'Upload a PDF, if you have one':'Upload a PDF of the job description'} hint={isIndependent?'A scope document, an RFP, a brief — anything they sent you. Optional; most client opportunities do not come with one.':'PDF only. For other formats, paste the text below.'} fileName={profile.jdFile} onFile={async f=>{pr('jdFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('jd',t);setErr(null)}catch(e){setErr(e&&e.message?e.message:'Could not read this PDF. Try pasting the text instead.')}finally{setFileLoading(false)}}}/>
+            <FileUpload label={isIndependent?'Upload a PDF, if you have one':'Upload a PDF of the job description'} hint={isIndependent?'A scope document, an RFP, a brief — anything they sent you.':'PDF only. For other formats, paste the text below.'} fileName={profile.jdFile} onFile={async f=>{pr('jdFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('jd',t);setErr(null)}catch(e){setErr(e&&e.message?e.message:'Could not read this PDF. Try pasting the text instead.')}finally{setFileLoading(false)}}}/>
             {fileLoading&&<div style={{fontSize:16,color:C.gray,marginTop:8}}>Reading the PDF…</div>}
             <div style={{textAlign:'center',color:C.gray,fontSize:16,margin:'14px 0',fontStyle:'italic'}}>or</div>
             <div style={S.field}>
               <label style={S.label}>{isIndependent?'What do you know about this opportunity?':'Paste the job description'}</label>
-              <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
-                <textarea style={{...S.ta,minHeight:240,flex:1}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder={isIndependent?'Who they are, how this came to you, what they said they need, who you have spoken to, what you think is really going on...':'Paste the full job description here...'}/>
-                {isIndependent&&hasSpeech&&<SpeechBtn onResult={t=>pr('jd',(profile.jd||'')+t)}/>}
-              </div>
+              {isIndependent&&hasSpeech&&<div style={{display:'flex',alignItems:'center',gap:12,margin:'0 0 12px'}}>
+                <SpeechBtn C={{border:C.gold,gray:C.goldL}} title="Speak instead of typing" onResult={t=>pr('jd',(profile.jd||'')+t)} style={{width:48,height:48,background:`${C.gold}14`}}/>
+                <span style={{fontSize:16,fontWeight:600,color:C.goldL,lineHeight:1.4}}>Talk it through instead — most people say more out loud than they type.</span>
+              </div>}
+              <textarea style={{...S.ta,minHeight:240}} value={profile.jd} onChange={e=>pr('jd',e.target.value)} placeholder={isIndependent?'Who they are, how this came to you, what they said they need, who you have spoken to, what you think is really going on...':'Paste the full job description here...'}/>
               {!isIndependent&&jdLooksLinkOnly(profile.jd)&&<div style={{marginTop:8,fontSize:15,color:'#B45309',lineHeight:1.55}}>That looks like a link. Reimagine can't read a posting from a URL — open the job posting, copy the full description text, and paste it here instead.</div>}
             </div>
           </div>}
