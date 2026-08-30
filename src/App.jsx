@@ -11887,10 +11887,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       return <div>
       <div style={{marginBottom:8}}>
         <h1 style={{...S.title,marginBottom:6}}>My Playbooks</h1>
-        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your collection of role-strategy work. {activePlaybooks.length} of {getSavedCap()} saved.</p>
+        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>{isIndependent?'Your practice plan and the clients you are working.':'Your collection of role-strategy work.'} {activePlaybooks.length} of {getSavedCap()} saved.</p>
       </div>
       {_comparable.length>=2&&<div style={{margin:'0 0 16px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({_comparable.length}) <ChevronRight size={14}/></Btn></div>}
-      <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasPipeline}/>
+      <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={isIndependent?undefined:startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasPipeline} independent={isIndependent}/>
       {archivedSection()}
     </div>
     }

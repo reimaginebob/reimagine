@@ -53,8 +53,19 @@ function splitFocusTitle(title) {
 // intentionally keeps p10 for legacy data shape; that inclusion is harmless
 // because each record's p10 is an empty string.
 const ROLE_OUTPUT_KEYS = ['p5','p6','p7','p8','p9','p11','p_res','income']
+// The practice track builds six of those eight. The Role (p5) reads a job
+// description against a candidate and Industry Background (p9) teaches the
+// language of a sector you are entering; neither has a job to do for someone
+// selling their own services, so neither is offered. Counted against all eight,
+// a finished practice plan read "6 of 8" and could never reach the end.
+const PRACTICE_OUTPUT_KEYS = ['p6','p7','p8','p11','p_res','income']
 
 function sectionsBuilt(rec) {
+  // Read the track off the record rather than threading a prop down two levels.
+  // The card already renders this lane as its badge ("Your Practice"), so the
+  // information is here -- and per-record is more correct than per-session: a
+  // record counted right today stays counted right whoever opens it later.
+  const independent = !!(rec && rec.lane === 'independent')
   if (rec.source === 'door2') {
     // v2 records (cards-only architecture): count built per-card sections. Six
     // counted cards, matching OP_COUNTED_KEYS in App.jsx (companyRead, p5, p6,
@@ -72,11 +83,12 @@ function sectionsBuilt(rec) {
     const op = rec.outputs && rec.outputs.op
     return { built: op && op.length > 0 ? 1 : 0, total: 1 }
   }
-  const built = ROLE_OUTPUT_KEYS.reduce((n, k) => {
+  const keys = independent ? PRACTICE_OUTPUT_KEYS : ROLE_OUTPUT_KEYS
+  const built = keys.reduce((n, k) => {
     const v = rec.outputs && rec.outputs[k]
     return n + (v && (typeof v === 'string' ? v.length > 0 : true) ? 1 : 0)
   }, 0)
-  return { built, total: ROLE_OUTPUT_KEYS.length }
+  return { built, total: keys.length }
 }
 
 function relativeTime(iso) {
@@ -285,7 +297,7 @@ function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDe
 // hides empty sections. The split is a pure render-layer filter on rec.source;
 // no schema change. The `layout` prop is retained for caller compatibility but
 // the grid is now owned per-section (the legacy wideView path is vestigial).
-export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, onRename, onDownload, C, layout = 'complete', title, onAddDirection, onAddOpportunity, focusOnly = false }) {
+export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, onRename, onDownload, C, layout = 'complete', title, onAddDirection, onAddOpportunity, focusOnly = false, independent = false }) {
   const focus = (savedPlaybooks || []).filter(r => r && r.source !== 'door2')
   // focusOnly: My Pipeline owns the Opportunity records, so this component renders
   // Focus only and never shows a duplicate Opportunity section (gated to flagged
@@ -298,12 +310,18 @@ export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, on
       {!suppressHeading && title && (
         <h2 style={{ fontFamily: 'Georgia,serif', fontSize: 24, fontWeight: 700, color: '#1A2540', margin: '0 0 14px' }}>{title}</h2>
       )}
+      {/* On the practice track this section holds exactly one record, the
+          practice plan, and it is built once. "Explore More Roles" called
+          startNewDirection, which sets the step to laneSelect -- the Career
+          Paths flow this track deliberately never runs. A door to a room that
+          is not there. Closed, and the heading stops calling a practice a
+          collection of roles. */}
       <Section
-        heading="Focus Playbooks"
+        heading={independent ? 'Your Practice' : 'Focus Playbooks'}
         records={focus}
         addLabel="Explore More Roles"
-        onAdd={onAddDirection}
-        emptyCopy="No Focus Playbooks yet. Explore directions across Familiar Ground, Industry Insider, and Work That Matters."
+        onAdd={independent ? undefined : onAddDirection}
+        emptyCopy={independent ? 'Your practice plan will appear here once you have built it.' : 'No Focus Playbooks yet. Explore directions across Familiar Ground, Industry Insider, and Work That Matters.'}
         onRestore={onRestore} onDelete={onDelete} onRename={onRename} onDownload={onDownload} C={C}/>
       {!focusOnly && (
         <Section
