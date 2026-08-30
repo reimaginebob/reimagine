@@ -219,11 +219,23 @@ export function matchConnections(people, targetCompany) {
 // The cost is noise when the company's name is a common word, which is the one
 // case worth narrowing — so the card points at LinkedIn's own filters for it
 // rather than guessing on the user's behalf.
-export function linkedInSecondDegreeUrl(company) {
+function peopleSearchUrl(company, degrees) {
   const q = String(company || '').trim()
   if (!q) return 'https://www.linkedin.com/search/results/people/'
   return 'https://www.linkedin.com/search/results/people/?keywords=' +
-    encodeURIComponent(q) + '&network=' + encodeURIComponent('["S"]')
+    encodeURIComponent(q) + '&network=' + encodeURIComponent(JSON.stringify(degrees))
+}
+
+export function linkedInSecondDegreeUrl(company) {
+  return peopleSearchUrl(company, ['S'])
+}
+
+// The first-degree version of the same search, which makes an empty result
+// checkable instead of something the user has to take on faith. If LinkedIn
+// shows people this card did not, the file is stale or the match is wrong, and
+// either way the user should be able to find that out in one click.
+export function linkedInFirstDegreeUrl(company) {
+  return peopleSearchUrl(company, ['F'])
 }
 
 // Deep link straight to the export page, which skips the four-step menu walk

@@ -2,7 +2,7 @@
 // the company matching behind "Who You Know Here".
 import {
   parseCsv, parseConnectionsCsv, normalizeCompany, companyMatch, matchConnections,
-  linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey,
+  linkedInSecondDegreeUrl, linkedInFirstDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey,
   mailtoUrl, firstNameOf, cleanDomain, emailGuesses, searchQuery, resolveSearch,
 } from '../src/connections-match.mjs'
 
@@ -100,6 +100,10 @@ eq(matchConnections(twoExact, 'Acme').map(h => h.n), ['Al Brown', 'Zoe Adams'], 
 ok(linkedInSecondDegreeUrl('Ameriprise Financial').includes('keywords=Ameriprise%20Financial'), 'the company is encoded into the search')
 ok(linkedInSecondDegreeUrl('Ameriprise').includes('network='), 'the network filter is present')
 ok(!linkedInSecondDegreeUrl('').includes('keywords='), 'no company yields a plain people search rather than a broken query')
+ok(linkedInSecondDegreeUrl('Imerys').includes(encodeURIComponent('["S"]')), 'second degree asks for S')
+ok(linkedInFirstDegreeUrl('Imerys').includes(encodeURIComponent('["F"]')), 'first degree asks for F')
+ok(linkedInFirstDegreeUrl('Imerys').includes('keywords=Imerys'), 'the first-degree check searches the same company')
+ok(!linkedInFirstDegreeUrl('').includes('keywords='), 'no company yields a plain people search here too')
 
 // ── What the search asks for ─────────────────────────────────────────────────
 
