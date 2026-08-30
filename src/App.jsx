@@ -12244,14 +12244,24 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // interviewer) rather than "built". It sits immediately before Interview
       // Prep, the output it feeds.
       const _panelPopulated=(()=>{const p=getOpPanel(_opRec);return !!((p.opportunity_context&&p.opportunity_context.trim())||p.interviewers.length)})()
-      // Who You Know Here is checked off once the connections file is loaded, the
-      // same rule Interview Team uses: both are cards the user supplies rather than
-      // generates, so "done" is "you have given it what it needs". Everything after
-      // the file is automatic, and an empty result is a finished check rather than
-      // an outstanding task — there is nothing further the user could do to
-      // complete it. The file is per-device, so loading it once checks this off on
-      // every opportunity, which is accurate: none of them are waiting on anything.
-      const opRailDone=['clientRead','clientPlay','p5','p_res','p_cover','p11','companyRead','salaryRead','offerNegotiation'].filter(opCardDone).concat(_panelPopulated?['panel']:[]).concat((_opRec&&_opRec.recruiters&&_opRec.recruiters.builtAt)?['recruiters']:[]).concat(connNetwork?['knownContacts']:[])
+      // Who You Know Here is checked when this opportunity actually has someone on
+      // it, matched from the file or added by hand — the same rule Interview Team
+      // uses, where the check means people are in it rather than that the feature
+      // was set up.
+      //
+      // It first shipped checking on "the connections file is loaded", which was
+      // defensible (nothing is outstanding once the file is there) and wrong in
+      // practice: the file is per-device, so one upload checked this off on every
+      // opportunity at once, and a card holding three people looked identical in
+      // the rail to one holding none. The rail's whole job is telling you which
+      // cards have something in them.
+      //
+      // The cost is that an opportunity where the user really does know nobody stays
+      // unchecked. That is honest — there is nothing in it — and the card itself
+      // explains why an empty result is not a failure and what to do next.
+      const _knownCompany=resolveSearch(connSearch[_opRec&&_opRec.id],(_opRec&&_opRec.company)||'').company
+      const _knownCount=_knownCompany?matchConnections(withManual(connNetwork?connNetwork.people:[],connManual),_knownCompany).length:0
+      const opRailDone=['clientRead','clientPlay','p5','p_res','p_cover','p11','companyRead','salaryRead','offerNegotiation'].filter(opCardDone).concat(_panelPopulated?['panel']:[]).concat((_opRec&&_opRec.recruiters&&_opRec.recruiters.builtAt)?['recruiters']:[]).concat(_knownCount>0?['knownContacts']:[])
       // Sequential 1-N numbering (2026-08-09): number every row in display order
       // so the rail reads as one clean top-down sequence. The earlier scheme left
       // the reference/input cards (Compensation, Interview Team, Offer) unnumbered,
