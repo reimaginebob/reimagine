@@ -6488,14 +6488,15 @@ export default function PivotEngine(){
   const isMobile=useIsMobile()
   const[drawerOpen,setDrawerOpen]=useState(false)
   const closeDrawer=()=>setDrawerOpen(false)
-  // Migration detector for the p3 output format. Brief 2 collapsed p1/p2
-  // into a single Personal Brand step and rewrote p3 to a prose synthesis. The
-  // detector reads outputs.p3_version, set to 'v2' on every successful new-
-  // format generation (both generateChain and refreshP3 paths). Profiles
-  // with saved p3 but no v2 flag see a one-time refresh banner.
-  const isP3OldStyle=!!(outputs.p3 && outputs.p3_version !== 'v2')
-  const[p3MigrationDismissed,setP3MigrationDismissed]=useState(()=>{try{return sessionStorage.getItem('reimagine_p3_migration_dismissed')==='1'}catch{return false}})
-  const dismissP3Migration=()=>{try{sessionStorage.setItem('reimagine_p3_migration_dismissed','1')}catch{};setP3MigrationDismissed(true)}
+  // The old-format Personal Brand notice used to live here. It keyed off
+  // outputs.p3_version and told anyone whose brand predated the prose rewrite to
+  // refresh it. Retired 2026-08-30: it held its dismissal in sessionStorage, so it
+  // came back in every new tab, and by the time it was removed it was reaching 7
+  // of the 79 accounts that have a Personal Brand at all. The people still on the
+  // old format can refresh from the same screen whenever they want to; nobody
+  // needs to be told again on every tab. p3_version is still written on
+  // generation (see refreshP3 / generateChain) and is worth keeping as provenance
+  // in the saved profile, but nothing reads it to drive UI now.
   // Same two-tier persistence as seenSupportAnnounce: the localStorage key is the
   // same-device fallback and the migration seed, seenCorrectionsIntro in the
   // synced blob is what makes "seen once" survive a sign-out and a new device.
@@ -6950,10 +6951,11 @@ export default function PivotEngine(){
   // Phase 1). Clicking the selected option deselects it, so "no pick" is a valid
   // state (e.g. risk tolerance left blank = balanced, no tilt).
   const segToggle=(field,options)=><div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{options.map(o=><button key={o} type="button" onClick={()=>pr(field,profile[field]===o?'':o)} style={{padding:'9px 16px',borderRadius:8,border:`1.5px solid ${profile[field]===o?C.gold:C.border}`,background:profile[field]===o?`${C.gold}1F`:C.input,color:C.cream,fontWeight:profile[field]===o?700:500,fontSize:16,cursor:'pointer',fontFamily:'inherit'}}>{o}</button>)}</div>
-  // Brief 2: every successful write to outputs.p3 also stamps the version
-  // flag so the migration detector (isP3OldStyle) sees the freshly written
-  // p3 as v2. Empty writes (clearing the slot) deliberately also clear the
-  // flag so a regenerate-with-clear path starts fresh.
+  // Brief 2: every successful write to outputs.p3 also stamps the version flag,
+  // marking the freshly written p3 as v2. Empty writes (clearing the slot)
+  // deliberately also clear the flag so a regenerate-with-clear path starts
+  // fresh. The old-format notice that used to read this flag is gone; the stamp
+  // stays as provenance on the saved profile.
   //
   // Foundation A: outputs.p3_structured travels in lockstep with outputs.p3.
   // Clearing p3 also clears the structured tail. A successful p3 write that
@@ -11151,15 +11153,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {/* Migration banner. Shown only when a v1 p3 exists. Refresh runs p3
           only; downstream content is preserved. The banner suppresses the
           stale-voice banner while showing. */}
-      {!isDemo&&isP3OldStyle&&!p3MigrationDismissed&&!loading&&<div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',position:'relative'}}>
-        <button type="button" onClick={dismissP3Migration} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
-        <p style={{margin:'0 24px 12px 0',fontSize:17,color:'#1A2540',lineHeight:1.65}}>We have updated how we present your Personal Brand. Click Refresh to see it in the new format. The rest of your work (Put It to Work, Bridge Story, anything else you have already built) stays as it is.</p>
-        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          <Btn onClick={()=>refreshP3('',outputs.p3||'',(outputs.p3_structured&&outputs.p3_structured.presentation)||null)}>Refresh</Btn>
-          <Btn secondary onClick={dismissP3Migration}>Keep current view</Btn>
-        </div>
-      </div>}
-
       {!isDemo&&!outputs.p3&&!loading&&<><Btn onClick={generateChain}><Sparkles size={14}/>Build My Personal Brand</Btn><div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:15,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>A structured read of who you are at work, laid out in sections. About 4 to 5 minutes to generate.</div>{coachNudge('Before I build my Personal Brand, help me understand what it will give me — and whether my inputs so far are enough to make it sharp.','Wondering what this will give you? Ask your coach',{marginTop:12})}</>}
       {!isDemo&&!outputs.p3&&!loading&&outputs.p3_prev&&outputs.p3_prev.p3&&<div style={{marginTop:14}}><Btn small secondary onClick={restorePrevP3}><RotateCcw size={12}/>Restore previous version</Btn></div>}
       {loading&&<Loading msg={loadingStage||loadMsg||'Reading your inputs and writing your synthesis…'} step="p3" independent={isIndependent}/>}
