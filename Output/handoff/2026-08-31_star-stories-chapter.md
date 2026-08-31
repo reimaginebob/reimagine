@@ -100,7 +100,7 @@ Every story carries the same **Does this feel right?** box you see under everyth
 
 A story Reimagine built for you has no Remove button, and that is deliberate: every one of them answers a question you will be asked, so a rough answer corrected beats a good question with nothing behind it. Stories you add yourself can be removed, because those are yours to keep or drop.
 
-**Edit the words myself** switches the four parts into text boxes when you would rather write it yourself. Your words win over ours every time.
+You can also just type. Every part of every story is editable in place -- click any line and write over it. Your words win over ours every time, so use the box when you want Reimagine to rework something, and type when you already know what it should say.
 
 ## Adding your own
 
