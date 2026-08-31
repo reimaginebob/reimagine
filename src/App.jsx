@@ -3657,6 +3657,50 @@ One story per experience. If two angles on the same event both look useful, pick
 PERSONAL BRAND (their through-line and their voice):
 ${(brand||'').slice(0,2500)||'(not built yet)'}
 `,
+  // One story, reworked from the person's own note. The sibling of the per-question
+  // refine in Interview Prep, and the reason a seeded story needs no Remove button:
+  // a story that reads wrong is a story to correct, not one to delete. The whole
+  // point of the library is that all six questions get a good answer.
+  //
+  // The existing story goes in verbatim and comes back changed only where the note
+  // asks. A refine that quietly rewrites the parts nobody complained about is how a
+  // person loses their own words without noticing.
+  storyRefine: (pc, brand, story, note) => `Rework ONE story in this person's STAR story library, using the correction they just wrote. Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end with }.
+
+WHAT A STORY IS HERE. Four slots: Situation, Thought Process, Action, Result. The T is Thought Process, NOT Task — that is the one change this method makes to STAR and the whole reason its answers land. Tasks say what someone did; thought process shows how they think, which is what an interviewer is actually evaluating.
+
+THEIR CORRECTION IS THE BRIEF, and it wins over anything you would otherwise have written. If they say a fact is wrong, the fact is wrong: replace it, and never argue with it or hedge it back in.
+
+CHANGE ONLY WHAT THE NOTE REACHES. Every slot they did not raise comes back as it went in, word for word. Their own edits are in this text and rewriting them for style is how someone quietly loses their own voice. If the note is about one slot, one slot changes.
+
+NEVER INVENT. If the note asks for something the inputs do not support — a number, a name, a moment — put the ask in that slot's to_strengthen rather than filling it with a plausible guess. Inventing someone's own past is the worst failure available here.
+
+EVERY SLOT IS TWO THINGS. A "text" field: what the inputs and their note actually support, stated plainly, no characterization and no "you are X" constructions. And a "to_strengthen" field: the specific missing thing only they can supply, a name, a number, a decision, the moment it turned. Never generic advice, never "add more detail".
+
+Use plain words throughout. NEVER write "balcony", "basement", "shadow", or "assessment signal" — internal vocabulary, banned in anything the person reads.
+
+RETURN THIS SHAPE, with every field present:
+{
+  "title": "the short plain name — keep theirs unless the note asks otherwise",
+  "question": "the question an interviewer would actually ask that this story answers, the way they would say it out loud",
+  "why": "one short line on why this story answers that question well",
+  "slots": {
+    "S": { "text": "", "to_strengthen": "" },
+    "T": { "text": "", "to_strengthen": "" },
+    "A": { "text": "", "to_strengthen": "" },
+    "R": { "text": "", "to_strengthen": "" }
+  }
+}
+
+THE STORY AS IT STANDS:
+${JSON.stringify({ title: story.title || '', question: story.question || '', why: story.why || '', slots: story.slots || {} }, null, 2)}
+
+WHAT THEY SAID TO FIX:
+${String(note || '').slice(0, 1500) || '(no note — tighten the weakest slot and leave the rest alone)'}
+
+PERSONAL BRAND (their through-line and their voice):
+${(brand || '').slice(0, 2000) || '(not built yet)'}
+`,
   // Who You Know Here outreach note (2026-08-30). The sibling of p_cover, aimed
   // at someone the person ALREADY KNOWS rather than at a hiring manager, and the
   // ask is different in kind: not "consider me", but "who owns this role".
@@ -6813,6 +6857,11 @@ export default function PivotEngine(){
   const[storiesBusy,setStoriesBusy]=useState(false)
   const[storiesErr,setStoriesErr]=useState(null)
   const[storyDraft,setStoryDraft]=useState({title:'',kind:'achievement'})
+  // Per-story refine and per-story edit mode, both keyed by story id so one open
+  // card never puts the others into a state their owner did not ask for.
+  const[storyRefining,setStoryRefining]=useState(null)
+  const[storyRefineErr,setStoryRefineErr]=useState({})
+  const[storyEditing,setStoryEditing]=useState({})
   const saveStory=(story)=>{
     setStarStories(prev=>{const i=prev.findIndex(x=>x.id===story.id);return i>=0?prev.map(x=>x.id===story.id?story:x):[...prev,story]})
     if(!isDemo&&!isTest){try{fetch('/api/star-stories',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({story})}).catch(()=>{})}catch{}}
@@ -6820,6 +6869,32 @@ export default function PivotEngine(){
   const deleteStory=(storyId)=>{
     setStarStories(prev=>prev.filter(x=>x.id!==storyId))
     if(!isDemo&&!isTest){try{fetch('/api/star-stories',{method:'DELETE',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({storyId})}).catch(()=>{})}catch{}}
+  }
+  // "Does this feel right?" on one story. A seeded story that reads wrong wants
+  // correcting rather than deleting — every question here is one this person will
+  // be asked, so an empty slot in the library is a worse outcome than a rough one.
+  const refineStory=async(story,note)=>{
+    if(storyRefining)return
+    setStoryRefining(story.id)
+    setStoryRefineErr(e=>({...e,[story.id]:null}))
+    try{
+      const brand=asText(outputs.p3)
+      const r=await callClaudeWithVoiceGate(()=>P.storyRefine(pc,brand,story,note),{maxTokens:3000,profileBlock:buildUserProfileBlock(pc,outputs),step:'story-refine'},{step:'story-refine',onEvent:logVoiceEvent})
+      const txt=typeof r==='string'?r:''
+      const a=txt.indexOf('{'),b=txt.lastIndexOf('}')
+      let obj=null;try{obj=JSON.parse(txt.slice(a,b+1))}catch{}
+      if(!obj||!obj.slots||typeof obj.slots!=='object'){setStoryRefineErr(e=>({...e,[story.id]:'That came back in a shape we could not read. Try again.'}));return}
+      saveStory({...story,
+        title:(typeof obj.title==='string'&&obj.title.trim())?obj.title.trim():story.title,
+        question:(typeof obj.question==='string'&&obj.question.trim())?obj.question.trim():(story.question||''),
+        why:(typeof obj.why==='string'?obj.why.trim():(story.why||'')),
+        slots:obj.slots,updatedAt:new Date().toISOString()})
+      // The correction carries forward the way every other correction in Reimagine
+      // does, so a fact they fixed once does not come back wrong somewhere else.
+      if(note&&note.trim())recordCorrection('stories',note)
+    }catch(e){
+      setStoryRefineErr(er=>({...er,[story.id]:e.message||'That did not come back. Try again.'}))
+    }finally{setStoryRefining(null)}
   }
   const addStoryByHand=()=>{
     const title=(storyDraft.title||'').trim()
@@ -11240,7 +11315,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         slots[slot]={...cur,[field]:value}
         saveStory({...story,slots,updatedAt:new Date().toISOString()})
       }
-      const ta={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',minHeight:60,marginTop:4}
+      const ta={width:'100%',boxSizing:'border-box',padding:'10px 12px',fontSize:17,lineHeight:1.6,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',minHeight:130,marginTop:4}
       return <div>
         <h1 style={S.title}>Your STAR Stories</h1>
         <p style={S.sub}>The handful of stories you tell in interviews, in one place.</p>
@@ -11269,7 +11344,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
         <div style={{...S.card,marginBottom:20}}>
           <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>{held} {held===1?'story':'stories'} so far</div>
-          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>These are the questions a good set answers. Four of them come almost word for word from Johnny Taylor, CEO of SHRM, the largest HR organization in the world, in his twelve most common interview questions; the other two get asked inside a bigger question rather than on their own. Click any of them to go to your story, or to start one.</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>These six are a strong head start on a library, drawn from Johnny Taylor, CEO of SHRM, the largest HR organization in the world, and from what else gets asked once someone starts probing how you work. Click any question to go to your story, or to start one.</div>
           {cov.map(t=>{
             const first=starStories.find(x=>x&&x.kind===t.id)
             const jump=()=>{
@@ -11291,36 +11366,49 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {starStories.map(story=>{
           const gaps=emptySlots(story)
           const kind=PLAYLIST_TYPES.find(t=>t.id===story.kind)
-          return <div key={story.id} id={`story-${story.id}`} style={{...S.card,marginBottom:14,scrollMarginTop:80}}>
+          const editing=!!storyEditing[story.id]
+          // Remove belongs only on a story someone typed themselves. A seeded one
+          // answers a question they will be asked, so deleting it leaves a hole
+          // where correcting it would have left an answer.
+          const canRemove=story.origin==='typed'
+          return <div key={story.id} id={`story-${story.id}`} style={{...S.out,marginTop:0,marginBottom:14,scrollMarginTop:80}}>
             {kind&&<div style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5,marginBottom:4}}>{kind.label}</div>}
-            <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
-              <div style={{fontSize:18,fontWeight:700,color:'#1A2540',flex:1,minWidth:200}}>{(typeof story.question==='string'&&story.question.trim())?story.question.trim():story.title}</div>
-              <button type="button" onClick={()=>deleteStory(story.id)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit',textDecoration:'underline'}}>Remove</button>
-            </div>
-            {(typeof story.question==='string'&&story.question.trim())&&<div style={{fontSize:16,color:C.gray,lineHeight:1.5,marginTop:2}}>{story.title}</div>}
-            {story.why&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:4}}>{story.why}</div>}
-            {gaps.length>0&&<div style={{fontSize:15,color:C.goldL,fontWeight:600,marginTop:6}}>{gaps.length===1?'One part still needs you':`${gaps.length} parts still need you`}: {gaps.map(g=>SLOT_LABELS[g]).join(', ')}.</div>}
-            <div style={{marginTop:10}}>
+            <div style={{fontSize:19,fontWeight:700,color:'#1A2540',lineHeight:1.4}}>{(typeof story.question==='string'&&story.question.trim())?story.question.trim():story.title}</div>
+            {(typeof story.question==='string'&&story.question.trim())&&<div style={{fontSize:16,color:C.gray,lineHeight:1.5,marginTop:3}}>Your story: {story.title}</div>}
+            {story.why&&<div style={{fontSize:16,color:C.goldL,lineHeight:1.55,marginTop:6}}>{story.why}</div>}
+            {gaps.length>0&&<div style={{fontSize:16,color:C.gray,lineHeight:1.55,marginTop:6}}>{gaps.length===1?'One part is still open':`${gaps.length} parts are still open`}: {gaps.map(g=>SLOT_LABELS[g]).join(', ')}. The note under each one says what would fill it.</div>}
+            <div style={{marginTop:6}}>
               {STORY_SLOTS.map(k=>{
                 const raw=(story.slots&&story.slots[k])||{}
                 const cur=typeof raw==='object'?raw:{text:String(raw||''),to_strengthen:''}
-                return <div key={k} style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
-                  <div style={{fontSize:15,fontWeight:700,color:C.goldL,marginBottom:2}}>{k} &mdash; {SLOT_LABELS[k]}</div>
-                  <textarea style={ta} value={cur.text||''} placeholder={k==='T'?'How you were thinking about it, not what you were assigned.':''} onChange={e=>slotEdit(story,k,'text',e.target.value)}/>
-                  {cur.to_strengthen&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:4}}><em>To strengthen:</em> {cur.to_strengthen}</div>}
+                return <div key={k} style={{marginTop:14}}>
+                  <div style={{fontSize:16,fontWeight:700,color:C.goldL,marginBottom:4}}>{k} &mdash; {SLOT_LABELS[k]}</div>
+                  {editing
+                    ?<textarea style={ta} value={cur.text||''} placeholder={k==='T'?'How you were thinking about it, not what you were assigned.':''} onChange={e=>slotEdit(story,k,'text',e.target.value)}/>
+                    :(cur.text
+                      ?<div style={{fontSize:17,color:C.cream,lineHeight:1.65,whiteSpace:'pre-wrap'}}>{cur.text}</div>
+                      :<div style={{fontSize:16,color:C.gray,lineHeight:1.65}}>Still open.</div>)}
+                  {cur.to_strengthen&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>To strengthen:</em> {cur.to_strengthen}</div>}
                 </div>
               })}
+            </div>
+            <SubsectionRefineBox scopeKey={story.id} onSubmit={t=>refineStory(story,t)} busy={storyRefining===story.id} error={storyRefineErr[story.id]} label="Does this feel right?" placeholder="For example: the Result is wrong, it was 40% not 15%. Or: the Thought Process is not how I approached it — I started with the customer data." submitLabel="Rework this story" helperText="Only this story changes. Everything you have written stays unless your note asks otherwise."/>
+            <div style={{display:'flex',gap:14,alignItems:'center',flexWrap:'wrap',marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
+              <button type="button" onClick={()=>setStoryEditing(e=>({...e,[story.id]:!editing}))} style={{background:'none',border:'none',color:C.goldL,cursor:'pointer',padding:0,fontSize:16,fontWeight:600,fontFamily:'inherit',textDecoration:'underline'}}>{editing?'Done editing':'Edit the words myself'}</button>
+              {canRemove&&<button type="button" onClick={()=>deleteStory(story.id)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',padding:0,fontSize:16,fontFamily:'inherit',textDecoration:'underline'}}>Remove</button>}
             </div>
           </div>
         })}
 
         <div style={{...S.card,marginBottom:14}}>
-          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:6}}>The rest of the twelve</div>
-          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>These are the other questions on Johnny Taylor&rsquo;s list. They do not want a story out of your library, they want something else, and Reimagine has that somewhere else.</div>
+          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:6}}>The other questions you will be asked</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>These eight do not want a story out of your library. They want something else, and Reimagine has that.</div>
           {ROUTED_QUESTIONS.map(q=><div key={q.id} style={{padding:'10px 0',borderTop:`1px solid ${C.border}`}}>
             <div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>{q.asks}</div>
             <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:2}}>{q.note}</div>
-            <div style={{fontSize:15,color:C.goldL,fontWeight:600,marginTop:4}}>{q.step?<button type="button" onClick={()=>nav(q.step)} style={{background:'none',border:'none',padding:0,color:C.goldL,fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>{q.where}</button>:q.where}</div>
+            <div style={{fontSize:15,color:C.goldL,fontWeight:600,marginTop:4}}>{(q.step||q.coach)
+              ?<button type="button" onClick={()=>{if(q.coach){openCoachWith(q.coach,true,'stories')}else{nav(q.step)}}} style={{background:'none',border:'none',padding:0,color:C.goldL,fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>{q.where}</button>
+              :q.where}</div>
           </div>)}
         </div>
 

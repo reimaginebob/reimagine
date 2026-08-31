@@ -13,12 +13,11 @@
 
 // The book's own list, in its order.
 //
-// `asks` is the question from Johnny Taylor's twelve that this type answers, so
-// the inventory reads as questions a person will be asked rather than as
-// categories we invented. Two of the six are not in the twelve on their own and
-// carry an `asksNote` saying where they actually turn up instead — only four of
-// those twelve need a stored story at all; the rest are positioning and research
-// questions that belong in Interview Prep, not in a story library.
+// `asks` is the question this type answers, written the way an interviewer says
+// it, so the inventory reads as questions rather than as categories we invented.
+// Four are Johnny Taylor's; two are not on his list and are asked anyway. They
+// are not marked as exceptions — the source gets credited once, at the top of
+// the screen, and after that a question is just a question.
 //
 // `prompt` is what the person is being asked to remember when the library has no
 // story of that kind yet — the shape of a strong answer, not a scolding about a
@@ -38,8 +37,7 @@ export const PLAYLIST_TYPES = [
   },
   {
     id: 'authority',
-    asks: null,
-    asksNote: 'Not one of the twelve on its own. It arrives inside the strengths question, or when someone asks how you get things done.',
+    asks: '"Tell me about a time you led people who did not report to you."',
     label: 'Leading without formal authority',
     prompt: 'A time you moved something without the title to order it. Tests influence rather than rank, so the interesting part is how you got people to want it.',
   },
@@ -51,8 +49,7 @@ export const PLAYLIST_TYPES = [
   },
   {
     id: 'strategic',
-    asks: null,
-    asksNote: 'Not one of the twelve on its own. It arrives when they ask about your biggest impact, or what you would do first here.',
+    asks: '"What is the biggest impact you have had?"',
     label: 'A moment of strategic impact',
     prompt: 'Where your thinking changed the direction, not just the delivery. Name the framework you used if you have one; it is the most underused part of a story like this.',
   },
@@ -83,9 +80,10 @@ export const ROUTED_QUESTIONS = [
   {
     id: 'not-on-resume',
     asks: '"What isn\'t on your resume?"',
-    where: 'Your Personal Brand',
-    step: 'p3',
-    note: 'The one question that wants the human answer rather than the professional one. Your values, what you care about, what shaped you. A real answer beats a rehearsed one, and your Personal Brand is where all of that already lives.',
+    where: 'Work on this with My Coach',
+    step: null,
+    coach: "Help me answer \"What isn't on your resume?\" in an interview. You know my values, what I care about and what has shaped me. Draft an answer in my voice from what you already know, tell me which parts you were least sure about, then help me sharpen it.",
+    note: 'The one question that wants the human answer rather than the professional one. Your values, what you care about, what shaped you. A real answer beats a rehearsed one, and everything it needs is already in what you have told us.',
   },
   {
     id: 'know-company',
