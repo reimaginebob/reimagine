@@ -21,9 +21,9 @@ export const PLAYLIST_TYPES = [
     prompt: 'The one you would lead with. What made it hard, what you decided, and the number at the end of it.',
   },
   {
-    id: 'failure',
-    label: 'A failure and what you learned',
-    prompt: 'Not a disguised strength. A real shortcoming, what you did about it, and how you stay mindful of it now. Your assessment is the best place to start: the strength that serves you at its best is usually the same one that costs you when it runs unchecked.',
+    id: 'setback',
+    label: 'A setback and what you learned',
+    prompt: 'This is the one an interviewer asks as "tell me about a failure" or "what is your biggest weakness". Not a disguised strength. Something that genuinely did not go your way, what you did about it, and how you stay mindful of it now. Your assessment is the best place to start: the strength that serves you at your best is usually the same one that costs you when it runs unchecked.',
   },
   {
     id: 'authority',

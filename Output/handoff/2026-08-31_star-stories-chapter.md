@@ -32,15 +32,23 @@ TO OPEN THE GATE, four things in one PR:
 
 The book's example is a salesperson who finished the year at 140% of quota. To a CFO, lead with the financial discipline, because a CFO's first instinct on hearing a sales number is to ask whether it made money: the 140% is the headline, the profitability is the story. To a CEO, lead with what it moved — a market opened, a competitor pushed back. To a CHRO, lead with how the team came along with you, and let the number do its work quietly in the background. One story, three fronts.
 
-The book calls the five dimensions SCOPE: **Strategy**, the business outcome and the framework behind it; **Culture**, how you collaborate and lead; **Oneself**, how you talk about a failure and what you did about it; **Passion**, why you want this one; and **Expertise**, the proof you can do the work. Almost any interview question is probing one of them.
+Which part to push forward depends on who is in the room. You do not have to work that out cold: once you name the people you will meet on an opportunity, Interview Prep marks each of them with the one thing they are most likely weighing, and lets you hear any of these stories told that way. The five dimensions behind that are explained there, where there is a person to apply them to.
 
 That is why this exists as its own screen. The same integration story gets told at this company and the next one, so it belongs to you rather than to any single opportunity.
 
-## The four parts, and the one that matters most
+## What a STAR story is here
 
-Every story has a Situation, a Thought Process, an Action and a Result.
+Your resume got you the interview. The stories you tell get you the job, because what a company is hiring is your brain rather than your history. They want to know how you approach a problem, what you notice that others miss, and what you do first.
 
-The T is the one to pay attention to. In the standard version of this format the T stands for Task, and that is the version that leaves interviewers unmoved. Here it is your **Thought Process**. A task says what you were assigned. Your thinking shows how you approach a problem, and how you think is what an interviewer is actually evaluating. The company is hiring your brain.
+Every story has four parts: Situation, Thought Process, Action, Result. The usual version of this format calls the T "Task". Here it is your **Thought Process**, and that swap is the whole game.
+
+The difference, from the book:
+
+> **Task.** "I decided to run one-on-ones with each team member." That says what you did.
+>
+> **Thought process.** "I knew I had to understand the problem from both sides before designing anything, so I started with structured one-on-ones to separate what people were saying from what they were experiencing." That shows how you think.
+
+Same events, same action. The second one demonstrates a way of working: gather information before drawing conclusions, decide from what you learn. Rather than claim you are a strategic thinker, you show them, and showing beats claiming every time. You do not need to name the framework you used — the interviewer will feel the difference between someone thinking out loud and someone who owns a repeatable way of solving problems.
 
 ## Where the first set comes from
 
@@ -48,7 +56,7 @@ You do not start from a blank screen, and you do not have to ask. The first time
 
 - Your **resume** carries the Situation and the Result: the roles, the scope, the numbers.
 - Your **reputation answers** and the pattern across your career carry the Thought Process. That is almost never written on a resume, which is why a story built only from a resume reads flat.
-- Your **assessment** carries the story about what you are still working on. The strength that serves you at your best and the one that costs you when it runs unchecked are usually the same trait, and being able to name both is what self-awareness sounds like out loud.
+- Your **assessment** carries the setback story, the one an interviewer asks as the failure or weakness question. The strength that serves you at your best and the one that costs you when it runs unchecked are usually the same trait, and being able to name both is what self-awareness sounds like out loud.
 
 Nothing is invented. Where your inputs do not support a story, you get the question rather than a guess — because a made-up account of your own past is the one thing you cannot afford to carry into an interview.
 
@@ -59,7 +67,7 @@ Each part shows what your inputs support and, underneath, the specific thing onl
 The screen tracks these, and shows which you have and which you do not:
 
 - A significant achievement
-- A failure and what you learned
+- A setback and what you learned
 - Leading without formal authority
 - A difficult collaboration
 - A moment of strategic impact
