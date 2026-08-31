@@ -19,7 +19,7 @@ TO OPEN THE GATE, four things in one PR:
      above the bridge-story entry:
 
   { slug: 'your-stories',        reach: 'standalone',  labelId: 'stories',
-    does: 'holds the handful of STAR stories they tell in interviews, which the book puts at roughly twelve covering the range of what gets asked. The first set is built from what Orientation already holds, and the parts come from different places: the resume carries Situation and Result, the reputation answers and career pattern carry the Thought Process, and the assessment carries the story about what they are still working on. Nothing is invented -- where an input does not support a story they get the question instead of a guess, and every part is editable because their words win. It tracks the six kinds a good set covers and, for one they do not have yet, shows the shape of a strong answer rather than an empty box. Remember the T here is Thought Process, never Task: that is the change this method makes to STAR and the reason its answers land. This is the set Interview Prep remixes from when it prepares them for named people' },
+    does: 'holds the handful of STAR stories they tell in interviews, which the book puts at roughly twelve covering the range of what gets asked. The first set is built from what Orientation already holds, and the parts come from different places: the resume carries Situation and Result, the reputation answers and career pattern carry the Thought Process, and the assessment carries the story about what they are still working on. Nothing is invented -- where an input does not support a story they get the question instead of a guess, and every part is editable because their words win. It tracks the six kinds a good set covers and, for one they do not have yet, shows the shape of a strong answer rather than an empty box. Remember the T here is Thought Process, never Task: that is the change this method makes to STAR and the reason its answers land. This is the set Interview Prep remixes from when it prepares them for named people. The screen also names the other eight of those twelve questions -- the ones that want something other than a story -- and points at where Reimagine answers each: Bridge Story, Personal Brand, About This Company, Interview Prep' },
 -->
 
 # Your STAR Stories
@@ -70,6 +70,19 @@ The screen tracks these as the questions they answer, and shows which you have a
 - Navigating ambiguity or conflict
 
 A type you have not covered yet is never shown as an empty box. It comes with the shape of a strong answer for that question, so you know what you are looking for in your own memory before you sit down to write anything. Two of them — leading without formal authority, and a difficult collaboration — are usually the last to fill, because nobody writes them on a resume. They are worth having ready anyway; they get asked.
+
+## The rest of the twelve
+
+Eight of Taylor's twelve questions do not want a story out of your library. They want something else, and Reimagine has that somewhere else, so the screen names where rather than leaving two thirds of a well-known list unaccounted for.
+
+- **"Tell me about yourself."** Your Bridge Story, built for you on any opportunity or direction.
+- **"What isn't on your resume?"** Your Personal Brand. This is the one question that wants the human answer rather than the professional one -- values, what you care about, what shaped you.
+- **"What do you know about our company?"** About This Company, on the opportunity. The effort is itself the signal.
+- **"Why are you leaving your current role?"** Your best and fewest reasons. A layoff stated plainly reads as fact and needs no apology.
+- **"What did you like most and least about your last role?"** Values alignment. Name something you valued that this company also values.
+- **"Are you underqualified or overqualified?"** Redirect to the specific value you bring, and keep it short.
+- **"Has your view of the job changed since we started talking?"** Asked late, and it tests whether you were listening rather than running a script.
+- **"Do you have any questions for me?"** Interview Prep gives you questions aimed at what each person you are meeting uniquely knows.
 
 ## Adding your own
 
