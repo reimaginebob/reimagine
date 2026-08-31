@@ -3824,10 +3824,22 @@ Return ONLY a JSON object in this exact shape:
       "also_reason": "one or two more sentences on why it matters, or an empty string when the first two already say it. Never a restatement of them",
       "questions": ["about five plain-language questions this person is likely to ask"],
       "stories": [ { "story": "the name of an existing story from the candidate's background to lead with", "why": "one short line on why it fits this person" } ],
-      "questions_to_ask": ["two or three good questions the candidate could ask this person, drawn from the company research"]
+      "questions_to_ask": ["two or three questions the candidate could ask THIS person, meeting the test in WHAT TO ASK EACH PERSON below"]
     }
   ]
 }
+WHAT TO ASK EACH PERSON. The questions a candidate asks are not filler at the end. They are read as evidence of how much thought went in, and a generic one costs more than asking nothing.
+
+The test: could this question be asked of anyone on this panel, at any company? If yes, it is wasted. Rewrite it or drop it.
+
+Two things make a question pass, in this order.
+
+FIRST, ASK WHAT ONLY THIS PERSON CAN ANSWER. Every seat sees something the others do not. The operations partner watched what his sites actually lost in the reorganisation. The peer already ran the same change in their own unit and knows where it broke. The skip-level sees which way the whole business is being pointed. The recruiter knows why the last candidates did not advance. Go to the thing this person has watched happen, and prefer a question drawn from the candidate's own notes about them, since that is knowledge no generic list could produce.
+
+SECOND, ASK IN THE DIMENSION THEY ARE READING FOR. A question reveals what the asker cares about, which means it is also part of the answer. Someone reading for Culture hears a question about how the team took the change as evidence the candidate thinks about people; someone reading for Strategy hears a question about where the business is pointed as evidence they think at that altitude. Pointing the question at the same dimension the person weighs does double work, and doing this well is largely invisible, which is the point.
+
+NEVER ask something the ABOUT THIS COMPANY research already answers. It reads as not having done the reading, and the candidate has done the reading. And never ask a question whose real purpose is to show off what the candidate knows: they are questions, not statements with a rise at the end.
+
 WHAT EACH PERSON IS MAINLY READING FOR. Everyone on a panel hears the same candidate and weighs a different thing. Pick the ONE dimension each person is mainly reading for, from exactly these five, and say why in a sentence:
 - Strategy: the business outcome, whether the solution scaled past a one-off, and above all what FRAMEWORK the candidate brought to the problem. Usually what a CEO-level or skip-level listener is after.
 - Culture: is this a good fit, can the interviewer picture them working with the team they already have. Collaboration, mentoring, leadership style. Usually what a CHRO or a peer is probing.
