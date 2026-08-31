@@ -2846,6 +2846,10 @@ HONESTY. The source material is what one person recalled, and it is uneven by na
 // The same four, as the card renders them. Labels are what the user wants, not
 // what the note is called; the hint is shown under the row so the difference
 // between "find the name" and "learn about the place" is legible before drafting.
+// The five SCOPE dimensions, for the story remix control. Lesson 10 of Making
+// Your Own Weather: the same story does not get rewritten for each audience, it
+// gets retold with a different part pushed to the front.
+const SCOPE_LENSES=['Strategy','Culture','Oneself','Passion','Expertise']
 const OUTREACH_PURPOSE_CHOICES=[
   {id:'hiring',   label:'Find out who’s hiring',  hint:'Ask who the hiring manager is, or who would know. It takes them a moment to answer and it tells you who your application needs to reach.'},
   {id:'learn',    label:'Learn about the place',      hint:'Ask for fifteen minutes on what the company is actually like to work for. Use this when you want to know that before you go further, or when you do not know the person well enough to ask for more.'},
@@ -3749,6 +3753,10 @@ AUTHORITY ORDER when signals disagree: the candidate's own notes about a person 
 
 NO INVENTED MATERIAL: name only real stories and details from the candidate profile above; invent nothing.
 
+SAY IT AS A READ, NOT AS FACT (load-bearing). Everything here about what a person cares about or will ask is inferred from their seat, their title and what the candidate wrote down. It is a good read. It is not knowledge, and nobody here has spoken to these people. Write it that way: likely, probably, may, tends to, you might expect, worth being ready for. Never state flatly what someone WILL ask, what they ARE looking for, or what they care about, as though it were established.
+
+This is not softening for its own sake, and do not hedge every clause into mush. It is that a candidate who prepares for exactly these five questions and hears none of them will stop trusting everything else on this page, and may leave a better answer unsaid because it was not on the list. The questions are the SHAPE of the conversation to be ready for, not a prediction of it. Where a read does rest on something solid the candidate told you, name that evidence in the same breath and you have earned a firmer sentence: "you wrote that he resisted the change, so expect him to test..." is fine. A firm claim with nothing behind it is not.
+
 Return ONLY a JSON object in this exact shape:
 {
   "people": [
@@ -3759,8 +3767,8 @@ Return ONLY a JSON object in this exact shape:
       "looking_for": "one or two plain sentences on what this person really cares about, in authority order",
       "lens": "ONE of exactly these five words, whichever this person is mainly reading for: Strategy, Culture, Oneself, Passion, Expertise",
       "lens_reason": "one short plain sentence on why that is the one, tied to their seat and to what the candidate wrote about them",
-      "also_consider": "a short phrase naming the thing worth being ready for that the candidate has not thought of. Often another of the five, but it can equally be a second face of the same dimension, or what follows a step or two on from their own read. Empty string if there is honestly nothing to add",
-      "also_reason": "one or two short plain sentences on why, phrased as something to consider rather than a second verdict",
+      "also_consider": "one or two plain sentences naming the thing worth being ready for that the candidate has not thought of. Often another of the five, but it can equally be a second face of the same dimension, or what follows a step or two on from their own read. Written to stand on its own under the heading 'You may also want to consider'. Empty string if there is honestly nothing to add",
+      "also_reason": "one or two more sentences on why it matters, or an empty string when the first two already say it. Never a restatement of them",
       "questions": ["about five plain-language questions this person is likely to ask"],
       "stories": [ { "story": "the name of an existing story from the candidate's background to lead with", "why": "one short line on why it fits this person" } ],
       "questions_to_ask": ["two or three good questions the candidate could ask this person, drawn from the company research"]
@@ -3794,7 +3802,15 @@ Give about five questions per person. Give one or two stories per person, real m
   // On-demand full answer for the per-person prep (PR-4b): drafts one STAR answer
   // from a chosen story, in the candidate's voice, plus enhancement suggestions.
   // Profile arrives via the cached block (callClaude opts.profileBlock).
-  fullAnswer:(story,personName,jd)=>`The candidate clicked "write the full answer". Draft a full interview answer in their own voice, using the S T A R shape, built from this story. Then add a short note on how to make it stronger.
+  fullAnswer:(story,personName,jd,lens)=>`The candidate asked for the full answer${lens?` told with the emphasis on ${lens}`:''}. Draft a full interview answer in their own voice, using the S T A R shape, built from this story. Then add a short note on how to make it stronger.${lens?`
+
+EMPHASIS: ${lens}. Same story, same facts, same result. What changes is which part gets the airtime, the way a remix keeps the melody and changes the beat. Do NOT bolt a paragraph about ${lens} onto the end, and do not restate the whole story and then comment on it. Retell it with that part carrying the weight:
+- Strategy: the business outcome, whether it scaled past a one-off, and above all the FRAMEWORK behind the thinking. Name the framework if the candidate has one; it is the most underused part of a story like this.
+- Culture: how they worked with people through it. Collaboration, who they brought along, how they handled the friction, what it says about how they lead.
+- Oneself: what it cost them and what they learned about themselves. Honest about the part that did not go well, without turning it into a confession.
+- Passion: why this work pulled at them, shown through what they chose to do rather than stated as enthusiasm.
+- Expertise: the craft. The specific decisions, methods and judgement calls that show they actually know how this is done.
+Where the story genuinely does not carry ${lens} well, say so in one line at the end rather than forcing it. A story stretched to fit reads as stretched.`:''}
 
 STORY TO USE: ${story}
 ${personName?`THIS IS TO PREP FOR: ${personName}.\n`:''}${jd?`ROLE CONTEXT (job description):\n${jd}\n\n`:''}Draw only on the candidate's real background from the profile above. Invent nothing; do not add a number the candidate did not give.
@@ -6707,6 +6723,7 @@ export default function PivotEngine(){
   const[connManual,setConnManual]=useState(()=>{try{const r=localStorage.getItem(MANUAL_STORAGE_KEY);if(r){const p=JSON.parse(r);if(Array.isArray(p))return p}}catch{}return[]})
   const[manualOpen,setManualOpen]=useState({})
   const[manualDraft,setManualDraft]=useState({name:'',title:'',url:''})
+  const[storyLens,setStoryLens]=useState({})
   const[manualErr,setManualErr]=useState(null)
   const persistManual=(next)=>{setConnManual(next);try{localStorage.setItem(MANUAL_STORAGE_KEY,JSON.stringify(next))}catch{}}
   const addManualPerson=(company)=>{
@@ -9283,7 +9300,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // STAR shape (below) renders unchanged when there is no team.
     if(Array.isArray(ip.people)){
       return <>
-        <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Prep for each person you will meet: what they are really after, what they are likely to ask, and the stories worth having ready. Under each person you can take their questions to My Coach and answer them out loud.</div>
+        <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Prep for each person you will meet: a read on what they are likely weighing, the questions worth being ready for, and the stories worth having close to hand. All of it is inferred from their seat and from what you wrote about them, so treat it as a good starting read rather than inside knowledge. Being ready for the shape of the conversation is what pays off here; nobody can hand you the exact questions. Under each person you can take these to My Coach and answer them out loud.</div>
         <CoachingCallout>
           <div style={{marginBottom:8}}>You do not need a story for every question. You need a handful of good ones, and the skill to change which part of a story gets the airtime depending on who is asking. Same story, same facts, same result, a different emphasis. <em>Making Your Own Weather</em> calls that remixing, and SCOPE is how you read which emphasis the person in front of you wants:</div>
           <div style={{marginBottom:8,lineHeight:1.75}}>
@@ -9309,13 +9326,29 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {typeof p.role==='string'&&p.role.trim()&&<span style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>{p.role.trim()}</span>}
             </div>
             {typeof p.lens==='string'&&p.lens.trim()&&<div style={{marginBottom:10,background:`${C.gold}0E`,border:`1px solid ${C.gold}44`,borderRadius:8,padding:'10px 12px'}}>
-              <div style={{fontSize:16,color:'#1A2540',lineHeight:1.6}}>{who} is mainly reading for <strong>{p.lens.trim()}</strong>.{typeof p.lens_reason==='string'&&p.lens_reason.trim()?' '+p.lens_reason.trim():''}</div>
-              <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:4}}>Push that part of your story to the front when you talk to {nm?nm.split(' ')[0]:'them'}.</div>
-              {typeof p.also_consider==='string'&&p.also_consider.trim()&&<div style={{fontSize:16,color:'#1A2540',lineHeight:1.6,marginTop:8,paddingTop:8,borderTop:`1px solid ${C.gold}44`}}>You may also want to consider <strong>{p.also_consider.trim()}</strong>.{typeof p.also_reason==='string'&&p.also_reason.trim()?' '+p.also_reason.trim():''}</div>}
+              <div style={{fontSize:16,color:'#1A2540',lineHeight:1.6}}>Our read is that {who} is probably weighing <strong>{p.lens.trim()}</strong> most.{typeof p.lens_reason==='string'&&p.lens_reason.trim()?' '+p.lens_reason.trim():''}</div>
+              <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:4}}>If that holds up when you meet {nm?nm.split(' ')[0]:'them'}, that is the part of your story to lead with.</div>
+              {typeof p.also_consider==='string'&&p.also_consider.trim()&&<div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.gold}44`}}>
+                <div style={{fontSize:15,fontWeight:700,color:C.goldL,marginBottom:3}}>You may also want to consider</div>
+                <div style={{fontSize:16,color:'#1A2540',lineHeight:1.6}}>{[p.also_consider.trim(),(typeof p.also_reason==='string'?p.also_reason.trim():'')].filter(Boolean).join(' ')}</div>
+              </div>}
             </div>}
-            {typeof p.looking_for==='string'&&p.looking_for.trim()&&<div style={{marginBottom:10}}>{H('What '+who+' is really looking for')}<div style={{fontSize:16,color:C.cream,lineHeight:1.6}}>{p.looking_for.trim()}</div></div>}
+            {typeof p.looking_for==='string'&&p.looking_for.trim()&&<div style={{marginBottom:10}}>{H('What '+who+' may be looking for')}<div style={{fontSize:16,color:C.cream,lineHeight:1.6}}>{p.looking_for.trim()}</div></div>}
             {qs.length>0&&<div style={{marginBottom:10}}>{H('Questions '+who+' is likely to ask')}<ul style={{margin:0,paddingLeft:22}}>{qs.map((q,qi)=><li key={qi} style={{fontSize:17,color:C.cream,lineHeight:1.65,marginBottom:8}}>{q}</li>)}</ul></div>}
-            {stories.length>0&&<div style={{marginBottom:10}}>{H('Best stories to use')}<div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:8}}>Each of these is a story from your own background worth telling {who}. Reimagine will write any of them out as a full answer for you, structured the way an interviewer wants to hear it.</div>{stories.map((s,si)=>{const k=(nm||('p'+pi))+'|'+((s&&s.story)||si);const ans=fullAnswers[k];const busy=answerBusy===k;return <div key={si} style={{marginBottom:8}}><div style={{fontSize:16,color:C.cream,lineHeight:1.6}}><strong>{(s&&s.story)||''}</strong>{(s&&s.why)?'. '+s.why:''}</div>{!isDemo&&<div style={{marginTop:5}}>{busy?<span style={{fontSize:15,color:C.gray,display:'inline-flex',alignItems:'center',gap:6}}><Loader2 size={13} style={{animation:'spin 0.9s linear infinite'}}/>Writing the full answer…</span>:<Btn small secondary onClick={()=>generateFullAnswer(nm,(s&&s.story)||'')}><Sparkles size={12}/>{ans?'Draft it again':'Draft this answer for me'}</Btn>}</div>}{ans&&!busy&&<div style={{marginTop:8,paddingLeft:12,borderLeft:`2px solid ${C.border}`}}><MD text={ans}/></div>}</div>})}</div>}
+            {stories.length>0&&<div style={{marginBottom:10}}>{H('Best stories to use')}<div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:8}}>Each of these is a story from your own background worth telling {who}. Reimagine will write any of them out in full for you. It leans on whatever this person is probably weighing, and you can change that to hear the same story told a different way.</div>{stories.map((s,si)=>{
+              // The remix control. The emphasis defaults to what this person is
+              // probably weighing, so the plain button already does the useful
+              // thing; changing it retells the SAME story with a different part
+              // carrying the weight, which is the whole point of Lesson 10. Each
+              // emphasis keys its own draft, so trying a second one does not
+              // destroy the first.
+              const storyText=(s&&s.story)||''
+              const rk=(nm||('p'+pi))+'|'+(storyText||si)
+              const defLens=(typeof p.lens==='string'&&SCOPE_LENSES.includes(p.lens.trim()))?p.lens.trim():'Strategy'
+              const lens=storyLens[rk]||defLens
+              const k=(nm||'')+'|'+storyText+'|'+lens
+              const ans=fullAnswers[k];const busy=answerBusy===k
+              return <div key={si} style={{marginBottom:12}}><div style={{fontSize:16,color:C.cream,lineHeight:1.6}}><strong>{storyText}</strong>{(s&&s.why)?'. '+s.why:''}</div>{!isDemo&&<div style={{marginTop:6,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>{busy?<span style={{fontSize:15,color:C.gray,display:'inline-flex',alignItems:'center',gap:6}}><Loader2 size={13} style={{animation:'spin 0.9s linear infinite'}}/>Writing it with the emphasis on {lens.toLowerCase()}…</span>:<><Btn small secondary onClick={()=>generateFullAnswer(nm,storyText,lens)}><Sparkles size={12}/>{ans?'Draft it again':'Draft this answer for me'}</Btn><span style={{fontSize:15,color:C.gray}}>leaning on</span><select value={lens} onChange={e=>setStoryLens(m=>({...m,[rk]:e.target.value}))} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,padding:'6px 8px',color:'#1A2540',fontSize:16,fontFamily:'inherit',outline:'none'}}>{SCOPE_LENSES.map(L=><option key={L} value={L}>{L}</option>)}</select></>}</div>}{ans&&!busy&&<div style={{marginTop:8,paddingLeft:12,borderLeft:`2px solid ${C.border}`}}><MD text={ans}/></div>}</div>})}</div>}
             {asks.length>0&&<div style={{marginBottom:10}}>{H('Good questions to ask '+who)}<ul style={{margin:0,paddingLeft:20}}>{asks.map((q,qi)=><li key={qi} style={{fontSize:16,color:C.cream,lineHeight:1.6,marginBottom:3}}>{q}</li>)}</ul></div>}
             {typeof onPrepWithCoach==='function'&&<div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
               <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:8}}>Work through any of {who===('this person')?'these':(who+"'s")} questions out loud with My Coach. Say your answer, and you get written feedback on it.</div>
@@ -10158,8 +10191,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // answer" action in the per-person prep. Drafts one STAR answer from a chosen
   // story plus enhancement suggestions, into transient state (person|story key),
   // voice-gated like the other generated prose. Not saved to the record.
-  const generateFullAnswer=async(personName,story)=>{
-    const key=(personName||'')+'|'+(story||'')
+  const generateFullAnswer=async(personName,story,lens)=>{
+    const key=(personName||'')+'|'+(story||'')+'|'+(lens||'')
     if(!story||answerBusy)return
     const slotId=currentSavedSlotIdRef.current
     setAnswerBusy(key)
@@ -10168,7 +10201,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const rec0=savedPlaybooks.find(r=>r.id===slotId)
       const opP6=(rec0&&rec0.sections&&rec0.sections.p6&&bridgeStoryToProse(rec0.sections.p6).trim())?rec0.sections.p6:outputs.p6
       const opOuts={...outputs,p6:opP6}
-      const fn=()=>P.fullAnswer(story,personName,jd)
+      const fn=()=>P.fullAnswer(story,personName,jd,lens)
       const r=await callClaudeWithVoiceGate(fn,{maxTokens:1500,profileBlock:buildUserProfileBlock(pc,opOuts),step:'p11-full-answer'},{step:'p11-full-answer',onEvent:logVoiceEvent})
       setFullAnswers(prev=>({...prev,[key]:r}))
     }catch(e){
