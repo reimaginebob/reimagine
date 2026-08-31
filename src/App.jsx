@@ -12868,8 +12868,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       const wrap=k=><div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>{k}</div>
                       if(rBusy)return wrap(<div style={{display:'flex',alignItems:'center',gap:8,fontSize:15,color:C.gray}}><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Searching public sources…</div>)
                       if(!research)return wrap(<>
-                        <Btn small secondary onClick={()=>generateInterviewerResearch(iv.id)} disabled={!!researchingIvId}><Search size={13}/>Research this person on the web</Btn>
-                        <div style={{fontSize:15,color:C.gray,marginTop:6,lineHeight:1.5}}>Optional. Searches public sources and shows what it finds as a draft for you to confirm. Nothing is sent until you click.</div>
+                        {/* Gold, not the grey small variant. `small secondary` rendered
+                            S.sm — transparent with a hairline border — so the one
+                            action on this row that does real work looked like a
+                            disabled control and nobody found it. The lead-in did the
+                            rest of the damage: opening on "Optional." tells a reader
+                            not to bother before they know what it is. */}
+                        <Btn small prominent onClick={()=>generateInterviewerResearch(iv.id)} disabled={!!researchingIvId}><Search size={13}/>Research this person on the web</Btn>
+                        <div style={{fontSize:15,color:C.gray,marginTop:6,lineHeight:1.5}}>Find out what they work on and what they have said publicly, before you meet them. It searches public sources and brings back a draft for you to confirm or correct. Nothing happens until you click, and it is optional.</div>
                         {rErr&&<div style={{marginTop:8}}><ErrBox msg={rErr}/></div>}
                       </>)
                       if(rEditing)return wrap(<>
