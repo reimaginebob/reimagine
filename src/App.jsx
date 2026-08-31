@@ -3617,6 +3617,8 @@ ${asText(bridgeStory)}`,
   // then carry into a real interview.
   storySeed:(pc,brand)=>`Build the first version of this person's STAR story library from what they have already told Reimagine.
 
+WRITE TO THEM, IN SECOND PERSON. Everything you return is read by the person it is about. Always write in second person, addressing the reader directly as "you" and "your". Never write in first person as the user, and never write in third person about the user: no "her pattern across roles", no "he tends to", no "this person". Everything above this line describes them in the third person because it is briefing you; nothing you write back may. Other people inside their stories are of course still he, she and they.
+
 WHAT A STORY IS HERE. Four slots: Situation, Thought Process, Action, Result. The T is Thought Process, NOT Task — that is the one change this method makes to STAR and the whole reason its answers land. Tasks say what someone did; thought process shows how they think, which is what an interviewer is actually evaluating.
 
 WHERE EACH SLOT COMES FROM. Different inputs carry different slots, and using the wrong one is how this goes wrong:
@@ -3670,6 +3672,8 @@ ${(brand||'').slice(0,2500)||'(not built yet)'}
   // asks. A refine that quietly rewrites the parts nobody complained about is how a
   // person loses their own words without noticing.
   storyRefine: (pc, brand, story, note) => `Rework ONE story in this person's STAR story library, using the correction they just wrote. Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end with }.
+
+WRITE TO THEM, IN SECOND PERSON. Everything you return is read by the person it is about. Always write in second person, addressing the reader directly as "you" and "your". Never write in first person as the user, and never write in third person about the user. Other people inside their stories are of course still he, she and they.
 
 WHAT A STORY IS HERE. Four slots: Situation, Thought Process, Action, Result. The T is Thought Process, NOT Task — that is the one change this method makes to STAR and the whole reason its answers land. Tasks say what someone did; thought process shows how they think, which is what an interviewer is actually evaluating.
 
@@ -5868,7 +5872,6 @@ function WeaknessPanel({record,onCoach,onPull,canPull,busy}){
   return <div id="story-weakness" style={{...S.out,marginTop:0,marginBottom:14,scrollMarginTop:80}}>
     <div style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5,marginBottom:4}}>{WEAKNESS_QUESTION.label}</div>
     <div style={{fontSize:19,fontWeight:700,color:'#1A2540',lineHeight:1.4}}>{WEAKNESS_QUESTION.asks}</div>
-    <div style={{fontSize:16,color:C.gray,lineHeight:1.55,marginTop:6}}>{WEAKNESS_QUESTION.failsAs}</div>
     <CoachingCallout>
       <div style={{marginBottom:10}}>Three parts, and they go in this order. {WEAKNESS_QUESTION.why}</div>
       {WEAKNESS_QUESTION.model.map(m=><div key={m.key} style={{marginTop:8}}>
@@ -5880,7 +5883,7 @@ function WeaknessPanel({record,onCoach,onPull,canPull,busy}){
       <div style={{fontSize:16,fontWeight:700,color:C.goldL,marginBottom:4}}>What your own inputs give you for the Real</div>
       {real
         ?<><div style={{fontSize:17,color:C.cream,lineHeight:1.65,whiteSpace:'pre-wrap'}}>{real}</div>
-          {source&&<div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:6}}>From your {source} results. Naming the assessment out loud is part of what makes this land as evidence rather than as something you thought up on the way in.</div>}</>
+          {source&&<div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:6}}>From your {source} results. Naming the assessment out loud is part of what makes it land as evidence.</div>}</>
         :(canPull
           ?<><div style={{fontSize:17,color:C.cream,lineHeight:1.65,marginBottom:10}}>Nothing pulled out yet. Your assessment is on file, so this can be read straight from it.</div>
             <Btn small disabled={busy} onClick={onPull}><Sparkles size={12}/>{busy?'Reading your assessment…':'Pull this from my assessment'}</Btn></>
