@@ -3638,7 +3638,8 @@ Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end
     {
       "title": "a short plain name they would recognise, e.g. Toronto acquisition integration",
       "kind": "one of: achievement, setback, authority, collaboration, strategic, ambiguity",
-      "why": "one short line on when this story is the right one to tell",
+      "question": "the question an interviewer would actually ask that this story answers, written the way they would say it out loud. Where it answers more than one, give the strongest, and never phrase it as advice about when to use the story",
+      "why": "one short line on why this story answers that question well",
       "slots": {
         "S": { "text": "", "to_strengthen": "" },
         "T": { "text": "", "to_strengthen": "" },
@@ -11255,7 +11256,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
         <div style={{...S.card,marginBottom:20}}>
           <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>{held} {held===1?'story':'stories'} so far</div>
-          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>A good set covers these six. The ones you do not have yet are worth thinking about before an interview asks for them.</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>A good set covers these six. Each one below is labelled with the kind it is. The ones you do not have yet are worth thinking about before an interview asks for them, and clicking one takes you there.</div>
           {cov.map(t=>{
             const first=starStories.find(x=>x&&x.kind===t.id)
             const jump=()=>{
@@ -11275,12 +11276,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
         {starStories.map(story=>{
           const gaps=emptySlots(story)
+          const kind=PLAYLIST_TYPES.find(t=>t.id===story.kind)
           return <div key={story.id} id={`story-${story.id}`} style={{...S.card,marginBottom:14,scrollMarginTop:80}}>
+            {kind&&<div style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5,marginBottom:4}}>{kind.label}</div>}
             <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
-              <div style={{fontSize:18,fontWeight:700,color:'#1A2540'}}>{story.title}</div>
+              <div style={{fontSize:18,fontWeight:700,color:'#1A2540',flex:1,minWidth:200}}>{(typeof story.question==='string'&&story.question.trim())?story.question.trim():story.title}</div>
               <button type="button" onClick={()=>deleteStory(story.id)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit',textDecoration:'underline'}}>Remove</button>
             </div>
-            {story.why&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:2}}>{story.why}</div>}
+            {(typeof story.question==='string'&&story.question.trim())&&<div style={{fontSize:16,color:C.gray,lineHeight:1.5,marginTop:2}}>{story.title}</div>}
+            {story.why&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:4}}>{story.why}</div>}
             {gaps.length>0&&<div style={{fontSize:15,color:C.goldL,fontWeight:600,marginTop:6}}>{gaps.length===1?'One part still needs you':`${gaps.length} parts still need you`}: {gaps.map(g=>SLOT_LABELS[g]).join(', ')}.</div>}
             <div style={{marginTop:10}}>
               {STORY_SLOTS.map(k=>{
