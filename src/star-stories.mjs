@@ -359,6 +359,36 @@ export function missingNumbers(note, before, after) {
 }
 
 /**
+ * Stories best-first: fewest open slots, then most recently worked on.
+ *
+ * Used to pick which one leads a question. Insertion order is the wrong answer
+ * here — the oldest row is the one built by the earliest version of the prompt,
+ * so ordering by arrival puts the weakest card in the most prominent place.
+ */
+export function rankStories(list) {
+  return [...(Array.isArray(list) ? list : [])].sort((a, b) => {
+    const ga = emptySlots(a).length, gb = emptySlots(b).length
+    if (ga !== gb) return ga - gb
+    return String((b && b.updatedAt) || '').localeCompare(String((a && a.updatedAt) || ''))
+  })
+}
+
+/**
+ * One question's answer, plus whatever else is competing for it.
+ *
+ * The screen exists to give someone a good answer to each of fourteen questions.
+ * Rendering every story as a peer card turned that into a wall — one library had
+ * three separate cards all answering "the achievement you are most proud of", so
+ * a person arriving at the screen had to work out which of three was theirs
+ * before they could use any of them. One answer leads; the rest are candidates
+ * for the same question, kept and named as such.
+ */
+export function questionGroup(stories, kindId) {
+  const ranked = rankStories(storyCards(stories).filter(s => s.kind === kindId))
+  return { primary: ranked[0] || null, alternates: ranked.slice(1) }
+}
+
+/**
  * A story is only as useful as its thinnest slot. Returns the slots with
  * nothing in them, which is what the library shows as the next thing to do.
  */
