@@ -11222,8 +11222,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={S.title}>Your STAR Stories</h1>
         <p style={S.sub}>The handful of stories you tell in interviews, in one place.</p>
         <CoachingCallout>
-          <div style={{marginBottom:8}}>You do not need a hundred stories for a hundred questions. <em>Making Your Own Weather</em> puts the number at around {PLAYLIST_TARGET} well-built ones covering the range of what gets asked. The skill that sits on top of them is the remix: the same story told with a different part pushed to the front, depending on who is across the table.</div>
-          <div>Each one has four parts. The T is your <strong style={{color:'#1A2540'}}>Thought Process</strong>, not the task. Tasks say what you did; how you were thinking is what they are actually evaluating.</div>
+          <div style={{marginBottom:10}}>Remixing means telling the same true story and changing which part you lead with, depending on who is listening. The facts never move: same situation, same actions, same result. What moves is the emphasis, the way a DJ plays one song for different crowds by changing the beat rather than swapping the track. It is why {PLAYLIST_TARGET} good stories can answer a hundred questions.</div>
+          <div style={{marginBottom:10}}>Take a salesperson who finished the year at 140% of quota, from <em>Making Your Own Weather</em>. To a CFO, lead with the financial discipline: the 140% is the headline, the profitability is the story. To a CEO, lead with what it moved: a new market opened, a competitor pushed back. To a CHRO, lead with how the team came along, and let the number do its work quietly. One story, three fronts.</div>
+          <div style={{marginBottom:6}}>The book calls the five dimensions SCOPE, and almost any question is probing one of them:</div>
+          <div style={{marginBottom:10,lineHeight:1.75}}>
+            <div><strong style={{color:'#1A2540'}}>Strategy</strong> &mdash; the business outcome, whether it scaled, and the framework you brought.</div>
+            <div><strong style={{color:'#1A2540'}}>Culture</strong> &mdash; how you collaborate and lead, and whether they can picture you with their team.</div>
+            <div><strong style={{color:'#1A2540'}}>Oneself</strong> &mdash; self-awareness. How you talk about a failure and what you did about it.</div>
+            <div><strong style={{color:'#1A2540'}}>Passion</strong> &mdash; why you want this one, unperformed.</div>
+            <div><strong style={{color:'#1A2540'}}>Expertise</strong> &mdash; the proof you can do the work.</div>
+          </div>
+          <div>Each story below has four parts, and the T is your <strong style={{color:'#1A2540'}}>Thought Process</strong>, not the task. Tasks say what you did; how you were thinking is what they are evaluating.</div>
         </CoachingCallout>
 
         {storiesBusy&&held===0&&<div style={{...S.card,marginBottom:20}}>
