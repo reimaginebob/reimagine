@@ -64,6 +64,73 @@ export const PLAYLIST_TYPES = [
   },
 ]
 
+// The rest of Johnny Taylor's twelve: the ones that do NOT want a story from the
+// library. Every one of them is still a question this person will be asked, and
+// Reimagine answers most of them somewhere else — so the screen names where,
+// rather than leaving eight of the twelve unaccounted for.
+//
+// `step` is set only where the destination is a standalone screen we can send
+// someone to. The rest are inside an opportunity or a chosen direction, so they
+// are named in words instead of pretending to be one click away.
+export const ROUTED_QUESTIONS = [
+  {
+    id: 'about-yourself',
+    asks: '"Tell me about yourself."',
+    where: 'Your Bridge Story',
+    step: null,
+    note: 'Built for you on any opportunity or direction: a thirty-second answer in your own words that gets used more than any other thing here.',
+  },
+  {
+    id: 'not-on-resume',
+    asks: '"What isn\'t on your resume?"',
+    where: 'Your Personal Brand',
+    step: 'p3',
+    note: 'The one question that wants the human answer rather than the professional one. Your values, what you care about, what shaped you. A real answer beats a rehearsed one, and your Personal Brand is where all of that already lives.',
+  },
+  {
+    id: 'know-company',
+    asks: '"What do you know about our company?"',
+    where: 'About This Company, on the opportunity',
+    step: null,
+    note: 'This is research, and the effort is itself the signal. Go past the homepage to recent news, competitors and culture, and reference one specific thing you found.',
+  },
+  {
+    id: 'why-leaving',
+    asks: '"Why are you leaving your current role?"',
+    where: 'Interview Prep',
+    step: null,
+    note: 'Your best and fewest reasons. If you were laid off, say so plainly: it is common right now, and it reflects a company\'s financial reality rather than anything about how well you did the job. A vague answer invites more questions, not fewer.',
+  },
+  {
+    id: 'most-least',
+    asks: '"What did you like most and least about your last role?"',
+    where: 'Interview Prep',
+    step: null,
+    note: 'Tests values alignment. Name something you valued that this company also values, and for the least, pick something unrelated to this role and show you handled it well. Stay off the commute and the perks.',
+  },
+  {
+    id: 'qualified',
+    asks: '"Are you underqualified or overqualified for this position?"',
+    where: 'Interview Prep',
+    step: null,
+    note: 'Redirect to the specific value you bring, and keep it short: a long explanation raises doubt rather than confidence. If overqualified, frame the experience as something the team can build on.',
+  },
+  {
+    id: 'view-changed',
+    asks: '"Has your view of the job changed since we started talking?"',
+    where: 'Interview Prep',
+    step: null,
+    note: 'Asked late, and it tests whether you were listening rather than running a script. A specific yes, pointing at what an earlier answer clarified, shows you were in the conversation. If something is still unclear, saying so counts too.',
+  },
+  {
+    id: 'your-questions',
+    asks: '"Do you have any questions for me?"',
+    where: 'Interview Prep, per person',
+    step: null,
+    note: 'Always have one; saying no reads as disengagement. Once you name who you are meeting, you get questions aimed at what each of them uniquely knows, and they are also your last chance to reinforce why you fit.',
+  },
+]
+
 export const PLAYLIST_TARGET = 12
 
 export const STORY_SLOTS = ['S', 'T', 'A', 'R']
