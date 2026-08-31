@@ -3623,7 +3623,7 @@ WHERE EACH SLOT COMES FROM. Different inputs carry different slots, and using th
 - Action: the resume where it is specific, otherwise leave it thin and say what would fill it.
 - The watch-out story: the assessment. A strength at its best and that same strength when it runs unchecked are the same trait, and naming both is what self-awareness sounds like.
 
-THE SIX A GOOD PLAYLIST COVERS: a significant achievement; a failure and what they learned; leading without formal authority; a difficult collaboration; a moment of strategic impact; navigating ambiguity or conflict.
+THE SIX A GOOD PLAYLIST COVERS: a significant achievement; a setback and what they learned; leading without formal authority; a difficult collaboration; a moment of strategic impact; navigating ambiguity or conflict. The setback one is what an interviewer asks as the failure or weakness question. Call it a setback here: the person is looking at their own history, and does not need it framed as failure to think about it clearly.
 
 RETURN A STORY ONLY WHERE THE INPUTS SUPPORT ONE. Aim for six to ten. Do NOT manufacture a story to fill a type — omit it and the person will be asked for it. Inventing someone's own past is the worst failure available here.
 
@@ -3637,7 +3637,7 @@ Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end
   "stories": [
     {
       "title": "a short plain name they would recognise, e.g. Toronto acquisition integration",
-      "kind": "one of: achievement, failure, authority, collaboration, strategic, ambiguity",
+      "kind": "one of: achievement, setback, authority, collaboration, strategic, ambiguity",
       "why": "one short line on when this story is the right one to tell",
       "slots": {
         "S": { "text": "", "to_strengthen": "" },
@@ -11233,7 +11233,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{marginBottom:10,lineHeight:1.75}}>
             <div><strong style={{color:'#1A2540'}}>Strategy</strong> &mdash; the business outcome, whether it scaled, and the framework you brought.</div>
             <div><strong style={{color:'#1A2540'}}>Culture</strong> &mdash; how you collaborate and lead, and whether they can picture you with their team.</div>
-            <div><strong style={{color:'#1A2540'}}>Oneself</strong> &mdash; self-awareness. How you talk about a failure and what you did about it.</div>
+            <div><strong style={{color:'#1A2540'}}>Oneself</strong> &mdash; self-awareness. How you talk about a setback and what you did about it.</div>
             <div><strong style={{color:'#1A2540'}}>Passion</strong> &mdash; why you want this one, unperformed.</div>
             <div><strong style={{color:'#1A2540'}}>Expertise</strong> &mdash; the proof you can do the work.</div>
           </div>

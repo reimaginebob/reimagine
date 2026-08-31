@@ -48,7 +48,7 @@ You do not start from a blank screen, and you do not have to ask. The first time
 
 - Your **resume** carries the Situation and the Result: the roles, the scope, the numbers.
 - Your **reputation answers** and the pattern across your career carry the Thought Process. That is almost never written on a resume, which is why a story built only from a resume reads flat.
-- Your **assessment** carries the story about what you are still working on. The strength that serves you at your best and the one that costs you when it runs unchecked are usually the same trait, and being able to name both is what self-awareness sounds like out loud.
+- Your **assessment** carries the setback story, the one an interviewer asks as the failure or weakness question. The strength that serves you at your best and the one that costs you when it runs unchecked are usually the same trait, and being able to name both is what self-awareness sounds like out loud.
 
 Nothing is invented. Where your inputs do not support a story, you get the question rather than a guess — because a made-up account of your own past is the one thing you cannot afford to carry into an interview.
 
@@ -59,7 +59,7 @@ Each part shows what your inputs support and, underneath, the specific thing onl
 The screen tracks these, and shows which you have and which you do not:
 
 - A significant achievement
-- A failure and what you learned
+- A setback and what you learned
 - Leading without formal authority
 - A difficult collaboration
 - A moment of strategic impact

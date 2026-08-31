@@ -13,7 +13,7 @@ const eq = (a, b, msg) => ok(JSON.stringify(a) === JSON.stringify(b), `${msg} �
 // ── The book's list ──────────────────────────────────────────────────────────
 
 eq(PLAYLIST_TYPES.length, 6, 'the six playlist types from Lesson 10')
-eq(PLAYLIST_TYPES.map(t => t.id), ['achievement', 'failure', 'authority', 'collaboration', 'strategic', 'ambiguity'], 'in the book\'s order')
+eq(PLAYLIST_TYPES.map(t => t.id), ['achievement', 'setback', 'authority', 'collaboration', 'strategic', 'ambiguity'], 'in the book\'s order')
 ok(PLAYLIST_TYPES.every(t => t.prompt && t.prompt.length > 30), 'every type carries guidance, so an uncovered type is never an empty box')
 eq(PLAYLIST_TARGET, 12, 'roughly twelve, per the Playlist Principle')
 // Reimagine's one change to STAR is load-bearing and must not drift back.
