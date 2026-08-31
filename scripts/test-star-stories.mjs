@@ -3,7 +3,7 @@
 import {
   PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS,
   ROUTED_QUESTIONS, orderStories, WEAKNESS_QUESTION, INVENTORY, storyCards, firstPerKind,
-  weaknessRecord, hasWeaknessEvidence,
+  weaknessRecord, hasWeaknessEvidence, numbersIn, storyNumbers, missingNumbers,
   newStoryId, normalizeTitle, sameStory, addStory, coverage, emptySlots, isComplete,
 } from '../src/star-stories.mjs'
 
@@ -181,5 +181,41 @@ eq(firstPerKind(fourSetbacks).map(x => x.id), ['1', '5'], 'one per kind survives
 eq(firstPerKind([]).length, 0, 'empty stays empty')
 eq(firstPerKind(null).length, 0, 'no input stays empty')
 eq(firstPerKind([{ id: 'a' }, { id: 'b', kind: 'achievement' }]).map(x => x.id), ['b'], 'a row with no kind is dropped')
+
+// ── Numbers survive a correction ────────────────────────────────────────────
+
+// "Does this feel right?" hands a note to a model and takes back a rewrite. The
+// prompt says the correction wins; this is what checks that it did.
+eq([...numbersIn('the Result is wrong, it was 40% not 15%')], ['40', '15'], 'both figures are read out of the note')
+eq([...numbersIn('part 1 is wrong')], [], 'a bare single digit is not a figure')
+eq([...numbersIn('it was 5% not 3%')], ['5', '3'], 'a single digit with a marker is')
+eq([...numbersIn('76 employees, 1,200 hours, $4M saved, 3x throughput')], ['76', '1200', '4', '3'],
+   'commas normalise away and markers keep short numbers')
+eq([...numbersIn('')], [], 'empty text has no numbers')
+eq([...numbersIn(null)], [], 'no text has no numbers')
+
+const wasFifteen = { slots: { R: { text: 'Placements rose 15%.' } } }
+const stillFifteen = { slots: { R: { text: 'Placements rose 15%.' } } }
+const nowForty = { slots: { R: { text: 'Placements rose 40%.' } } }
+
+eq(missingNumbers('it was 40% not 15%', wasFifteen, stillFifteen), ['40'],
+   'a figure the model ignored is reported')
+eq(missingNumbers('it was 40% not 15%', wasFifteen, nowForty), [],
+   'a figure the model applied is not')
+// The figure being replaced is supposed to vanish. Reporting it would be exactly
+// backwards, so anything already in the story before the rewrite is excluded.
+eq(missingNumbers('drop the 15% figure', wasFifteen, { slots: { R: { text: 'Placements rose.' } } }), [],
+   'asking for a number to be removed never warns')
+eq(missingNumbers('the 2017 date is wrong, it was 2019',
+   { slots: { S: { text: 'In 2017 the team...' } } },
+   { slots: { S: { text: 'In 2019 the team...' } } }), [], 'a corrected year is not reported missing')
+eq(missingNumbers('make the tone warmer', wasFifteen, nowForty), [], 'a note with no figures never warns')
+
+// Numbers are counted across the whole story, not just the slot they landed in:
+// a Result figure often gets restated in the title or the why.
+eq([...storyNumbers({ title: '76% placement', why: 'covers scale', slots: { R: { text: 'up 40%' } } })].sort(),
+   ['40', '76'], 'title, why and slots are all read')
+eq([...storyNumbers({ slots: { R: 'plain string slot, 40%' } })], ['40'], 'a string-shaped slot is read too')
+eq([...storyNumbers(null)], [], 'no story has no numbers')
 
 console.log(`test-star-stories: OK (${passed} cases passed)`)
