@@ -5862,7 +5862,7 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
 // structure, whatever the assessment actually says, and a way to work the rest
 // out in conversation. The example is theirs to supply; it was never ours to
 // write for them.
-function WeaknessPanel({record,onCoach}){
+function WeaknessPanel({record,onCoach,onPull,canPull,busy}){
   const real=(record&&record.weakness&&String(record.weakness.real||'').trim())||''
   const source=(record&&record.weakness&&String(record.weakness.source||'').trim())||''
   return <div id="story-weakness" style={{...S.out,marginTop:0,marginBottom:14,scrollMarginTop:80}}>
@@ -5881,7 +5881,10 @@ function WeaknessPanel({record,onCoach}){
       {real
         ?<><div style={{fontSize:17,color:C.cream,lineHeight:1.65,whiteSpace:'pre-wrap'}}>{real}</div>
           {source&&<div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:6}}>From your {source} results. Naming the assessment out loud is part of what makes this land as evidence rather than as something you thought up on the way in.</div>}</>
-        :<div style={{fontSize:17,color:C.cream,lineHeight:1.65}}>Nothing here yet. This part comes from an assessment, so add one in Orientation and it will be waiting for you. My Coach can work the question with you either way.</div>}
+        :(canPull
+          ?<><div style={{fontSize:17,color:C.cream,lineHeight:1.65,marginBottom:10}}>Nothing pulled out yet. Your assessment is on file, so this can be read straight from it.</div>
+            <Btn small disabled={busy} onClick={onPull}><Sparkles size={12}/>{busy?'Reading your assessment…':'Pull this from my assessment'}</Btn></>
+          :<div style={{fontSize:17,color:C.cream,lineHeight:1.65}}>Nothing here yet. This part comes from an assessment, so add one in Orientation and it will be waiting for you. My Coach can work the question with you either way.</div>)}
     </div>
     <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`,display:'flex',gap:14,alignItems:'center',flexWrap:'wrap'}}>
       <Btn small prominent onClick={onCoach}><Sparkles size={12}/>Work this out with My Coach</Btn>
@@ -11416,7 +11419,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
 
         {INVENTORY.map(t=>t.id==='weakness'
-          ?<WeaknessPanel key="weakness" record={weaknessRecord(starStories)} onCoach={()=>openCoachWith(WEAKNESS_QUESTION.coach,true,'stories')}/>
+          ?<WeaknessPanel key="weakness" record={weaknessRecord(starStories)} busy={storiesBusy} canPull={storiesSeedable} onPull={()=>buildStoryLibrary()} onCoach={()=>openCoachWith(WEAKNESS_QUESTION.coach,true,'stories')}/>
           :storyCards(starStories).filter(x=>x.kind===t.id).map(story=>{
           const gaps=emptySlots(story)
           const kind=PLAYLIST_TYPES.find(t=>t.id===story.kind)
