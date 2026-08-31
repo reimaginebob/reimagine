@@ -79,7 +79,7 @@ export const FEATURE_MAP = [
   { slug: 'resume-refresh',       reach: 'focus-gated', labelId: 'p_res',
     does: 'repoints the resume at a chosen direction, with a Human version for recruiters and an ATS version for online applications behind a toggle; the top Career Highlights and the body bullets are written to complement, not repeat, each other. Called "Your One-Sheet" on the Go Independent track, where it reads as a credentials document rather than a job application' },
   { slug: 'interview-prep',       reach: 'focus-gated', labelId: 'p11',
-    does: 'works the likely interview questions with worked-through answers; under each question a "Practice this answer" box lets the person speak or type their own answer and send it here for written feedback on it. Called "Discovery Call & Pitch Prep" on the Go Independent track, where the questions are the ones a prospect asks' },
+    does: 'works the likely interview questions with worked-through answers. Once the person has named anyone in Interview Team it changes shape entirely — it prepares them for each conversation by name rather than for the role in general — but it does NOT refresh itself when a name is added, so someone who has just filled in their panel needs to rebuild it, and that is worth telling them plainly.; under each question a "Practice this answer" box lets the person speak or type their own answer and send it here for written feedback on it. Called "Discovery Call & Pitch Prep" on the Go Independent track, where the questions are the ones a prospect asks' },
   { slug: 'industry-background',  reach: 'focus-gated', labelId: 'p9',
     does: "builds fluency in a new sector's language and players" },
 
