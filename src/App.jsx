@@ -9257,7 +9257,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // STAR shape (below) renders unchanged when there is no team.
     if(Array.isArray(ip.people)){
       return <>
-        <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Prep for each person you will meet. When you want to practice a story, write the full answer for it.</div>
+        <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Prep for each person you will meet: what they are really after, what they are likely to ask, and the stories worth having ready. Under each person you can take their questions to My Coach and answer them out loud.</div>
         {ip.people.map((p,pi)=>{
           const nm=(typeof p.name==='string'&&p.name.trim())?p.name.trim():''
           const who=nm||'this person'
@@ -9272,10 +9272,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {typeof p.role==='string'&&p.role.trim()&&<span style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>{p.role.trim()}</span>}
             </div>
             {typeof p.looking_for==='string'&&p.looking_for.trim()&&<div style={{marginBottom:10}}>{H('What '+who+' is really looking for')}<div style={{fontSize:16,color:C.cream,lineHeight:1.6}}>{p.looking_for.trim()}</div></div>}
-            {qs.length>0&&<div style={{marginBottom:10}}>{H('Questions '+who+' is likely to ask')}<ul style={{margin:0,paddingLeft:20}}>{qs.map((q,qi)=><li key={qi} style={{fontSize:16,color:C.cream,lineHeight:1.6,marginBottom:typeof onPracticeAnswer==='function'?10:3}}>{q}<PracticeAnswerBox questionText={q} onPracticeAnswer={onPracticeAnswer} who={nm||''}/></li>)}</ul></div>}
-            {stories.length>0&&<div style={{marginBottom:10}}>{H('Best stories to use')}{stories.map((s,si)=>{const k=(nm||('p'+pi))+'|'+((s&&s.story)||si);const ans=fullAnswers[k];const busy=answerBusy===k;return <div key={si} style={{marginBottom:8}}><div style={{fontSize:16,color:C.cream,lineHeight:1.6}}><strong>{(s&&s.story)||''}</strong>{(s&&s.why)?'. '+s.why:''}</div>{!isDemo&&<div style={{marginTop:5}}>{busy?<span style={{fontSize:15,color:C.gray,display:'inline-flex',alignItems:'center',gap:6}}><Loader2 size={13} style={{animation:'spin 0.9s linear infinite'}}/>Writing the full answer…</span>:<Btn small secondary onClick={()=>generateFullAnswer(nm,(s&&s.story)||'')}><Sparkles size={12}/>{ans?'Rewrite the full answer':'Write the full answer'}</Btn>}</div>}{ans&&!busy&&<div style={{marginTop:8,paddingLeft:12,borderLeft:`2px solid ${C.border}`}}><MD text={ans}/></div>}</div>})}</div>}
+            {qs.length>0&&<div style={{marginBottom:10}}>{H('Questions '+who+' is likely to ask')}<ul style={{margin:0,paddingLeft:22}}>{qs.map((q,qi)=><li key={qi} style={{fontSize:17,color:C.cream,lineHeight:1.65,marginBottom:8}}>{q}</li>)}</ul></div>}
+            {stories.length>0&&<div style={{marginBottom:10}}>{H('Best stories to use')}<div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:8}}>Each of these is a story from your own background worth telling {who}. Reimagine will write any of them out as a full answer for you, structured the way an interviewer wants to hear it.</div>{stories.map((s,si)=>{const k=(nm||('p'+pi))+'|'+((s&&s.story)||si);const ans=fullAnswers[k];const busy=answerBusy===k;return <div key={si} style={{marginBottom:8}}><div style={{fontSize:16,color:C.cream,lineHeight:1.6}}><strong>{(s&&s.story)||''}</strong>{(s&&s.why)?'. '+s.why:''}</div>{!isDemo&&<div style={{marginTop:5}}>{busy?<span style={{fontSize:15,color:C.gray,display:'inline-flex',alignItems:'center',gap:6}}><Loader2 size={13} style={{animation:'spin 0.9s linear infinite'}}/>Writing the full answer…</span>:<Btn small secondary onClick={()=>generateFullAnswer(nm,(s&&s.story)||'')}><Sparkles size={12}/>{ans?'Draft it again':'Draft this answer for me'}</Btn>}</div>}{ans&&!busy&&<div style={{marginTop:8,paddingLeft:12,borderLeft:`2px solid ${C.border}`}}><MD text={ans}/></div>}</div>})}</div>}
             {asks.length>0&&<div style={{marginBottom:10}}>{H('Good questions to ask '+who)}<ul style={{margin:0,paddingLeft:20}}>{asks.map((q,qi)=><li key={qi} style={{fontSize:16,color:C.cream,lineHeight:1.6,marginBottom:3}}>{q}</li>)}</ul></div>}
-            {typeof onPrepWithCoach==='function'&&<div style={{marginTop:6}}><Btn small secondary onClick={()=>onPrepWithCoach(who)}><MessageCircle size={13}/>Practice with My Coach</Btn></div>}
+            {typeof onPrepWithCoach==='function'&&<div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
+              <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:8}}>Work through any of {who===('this person')?'these':(who+"'s")} questions out loud with My Coach. Say your answer, and you get written feedback on it.</div>
+              <Btn small prominent onClick={()=>onPrepWithCoach(who,qs)}><Mic size={13}/>Practice with My Coach</Btn>
+            </div>}
           </div>
         })}
       </>
@@ -12332,7 +12335,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const _opAutoSeq=_pendingAutoBuildRef.current===currentSavedSlotIdRef.current
             const _renderSection=(key,content)=>{
               if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <ResumeRefreshView resumeJson={j} isDemo={isDemo} copy={copy} copied={copied} independent={isIndependent}/>}
-              if(key==='p11')return renderInterviewPrep(content,isDemo?undefined:regenerateOpP11Question,regeneratingP11QuestionIdx,p11QuestionErrors,isDemo?undefined:(seatName)=>openCoachWith(`Help me prep for my interview with ${seatName} for ${_rec.title||'this role'}.`,false,'p11'))
+              if(key==='p11')return renderInterviewPrep(content,isDemo?undefined:regenerateOpP11Question,regeneratingP11QuestionIdx,p11QuestionErrors,isDemo?undefined:(seatName,seatQs)=>openCoachWith(`I want to practice my answers for my interview with ${seatName} for ${_rec.title||'this role'}.`+((Array.isArray(seatQs)&&seatQs.length)?` The questions Reimagine expects from ${seatName} are:\n${seatQs.map(q=>`- ${q}`).join('\n')}\n\nAsk me which one I want to start with, then let me answer it out loud and give me feedback.`:''),false,'p11'))
               return <div style={S.out}><MD text={content}/></div>
             }
             const _cardWrap=(children,id)=><div id={id} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px',marginBottom:14,scrollMarginTop:80}}>{children}</div>
