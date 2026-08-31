@@ -15,6 +15,12 @@ const eq = (a, b, msg) => ok(JSON.stringify(a) === JSON.stringify(b), `${msg} â€
 eq(PLAYLIST_TYPES.length, 6, 'the six playlist types from Lesson 10')
 eq(PLAYLIST_TYPES.map(t => t.id), ['achievement', 'setback', 'authority', 'collaboration', 'strategic', 'ambiguity'], 'in the book\'s order')
 ok(PLAYLIST_TYPES.every(t => t.prompt && t.prompt.length > 30), 'every type carries guidance, so an uncovered type is never an empty box')
+// The inventory reads as questions. Four of the six map to one of Johnny
+// Taylor's twelve; the other two are asked inside a bigger question and say so
+// rather than having a question invented for them.
+ok(PLAYLIST_TYPES.filter(t => t.asks).length === 4, 'four of the six carry a real interview question')
+ok(PLAYLIST_TYPES.every(t => t.asks || t.asksNote), 'a type with no question of its own explains where it does get asked')
+ok(PLAYLIST_TYPES.filter(t => t.asks).every(t => t.asks.trim().endsWith('"')), 'questions are quoted as the interviewer would say them')
 eq(PLAYLIST_TARGET, 12, 'roughly twelve, per the Playlist Principle')
 // Reimagine's one change to STAR is load-bearing and must not drift back.
 eq(SLOT_LABELS.T, 'Thought Process', 'T is Thought Process, never Task')

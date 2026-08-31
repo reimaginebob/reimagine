@@ -11,37 +11,54 @@
 // stories that cover the full range of likely interview topics." Interview Prep
 // shipped the remix half of that lesson without the playlist it remixes from.
 
-// The book's own list, in its order. `prompt` is what the person is being asked
-// to remember when the library has no story of that kind yet — the shape of a
-// strong answer, not a scolding about a gap.
+// The book's own list, in its order.
+//
+// `asks` is the question from Johnny Taylor's twelve that this type answers, so
+// the inventory reads as questions a person will be asked rather than as
+// categories we invented. Two of the six are not in the twelve on their own and
+// carry an `asksNote` saying where they actually turn up instead — only four of
+// those twelve need a stored story at all; the rest are positioning and research
+// questions that belong in Interview Prep, not in a story library.
+//
+// `prompt` is what the person is being asked to remember when the library has no
+// story of that kind yet — the shape of a strong answer, not a scolding about a
+// gap.
 export const PLAYLIST_TYPES = [
   {
     id: 'achievement',
+    asks: '"What are your greatest strengths?"',
     label: 'A significant achievement',
     prompt: 'The one you would lead with. What made it hard, what you decided, and the number at the end of it.',
   },
   {
     id: 'setback',
+    asks: '"What is your greatest weakness?"',
     label: 'A setback and what you learned',
     prompt: 'This is the one an interviewer asks as "tell me about a failure" or "what is your biggest weakness". Not a disguised strength. Something that genuinely did not go your way, what you did about it, and how you stay mindful of it now. Your assessment is the best place to start: the strength that serves you at your best is usually the same one that costs you when it runs unchecked.',
   },
   {
     id: 'authority',
+    asks: null,
+    asksNote: 'Not one of the twelve on its own. It arrives inside the strengths question, or when someone asks how you get things done.',
     label: 'Leading without formal authority',
     prompt: 'A time you moved something without the title to order it. Tests influence rather than rank, so the interesting part is how you got people to want it.',
   },
   {
     id: 'collaboration',
+    asks: '"How do you handle conflict with a colleague?"',
     label: 'A difficult collaboration',
     prompt: 'One real disagreement, resolved. The strongest version hears the other side out first and closes on the outcome, not on who was right.',
   },
   {
     id: 'strategic',
+    asks: null,
+    asksNote: 'Not one of the twelve on its own. It arrives when they ask about your biggest impact, or what you would do first here.',
     label: 'A moment of strategic impact',
     prompt: 'Where your thinking changed the direction, not just the delivery. Name the framework you used if you have one; it is the most underused part of a story like this.',
   },
   {
     id: 'ambiguity',
+    asks: '"Tell me about a time you faced a difficult situation at work."',
     label: 'Navigating ambiguity or conflict',
     prompt: 'A time the brief was unclear or the room disagreed, and you had to move anyway. What you did first is usually the whole answer.',
   },
