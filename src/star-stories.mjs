@@ -11,7 +11,9 @@
 // stories that cover the full range of likely interview topics." Interview Prep
 // shipped the remix half of that lesson without the playlist it remixes from.
 
-// The book's own list, in its order.
+// The story types, in the book's order. Five, not six: the weakness question is
+// in the inventory too, but it is answered with a structure rather than with a
+// story, and WEAKNESS_QUESTION below carries it.
 //
 // `asks` is the question this type answers, written the way an interviewer says
 // it, so the inventory reads as questions rather than as categories we invented.
@@ -28,12 +30,6 @@ export const PLAYLIST_TYPES = [
     asks: '"What are your greatest strengths?"',
     label: 'A significant achievement',
     prompt: 'The one you would lead with. What made it hard, what you decided, and the number at the end of it.',
-  },
-  {
-    id: 'setback',
-    asks: '"What is your greatest weakness?"',
-    label: 'A setback and what you learned',
-    prompt: 'This is the one an interviewer asks as "tell me about a failure" or "what is your biggest weakness". Not a disguised strength. Something that genuinely did not go your way, what you did about it, and how you stay mindful of it now. Your assessment is the best place to start: the strength that serves you at your best is usually the same one that costs you when it runs unchecked.',
   },
   {
     id: 'authority',
@@ -129,6 +125,57 @@ export const ROUTED_QUESTIONS = [
   },
 ]
 
+// THE WEAKNESS QUESTION, AND WHY IT IS NOT A STAR STORY.
+//
+// Lesson 10 gives this question its own model, separate from the playlist:
+// "name something real, describe what you have done about it, and close on a
+// note that shows you are still mindful of it. Real. Addressed. Ongoing."
+//
+// It first shipped here as a sixth story type, and the seed did what the shape
+// asked of it: it took a real pattern out of someone's assessment and hung it on
+// a specific invented event, complete with a year and a restructure that nobody
+// had mentioned. The card even confessed it, asking the person to "confirm
+// whether this specific 2017 instance is the clearest example". A STAR shape
+// demands a Situation, so a prompt handed a trait will manufacture one.
+//
+// The book is also explicit about where the honest version comes from: "Go back
+// to your assessment results... Use that as the foundation for your weakness
+// answer rather than starting from scratch." So the evidence is real and quotable
+// and the story around it is the person's to supply, in conversation, not ours to
+// invent for them.
+export const WEAKNESS_QUESTION = {
+  id: 'weakness',
+  asks: '"What is your greatest weakness?"',
+  label: 'The weakness question',
+  // The two answers the book names as the ones that fail, so the screen can say
+  // what it is steering away from rather than only what it is steering toward.
+  failsAs: 'It comes out one of two ways when it goes wrong: a non-answer nobody believes, or a real confession left hanging, so the interviewer is left wondering whether the problem is still live.',
+  model: [
+    { key: 'Real', text: 'Name something true. Your assessment is the strongest place to find it: the strength that serves you at your best is usually the same one that costs you when it runs unchecked.' },
+    { key: 'Addressed', text: 'Say what you have done about it. Building a team strong where you are not, being deliberate about what you own and what you hand off.' },
+    { key: 'Ongoing', text: 'Close in the present tense. This is something you still manage, which is what tells them the growth is real rather than finished.' },
+  ],
+  why: 'Those three parts carry humility, self-awareness and a growth orientation at once.',
+  prompt: 'Your assessments are the credible, objective basis for this one. Work it through with My Coach and you will have an answer grounded in evidence rather than in something you thought up on the way in.',
+  coach: 'Help me answer the greatest weakness question. Use the Real, Addressed, Ongoing structure from Making Your Own Weather. Start from my assessment results and name what they actually say about the edges of my strengths, quoting which assessment it came from. Do not invent an event or a date for me: ask me for the example, and if I do not have one, help me find it. Then help me put the three parts together in my own words.',
+}
+
+// What the screen lists, in order. The weakness question sits where an
+// interviewer asks it, second, rather than being appended after the stories.
+export const INVENTORY = [PLAYLIST_TYPES[0], WEAKNESS_QUESTION, ...PLAYLIST_TYPES.slice(1)]
+
+/** The stored weakness answer, if one has been built. Never a STAR story. */
+export function weaknessRecord(stories) {
+  const list = Array.isArray(stories) ? stories : []
+  return list.find(s => s && s.kind === 'weakness') || null
+}
+
+/** Does the stored weakness answer actually carry evidence? */
+export function hasWeaknessEvidence(stories) {
+  const w = weaknessRecord(stories)
+  return !!(w && w.weakness && String(w.weakness.real || '').trim())
+}
+
 export const PLAYLIST_TARGET = 12
 
 export const STORY_SLOTS = ['S', 'T', 'A', 'R']
@@ -181,6 +228,31 @@ export function sameStory(a, b) {
   return short.every(t => set.has(t))
 }
 
+/**
+ * One story per kind, keeping the first of each.
+ *
+ * The title dedupe above catches a restatement; it cannot catch the same event
+ * described in different words. One seed returned four setback stories: two
+ * angles on a 2017 restructure titled "When protecting people cost you capital"
+ * and "Being protective of people at a cost", and two on the same departure
+ * titled "Choosing when to leave Continental" and "The department elimination in
+ * the Beacon acquisition". Not one distinctive word in common across either
+ * pair, so nothing string-based was ever going to see it.
+ *
+ * The seed is a starting library, and a starting library wants one strong answer
+ * per question rather than four attempts at one of them. What someone adds by
+ * hand afterwards is not capped: by then they are choosing, not being given.
+ */
+export function firstPerKind(stories) {
+  const seen = new Set()
+  return (Array.isArray(stories) ? stories : []).filter(s => {
+    const k = s && s.kind
+    if (!k || seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+}
+
 /** The library plus `story`, unless something already there is the same experience. */
 export function addStory(stories, story) {
   const list = Array.isArray(stories) ? stories : []
@@ -210,11 +282,25 @@ export function orderStories(stories) {
     .map(x => x.story)
 }
 
-/** Which of the six the library covers, and which are still open. */
+/** Which of the six questions the library answers, and which are still open. */
 export function coverage(stories) {
   const list = Array.isArray(stories) ? stories : []
   const held = new Set(list.map(s => s && s.kind).filter(Boolean))
-  return PLAYLIST_TYPES.map(t => ({ ...t, covered: held.has(t.id) }))
+  // The weakness row is covered by real evidence rather than by a row existing,
+  // because an empty weakness record is exactly the state we are steering out of.
+  return INVENTORY.map(t => ({ ...t, covered: t.id === 'weakness' ? hasWeaknessEvidence(list) : held.has(t.id) }))
+}
+
+/**
+ * The rows that render as story cards: the five story types, in playlist order.
+ *
+ * Filters to known kinds on purpose. The weakness record is not a story, and a
+ * legacy 'setback' row from before this split is a fabricated STAR card that
+ * should stop being shown; both are still in the database, neither belongs here.
+ */
+export function storyCards(stories) {
+  const known = new Set(PLAYLIST_TYPES.map(t => t.id))
+  return orderStories((Array.isArray(stories) ? stories : []).filter(s => s && known.has(s.kind)))
 }
 
 /**

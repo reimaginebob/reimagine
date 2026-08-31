@@ -22,7 +22,7 @@ import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 // holding localStorage state overwrites newer server state. Tested by
 // scripts/test-autosave-gate.mjs.
 import { canPushProfile } from "./autosave-gate.js"
-import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, newStoryId, addStory, coverage, emptySlots, orderStories } from "./star-stories.mjs"
+import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, storyCards, firstPerKind, weaknessRecord } from "./star-stories.mjs"
 import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
 import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from "./corrections.js"
 // Stale-build self-healing: BUILD_SHA / BUILT_AT come from
@@ -3623,23 +3623,27 @@ WHERE EACH SLOT COMES FROM. Different inputs carry different slots, and using th
 - Situation and Result: the resume. Roles, scope, numbers, what changed.
 - Thought Process: the reputation inputs and the pattern across their career. How they approach a problem, what they do first, what colleagues say they bring. This is almost never written on a resume and you must not invent it from one.
 - Action: the resume where it is specific, otherwise leave it thin and say what would fill it.
-- The watch-out story: the assessment. A strength at its best and that same strength when it runs unchecked are the same trait, and naming both is what self-awareness sounds like.
+THE FIVE A GOOD PLAYLIST COVERS: a significant achievement; leading without formal authority; a difficult collaboration; a moment of strategic impact; navigating ambiguity or conflict.
 
-THE SIX A GOOD PLAYLIST COVERS: a significant achievement; a setback and what they learned; leading without formal authority; a difficult collaboration; a moment of strategic impact; navigating ambiguity or conflict. The setback one is what an interviewer asks as the failure or weakness question. Call it a setback here: the person is looking at their own history, and does not need it framed as failure to think about it clearly.
+AT MOST ONE STORY PER KIND, and five stories in total is the ceiling. This is a starting library, and one strong answer per question beats four attempts at one of them. Where two experiences could both fill a kind, pick the stronger and drop the other.
 
-RETURN A STORY ONLY WHERE THE INPUTS SUPPORT ONE. Aim for six to ten. Do NOT manufacture a story to fill a type — omit it and the person will be asked for it. Inventing someone's own past is the worst failure available here.
+DO NOT WRITE A WEAKNESS OR SETBACK STORY. That question is answered elsewhere with a different structure entirely, and a STAR shape is exactly what goes wrong with it: asked for a Situation to go with a trait, you will invent an event and a year that nobody told you about. Return the weakness evidence in its own field below instead, and put no situation, no date and no event in it.
+
+RETURN A STORY ONLY WHERE THE INPUTS SUPPORT ONE. Do NOT manufacture a story to fill a kind — omit it and the person will be asked for it. Inventing someone's own past is the worst failure available here.
 
 EVERY SLOT IS TWO THINGS. A "text" field: what their inputs actually support, stated plainly, no characterization and no "you are X" constructions. And a "to_strengthen" field: the specific missing thing only they can supply, a name, a number, a decision, the moment it turned. Never generic advice, never "add more detail" or "flesh this out". Where a slot has no support at all, leave text empty and put the ask in to_strengthen.
 
-THE WATCH-OUT STORY, if the assessment supports one. Name where the strength serves them, then where the same strength costs them when it runs unchecked, then the moment it did. In the output use plain words for this. NEVER write "balcony", "basement", "shadow", or "assessment signal" — those are internal vocabulary and are banned in anything the person reads.
+THE WEAKNESS EVIDENCE, and ONLY if an assessment supports it. This is not a story and must not be written as one. Name the strength at its best, then the same strength when it runs unchecked, and say which assessment named it. Nothing else: no situation, no year, no event, no company, no "during the 2017 restructure". If the person has given no assessment, return an empty string and the screen will ask them for it. In the output use plain words for this. NEVER write "balcony", "basement", "shadow", or "assessment signal" — those are internal vocabulary and are banned in anything the person reads.
 
 Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end with }.
 
 {
+  "weakness_real": "the strength at its best and the same strength when it runs unchecked, naming which assessment says so, in one or two sentences, no event and no date. Empty string if no assessment supports it.",
+  "weakness_source": "the assessment it came from, e.g. Affintus or CliftonStrengths. Empty string if there is none.",
   "stories": [
     {
       "title": "a short plain name they would recognise, e.g. Toronto acquisition integration",
-      "kind": "one of: achievement, setback, authority, collaboration, strategic, ambiguity",
+      "kind": "one of: achievement, authority, collaboration, strategic, ambiguity",
       "question": "the question an interviewer would actually ask that this story answers, written the way they would say it out loud. Where it answers more than one, give the strongest, and never phrase it as advice about when to use the story",
       "why": "one short line on why this story answers that question well",
       "slots": {
@@ -3652,7 +3656,7 @@ Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end
   ]
 }
 
-One story per experience. If two angles on the same event both look useful, pick the stronger one — this is a library the person will maintain, and two rows for one event is how it turns into clutter.
+One story per experience, and one per kind. If two angles on the same event both look useful, pick the stronger one — this is a library the person will maintain, and two rows for one event is how it turns into clutter. Two differently-worded titles for one event count as one experience, not two.
 
 PERSONAL BRAND (their through-line and their voice):
 ${(brand||'').slice(0,2500)||'(not built yet)'}
@@ -5851,6 +5855,40 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
     </div>}
   </div>
 }
+// The weakness question's own surface. It is deliberately NOT a story card: the
+// book gives this question a three-part structure of its own, and the one time we
+// forced it into a STAR shape the model invented a year, a company event and a
+// negotiation to hang a real assessment finding on. What is shown here is the
+// structure, whatever the assessment actually says, and a way to work the rest
+// out in conversation. The example is theirs to supply; it was never ours to
+// write for them.
+function WeaknessPanel({record,onCoach}){
+  const real=(record&&record.weakness&&String(record.weakness.real||'').trim())||''
+  const source=(record&&record.weakness&&String(record.weakness.source||'').trim())||''
+  return <div id="story-weakness" style={{...S.out,marginTop:0,marginBottom:14,scrollMarginTop:80}}>
+    <div style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5,marginBottom:4}}>{WEAKNESS_QUESTION.label}</div>
+    <div style={{fontSize:19,fontWeight:700,color:'#1A2540',lineHeight:1.4}}>{WEAKNESS_QUESTION.asks}</div>
+    <div style={{fontSize:16,color:C.gray,lineHeight:1.55,marginTop:6}}>{WEAKNESS_QUESTION.failsAs}</div>
+    <CoachingCallout>
+      <div style={{marginBottom:10}}>Three parts, and they go in this order. {WEAKNESS_QUESTION.why}</div>
+      {WEAKNESS_QUESTION.model.map(m=><div key={m.key} style={{marginTop:8}}>
+        <div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>{m.key}</div>
+        <div style={{fontSize:16,lineHeight:1.6}}>{m.text}</div>
+      </div>)}
+    </CoachingCallout>
+    <div style={{marginTop:14}}>
+      <div style={{fontSize:16,fontWeight:700,color:C.goldL,marginBottom:4}}>What your own inputs give you for the Real</div>
+      {real
+        ?<><div style={{fontSize:17,color:C.cream,lineHeight:1.65,whiteSpace:'pre-wrap'}}>{real}</div>
+          {source&&<div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:6}}>From your {source} results. Naming the assessment out loud is part of what makes this land as evidence rather than as something you thought up on the way in.</div>}</>
+        :<div style={{fontSize:17,color:C.cream,lineHeight:1.65}}>Nothing here yet. This part comes from an assessment, so add one in Orientation and it will be waiting for you. My Coach can work the question with you either way.</div>}
+    </div>
+    <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`,display:'flex',gap:14,alignItems:'center',flexWrap:'wrap'}}>
+      <Btn small prominent onClick={onCoach}><Sparkles size={12}/>Work this out with My Coach</Btn>
+      <span style={{fontSize:16,color:C.gray,lineHeight:1.55,flex:1,minWidth:220}}>{WEAKNESS_QUESTION.prompt}</span>
+    </div>
+  </div>
+}
 function DemoUnavailable(){
   return <div style={{minHeight:'100dvh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
     <div style={{maxWidth:520,textAlign:'center'}}>
@@ -6930,16 +6968,29 @@ export default function PivotEngine(){
       const rows=(obj&&Array.isArray(obj.stories))?obj.stories:null
       if(!rows||!rows.length){setStoriesErr('That came back in a shape we could not read. Try again.');return}
       const ts=new Date().toISOString()
+      // firstPerKind is the deterministic backstop for the failure the prompt now
+      // also forbids: one seed returned four setback stories, two pairs each
+      // describing one event in different words, which no title-based dedupe
+      // could catch. Instruction plus mechanism, per the voice-gate pattern.
       let acc=starStories
-      for(const row of rows){
-        const title=(row&&typeof row.title==='string')?row.title.trim():''
-        if(!title)continue
+      for(const row of firstPerKind(rows.filter(r=>r&&typeof r.title==='string'&&r.title.trim()&&r.kind!=='weakness'&&r.kind!=='setback'))){
+        const title=row.title.trim()
         const story={id:newStoryId(),title,kind:(row.kind||'').trim()||'achievement',origin:'seed',
+          question:(typeof row.question==='string'?row.question.trim():''),
           why:(typeof row.why==='string'?row.why.trim():''),
           slots:(row.slots&&typeof row.slots==='object')?row.slots:{},
           createdAt:ts,updatedAt:ts}
         const next=addStory(acc,story)
         if(next.length>acc.length){acc=next;saveStory(story)}
+      }
+      // The weakness answer is a record, not a story: evidence out of the
+      // assessment with no event attached, because attaching one is what the
+      // model does when a STAR shape asks it for a Situation it was never given.
+      const wReal=(typeof obj.weakness_real==='string')?obj.weakness_real.trim():''
+      if(wReal&&!weaknessRecord(acc)){
+        saveStory({id:newStoryId(),kind:'weakness',origin:'seed',title:WEAKNESS_QUESTION.label,
+          weakness:{real:wReal,source:(typeof obj.weakness_source==='string'?obj.weakness_source.trim():'')},
+          slots:{},createdAt:ts,updatedAt:ts})
       }
     }catch(e){
       setStoriesErr(e.message||'That did not come back. Try again.')
@@ -11348,6 +11399,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {cov.map(t=>{
             const first=starStories.find(x=>x&&x.kind===t.id)
             const jump=()=>{
+              if(t.id==='weakness'){scrollToStory('story-weakness');return}
               if(first){scrollToStory(`story-${first.id}`);return}
               setStoryDraft(d=>({...d,kind:t.id}))
               scrollToStory('story-add')
@@ -11363,7 +11415,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           })}
         </div>
 
-        {orderStories(starStories).map(story=>{
+        {INVENTORY.map(t=>t.id==='weakness'
+          ?<WeaknessPanel key="weakness" record={weaknessRecord(starStories)} onCoach={()=>openCoachWith(WEAKNESS_QUESTION.coach,true,'stories')}/>
+          :storyCards(starStories).filter(x=>x.kind===t.id).map(story=>{
           const gaps=emptySlots(story)
           const kind=PLAYLIST_TYPES.find(t=>t.id===story.kind)
           const editing=!!storyEditing[story.id]
@@ -11398,7 +11452,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {canRemove&&<button type="button" onClick={()=>deleteStory(story.id)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',padding:0,fontSize:16,fontFamily:'inherit',textDecoration:'underline'}}>Remove</button>}
             </div>
           </div>
-        })}
+        }))}
 
         <div style={{...S.card,marginBottom:14}}>
           <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:6}}>The other questions you will be asked</div>
