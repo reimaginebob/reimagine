@@ -3759,6 +3759,8 @@ Return ONLY a JSON object in this exact shape:
       "looking_for": "one or two plain sentences on what this person really cares about, in authority order",
       "lens": "ONE of exactly these five words, whichever this person is mainly reading for: Strategy, Culture, Oneself, Passion, Expertise",
       "lens_reason": "one short plain sentence on why that is the one, tied to their seat and to what the candidate wrote about them",
+      "lens_also": "a DIFFERENT one of the five, the dimension this person may also be reading for that the candidate has not thought of. Empty string if there is honestly nothing worth adding",
+      "lens_also_reason": "one short plain sentence on why it is worth being ready for, phrased as something to consider rather than a second verdict",
       "questions": ["about five plain-language questions this person is likely to ask"],
       "stories": [ { "story": "the name of an existing story from the candidate's background to lead with", "why": "one short line on why it fits this person" } ],
       "questions_to_ask": ["two or three good questions the candidate could ask this person, drawn from the company research"]
@@ -3772,7 +3774,13 @@ WHAT EACH PERSON IS MAINLY READING FOR. Everyone on a panel hears the same candi
 - Passion: why they want THIS one, and whether it is real rather than performed. It bridges a gap in hard skills, which makes it matter most on a stretch or a career change.
 - Expertise: table stakes. Hard skills, depth in the craft, can they do the job at the level needed. Usually what a functional peer or manager is testing.
 
-Choose from the seat and from the candidate's own notes, not from a formula. The seat tendencies above are a starting point and the candidate's notes override them: a cross-functional partner who was skeptical of a reorganization is reading for Culture whatever their title says. The hiring manager varies most, so lean hardest on the notes there. Never pick more than one and never hedge across two: the value is that it forces a choice, and a candidate who disagrees with the choice has learned something by disagreeing.
+Choose from the seat and from the candidate's own notes, not from a formula. The seat tendencies above are a starting point and the candidate's notes override them: a cross-functional partner who was skeptical of a reorganization is reading for Culture whatever their title says. The hiring manager varies most, so lean hardest on the notes there. Pick exactly ONE as the primary and do not hedge across two: a single call is what the candidate can act on, and a candidate who disagrees with it has learned something by disagreeing.
+
+THEN ADD THE ONE THEY HAVE NOT THOUGHT OF. A coach does not hand a person their own reasoning back. The primary lens comes largely from what the candidate already wrote about this person, so it will usually confirm what they already believe. Name a SECOND dimension as well, in "you may also want to consider" terms: the other thing this person could reasonably be reading for, which the candidate's own notes do not mention.
+
+Where to find it: the seat itself, precisely where it disagrees with the notes. If the notes say a cross-functional partner resisted a reorganization (Culture), the seat still says he runs operations and may test whether the candidate understands his plants (Expertise). A recruiter the notes describe as warm and helpful (Culture) is still screening for whether this person actually wants the job (Passion). Look for the dimension the candidate has left uncovered, not a restatement of the first one.
+
+Make it earn its place: a different dimension from the primary, adding something the notes do not already say, phrased as worth being ready for rather than as a competing verdict. If there is honestly nothing to add, return an empty string rather than filling the slot.
 
 Then let the choice show. The questions you write for that person should lean toward what that dimension probes, and the story you pick for them should be the one that carries it best.
 
@@ -9298,6 +9306,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {typeof p.lens==='string'&&p.lens.trim()&&<div style={{marginBottom:10,background:`${C.gold}0E`,border:`1px solid ${C.gold}44`,borderRadius:8,padding:'10px 12px'}}>
               <div style={{fontSize:16,color:'#1A2540',lineHeight:1.6}}>{who} is mainly reading for <strong>{p.lens.trim()}</strong>.{typeof p.lens_reason==='string'&&p.lens_reason.trim()?' '+p.lens_reason.trim():''}</div>
               <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:4}}>Push that part of your story to the front when you talk to {nm?nm.split(' ')[0]:'them'}.</div>
+              {typeof p.lens_also==='string'&&p.lens_also.trim()&&<div style={{fontSize:16,color:'#1A2540',lineHeight:1.6,marginTop:8,paddingTop:8,borderTop:`1px solid ${C.gold}44`}}>You may also want to consider <strong>{p.lens_also.trim()}</strong>.{typeof p.lens_also_reason==='string'&&p.lens_also_reason.trim()?' '+p.lens_also_reason.trim():''}</div>}
             </div>}
             {typeof p.looking_for==='string'&&p.looking_for.trim()&&<div style={{marginBottom:10}}>{H('What '+who+' is really looking for')}<div style={{fontSize:16,color:C.cream,lineHeight:1.6}}>{p.looking_for.trim()}</div></div>}
             {qs.length>0&&<div style={{marginBottom:10}}>{H('Questions '+who+' is likely to ask')}<ul style={{margin:0,paddingLeft:22}}>{qs.map((q,qi)=><li key={qi} style={{fontSize:17,color:C.cream,lineHeight:1.65,marginBottom:8}}>{q}</li>)}</ul></div>}
