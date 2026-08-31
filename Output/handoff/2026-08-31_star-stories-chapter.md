@@ -32,7 +32,7 @@ TO OPEN THE GATE, four things in one PR:
 
 The book's example is a salesperson who finished the year at 140% of quota. To a CFO, lead with the financial discipline, because a CFO's first instinct on hearing a sales number is to ask whether it made money: the 140% is the headline, the profitability is the story. To a CEO, lead with what it moved — a market opened, a competitor pushed back. To a CHRO, lead with how the team came along with you, and let the number do its work quietly in the background. One story, three fronts.
 
-The book calls the five dimensions SCOPE: **Strategy**, the business outcome and the framework behind it; **Culture**, how you collaborate and lead; **Oneself**, how you talk about a failure and what you did about it; **Passion**, why you want this one; and **Expertise**, the proof you can do the work. Almost any interview question is probing one of them.
+Which part to push forward depends on who is in the room. You do not have to work that out cold: once you name the people you will meet on an opportunity, Interview Prep marks each of them with the one thing they are most likely weighing, and lets you hear any of these stories told that way. The five dimensions behind that are explained there, where there is a person to apply them to.
 
 That is why this exists as its own screen. The same integration story gets told at this company and the next one, so it belongs to you rather than to any single opportunity.
 

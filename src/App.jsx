@@ -11236,14 +11236,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{marginBottom:10}}>Rather than claim you are a strategic thinker, you show them. Showing beats claiming every time.</div>
           <div style={{marginBottom:10}}>The second skill is <strong style={{color:'#1A2540'}}>remixing</strong>: telling that same true story and changing which part you lead with, depending on who is listening. The facts never move. What moves is the emphasis, the way a DJ plays one song for different crowds by changing the beat rather than swapping the track. It is why {PLAYLIST_TARGET} good stories can answer a hundred questions.</div>
           <div style={{marginBottom:10}}>A salesperson finishes the year at 140% of quota. To a CFO: the 140% is the headline, the profitability is the story. To a CEO: what it moved, a market opened or a competitor pushed back. To a CHRO: how the team came along, with the number doing its work quietly. One story, three fronts.</div>
-          <div style={{marginBottom:6}}>The book calls the five dimensions SCOPE, and almost any question is probing one of them:</div>
-          <div style={{marginBottom:10,lineHeight:1.75}}>
-            <div><strong style={{color:'#1A2540'}}>Strategy</strong> &mdash; the business outcome, whether it scaled, and the framework you brought.</div>
-            <div><strong style={{color:'#1A2540'}}>Culture</strong> &mdash; how you collaborate and lead, and whether they can picture you with their team.</div>
-            <div><strong style={{color:'#1A2540'}}>Oneself</strong> &mdash; self-awareness. How you talk about a setback and what you did about it.</div>
-            <div><strong style={{color:'#1A2540'}}>Passion</strong> &mdash; why you want this one, unperformed.</div>
-            <div><strong style={{color:'#1A2540'}}>Expertise</strong> &mdash; the proof you can do the work.</div>
-          </div>
+          <div style={{marginBottom:10}}>Which part to push forward depends on who is in the room, and you do not have to work that out cold. Once you name the people you will meet on an opportunity, Interview Prep marks each of them with the one thing they are most likely weighing, and lets you hear any of these stories told that way.</div>
         </CoachingCallout>
 
         {storiesBusy&&held===0&&<div style={{...S.card,marginBottom:20}}>
