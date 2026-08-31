@@ -28,13 +28,9 @@ TO OPEN THE GATE, four things in one PR:
 
 ## Why a set rather than a pile
 
-*Making Your Own Weather* puts it plainly: you do not need one hundred stories for one hundred questions. What you need is a playlist of roughly twelve well-built stories that cover the range of what gets asked. The set is finite and manageable, and the skill that makes it feel infinite is the remix — the same true story told with a different part pushed to the front depending on who is listening. The facts never move: same situation, same actions, same result. What moves is the emphasis, the way a DJ plays to different crowds. The melody is always the same. It is the same song, remixed to suit the taste of whoever is listening.
+*Making Your Own Weather* puts it plainly: you do not need one hundred stories for one hundred questions. What you need is a playlist of roughly twelve well-built stories that cover the range of what gets asked. The set is finite and manageable.
 
-The book's example is a salesperson who finished the year at 140% of quota. To a CFO, lead with the financial discipline, because a CFO's first instinct on hearing a sales number is to ask whether it made money: the 140% is the headline, the profitability is the story. To a CEO, lead with what it moved — a market opened, a competitor pushed back. To a CHRO, lead with how the team came along with you, and let the number do its work quietly in the background. One story, three fronts.
-
-Which part to push forward depends on who is in the room. You do not have to work that out cold: once you name the people you will meet on an opportunity, Interview Prep marks each of them with the one thing they are most likely weighing, and lets you hear any of these stories told that way. The five dimensions behind that are explained there, where there is a person to apply them to.
-
-That is why this exists as its own screen. The same integration story gets told at this company and the next one, so it belongs to you rather than to any single opportunity.
+That is why this exists as its own screen. The same story gets told at this company and the next one, so it belongs to you rather than to any single opportunity. What you do with the set once you have it — telling the same story with a different part pushed forward depending on who is listening — is covered in Interview Prep, where there is a specific person to aim at.
 
 ## What a STAR story is here
 
