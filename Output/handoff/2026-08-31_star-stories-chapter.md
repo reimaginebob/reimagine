@@ -77,8 +77,6 @@ A question you have not covered yet is never shown as an empty box. It comes wit
 
 This one is not a STAR story, and building it as one is how it goes wrong. *Making Your Own Weather* gives it a model of its own: **name something real, describe what you have done about it, and close on a note that shows you are still mindful of it. Real. Addressed. Ongoing.** Those three parts carry humility, self-awareness and a growth orientation at once.
 
-It fails in one of two ways. A non-answer nobody believes, or a real confession left hanging so the interviewer is left wondering whether the problem is still live.
-
 Your assessments are where the honest version starts. As the book puts it, go back to your assessment results and use what they say about the edges of your strengths as the foundation rather than starting from scratch. The screen shows you what your own results actually say, and names which assessment said it, because naming it out loud is part of what makes the answer land as evidence.
 
 What it does not do is write the example for you. Reimagine will not invent the year, the company or the moment it happened, so the screen hands the question to My Coach with the structure already loaded, and the two of you build the answer from what really happened.

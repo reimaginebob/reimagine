@@ -147,16 +147,13 @@ export const WEAKNESS_QUESTION = {
   id: 'weakness',
   asks: '"What is your greatest weakness?"',
   label: 'The weakness question',
-  // The two answers the book names as the ones that fail, so the screen can say
-  // what it is steering away from rather than only what it is steering toward.
-  failsAs: 'It comes out one of two ways when it goes wrong: a non-answer nobody believes, or a real confession left hanging, so the interviewer is left wondering whether the problem is still live.',
   model: [
     { key: 'Real', text: 'Name something true. Your assessment is the strongest place to find it: the strength that serves you at your best is usually the same one that costs you when it runs unchecked.' },
     { key: 'Addressed', text: 'Say what you have done about it. Building a team strong where you are not, being deliberate about what you own and what you hand off.' },
     { key: 'Ongoing', text: 'Close in the present tense. This is something you still manage, which is what tells them the growth is real rather than finished.' },
   ],
   why: 'Those three parts carry humility, self-awareness and a growth orientation at once.',
-  prompt: 'Your assessments are the credible, objective basis for this one. Work it through with My Coach and you will have an answer grounded in evidence rather than in something you thought up on the way in.',
+  prompt: 'Your assessments are the credible, objective basis for this one. Work it through with My Coach and the answer rests on evidence.',
   coach: 'Help me answer the greatest weakness question. Use the Real, Addressed, Ongoing structure from Making Your Own Weather. Start from my assessment results and name what they actually say about the edges of my strengths, quoting which assessment it came from. Do not invent an event or a date for me: ask me for the example, and if I do not have one, help me find it. Then help me put the three parts together in my own words.',
 }
 
