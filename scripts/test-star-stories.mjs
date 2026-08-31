@@ -2,7 +2,8 @@
 // keeps one experience from becoming three rows, and slot completeness.
 import {
   PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS,
-  ROUTED_QUESTIONS, orderStories,
+  ROUTED_QUESTIONS, orderStories, WEAKNESS_QUESTION, INVENTORY, storyCards, firstPerKind,
+  weaknessRecord, hasWeaknessEvidence,
   newStoryId, normalizeTitle, sameStory, addStory, coverage, emptySlots, isComplete,
 } from '../src/star-stories.mjs'
 
@@ -13,8 +14,9 @@ const eq = (a, b, msg) => ok(JSON.stringify(a) === JSON.stringify(b), `${msg} �
 
 // ── The book's list ──────────────────────────────────────────────────────────
 
-eq(PLAYLIST_TYPES.length, 6, 'the six playlist types from Lesson 10')
-eq(PLAYLIST_TYPES.map(t => t.id), ['achievement', 'setback', 'authority', 'collaboration', 'strategic', 'ambiguity'], 'in the book\'s order')
+eq(PLAYLIST_TYPES.length, 5, 'five story types — the weakness question is not one of them')
+eq(PLAYLIST_TYPES.map(t => t.id), ['achievement', 'authority', 'collaboration', 'strategic', 'ambiguity'], 'in the book\'s order')
+ok(!PLAYLIST_TYPES.some(t => t.id === 'setback'), 'no setback story type: a STAR shape asked for a Situation and the model invented one')
 ok(PLAYLIST_TYPES.every(t => t.prompt && t.prompt.length > 30), 'every type carries guidance, so an uncovered type is never an empty box')
 // The inventory reads as questions, all six of them. Four are Johnny Taylor's
 // and two are not; neither the data nor the screen marks that difference,
@@ -62,11 +64,17 @@ eq(addStory(null, s1).length, 1, 'a missing library is treated as empty')
 // ── Coverage ─────────────────────────────────────────────────────────────────
 
 const cov = coverage([s1, s2])
-eq(cov.length, 6, 'coverage always reports all six')
+eq(cov.length, 6, 'coverage reports all six questions, weakness included')
 eq(cov.filter(c => c.covered).map(c => c.id), ['achievement', 'strategic'], 'only the held kinds are covered')
 ok(cov.filter(c => !c.covered).every(c => c.prompt), 'an uncovered type still carries its guidance')
 eq(coverage([]).filter(c => c.covered).length, 0, 'an empty library covers nothing')
 eq(coverage(null).length, 6, 'no library still reports the six')
+// A weakness row with no evidence in it is the state we are steering out of, so
+// it must not read as covered just because the row exists.
+eq(coverage([{ id: 'w', kind: 'weakness', weakness: { real: '' } }]).find(c => c.id === 'weakness').covered, false,
+   'an empty weakness record does not count as covered')
+eq(coverage([{ id: 'w', kind: 'weakness', weakness: { real: 'the same drive that…' } }]).find(c => c.id === 'weakness').covered, true,
+   'real evidence covers the weakness question')
 
 // ── Slots ────────────────────────────────────────────────────────────────────
 
@@ -87,9 +95,11 @@ eq(emptySlots({ slots: { S: { text: 'x' }, T: { text: '' }, A: { text: 'y' }, R:
 eq(ROUTED_QUESTIONS.length, 8, 'the other eight of the twelve')
 ok(ROUTED_QUESTIONS.every(q => q.asks && q.where && q.note), 'each names the question, where it is answered, and what it tests')
 ok(ROUTED_QUESTIONS.every(q => q.asks.trim().endsWith('"')), 'quoted as the interviewer would say them')
-// Six story questions plus eight routed is the whole foundation the screen
-// shows: Taylor's twelve, plus two the book adds that his list does not ask.
-eq(PLAYLIST_TYPES.length + ROUTED_QUESTIONS.length, 14, 'fourteen questions in total')
+// Six questions in the inventory plus eight routed is the whole foundation the
+// screen shows: Taylor's twelve, plus two the book adds that his list does not
+// ask. Counted off INVENTORY, not PLAYLIST_TYPES — the weakness question is one
+// of the six a person must answer even though it is not a story.
+eq(INVENTORY.length + ROUTED_QUESTIONS.length, 14, 'fourteen questions in total')
 // Exactly one routed question hands off to My Coach rather than to a screen.
 eq(ROUTED_QUESTIONS.filter(q => q.coach).map(q => q.id), ['not-on-resume'], 'the human question is worked out in conversation')
 ok(ROUTED_QUESTIONS.filter(q => q.step).every(q => !q.coach), 'a question routes to a screen or to the coach, never both')
@@ -106,7 +116,7 @@ const shuffled = [
 ]
 eq(orderStories(shuffled).map(x => x.id), ['b', 'd', 'c', 'a'], 'sorted into the playlist order')
 eq(orderStories(shuffled).map(x => x.id).slice(0, 2), ['b', 'd'], 'two of one kind keep the order they were added')
-eq(orderStories([{ id: 'x', kind: 'nonsense' }, { id: 'y', kind: 'setback' }]).map(x => x.id), ['y', 'x'],
+eq(orderStories([{ id: 'x', kind: 'nonsense' }, { id: 'y', kind: 'ambiguity' }]).map(x => x.id), ['y', 'x'],
    'an unrecognised kind sorts last rather than disappearing')
 eq(orderStories([]).length, 0, 'an empty library orders to empty')
 eq(orderStories(null).length, 0, 'no library orders to empty')
@@ -116,5 +126,60 @@ eq(orderStories(shuffled).length, shuffled.length, 'ordering never drops a story
 const before = shuffled.map(x => x.id)
 orderStories(shuffled)
 eq(shuffled.map(x => x.id), before, 'the input array is left alone')
+
+// ── The weakness question ───────────────────────────────────────────────────
+
+// Lesson 10 gives this question its own three-part model, and the one time it
+// was forced into a STAR card the seed invented a year, a company event and a
+// negotiation to hang a genuine assessment finding on.
+eq(WEAKNESS_QUESTION.id, 'weakness', 'the weakness question is its own thing')
+eq(WEAKNESS_QUESTION.model.map(m => m.key), ['Real', 'Addressed', 'Ongoing'], 'the book\'s three parts, in the book\'s order')
+ok(WEAKNESS_QUESTION.coach && /assessment/i.test(WEAKNESS_QUESTION.coach), 'the coach handoff starts from the assessment, as the book says to')
+ok(/do not invent/i.test(WEAKNESS_QUESTION.coach), 'and is told not to invent the event')
+ok(!('slots' in WEAKNESS_QUESTION), 'it has no STAR slots to fill')
+
+eq(INVENTORY.length, 6, 'six questions on the screen')
+eq(INVENTORY.map(t => t.id), ['achievement', 'weakness', 'authority', 'collaboration', 'strategic', 'ambiguity'],
+   'the weakness question sits second, where an interviewer asks it')
+ok(INVENTORY.every(t => t.asks && t.asks.trim().endsWith('"')), 'every row reads as a question')
+
+eq(weaknessRecord([s1, { id: 'w', kind: 'weakness' }]).id, 'w', 'the weakness record is found by kind')
+eq(weaknessRecord([s1, s2]), null, 'no weakness record is null rather than undefined')
+eq(hasWeaknessEvidence([{ kind: 'weakness', weakness: { real: '   ' } }]), false, 'whitespace is not evidence')
+eq(hasWeaknessEvidence([{ kind: 'weakness' }]), false, 'a record with no weakness object is not evidence')
+eq(hasWeaknessEvidence([]), false, 'nothing stored is not evidence')
+
+// ── What renders as a story card ────────────────────────────────────────────
+
+// Both of these are in the database and neither belongs among the story cards:
+// the weakness record is not a story, and a legacy setback row is the fabricated
+// card this split exists to stop showing.
+const mixed = [
+  { id: 'w', kind: 'weakness', weakness: { real: 'x' } },
+  { id: 'old', kind: 'setback', title: 'When protecting people cost you capital' },
+  { id: 'a', kind: 'achievement', title: 'Toronto' },
+]
+eq(storyCards(mixed).map(x => x.id), ['a'], 'only real story kinds render as cards')
+eq(storyCards([]).length, 0, 'an empty library renders no cards')
+eq(storyCards(null).length, 0, 'no library renders no cards')
+
+// ── One story per kind ──────────────────────────────────────────────────────
+
+// The real failure: four setback stories in one seed, two pairs each describing
+// one event in words with no distinctive token in common, so no title-based
+// dedupe could ever have caught them.
+const fourSetbacks = [
+  { id: '1', kind: 'setback', title: 'When protecting people cost you capital' },
+  { id: '2', kind: 'setback', title: 'Choosing when to leave Continental' },
+  { id: '3', kind: 'setback', title: 'The department elimination in the Beacon acquisition' },
+  { id: '4', kind: 'setback', title: 'Being protective of people at a cost' },
+  { id: '5', kind: 'achievement', title: 'Toronto' },
+]
+ok(!sameStory(fourSetbacks[0].title, fourSetbacks[3].title), 'the title dedupe genuinely cannot see this pair')
+ok(!sameStory(fourSetbacks[1].title, fourSetbacks[2].title), 'nor this one')
+eq(firstPerKind(fourSetbacks).map(x => x.id), ['1', '5'], 'one per kind survives, the first of each')
+eq(firstPerKind([]).length, 0, 'empty stays empty')
+eq(firstPerKind(null).length, 0, 'no input stays empty')
+eq(firstPerKind([{ id: 'a' }, { id: 'b', kind: 'achievement' }]).map(x => x.id), ['b'], 'a row with no kind is dropped')
 
 console.log(`test-star-stories: OK (${passed} cases passed)`)

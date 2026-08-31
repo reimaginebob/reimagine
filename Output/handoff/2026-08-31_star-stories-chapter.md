@@ -19,7 +19,7 @@ TO OPEN THE GATE, four things in one PR:
      above the bridge-story entry:
 
   { slug: 'your-stories',        reach: 'standalone',  labelId: 'stories',
-    does: 'holds the handful of STAR stories they tell in interviews, which the book puts at roughly twelve covering the range of what gets asked. The first set is built from what Orientation already holds, and the parts come from different places: the resume carries Situation and Result, the reputation answers and career pattern carry the Thought Process, and the assessment carries the story about what they are still working on. Nothing is invented -- where an input does not support a story they get the question instead of a guess, and every part is editable because their words win. It tracks the six kinds a good set covers and, for one they do not have yet, shows the shape of a strong answer rather than an empty box. Remember the T here is Thought Process, never Task: that is the change this method makes to STAR and the reason its answers land. This is the set Interview Prep remixes from when it prepares them for named people. The screen also names eight more questions -- the ones that want something other than a story -- and points at where Reimagine answers each: Bridge Story, About This Company, Interview Prep, and for "what is not on your resume" a conversation with the Coach itself. Fourteen questions in all. Every story carries a "Does this feel right?" box that reworks that one story from the person's note; a story Reimagine built has no Remove, because correcting it beats deleting it' },
+    does: 'holds the handful of STAR stories they tell in interviews, which the book puts at roughly twelve covering the range of what gets asked. The first set is built from what Orientation already holds, and the parts come from different places: the resume carries Situation and Result, the reputation answers and career pattern carry the Thought Process, and the assessment carries the story about what they are still working on. Nothing is invented -- where an input does not support a story they get the question instead of a guess, and every part is editable because their words win. It tracks the six questions a good set answers and, for one they do not have yet, shows the shape of a strong answer rather than an empty box. Five of those want a story; the weakness question does not, and has a section of its own on the screen built on the book's Real / Addressed / Ongoing model, grounded in whatever their assessment actually says and handed to the Coach to work through rather than written for them. Remember the T here is Thought Process, never Task: that is the change this method makes to STAR and the reason its answers land. This is the set Interview Prep remixes from when it prepares them for named people. The screen also names eight more questions -- the ones that want something other than a story -- and points at where Reimagine answers each: Bridge Story, About This Company, Interview Prep, and for "what is not on your resume" a conversation with the Coach itself. Fourteen questions in all. Every story carries a "Does this feel right?" box that reworks that one story from the person's note; a story Reimagine built has no Remove, because correcting it beats deleting it' },
 -->
 
 # Your STAR Stories
@@ -63,13 +63,25 @@ Each part shows what your inputs support and, underneath, the specific thing onl
 The screen tracks these as the questions they answer, and shows which you have and which you do not. They are a head start drawn from Johnny Taylor, CEO of SHRM, the largest HR organization in the world, and from what else gets asked once someone starts probing how you work:
 
 - A significant achievement
-- A setback and what you learned
+- The weakness question
 - Leading without formal authority
 - A difficult collaboration
 - A moment of strategic impact
 - Navigating ambiguity or conflict
 
-A type you have not covered yet is never shown as an empty box. It comes with the shape of a strong answer for that question, so you know what you are looking for in your own memory before you sit down to write anything. Two of them — leading without formal authority, and a difficult collaboration — are usually the last to fill, because nobody writes them on a resume. They are worth having ready anyway; they get asked.
+Five of those want a story. The weakness question is answered differently, and has its own section below.
+
+A question you have not covered yet is never shown as an empty box. It comes with the shape of a strong answer, so you know what you are looking for in your own memory before you sit down to write anything. Two of them — leading without formal authority, and a difficult collaboration — are usually the last to fill, because nobody writes them on a resume. They are worth having ready anyway; they get asked.
+
+## The weakness question
+
+This one is not a STAR story, and building it as one is how it goes wrong. *Making Your Own Weather* gives it a model of its own: **name something real, describe what you have done about it, and close on a note that shows you are still mindful of it. Real. Addressed. Ongoing.** Those three parts carry humility, self-awareness and a growth orientation at once.
+
+It fails in one of two ways. A non-answer nobody believes, or a real confession left hanging so the interviewer is left wondering whether the problem is still live.
+
+Your assessments are where the honest version starts. As the book puts it, go back to your assessment results and use what they say about the edges of your strengths as the foundation rather than starting from scratch. The screen shows you what your own results actually say, and names which assessment said it, because naming it out loud is part of what makes the answer land as evidence.
+
+What it does not do is write the example for you. Reimagine will not invent the year, the company or the moment it happened, so the screen hands the question to My Coach with the structure already loaded, and the two of you build the answer from what really happened.
 
 ## The other questions you will be asked
 
