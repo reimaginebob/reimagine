@@ -22,7 +22,7 @@ import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 // holding localStorage state overwrites newer server state. Tested by
 // scripts/test-autosave-gate.mjs.
 import { canPushProfile } from "./autosave-gate.js"
-import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, storyCards, firstPerKind, weaknessRecord } from "./star-stories.mjs"
+import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, storyCards, firstPerKind, weaknessRecord, missingNumbers } from "./star-stories.mjs"
 import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
 import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from "./corrections.js"
 // Stale-build self-healing: BUILD_SHA / BUILT_AT come from
@@ -5867,9 +5867,15 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
 // could do either. Worse, the toggle was a pattern invented for this one screen,
 // so it carried no meaning learned anywhere else in Reimagine.
 //
-// Editing is not a mode. It is typing. The field reads as prose until someone
-// puts a cursor in it, which leaves exactly one control on the card — the same
-// "Does this feel right?" that sits under every other output here.
+// Editing is not a mode. It is typing, which leaves exactly one control on the
+// card — the same "Does this feel right?" that sits under every other output.
+//
+// The resting state has to carry the affordance on its own. Hover was doing that
+// job at first, and hover does not exist on a phone: a filled slot four cards
+// down read as prose with nothing to say it could be typed into. So a field sits
+// carries the app's standard input border at rest, so it reads unmistakably as a
+// field rather than as prose, on a tinted ground that keeps it from shouting for
+// entry. It goes white when a cursor or a pointer arrives.
 function StorySlotField({value,placeholder,onChange}){
   const ref=useRef(null)
   const[active,setActive]=useState(false)
@@ -5883,7 +5889,7 @@ function StorySlotField({value,placeholder,onChange}){
     onMouseEnter={()=>setActive(true)} onMouseLeave={()=>{if(document.activeElement!==ref.current)setActive(false)}}
     style={{display:'block',width:'calc(100% + 16px)',boxSizing:'border-box',margin:'0 -8px',padding:'4px 8px',
       fontSize:17,lineHeight:1.65,color:C.cream,fontFamily:'inherit',
-      background:active?'#FFFFFF':'transparent',border:`1px solid ${active?C.border:'transparent'}`,borderRadius:6,
+      background:active?'#FFFFFF':'#FAFBFC',border:`1px solid ${C.border}`,borderRadius:6,
       resize:'none',overflow:'hidden',outline:'none',transition:'background 120ms,border-color 120ms'}}/>
 }
 // The weakness question's own surface. It is deliberately NOT a story card: the
@@ -6932,6 +6938,9 @@ export default function PivotEngine(){
   // the others into a state their owner did not ask for.
   const[storyRefining,setStoryRefining]=useState(null)
   const[storyRefineErr,setStoryRefineErr]=useState({})
+  // A number the person typed into their correction that did not come back in
+  // the rewrite. Held per story and cleared on the next refine of that story.
+  const[storyLostNums,setStoryLostNums]=useState({})
   const saveStory=(story)=>{
     setStarStories(prev=>{const i=prev.findIndex(x=>x.id===story.id);return i>=0?prev.map(x=>x.id===story.id?story:x):[...prev,story]})
     if(!isDemo&&!isTest){try{fetch('/api/star-stories',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({story})}).catch(()=>{})}catch{}}
@@ -6954,11 +6963,16 @@ export default function PivotEngine(){
       const a=txt.indexOf('{'),b=txt.lastIndexOf('}')
       let obj=null;try{obj=JSON.parse(txt.slice(a,b+1))}catch{}
       if(!obj||!obj.slots||typeof obj.slots!=='object'){setStoryRefineErr(e=>({...e,[story.id]:'That came back in a shape we could not read. Try again.'}));return}
-      saveStory({...story,
+      const next={...story,
         title:(typeof obj.title==='string'&&obj.title.trim())?obj.title.trim():story.title,
         question:(typeof obj.question==='string'&&obj.question.trim())?obj.question.trim():(story.question||''),
         why:(typeof obj.why==='string'?obj.why.trim():(story.why||'')),
-        slots:obj.slots,updatedAt:new Date().toISOString()})
+        slots:obj.slots,updatedAt:new Date().toISOString()}
+      saveStory(next)
+      // The prompt says a correction wins; this checks that it did. A number is
+      // the most checkable thing on the card and the part an interviewer will
+      // remember, so it does not get left to whether the model complied.
+      setStoryLostNums(n=>({...n,[story.id]:missingNumbers(note,story,next)}))
       // The correction carries forward the way every other correction in Reimagine
       // does, so a fact they fixed once does not come back wrong somewhere else.
       if(note&&note.trim())recordCorrection('stories',note)
@@ -11476,6 +11490,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 </div>
               })}
             </div>
+            {(storyLostNums[story.id]||[]).length>0&&<div style={{marginTop:14,padding:'12px 14px',border:`1px solid ${C.gold}`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,background:`${C.gold}12`}}>
+              <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:2}}>{storyLostNums[story.id].length===1?'One number from your note is not in the story':'Some numbers from your note are not in the story'}: {storyLostNums[story.id].join(', ')}.</div>
+              <div style={{fontSize:16,color:C.gray,lineHeight:1.6}}>Click the part it belongs in and type it. Numbers are worth getting exactly right, so this is flagged rather than assumed.</div>
+            </div>}
             <SubsectionRefineBox scopeKey={story.id} onSubmit={t=>refineStory(story,t)} busy={storyRefining===story.id} error={storyRefineErr[story.id]} label="Does this feel right?" placeholder="For example: the Result is wrong, it was 40% not 15%. Or: the Thought Process is not how I approached it — I started with the customer data." submitLabel="Rework this story" helperText="Only this story changes. Everything you have written stays unless your note asks otherwise."/>
             {canRemove&&<div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
               <button type="button" onClick={()=>deleteStory(story.id)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',padding:0,fontSize:16,fontFamily:'inherit',textDecoration:'underline'}}>Remove</button>

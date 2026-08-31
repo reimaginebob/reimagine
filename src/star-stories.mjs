@@ -300,6 +300,64 @@ export function storyCards(stories) {
   return orderStories((Array.isArray(stories) ? stories : []).filter(s => s && known.has(s.kind)))
 }
 
+// NUMBERS IN A CORRECTION MUST SURVIVE IT.
+//
+// "Does this feel right?" hands a note to a model and takes back a rewritten
+// story. The prompt says the correction wins, but a prompt is an instruction and
+// a number is the one thing on a STAR card that must not be left to chance: it
+// is the most checkable content in the story and the part an interviewer will
+// remember. So we check, the same way the voice rules are checked rather than
+// only asked for.
+//
+// Digits only, and only substantive ones: two or more digits, or a single digit
+// carrying a marker like % or $ or x. Otherwise "part 1 is wrong" reports a
+// missing 1 and the warning stops meaning anything.
+const NUM_RE = /(\$\s*)?(\d[\d,]*(?:\.\d+)?)\s*(%|x\b|k\b|m\b|bn\b|percent)?/gi
+
+/** The substantive numbers in a piece of text, normalised for comparison. */
+export function numbersIn(text) {
+  const out = new Set()
+  const str = String(text || '')
+  let m
+  NUM_RE.lastIndex = 0
+  while ((m = NUM_RE.exec(str)) !== null) {
+    const core = m[2].replace(/,/g, '')
+    const marked = !!(m[1] || m[3])
+    if (core.replace(/\./g, '').length >= 2 || marked) out.add(core)
+  }
+  return out
+}
+
+/** Every number written anywhere in a story: its slots, title, question and why. */
+export function storyNumbers(story) {
+  const st = story || {}
+  const slots = st.slots || {}
+  const parts = [st.title, st.question, st.why]
+  for (const k of STORY_SLOTS) {
+    const v = slots[k]
+    if (v && typeof v === 'object') parts.push(v.text, v.to_strengthen)
+    else parts.push(v)
+  }
+  const out = new Set()
+  for (const part of parts) for (const n of numbersIn(part)) out.add(n)
+  return out
+}
+
+/**
+ * Numbers the person introduced in their note that did not make it into the
+ * rewritten story.
+ *
+ * Only numbers NEW to the note are checked. "it was 40% not 15%" introduces 40
+ * and refers back to 15, and 15 is supposed to disappear — reporting it as lost
+ * would be exactly backwards. Anything already in the story before the rewrite
+ * is therefore excluded, which also covers "drop the 2017 date".
+ */
+export function missingNumbers(note, before, after) {
+  const had = storyNumbers(before)
+  const has = storyNumbers(after)
+  return [...numbersIn(note)].filter(n => !had.has(n) && !has.has(n))
+}
+
 /**
  * A story is only as useful as its thinnest slot. Returns the slots with
  * nothing in them, which is what the library shows as the next thing to do.
