@@ -5859,6 +5859,33 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
     </div>}
   </div>
 }
+// One slot of a STAR story, editable in place.
+//
+// This replaced an "Edit the words myself" toggle that sat in the card footer
+// next to "Does this feel right?". Two controls in a row, both meaning "this is
+// not right", and a person had to work out which one they wanted before they
+// could do either. Worse, the toggle was a pattern invented for this one screen,
+// so it carried no meaning learned anywhere else in Reimagine.
+//
+// Editing is not a mode. It is typing. The field reads as prose until someone
+// puts a cursor in it, which leaves exactly one control on the card — the same
+// "Does this feel right?" that sits under every other output here.
+function StorySlotField({value,placeholder,onChange}){
+  const ref=useRef(null)
+  const[active,setActive]=useState(false)
+  // Grow to fit rather than scroll inside a fixed box. The first version of this
+  // screen framed finished stories as a form by putting them in 60px boxes.
+  const fit=()=>{const el=ref.current;if(!el)return;el.style.height='auto';el.style.height=(el.scrollHeight+2)+'px'}
+  useEffect(()=>{fit()},[value])
+  return <textarea ref={ref} rows={1} value={value} placeholder={placeholder}
+    onChange={e=>{onChange(e.target.value);fit()}}
+    onFocus={()=>setActive(true)} onBlur={()=>setActive(false)}
+    onMouseEnter={()=>setActive(true)} onMouseLeave={()=>{if(document.activeElement!==ref.current)setActive(false)}}
+    style={{display:'block',width:'calc(100% + 16px)',boxSizing:'border-box',margin:'0 -8px',padding:'4px 8px',
+      fontSize:17,lineHeight:1.65,color:C.cream,fontFamily:'inherit',
+      background:active?'#FFFFFF':'transparent',border:`1px solid ${active?C.border:'transparent'}`,borderRadius:6,
+      resize:'none',overflow:'hidden',outline:'none',transition:'background 120ms,border-color 120ms'}}/>
+}
 // The weakness question's own surface. It is deliberately NOT a story card: the
 // book gives this question a three-part structure of its own, and the one time we
 // forced it into a STAR shape the model invented a year, a company event and a
@@ -6901,11 +6928,10 @@ export default function PivotEngine(){
   const[storiesBusy,setStoriesBusy]=useState(false)
   const[storiesErr,setStoriesErr]=useState(null)
   const[storyDraft,setStoryDraft]=useState({title:'',kind:'achievement'})
-  // Per-story refine and per-story edit mode, both keyed by story id so one open
-  // card never puts the others into a state their owner did not ask for.
+  // Per-story refine state, keyed by story id so one card in flight never puts
+  // the others into a state their owner did not ask for.
   const[storyRefining,setStoryRefining]=useState(null)
   const[storyRefineErr,setStoryRefineErr]=useState({})
-  const[storyEditing,setStoryEditing]=useState({})
   const saveStory=(story)=>{
     setStarStories(prev=>{const i=prev.findIndex(x=>x.id===story.id);return i>=0?prev.map(x=>x.id===story.id?story:x):[...prev,story]})
     if(!isDemo&&!isTest){try{fetch('/api/star-stories',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({story})}).catch(()=>{})}catch{}}
@@ -11372,7 +11398,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         slots[slot]={...cur,[field]:value}
         saveStory({...story,slots,updatedAt:new Date().toISOString()})
       }
-      const ta={width:'100%',boxSizing:'border-box',padding:'10px 12px',fontSize:17,lineHeight:1.6,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',minHeight:130,marginTop:4}
+      // Dresses the two fields on the add form. The story slots edit in place now
+      // (StorySlotField), so nothing here needs a minimum height any more.
+      const ta={width:'100%',boxSizing:'border-box',padding:'10px 12px',fontSize:17,lineHeight:1.6,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',marginTop:4}
       return <div>
         <h1 style={S.title}>Your STAR Stories</h1>
         <p style={S.sub}>The handful of stories you tell in interviews, in one place.</p>
@@ -11384,6 +11412,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div><strong style={{color:'#1A2540'}}>Thought process.</strong> &ldquo;I knew I had to understand the problem from both sides before designing anything, so I started with structured one-on-ones to separate what people were saying from what they were experiencing.&rdquo; It shows how you think.</div>
           </div>
           <div style={{marginBottom:10}}>Rather than claim you are a strategic thinker, you show them. Showing beats claiming every time.</div>
+          <div>Every part below is yours. Click any line to type over it, or use <strong style={{color:'#1A2540'}}>Does this feel right?</strong> to describe what is off and have Reimagine rework the story around it.</div>
         </CoachingCallout>
 
         {storiesBusy&&held===0&&<div style={{...S.card,marginBottom:20}}>
@@ -11426,7 +11455,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           :storyCards(starStories).filter(x=>x.kind===t.id).map(story=>{
           const gaps=emptySlots(story)
           const kind=PLAYLIST_TYPES.find(t=>t.id===story.kind)
-          const editing=!!storyEditing[story.id]
           // Remove belongs only on a story someone typed themselves. A seeded one
           // answers a question they will be asked, so deleting it leaves a hole
           // where correcting it would have left an answer.
@@ -11443,20 +11471,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const cur=typeof raw==='object'?raw:{text:String(raw||''),to_strengthen:''}
                 return <div key={k} style={{marginTop:14}}>
                   <div style={{fontSize:16,fontWeight:700,color:C.goldL,marginBottom:4}}>{k} &mdash; {SLOT_LABELS[k]}</div>
-                  {editing
-                    ?<textarea style={ta} value={cur.text||''} placeholder={k==='T'?'How you were thinking about it, not what you were assigned.':''} onChange={e=>slotEdit(story,k,'text',e.target.value)}/>
-                    :(cur.text
-                      ?<div style={{fontSize:17,color:C.cream,lineHeight:1.65,whiteSpace:'pre-wrap'}}>{cur.text}</div>
-                      :<div style={{fontSize:16,color:C.gray,lineHeight:1.65}}>Still open.</div>)}
+                  <StorySlotField value={cur.text||''} placeholder={k==='T'?'Still open. How you were thinking about it, not what you were assigned.':'Still open. Click here to write it.'} onChange={v=>slotEdit(story,k,'text',v)}/>
                   {cur.to_strengthen&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>To strengthen:</em> {cur.to_strengthen}</div>}
                 </div>
               })}
             </div>
             <SubsectionRefineBox scopeKey={story.id} onSubmit={t=>refineStory(story,t)} busy={storyRefining===story.id} error={storyRefineErr[story.id]} label="Does this feel right?" placeholder="For example: the Result is wrong, it was 40% not 15%. Or: the Thought Process is not how I approached it — I started with the customer data." submitLabel="Rework this story" helperText="Only this story changes. Everything you have written stays unless your note asks otherwise."/>
-            <div style={{display:'flex',gap:14,alignItems:'center',flexWrap:'wrap',marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
-              <button type="button" onClick={()=>setStoryEditing(e=>({...e,[story.id]:!editing}))} style={{background:'none',border:'none',color:C.goldL,cursor:'pointer',padding:0,fontSize:16,fontWeight:600,fontFamily:'inherit',textDecoration:'underline'}}>{editing?'Done editing':'Edit the words myself'}</button>
-              {canRemove&&<button type="button" onClick={()=>deleteStory(story.id)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',padding:0,fontSize:16,fontFamily:'inherit',textDecoration:'underline'}}>Remove</button>}
-            </div>
+            {canRemove&&<div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
+              <button type="button" onClick={()=>deleteStory(story.id)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',padding:0,fontSize:16,fontFamily:'inherit',textDecoration:'underline'}}>Remove</button>
+            </div>}
           </div>
         }))}
 
@@ -11476,8 +11499,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>Add one of your own</div>
           <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Name it now and fill it in when you have a minute. A story with a name on the list is one you will actually come back to.</div>
           <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'2fr 1fr',gap:10,marginBottom:10}}>
-            <label style={{display:'block',fontSize:15,color:C.gray}}>What you would call it<input style={{...ta,minHeight:0}} value={storyDraft.title} onChange={e=>setStoryDraft(d=>({...d,title:e.target.value}))} placeholder="Toronto acquisition integration"/></label>
-            <label style={{display:'block',fontSize:15,color:C.gray}}>What kind<select style={{...ta,minHeight:0}} value={storyDraft.kind} onChange={e=>setStoryDraft(d=>({...d,kind:e.target.value}))}>{PLAYLIST_TYPES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select></label>
+            <label style={{display:'block',fontSize:15,color:C.gray}}>What you would call it<input style={ta} value={storyDraft.title} onChange={e=>setStoryDraft(d=>({...d,title:e.target.value}))} placeholder="Toronto acquisition integration"/></label>
+            <label style={{display:'block',fontSize:15,color:C.gray}}>What kind<select style={ta} value={storyDraft.kind} onChange={e=>setStoryDraft(d=>({...d,kind:e.target.value}))}>{PLAYLIST_TYPES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select></label>
           </div>
           {storiesErr&&held>0&&<div style={{marginBottom:10}}><ErrBox msg={storiesErr}/></div>}
           <Btn small onClick={addStoryByHand}><Plus size={14}/>Add it</Btn>
