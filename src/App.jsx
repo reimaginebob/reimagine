@@ -3766,13 +3766,13 @@ Return ONLY a JSON object in this exact shape:
   ]
 }
 WHAT EACH PERSON IS MAINLY READING FOR. Everyone on a panel hears the same candidate and weighs a different thing. Pick the ONE dimension each person is mainly reading for, from exactly these five, and say why in a sentence:
-- Strategy: can they think past the immediate job, do they understand where the business is going
-- Culture: will they work well with us, how do they handle friction and disagreement
-- Oneself: who is this person really, are they self-aware and honest about what they are still learning
-- Passion: do they actually want THIS, or is it just the next available job
-- Expertise: can they do the work, have they done it at this scale before
+- Strategy: the business outcome, whether the solution scaled past a one-off, and above all what FRAMEWORK the candidate brought to the problem. Usually what a CEO-level or skip-level listener is after.
+- Culture: is this a good fit, can the interviewer picture them working with the team they already have. Collaboration, mentoring, leadership style. Usually what a CHRO or a peer is probing.
+- Oneself: self-awareness. The failure question, the weakness question, what they learned about themselves in a hard stretch. Probing for humility and the capacity to keep growing, never for a confession.
+- Passion: why they want THIS one, and whether it is real rather than performed. It bridges a gap in hard skills, which makes it matter most on a stretch or a career change.
+- Expertise: table stakes. Hard skills, depth in the craft, can they do the job at the level needed. Usually what a functional peer or manager is testing.
 
-Choose from the seat and from the candidate's own notes, not from a formula. A recruiter screen is usually reading for Passion or Expertise. A skip-level is usually reading for Strategy. A cross-functional partner who was skeptical of the change is reading for Culture. The hiring manager varies most, so lean hardest on the notes. Never pick more than one and never hedge across two: the value is that it forces a choice, and a candidate who disagrees with the choice has learned something by disagreeing.
+Choose from the seat and from the candidate's own notes, not from a formula. The seat tendencies above are a starting point and the candidate's notes override them: a cross-functional partner who was skeptical of a reorganization is reading for Culture whatever their title says. The hiring manager varies most, so lean hardest on the notes there. Never pick more than one and never hedge across two: the value is that it forces a choice, and a candidate who disagrees with the choice has learned something by disagreeing.
 
 Then let the choice show. The questions you write for that person should lean toward what that dimension probes, and the story you pick for them should be the one that carries it best.
 
@@ -9272,15 +9272,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       return <>
         <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>Prep for each person you will meet: what they are really after, what they are likely to ask, and the stories worth having ready. Under each person you can take their questions to My Coach and answer them out loud.</div>
         <CoachingCallout>
-          <div style={{marginBottom:8}}>Everyone on a panel hears the same answers and weighs a different thing. Five things, really, and each person is usually reading mainly for one of them:</div>
+          <div style={{marginBottom:8}}>You do not need a story for every question. You need a handful of good ones, and the skill to change which part of a story gets the airtime depending on who is asking. Same story, same facts, same result, a different emphasis. <em>Making Your Own Weather</em> calls that remixing, and SCOPE is how you read which emphasis the person in front of you wants:</div>
           <div style={{marginBottom:8,lineHeight:1.75}}>
-            <div><strong style={{color:'#1A2540'}}>Strategy</strong> &mdash; can you think past the job in front of you.</div>
-            <div><strong style={{color:'#1A2540'}}>Culture</strong> &mdash; will you work well with us when things get hard.</div>
-            <div><strong style={{color:'#1A2540'}}>Yourself</strong> &mdash; are you self-aware and honest about what you are still learning.</div>
-            <div><strong style={{color:'#1A2540'}}>Passion</strong> &mdash; do you want this one, or the next available one.</div>
-            <div><strong style={{color:'#1A2540'}}>Expertise</strong> &mdash; have you done this, at this size, before.</div>
+            <div><strong style={{color:'#1A2540'}}>S &mdash; Strategy.</strong> The business outcome, whether it scaled past a one-off, and the framework you brought to it.</div>
+            <div><strong style={{color:'#1A2540'}}>C &mdash; Culture.</strong> Whether they can picture you working with the team they already have. How you collaborate, how you lead, who you have mentored.</div>
+            <div><strong style={{color:'#1A2540'}}>O &mdash; Oneself.</strong> The failure and weakness questions. They are looking for self-awareness, not a confession.</div>
+            <div><strong style={{color:'#1A2540'}}>P &mdash; Passion.</strong> Why you want this one. It carries you over a gap in hard skills, and it cannot be performed.</div>
+            <div><strong style={{color:'#1A2540'}}>E &mdash; Expertise.</strong> Table stakes. Can you do the work at the level they need it done.</div>
           </div>
-          <div>This is the SCOPE idea from <em>Making Your Own Weather</em>. The practical use of it is that you do not need five sets of stories. You need the same story told with a different part pushed to the front. Each person below is marked with the one they are mainly reading for.</div>
+          <div>Each person below is marked with the one they are mainly reading for. Lesson 10 of the book has the whole idea, and My Coach can work a specific story through it with you.</div>
         </CoachingCallout>
         {ip.people.map((p,pi)=>{
           const nm=(typeof p.name==='string'&&p.name.trim())?p.name.trim():''
@@ -9296,7 +9296,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {typeof p.role==='string'&&p.role.trim()&&<span style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>{p.role.trim()}</span>}
             </div>
             {typeof p.lens==='string'&&p.lens.trim()&&<div style={{marginBottom:10,background:`${C.gold}0E`,border:`1px solid ${C.gold}44`,borderRadius:8,padding:'10px 12px'}}>
-              <div style={{fontSize:16,color:'#1A2540',lineHeight:1.6}}>{who} is mainly reading for <strong>{p.lens.trim().toLowerCase()==='oneself'?'who you are':p.lens.trim().toLowerCase()}</strong>.{typeof p.lens_reason==='string'&&p.lens_reason.trim()?' '+p.lens_reason.trim():''}</div>
+              <div style={{fontSize:16,color:'#1A2540',lineHeight:1.6}}>{who} is mainly reading for <strong>{p.lens.trim()}</strong>.{typeof p.lens_reason==='string'&&p.lens_reason.trim()?' '+p.lens_reason.trim():''}</div>
               <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:4}}>Push that part of your story to the front when you talk to {nm?nm.split(' ')[0]:'them'}.</div>
             </div>}
             {typeof p.looking_for==='string'&&p.looking_for.trim()&&<div style={{marginBottom:10}}>{H('What '+who+' is really looking for')}<div style={{fontSize:16,color:C.cream,lineHeight:1.6}}>{p.looking_for.trim()}</div></div>}
@@ -12965,7 +12965,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   })()}
                 </>,'section-panel')
               })()}
-              {_simpleCard('p11','Interview Prep','Ten to twelve questions this role\'s interview cycle is most likely to ask, each with a STAR story drawn from your own background.')}
+              {/* The subhead describes whichever prep this opportunity actually
+                  gets. With an Interview Team filled in this card stops being a
+                  question list and becomes per-person prep, so the old line
+                  ("ten to twelve questions") described the wrong thing for
+                  anyone who had named their panel. */}
+              {_simpleCard('p11','Interview Prep',getOpPanel(_rec).interviewers.length>0
+                ?'Prep for each person you will meet: the one thing they are mainly reading you for, what they are likely to ask, and the stories worth telling them.'
+                :"Ten to twelve questions this role's interview cycle is most likely to ask, each with a STAR story drawn from your own background.")}
               {(()=>{
                 // Offer & Negotiation (comp-benchmarking brief 2026-08-07): last step
                 // of the packet, matching the real timeline (you negotiate after the
