@@ -9118,7 +9118,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       setSavedPlaybooks(prev=>prev.map(rec=>{
         if(rec.id!==slotId)return rec
         const sections={...(rec.sections||{})}
-        sections[key]={...(sections[key]||{}),content:r,builtAt:new Date().toISOString(),builtLane:lv}
+        sections[key]={...(sections[key]||{}),content:r,builtAt:new Date().toISOString(),builtLane:lv,builtPanelCount:getOpPanel(rec).interviewers.length}
         return{...rec,sections,updatedAt:new Date().toISOString()}
       }))
       setCurrentRoleSaved(false)
@@ -12370,6 +12370,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 {built&&_staleCards.includes(key)&&<div data-print="hide" style={{display:'flex',alignItems:'center',gap:10,background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:8,padding:'10px 14px',margin:'10px 0 0',fontSize:16,color:'#1A2540',lineHeight:1.55}}>
                   <span><strong style={{color:'#8A5E1C'}}>Written from an earlier version of your Personal Brand.</strong> Rebuild it before you use this in a real conversation.</span>
                 </div>}
+                {/* Interview Prep changes shape entirely once the Interview Team has
+                    names in it — a different prompt, organised by person rather than
+                    by question. A prep built before those names went in is not just
+                    older, it is a different document, so say so on the card the user
+                    is actually reading. Same indicator as the brand-staleness one. */}
+                {key==='p11'&&built&&(()=>{
+                  const _ivs=getOpPanel(_rec).interviewers.length
+                  const _bpc=(_sec.p11&&typeof _sec.p11.builtPanelCount==='number')?_sec.p11.builtPanelCount:0
+                  if(!_ivs||_ivs===_bpc)return null
+                  return <div data-print="hide" style={{display:'flex',alignItems:'center',gap:10,background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:8,padding:'10px 14px',margin:'10px 0 0',fontSize:16,color:'#1A2540',lineHeight:1.55}}>
+                    <span><strong style={{color:'#8A5E1C'}}>{_bpc===0?'Written before you filled in your Interview Team.':'Written from a different set of names.'}</strong> Rebuild it and it will prepare you for each person by name instead of for the role in general.</span>
+                  </div>
+                })()}
                 {busy&&<div style={{marginTop:14}}><Loading msg={`Building ${label}…`} step={key}/></div>}
                 {built&&<div style={{marginTop:14}}>{_renderSection(key,_sec[key].content)}</div>}
                 {/* PR-A op-card-refinebox brief 2026-05-30: per-card RefineBox
@@ -12855,8 +12868,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       const wrap=k=><div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>{k}</div>
                       if(rBusy)return wrap(<div style={{display:'flex',alignItems:'center',gap:8,fontSize:15,color:C.gray}}><Loader2 size={14} style={{animation:'spin 0.9s linear infinite'}}/>Searching public sources…</div>)
                       if(!research)return wrap(<>
-                        <Btn small secondary onClick={()=>generateInterviewerResearch(iv.id)} disabled={!!researchingIvId}><Search size={13}/>Research this person on the web</Btn>
-                        <div style={{fontSize:15,color:C.gray,marginTop:6,lineHeight:1.5}}>Optional. Searches public sources and shows what it finds as a draft for you to confirm. Nothing is sent until you click.</div>
+                        {/* Gold, not the grey small variant. `small secondary` rendered
+                            S.sm — transparent with a hairline border — so the one
+                            action on this row that does real work looked like a
+                            disabled control and nobody found it. The lead-in did the
+                            rest of the damage: opening on "Optional." tells a reader
+                            not to bother before they know what it is. */}
+                        <Btn small prominent onClick={()=>generateInterviewerResearch(iv.id)} disabled={!!researchingIvId}><Search size={13}/>Research this person on the web</Btn>
+                        <div style={{fontSize:15,color:C.gray,marginTop:6,lineHeight:1.5}}>Find out what they work on and what they have said publicly, before you meet them. It searches public sources and brings back a draft for you to confirm or correct. Nothing happens until you click, and it is optional.</div>
                         {rErr&&<div style={{marginTop:8}}><ErrBox msg={rErr}/></div>}
                       </>)
                       if(rEditing)return wrap(<>
@@ -12887,6 +12906,32 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     })()}
                   </div>)}
                   <Btn small onClick={_addIv}><Plus size={14}/>Add an interviewer</Btn>
+                  {_panel.interviewers.length>0&&(()=>{
+                    // What to do with what you just typed. Without this the card
+                    // took names and did nothing visible with them: Bob filled in a
+                    // five-person panel and had to ask what happens next, and he
+                    // built the product. Interview Prep is the payoff and it does
+                    // not refresh itself, so the card has to say so and offer it.
+                    const _p11=_sec.p11
+                    const _p11Built=!!(_p11&&_p11.content&&_p11.content.trim())
+                    const _p11Panel=(_p11&&typeof _p11.builtPanelCount==='number')?_p11.builtPanelCount:0
+                    const _stalePrep=_p11Built&&_p11Panel!==_panel.interviewers.length
+                    const _n=_panel.interviewers.length
+                    const _busyPrep=opSectionBuilding==='p11'&&opBuildingSlot===_slot
+                    return <div style={{marginTop:18,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
+                      <CoachingCallout>
+                        {!_p11Built
+                          ?<>Now build your <strong style={{color:'#1A2540'}}>Interview Prep</strong>. Because you have named {_n===1?'someone':'these people'}, it prepares you for {_n===1?'that conversation':'each conversation'} rather than for the role in general — what {_n===1?'this person is':'each person is'} likely to press on, and what to have ready.</>
+                          :_stalePrep
+                            ?<>Your <strong style={{color:'#1A2540'}}>Interview Prep</strong> was built {_p11Panel===0?'before you added anyone here':'from a different set of names'}, so it does not know about {_n===1?'this person':'these people'} yet. Rebuild it and it will prepare you for {_n===1?'that conversation':'each conversation'} by name.</>
+                            :<>Your <strong style={{color:'#1A2540'}}>Interview Prep</strong> below is built from {_n===1?'this person':'these people'}. Rebuild it whenever the panel changes.</>}
+                      </CoachingCallout>
+                      <div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
+                        <Btn small prominent={!_p11Built||_stalePrep} onClick={()=>generateOpSection('p11')} disabled={!!opSectionBuilding}>{_busyPrep?'Building…':_p11Built?<><RotateCcw size={11}/>Rebuild Interview Prep</>:<><Sparkles size={12}/>Build Interview Prep</>}</Btn>
+                        {!isDemo&&<Btn small secondary onClick={()=>openCoachWith(`I have my interview team for ${(_rec&&_rec.title)||'this role'}. Help me think through how to approach them.`,false,'panel')}><MessageCircle size={12}/>Talk it through with My Coach</Btn>}
+                      </div>
+                    </div>
+                  })()}
                 </>,'section-panel')
               })()}
               {_simpleCard('p11','Interview Prep','Ten to twelve questions this role\'s interview cycle is most likely to ask, each with a STAR story drawn from your own background.')}
