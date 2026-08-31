@@ -2,7 +2,7 @@
 // keeps one experience from becoming three rows, and slot completeness.
 import {
   PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS,
-  ROUTED_QUESTIONS,
+  ROUTED_QUESTIONS, orderStories,
   newStoryId, normalizeTitle, sameStory, addStory, coverage, emptySlots, isComplete,
 } from '../src/star-stories.mjs'
 
@@ -93,5 +93,28 @@ eq(PLAYLIST_TYPES.length + ROUTED_QUESTIONS.length, 14, 'fourteen questions in t
 // Exactly one routed question hands off to My Coach rather than to a screen.
 eq(ROUTED_QUESTIONS.filter(q => q.coach).map(q => q.id), ['not-on-resume'], 'the human question is worked out in conversation')
 ok(ROUTED_QUESTIONS.filter(q => q.step).every(q => !q.coach), 'a question routes to a screen or to the coach, never both')
+
+// ── Order ──────────────────────────────────────────────────────────────
+
+// The cards must appear in the order the inventory above them lists the
+// questions; the seed returns them in whatever order it found them.
+const shuffled = [
+  { id: 'a', title: 'ambiguity one', kind: 'ambiguity' },
+  { id: 'b', title: 'achievement one', kind: 'achievement' },
+  { id: 'c', title: 'strategic one', kind: 'strategic' },
+  { id: 'd', title: 'achievement two', kind: 'achievement' },
+]
+eq(orderStories(shuffled).map(x => x.id), ['b', 'd', 'c', 'a'], 'sorted into the playlist order')
+eq(orderStories(shuffled).map(x => x.id).slice(0, 2), ['b', 'd'], 'two of one kind keep the order they were added')
+eq(orderStories([{ id: 'x', kind: 'nonsense' }, { id: 'y', kind: 'setback' }]).map(x => x.id), ['y', 'x'],
+   'an unrecognised kind sorts last rather than disappearing')
+eq(orderStories([]).length, 0, 'an empty library orders to empty')
+eq(orderStories(null).length, 0, 'no library orders to empty')
+eq(orderStories(shuffled).length, shuffled.length, 'ordering never drops a story')
+// Ordering must not mutate what the caller holds: the stored array is the save
+// order and the render order is a view of it.
+const before = shuffled.map(x => x.id)
+orderStories(shuffled)
+eq(shuffled.map(x => x.id), before, 'the input array is left alone')
 
 console.log(`test-star-stories: OK (${passed} cases passed)`)

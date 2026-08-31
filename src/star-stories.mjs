@@ -189,6 +189,27 @@ export function addStory(stories, story) {
   return list.concat([story])
 }
 
+/**
+ * The library in the order the inventory above it lists the questions.
+ *
+ * Stories arrive in whatever order the seed produced them, which put the cards
+ * out of step with the checklist a person had just read. Reading a menu in one
+ * order and then meeting its contents in another makes someone re-find their
+ * place on every scroll.
+ *
+ * Within a type, insertion order holds, so a second story of the same kind sits
+ * under the first rather than jumping ahead of it. A story whose kind is not one
+ * of the six sorts to the end instead of vanishing.
+ */
+export function orderStories(stories) {
+  const list = Array.isArray(stories) ? stories : []
+  const rank = new Map(PLAYLIST_TYPES.map((t, i) => [t.id, i]))
+  return list
+    .map((story, i) => ({ story, i, r: rank.has(story && story.kind) ? rank.get(story.kind) : PLAYLIST_TYPES.length }))
+    .sort((a, b) => (a.r - b.r) || (a.i - b.i))
+    .map(x => x.story)
+}
+
 /** Which of the six the library covers, and which are still open. */
 export function coverage(stories) {
   const list = Array.isArray(stories) ? stories : []
