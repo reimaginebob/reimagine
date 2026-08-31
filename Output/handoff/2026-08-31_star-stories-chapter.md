@@ -36,11 +36,19 @@ The book calls the five dimensions SCOPE: **Strategy**, the business outcome and
 
 That is why this exists as its own screen. The same integration story gets told at this company and the next one, so it belongs to you rather than to any single opportunity.
 
-## The four parts, and the one that matters most
+## What a STAR story is here
 
-Every story has a Situation, a Thought Process, an Action and a Result.
+Your resume got you the interview. The stories you tell get you the job, because what a company is hiring is your brain rather than your history. They want to know how you approach a problem, what you notice that others miss, and what you do first.
 
-The T is the one to pay attention to. In the standard version of this format the T stands for Task, and that is the version that leaves interviewers unmoved. Here it is your **Thought Process**. A task says what you were assigned. Your thinking shows how you approach a problem, and how you think is what an interviewer is actually evaluating. The company is hiring your brain.
+Every story has four parts: Situation, Thought Process, Action, Result. The usual version of this format calls the T "Task". Here it is your **Thought Process**, and that swap is the whole game.
+
+The difference, from the book:
+
+> **Task.** "I decided to run one-on-ones with each team member." That says what you did.
+>
+> **Thought process.** "I knew I had to understand the problem from both sides before designing anything, so I started with structured one-on-ones to separate what people were saying from what they were experiencing." That shows how you think.
+
+Same events, same action. The second one demonstrates a way of working: gather information before drawing conclusions, decide from what you learn. Rather than claim you are a strategic thinker, you show them, and showing beats claiming every time. You do not need to name the framework you used — the interviewer will feel the difference between someone thinking out loud and someone who owns a repeatable way of solving problems.
 
 ## Where the first set comes from
 
