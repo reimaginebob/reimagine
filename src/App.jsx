@@ -5956,7 +5956,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       // writes the pursuit_status table, which needs a user to hang off.
       ...(hasPipeline?[{id:'pipeline',label:NAV_LABELS.pipeline,Icon:Target,badge:pipelineOverdue}]:[]),
       {id:'mylib',label:NAV_LABELS.mylib,Icon:Briefcase},
-      // Your Stories is its own destination rather than a section inside
+      // Your STAR Stories is its own destination rather than a section inside
       // Interview Prep: the same story is told at this company and the next,
       // so it belongs to the person. It is also where someone who already has
       // stories written can be pointed to bring them in.
@@ -11184,7 +11184,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
   const rStep=()=>{switch(step){
     case'stories':{
-      // Your Stories. The playlist from Lesson 10: a finite set you remix rather
+      // Your STAR Stories. The playlist from Lesson 10: a finite set you remix rather
       // than a hundred you memorise. Two states per playlist type, never an empty
       // box — a story built from what this person actually told us, or the shape
       // of a strong answer plus an invitation to supply the example.
@@ -11198,7 +11198,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       }
       const ta={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',minHeight:60,marginTop:4}
       return <div>
-        <h1 style={S.title}>Your Stories</h1>
+        <h1 style={S.title}>Your STAR Stories</h1>
         <p style={S.sub}>The handful of stories you tell in interviews, in one place.</p>
         <CoachingCallout>
           <div style={{marginBottom:8}}>You do not need a hundred stories for a hundred questions. <em>Making Your Own Weather</em> puts the number at around {PLAYLIST_TARGET} well-built ones covering the range of what gets asked. The skill that sits on top of them is the remix: the same story told with a different part pushed to the front, depending on who is across the table.</div>

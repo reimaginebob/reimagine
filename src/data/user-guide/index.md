@@ -27,7 +27,7 @@ If something is not working the way you expect, check **FAQ and Troubleshooting*
 9. [Career Paths](career-paths.md)
 10. [Your Focus Playbook](focus-playbook.md)
 11. [Add an Opportunity](add-an-opportunity.md)
-12. [Your Stories](star-stories.md)
+12. [Your STAR Stories](star-stories.md)
 13. [My Coach](my-coach.md)
 14. [My Pipeline](my-pipeline.md)
 15. [My Playbooks](my-playbooks.md)

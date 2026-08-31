@@ -1,6 +1,6 @@
-# Your Stories
+# Your STAR Stories
 
-**Your Stories** is where the handful of stories you tell in interviews lives. It is a permanent sidebar entry, and it is the source the rest of the product draws on when it prepares you for a specific conversation.
+**Your STAR Stories** is where the handful of stories you tell in interviews lives. It is a permanent sidebar entry, and it is the source the rest of the product draws on when it prepares you for a specific conversation.
 
 ## Why a set rather than a pile
 
@@ -47,4 +47,4 @@ If a story you add is really the same experience as one already there, Reimagine
 
 ## How this connects to interview prep
 
-When you build Interview Prep for an opportunity where you have named the people you will meet, each person gets the stories worth telling *them*, and you can have any story written out in full with a chosen emphasis. That is the remix. Your Stories is the set it remixes from.
+When you build Interview Prep for an opportunity where you have named the people you will meet, each person gets the stories worth telling *them*, and you can have any story written out in full with a chosen emphasis. That is the remix. Your STAR Stories is the set it remixes from.
