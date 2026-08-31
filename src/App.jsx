@@ -6820,7 +6820,12 @@ export default function PivotEngine(){
   // First build, from the whole Orientation intake. Seeds only what the inputs
   // support; a type with no story is handled in the render, never invented here.
   const storiesAutoRef=useRef(false)
-  const storiesSeedable=!!String((pc&&pc.resume)||'').trim()
+  // Reads profile.resume, NOT pc.resume. pc is built further down the component
+  // body (line ~8515) and this const sits at ~6823, so touching pc here threw
+  // "Cannot access before initialization" on every single render — a temporal
+  // dead zone error that took the whole app down, not just this screen.
+  // pc.resume is profile.resume, so the shorter reference is also the correct one.
+  const storiesSeedable=!!String(profile.resume||'').trim()
   const buildStoryLibrary=async()=>{
     if(storiesBusy)return
     setStoriesBusy(true);setStoriesErr(null)
