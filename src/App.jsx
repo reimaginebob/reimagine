@@ -11269,7 +11269,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
         <div style={{...S.card,marginBottom:20}}>
           <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>{held} {held===1?'story':'stories'} so far</div>
-          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>A good set covers these six. Each one below is labelled with the kind it is. The ones you do not have yet are worth thinking about before an interview asks for them, and clicking one takes you there.</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>These are the questions a good set answers. Four of them come almost word for word from Johnny Taylor, CEO of SHRM, the largest HR organization in the world, in his twelve most common interview questions; the other two get asked inside a bigger question rather than on their own. Click any of them to go to your story, or to start one.</div>
           {cov.map(t=>{
             const first=starStories.find(x=>x&&x.kind===t.id)
             const jump=()=>{
@@ -11280,8 +11280,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             return <button key={t.id} type="button" onClick={jump} title={t.covered?`Go to your ${t.label.toLowerCase()} story`:`Start a ${t.label.toLowerCase()} story`} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'8px 10px',borderTop:`1px solid ${C.border}`,width:'100%',background:'transparent',border:'none',borderTopStyle:'solid',borderRadius:6,cursor:'pointer',textAlign:'left',fontFamily:'inherit'}} onMouseEnter={e=>{e.currentTarget.style.background=`${C.gold}14`}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
             <div style={{width:22,height:22,borderRadius:'50%',flexShrink:0,border:`1.5px solid ${t.covered?C.ok:C.border}`,background:t.covered?C.ok:'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>{t.covered?<Check size={12} color="#FFFFFF" strokeWidth={3}/>:null}</div>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:16,fontWeight:t.covered?700:600,color:t.covered?'#1A2540':C.gray}}>{t.label}</div>
-              {!t.covered&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:2}}>{t.prompt}</div>}
+              <div style={{fontSize:16,fontWeight:t.covered?700:600,color:t.covered?'#1A2540':C.gray}}>{t.asks||t.label}</div>
+              <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:1}}>{t.asks?t.label:t.asksNote}</div>
+              {!t.covered&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:4}}>{t.prompt}</div>}
             </div>
           </button>
           })}

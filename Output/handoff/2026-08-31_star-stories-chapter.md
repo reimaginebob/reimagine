@@ -60,7 +60,7 @@ Each part shows what your inputs support and, underneath, the specific thing onl
 
 ## The six a good set covers
 
-The screen tracks these, and shows which you have and which you do not:
+The screen tracks these as the questions they answer, and shows which you have and which you do not. Four come almost word for word from Johnny Taylor, CEO of SHRM, the largest HR organization in the world, in his twelve most common interview questions; two get asked inside a bigger question rather than on their own:
 
 - A significant achievement
 - A setback and what you learned
