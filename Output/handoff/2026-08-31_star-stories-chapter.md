@@ -28,7 +28,11 @@ TO OPEN THE GATE, four things in one PR:
 
 ## Why a set rather than a pile
 
-*Making Your Own Weather* puts it plainly: you do not need one hundred stories for one hundred questions. What you need is a playlist of roughly twelve well-built stories that cover the range of what gets asked. The set is finite and manageable, and the skill that makes it feel infinite is the remix — the same story told with a different part pushed to the front depending on who is listening.
+*Making Your Own Weather* puts it plainly: you do not need one hundred stories for one hundred questions. What you need is a playlist of roughly twelve well-built stories that cover the range of what gets asked. The set is finite and manageable, and the skill that makes it feel infinite is the remix — the same true story told with a different part pushed to the front depending on who is listening. The facts never move: same situation, same actions, same result. What moves is the emphasis, the way a DJ plays one song for different crowds by changing the beat rather than swapping the track.
+
+The book's example is a salesperson who finished the year at 140% of quota. To a CFO, lead with the financial discipline, because a CFO's first instinct on hearing a sales number is to ask whether it made money: the 140% is the headline, the profitability is the story. To a CEO, lead with what it moved — a market opened, a competitor pushed back. To a CHRO, lead with how the team came along with you, and let the number do its work quietly in the background. One story, three fronts.
+
+The book calls the five dimensions SCOPE: **Strategy**, the business outcome and the framework behind it; **Culture**, how you collaborate and lead; **Oneself**, how you talk about a failure and what you did about it; **Passion**, why you want this one; and **Expertise**, the proof you can do the work. Almost any interview question is probing one of them.
 
 That is why this exists as its own screen. The same integration story gets told at this company and the next one, so it belongs to you rather than to any single opportunity.
 
@@ -40,7 +44,7 @@ The T is the one to pay attention to. In the standard version of this format the
 
 ## Where the first set comes from
 
-You do not start from a blank screen. **Build my stories** draws on what you have already given Reimagine during Orientation, and different parts come from different places:
+You do not start from a blank screen, and you do not have to ask. The first time you open this screen Reimagine builds the set from what you have already given it during Orientation, and different parts come from different places:
 
 - Your **resume** carries the Situation and the Result: the roles, the scope, the numbers.
 - Your **reputation answers** and the pattern across your career carry the Thought Process. That is almost never written on a resume, which is why a story built only from a resume reads flat.

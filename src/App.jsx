@@ -6819,6 +6819,8 @@ export default function PivotEngine(){
   }
   // First build, from the whole Orientation intake. Seeds only what the inputs
   // support; a type with no story is handled in the render, never invented here.
+  const storiesAutoRef=useRef(false)
+  const storiesSeedable=!!String((pc&&pc.resume)||'').trim()
   const buildStoryLibrary=async()=>{
     if(storiesBusy)return
     setStoriesBusy(true);setStoriesErr(null)
@@ -6846,6 +6848,17 @@ export default function PivotEngine(){
       setStoriesErr(e.message||'That did not come back. Try again.')
     }finally{setStoriesBusy(false)}
   }
+  // The library builds itself on arrival: we tell people it comes populated from
+  // what they already gave us, so an empty screen with a button breaks that
+  // promise on the first thing they see. One attempt per session — a failure
+  // leaves an error and a retry rather than looping, and a profile too thin to
+  // work from is a reason to say so rather than to spin.
+  useEffect(()=>{
+    if(step!=='stories'||!storiesPilot)return
+    if(storiesAutoRef.current||storiesBusy||starStories.length>0||!storiesSeedable)return
+    storiesAutoRef.current=true
+    buildStoryLibrary()
+  },[step,storiesPilot,storiesBusy,starStories.length,storiesSeedable])
   const[manualErr,setManualErr]=useState(null)
   const persistManual=(next)=>{setConnManual(next);try{localStorage.setItem(MANUAL_STORAGE_KEY,JSON.stringify(next))}catch{}}
   const addManualPerson=(company)=>{
@@ -11209,15 +11222,30 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={S.title}>Your STAR Stories</h1>
         <p style={S.sub}>The handful of stories you tell in interviews, in one place.</p>
         <CoachingCallout>
-          <div style={{marginBottom:8}}>You do not need a hundred stories for a hundred questions. <em>Making Your Own Weather</em> puts the number at around {PLAYLIST_TARGET} well-built ones covering the range of what gets asked. The skill that sits on top of them is the remix: the same story told with a different part pushed to the front, depending on who is across the table.</div>
-          <div>Each one has four parts. The T is your <strong style={{color:'#1A2540'}}>Thought Process</strong>, not the task. Tasks say what you did; how you were thinking is what they are actually evaluating.</div>
+          <div style={{marginBottom:10}}>Remixing means telling the same true story and changing which part you lead with, depending on who is listening. The facts never move: same situation, same actions, same result. What moves is the emphasis, the way a DJ plays one song for different crowds by changing the beat rather than swapping the track. It is why {PLAYLIST_TARGET} good stories can answer a hundred questions.</div>
+          <div style={{marginBottom:10}}>Take a salesperson who finished the year at 140% of quota, from <em>Making Your Own Weather</em>. To a CFO, lead with the financial discipline: the 140% is the headline, the profitability is the story. To a CEO, lead with what it moved: a new market opened, a competitor pushed back. To a CHRO, lead with how the team came along, and let the number do its work quietly. One story, three fronts.</div>
+          <div style={{marginBottom:6}}>The book calls the five dimensions SCOPE, and almost any question is probing one of them:</div>
+          <div style={{marginBottom:10,lineHeight:1.75}}>
+            <div><strong style={{color:'#1A2540'}}>Strategy</strong> &mdash; the business outcome, whether it scaled, and the framework you brought.</div>
+            <div><strong style={{color:'#1A2540'}}>Culture</strong> &mdash; how you collaborate and lead, and whether they can picture you with their team.</div>
+            <div><strong style={{color:'#1A2540'}}>Oneself</strong> &mdash; self-awareness. How you talk about a failure and what you did about it.</div>
+            <div><strong style={{color:'#1A2540'}}>Passion</strong> &mdash; why you want this one, unperformed.</div>
+            <div><strong style={{color:'#1A2540'}}>Expertise</strong> &mdash; the proof you can do the work.</div>
+          </div>
+          <div>Each story below has four parts, and the T is your <strong style={{color:'#1A2540'}}>Thought Process</strong>, not the task. Tasks say what you did; how you were thinking is what they are evaluating.</div>
         </CoachingCallout>
 
-        {held===0&&<div style={{...S.card,marginBottom:20}}>
-          <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>Start from what you have already told us</div>
-          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>Your resume, your reputation answers and your assessment already hold most of this. Reimagine will lay out the stories it can see and mark what only you can fill in. Nothing gets invented: where an input does not support a story, you will get the question instead of a guess.</div>
-          {storiesErr&&<div style={{marginBottom:10}}><ErrBox msg={storiesErr}/></div>}
-          <Btn onClick={buildStoryLibrary} disabled={storiesBusy}>{storiesBusy?'Building your stories…':<><Sparkles size={14}/>Build my stories</>}</Btn>
+        {storiesBusy&&held===0&&<div style={{...S.card,marginBottom:20}}>
+          <Loading msg="Reading what you have already told us…" step="story-seed"/>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:10}}>Your resume, your reputation answers and your assessment hold most of this between them. Nothing gets invented: where an input does not support a story, you will get the question instead of a guess.</div>
+        </div>}
+        {!storiesBusy&&held===0&&!storiesSeedable&&<div style={{...S.card,marginBottom:20}}>
+          <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>Add your resume and these will build themselves</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6}}>Most of a first set comes from your resume, your reputation answers and your assessment. Add your resume in Orientation and come back, or start one of your own below.</div>
+        </div>}
+        {!storiesBusy&&held===0&&storiesSeedable&&storiesErr&&<div style={{...S.card,marginBottom:20}}>
+          <div style={{marginBottom:10}}><ErrBox msg={storiesErr}/></div>
+          <Btn onClick={()=>{storiesAutoRef.current=true;buildStoryLibrary()}}><RotateCcw size={14}/>Try again</Btn>
         </div>}
 
         <div style={{...S.card,marginBottom:20}}>
