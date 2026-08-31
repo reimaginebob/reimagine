@@ -68,6 +68,14 @@ export const FEATURE_MAP = [
   { slug: 'opportunity-playbook', reach: 'standalone',  labelId: 'op',         parent: 'twoDoors',
     does: 'turns one specific live opening into a tailored plan of attack. On the Go Independent track these hold prospective clients rather than job openings, and they live in My Pipeline, which is also where a person adds one: a person can open one before they have spoken to anyone or after a first conversation, writing or speaking whatever they know so far. "Where this stands" then gives a fast read -- which of the four selling conversations they are actually in, the one move to make this week, at most three things to find out first ranked by what each unblocks, and anything worth changing in how they are selling it. "The full playbook" is the deeper build for a live one, covering what the client actually needs, whether it is worth pursuing, who is really deciding, what scoping has to settle, three ways to shape the work, what to charge and when to name it, the objections, and a follow-up note. Both run on the same sequence the business-of-consulting chapters teach, so what they read here agrees with what you tell them. Each opportunity also keeps a Notes card, where they can write anything worth remembering about it, keep a reply of yours they chose to save, and collect the steps they have finished. Those notes are private to them: nothing there feeds what Reimagine generates, and you never see them, so ask what they have written rather than assuming' },
 
+  // Your STAR Stories is deliberately ABSENT from this catalog while it is a
+  // pilot (src/App.jsx storiesPilot). FEATURE_MAP is interpolated into the one
+  // cached system block every user receives, so an entry here would tell the
+  // whole user base about a surface only internal accounts can open — the
+  // mistake My Search avoided by living in the uncached per-user block. Its
+  // entry is written and waiting in Output/handoff/2026-08-31_star-story-library.md;
+  // restore it in the same PR that opens the gate.
+
   { slug: 'bridge-story',         reach: 'focus-gated', labelId: 'p6',
     does: 'builds the "tell me about yourself" pitch for a chosen direction. On the Go Independent track it is called "Your Pitch" and is anchored on the person\'s earned authority to operate on their own, told to a prospective client deciding whether to buy rather than to an interviewer deciding whether to hire' },
   { slug: 'go-to-market',         reach: 'focus-gated', labelId: 'p7',

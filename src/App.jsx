@@ -22,6 +22,7 @@ import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 // holding localStorage state overwrites newer server state. Tested by
 // scripts/test-autosave-gate.mjs.
 import { canPushProfile } from "./autosave-gate.js"
+import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, newStoryId, addStory, coverage, emptySlots } from "./star-stories.mjs"
 import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
 import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from "./corrections.js"
 // Stale-build self-healing: BUILD_SHA / BUILT_AT come from
@@ -3601,6 +3602,58 @@ ${asText(brand)}
 
 BRIDGE STORY:
 ${asText(bridgeStory)}`,
+  // The first build of the STAR story library (2026-08-31). Draws on the WHOLE
+  // Orientation intake, not the resume alone: the resume carries Situation and
+  // Result, while Thought Process comes from the reputation phrase and the
+  // career pattern (which is where the existing p11 breakdown already gets it),
+  // and the watch-out story comes from the assessment.
+  //
+  // Returns a story per playlist type it can actually support, and NOTHING for
+  // the types it cannot. An absent story is handled by the UI, which shows the
+  // shape of a strong answer instead. That is deliberate: a fabricated story
+  // here would be an invented account of the person's own past, which they would
+  // then carry into a real interview.
+  storySeed:(pc,brand)=>`Build the first version of this person's STAR story library from what they have already told Reimagine.
+
+WHAT A STORY IS HERE. Four slots: Situation, Thought Process, Action, Result. The T is Thought Process, NOT Task — that is the one change this method makes to STAR and the whole reason its answers land. Tasks say what someone did; thought process shows how they think, which is what an interviewer is actually evaluating.
+
+WHERE EACH SLOT COMES FROM. Different inputs carry different slots, and using the wrong one is how this goes wrong:
+- Situation and Result: the resume. Roles, scope, numbers, what changed.
+- Thought Process: the reputation inputs and the pattern across their career. How they approach a problem, what they do first, what colleagues say they bring. This is almost never written on a resume and you must not invent it from one.
+- Action: the resume where it is specific, otherwise leave it thin and say what would fill it.
+- The watch-out story: the assessment. A strength at its best and that same strength when it runs unchecked are the same trait, and naming both is what self-awareness sounds like.
+
+THE SIX A GOOD PLAYLIST COVERS: a significant achievement; a failure and what they learned; leading without formal authority; a difficult collaboration; a moment of strategic impact; navigating ambiguity or conflict.
+
+RETURN A STORY ONLY WHERE THE INPUTS SUPPORT ONE. Aim for six to ten. Do NOT manufacture a story to fill a type — omit it and the person will be asked for it. Inventing someone's own past is the worst failure available here.
+
+EVERY SLOT IS TWO THINGS. A "text" field: what their inputs actually support, stated plainly, no characterization and no "you are X" constructions. And a "to_strengthen" field: the specific missing thing only they can supply, a name, a number, a decision, the moment it turned. Never generic advice, never "add more detail" or "flesh this out". Where a slot has no support at all, leave text empty and put the ask in to_strengthen.
+
+THE WATCH-OUT STORY, if the assessment supports one. Name where the strength serves them, then where the same strength costs them when it runs unchecked, then the moment it did. In the output use plain words for this. NEVER write "balcony", "basement", "shadow", or "assessment signal" — those are internal vocabulary and are banned in anything the person reads.
+
+Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end with }.
+
+{
+  "stories": [
+    {
+      "title": "a short plain name they would recognise, e.g. Toronto acquisition integration",
+      "kind": "one of: achievement, failure, authority, collaboration, strategic, ambiguity",
+      "why": "one short line on when this story is the right one to tell",
+      "slots": {
+        "S": { "text": "", "to_strengthen": "" },
+        "T": { "text": "", "to_strengthen": "" },
+        "A": { "text": "", "to_strengthen": "" },
+        "R": { "text": "", "to_strengthen": "" }
+      }
+    }
+  ]
+}
+
+One story per experience. If two angles on the same event both look useful, pick the stronger one — this is a library the person will maintain, and two rows for one event is how it turns into clutter.
+
+PERSONAL BRAND (their through-line and their voice):
+${(brand||'').slice(0,2500)||'(not built yet)'}
+`,
   // Who You Know Here outreach note (2026-08-30). The sibling of p_cover, aimed
   // at someone the person ALREADY KNOWS rather than at a hiring manager, and the
   // ask is different in kind: not "consider me", but "who owns this role".
@@ -5826,7 +5879,7 @@ function SupportPanel({onClose}){
   </div>
 }
 
-function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false}){
+function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,storiesPilot=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false}){
   const navRef=useRef(null)
   // Below the breakpoint the rail leaves the flex flow and becomes an off-canvas
   // drawer, which is what hands the content column the full width. At or above
@@ -5903,6 +5956,11 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       // writes the pursuit_status table, which needs a user to hang off.
       ...(hasPipeline?[{id:'pipeline',label:NAV_LABELS.pipeline,Icon:Target,badge:pipelineOverdue}]:[]),
       {id:'mylib',label:NAV_LABELS.mylib,Icon:Briefcase},
+      // Your STAR Stories is its own destination rather than a section inside
+      // Interview Prep: the same story is told at this company and the next,
+      // so it belongs to the person. It is also where someone who already has
+      // stories written can be pointed to bring them in.
+      ...(storiesPilot?[{id:'stories',label:NAV_LABELS.stories,Icon:Lightbulb}]:[]),
       {id:'p3',label:NAV_LABELS.p3,Icon:Fingerprint},
       // Go Independent has one way forward rather than two doors, so its rail
       // names the practice plan and the two things inside it. Career Paths and
@@ -6510,6 +6568,13 @@ export default function PivotEngine(){
   // Demo and test have no signedInUser, so they stay out of it the same way they
   // did before.
   const hasPipeline=!!signedInUser
+  // PILOT GATE — Your STAR Stories, 2026-08-31. Internal accounts only while
+  // the seeded output is being judged. To open it to everyone: delete this
+  // const and its two uses, restore the FEATURE_MAP entry in
+  // src/coach-routing.js, and put star-stories.md back in ORDER.json. Those
+  // three go together — a surface in the Coach catalog that a user cannot
+  // reach is worse than one they have not heard of.
+  const storiesPilot=!!(signedInUser&&/@career\.club$/i.test(String(signedInUser.email||'')))
   // The connector did NOT go GA with the screen. Letting an outside assistant
   // hold a bearer token and write status unattended is a different risk class
   // from a screen in the app, so it stays a named beta on the same flag value.
@@ -6724,6 +6789,63 @@ export default function PivotEngine(){
   const[manualOpen,setManualOpen]=useState({})
   const[manualDraft,setManualDraft]=useState({name:'',title:'',url:''})
   const[storyLens,setStoryLens]=useState({})
+  // The STAR story library. Server-side per row (api/star-stories.js) because
+  // these are the person's own work product, they grow, and a growing array of
+  // long text in the whole-blob autosave is what lost a user five playbooks.
+  const[starStories,setStarStories]=useState([])
+  const[storiesBusy,setStoriesBusy]=useState(false)
+  const[storiesErr,setStoriesErr]=useState(null)
+  const[storyDraft,setStoryDraft]=useState({title:'',kind:'achievement'})
+  const saveStory=(story)=>{
+    setStarStories(prev=>{const i=prev.findIndex(x=>x.id===story.id);return i>=0?prev.map(x=>x.id===story.id?story:x):[...prev,story]})
+    if(!isDemo&&!isTest){try{fetch('/api/star-stories',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({story})}).catch(()=>{})}catch{}}
+  }
+  const deleteStory=(storyId)=>{
+    setStarStories(prev=>prev.filter(x=>x.id!==storyId))
+    if(!isDemo&&!isTest){try{fetch('/api/star-stories',{method:'DELETE',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({storyId})}).catch(()=>{})}catch{}}
+  }
+  const addStoryByHand=()=>{
+    const title=(storyDraft.title||'').trim()
+    if(!title){setStoriesErr('Give the story a short name first.');return}
+    setStoriesErr(null)
+    const ts=new Date().toISOString()
+    const story={id:newStoryId(),title,kind:storyDraft.kind||'achievement',origin:'typed',why:'',
+      slots:{S:{text:'',to_strengthen:''},T:{text:'',to_strengthen:''},A:{text:'',to_strengthen:''},R:{text:'',to_strengthen:''}},
+      createdAt:ts,updatedAt:ts}
+    const next=addStory(starStories,story)
+    if(next.length===starStories.length){setStoriesErr('You already have a story by that name.');return}
+    saveStory(story)
+    setStoryDraft({title:'',kind:storyDraft.kind})
+  }
+  // First build, from the whole Orientation intake. Seeds only what the inputs
+  // support; a type with no story is handled in the render, never invented here.
+  const buildStoryLibrary=async()=>{
+    if(storiesBusy)return
+    setStoriesBusy(true);setStoriesErr(null)
+    try{
+      const brand=asText(outputs.p3)
+      const r=await callClaudeWithVoiceGate(()=>P.storySeed(pc,brand),{maxTokens:6000,profileBlock:buildUserProfileBlock(pc,outputs),step:'story-seed'},{step:'story-seed',onEvent:logVoiceEvent})
+      const txt=typeof r==='string'?r:''
+      const a=txt.indexOf('{'),b=txt.lastIndexOf('}')
+      let obj=null;try{obj=JSON.parse(txt.slice(a,b+1))}catch{}
+      const rows=(obj&&Array.isArray(obj.stories))?obj.stories:null
+      if(!rows||!rows.length){setStoriesErr('That came back in a shape we could not read. Try again.');return}
+      const ts=new Date().toISOString()
+      let acc=starStories
+      for(const row of rows){
+        const title=(row&&typeof row.title==='string')?row.title.trim():''
+        if(!title)continue
+        const story={id:newStoryId(),title,kind:(row.kind||'').trim()||'achievement',origin:'seed',
+          why:(typeof row.why==='string'?row.why.trim():''),
+          slots:(row.slots&&typeof row.slots==='object')?row.slots:{},
+          createdAt:ts,updatedAt:ts}
+        const next=addStory(acc,story)
+        if(next.length>acc.length){acc=next;saveStory(story)}
+      }
+    }catch(e){
+      setStoriesErr(e.message||'That did not come back. Try again.')
+    }finally{setStoriesBusy(false)}
+  }
   const[manualErr,setManualErr]=useState(null)
   const persistManual=(next)=>{setConnManual(next);try{localStorage.setItem(MANUAL_STORAGE_KEY,JSON.stringify(next))}catch{}}
   const addManualPerson=(company)=>{
@@ -6763,6 +6885,7 @@ export default function PivotEngine(){
   useEffect(()=>{
     if(isDemo||isTest)return
     if(!hasPipeline)return
+    fetch('/api/star-stories',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.stories))setStarStories(d.stories)}).catch(()=>{})
     fetch('/api/pursuit-status',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitStatus(d.rows)}).catch(()=>{})
     fetch('/api/pursuit-interviewers',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitInterviewers(d.rows)}).catch(()=>{})
   },[hasPipeline,isDemo,isTest])
@@ -11067,6 +11190,84 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const showWelcomeBack=migratedFromPreV1&&(()=>{try{return !localStorage.getItem('pe_welcome_back_v1')}catch{return true}})()
 
   const rStep=()=>{switch(step){
+    case'stories':{
+      if(!storiesPilot)return null
+      // Your STAR Stories. The playlist from Lesson 10: a finite set you remix rather
+      // than a hundred you memorise. Two states per playlist type, never an empty
+      // box — a story built from what this person actually told us, or the shape
+      // of a strong answer plus an invitation to supply the example.
+      const cov=coverage(starStories)
+      const held=starStories.length
+      const slotEdit=(story,slot,field,value)=>{
+        const slots={...(story.slots||{})}
+        const cur=(slots[slot]&&typeof slots[slot]==='object')?slots[slot]:{text:'',to_strengthen:''}
+        slots[slot]={...cur,[field]:value}
+        saveStory({...story,slots,updatedAt:new Date().toISOString()})
+      }
+      const ta={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',minHeight:60,marginTop:4}
+      return <div>
+        <h1 style={S.title}>Your STAR Stories</h1>
+        <p style={S.sub}>The handful of stories you tell in interviews, in one place.</p>
+        <CoachingCallout>
+          <div style={{marginBottom:8}}>You do not need a hundred stories for a hundred questions. <em>Making Your Own Weather</em> puts the number at around {PLAYLIST_TARGET} well-built ones covering the range of what gets asked. The skill that sits on top of them is the remix: the same story told with a different part pushed to the front, depending on who is across the table.</div>
+          <div>Each one has four parts. The T is your <strong style={{color:'#1A2540'}}>Thought Process</strong>, not the task. Tasks say what you did; how you were thinking is what they are actually evaluating.</div>
+        </CoachingCallout>
+
+        {held===0&&<div style={{...S.card,marginBottom:20}}>
+          <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>Start from what you have already told us</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>Your resume, your reputation answers and your assessment already hold most of this. Reimagine will lay out the stories it can see and mark what only you can fill in. Nothing gets invented: where an input does not support a story, you will get the question instead of a guess.</div>
+          {storiesErr&&<div style={{marginBottom:10}}><ErrBox msg={storiesErr}/></div>}
+          <Btn onClick={buildStoryLibrary} disabled={storiesBusy}>{storiesBusy?'Building your stories…':<><Sparkles size={14}/>Build my stories</>}</Btn>
+        </div>}
+
+        <div style={{...S.card,marginBottom:20}}>
+          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>{held} {held===1?'story':'stories'} so far</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>A good set covers these six. The ones you do not have yet are worth thinking about before an interview asks for them.</div>
+          {cov.map(t=><div key={t.id} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'8px 0',borderTop:`1px solid ${C.border}`}}>
+            <div style={{width:22,height:22,borderRadius:'50%',flexShrink:0,border:`1.5px solid ${t.covered?C.ok:C.border}`,background:t.covered?C.ok:'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>{t.covered?<Check size={12} color="#FFFFFF" strokeWidth={3}/>:null}</div>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:16,fontWeight:t.covered?700:600,color:t.covered?'#1A2540':C.gray}}>{t.label}</div>
+              {!t.covered&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:2}}>{t.prompt}</div>}
+            </div>
+          </div>)}
+        </div>
+
+        {starStories.map(story=>{
+          const gaps=emptySlots(story)
+          return <div key={story.id} style={{...S.card,marginBottom:14}}>
+            <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+              <div style={{fontSize:18,fontWeight:700,color:'#1A2540'}}>{story.title}</div>
+              <button type="button" onClick={()=>deleteStory(story.id)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit',textDecoration:'underline'}}>Remove</button>
+            </div>
+            {story.why&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:2}}>{story.why}</div>}
+            {gaps.length>0&&<div style={{fontSize:15,color:C.goldL,fontWeight:600,marginTop:6}}>{gaps.length===1?'One part still needs you':`${gaps.length} parts still need you`}: {gaps.map(g=>SLOT_LABELS[g]).join(', ')}.</div>}
+            <div style={{marginTop:10}}>
+              {STORY_SLOTS.map(k=>{
+                const raw=(story.slots&&story.slots[k])||{}
+                const cur=typeof raw==='object'?raw:{text:String(raw||''),to_strengthen:''}
+                return <div key={k} style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
+                  <div style={{fontSize:15,fontWeight:700,color:C.goldL,marginBottom:2}}>{k} &mdash; {SLOT_LABELS[k]}</div>
+                  <textarea style={ta} value={cur.text||''} placeholder={k==='T'?'How you were thinking about it, not what you were assigned.':''} onChange={e=>slotEdit(story,k,'text',e.target.value)}/>
+                  {cur.to_strengthen&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:4}}><em>To strengthen:</em> {cur.to_strengthen}</div>}
+                </div>
+              })}
+            </div>
+          </div>
+        })}
+
+        <div style={{...S.card}}>
+          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>Add one of your own</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Name it now and fill it in when you have a minute. A story with a name on the list is one you will actually come back to.</div>
+          <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'2fr 1fr',gap:10,marginBottom:10}}>
+            <label style={{display:'block',fontSize:15,color:C.gray}}>What you would call it<input style={{...ta,minHeight:0}} value={storyDraft.title} onChange={e=>setStoryDraft(d=>({...d,title:e.target.value}))} placeholder="Toronto acquisition integration"/></label>
+            <label style={{display:'block',fontSize:15,color:C.gray}}>What kind<select style={{...ta,minHeight:0}} value={storyDraft.kind} onChange={e=>setStoryDraft(d=>({...d,kind:e.target.value}))}>{PLAYLIST_TYPES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select></label>
+          </div>
+          {storiesErr&&held>0&&<div style={{marginBottom:10}}><ErrBox msg={storiesErr}/></div>}
+          <Btn small onClick={addStoryByHand}><Plus size={14}/>Add it</Btn>
+        </div>
+      </div>
+    }
+
     case'welcome':return isDemo?<div>
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="380" height="132" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block',marginBottom:16}}>
         <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.18"/>
@@ -13782,7 +13983,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{display:'flex',flex:1,minHeight:0,position:'relative'}}>
         {isMobile&&drawerOpen&&<div data-print="hide" onClick={closeDrawer} aria-hidden="true" style={{position:'absolute',inset:0,zIndex:20,background:'rgba(15,26,48,0.5)'}}/>}
         {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
-        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} storiesPilot={storiesPilot} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
         <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,padding:isMobile?'22px 16px 40px':'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
