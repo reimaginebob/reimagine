@@ -19,7 +19,7 @@ TO OPEN THE GATE, four things in one PR:
      above the bridge-story entry:
 
   { slug: 'your-stories',        reach: 'standalone',  labelId: 'stories',
-    does: 'holds the handful of STAR stories they tell in interviews, which the book puts at roughly twelve covering the range of what gets asked. The first set is built from what Orientation already holds, and the parts come from different places: the resume carries Situation and Result, the reputation answers and career pattern carry the Thought Process, and the assessment carries the story about what they are still working on. Nothing is invented -- where an input does not support a story they get the question instead of a guess, and every part is editable because their words win. It tracks the six kinds a good set covers and, for one they do not have yet, shows the shape of a strong answer rather than an empty box. Remember the T here is Thought Process, never Task: that is the change this method makes to STAR and the reason its answers land. This is the set Interview Prep remixes from when it prepares them for named people. The screen also names the other eight of those twelve questions -- the ones that want something other than a story -- and points at where Reimagine answers each: Bridge Story, Personal Brand, About This Company, Interview Prep' },
+    does: 'holds the handful of STAR stories they tell in interviews, which the book puts at roughly twelve covering the range of what gets asked. The first set is built from what Orientation already holds, and the parts come from different places: the resume carries Situation and Result, the reputation answers and career pattern carry the Thought Process, and the assessment carries the story about what they are still working on. Nothing is invented -- where an input does not support a story they get the question instead of a guess, and every part is editable because their words win. It tracks the six kinds a good set covers and, for one they do not have yet, shows the shape of a strong answer rather than an empty box. Remember the T here is Thought Process, never Task: that is the change this method makes to STAR and the reason its answers land. This is the set Interview Prep remixes from when it prepares them for named people. The screen also names eight more questions -- the ones that want something other than a story -- and points at where Reimagine answers each: Bridge Story, About This Company, Interview Prep, and for "what is not on your resume" a conversation with the Coach itself. Fourteen questions in all. Every story carries a "Does this feel right?" box that reworks that one story from the person's note; a story Reimagine built has no Remove, because correcting it beats deleting it' },
 -->
 
 # Your STAR Stories
@@ -60,7 +60,7 @@ Each part shows what your inputs support and, underneath, the specific thing onl
 
 ## The six a good set covers
 
-The screen tracks these as the questions they answer, and shows which you have and which you do not. Four come almost word for word from Johnny Taylor, CEO of SHRM, the largest HR organization in the world, in his twelve most common interview questions; two get asked inside a bigger question rather than on their own:
+The screen tracks these as the questions they answer, and shows which you have and which you do not. They are a head start drawn from Johnny Taylor, CEO of SHRM, the largest HR organization in the world, and from what else gets asked once someone starts probing how you work:
 
 - A significant achievement
 - A setback and what you learned
@@ -71,18 +71,26 @@ The screen tracks these as the questions they answer, and shows which you have a
 
 A type you have not covered yet is never shown as an empty box. It comes with the shape of a strong answer for that question, so you know what you are looking for in your own memory before you sit down to write anything. Two of them — leading without formal authority, and a difficult collaboration — are usually the last to fill, because nobody writes them on a resume. They are worth having ready anyway; they get asked.
 
-## The rest of the twelve
+## The other questions you will be asked
 
-Eight of Taylor's twelve questions do not want a story out of your library. They want something else, and Reimagine has that somewhere else, so the screen names where rather than leaving two thirds of a well-known list unaccounted for.
+Eight more questions do not want a story out of your library. They want something else, and Reimagine has that, so the screen names where. Between the six above and these eight, fourteen questions are accounted for before you walk in.
 
 - **"Tell me about yourself."** Your Bridge Story, built for you on any opportunity or direction.
-- **"What isn't on your resume?"** Your Personal Brand. This is the one question that wants the human answer rather than the professional one -- values, what you care about, what shaped you.
+- **"What isn't on your resume?"** Work on this one with My Coach. It is the question that wants the human answer rather than the professional one -- values, what you care about, what shaped you -- and the Coach already knows all of it. It drafts an answer in your voice, says which parts it was least sure about, and works it with you from there.
 - **"What do you know about our company?"** About This Company, on the opportunity. The effort is itself the signal.
 - **"Why are you leaving your current role?"** Your best and fewest reasons. A layoff stated plainly reads as fact and needs no apology.
 - **"What did you like most and least about your last role?"** Values alignment. Name something you valued that this company also values.
 - **"Are you underqualified or overqualified?"** Redirect to the specific value you bring, and keep it short.
 - **"Has your view of the job changed since we started talking?"** Asked late, and it tests whether you were listening rather than running a script.
 - **"Do you have any questions for me?"** Interview Prep gives you questions aimed at what each person you are meeting uniquely knows.
+
+## Does this feel right?
+
+Every story carries the same **Does this feel right?** box you see under everything Reimagine builds. If a Result is wrong, if the Thought Process is not how you actually approached it, say so and the story is reworked from your note. Only that story changes, and anything you have written by hand stays put unless your note asks otherwise. Your correction also carries forward, so a fact you fix once does not come back wrong somewhere else.
+
+A story Reimagine built for you has no Remove button, and that is deliberate: every one of them answers a question you will be asked, so a rough answer corrected beats a good question with nothing behind it. Stories you add yourself can be removed, because those are yours to keep or drop.
+
+**Edit the words myself** switches the four parts into text boxes when you would rather write it yourself. Your words win over ours every time.
 
 ## Adding your own
 

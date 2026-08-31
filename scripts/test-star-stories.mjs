@@ -2,6 +2,7 @@
 // keeps one experience from becoming three rows, and slot completeness.
 import {
   PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS,
+  ROUTED_QUESTIONS,
   newStoryId, normalizeTitle, sameStory, addStory, coverage, emptySlots, isComplete,
 } from '../src/star-stories.mjs'
 
@@ -15,12 +16,12 @@ const eq = (a, b, msg) => ok(JSON.stringify(a) === JSON.stringify(b), `${msg} �
 eq(PLAYLIST_TYPES.length, 6, 'the six playlist types from Lesson 10')
 eq(PLAYLIST_TYPES.map(t => t.id), ['achievement', 'setback', 'authority', 'collaboration', 'strategic', 'ambiguity'], 'in the book\'s order')
 ok(PLAYLIST_TYPES.every(t => t.prompt && t.prompt.length > 30), 'every type carries guidance, so an uncovered type is never an empty box')
-// The inventory reads as questions. Four of the six map to one of Johnny
-// Taylor's twelve; the other two are asked inside a bigger question and say so
-// rather than having a question invented for them.
-ok(PLAYLIST_TYPES.filter(t => t.asks).length === 4, 'four of the six carry a real interview question')
-ok(PLAYLIST_TYPES.every(t => t.asks || t.asksNote), 'a type with no question of its own explains where it does get asked')
-ok(PLAYLIST_TYPES.filter(t => t.asks).every(t => t.asks.trim().endsWith('"')), 'questions are quoted as the interviewer would say them')
+// The inventory reads as questions, all six of them. Four are Johnny Taylor's
+// and two are not; neither the data nor the screen marks that difference,
+// because the source is credited once at the top and a question is a question.
+ok(PLAYLIST_TYPES.every(t => t.asks), 'every type carries the question it answers')
+ok(PLAYLIST_TYPES.every(t => t.asks.trim().endsWith('"')), 'questions are quoted as the interviewer would say them')
+ok(PLAYLIST_TYPES.every(t => !t.asksNote), 'no type carries a footnote about a list it is not on')
 eq(PLAYLIST_TARGET, 12, 'roughly twelve, per the Playlist Principle')
 // Reimagine's one change to STAR is load-bearing and must not drift back.
 eq(SLOT_LABELS.T, 'Thought Process', 'T is Thought Process, never Task')
@@ -80,5 +81,17 @@ ok(!isComplete(partial), 'partial is not')
 // Slots may be objects carrying their own to_strengthen, as the prep produces.
 eq(emptySlots({ slots: { S: { text: 'x' }, T: { text: '' }, A: { text: 'y' }, R: { text: 'z' } } }), ['T'],
    'object-shaped slots are read for their text')
+
+// ── The eight that route elsewhere ──────────────────────────────────────────
+
+eq(ROUTED_QUESTIONS.length, 8, 'the other eight of the twelve')
+ok(ROUTED_QUESTIONS.every(q => q.asks && q.where && q.note), 'each names the question, where it is answered, and what it tests')
+ok(ROUTED_QUESTIONS.every(q => q.asks.trim().endsWith('"')), 'quoted as the interviewer would say them')
+// Six story questions plus eight routed is the whole foundation the screen
+// shows: Taylor's twelve, plus two the book adds that his list does not ask.
+eq(PLAYLIST_TYPES.length + ROUTED_QUESTIONS.length, 14, 'fourteen questions in total')
+// Exactly one routed question hands off to My Coach rather than to a screen.
+eq(ROUTED_QUESTIONS.filter(q => q.coach).map(q => q.id), ['not-on-resume'], 'the human question is worked out in conversation')
+ok(ROUTED_QUESTIONS.filter(q => q.step).every(q => !q.coach), 'a question routes to a screen or to the coach, never both')
 
 console.log(`test-star-stories: OK (${passed} cases passed)`)
