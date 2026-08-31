@@ -7675,6 +7675,7 @@ export default function PivotEngine(){
   // committed and the browser has painted the new content before the scroll
   // resolves a target position. Null-check on the element handles the case
   // where the user navigated to a different step before generation finished.
+  const scrollToStory=(id)=>{requestAnimationFrame(()=>{const el=document.getElementById(id);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
   const scrollToOutput=(key)=>{requestAnimationFrame(()=>{const el=document.getElementById(`section-${key}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
   const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);window.scrollTo(0,0)}}
   const demoPrev=()=>{if(demoIdx>0){const prev=demoIdx-1;setDemoIdx(prev);setStep(DEMO_TOUR[prev].step);window.scrollTo(0,0)}}
@@ -11255,18 +11256,26 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={{...S.card,marginBottom:20}}>
           <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>{held} {held===1?'story':'stories'} so far</div>
           <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>A good set covers these six. The ones you do not have yet are worth thinking about before an interview asks for them.</div>
-          {cov.map(t=><div key={t.id} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'8px 0',borderTop:`1px solid ${C.border}`}}>
+          {cov.map(t=>{
+            const first=starStories.find(x=>x&&x.kind===t.id)
+            const jump=()=>{
+              if(first){scrollToStory(`story-${first.id}`);return}
+              setStoryDraft(d=>({...d,kind:t.id}))
+              scrollToStory('story-add')
+            }
+            return <button key={t.id} type="button" onClick={jump} title={t.covered?`Go to your ${t.label.toLowerCase()} story`:`Start a ${t.label.toLowerCase()} story`} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'8px 10px',borderTop:`1px solid ${C.border}`,width:'100%',background:'transparent',border:'none',borderTopStyle:'solid',borderRadius:6,cursor:'pointer',textAlign:'left',fontFamily:'inherit'}} onMouseEnter={e=>{e.currentTarget.style.background=`${C.gold}14`}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
             <div style={{width:22,height:22,borderRadius:'50%',flexShrink:0,border:`1.5px solid ${t.covered?C.ok:C.border}`,background:t.covered?C.ok:'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>{t.covered?<Check size={12} color="#FFFFFF" strokeWidth={3}/>:null}</div>
             <div style={{minWidth:0}}>
               <div style={{fontSize:16,fontWeight:t.covered?700:600,color:t.covered?'#1A2540':C.gray}}>{t.label}</div>
               {!t.covered&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:2}}>{t.prompt}</div>}
             </div>
-          </div>)}
+          </button>
+          })}
         </div>
 
         {starStories.map(story=>{
           const gaps=emptySlots(story)
-          return <div key={story.id} style={{...S.card,marginBottom:14}}>
+          return <div key={story.id} id={`story-${story.id}`} style={{...S.card,marginBottom:14,scrollMarginTop:80}}>
             <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
               <div style={{fontSize:18,fontWeight:700,color:'#1A2540'}}>{story.title}</div>
               <button type="button" onClick={()=>deleteStory(story.id)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',padding:0,fontSize:15,fontFamily:'inherit',textDecoration:'underline'}}>Remove</button>
@@ -11287,7 +11296,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
         })}
 
-        <div style={{...S.card}}>
+        <div id="story-add" style={{...S.card,scrollMarginTop:80}}>
           <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>Add one of your own</div>
           <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Name it now and fill it in when you have a minute. A story with a name on the list is one you will actually come back to.</div>
           <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'2fr 1fr',gap:10,marginBottom:10}}>
