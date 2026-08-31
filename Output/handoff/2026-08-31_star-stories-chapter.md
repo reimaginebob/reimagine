@@ -94,6 +94,10 @@ Eight more questions do not want a story out of your library. They want somethin
 - **"Has your view of the job changed since we started talking?"** Asked late, and it tests whether you were listening rather than running a script.
 - **"Do you have any questions for me?"** Interview Prep gives you questions aimed at what each person you are meeting uniquely knows.
 
+## One answer per question
+
+Each of the six questions gets one answer on the screen: the question as the heading, and the story you would tell for it underneath. If Reimagine found more than one experience that could answer the same question, the strongest leads and the rest sit behind a line saying so, where you can keep the one you would actually tell and drop the others.
+
 ## Does this feel right?
 
 Every story carries the same **Does this feel right?** box you see under everything Reimagine builds. If a Result is wrong, if the Thought Process is not how you actually approached it, say so and the story is reworked from your note. Only that story changes, and anything you have written by hand stays put unless your note asks otherwise. Your correction also carries forward, so a fact you fix once does not come back wrong somewhere else.

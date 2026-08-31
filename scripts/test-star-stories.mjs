@@ -4,6 +4,7 @@ import {
   PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS,
   ROUTED_QUESTIONS, orderStories, WEAKNESS_QUESTION, INVENTORY, storyCards, firstPerKind,
   weaknessRecord, hasWeaknessEvidence, numbersIn, storyNumbers, missingNumbers,
+  rankStories, questionGroup,
   newStoryId, normalizeTitle, sameStory, addStory, coverage, emptySlots, isComplete,
 } from '../src/star-stories.mjs'
 
@@ -217,5 +218,39 @@ eq([...storyNumbers({ title: '76% placement', why: 'covers scale', slots: { R: {
    ['40', '76'], 'title, why and slots are all read')
 eq([...storyNumbers({ slots: { R: 'plain string slot, 40%' } })], ['40'], 'a string-shaped slot is read too')
 eq([...storyNumbers(null)], [], 'no story has no numbers')
+
+// ── One answer per question ─────────────────────────────────────────────────
+
+// One real library ended up with three separate cards all answering "the
+// achievement you are most proud of", from three seed runs whose titles for the
+// same event shared no distinctive words. Every one rendered as a peer, so a
+// person had to work out which of three was theirs before using any of them.
+const allFour = { S: { text: 'a' }, T: { text: 'b' }, A: { text: 'c' }, R: { text: 'd' } }
+const oneOpen = { S: { text: 'a' }, T: { text: '' }, A: { text: 'c' }, R: { text: 'd' } }
+const three = [
+  { id: 'old', kind: 'achievement', title: 'Cutting early-career attrition in half', updatedAt: '2026-08-30', slots: allFour },
+  { id: 'gap', kind: 'achievement', title: 'The claims operations restructure', updatedAt: '2026-08-31', slots: oneOpen },
+  { id: 'new', kind: 'achievement', title: 'Cutting early-career attrition at Continental', updatedAt: '2026-09-01', slots: allFour },
+]
+
+// Insertion order is the wrong answer: the oldest row was written by the
+// earliest version of the prompt, so arrival order leads with the weakest card.
+eq(rankStories(three).map(x => x.id), ['new', 'old', 'gap'], 'complete first, then most recently worked on')
+eq(rankStories([]).length, 0, 'nothing ranks to nothing')
+eq(rankStories(null).length, 0, 'no list ranks to nothing')
+const untouched = three.map(x => x.id)
+rankStories(three)
+eq(three.map(x => x.id), untouched, 'ranking does not mutate the caller\'s array')
+
+const grp = questionGroup(three, 'achievement')
+eq(grp.primary.id, 'new', 'the best-built story leads the question')
+eq(grp.alternates.map(x => x.id), ['old', 'gap'], 'the rest are candidates for the same question')
+eq(questionGroup(three, 'strategic'), { primary: null, alternates: [] }, 'a question with no story has no primary')
+eq(questionGroup([], 'achievement').primary, null, 'an empty library has no primary')
+eq(questionGroup(null, 'achievement').alternates.length, 0, 'no library has no candidates')
+// questionGroup runs through storyCards, so the rows that must never render as
+// story cards stay out of it here too.
+eq(questionGroup([{ id: 'w', kind: 'weakness', weakness: { real: 'x' } }], 'weakness').primary, null,
+   'the weakness record is never a story card')
 
 console.log(`test-star-stories: OK (${passed} cases passed)`)

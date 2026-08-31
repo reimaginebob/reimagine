@@ -22,7 +22,7 @@ import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 // holding localStorage state overwrites newer server state. Tested by
 // scripts/test-autosave-gate.mjs.
 import { canPushProfile } from "./autosave-gate.js"
-import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, storyCards, firstPerKind, weaknessRecord, missingNumbers } from "./star-stories.mjs"
+import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, firstPerKind, weaknessRecord, missingNumbers, questionGroup } from "./star-stories.mjs"
 import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
 import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from "./corrections.js"
 // Stale-build self-healing: BUILD_SHA / BUILT_AT come from
@@ -6941,6 +6941,8 @@ export default function PivotEngine(){
   // A number the person typed into their correction that did not come back in
   // the rewrite. Held per story and cleared on the next refine of that story.
   const[storyLostNums,setStoryLostNums]=useState({})
+  // Which questions have their extra candidates expanded.
+  const[storyAltsOpen,setStoryAltsOpen]=useState({})
   const saveStory=(story)=>{
     setStarStories(prev=>{const i=prev.findIndex(x=>x.id===story.id);return i>=0?prev.map(x=>x.id===story.id?story:x):[...prev,story]})
     if(!isDemo&&!isTest){try{fetch('/api/star-stories',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({story})}).catch(()=>{})}catch{}}
@@ -7002,7 +7004,7 @@ export default function PivotEngine(){
   // dead zone error that took the whole app down, not just this screen.
   // pc.resume is profile.resume, so the shorter reference is also the correct one.
   const storiesSeedable=!!String(profile.resume||'').trim()
-  const buildStoryLibrary=async()=>{
+  const buildStoryLibrary=async({weaknessOnly=false}={})=>{
     if(storiesBusy)return
     setStoriesBusy(true);setStoriesErr(null)
     try{
@@ -7019,7 +7021,7 @@ export default function PivotEngine(){
       // describing one event in different words, which no title-based dedupe
       // could catch. Instruction plus mechanism, per the voice-gate pattern.
       let acc=starStories
-      for(const row of firstPerKind(rows.filter(r=>r&&typeof r.title==='string'&&r.title.trim()&&r.kind!=='weakness'&&r.kind!=='setback'))){
+      for(const row of (weaknessOnly?[]:firstPerKind(rows.filter(r=>r&&typeof r.title==='string'&&r.title.trim()&&r.kind!=='weakness'&&r.kind!=='setback')))){
         const title=row.title.trim()
         const story={id:newStoryId(),title,kind:(row.kind||'').trim()||'achievement',origin:'seed',
           question:(typeof row.question==='string'?row.question.trim():''),
@@ -11444,16 +11446,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
         <div style={{...S.card,marginBottom:20}}>
           <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>{held} {held===1?'story':'stories'} so far</div>
-          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>These six are a strong head start on a library, drawn from Johnny Taylor, CEO of SHRM, the largest HR organization in the world, and from what else gets asked once someone starts probing how you work. Click any question to go to your story, or to start one.</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>These six are a strong head start on a library, drawn from Johnny Taylor, CEO of SHRM, the largest HR organization in the world, and from what else gets asked once someone starts probing how you work. Each one gets a single answer below. Click any question to go to it.</div>
           {cov.map(t=>{
-            const first=starStories.find(x=>x&&x.kind===t.id)
-            const jump=()=>{
-              if(t.id==='weakness'){scrollToStory('story-weakness');return}
-              if(first){scrollToStory(`story-${first.id}`);return}
-              setStoryDraft(d=>({...d,kind:t.id}))
-              scrollToStory('story-add')
-            }
-            return <button key={t.id} type="button" onClick={jump} title={t.covered?`Go to your ${t.label.toLowerCase()} story`:`Start a ${t.label.toLowerCase()} story`} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'8px 10px',borderTop:`1px solid ${C.border}`,width:'100%',background:'transparent',border:'none',borderTopStyle:'solid',borderRadius:6,cursor:'pointer',textAlign:'left',fontFamily:'inherit'}} onMouseEnter={e=>{e.currentTarget.style.background=`${C.gold}14`}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
+            const jump=()=>scrollToStory(t.id==='weakness'?'story-weakness':`q-${t.id}`)
+            return <button key={t.id} type="button" onClick={jump} title={`Go to ${t.label.toLowerCase()}`} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'8px 10px',borderTop:`1px solid ${C.border}`,width:'100%',background:'transparent',border:'none',borderTopStyle:'solid',borderRadius:6,cursor:'pointer',textAlign:'left',fontFamily:'inherit'}} onMouseEnter={e=>{e.currentTarget.style.background=`${C.gold}14`}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
             <div style={{width:22,height:22,borderRadius:'50%',flexShrink:0,border:`1.5px solid ${t.covered?C.ok:C.border}`,background:t.covered?C.ok:'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>{t.covered?<Check size={12} color="#FFFFFF" strokeWidth={3}/>:null}</div>
             <div style={{minWidth:0}}>
               <div style={{fontSize:16,fontWeight:t.covered?700:600,color:t.covered?'#1A2540':C.gray}}>{t.asks}</div>
@@ -11465,18 +11461,31 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
 
         {INVENTORY.map(t=>t.id==='weakness'
-          ?<WeaknessPanel key="weakness" record={weaknessRecord(starStories)} busy={storiesBusy} canPull={storiesSeedable} onPull={()=>buildStoryLibrary()} onCoach={()=>openCoachWith(WEAKNESS_QUESTION.coach,true,'stories')}/>
-          :storyCards(starStories).filter(x=>x.kind===t.id).map(story=>{
+          ?<WeaknessPanel key="weakness" record={weaknessRecord(starStories)} busy={storiesBusy} canPull={storiesSeedable} onPull={()=>buildStoryLibrary({weaknessOnly:true})} onCoach={()=>openCoachWith(WEAKNESS_QUESTION.coach,true,'stories')}/>
+          :(()=>{
+          const grp=questionGroup(starStories,t.id)
+          if(!grp.primary)return <div key={t.id} id={`q-${t.id}`} style={{...S.out,marginTop:0,marginBottom:14,scrollMarginTop:80}}>
+            <div style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5,marginBottom:4}}>{t.label}</div>
+            <div style={{fontSize:19,fontWeight:700,color:'#1A2540',lineHeight:1.4}}>{t.asks}</div>
+            <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:8}}>{t.prompt}</div>
+            <div style={{marginTop:12}}><Btn small onClick={()=>{setStoryDraft(d=>({...d,kind:t.id}));scrollToStory('story-add')}}><Plus size={12}/>Start this one</Btn></div>
+          </div>
+          // The question is the section's, not each card's. Cards seeded before
+          // stories carried a question of their own were showing their title as a
+          // header while newer ones showed a question, so one screen had two card
+          // shapes. Reading the question off the inventory makes every card the
+          // same regardless of which build wrote it.
+          const showAlts=!!storyAltsOpen[t.id]
+          const render=(story,isAlt)=>{
           const gaps=emptySlots(story)
-          const kind=PLAYLIST_TYPES.find(t=>t.id===story.kind)
-          // Remove belongs only on a story someone typed themselves. A seeded one
-          // answers a question they will be asked, so deleting it leaves a hole
-          // where correcting it would have left an answer.
-          const canRemove=story.origin==='typed'
-          return <div key={story.id} id={`story-${story.id}`} style={{...S.out,marginTop:0,marginBottom:14,scrollMarginTop:80}}>
-            {kind&&<div style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5,marginBottom:4}}>{kind.label}</div>}
-            <div style={{fontSize:19,fontWeight:700,color:'#1A2540',lineHeight:1.4}}>{(typeof story.question==='string'&&story.question.trim())?story.question.trim():story.title}</div>
-            {(typeof story.question==='string'&&story.question.trim())&&<div style={{fontSize:16,color:C.gray,lineHeight:1.5,marginTop:3}}>Your story: {story.title}</div>}
+          // A seeded story that leads a question has no Remove: it answers
+          // something this person will be asked, so correcting it beats deleting
+          // it. A candidate is surplus by definition, so it can always go.
+          const canRemove=isAlt||story.origin==='typed'
+          return <div key={story.id} id={`story-${story.id}`} style={{...S.out,marginTop:isAlt?14:0,marginBottom:isAlt?0:14,scrollMarginTop:80,...(isAlt?{borderLeftColor:C.border,background:'#FCFCFD'}:{})}}>
+            {!isAlt&&<><div style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5,marginBottom:4}}>{t.label}</div>
+            <div style={{fontSize:19,fontWeight:700,color:'#1A2540',lineHeight:1.4}}>{t.asks}</div></>}
+            <div style={{fontSize:isAlt?17:16,fontWeight:isAlt?700:400,color:isAlt?'#1A2540':C.gray,lineHeight:1.5,marginTop:isAlt?0:3}}>{isAlt?story.title:<>Your story: {story.title}</>}</div>
             {story.why&&<div style={{fontSize:16,color:C.goldL,lineHeight:1.55,marginTop:6}}>{story.why}</div>}
             {gaps.length>0&&<div style={{fontSize:16,color:C.gray,lineHeight:1.55,marginTop:6}}>{gaps.length===1?'One part is still open':`${gaps.length} parts are still open`}: {gaps.map(g=>SLOT_LABELS[g]).join(', ')}. The note under each one says what would fill it.</div>}
             <div style={{marginTop:6}}>
@@ -11499,7 +11508,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <button type="button" onClick={()=>deleteStory(story.id)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',padding:0,fontSize:16,fontFamily:'inherit',textDecoration:'underline'}}>Remove</button>
             </div>}
           </div>
-        }))}
+          }
+          return <div key={t.id} id={`q-${t.id}`} style={{marginBottom:14}}>
+            {render(grp.primary,false)}
+            {grp.alternates.length>0&&<div style={{marginTop:-4,marginBottom:14}}>
+              <button type="button" onClick={()=>setStoryAltsOpen(o=>({...o,[t.id]:!showAlts}))} style={{background:'none',border:'none',padding:0,color:C.goldL,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6}}>
+                {showAlts?<ChevronUp size={16}/>:<ChevronDown size={16}/>}{grp.alternates.length===1?'One other story could answer this':`${grp.alternates.length} other stories could answer this`}
+              </button>
+              {showAlts&&<><div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:8}}>Keep the one that answers this best. Any of these can be removed, or worked on until it is the one you would tell.</div>
+                {grp.alternates.map(a=>render(a,true))}</>}
+            </div>}
+          </div>
+          })()
+        )}
 
         <div style={{...S.card,marginBottom:14}}>
           <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:6}}>The other questions you will be asked</div>
