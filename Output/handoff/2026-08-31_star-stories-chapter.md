@@ -40,7 +40,7 @@ The T is the one to pay attention to. In the standard version of this format the
 
 ## Where the first set comes from
 
-You do not start from a blank screen. **Build my stories** draws on what you have already given Reimagine during Orientation, and different parts come from different places:
+You do not start from a blank screen, and you do not have to ask. The first time you open this screen Reimagine builds the set from what you have already given it during Orientation, and different parts come from different places:
 
 - Your **resume** carries the Situation and the Result: the roles, the scope, the numbers.
 - Your **reputation answers** and the pattern across your career carry the Thought Process. That is almost never written on a resume, which is why a story built only from a resume reads flat.

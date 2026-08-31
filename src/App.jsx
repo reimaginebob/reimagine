@@ -6819,6 +6819,8 @@ export default function PivotEngine(){
   }
   // First build, from the whole Orientation intake. Seeds only what the inputs
   // support; a type with no story is handled in the render, never invented here.
+  const storiesAutoRef=useRef(false)
+  const storiesSeedable=!!String((pc&&pc.resume)||'').trim()
   const buildStoryLibrary=async()=>{
     if(storiesBusy)return
     setStoriesBusy(true);setStoriesErr(null)
@@ -6846,6 +6848,17 @@ export default function PivotEngine(){
       setStoriesErr(e.message||'That did not come back. Try again.')
     }finally{setStoriesBusy(false)}
   }
+  // The library builds itself on arrival: we tell people it comes populated from
+  // what they already gave us, so an empty screen with a button breaks that
+  // promise on the first thing they see. One attempt per session — a failure
+  // leaves an error and a retry rather than looping, and a profile too thin to
+  // work from is a reason to say so rather than to spin.
+  useEffect(()=>{
+    if(step!=='stories'||!storiesPilot)return
+    if(storiesAutoRef.current||storiesBusy||starStories.length>0||!storiesSeedable)return
+    storiesAutoRef.current=true
+    buildStoryLibrary()
+  },[step,storiesPilot,storiesBusy,starStories.length,storiesSeedable])
   const[manualErr,setManualErr]=useState(null)
   const persistManual=(next)=>{setConnManual(next);try{localStorage.setItem(MANUAL_STORAGE_KEY,JSON.stringify(next))}catch{}}
   const addManualPerson=(company)=>{
@@ -11213,11 +11226,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div>Each one has four parts. The T is your <strong style={{color:'#1A2540'}}>Thought Process</strong>, not the task. Tasks say what you did; how you were thinking is what they are actually evaluating.</div>
         </CoachingCallout>
 
-        {held===0&&<div style={{...S.card,marginBottom:20}}>
-          <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>Start from what you have already told us</div>
-          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>Your resume, your reputation answers and your assessment already hold most of this. Reimagine will lay out the stories it can see and mark what only you can fill in. Nothing gets invented: where an input does not support a story, you will get the question instead of a guess.</div>
-          {storiesErr&&<div style={{marginBottom:10}}><ErrBox msg={storiesErr}/></div>}
-          <Btn onClick={buildStoryLibrary} disabled={storiesBusy}>{storiesBusy?'Building your stories…':<><Sparkles size={14}/>Build my stories</>}</Btn>
+        {storiesBusy&&held===0&&<div style={{...S.card,marginBottom:20}}>
+          <Loading msg="Reading what you have already told us…" step="story-seed"/>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:10}}>Your resume, your reputation answers and your assessment hold most of this between them. Nothing gets invented: where an input does not support a story, you will get the question instead of a guess.</div>
+        </div>}
+        {!storiesBusy&&held===0&&!storiesSeedable&&<div style={{...S.card,marginBottom:20}}>
+          <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>Add your resume and these will build themselves</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6}}>Most of a first set comes from your resume, your reputation answers and your assessment. Add your resume in Orientation and come back, or start one of your own below.</div>
+        </div>}
+        {!storiesBusy&&held===0&&storiesSeedable&&storiesErr&&<div style={{...S.card,marginBottom:20}}>
+          <div style={{marginBottom:10}}><ErrBox msg={storiesErr}/></div>
+          <Btn onClick={()=>{storiesAutoRef.current=true;buildStoryLibrary()}}><RotateCcw size={14}/>Try again</Btn>
         </div>}
 
         <div style={{...S.card,marginBottom:20}}>
