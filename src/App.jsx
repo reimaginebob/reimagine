@@ -3759,8 +3759,8 @@ Return ONLY a JSON object in this exact shape:
       "looking_for": "one or two plain sentences on what this person really cares about, in authority order",
       "lens": "ONE of exactly these five words, whichever this person is mainly reading for: Strategy, Culture, Oneself, Passion, Expertise",
       "lens_reason": "one short plain sentence on why that is the one, tied to their seat and to what the candidate wrote about them",
-      "also_consider": "a short phrase naming the thing worth being ready for that the candidate has not thought of. Often another of the five, but it can equally be a second face of the same dimension, or what follows a step or two on from their own read. Empty string if there is honestly nothing to add",
-      "also_reason": "one or two short plain sentences on why, phrased as something to consider rather than a second verdict",
+      "also_consider": "one or two plain sentences naming the thing worth being ready for that the candidate has not thought of. Often another of the five, but it can equally be a second face of the same dimension, or what follows a step or two on from their own read. Written to stand on its own under the heading 'You may also want to consider'. Empty string if there is honestly nothing to add",
+      "also_reason": "one or two more sentences on why it matters, or an empty string when the first two already say it. Never a restatement of them",
       "questions": ["about five plain-language questions this person is likely to ask"],
       "stories": [ { "story": "the name of an existing story from the candidate's background to lead with", "why": "one short line on why it fits this person" } ],
       "questions_to_ask": ["two or three good questions the candidate could ask this person, drawn from the company research"]
@@ -9311,7 +9311,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {typeof p.lens==='string'&&p.lens.trim()&&<div style={{marginBottom:10,background:`${C.gold}0E`,border:`1px solid ${C.gold}44`,borderRadius:8,padding:'10px 12px'}}>
               <div style={{fontSize:16,color:'#1A2540',lineHeight:1.6}}>{who} is mainly reading for <strong>{p.lens.trim()}</strong>.{typeof p.lens_reason==='string'&&p.lens_reason.trim()?' '+p.lens_reason.trim():''}</div>
               <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:4}}>Push that part of your story to the front when you talk to {nm?nm.split(' ')[0]:'them'}.</div>
-              {typeof p.also_consider==='string'&&p.also_consider.trim()&&<div style={{fontSize:16,color:'#1A2540',lineHeight:1.6,marginTop:8,paddingTop:8,borderTop:`1px solid ${C.gold}44`}}>You may also want to consider <strong>{p.also_consider.trim()}</strong>.{typeof p.also_reason==='string'&&p.also_reason.trim()?' '+p.also_reason.trim():''}</div>}
+              {typeof p.also_consider==='string'&&p.also_consider.trim()&&<div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.gold}44`}}>
+                <div style={{fontSize:15,fontWeight:700,color:C.goldL,marginBottom:3}}>You may also want to consider</div>
+                <div style={{fontSize:16,color:'#1A2540',lineHeight:1.6}}>{[p.also_consider.trim(),(typeof p.also_reason==='string'?p.also_reason.trim():'')].filter(Boolean).join(' ')}</div>
+              </div>}
             </div>}
             {typeof p.looking_for==='string'&&p.looking_for.trim()&&<div style={{marginBottom:10}}>{H('What '+who+' is really looking for')}<div style={{fontSize:16,color:C.cream,lineHeight:1.6}}>{p.looking_for.trim()}</div></div>}
             {qs.length>0&&<div style={{marginBottom:10}}>{H('Questions '+who+' is likely to ask')}<ul style={{margin:0,paddingLeft:22}}>{qs.map((q,qi)=><li key={qi} style={{fontSize:17,color:C.cream,lineHeight:1.65,marginBottom:8}}>{q}</li>)}</ul></div>}
