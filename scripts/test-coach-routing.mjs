@@ -98,11 +98,13 @@ ok('community slugs are in the canonical set',
 // 18 until 2026-08-27, when Go Independent added where-you-fit and
 // positioning-line; 21 when My Pipeline went GA and moved out of the uncached
 // per-user block in api/coach.js into the catalog; 22 when Who You Know Here
-// (known-contacts) was added; 23 since 2026-08-31, when Your Stories
-// (your-stories) became its own surface. The count is a tripwire for an
-// accidental edit to FEATURE_MAP, so it moves deliberately with the map and
-// never on its own.
-ok('CANONICAL_FEATURE_SLUGS has 23 entries', CANONICAL_FEATURE_SLUGS.length === 23)
+// (known-contacts) was added. Your STAR Stories shipped 2026-08-31 and is NOT
+// counted here: it is behind an internal-only pilot gate and is deliberately
+// absent from the catalog, because FEATURE_MAP reaches every user's cached
+// system block. It becomes 23 in the PR that opens the gate. The count is a
+// tripwire for an accidental edit to FEATURE_MAP, so it moves deliberately with
+// the map and never on its own.
+ok('CANONICAL_FEATURE_SLUGS has 22 entries', CANONICAL_FEATURE_SLUGS.length === 22)
 
 // --- FEATURE_MAP is the single structured source ---
 eq('CANONICAL_FEATURE_SLUGS derives from FEATURE_MAP (same order)',
