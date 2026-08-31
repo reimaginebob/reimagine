@@ -9275,7 +9275,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{marginBottom:8}}>You do not need a story for every question. You need a handful of good ones, and the skill to change which part of a story gets the airtime depending on who is asking. Same story, same facts, same result, a different emphasis. <em>Making Your Own Weather</em> calls that remixing, and SCOPE is how you read which emphasis the person in front of you wants:</div>
           <div style={{marginBottom:8,lineHeight:1.75}}>
             <div><strong style={{color:'#1A2540'}}>S &mdash; Strategy.</strong> The business outcome, whether it scaled past a one-off, and the framework you brought to it.</div>
-            <div><strong style={{color:'#1A2540'}}>C &mdash; Culture.</strong> Whether they can picture you working with the team they already have.</div>
+            <div><strong style={{color:'#1A2540'}}>C &mdash; Culture.</strong> Whether they can picture you working with the team they already have. How you collaborate, how you lead, who you have mentored.</div>
             <div><strong style={{color:'#1A2540'}}>O &mdash; Oneself.</strong> The failure and weakness questions. They are looking for self-awareness, not a confession.</div>
             <div><strong style={{color:'#1A2540'}}>P &mdash; Passion.</strong> Why you want this one. It carries you over a gap in hard skills, and it cannot be performed.</div>
             <div><strong style={{color:'#1A2540'}}>E &mdash; Expertise.</strong> Table stakes. Can you do the work at the level they need it done.</div>
