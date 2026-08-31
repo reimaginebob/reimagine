@@ -19,6 +19,7 @@ export const NAV_LABELS = {
   myCoach: 'My Coach',
   pipeline: 'My Pipeline',
   mylib: 'My Playbooks',
+  stories: 'Your Stories',
   p3: 'Personal Brand',
   twoDoors: 'Put It to Work',
   laneSelect: 'Career Paths',      // the "Role Options" exploration door
