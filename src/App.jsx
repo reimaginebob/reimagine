@@ -11355,8 +11355,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             return <button key={t.id} type="button" onClick={jump} title={t.covered?`Go to your ${t.label.toLowerCase()} story`:`Start a ${t.label.toLowerCase()} story`} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'8px 10px',borderTop:`1px solid ${C.border}`,width:'100%',background:'transparent',border:'none',borderTopStyle:'solid',borderRadius:6,cursor:'pointer',textAlign:'left',fontFamily:'inherit'}} onMouseEnter={e=>{e.currentTarget.style.background=`${C.gold}14`}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
             <div style={{width:22,height:22,borderRadius:'50%',flexShrink:0,border:`1.5px solid ${t.covered?C.ok:C.border}`,background:t.covered?C.ok:'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>{t.covered?<Check size={12} color="#FFFFFF" strokeWidth={3}/>:null}</div>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:16,fontWeight:t.covered?700:600,color:t.covered?'#1A2540':C.gray}}>{t.asks||t.label}</div>
-              <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:1}}>{t.asks?t.label:t.asksNote}</div>
+              <div style={{fontSize:16,fontWeight:t.covered?700:600,color:t.covered?'#1A2540':C.gray}}>{t.asks}</div>
+              <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:1}}>{t.label}</div>
               {!t.covered&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:4}}>{t.prompt}</div>}
             </div>
           </button>
