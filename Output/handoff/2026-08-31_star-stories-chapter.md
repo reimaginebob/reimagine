@@ -34,7 +34,7 @@ That is why this exists as its own screen. The same story gets told at this comp
 
 ## What a STAR story is here
 
-Your resume got you the interview. The stories you tell get you the job, because what a company is hiring is your brain rather than your history. They want to know how you approach a problem, what you notice that others miss, and what you do first.
+Your resume got you the interview. The stories you tell get you the job.
 
 Every story has four parts: Situation, Thought Process, Action, Result. The usual version of this format calls the T "Task". Here it is your **Thought Process**, and that swap is the whole game.
 
@@ -95,7 +95,7 @@ Seven more questions do not want a story out of your library. Each one carries t
 
 ## Giving your thinking a shape
 
-A framework gives the Thought Process a shape. These are the ones we teach at Career Club Corner:
+A framework gives the Thought Process a shape. Some well known ones that may apply to your stories include:
 
 - **What, So What, Now What.** What happened, why it mattered, what you did about it.
 - **People, Process, Technology.** Whether the problem was the people, the way the work ran, or the tools.

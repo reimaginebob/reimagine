@@ -11607,7 +11607,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={S.title}>Your STAR Stories</h1>
         <p style={S.sub}>The handful of stories you tell in interviews, in one place.</p>
         <CoachingCallout>
-          <div style={{marginBottom:10}}>Your resume got you the interview. The stories you tell get you the job, because what they are hiring is your brain rather than your history. They want to know how you approach a problem, what you notice, what you do first.</div>
+          <div style={{marginBottom:10}}>Your resume got you the interview. The stories you tell get you the job.</div>
           <div style={{marginBottom:10}}>So each story has four parts: Situation, Thought Process, Action, Result. The usual version of this format calls the T &ldquo;Task&rdquo;. In <em>Making Your Own Weather</em> it is your <strong style={{color:'#1A2540'}}>Thought Process</strong>, and that swap is the whole game. Compare these:</div>
           <div style={{marginBottom:10,paddingLeft:14,borderLeft:`2px solid ${C.border}`,lineHeight:1.7}}>
             <div style={{marginBottom:6}}><strong style={{color:'#1A2540'}}>Task.</strong> &ldquo;I decided to run one-on-ones with each team member.&rdquo; It says what you did.</div>
@@ -11615,7 +11615,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
           <div style={{marginBottom:10}}>Rather than claim you are a strategic thinker, you show them. Showing beats claiming every time.</div>
           <div style={{marginBottom:10}}>Every part below is yours. Click any line to type over it, or use <strong style={{color:'#1A2540'}}>Does this feel right?</strong> to describe what is off and have Reimagine rework the story around it.</div>
-          <div style={{marginBottom:8}}>A framework gives the Thought Process a shape. These are the ones we teach:</div>
+          <div style={{marginBottom:8}}>A framework gives the Thought Process a shape. Some well known ones that may apply to your stories include:</div>
           {THOUGHT_PROCESS_FRAMEWORKS.map(f=><div key={f.id} style={{marginBottom:6,paddingLeft:14,borderLeft:`2px solid ${C.border}`,lineHeight:1.6}}>
             <strong style={{color:'#1A2540'}}>{f.name}.</strong> {f.model}
           </div>)}
@@ -11639,8 +11639,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>}
 
         <div style={{...S.card,marginBottom:20}}>
-          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>{held} {held===1?'story':'stories'} so far</div>
-          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>These six are a strong head start on a library, drawn from Johnny Taylor, CEO of SHRM, the largest HR organization in the world, and from what else gets asked once someone starts probing how you work. Each one gets a single answer below. Click any question to go to it.</div>
+          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>{cov.filter(c=>c.covered).length} of {cov.length} answered</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>These are the six questions a good set answers, drawn from Johnny Taylor, CEO of SHRM, the largest HR organization in the world, and from what else gets asked once someone starts probing how you work. Each one gets a single answer below. Click any question to go to it.</div>
           {cov.map(t=>{
             const jump=()=>scrollToStory(t.id==='weakness'?'story-weakness':`q-${t.id}`)
             return <button key={t.id} type="button" onClick={jump} title={`Go to ${t.label.toLowerCase()}`} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'8px 10px',borderTop:`1px solid ${C.border}`,width:'100%',background:'transparent',border:'none',borderTopStyle:'solid',borderRadius:6,cursor:'pointer',textAlign:'left',fontFamily:'inherit'}} onMouseEnter={e=>{e.currentTarget.style.background=`${C.gold}14`}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
