@@ -265,6 +265,60 @@ function peopleSearchUrl(company, degrees) {
     encodeURIComponent(q) + '&network=' + encodeURIComponent(JSON.stringify(degrees))
 }
 
+// THE THIRD DOOR: alumni of your school who work there.
+//
+// The first door is someone you already know, out of the Connections file. The
+// second is someone who knows someone, through LinkedIn's own search. This is
+// for the case both come up empty and you still need a reason for a stranger to
+// take your call. A shared school is one of the few that reliably works.
+//
+// Checked live on 2026-09-01 against a real account. Three things this settles:
+//
+//   - The alumni page takes a company as PLAIN TEXT: /school/<slug>/people/
+//     ?keywords=Imerys returns alumni matching it. Selecting the company from
+//     the page's own filter instead produces ?facetCurrentCompany=1038 -- an
+//     internal id we cannot know from a job description, the same wall that made
+//     the company facet unusable for the second-degree search. The keyword form
+//     is the one we can build.
+//   - It covers every degree at once and labels each row 1st / 2nd / 3rd+, and
+//     it names mutual connections inline on the second-degree rows, so the
+//     introduction path is on the same line as the reason to reach out.
+//   - Keyword matching is loose. "Imerys" returned 26 alumni of whom 7 actually
+//     worked there; the rest matched some other way. The page's own "Where they
+//     work" panel shows the true count and narrows to it in one click, so the
+//     card sends people there rather than pretending the raw number is the
+//     answer.
+//
+// What it cannot do: LinkedIn dropped the graduation-year filter, and the rows
+// carry no years, so "same era" cannot be filtered or even seen without opening
+// profiles. Worth saying rather than implying the tie is stronger than it is.
+
+/**
+ * LinkedIn's slug for a school name.
+ *
+ * Verified: "University of Tennessee, Knoxville" -> university-of-tennessee-knoxville.
+ * An ampersand is dropped rather than spelled out, since LinkedIn writes Texas
+ * A&M as texas-a-m-university.
+ * Lossy by nature, since the slug is LinkedIn's own and a school can be listed
+ * under a name nobody types. A miss lands on a LinkedIn 404 rather than anything
+ * destructive, and the card says what to do about it.
+ */
+export function schoolSlug(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, '-')
+}
+
+/** The alumni-of-this-school-who-work-there page, or '' without both parts. */
+export function linkedInAlumniUrl(school, company) {
+  const slug = schoolSlug(school)
+  const q = String(company || '').trim()
+  if (!slug || !q) return ''
+  return 'https://www.linkedin.com/school/' + slug + '/people/?keywords=' + encodeURIComponent(q)
+}
+
 export function linkedInSecondDegreeUrl(company) {
   return peopleSearchUrl(company, ['S'])
 }
