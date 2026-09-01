@@ -89,9 +89,9 @@ export const ROUTED_QUESTIONS = [
   {
     id: 'know-company',
     asks: '"What do you know about our company?"',
-    where: 'About This Company, on the opportunity',
-    step: null,
-    note: 'This is research, and the effort is itself the signal. Go past the homepage to recent news, competitors and culture, and reference one specific thing you found.',
+    where: 'Add an Opportunity',
+    step: 'op',
+    note: 'This is research, and the effort is itself the signal: go past the homepage to recent news, competitors and culture, and reference one specific thing you found. Paste in an opening you are pursuing and Reimagine builds a playbook for it. About This Company does that research and hands you the specifics worth referencing, alongside how you fit the role and what to say.',
   },
   {
     // No destination: the guidance IS the answer. Sending someone to Interview
@@ -105,8 +105,9 @@ export const ROUTED_QUESTIONS = [
   {
     id: 'most-least',
     asks: '"What did you like most and least about your last role?"',
-    where: null,
+    where: 'Work on this with My Coach',
     step: null,
+    coach: 'Help me answer "What did you like most and least about my last role?" in an interview. This is the first time I have asked you about it, so start from scratch. You know my values and what my last role involved. Ask me which company and role I am interviewing for, then draft both halves: for the most, something I valued that this company also values, and for the least, something this role would not repeat, said in a way that shows what I did about it rather than reading as a complaint. Tell me which parts you were least sure about.',
     note: 'This is a values question wearing a preferences question. For the most, name something you valued that this company also values. For the least, pick something this role would not repeat, and say what you did about it rather than leaving it as a complaint. Keep both answers about the work itself, since pay, hours and location say nothing about how you operate.',
   },
   {
@@ -122,9 +123,9 @@ export const ROUTED_QUESTIONS = [
   {
     id: 'your-questions',
     asks: '"Do you have any questions for me?"',
-    where: 'Interview Prep, per person',
-    step: null,
-    note: 'Always have one; saying no reads as disengagement. Once you name who you are meeting, you get questions aimed at what each of them uniquely knows, and they are also your last chance to reinforce why you fit.',
+    where: 'Add an Opportunity',
+    step: 'op',
+    note: 'Always have one; saying no reads as disengagement. These have to be specific to be worth asking, so they come from an Opportunity Playbook: add an opening you are pursuing, name who you are meeting, and Interview Prep writes questions aimed at what each of those people uniquely knows. They are also your last chance to reinforce why you fit.',
   },
 ]
 

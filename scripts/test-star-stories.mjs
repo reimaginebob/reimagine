@@ -98,8 +98,14 @@ ok(ROUTED_QUESTIONS.every(q => q.asks && q.note), 'each names the question and w
 // A question whose guidance IS the answer carries no destination. Sending
 // someone to another screen to read the same thing is a redirect for its own
 // sake, so `where` is deliberately null on those.
-eq(ROUTED_QUESTIONS.filter(q => !q.where).map(q => q.id), ['why-leaving', 'most-least'],
-   'two questions are answered where they are asked')
+eq(ROUTED_QUESTIONS.filter(q => !q.where).map(q => q.id), ['why-leaving'],
+   'a question whose guidance is the whole answer carries no destination')
+// Both of these live inside an Opportunity Playbook, which is gated on having
+// one, so each carries the step that gets someone there rather than naming a
+// screen they cannot reach.
+eq(ROUTED_QUESTIONS.filter(q => q.step).map(q => q.id), ['know-company', 'your-questions'],
+   'the playbook-gated questions link to adding an opportunity')
+ok(ROUTED_QUESTIONS.filter(q => q.step).every(q => q.step === 'op'), 'and the step is the one that adds one')
 ok(!ROUTED_QUESTIONS.some(q => q.id === 'view-changed'), 'the question nobody could explain the point of is gone')
 ok(ROUTED_QUESTIONS.every(q => q.asks.trim().endsWith('"')), 'quoted as the interviewer would say them')
 // Six questions in the inventory plus seven routed is the whole foundation the
@@ -107,8 +113,8 @@ ok(ROUTED_QUESTIONS.every(q => q.asks.trim().endsWith('"')), 'quoted as the inte
 // question is one of the six a person must answer even though it is not a story.
 eq(INVENTORY.length + ROUTED_QUESTIONS.length, 13, 'thirteen questions in total')
 // Exactly one routed question hands off to My Coach rather than to a screen.
-eq(ROUTED_QUESTIONS.filter(q => q.coach).map(q => q.id), ['about-yourself', 'not-on-resume', 'qualified'],
-   'the three that want a conversation get one')
+eq(ROUTED_QUESTIONS.filter(q => q.coach).map(q => q.id), ['about-yourself', 'not-on-resume', 'most-least', 'qualified'],
+   'the four that want a conversation get one')
 // The Coach opened one of these with "here's the draft again" on a first ask,
 // so every seed says plainly that there is no earlier draft to return to.
 ok(ROUTED_QUESTIONS.filter(q => q.coach).every(q => /first time I have asked/.test(q.coach)),
