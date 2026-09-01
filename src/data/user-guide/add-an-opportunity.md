@@ -89,9 +89,9 @@ Use the Refine box on the section you want to change. The corrections you submit
 
 ## Saved with each opportunity
 
-Each opportunity is saved on its own, with whichever sections you have built. You can come back to it later and find it where you left it, and you can work several opportunities at once without one replacing another. Your opportunities are listed on **My Pipeline**, ordered by what needs doing rather than by when you built them; My Playbooks holds the direction-level **Focus Playbooks** you open from Career Paths. The section count on each card ("3 of 6 sections built") shows you at a glance how far along that opportunity is. It counts the six generated sections; Interview Team is something you fill in rather than build, so it does not add to the total.
+Each opportunity is saved on its own, with whichever sections you have built. You can come back to it later and find it where you left it, and you can work several opportunities at once without one replacing another. Your opportunities are listed on **My Pipeline**, ordered by what needs doing rather than by when you built them; **Focus Playbooks**, the entry below it, holds the direction-level playbooks you open from Career Paths. The section count on each card ("3 of 6 sections built") shows you at a glance how far along that opportunity is. It counts the six generated sections; Interview Team is something you fill in rather than build, so it does not add to the total.
 
-When you have logged an offer on two or more opportunities, a **Compare offers** button appears in My Playbooks and lines them up side by side around the money you can actually bank on. My Playbooks covers how to read it.
+When you have logged an offer on two or more opportunities, a **Compare offers** button appears on My Pipeline and lines them up side by side around the money you can actually bank on. My Pipeline covers how to read it.
 
 Opportunities you saved before the card-based rebuild keep their original shape, exactly as you built them, with their own Refine box. Nothing you did is lost. New opportunities use the card shape described above. If you want the card shape for an older opportunity, paste its job description again through Add an Opportunity and build the sections you need.
 

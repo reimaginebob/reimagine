@@ -294,7 +294,7 @@ function MovedToPipeline({ count, onGo, C, independent }) {
   )
 }
 
-function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDelete, onRename, onDownload, C }) {
+function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDelete, onRename, onDownload, C, hideHeading }) {
   const showAdd = typeof onAdd === 'function'
   // Complete-page recap (no add handler) omits empty sections; the dashboard
   // (add handler present) shows the empty state with its add affordance.
@@ -302,7 +302,7 @@ function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDe
   return (
     <div style={{ marginBottom: 28 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '0 0 14px', flexWrap: 'wrap' }}>
-        <h2 style={{ fontFamily: 'Georgia,serif', fontSize: 24, fontWeight: 700, color: '#1A2540', margin: 0 }}>{heading}</h2>
+        {!hideHeading && <h2 style={{ fontFamily: 'Georgia,serif', fontSize: 24, fontWeight: 700, color: '#1A2540', margin: 0 }}>{heading}</h2>}
         {showAdd && <AddButton label={addLabel} onClick={onAdd} C={C}/>}
       </div>
       {records.length > 0
@@ -352,6 +352,7 @@ export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, on
           collection of roles. */}
       <Section
         heading={independent ? 'Your Practice' : 'Focus Playbooks'}
+        hideHeading={focusOnly && suppressHeading}
         records={focus}
         addLabel="Explore More Roles"
         onAdd={independent ? undefined : onAddDirection}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock, Mic, Menu } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock, Mic, Menu, Pencil } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-patterns.mjs"
@@ -6563,6 +6563,11 @@ export default function PivotEngine(){
   const archivedPlaybooks=savedPlaybooks.filter(r=>r&&r.archivedAt)
   const[currentRoleInSavedSet,setCurrentRoleInSavedSet]=useState(false)
   const[atCapModal,setAtCapModal]=useState(null)
+  // Renaming an opportunity from My Pipeline. Renaming lived only on a
+  // SavedPlaybooks card, and My Pipeline took the opportunities at GA without
+  // it, so an auto-generated title from a posting could not be changed at all.
+  const[pipelineRenameId,setPipelineRenameId]=useState(null)
+  const[pipelineRenameDraft,setPipelineRenameDraft]=useState('')
   const[inputStaleModal,setInputStaleModal]=useState(null)
   const[bareInputModal,setBareInputModal]=useState(false)
   // Confirmation for the one control on the Personal Brand screen that destroys
@@ -8059,7 +8064,7 @@ export default function PivotEngine(){
   // Personal Brand. Skips when heading to p3 (they are going there to update).
   const maybeInputStaleNudge=(from,to)=>{if(!isDemo&&INPUT_EDIT_STEPS.has(from)&&inputEditedRef.current&&to!=='p3'&&outputs.p3){inputEditedRef.current=false;setInputStaleModal({from})}}
   const advance=(from,to)=>{maybeInputStaleNudge(from,to);markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
-  const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
+  const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);setShowOfferCompare(false);if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
   // Scroll new output into view AFTER generation completes. Every generate
   // path already scrolls to 0,0 on click (so the loading panel is visible);
   // none scroll after the API returns, leaving the user wherever they
@@ -10478,7 +10483,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const labelCell={...cell,fontWeight:700,color:C.grayL,fontSize:15,textTransform:'uppercase',letterSpacing:0.5,minWidth:150,background:C.bg}
     const strRow=(label,pick)=><tr><td style={labelCell}>{label}</td>{data.map(d=><td key={d.r.id} style={cell}>{pick(d)||<span style={{color:C.gray}}>—</span>}</td>)}</tr>
     return <div>
-      <div style={{marginBottom:14}}><Btn secondary small onClick={()=>setShowOfferCompare(false)}><ArrowLeft size={13}/>Back to My Playbooks</Btn></div>
+      <div style={{marginBottom:14}}><Btn secondary small onClick={()=>setShowOfferCompare(false)}><ArrowLeft size={13}/>Back to {NAV_LABELS.pipeline}</Btn></div>
       <h1 style={{...S.title,marginBottom:6}}>Compare offers</h1>
       <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 6px',maxWidth:760}}>Your logged offers side by side. The “you can bank on” line is the firm money — base, plus the benefits that come back to you (401(k) match, HSA, PTO), minus what you pay for health — so an offer with a higher salary but a costlier health plan doesn't look better than it is. Bonus and equity sit below on their own lines, because what they're really worth depends on attainment and on an exit no one can predict. This is for your own weighing; Reimagine doesn't rank the offers or say which to take.</p>
       <div style={{fontSize:15,color:C.gray,fontStyle:'italic',margin:'0 0 16px'}}>Priced benefits are estimates from the numbers you entered on each offer.</div>
@@ -10806,7 +10811,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(!companyName||gtmCompanyReadBuilding)return
     const slotId=currentSavedSlotIdRef.current
     const rec0=savedPlaybooks.find(r=>r.id===slotId&&r.source==='door1')
-    if(!rec0){setGtmCompanyReadErrors(e=>({...e,[companyName]:'Open this Focus Playbook from My Playbooks first so this can save against it.'}));return}
+    if(!rec0){setGtmCompanyReadErrors(e=>({...e,[companyName]:`Open this Focus Playbook from ${NAV_LABELS.mylib} first so this can save against it.`}));return}
     setGtmCompanyReadBuilding(companyName);setGtmCompanyReadErrors(e=>({...e,[companyName]:null}))
     const reqId=++gtmCompanyReadReqRef.current
     try{
@@ -11223,18 +11228,25 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // scroll target). Delay lets the op page render + the step-change scroll reset
   // fire first, so this scroll wins.
   const openPursuitSection=(rec,key)=>{track('mysearch_section_jump',{recordId:rec.id,section:key});restoreFromSavedSlot(rec);setTimeout(()=>scrollToOutput(key),250)}
-  const removeOpportunity=(rec)=>{if(window.confirm(`Remove "${rec.title||'this opportunity'}" from your pipeline?\n\nIt won't be deleted — it moves to the Archived section at the bottom of My Playbooks, where you can restore it any time in the next 90 days.`))deleteFromSavedSet(rec.id)}
-  // Archived graveyard for both Focus and Opportunity playbooks. "Remove"
-  // archives (90-day grace); this section is where a user restores one or ends
-  // it early. Renders nothing when empty.
-  const archivedSection=()=>{
-    if(!archivedPlaybooks.length)return null
+  const removeOpportunity=(rec)=>{if(window.confirm(`Remove "${rec.title||'this opportunity'}" from your pipeline?\n\nIt won't be deleted — it moves to the Archived section at the bottom of My Pipeline, where you can restore it any time in the next 90 days.`))deleteFromSavedSet(rec.id)}
+  // Archived graveyard. "Remove" archives (90-day grace); this section is where
+  // a user restores one or ends it early. Renders nothing when empty.
+  // Scoped by `only` since the two kinds now live on different screens: a
+  // removed opportunity belongs under My Pipeline, a removed Focus Playbook
+  // under Focus Playbooks. Filing an archived opportunity under a screen named
+  // for Focus Playbooks would be the same misdirection this rename is fixing.
+  // No argument keeps the old both-kinds behaviour for any other caller.
+  const archivedSection=(only)=>{
+    const archived=only==='door2'?archivedPlaybooks.filter(r=>r.source==='door2')
+      :only==='door1'?archivedPlaybooks.filter(r=>r.source!=='door2')
+      :archivedPlaybooks
+    if(!archived.length)return null
     const daysLeft=(iso)=>{const ms=new Date(iso).getTime()+90*24*60*60*1000-Date.now();return Math.max(0,Math.ceil(ms/(24*60*60*1000)))}
     return <div style={{maxWidth:860,margin:'28px 0 24px'}}>
       <h2 style={{...S.title,fontSize:22,marginBottom:6}}>Archived</h2>
       <CoachingCallout>Removed playbooks wait here for 90 days before they're deleted for good. Restore one any time, or delete it now if you're sure.</CoachingCallout>
       <div style={{border:`1px solid ${C.border}`,borderRadius:10,overflow:'hidden'}}>
-        {archivedPlaybooks.map(rec=><div key={rec.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'14px 16px',borderBottom:`1px solid ${C.border}`}}>
+        {archived.map(rec=><div key={rec.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'14px 16px',borderBottom:`1px solid ${C.border}`}}>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:16,fontWeight:600,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{rec.title||'Untitled'}</div>
             <div style={{fontSize:15,color:C.gray,marginTop:2}}>{rec.source==='door2'?'Opportunity':laneLabelFor(rec.lane)} · {daysLeft(rec.archivedAt)} days left</div>
@@ -11268,7 +11280,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     </div>
   }
-  const mySearchPanel=()=>{
+  const mySearchPanel=(comparableCount=0)=>{
     const ops=activePlaybooks.filter(r=>r&&r.source==='door2')
     const wrap=(inner)=><div style={{maxWidth:900,margin:'0 0 32px'}}>
       <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',margin:'0 0 6px'}}>
@@ -11278,6 +11290,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             the screen read as though they did different things. */}
         {!isIndependent&&<Btn small secondary onClick={addNewOpportunity}>+ Add an Opportunity</Btn>}
       </div>
+      {comparableCount>=2&&<div style={{margin:'0 0 14px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({comparableCount}) <ChevronRight size={14}/></Btn></div>}
       <CoachingCallout>All the opportunities you're pursuing, in one place. As things change, update where each one stands, when you'll next talk, and what you're doing next — it all saves, so it's here whenever you come back. Finished a step? Mark it done and put in whatever comes next.</CoachingCallout>
       {pipelineIntroCard()}
       {inner}
@@ -11319,8 +11332,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           const inPipe=daysIn(rec);const quiet=!isClosed(s)&&!needsAttn(s)&&!hasUpcoming(s)
           return <div key={rec.id} style={{padding:'18px 20px',background:'#FFFFFF',border:`1.5px solid ${flag?flag.border:C.border}`,borderRadius:14,opacity:isClosed(s)?0.65:1}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:10}}>
-              <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
-                <div style={{fontSize:18,fontWeight:700,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{title}</div>
+              <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0,flex:1}}>
+                {pipelineRenameId===rec.id
+                  ?<input autoFocus value={pipelineRenameDraft} onChange={e=>setPipelineRenameDraft(e.target.value)}
+                     onBlur={()=>{const t=pipelineRenameDraft.trim();if(t&&t!==rec.title)renameSavedPlaybook(rec.id,t);setPipelineRenameId(null)}}
+                     onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();if(e.key==='Escape'){setPipelineRenameDraft(rec.title||'');setPipelineRenameId(null)}}}
+                     style={{flex:1,minWidth:0,fontSize:18,fontWeight:700,fontFamily:'inherit',color:'#1A2540',padding:'4px 8px',border:`1px solid ${C.gold}`,borderRadius:7,background:'#FFF'}}/>
+                  :<button type="button" onClick={()=>{setPipelineRenameDraft(rec.title||'');setPipelineRenameId(rec.id)}} title="Rename this opportunity"
+                     style={{display:'inline-flex',alignItems:'center',gap:6,minWidth:0,background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                     <span style={{fontSize:18,fontWeight:700,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{title}</span>
+                     <Pencil size={14} color={C.gray} style={{flexShrink:0}}/>
+                   </button>}
                 {flag&&<span style={{flexShrink:0,fontSize:15,fontWeight:700,color:flag.text,background:flag.bg,border:`1px solid ${flag.border}`,borderRadius:20,padding:'1px 9px'}}>{flag.pill}</span>}
               </div>
               <button type="button" onClick={()=>openPursuitRecord(rec,'op')} style={{flexShrink:0,background:'transparent',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Open →</button>
@@ -12672,7 +12694,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             renders only when the playbook is committed to the dashboard. */}
         {isReturningExplorer&&<div style={{position:'sticky',top:0,zIndex:50,background:C.bg,padding:'10px 0',marginBottom:14,borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap'}}>
           <div style={{display:'inline-flex',alignItems:'center',gap:8,fontSize:15,minWidth:0,flex:1}}>
-            <button onClick={()=>nav('mylib')} style={{background:'transparent',border:'none',padding:0,color:C.gold,fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>My Playbooks</button>
+            <button onClick={()=>nav('mylib')} style={{background:'transparent',border:'none',padding:0,color:C.gold,fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>{NAV_LABELS.mylib}</button>
             <ChevronRight size={14} color={C.gray}/>
             <span style={{color:'#1A2540',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{chosen||'Your Focus Playbook'}</span>
           </div>
@@ -12905,21 +12927,26 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>
-    case'pipeline':return <div>
-      {mySearchPanel()}
-      {hasConnectorBeta&&connectAssistantPanel()}
-    </div>
-    case'mylib':{
+    case'pipeline':{
+      // Compare offers reads only opportunity records, so it follows them here
+      // rather than staying on a screen named for Focus Playbooks. Same for the
+      // archived opportunities: removed from this screen, restored from it.
       const _comparable=activePlaybooks.filter(offerComparable)
       if(showOfferCompare&&_comparable.length>=2)return offerCompareView()
       return <div>
+      {mySearchPanel(_comparable.length>=2?_comparable.length:0)}
+      {archivedSection('door2')}
+      {hasConnectorBeta&&connectAssistantPanel()}
+    </div>
+    }
+    case'mylib':{
+      return <div>
       <div style={{marginBottom:8}}>
-        <h1 style={{...S.title,marginBottom:6}}>My Playbooks</h1>
+        <h1 style={{...S.title,marginBottom:6}}>{isIndependent?'Your Practice':NAV_LABELS.mylib}</h1>
         <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>{isIndependent?'Your practice plan and the clients you are working.':'The directions you have explored.'}</p>
       </div>
-      {_comparable.length>=2&&<div style={{margin:'0 0 16px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({_comparable.length}) <ChevronRight size={14}/></Btn></div>}
       <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={isIndependent?undefined:startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasPipeline} independent={isIndependent} onGoToPipeline={hasPipeline?()=>nav('pipeline'):undefined}/>
-      {archivedSection()}
+      {archivedSection(hasPipeline?'door1':undefined)}
     </div>
     }
     case'income':{

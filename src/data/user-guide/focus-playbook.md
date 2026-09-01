@@ -430,7 +430,7 @@ Each company carries a full-width amber button anchored to the bottom of its car
 
 The button is deliberately prominent because the read is one of the most useful things you can pull from this page. Once you have built it, the content takes the place of the button inline within the same company card; a smaller **Rebuild** button at the bottom right lets you refresh against newer signal if the original is more than a few weeks old.
 
-This is opt-in per company. Reimagine does not fire it across the whole list. Click only on the companies you are seriously considering; each read is saved with your playbook and you can return to it from My Playbooks.
+This is opt-in per company. Reimagine does not fire it across the whole list. Click only on the companies you are seriously considering; each read is saved with your playbook and you can return to it from Focus Playbooks.
 
 If Go-to-Market is still building, the per-company buttons are disabled until that finishes, because two simultaneous web-search calls against the same backend would slow both. Wait for the company list to finish, then click on the companies that matter.
 
@@ -493,7 +493,7 @@ Clicking it assembles every section you have generated for this role into one cl
 
 Your playbook is already saved to your account, so the PDF is not a backup. It is for the moments when you want a portable copy: sending it to a coach or a mentor, reading it on a device where you are not signed in, or keeping an annotated reference alongside your offline notes.
 
-Every role you build a playbook for is saved and listed in **My Playbooks**, which has its own chapter.
+Every role you build a playbook for is saved and listed in **Focus Playbooks**, which has its own chapter.
 
 ---
 

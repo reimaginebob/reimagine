@@ -30,7 +30,7 @@ If something is not working the way you expect, check **FAQ and Troubleshooting*
 12. [Your STAR Stories](star-stories.md)
 13. [My Coach](my-coach.md)
 14. [My Pipeline](my-pipeline.md)
-15. [My Playbooks](my-playbooks.md)
+15. [Focus Playbooks](my-playbooks.md)
 16. [Income Now](income-now.md)
 17. [Negotiating an Offer](negotiating-an-offer.md)
 18. [How an Offer Is Put Together](how-an-offer-is-put-together.md)

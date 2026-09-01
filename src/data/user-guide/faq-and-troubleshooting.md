@@ -49,10 +49,10 @@ Once you are signed in, clearing cache does not affect your work. Sign in again 
 Yes, automatically. Sign in from the new device with the same email and your full session is there. No file export needed.
 
 **Can I have more than one direction in flight at a time?**
-Yes. Every role you open becomes its own Focus Playbook, and every job description you bring in becomes its own Opportunity Playbook. They are saved separately and you can work several at once. Switch between your Focus Playbooks from **My Playbooks**, and between your opportunities from **My Pipeline**. Your Personal Brand is shared across all of them; only the per-role sections are written fresh.
+Yes. Every role you open becomes its own Focus Playbook, and every job description you bring in becomes its own Opportunity Playbook. They are saved separately and you can work several at once. Switch between your Focus Playbooks from **Focus Playbooks** in the sidebar, and between your opportunities from **My Pipeline**. Your Personal Brand is shared across all of them; only the per-role sections are written fresh.
 
 **Why is there only one playbook when I built the same role twice (or uploaded the same job description twice)?**
-Reimagine de-duplicates. If you pick the same role from Career Paths twice, or upload the same job description twice, Reimagine quietly re-links you to the existing playbook instead of creating a second copy. Your work is not lost; you land back in the same record, right where you left it. If you want a clean start on that role or job description, remove the existing playbook first (from My Playbooks for a Focus Playbook, from My Pipeline for an opportunity), then build it again.
+Reimagine de-duplicates. If you pick the same role from Career Paths twice, or upload the same job description twice, Reimagine quietly re-links you to the existing playbook instead of creating a second copy. Your work is not lost; you land back in the same record, right where you left it. If you want a clean start on that role or job description, remove the existing playbook first (from Focus Playbooks for a role you explored, from My Pipeline for an opportunity), then build it again.
 
 ## Inside the journey
 
@@ -87,7 +87,7 @@ If you change your reputation, values, passions, assessment, or Your Story after
 Open the feedback box below the section and tell Reimagine what to change, then regenerate. Examples: "Lead with my sustainability work instead," or "Don't use the word 'leverage,' I would not say that." The same feedback box works for the Bridge Story, LinkedIn copy, and every other section. Factual corrections save to your profile and carry into later sections; wording requests apply to the section you make them on.
 
 **I want to explore a different direction or role after I picked one.**
-Use **Explore another direction** to return to the three directions, or pick a different role on the Role Options screen. Every role you have opened before is saved in **My Playbooks**; click **Open** on any card to pick it back up where you left it. Career Paths covers this in detail.
+Use **Explore another direction** to return to the three directions, or pick a different role on the Role Options screen. Every role you have opened before is saved in **Focus Playbooks**; click **Open** on any card to pick it back up where you left it. Career Paths covers this in detail.
 
 **I want different options, or options in a direction we missed.**
 On the Role Options screen, open **Tell us where else to look** and name a domain or direction Reimagine missed, or tell it what did not fit. Examples: "You missed affordable housing." "Consider education." "Remove consulting roles." "These skew too senior." It re-runs with your input weighted, without repeating the ones you have seen.
@@ -97,7 +97,7 @@ On the Role Options screen, open **Tell us where else to look** and name a domai
 **How do I save my work?**
 It is already saved to your account, and it follows you across devices. To take a copy with you, four ways:
 1. **Save Playbook as PDF** from the footer of any Focus Playbook or Opportunity Playbook. A clean paged document, each section on its own page. Good for a coach, a mentor, or reading offline.
-2. **Markdown** on any card in My Playbooks downloads that playbook as a plain text file you can edit, paste, or convert.
+2. **Markdown** on any card in Focus Playbooks downloads that playbook as a plain text file you can edit, paste, or convert.
 3. **Download CSV** in the Go-to-Market section pulls your target company list out as a spreadsheet. This is the most useful artifact for tracking outreach over time.
 4. **Copy All** on any section copies that section's text to your clipboard. The output strips markdown symbols so the paste is clean.
 

@@ -65,7 +65,7 @@ export const SURFACE_LABELS = {
   'interview-prep': 'Interview Prep',
   'go-to-market': 'Go-to-Market',
   'income-now': 'Income Now',
-  'my-playbooks': 'My Playbooks',
+  'my-playbooks': 'Focus Playbooks',
   'navigation-ia': 'Navigation / IA',
   'account-auth': 'Account & Auth',
   'my-coach': 'My Coach',
