@@ -29,7 +29,7 @@ If something is not working the way you expect, check **FAQ and Troubleshooting*
 11. [Add an Opportunity](add-an-opportunity.md)
 12. [My Coach](my-coach.md)
 13. [My Pipeline](my-pipeline.md)
-14. [My Playbooks](my-playbooks.md)
+14. [Focus Playbooks](my-playbooks.md)
 15. [Income Now](income-now.md)
 16. [Negotiating an Offer](negotiating-an-offer.md)
 17. [How an Offer Is Put Together](how-an-offer-is-put-together.md)

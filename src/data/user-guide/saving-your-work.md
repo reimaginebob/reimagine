@@ -6,7 +6,7 @@ This chapter covers how Reimagine saves your progress, how your work syncs acros
 
 When you are signed in, Reimagine saves your progress to your account automatically as you go. Your inputs, your outputs, the direction you picked, the list of roles you have explored, and any corrections you have submitted are all saved against your email and synced to your devices.
 
-Your Focus Playbook sections are saved to your account alongside your inputs. You can build several playbooks across different roles simultaneously — each is saved separately and accessible from **My Playbooks** in the sidebar. On the My Playbooks dashboard, click a playbook's title to rename it, so a saved role reads the way you think of it. The PDF gives you a portable copy you can share or keep alongside your offline notes.
+Your Focus Playbook sections are saved to your account alongside your inputs. You can build several playbooks across different roles simultaneously — each is saved separately and accessible from **Focus Playbooks** in the sidebar. Click a playbook's title there to rename it, so a saved role reads the way you think of it; an opportunity renames the same way, on its card in My Pipeline. The PDF gives you a portable copy you can share or keep alongside your offline notes.
 
 Three things worth knowing.
 
@@ -24,7 +24,7 @@ The Focus Playbook is where Reimagine builds everything for one role. Your work 
 
 **What it produces.** Clicking it assembles every section you have generated for this role (The Role, Bridge Story, and whatever else you built) into a single clean document and opens your browser's print dialog. Choose "Save as PDF" as the destination. The result is formatted for paper, with each section on its own page and Reimagine branding, so it reads well when you send it to a coach, a mentor, or someone you would like to refer you.
 
-**Why save as PDF.** Your playbooks are saved to your account and you can switch between them in My Playbooks without losing work. The PDF is for moments when you want a portable copy: sending to a coach or mentor, reading on a device where you're not signed in, or keeping an annotated reference alongside your offline notes.
+**Why save as PDF.** Your playbooks are saved to your account and you can switch between them in Focus Playbooks and My Pipeline without losing work. The PDF is for moments when you want a portable copy: sending to a coach or mentor, reading on a device where you're not signed in, or keeping an annotated reference alongside your offline notes.
 
 ## Continuing where you left off
 
@@ -42,9 +42,9 @@ The main one is the playbook PDF, covered above. Every Focus Playbook and every 
 
 ### The playbook as a Markdown file
 
-Every card in **My Playbooks** has a **Markdown** button. It downloads that playbook as plain text: your Personal Brand, then every section you have built. Open it in any text editor, paste it into a document, or convert it to a PDF. The PDF is the one you hand to a person; the Markdown file is the one you keep, edit, or feed into another tool.
+Every card under **Focus Playbooks** has a **Markdown** button. It downloads that playbook as plain text: your Personal Brand, then every section you have built. Open it in any text editor, paste it into a document, or convert it to a PDF. The PDF is the one you hand to a person; the Markdown file is the one you keep, edit, or feed into another tool.
 
-A creative use worth trying: upload one into **Notebook LM** (Google's free notebook tool) and use the Audio Summary feature to generate a short podcast-style episode about you. Hearing two hosts talk about your background hits you differently than reading the same content on paper. My Playbooks covers it.
+A creative use worth trying: upload one into **Notebook LM** (Google's free notebook tool) and use the Audio Summary feature to generate a short podcast-style episode about you. Hearing two hosts talk about your background hits you differently than reading the same content on paper. Focus Playbooks covers it.
 
 ### The target company list as a CSV
 

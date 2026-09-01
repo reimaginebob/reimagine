@@ -61,7 +61,7 @@ Three sections from the standard playbook do not appear here, because none of th
 
 ## What is the same
 
-Everything not listed above. Your Personal Brand, My Coach, My Playbooks, saving and printing, refining a section that misses, and the way corrections carry across sections all work exactly as the rest of this guide describes. Your practice saves to My Playbooks like any other playbook and can be downloaded as a PDF or as plain text.
+Everything not listed above. Your Personal Brand, My Coach, Focus Playbooks, saving and printing, refining a section that misses, and the way corrections carry across sections all work exactly as the rest of this guide describes. Your practice plan saves like any other playbook and can be downloaded as a PDF or as plain text; your client opportunities sit on My Pipeline.
 
 ## A note on what is still coming
 

@@ -1,10 +1,10 @@
-# My Playbooks
+# Focus Playbooks
 
-**My Playbooks holds your Focus Playbooks** — the roles you opened from Career Paths. Every job description you bring in becomes an Opportunity Playbook, and those live in **My Pipeline**, one entry up in the sidebar.
+**Focus Playbooks holds one playbook per role you opened from Career Paths.** Every job description you bring in becomes an Opportunity Playbook, and those live in **My Pipeline**, one entry up in the sidebar.
 
 It is a permanent entry in the sidebar, available from anywhere in the app, from the moment you have a Personal Brand.
 
-If you used Reimagine before 2026-08-30, your opportunities used to be listed on this screen alongside your Focus Playbooks. They moved to My Pipeline, where each one shows where it stands and what you are doing next. Nothing was lost in the move, and My Playbooks tells you where to find them.
+This screen was called **My Playbooks** until 2026-09-01, and it used to list your opportunities alongside your Focus Playbooks. The opportunities moved to My Pipeline, where each one shows where it stands and what you are doing next, so the screen took the name of what it actually holds. Nothing was lost in either change, and the screen tells you where your opportunities are.
 
 ## What is on the screen
 
@@ -15,17 +15,17 @@ If you used Reimagine before 2026-08-30, your opportunities used to be listed on
 - **Open.** Picks the playbook back up exactly where you left it. Your sections, your inputs, and your refinements are all there.
 - **Rename.** Click the title and type. A pencil appears when you hover, and the change saves when you click away or press Enter. Useful when the auto-generated title is not how you think of the role.
 - **Markdown.** Downloads that playbook as a plain text file: your Personal Brand, then every section you have built, in the order the playbook renders them. Open it in any text editor, paste it into a document, or convert it to a PDF. Use this when you want the words themselves rather than a formatted document; use **Save Playbook as PDF** from inside the playbook when you want something to hand to a person.
-- **Remove.** Takes it out of your active set and moves it to **Archived** at the bottom of My Playbooks. Reimagine asks you to confirm first. Nothing is deleted — a direction you set down can come back, so a removed playbook waits in Archived for 90 days.
+- **Remove.** Takes it out of your active set and moves it to **Archived** at the bottom of this screen. Reimagine asks you to confirm first. Nothing is deleted — a direction you set down can come back, so a removed playbook waits in Archived for 90 days.
 
 The section count on each card ("5 of 8 sections built") is the fastest way to see how far along something is when you come back after a week away.
 
 ## Archived playbooks
 
-Anything you remove lands in the **Archived** section at the bottom of My Playbooks, with the number of days left before it is deleted for good. This holds both kinds: a Focus Playbook you removed here, and an opportunity you removed from My Pipeline. From there you can **Restore** it — it returns to your active set exactly as it was, with its status and dates intact — or **Delete permanently** if you are sure you will not want it back. After 90 days an archived playbook is deleted automatically.
+Anything you remove lands in the **Archived** section at the bottom of this screen, with the number of days left before it is deleted for good. Removed opportunities have their own Archived list, at the bottom of My Pipeline. From there you can **Restore** it — it returns to your active set exactly as it was, with its status and dates intact — or **Delete permanently** if you are sure you will not want it back. After 90 days an archived playbook is deleted automatically.
 
 ## Compare offers
 
-When you have logged an offer on two or more Opportunity Playbooks, a **Compare offers** button appears at the top of the page.
+Comparing offers happens on **My Pipeline**, since that is where your opportunities are. When you have logged an offer on two or more of them, a **Compare offers** button appears at the top of that screen.
 
 It lines the offers up side by side around a "cash and benefits you can bank on" line: base pay, plus the benefits that come back to you (401(k) match, HSA, PTO), minus what you pay for health. That is the firm money, so an offer with a higher salary but a costlier health plan does not look better than it is. Two offers a few thousand dollars apart in salary can flip once the premium is counted.
 
@@ -45,7 +45,7 @@ If you build a playbook for a role you have already built, or bring in the same 
 
 Sign in from any device with the same email you used originally, and your work loads automatically. Nothing is stored on one machine and nothing needs to be exported and re-imported. Saving and Sharing Your Work covers the details of how account-based saving works.
 
-Between My Pipeline and My Playbooks, everything you generated is a couple of clicks away. My Pipeline is the one to open daily during an active search, because it is ordered by what needs doing; My Playbooks is where you go to pick a direction back up.
+Between My Pipeline and Focus Playbooks, everything you generated is a couple of clicks away. My Pipeline is the one to open daily during an active search, because it is ordered by what needs doing; Focus Playbooks is where you go to pick a direction back up.
 
 ## When to open what
 

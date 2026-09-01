@@ -18,7 +18,11 @@ export const NAV_LABELS = {
   // Standalone destinations — sidebar "Your work" (src/App.jsx primaryItems).
   myCoach: 'My Coach',
   pipeline: 'My Pipeline',
-  mylib: 'My Playbooks',
+  // Renamed from 'My Playbooks' 2026-09-01. Since My Pipeline took the
+  // Opportunity Playbooks at GA, this screen holds Focus Playbooks and nothing
+  // else; the old umbrella name promised a library that was no longer here, and
+  // sent people looking for opportunities that had moved.
+  mylib: 'Focus Playbooks',
   stories: 'Your STAR Stories',
   p3: 'Personal Brand',
   twoDoors: 'Put It to Work',
