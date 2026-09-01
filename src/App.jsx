@@ -2871,9 +2871,11 @@ const OUTREACH_PURPOSES={
 // rule in every prompt below is that a framework may be OFFERED where the T is
 // thin, and never asserted as something they did.
 const TP_FRAMEWORK_LIST=THOUGHT_PROCESS_FRAMEWORKS.map(f=>`- ${f.name}: ${f.model}`).join('\n')
-const TP_FRAMEWORK_RULE=`A FRAMEWORK FOR THE THOUGHT PROCESS, where one fits. A named framework gives the T a shape, and these are the ones this person may have been taught:
+const TP_FRAMEWORK_RULE=(pc)=>{
+  const own=(pc&&Array.isArray(pc.frameworks)&&pc.frameworks.length)?pc.frameworks.join(', '):''
+  return `A FRAMEWORK FOR THE THOUGHT PROCESS, where one fits. A named framework gives the T a shape, and these are the ones this person may have been taught:
 ${TP_FRAMEWORK_LIST}
-
+${own?`\nTHIS PERSON HAS TOLD US WHICH THEY USE: ${own}. Prefer it. Someone who has said how they explain their work should not be handed different vocabulary for it, so reach for theirs wherever it fits the story, and fall to another only where it genuinely does not.\n`:''}
 Read each story and ask whether one of these would carry its thinking neatly. Judge it on the SHAPE OF THE STORY, not on whether the T is thin: a story with a good Thought Process can still be one a framework would sharpen, and that is worth telling them. A problem someone diagnosed before fixing often falls out as People, Process, Technology. Something that needed buy-in before it needed a plan often falls out as Vision, Alignment, Execution. A judgment call about whether something could be done often falls out as ARC.
 
 WHERE ONE FITS, return it in that story's "framework" field: the name exactly as written above, plus one short line applying it to THIS story rather than restating what the framework is. "Your diagnosis was really about process, and the technology only looked like the problem" is the move. "People, Process, Technology helps you diagnose problems" is not.
@@ -2885,6 +2887,7 @@ NEVER SAY THEY USED ONE. You do not know that. This is offered as a shape their 
 THE FIELD SHAPE, on any story where you suggest one:
 "framework": { "name": "People, Process, Technology", "note": "one short line applying it to this story" }
 and "framework": null everywhere else.`
+}
 
 const P={
   // Stage one (Personal Brand): the lean analysis. A short coach frame plus the
@@ -3658,7 +3661,7 @@ RETURN A STORY ONLY WHERE THE INPUTS SUPPORT ONE. Do NOT manufacture a story to 
 
 EVERY SLOT IS TWO THINGS. A "text" field: what their inputs actually support, stated plainly, no characterization and no "you are X" constructions. And a "to_strengthen" field: the specific missing thing only they can supply, a name, a number, a decision, the moment it turned. Never generic advice, never "add more detail" or "flesh this out". Where a slot has no support at all, leave text empty and put the ask in to_strengthen.
 
-${TP_FRAMEWORK_RULE}
+${TP_FRAMEWORK_RULE(pc)}
 
 THE WEAKNESS EVIDENCE, and ONLY if an assessment supports it. This is not a story and must not be written as one. Name the strength at its best, then the same strength when it runs unchecked, and say which assessment named it. Nothing else: no situation, no year, no event, no company, no "during the 2017 restructure". If the person has given no assessment, return an empty string and the screen will ask them for it. In the output use plain words for this. NEVER write "balcony", "basement", "shadow", or "assessment signal" — those are internal vocabulary and are banned in anything the person reads.
 
@@ -3715,7 +3718,7 @@ WHICH QUESTION EACH STORY ANSWERS. Pick the one kind it answers best from: achie
 
 NEVER FILE A WEAKNESS STORY. If what they pasted is an answer to the greatest-weakness or biggest-failure question, set its kind to "weakness" and leave the slots empty: that question is answered with a different structure elsewhere and a STAR shape is wrong for it. Say in "why" that it belongs there instead.
 
-${TP_FRAMEWORK_RULE}
+${TP_FRAMEWORK_RULE(pc)}
 
 SEPARATE STORIES, NOT ONE. If they pasted several, return several. If they pasted one long piece covering two different experiences, split it. If two passages are the same experience written twice, return the stronger one only.
 
@@ -3766,7 +3769,7 @@ THEIR CORRECTION IS THE BRIEF, and it wins over anything you would otherwise hav
 
 CHANGE ONLY WHAT THE NOTE REACHES. Every slot they did not raise comes back as it went in, word for word. Their own edits are in this text and rewriting them for style is how someone quietly loses their own voice. If the note is about one slot, one slot changes.
 
-${TP_FRAMEWORK_RULE}
+${TP_FRAMEWORK_RULE(pc)}
 
 NEVER INVENT. If the note asks for something the inputs do not support — a number, a name, a moment — put the ask in that slot's to_strengthen rather than filling it with a plausible guess. Inventing someone's own past is the worst failure available here.
 
@@ -7036,6 +7039,7 @@ export default function PivotEngine(){
   const[storyAltsOpen,setStoryAltsOpen]=useState({})
   // Two-step, because this one is not reversible.
   const[restartArmed,setRestartArmed]=useState(false)
+  const[ownFramework,setOwnFramework]=useState('')
   // Bringing in stories written elsewhere.
   const[storyPaste,setStoryPaste]=useState('')
   const[storyImporting,setStoryImporting]=useState(false)
@@ -11628,7 +11632,24 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {THOUGHT_PROCESS_FRAMEWORKS.map(f=><div key={f.id} style={{marginBottom:6,paddingLeft:14,borderLeft:`2px solid ${C.border}`,lineHeight:1.6}}>
             <strong style={{color:'#1A2540'}}>{f.name}.</strong> {f.model}
           </div>)}
-          <div style={{marginTop:10}}>Use your own if you have one.</div>
+          <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.gold}44`}}>
+            <div style={{fontWeight:700,color:'#1A2540',marginBottom:2}}>Is one of these yours?</div>
+            <div style={{marginBottom:8}}>Pick any you already use, or add your own. Interview Prep will name it when it applies.</div>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>
+              {THOUGHT_PROCESS_FRAMEWORKS.map(f=>{
+                const on=(profile.frameworks||[]).includes(f.name)
+                return <button key={f.id} type="button" onClick={()=>pr('frameworks',on?(profile.frameworks||[]).filter(x=>x!==f.name):[...(profile.frameworks||[]),f.name])} style={{fontSize:16,fontFamily:'inherit',padding:'8px 12px',borderRadius:20,cursor:'pointer',border:`1px solid ${on?C.gold:C.border}`,background:on?C.gold:'#FFFFFF',color:on?'#FFFFFF':C.gray,fontWeight:on?700:500}}>{f.name}</button>
+              })}
+            </div>
+            {(profile.frameworks||[]).filter(x=>!THOUGHT_PROCESS_FRAMEWORKS.some(f=>f.name===x)).map(x=><div key={x} style={{display:'flex',gap:10,alignItems:'center',marginBottom:8}}>
+              <span style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>{x}</span>
+              <button type="button" onClick={()=>pr('frameworks',(profile.frameworks||[]).filter(y=>y!==x))} style={{background:'none',border:'none',padding:0,color:C.gray,fontSize:15,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Remove</button>
+            </div>)}
+            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+              <input style={{...ta,marginTop:0,flex:1,minWidth:220}} value={ownFramework} onChange={e=>setOwnFramework(e.target.value)} placeholder="Or name your own"/>
+              <Btn small disabled={!ownFramework.trim()} onClick={()=>{const v=ownFramework.trim();if(!v)return;if(!(profile.frameworks||[]).includes(v))pr('frameworks',[...(profile.frameworks||[]),v]);setOwnFramework('')}}><Plus size={12}/>Add</Btn>
+            </div>
+          </div>
         </CoachingCallout>
 
         {!storiesLoaded&&held===0&&<div style={{...S.card,marginBottom:20}}>
