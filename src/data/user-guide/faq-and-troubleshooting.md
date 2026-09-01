@@ -49,10 +49,10 @@ Once you are signed in, clearing cache does not affect your work. Sign in again 
 Yes, automatically. Sign in from the new device with the same email and your full session is there. No file export needed.
 
 **Can I have more than one direction in flight at a time?**
-Yes. Every role you open becomes its own Focus Playbook, and every job description you bring in becomes its own Opportunity Playbook. They are saved separately and you can work several at once, up to ten. Switch between them from **My Playbooks**. Your Personal Brand is shared across all of them; only the per-role sections are written fresh.
+Yes. Every role you open becomes its own Focus Playbook, and every job description you bring in becomes its own Opportunity Playbook. They are saved separately and you can work several at once. Switch between your Focus Playbooks from **My Playbooks**, and between your opportunities from **My Pipeline**. Your Personal Brand is shared across all of them; only the per-role sections are written fresh.
 
 **Why is there only one playbook when I built the same role twice (or uploaded the same job description twice)?**
-Reimagine de-duplicates. If you pick the same role from Career Paths twice, or upload the same job description twice, Reimagine quietly re-links you to the existing playbook instead of creating a second copy. Your work is not lost; you land back in the same record, right where you left it. If you want a clean start on that role or job description, delete the existing playbook from My Playbooks first, then build it again.
+Reimagine de-duplicates. If you pick the same role from Career Paths twice, or upload the same job description twice, Reimagine quietly re-links you to the existing playbook instead of creating a second copy. Your work is not lost; you land back in the same record, right where you left it. If you want a clean start on that role or job description, remove the existing playbook first (from My Playbooks for a Focus Playbook, from My Pipeline for an opportunity), then build it again.
 
 ## Inside the journey
 
