@@ -94,12 +94,15 @@ export const ROUTED_QUESTIONS = [
     note: 'This is research, and the effort is itself the signal: go past the homepage to recent news, competitors and culture, and reference one specific thing you found. Paste in an opening you are pursuing and Reimagine builds a playbook for it. About This Company does that research and hands you the specifics worth referencing, alongside how you fit the role and what to say.',
   },
   {
-    // No destination: the guidance IS the answer. Sending someone to Interview
-    // Prep to be told the same thing again is a redirect for its own sake.
     id: 'why-leaving',
-    asks: '"Why are you leaving your current role?"',
-    where: null,
+    asks: '"Why did you leave your last role?" or "Why are you leaving your current one?"',
+    where: 'Work on this with My Coach',
     step: null,
+    // The guidance below is the whole rule and stands on its own. What the Coach
+    // adds is the part guidance cannot do: it asks what actually happened and
+    // works the wording with the person, which is where this answer is won or
+    // lost.
+    coach: 'Help me answer the question about why I left my last role, or why I am leaving my current one. This is the first time I have asked you about it, so start from scratch. Ask me first which of those applies and what actually happened, including whether it was a layoff. Then work with me to get to my best and fewest reasons: specific, non-defensive, and connected to what the next role offers. If I was laid off, keep it plain rather than softening it, since that is common right now and reflects a company\'s financial reality rather than how well I did the job. Draft it, tell me which parts you were least sure about, and help me get it short enough that it does not invite more questions.',
     note: 'Your best and fewest reasons. If you were laid off, say so plainly: it is common right now, and it reflects a company\'s financial reality rather than anything about how well you did the job. A vague answer invites more questions, not fewer, and the reason you give should connect to what this new role offers.',
   },
   {

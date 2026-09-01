@@ -95,11 +95,10 @@ eq(emptySlots({ slots: { S: { text: 'x' }, T: { text: '' }, A: { text: 'y' }, R:
 
 eq(ROUTED_QUESTIONS.length, 7, 'the other seven questions')
 ok(ROUTED_QUESTIONS.every(q => q.asks && q.note), 'each names the question and what it tests')
-// A question whose guidance IS the answer carries no destination. Sending
-// someone to another screen to read the same thing is a redirect for its own
-// sake, so `where` is deliberately null on those.
-eq(ROUTED_QUESTIONS.filter(q => !q.where).map(q => q.id), ['why-leaving'],
-   'a question whose guidance is the whole answer carries no destination')
+// Every routed question now leads somewhere: a conversation with the Coach, or
+// the screen that builds what it needs. The guidance under each one still stands
+// on its own; the destination is where it gets worked into an actual answer.
+eq(ROUTED_QUESTIONS.filter(q => !q.where).length, 0, 'every routed question leads somewhere')
 // Both of these live inside an Opportunity Playbook, which is gated on having
 // one, so each carries the step that gets someone there rather than naming a
 // screen they cannot reach.
@@ -113,8 +112,14 @@ ok(ROUTED_QUESTIONS.every(q => q.asks.trim().endsWith('"')), 'quoted as the inte
 // question is one of the six a person must answer even though it is not a story.
 eq(INVENTORY.length + ROUTED_QUESTIONS.length, 13, 'thirteen questions in total')
 // Exactly one routed question hands off to My Coach rather than to a screen.
-eq(ROUTED_QUESTIONS.filter(q => q.coach).map(q => q.id), ['about-yourself', 'not-on-resume', 'most-least', 'qualified'],
-   'the four that want a conversation get one')
+eq(ROUTED_QUESTIONS.filter(q => q.coach).map(q => q.id),
+   ['about-yourself', 'not-on-resume', 'why-leaving', 'most-least', 'qualified'],
+   'the five that want a conversation get one')
+// Most people using Reimagine have already left, so asking only "why are you
+// leaving" assumes a job they do not have and makes them translate the question
+// before it applies to them.
+ok(/Why did you leave your last role/.test(ROUTED_QUESTIONS.find(q => q.id === 'why-leaving').asks),
+   'the leaving question leads with the past tense')
 // The Coach opened one of these with "here's the draft again" on a first ask,
 // so every seed says plainly that there is no earlier draft to return to.
 ok(ROUTED_QUESTIONS.filter(q => q.coach).every(q => /first time I have asked/.test(q.coach)),
