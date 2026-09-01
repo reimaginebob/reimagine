@@ -93,16 +93,26 @@ eq(emptySlots({ slots: { S: { text: 'x' }, T: { text: '' }, A: { text: 'y' }, R:
 
 // ── The eight that route elsewhere ──────────────────────────────────────────
 
-eq(ROUTED_QUESTIONS.length, 8, 'the other eight of the twelve')
-ok(ROUTED_QUESTIONS.every(q => q.asks && q.where && q.note), 'each names the question, where it is answered, and what it tests')
+eq(ROUTED_QUESTIONS.length, 7, 'the other seven questions')
+ok(ROUTED_QUESTIONS.every(q => q.asks && q.note), 'each names the question and what it tests')
+// A question whose guidance IS the answer carries no destination. Sending
+// someone to another screen to read the same thing is a redirect for its own
+// sake, so `where` is deliberately null on those.
+eq(ROUTED_QUESTIONS.filter(q => !q.where).map(q => q.id), ['why-leaving', 'most-least'],
+   'two questions are answered where they are asked')
+ok(!ROUTED_QUESTIONS.some(q => q.id === 'view-changed'), 'the question nobody could explain the point of is gone')
 ok(ROUTED_QUESTIONS.every(q => q.asks.trim().endsWith('"')), 'quoted as the interviewer would say them')
-// Six questions in the inventory plus eight routed is the whole foundation the
-// screen shows: Taylor's twelve, plus two the book adds that his list does not
-// ask. Counted off INVENTORY, not PLAYLIST_TYPES — the weakness question is one
-// of the six a person must answer even though it is not a story.
-eq(INVENTORY.length + ROUTED_QUESTIONS.length, 14, 'fourteen questions in total')
+// Six questions in the inventory plus seven routed is the whole foundation the
+// screen shows. Counted off INVENTORY, not PLAYLIST_TYPES — the weakness
+// question is one of the six a person must answer even though it is not a story.
+eq(INVENTORY.length + ROUTED_QUESTIONS.length, 13, 'thirteen questions in total')
 // Exactly one routed question hands off to My Coach rather than to a screen.
-eq(ROUTED_QUESTIONS.filter(q => q.coach).map(q => q.id), ['not-on-resume'], 'the human question is worked out in conversation')
+eq(ROUTED_QUESTIONS.filter(q => q.coach).map(q => q.id), ['about-yourself', 'not-on-resume', 'qualified'],
+   'the three that want a conversation get one')
+// The Coach opened one of these with "here's the draft again" on a first ask,
+// so every seed says plainly that there is no earlier draft to return to.
+ok(ROUTED_QUESTIONS.filter(q => q.coach).every(q => /first time I have asked/.test(q.coach)),
+   'each seed tells the Coach this is a first ask')
 ok(ROUTED_QUESTIONS.filter(q => q.step).every(q => !q.coach), 'a question routes to a screen or to the coach, never both')
 
 // ── Order ──────────────────────────────────────────────────────────────

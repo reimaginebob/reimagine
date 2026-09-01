@@ -83,15 +83,14 @@ What it does not do is write the example for you. Reimagine will not invent the 
 
 ## The other questions you will be asked
 
-Eight more questions do not want a story out of your library. They want something else, and Reimagine has that, so the screen names where. Between the six above and these eight, fourteen questions are accounted for before you walk in.
+Seven more questions do not want a story out of your library. Two are answered right where they are asked; the rest point at where Reimagine handles them. Between the six above and these seven, thirteen questions are accounted for before you walk in.
 
-- **"Tell me about yourself."** Your Bridge Story, built for you on any opportunity or direction.
+- **"Tell me about yourself."** Work on this one with My Coach. It gets used more than any other answer, and Bridge Story writes you a version aimed at a specific role once you have built a direction or added an opportunity.
 - **"What isn't on your resume?"** Work on this one with My Coach. It is the question that wants the human answer rather than the professional one -- values, what you care about, what shaped you -- and the Coach already knows all of it. It drafts an answer in your voice, says which parts it was least sure about, and works it with you from there.
 - **"What do you know about our company?"** About This Company, on the opportunity. The effort is itself the signal.
 - **"Why are you leaving your current role?"** Your best and fewest reasons. A layoff stated plainly reads as fact and needs no apology.
-- **"What did you like most and least about your last role?"** Values alignment. Name something you valued that this company also values.
-- **"Are you underqualified or overqualified?"** Redirect to the specific value you bring, and keep it short.
-- **"Has your view of the job changed since we started talking?"** Asked late, and it tests whether you were listening rather than running a script.
+- **"What did you like most and least about your last role?"** A values question wearing a preferences question. For the least, pick something this role would not repeat and say what you did about it. Keep both answers about the work itself.
+- **"Are you underqualified or overqualified?"** Work on this one with My Coach, which asks which way it is being asked before it drafts anything. Whichever way, the answer redirects to the specific value you bring and stays short.
 - **"Do you have any questions for me?"** Interview Prep gives you questions aimed at what each person you are meeting uniquely knows.
 
 ## One answer per question
@@ -112,7 +111,13 @@ At the bottom of the screen, **Start over** clears every story and builds a fres
 
 ## Adding your own
 
-**Add one of your own** takes a name and the kind of story it is. Fill in the parts when you have a minute. Naming it is most of the value: a story on the list is one you will come back to, and one you have only thought about is one you will fumble under pressure.
+If you have already written stories somewhere else, paste them in. Any format, however many at once. Reimagine reads them, works out which question each one answers, files them with the rest, and carries your words across as you wrote them rather than rewriting them into its own voice.
+
+One thing to expect on an import. A story written to the usual STAR format has a Task in its T, which is what you were assigned rather than how you were thinking, and that is the one part this method changes. Anything in your writing that shows the thinking gets moved into the Thought Process; where the story does not show it, you get the question that would, rather than a guess. The screen tells you which stories that happened to.
+
+A pasted answer to the weakness question is not filed as a story, and the screen says so: that one has its own section and wants a different structure.
+
+You can also just name a story for later, with the question it answers, and fill in the parts when you have a minute. Naming it is most of the value: a story on the list is one you will come back to, and one you have only thought about is one you will fumble under pressure.
 
 If a story you add is really the same experience as one already there, Reimagine keeps the one you have rather than listing it twice.
 

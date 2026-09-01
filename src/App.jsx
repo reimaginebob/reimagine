@@ -3663,6 +3663,62 @@ One story per experience, and one per kind. If two angles on the same event both
 PERSONAL BRAND (their through-line and their voice):
 ${(brand||'').slice(0,2500)||'(not built yet)'}
 `,
+  // Bringing in stories someone already wrote. People arrive with these in a Word
+  // doc, a coaching worksheet or an old prep file, and the ask has been open
+  // since the library shipped: there was no way to get them in other than
+  // retyping four boxes per story.
+  //
+  // Two things this has to do beyond storing the text. It has to work out which
+  // question each story answers, because a story filed under the wrong question
+  // is a story they will not find when they need it. And it has to say what the
+  // T actually holds: a story written to standard STAR has a Task there, which is
+  // the one thing this method changes, so an import that silently keeps it
+  // teaches the wrong shape.
+  storyImport: (pc, brand, pasted) => `Read the STAR stories this person has already written and bring them into their library. Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end with }.
+
+THEIR WORDS ARE THE STORY. Carry the substance across as they wrote it. Tighten only what is genuinely unclear, and never rewrite for style: this is their work, and a person who pastes a story and gets back something that no longer sounds like them has been told their writing was the problem. Never invent a detail, a number or an outcome that is not in what they pasted.
+
+WHAT A STORY IS HERE. Four slots: Situation, Thought Process, Action, Result. The T is Thought Process, NOT Task — that is the one change this method makes to STAR and the whole reason its answers land. Tasks say what someone was assigned; thought process shows how they think, which is what an interviewer is actually evaluating.
+
+THE T IS THE WHOLE POINT OF THIS IMPORT. Most stories written to standard STAR have a Task in that slot: what they were responsible for, what the goal was, what they had been asked to deliver. That is not thought process. When you find one:
+- Put whatever genuinely shows their thinking into T, if it is anywhere in what they wrote. It is often buried in the Action.
+- Where their T is a task and nothing in the story shows the thinking, leave the T text EMPTY and put the ask in to_strengthen, phrased as the specific question only they can answer: what they were weighing, what they ruled out, what they did first and why.
+- Say so in "task_in_t": true for that story. The screen tells them what changed and why.
+
+WHICH QUESTION EACH STORY ANSWERS. Pick the one kind it answers best from: achievement (a significant achievement, asked as greatest strengths), authority (leading without formal authority), collaboration (a difficult collaboration, asked as handling conflict with a colleague), strategic (a moment of strategic impact, asked as biggest impact), ambiguity (navigating ambiguity or conflict, asked as a difficult situation at work). One kind each, the strongest fit. If a story genuinely fits none of them, use "other" and say why in "why" — do not force it.
+
+NEVER FILE A WEAKNESS STORY. If what they pasted is an answer to the greatest-weakness or biggest-failure question, set its kind to "weakness" and leave the slots empty: that question is answered with a different structure elsewhere and a STAR shape is wrong for it. Say in "why" that it belongs there instead.
+
+SEPARATE STORIES, NOT ONE. If they pasted several, return several. If they pasted one long piece covering two different experiences, split it. If two passages are the same experience written twice, return the stronger one only.
+
+Return this shape:
+{
+  "stories": [
+    {
+      "title": "a short plain name for it, theirs if they gave one",
+      "kind": "achievement | authority | collaboration | strategic | ambiguity | weakness | other",
+      "why": "one short line on why this kind, or where it belongs if the kind is weakness or other",
+      "task_in_t": false,
+      "slots": {
+        "S": { "text": "", "to_strengthen": "" },
+        "T": { "text": "", "to_strengthen": "" },
+        "A": { "text": "", "to_strengthen": "" },
+        "R": { "text": "", "to_strengthen": "" }
+      }
+    }
+  ]
+}
+
+EVERY SLOT IS TWO THINGS. A "text" field carrying what they wrote for it, and a "to_strengthen" field naming the specific missing thing only they can supply: a number, a name, a decision, the moment it turned. Never generic advice, never "add more detail". Where a slot has nothing behind it in what they pasted, leave text empty and put the ask in to_strengthen. A Result with no number is the most common gap and worth asking about every time it appears.
+
+WRITE TO THEM, IN SECOND PERSON. Everything you return is read by the person it is about. Address them as "you" and "your", never in the third person and never as "this person". Other people inside their stories are of course still he, she and they.
+
+WHAT THEY PASTED:
+${String(pasted || '').slice(0, 12000)}
+
+PERSONAL BRAND (their through-line and their voice):
+${(brand || '').slice(0, 1500) || '(not built yet)'}
+`,
   // One story, reworked from the person's own note. The sibling of the per-question
   // refine in Interview Prep, and the reason a seeded story needs no Remove button:
   // a story that reads wrong is a story to correct, not one to delete. The whole
@@ -6948,6 +7004,10 @@ export default function PivotEngine(){
   const[storyAltsOpen,setStoryAltsOpen]=useState({})
   // Two-step, because this one is not reversible.
   const[restartArmed,setRestartArmed]=useState(false)
+  // Bringing in stories written elsewhere.
+  const[storyPaste,setStoryPaste]=useState('')
+  const[storyImporting,setStoryImporting]=useState(false)
+  const[storyImportNote,setStoryImportNote]=useState(null)
   const saveStory=(story)=>{
     setStarStories(prev=>{const i=prev.findIndex(x=>x.id===story.id);return i>=0?prev.map(x=>x.id===story.id?story:x):[...prev,story]})
     if(!isDemo&&!isTest){try{fetch('/api/star-stories',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({story})}).catch(()=>{})}catch{}}
@@ -7016,6 +7076,44 @@ export default function PivotEngine(){
     // the rebuild is asked for here rather than left to that effect.
     storiesAutoRef.current=true
     buildStoryLibrary({base:[]})
+  }
+  // Import. Same ingest path as the seed, so an imported story is a story like
+  // any other: editable in place, refinable, filed under the question it answers.
+  const importStories=async()=>{
+    const pasted=(storyPaste||'').trim()
+    if(!pasted){setStoriesErr('Paste a story in first.');return}
+    if(storyImporting)return
+    setStoryImporting(true);setStoriesErr(null);setStoryImportNote(null)
+    try{
+      const brand=asText(outputs.p3)
+      const r=await callClaudeWithVoiceGate(()=>P.storyImport(pc,brand,pasted),{maxTokens:12000,profileBlock:buildUserProfileBlock(pc,outputs),step:'story-import'},{step:'story-import',onEvent:logVoiceEvent})
+      const obj=parseStorySeed(typeof r==='string'?r:'')
+      const rows=(obj&&Array.isArray(obj.stories))?obj.stories:null
+      if(!rows||!rows.length){setStoriesErr('We could not read a story in that. Try pasting one story at a time.');return}
+      const known=new Set(PLAYLIST_TYPES.map(t=>t.id))
+      const ts=new Date().toISOString()
+      let acc=starStories,added=0,taskFixed=0
+      const parked=[]
+      for(const row of rows){
+        const title=(row&&typeof row.title==='string')?row.title.trim():''
+        if(!title)continue
+        const kind=(row.kind||'').trim()
+        // A weakness answer is not a STAR story and an unplaceable one is not a
+        // library entry; saying so beats filing either under the wrong question.
+        if(!known.has(kind)){parked.push({title,kind,why:(typeof row.why==='string'?row.why.trim():'')});continue}
+        const story={id:newStoryId(),title,kind,origin:'imported',
+          why:(typeof row.why==='string'?row.why.trim():''),
+          slots:(row.slots&&typeof row.slots==='object')?row.slots:{},
+          createdAt:ts,updatedAt:ts}
+        const next=addStory(acc,story)
+        if(next.length>acc.length){acc=next;saveStory(story);added++;if(row.task_in_t===true)taskFixed++}
+      }
+      if(!added&&!parked.length){setStoriesErr('Those look like stories you already have.');return}
+      if(added)setStoryPaste('')
+      setStoryImportNote({added,taskFixed,parked,truncated:!!(obj&&obj.truncated)})
+    }catch(e){
+      setStoriesErr(e.message||'That did not come back. Try again.')
+    }finally{setStoryImporting(false)}
   }
   const addStoryByHand=()=>{
     const title=(storyDraft.title||'').trim()
@@ -11580,25 +11678,44 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
         <div style={{...S.card,marginBottom:14}}>
           <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:6}}>The other questions you will be asked</div>
-          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>These eight do not want a story out of your library. They want something else, and Reimagine has that.</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>These seven do not want a story out of your library. Some are answered right here, and the rest point at where Reimagine handles them.</div>
           {ROUTED_QUESTIONS.map(q=><div key={q.id} style={{padding:'10px 0',borderTop:`1px solid ${C.border}`}}>
             <div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>{q.asks}</div>
             <div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:2}}>{q.note}</div>
-            <div style={{fontSize:15,color:C.goldL,fontWeight:600,marginTop:4}}>{(q.step||q.coach)
+            {(q.step||q.coach||q.where)&&<div style={{fontSize:15,color:C.goldL,fontWeight:600,marginTop:4}}>{(q.step||q.coach)
               ?<button type="button" onClick={()=>{if(q.coach){openCoachWith(q.coach,true,'stories')}else{nav(q.step)}}} style={{background:'none',border:'none',padding:0,color:C.goldL,fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>{q.where}</button>
-              :q.where}</div>
+              :q.where}</div>}
           </div>)}
         </div>
 
         <div id="story-add" style={{...S.card,scrollMarginTop:80}}>
-          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>Add one of your own</div>
-          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Name it now and fill it in when you have a minute. A story with a name on the list is one you will actually come back to.</div>
-          <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'2fr 1fr',gap:10,marginBottom:10}}>
-            <label style={{display:'block',fontSize:15,color:C.gray}}>What you would call it<input style={ta} value={storyDraft.title} onChange={e=>setStoryDraft(d=>({...d,title:e.target.value}))} placeholder="Toronto acquisition integration"/></label>
-            <label style={{display:'block',fontSize:15,color:C.gray}}>What kind<select style={ta} value={storyDraft.kind} onChange={e=>setStoryDraft(d=>({...d,kind:e.target.value}))}>{PLAYLIST_TYPES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select></label>
+          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:8}}>Add your own stories</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Already written some? Paste them in, however they are formatted and however many at once. Reimagine reads them, works out which question each one answers, and files it with the rest. Your words carry across as you wrote them.</div>
+          <CoachingCallout>
+            <div>One thing to expect. If a story was written to the usual STAR format, its T holds a Task, which is what you were assigned rather than how you were thinking. That is the one part this method changes, so anything in your writing that shows your thinking gets moved into the Thought Process, and where the story does not show it you get the question that would.</div>
+          </CoachingCallout>
+          <textarea style={{...ta,minHeight:220,marginTop:12}} value={storyPaste} onChange={e=>setStoryPaste(e.target.value)} placeholder={'Paste anything here. A Word doc, an old prep sheet, notes from a coach.\n\nSituation: We were consolidating three regional claims centers into one hub…\nTask: I owned the people side of the restructure…\nAction: I built the role-matching process and the internal mobility program…\nResult: 76% of displaced employees were placed into new roles.'}/>
+          <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginTop:10}}>
+            <Btn small prominent disabled={storyImporting} onClick={importStories}><Sparkles size={12}/>{storyImporting?'Reading them…':'Add these'}</Btn>
+            <span style={{fontSize:16,color:C.gray}}>Nothing is replaced. These join what is already here.</span>
           </div>
-          {storiesErr&&held>0&&<div style={{marginBottom:10}}><ErrBox msg={storiesErr}/></div>}
-          <Btn small onClick={addStoryByHand}><Plus size={14}/>Add it</Btn>
+          {storyImportNote&&<div style={{marginTop:12,padding:'12px 14px',border:`1px solid ${C.gold}`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,background:`${C.gold}12`}}>
+            {storyImportNote.added>0&&<div style={{fontSize:16,fontWeight:700,color:'#1A2540'}}>{storyImportNote.added===1?'One story added':`${storyImportNote.added} stories added`}, filed under the questions they answer.</div>}
+            {storyImportNote.taskFixed>0&&<div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:4}}>{storyImportNote.taskFixed===1?'One of them had':`${storyImportNote.taskFixed} of them had`} a Task where the Thought Process goes. Check that part: where your writing did not show the thinking, there is a question waiting instead of a guess.</div>}
+            {storyImportNote.parked.map((x,i)=><div key={i} style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:6}}><strong style={{color:'#1A2540'}}>{x.title}</strong> was not added. {x.kind==='weakness'?'It answers the weakness question, which has its own section above and wants a different structure than a STAR story.':(x.why||'It did not fit any of the questions here.')}</div>)}
+            {storyImportNote.truncated&&<div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:6}}>That was a lot at once and the read was cut short. Paste the rest in a second batch.</div>}
+          </div>}
+          {storiesErr&&held>0&&<div style={{marginTop:12}}><ErrBox msg={storiesErr}/></div>}
+
+          <div style={{marginTop:18,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
+            <div style={{fontSize:16,fontWeight:700,color:'#1A2540',marginBottom:6}}>Or just name one for later</div>
+            <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>A story with a name on the list is one you will actually come back to. Fill in the parts when you have a minute.</div>
+            <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'2fr 1fr',gap:10,marginBottom:10}}>
+              <label style={{display:'block',fontSize:15,color:C.gray}}>What you would call it<input style={ta} value={storyDraft.title} onChange={e=>setStoryDraft(d=>({...d,title:e.target.value}))} placeholder="Toronto acquisition integration"/></label>
+              <label style={{display:'block',fontSize:15,color:C.gray}}>Which question it answers<select style={ta} value={storyDraft.kind} onChange={e=>setStoryDraft(d=>({...d,kind:e.target.value}))}>{PLAYLIST_TYPES.map(t=><option key={t.id} value={t.id}>{t.asks}</option>)}</select></label>
+            </div>
+            <Btn small onClick={addStoryByHand}><Plus size={14}/>Add it</Btn>
+          </div>
         </div>
 
         {held>0&&storiesSeedable&&<div style={{...S.card,marginTop:14}}>
