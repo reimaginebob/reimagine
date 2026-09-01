@@ -388,6 +388,91 @@ export function questionGroup(stories, kindId) {
   return { primary: ranked[0] || null, alternates: ranked.slice(1) }
 }
 
+// READING THE SEED BACK.
+//
+// The seed returns one JSON object holding the weakness evidence and up to five
+// STAR stories, each with four slots carrying both a text and a to_strengthen.
+// That is a lot of output, and thinking tokens come out of the same budget, so a
+// generation can stop mid-story. `indexOf('{')` to `lastIndexOf('}')` then
+// JSON.parse throws the entire response away when that happens, and the person
+// gets "that came back in a shape we could not read" after waiting minutes for
+// four perfectly good stories.
+//
+// So: parse the whole thing when it is whole, and otherwise recover the complete
+// story objects out of a truncated array and say the set is short.
+
+/** Walks `str` from `start` and returns the index after the object opening there, or -1. */
+function endOfObject(str, start) {
+  let depth = 0, inStr = false, esc = false
+  for (let i = start; i < str.length; i++) {
+    const c = str[i]
+    if (esc) { esc = false; continue }
+    if (c === '\\') { esc = true; continue }
+    if (c === '"') { inStr = !inStr; continue }
+    if (inStr) continue
+    if (c === '{') depth++
+    else if (c === '}') { depth--; if (depth === 0) return i }
+  }
+  return -1
+}
+
+/** The complete `{...}` objects inside the stories array, even if it never closed. */
+function salvageStories(body) {
+  const key = body.search(/"stories"\s*:\s*\[/)
+  if (key === -1) return []
+  let i = body.indexOf('[', key) + 1
+  const out = []
+  while (i < body.length) {
+    const open = body.indexOf('{', i)
+    if (open === -1) break
+    const close = endOfObject(body, open)
+    if (close === -1) break
+    try { out.push(JSON.parse(body.slice(open, close + 1))) } catch { /* skip a bad one */ }
+    i = close + 1
+  }
+  return out
+}
+
+// The weakness fields sit ahead of the stories array, so they survive a
+// truncation that eats the tail.
+function firstString(body, key) {
+  const m = body.match(new RegExp('"' + key + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"'))
+  if (!m) return ''
+  try { return JSON.parse('"' + m[1] + '"') } catch { return '' }
+}
+
+/**
+ * The seed response as an object, whole or salvaged.
+ *
+ * Returns null only when there is nothing usable at all. `truncated` is true when
+ * the response did not parse as a whole but stories were recovered from it, so
+ * the caller can tell someone their set came back short rather than pretending
+ * five was the answer.
+ */
+export function parseStorySeed(raw) {
+  let str = String(raw || '').trim()
+  const fence = str.match(/^```(?:json)?\s*([\s\S]*?)```\s*$/)
+  if (fence) str = fence[1].trim()
+  const first = str.indexOf('{')
+  if (first === -1) return null
+  str = str.slice(first)
+  const last = str.lastIndexOf('}')
+  if (last > 0) {
+    try {
+      const whole = JSON.parse(str.slice(0, last + 1))
+      if (whole && typeof whole === 'object') return { ...whole, truncated: false }
+    } catch { /* fall through to salvage */ }
+  }
+  const stories = salvageStories(str)
+  if (!stories.length) return null
+  return {
+    stories,
+    weakness_real: firstString(str, 'weakness_real'),
+    weakness_source: firstString(str, 'weakness_source'),
+    truncated: true,
+  }
+}
+
 /**
  * A story is only as useful as its thinnest slot. Returns the slots with
  * nothing in them, which is what the library shows as the next thing to do.

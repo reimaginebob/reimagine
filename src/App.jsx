@@ -22,7 +22,7 @@ import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 // holding localStorage state overwrites newer server state. Tested by
 // scripts/test-autosave-gate.mjs.
 import { canPushProfile } from "./autosave-gate.js"
-import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, firstPerKind, weaknessRecord, missingNumbers, questionGroup } from "./star-stories.mjs"
+import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, firstPerKind, weaknessRecord, missingNumbers, questionGroup, parseStorySeed } from "./star-stories.mjs"
 import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
 import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from "./corrections.js"
 // Stale-build self-healing: BUILD_SHA / BUILT_AT come from
@@ -7044,10 +7044,11 @@ export default function PivotEngine(){
     setStoriesBusy(true);setStoriesErr(null)
     try{
       const brand=asText(outputs.p3)
-      const r=await callClaudeWithVoiceGate(()=>P.storySeed(pc,brand),{maxTokens:6000,profileBlock:buildUserProfileBlock(pc,outputs),step:'story-seed'},{step:'story-seed',onEvent:logVoiceEvent})
-      const txt=typeof r==='string'?r:''
-      const a=txt.indexOf('{'),b=txt.lastIndexOf('}')
-      let obj=null;try{obj=JSON.parse(txt.slice(a,b+1))}catch{}
+      const r=await callClaudeWithVoiceGate(()=>P.storySeed(pc,brand),{maxTokens:12000,profileBlock:buildUserProfileBlock(pc,outputs),step:'story-seed'},{step:'story-seed',onEvent:logVoiceEvent})
+      // parseStorySeed recovers the complete stories out of a response that
+      // stopped mid-story, rather than discarding several good ones because the
+      // last is a fragment. Someone has just waited minutes for this.
+      const obj=parseStorySeed(typeof r==='string'?r:'')
       const rows=(obj&&Array.isArray(obj.stories))?obj.stories:null
       if(!rows||!rows.length){setStoriesErr('That came back in a shape we could not read. Try again.');return}
       const ts=new Date().toISOString()
@@ -7077,6 +7078,8 @@ export default function PivotEngine(){
           weakness:{real:wReal,source:(typeof obj.weakness_source==='string'?obj.weakness_source.trim():'')},
           slots:{},createdAt:ts,updatedAt:ts})
       }
+      // Say so rather than presenting a short set as the finished answer.
+      if(obj.truncated)setStoriesErr('That run was cut short, so this set is incomplete. What came back is below, and Start over will build it again.')
     }catch(e){
       setStoriesErr(e.message||'That did not come back. Try again.')
     }finally{setStoriesBusy(false)}

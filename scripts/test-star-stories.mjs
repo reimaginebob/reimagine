@@ -4,7 +4,7 @@ import {
   PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS,
   ROUTED_QUESTIONS, orderStories, WEAKNESS_QUESTION, INVENTORY, storyCards, firstPerKind,
   weaknessRecord, hasWeaknessEvidence, numbersIn, storyNumbers, missingNumbers,
-  rankStories, questionGroup,
+  rankStories, questionGroup, parseStorySeed,
   newStoryId, normalizeTitle, sameStory, addStory, coverage, emptySlots, isComplete,
 } from '../src/star-stories.mjs'
 
@@ -252,5 +252,34 @@ eq(questionGroup(null, 'achievement').alternates.length, 0, 'no library has no c
 // story cards stay out of it here too.
 eq(questionGroup([{ id: 'w', kind: 'weakness', weakness: { real: 'x' } }], 'weakness').primary, null,
    'the weakness record is never a story card')
+
+// ── Reading the seed back ───────────────────────────────────────────────────
+
+// Five stories with eight text fields each, plus the weakness evidence, and
+// thinking tokens out of the same budget: a run can stop mid-story. Discarding
+// the whole response then costs someone four good stories and several minutes.
+const WHOLE = '{"weakness_real":"quiet authority","weakness_source":"Affintus","stories":[{"title":"A","kind":"achievement"},{"title":"B","kind":"strategic"}]}'
+
+eq(parseStorySeed(WHOLE).stories.map(x => x.title), ['A', 'B'], 'a whole response parses')
+eq(parseStorySeed(WHOLE).weakness_real, 'quiet authority', 'the weakness evidence comes with it')
+eq(parseStorySeed(WHOLE).truncated, false, 'and is not reported as short')
+eq(parseStorySeed('```json\n' + WHOLE + '\n```').stories.length, 2, 'markdown fences are stripped')
+eq(parseStorySeed('Here you go:\n' + WHOLE).stories.length, 2, 'a preamble before the object is skipped')
+
+// Cut mid-slot, the way a token cap ends a response.
+const CUT = '{"weakness_real":"quiet auth","weakness_source":"Affintus","stories":[{"title":"A","kind":"achievement"},{"title":"B","kind":"strategic"},{"title":"C","slots":{"S":{"text":"half a sen'
+eq(parseStorySeed(CUT).stories.map(x => x.title), ['A', 'B'], 'the complete stories are recovered')
+eq(parseStorySeed(CUT).truncated, true, 'and the set is reported as short')
+eq(parseStorySeed(CUT).weakness_real, 'quiet auth', 'the weakness fields survive, since they precede the array')
+
+// Braces inside string values must not be read as structure.
+const BRACES = '{"stories":[{"title":"The {tricky} one","kind":"achievement","why":"a \\" quote and a } brace"}]}'
+eq(parseStorySeed(BRACES).stories[0].title, 'The {tricky} one', 'braces inside strings do not end an object')
+eq(parseStorySeed(BRACES).stories[0].why, 'a " quote and a } brace', 'escaped quotes survive')
+
+eq(parseStorySeed('I was unable to complete that.'), null, 'prose with no object is null')
+eq(parseStorySeed(''), null, 'an empty response is null')
+eq(parseStorySeed(null), null, 'no response is null')
+eq(parseStorySeed('{"stories":[]}').stories.length, 0, 'a legitimately empty set parses as empty rather than failing')
 
 console.log(`test-star-stories: OK (${passed} cases passed)`)
