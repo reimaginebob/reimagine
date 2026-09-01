@@ -19,6 +19,7 @@ It has two halves, and they work differently on purpose.
 | Pick a Direction | **Career Paths** | Where you choose among Familiar Ground, Industry Insider, and Work That Matters. |
 | Upload a Live Opportunity | **Add an Opportunity** | Bring a job description in and get a playbook for that exact role. |
 | Reimagine Help | **My Coach** | Your coach for the search. The button in the bottom-right corner of every screen, and its own sidebar entry. |
+| Opportunity Playbooks on My Playbooks | **My Pipeline** | In August 2026 the opportunities you add moved off the playbook library and onto their own screen, which lists them by what needs doing next rather than by what they are. Nothing was lost in the move. If you had opportunities before then, Reimagine says so once, the next time you sign in. |
 | The Complete screen | **Focus Playbooks** | The old screen was an end-of-journey destination; this is a library you come back to, and it is available the whole time. It was called My Playbooks until September 2026, by which point the opportunities it also held had moved to My Pipeline. |
 | Wiring & Compass | *retired* | It became an internal step, and then went away entirely. How you are wired, where you thrive, and what lights you up are now read directly from your assessment, values, and accomplishments inside your Personal Brand. |
 | Brand Synthesis | **Your Personal Brand** | The label changed; the output is the same thing, now with the through-line, the evidence, the transfer reading, and the fit reading all in one place. |

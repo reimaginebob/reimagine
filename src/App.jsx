@@ -6076,6 +6076,28 @@ const SUPPORT_ANNOUNCEMENT_COPY={
   cta:'Take a look',
 }
 
+// One-time note for the people the My Pipeline move actually displaced. Shown
+// only to someone holding an Opportunity Playbook built BEFORE that move, which
+// is the population that had work listed on one screen and came back to find it
+// on another; a person who built their first opportunity after the move never
+// saw the old arrangement and has nothing to be told. Someone whose playbooks
+// are all Focus Playbooks is deliberately excluded too: the screen they use was
+// renamed, but their work never left it.
+//
+// The cost of not having this is measured: one user read an empty My Playbooks
+// as lost work and rebuilt the same opportunity three times in an evening.
+const MOVE_ANNOUNCEMENT_COPY={
+  header:'Your opportunities are on My Pipeline',
+  body:[
+    'Opportunity Playbooks used to sit under My Playbooks. They have a screen of their own now, which lists them by what needs doing next: where each one stands, when you next talk, and the step you are taking. Everything you built is there, including the ones you built before the move.',
+    'My Playbooks is now called Focus Playbooks, since what it holds is one playbook per role you opened from Career Paths.',
+  ],
+  cta:'Show me My Pipeline',
+}
+// Opportunities moved to My Pipeline on this date. A record created before it was
+// built while the old arrangement was on screen, which is what the note explains.
+const MOVE_ANNOUNCEMENT_CUTOFF=Date.parse('2026-08-30T00:00:00Z')
+
 // Support panel. Reuses the same overlay primitive as the feedback / migration
 // modals (fixed full-viewport scrim, dialog role, backdrop-click + × to close).
 // It is a pure overlay controlled by local Sidebar state, so opening it never
@@ -6692,6 +6714,9 @@ export default function PivotEngine(){
   const dismissPipelineIntro=()=>setSeenPipelineIntro(true)
   const[seenSupportAnnounce,setSeenSupportAnnounce]=useState(()=>{try{return localStorage.getItem('reimagine_support_announce_v1_dismissed')==='1'}catch{return false}})
   const dismissSupportAnnounce=()=>{try{localStorage.setItem('reimagine_support_announce_v1_dismissed','1')}catch{};setSeenSupportAnnounce(true)}
+  // Same two-tier persistence as seenSupportAnnounce above.
+  const[seenMoveAnnounce,setSeenMoveAnnounce]=useState(()=>{try{return localStorage.getItem('reimagine_move_announce_v1_dismissed')==='1'}catch{return false}})
+  const dismissMoveAnnounce=()=>{try{localStorage.setItem('reimagine_move_announce_v1_dismissed','1')}catch{};setSeenMoveAnnounce(true)}
   const[supportOpenReq,setSupportOpenReq]=useState(0)
   const takeLookSupport=()=>{dismissSupportAnnounce();setSupportOpenReq(n=>n+1)}
   const[deepExpanded,setDeepExpanded]=useState(false)
@@ -7423,7 +7448,7 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
   // Hydrate the saved playbooks set from its own localStorage key on mount.
   // Demo mode skips persistence; test mode wipes the key so test sessions
   // start clean (mirrors the pe_v4 gating one line up).
@@ -7444,7 +7469,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
@@ -7595,7 +7620,7 @@ export default function PivotEngine(){
       // lives only in the saved_playbooks table (per-record dual-write above), so a
       // whole-profile save can never touch a playbook again. The server merge shim
       // stays as belt-and-suspenders for any old cached client still sending it.
-      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro})
+      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce})
       localStorage.setItem('pe_v4',blob)
       // The localStorage write above is unconditional; only the server PUT is
       // gated. Holding the PUT until /api/profile/load has settled is what stops
@@ -7618,7 +7643,7 @@ export default function PivotEngine(){
       setSaveStatus('saved')
       setSaveError(null)
     }catch{setSaveStatus('error');setSaveError('device_full')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,signedInUser,serverLoadDone,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,signedInUser,serverLoadDone,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
@@ -7702,6 +7727,14 @@ export default function PivotEngine(){
   // backup in v1; Neon sync is the durable fix and is deferred to V2).
   const isReturningExplorer=done.includes('p3')&&(activePlaybooks.length>0||exploredRoleTitles.length>0)
   const hydrationStable=localHydrationDone&&serverLoadDone
+  // Who the My Pipeline move actually displaced: someone holding an Opportunity
+  // Playbook they built BEFORE it, who had that work listed on one screen and
+  // came back to find it on another. Gated on tableHydrateDone as well as
+  // hydrationStable because savedPlaybooks arrives from the per-record table
+  // AFTER the profile load settles -- testing any earlier reads an empty set and
+  // skips the note for exactly the people it is for.
+  const showMoveAnnounce=!isDemo&&!isTest&&!!signedInUser&&hydrationStable&&tableHydrateDone&&!seenMoveAnnounce
+    &&activePlaybooks.some(r=>{const t=r&&r.createdAt?Date.parse(r.createdAt):NaN;return r&&r.source==='door2'&&!Number.isNaN(t)&&t<MOVE_ANNOUNCEMENT_CUTOFF})
   // One-time baseline for brands written before input snapshots existed. Uses
   // setOutputs rather than out(): out('p3',...) would take a "previous version"
   // snapshot for Restore, and nothing is being replaced here. Waits for
@@ -14395,7 +14428,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         primitive: backdrop-click and × both dismiss with zero friction, "Take a
         look" additionally opens the Support panel via the supportOpenReq bump.
         Any dismissal path marks it seen, permanently and across devices. */}
-    {!isDemo&&!isIndependent&&signedInUser&&hydrationStable&&(hasProgress||done.length>0)&&!seenSupportAnnounce&&<div data-print="hide" onClick={dismissSupportAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+    {showMoveAnnounce&&<div data-print="hide" onClick={dismissMoveAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1350,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Where your opportunities moved" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:520,width:'100%',maxHeight:'calc(100vh - 48px)',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
+        <button onClick={dismissMoveAnnounce} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>&times;</button>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 14px',paddingRight:24,lineHeight:1.35}}>{MOVE_ANNOUNCEMENT_COPY.header}</h2>
+        {MOVE_ANNOUNCEMENT_COPY.body.map((para,i)=><p key={i} style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:'0 0 14px'}}>{para}</p>)}
+        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:8}}>
+          <Btn onClick={()=>{dismissMoveAnnounce();nav('pipeline')}}>{MOVE_ANNOUNCEMENT_COPY.cta}</Btn>
+        </div>
+      </div>
+    </div>}
+    {!isDemo&&!isIndependent&&signedInUser&&hydrationStable&&(hasProgress||done.length>0)&&!seenSupportAnnounce&&!showMoveAnnounce&&<div data-print="hide" onClick={dismissSupportAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Support Reimagine announcement" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:480,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
         <button onClick={dismissSupportAnnounce} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 14px',paddingRight:24,lineHeight:1.35}}>{SUPPORT_ANNOUNCEMENT_COPY.header}</h2>
