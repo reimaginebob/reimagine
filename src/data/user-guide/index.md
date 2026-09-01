@@ -30,14 +30,15 @@ If something is not working the way you expect, check **FAQ and Troubleshooting*
 12. [My Coach](my-coach.md)
 13. [My Pipeline](my-pipeline.md)
 14. [My Playbooks](my-playbooks.md)
-15. [Income Now](income-now.md)
-16. [Negotiating an Offer](negotiating-an-offer.md)
-17. [How an Offer Is Put Together](how-an-offer-is-put-together.md)
-18. [Refining and Regenerating](refining-and-regenerating.md)
-19. [Saving and Sharing Your Work](saving-your-work.md)
-20. [FAQ and Troubleshooting](faq-and-troubleshooting.md)
-21. [Glossary](glossary.md)
-22. [What's Changed](whats-changed.md)
+15. [Job Search Resources](job-search-resources.md)
+16. [Income Now](income-now.md)
+17. [Negotiating an Offer](negotiating-an-offer.md)
+18. [How an Offer Is Put Together](how-an-offer-is-put-together.md)
+19. [Refining and Regenerating](refining-and-regenerating.md)
+20. [Saving and Sharing Your Work](saving-your-work.md)
+21. [FAQ and Troubleshooting](faq-and-troubleshooting.md)
+22. [Glossary](glossary.md)
+23. [What's Changed](whats-changed.md)
 
 <!-- toc:end -->
 

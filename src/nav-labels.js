@@ -25,6 +25,11 @@ export const NAV_LABELS = {
   laneSelect: 'Career Paths',      // the "Role Options" exploration door
   op: 'Add an Opportunity',
   income: 'Income Now',
+  // Job Search Resources is deliberately NOT gated on a direction or a
+  // playbook: it is free local help for someone in transition, and it is
+  // pinned to the orientation rail as well as listed here so it is reachable
+  // from the first screen. See docs/networking-groups-brief.md.
+  resources: 'Job Search Resources',
   // Focus Playbook sections (src/App.jsx FOCUS_ORDER).
   p5: 'The Role',
   p6: 'Your Bridge Story',
