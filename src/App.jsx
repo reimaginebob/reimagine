@@ -7104,11 +7104,16 @@ export default function PivotEngine(){
       setStoriesBusy(false)
       return
     }
-    setStoriesBusy(false)
+    // Busy stays on through the handoff, so the screen goes from clearing to
+    // building without a frame of empty library in between.
     // The auto-seed only fires on an empty library and only once per visit, so
     // the rebuild is asked for here rather than left to that effect.
     storiesAutoRef.current=true
-    buildStoryLibrary({base:[]})
+    buildStoryLibrary({base:[],force:true})
+    // Then go to it. The button is at the foot of a long screen and the progress
+    // it starts is at the top, so without this the page sits still through a
+    // multi-minute rebuild and reads as a dead button.
+    scrollToStory('story-progress',10)
   }
   // Import. Same ingest path as the seed, so an imported story is a story like
   // any other: editable in place, refinable, filed under the question it answers.
@@ -7171,8 +7176,8 @@ export default function PivotEngine(){
   // dead zone error that took the whole app down, not just this screen.
   // pc.resume is profile.resume, so the shorter reference is also the correct one.
   const storiesSeedable=!!String(profile.resume||'').trim()
-  const buildStoryLibrary=async({weaknessOnly=false,base=null}={})=>{
-    if(storiesBusy)return
+  const buildStoryLibrary=async({weaknessOnly=false,base=null,force=false}={})=>{
+    if(storiesBusy&&!force)return
     setStoriesBusy(true);setStoriesErr(null)
     try{
       const brand=asText(outputs.p3)
@@ -8052,7 +8057,11 @@ export default function PivotEngine(){
   // committed and the browser has painted the new content before the scroll
   // resolves a target position. Null-check on the element handles the case
   // where the user navigated to a different step before generation finished.
-  const scrollToStory=(id)=>{requestAnimationFrame(()=>{const el=document.getElementById(id);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
+  const scrollToStory=(id,tries=1)=>{requestAnimationFrame(()=>{
+    const el=document.getElementById(id)
+    if(el&&el.scrollIntoView){el.scrollIntoView({block:'start',behavior:'smooth'});return}
+    if(tries>1)scrollToStory(id,tries-1)
+  })}
   const scrollToOutput=(key)=>{requestAnimationFrame(()=>{const el=document.getElementById(`section-${key}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
   const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);window.scrollTo(0,0)}}
   const demoPrev=()=>{if(demoIdx>0){const prev=demoIdx-1;setDemoIdx(prev);setStep(DEMO_TOUR[prev].step);window.scrollTo(0,0)}}
@@ -11625,7 +11634,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!storiesLoaded&&held===0&&<div style={{...S.card,marginBottom:20}}>
           <div style={{fontSize:16,color:C.gray,lineHeight:1.6}}>Loading your stories…</div>
         </div>}
-        {storiesLoaded&&storiesBusy&&held===0&&<div style={{...S.card,marginBottom:20}}>
+        {storiesLoaded&&storiesBusy&&held===0&&<div id="story-progress" style={{...S.card,marginBottom:20,scrollMarginTop:80}}>
           <Loading msg="Reading what you have already told us…" step="story-seed"/>
           <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:10}}>Your resume, your reputation answers and your assessment hold most of this between them. Nothing gets invented: where an input does not support a story, you will get the question instead of a guess.</div>
         </div>}
