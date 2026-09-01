@@ -103,7 +103,9 @@ A framework gives the Thought Process a shape. Some well known ones that may app
 - **Vision, Alignment, Execution.** Where you were headed, who was behind it, how it got done.
 - **Ability, Resources, Commitment (ARC).** Whether they could do it, whether they had what they needed, whether they were willing.
 
-Use your own if you have one.
+Under the list, **Is one of these yours?** Pick any you already use, or add your own. That is the only place Reimagine asks, and it asks here rather than in Orientation because a framework is a question you can answer once you have seen five examples and your own stories, and not one most people can answer cold.
+
+Naming yours does two things. Interview Prep names it by name when it applies to a question, instead of saying "your framework". And when Reimagine suggests one on a story, it reaches for yours first.
 
 Where one of these fits a story neatly, Reimagine says so under that story's Thought Process, with a line applying it to what actually happened rather than restating the framework. Most stories get no suggestion. It is offered as a shape your answer could take, never as something you did, and a framework on every card would mean nothing on any of them.
 
