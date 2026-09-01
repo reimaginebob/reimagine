@@ -69,16 +69,21 @@ export const ROUTED_QUESTIONS = [
   {
     id: 'about-yourself',
     asks: '"Tell me about yourself."',
-    where: 'Your Bridge Story',
+    where: 'Work on this with My Coach',
     step: null,
-    note: 'Built for you on any opportunity or direction: a thirty-second answer in your own words that gets used more than any other thing here.',
+    // Bridge Story is focus-gated: it only exists once a direction or an
+    // opportunity has been built, so pointing someone there before they have one
+    // sends them to a screen that is not there yet. The Coach can work the answer
+    // now, and Bridge Story sharpens it per opportunity later.
+    coach: 'Help me build my answer to "Tell me about yourself" for an interview. This is the first time I have asked you about it, so start from scratch. Thirty seconds, in my own words, ending on why I am in this conversation rather than trailing off in the past. Draft one from what you know about me, say which parts you were least sure about, then help me sharpen it.',
+    note: 'The answer that gets used more than any other, and the one most people improvise. Thirty seconds, in your own words, landing on why you are in this conversation. Once you build a direction or add an opportunity, Bridge Story writes you a version aimed at that specific role.',
   },
   {
     id: 'not-on-resume',
     asks: '"What isn\'t on your resume?"',
     where: 'Work on this with My Coach',
     step: null,
-    coach: "Help me answer \"What isn't on your resume?\" in an interview. You know my values, what I care about and what has shaped me. Draft an answer in my voice from what you already know, tell me which parts you were least sure about, then help me sharpen it.",
+    coach: "Help me answer \"What isn't on your resume?\" in an interview. This is the first time I have asked you about it, so start from scratch rather than referring back to any earlier draft. You know my values, what I care about and what has shaped me. Draft an answer in my voice from what you already know, tell me which parts you were least sure about, then help me sharpen it.",
     note: 'The one question that wants the human answer rather than the professional one. Your values, what you care about, what shaped you. A real answer beats a rehearsed one, and everything it needs is already in what you have told us.',
   },
   {
@@ -89,32 +94,30 @@ export const ROUTED_QUESTIONS = [
     note: 'This is research, and the effort is itself the signal. Go past the homepage to recent news, competitors and culture, and reference one specific thing you found.',
   },
   {
+    // No destination: the guidance IS the answer. Sending someone to Interview
+    // Prep to be told the same thing again is a redirect for its own sake.
     id: 'why-leaving',
     asks: '"Why are you leaving your current role?"',
-    where: 'Interview Prep',
+    where: null,
     step: null,
-    note: 'Your best and fewest reasons. If you were laid off, say so plainly: it is common right now, and it reflects a company\'s financial reality rather than anything about how well you did the job. A vague answer invites more questions, not fewer.',
+    note: 'Your best and fewest reasons. If you were laid off, say so plainly: it is common right now, and it reflects a company\'s financial reality rather than anything about how well you did the job. A vague answer invites more questions, not fewer, and the reason you give should connect to what this new role offers.',
   },
   {
     id: 'most-least',
     asks: '"What did you like most and least about your last role?"',
-    where: 'Interview Prep',
+    where: null,
     step: null,
-    note: 'Tests values alignment. Name something you valued that this company also values, and for the least, pick something unrelated to this role and show you handled it well. Stay off the commute and the perks.',
+    note: 'This is a values question wearing a preferences question. For the most, name something you valued that this company also values. For the least, pick something this role would not repeat, and say what you did about it rather than leaving it as a complaint. Keep both answers about the work itself, since pay, hours and location say nothing about how you operate.',
   },
   {
     id: 'qualified',
     asks: '"Are you underqualified or overqualified for this position?"',
-    where: 'Interview Prep',
+    where: 'Work on this with My Coach',
     step: null,
-    note: 'Redirect to the specific value you bring, and keep it short: a long explanation raises doubt rather than confidence. If overqualified, frame the experience as something the team can build on.',
-  },
-  {
-    id: 'view-changed',
-    asks: '"Has your view of the job changed since we started talking?"',
-    where: 'Interview Prep',
-    step: null,
-    note: 'Asked late, and it tests whether you were listening rather than running a script. A specific yes, pointing at what an earlier answer clarified, shows you were in the conversation. If something is still unclear, saying so counts too.',
+    // The right answer depends on which way they are being asked and on what the
+    // person suspects is behind it, so the Coach asks before it drafts.
+    coach: 'Help me answer the over-or-underqualified question for a role I am pursuing. Ask me first which way it is being asked and what you need to know about the role, then draft an answer. Keep it short: a long explanation raises doubt rather than settling it. This is the first time I have asked you about it, so start from scratch.',
+    note: 'Whichever way it is asked, the answer redirects to the specific value you bring, and it stays short. A long explanation raises doubt rather than settling it.',
   },
   {
     id: 'your-questions',
