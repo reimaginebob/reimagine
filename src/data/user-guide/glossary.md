@@ -71,7 +71,7 @@ Your Personal Brand names what is settled about your fit and what is open. Settl
 
 **My Coach.** Your coach for the search, grounded in *Making Your Own Weather* and in what Reimagine knows about you. It is a sidebar entry and a button in the bottom-right corner of every other screen. Everything it knows about you came from you; it never looks you up.
 
-**My Playbooks.** The sidebar entry listing every Focus Playbook and Opportunity Playbook you have built, split into those two groups. Open any of them to pick up where you left off. This is where your work lives.
+**My Playbooks.** The sidebar entry listing every Focus Playbook you have built, one per role you opened from Career Paths. Open any of them to pick up where you left off. Opportunity Playbooks are listed on My Pipeline instead.
 
 **Opportunity Playbook.** The playbook Reimagine builds from a job description you bring in through Add an Opportunity. Its rail lists About This Company, Compensation, Where you fit, Resume Refresh, Cover Letter, Interview Team, Interview Prep, and Offer & Negotiation.
 
