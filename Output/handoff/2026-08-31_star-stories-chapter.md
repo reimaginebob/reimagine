@@ -106,6 +106,10 @@ A story Reimagine built for you has no Remove button, and that is deliberate: ev
 
 You can also just type. Every part of every story is editable in place -- click any line and write over it. Your words win over ours every time, so use the box when you want Reimagine to rework something, and type when you already know what it should say.
 
+## Starting over
+
+At the bottom of the screen, **Start over** clears every story and builds a fresh set from your resume, your reputation answers and your assessment. It is worth doing if what is there has accumulated into several answers to the same question. Anything you typed yourself goes too, and it cannot be undone, so it asks once before it does anything.
+
 ## Adding your own
 
 **Add one of your own** takes a name and the kind of story it is. Fill in the parts when you have a minute. Naming it is most of the value: a story on the list is one you will come back to, and one you have only thought about is one you will fumble under pressure.
