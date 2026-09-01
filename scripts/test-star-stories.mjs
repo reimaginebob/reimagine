@@ -4,7 +4,7 @@ import {
   PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS,
   ROUTED_QUESTIONS, orderStories, WEAKNESS_QUESTION, INVENTORY, storyCards, firstPerKind,
   weaknessRecord, hasWeaknessEvidence, numbersIn, storyNumbers, missingNumbers,
-  rankStories, questionGroup, parseStorySeed,
+  rankStories, questionGroup, parseStorySeed, THOUGHT_PROCESS_FRAMEWORKS,
   newStoryId, normalizeTitle, sameStory, addStory, coverage, emptySlots, isComplete,
 } from '../src/star-stories.mjs'
 
@@ -302,5 +302,30 @@ eq(parseStorySeed('I was unable to complete that.'), null, 'prose with no object
 eq(parseStorySeed(''), null, 'an empty response is null')
 eq(parseStorySeed(null), null, 'no response is null')
 eq(parseStorySeed('{"stories":[]}').stories.length, 0, 'a legitimately empty set parses as empty rather than failing')
+
+// ── Frameworks for the Thought Process ──────────────────────────────────────
+
+// profile.frameworks has existed in the profile shape since before this screen,
+// is read by Interview Prep, and was never written to by anything: no capture
+// UI, no extraction, always []. So nobody had ever been offered a framework.
+eq(THOUGHT_PROCESS_FRAMEWORKS.length, 5, 'the five taught at Career Club Corner')
+eq(THOUGHT_PROCESS_FRAMEWORKS.map(f => f.name), [
+  'What, So What, Now What',
+  'People, Process, Technology',
+  'Right People, Doing the Right Things, the Right Way',
+  'Vision, Alignment, Execution',
+  'Ability, Resources, Commitment',
+], 'named as they are taught')
+ok(THOUGHT_PROCESS_FRAMEWORKS.every(f => f.fits && f.fits.length > 40),
+   'each says what kind of story it suits, so picking one is not a guess')
+ok(THOUGHT_PROCESS_FRAMEWORKS.every(f => f.id && /^[a-z-]+$/.test(f.id)), 'stable ids for render keys')
+
+// These are said out loud by the person, which is the opposite of Reimagine's
+// own scaffolding. The 4 C's, Five Ps and KEEL are how Reimagine thinks about
+// someone and are banned from anything they read; these are vocabulary FOR them,
+// the same way STAR and SCOPE are named openly.
+const REIMAGINE_ONLY = /4 C|Five P|KEEL|Quota of One|Bake a Cake|Like-for-Like/i
+ok(!THOUGHT_PROCESS_FRAMEWORKS.some(f => REIMAGINE_ONLY.test(f.name)),
+   'none of Reimagine\'s internal scaffolding leaks into what the person is told to say')
 
 console.log(`test-star-stories: OK (${passed} cases passed)`)

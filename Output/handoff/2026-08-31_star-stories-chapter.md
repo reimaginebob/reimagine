@@ -93,6 +93,20 @@ Seven more questions do not want a story out of your library. Each one carries t
 - **"Are you underqualified or overqualified?"** Work on this one with My Coach, which asks which way it is being asked before it drafts anything. Whichever way, the answer redirects to the specific value you bring and stays short.
 - **"Do you have any questions for me?"** Also from an Opportunity Playbook: name who you are meeting and Interview Prep writes questions aimed at what each of those people uniquely knows. Saying you have none reads as disengagement.
 
+## Giving your thinking a shape
+
+The Thought Process is the part most people find hardest, because how you were thinking has no obvious shape the way a situation or a result does. A framework gives it one, and naming yours out loud in an answer is one of the strongest things you can prepare.
+
+The five we teach at Career Club Corner:
+
+- **What, So What, Now What.** The most portable of the five, and the one to reach for when nothing else fits.
+- **People, Process, Technology.** Anything you diagnosed before you fixed it. Naming which of the three was actually broken is the thinking.
+- **Right People, Doing the Right Things, the Right Way.** Team and operating problems, where who is on the field, what they are working on, and how the work gets done are three different fixes.
+- **Vision, Alignment, Execution.** Anything that needed buy-in before it needed a plan.
+- **Ability, Resources, Commitment (ARC).** Why something could or could not be done. Good for judgment calls, and for a story where you argued against a course of action.
+
+If you already have your own way of explaining how you work, use that. The point is having one before you are asked rather than reaching for structure in the moment. Where a Thought Process comes back thin, Reimagine may suggest which of these would fit that particular story, and it never claims you used one.
+
 ## One answer per question
 
 Each of the six questions gets one answer on the screen: the question as the heading, and the story you would tell for it underneath. If Reimagine found more than one experience that could answer the same question, the strongest leads and the rest sit behind a line saying so, where you can keep the one you would actually tell and drop the others.
