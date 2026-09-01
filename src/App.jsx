@@ -2870,10 +2870,8 @@ const OUTREACH_PURPOSES={
 // Suggesting a framework is not the same as claiming the person used one. The
 // rule in every prompt below is that a framework may be OFFERED where the T is
 // thin, and never asserted as something they did.
-const TP_FRAMEWORK_LIST=THOUGHT_PROCESS_FRAMEWORKS.map(f=>`- ${f.name}: ${f.fits}`).join('\n')
-const TP_FRAMEWORK_RULE=`FRAMEWORKS FOR A THIN THOUGHT PROCESS. The T is the slot people find hardest, because how someone was thinking has no natural shape the way a Situation or a Result does. A named framework gives it one, and naming the framework out loud in an answer is one of the highest-leverage things a candidate can prepare.
-
-These are the ones this person may have been taught:
+const TP_FRAMEWORK_LIST=THOUGHT_PROCESS_FRAMEWORKS.map(f=>`- ${f.name}: ${f.model}`).join('\n')
+const TP_FRAMEWORK_RULE=`FRAMEWORKS FOR A THIN THOUGHT PROCESS. A named framework gives the T a shape, and these are the ones this person may have been taught:
 ${TP_FRAMEWORK_LIST}
 
 NEVER SAY THEY USED ONE. You do not know that, and putting a framework in their mouth is the same failure as inventing an event. Where a T is thin or missing, you may name at most ONE of these in that slot's to_strengthen, as a way they could structure the answer, and only where it genuinely fits the story in front of you: "this one might structure well as What, So What, Now What -- what you found, why it mattered, what you did about it." Where their own words already show a structure, name what they are doing rather than relabelling it as one of these. Where nothing fits, say nothing about frameworks: a forced fit is worse than none.`
@@ -11601,11 +11599,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
           <div style={{marginBottom:10}}>Rather than claim you are a strategic thinker, you show them. Showing beats claiming every time.</div>
           <div style={{marginBottom:10}}>Every part below is yours. Click any line to type over it, or use <strong style={{color:'#1A2540'}}>Does this feel right?</strong> to describe what is off and have Reimagine rework the story around it.</div>
-          <div style={{marginBottom:8}}>The Thought Process is the part most people find hardest, because how you were thinking has no obvious shape. A framework gives it one, and naming yours out loud is one of the strongest things you can prepare. These are the ones we teach:</div>
+          <div style={{marginBottom:8}}>A framework gives the Thought Process a shape. These are the ones we teach:</div>
           {THOUGHT_PROCESS_FRAMEWORKS.map(f=><div key={f.id} style={{marginBottom:6,paddingLeft:14,borderLeft:`2px solid ${C.border}`,lineHeight:1.6}}>
-            <strong style={{color:'#1A2540'}}>{f.name}.</strong> {f.fits}
+            <strong style={{color:'#1A2540'}}>{f.name}.</strong> {f.model}
           </div>)}
-          <div style={{marginTop:10}}>If you already have your own way of explaining how you work, use that. The point is having one before you are asked rather than reaching for structure in the moment.</div>
+          <div style={{marginTop:10}}>Use your own if you have one.</div>
         </CoachingCallout>
 
         {!storiesLoaded&&held===0&&<div style={{...S.card,marginBottom:20}}>

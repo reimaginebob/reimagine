@@ -316,8 +316,13 @@ eq(THOUGHT_PROCESS_FRAMEWORKS.map(f => f.name), [
   'Vision, Alignment, Execution',
   'Ability, Resources, Commitment',
 ], 'named as they are taught')
-ok(THOUGHT_PROCESS_FRAMEWORKS.every(f => f.fits && f.fits.length > 40),
-   'each says what kind of story it suits, so picking one is not a guess')
+// The model itself, not advice about it. The first version wrote a line on
+// which to reach for and what each was good for, and buried the three words
+// under commentary; someone scanning five options wants to know what they mean.
+ok(THOUGHT_PROCESS_FRAMEWORKS.every(f => f.model && f.model.length > 30), 'each states its own model')
+ok(!THOUGHT_PROCESS_FRAMEWORKS.some(f => /useful|good for|reach for|the point is|strongest|portable/i.test(f.model)),
+   'and does not editorialise about when to use it')
+ok(THOUGHT_PROCESS_FRAMEWORKS.every(f => !('fits' in f)), 'the advice field is gone')
 ok(THOUGHT_PROCESS_FRAMEWORKS.every(f => f.id && /^[a-z-]+$/.test(f.id)), 'stable ids for render keys')
 
 // These are said out loud by the person, which is the opposite of Reimagine's
