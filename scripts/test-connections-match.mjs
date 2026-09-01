@@ -6,6 +6,7 @@ import {
   linkedInSecondDegreeUrl, linkedInFirstDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey,
   mailtoUrl, firstNameOf, cleanDomain, emailGuesses, searchQuery, resolveSearch,
   manualPerson, withManual, withoutManual,
+  schoolSlug, linkedInAlumniUrl,
 } from '../src/connections-match.mjs'
 
 let passed = 0
@@ -235,5 +236,34 @@ eq(emailGuesses('   ', 'acme.com'), [], 'a blank name yields no guesses')
 ok(mailtoUrl('marcus@example.com', 'Quick one', 'Hi').startsWith('mailto:marcus@example.com?'), 'the address survives encoding intact')
 ok(mailtoUrl('a@b.com', 'S & T', '').includes('subject=S%20%26%20T'), 'the subject is encoded')
 eq(mailtoUrl('', 'S', 'B'), null, 'no address yields no mail link')
+
+// ── The third door: alumni of your school who work there ────────────────────
+
+// Checked live on 2026-09-01: this exact URL returned 26 UT Knoxville alumni
+// matching Imerys, of whom the page's own "Where they work" panel counted 7
+// actually there.
+eq(linkedInAlumniUrl('University of Tennessee, Knoxville', 'Imerys'),
+   'https://www.linkedin.com/school/university-of-tennessee-knoxville/people/?keywords=Imerys',
+   'the verified URL shape')
+// Plain text, never an id. Selecting a company from the page's own filter
+// produces ?facetCurrentCompany=1038, an internal id we cannot know from a job
+// description -- the same wall that made the company facet unusable for the
+// second-degree search.
+ok(!/facetCurrentCompany/.test(linkedInAlumniUrl('Yale University', 'Deloitte')), 'no company id is involved')
+
+eq(schoolSlug('University of Tennessee, Knoxville'), 'university-of-tennessee-knoxville', 'commas drop')
+eq(schoolSlug('Texas A&M University'), 'texas-a-m-university', 'an ampersand drops rather than becoming "and"')
+eq(schoolSlug("St. John's University"), 'st-john-s-university', 'periods and apostrophes drop')
+eq(schoolSlug('  Boston   College  '), 'boston-college', 'stray whitespace collapses')
+eq(schoolSlug(''), '', 'no name is no slug')
+eq(schoolSlug(null), '', 'no input is no slug')
+
+// Both halves are required: half a URL would land somewhere wrong rather than
+// nowhere, and nowhere is the honest answer.
+eq(linkedInAlumniUrl('', 'Imerys'), '', 'no school gives no link')
+eq(linkedInAlumniUrl('Yale University', ''), '', 'no company gives no link')
+eq(linkedInAlumniUrl('Yale University', 'Smith & Sons'),
+   'https://www.linkedin.com/school/yale-university/people/?keywords=Smith%20%26%20Sons',
+   'the company is encoded, not slugged')
 
 console.log(`test-connections-match: OK (${passed} cases passed)`)
