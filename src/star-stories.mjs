@@ -180,6 +180,51 @@ export function hasWeaknessEvidence(stories) {
   return !!(w && w.weakness && String(w.weakness.real || '').trim())
 }
 
+// FRAMEWORKS FOR THE THOUGHT PROCESS.
+//
+// The T is the slot people find hardest, because "how I was thinking" has no
+// natural shape the way a Situation or a Result does. A framework gives it one,
+// and Lesson 10 puts naming yours among the highest-leverage things a person can
+// prepare: "can you name the frameworks you use? Do you have a consistent,
+// articulate answer to how do you approach this kind of problem?"
+//
+// These are the ones taught at Career Club Corner. They are deliberately NOT
+// Reimagine's own scaffolding — the 4 C's, Five Ps and KEEL are how Reimagine
+// thinks about someone and stay out of what they read. These are the opposite:
+// vocabulary meant to be said out loud, in the person's own answer, the same way
+// STAR and SCOPE are named openly.
+//
+// Nobody has to pick one. A person who already has their own way of explaining
+// how they work should use it; the point is having one at all rather than
+// reaching for structure live in front of an interviewer.
+export const THOUGHT_PROCESS_FRAMEWORKS = [
+  {
+    id: 'what-so-what-now-what',
+    name: 'What, So What, Now What',
+    fits: 'The most portable of the five, and the one to reach for when nothing else fits. What you found, why it mattered, what you did about it.',
+  },
+  {
+    id: 'people-process-technology',
+    name: 'People, Process, Technology',
+    fits: 'Anything you diagnosed before you fixed it. Naming which of the three was actually broken is the thinking.',
+  },
+  {
+    id: 'right-people-right-things-right-way',
+    name: 'Right People, Doing the Right Things, the Right Way',
+    fits: 'Team and operating problems. It separates who is on the field from what they are working on from how the work gets done, which are three different fixes.',
+  },
+  {
+    id: 'vision-alignment-execution',
+    name: 'Vision, Alignment, Execution',
+    fits: 'Anything that needed buy-in before it needed a plan. Useful where the work was sound and the failure would have been in getting people behind it.',
+  },
+  {
+    id: 'arc',
+    name: 'Ability, Resources, Commitment',
+    fits: 'Why something could or could not be done. Called ARC. Good for judgment calls, and for a story where you argued against a course of action.',
+  },
+]
+
 export const PLAYLIST_TARGET = 12
 
 export const STORY_SLOTS = ['S', 'T', 'A', 'R']

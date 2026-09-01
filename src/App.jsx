@@ -22,7 +22,7 @@ import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 // holding localStorage state overwrites newer server state. Tested by
 // scripts/test-autosave-gate.mjs.
 import { canPushProfile } from "./autosave-gate.js"
-import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, firstPerKind, weaknessRecord, missingNumbers, questionGroup, parseStorySeed } from "./star-stories.mjs"
+import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, firstPerKind, weaknessRecord, missingNumbers, questionGroup, parseStorySeed, THOUGHT_PROCESS_FRAMEWORKS } from "./star-stories.mjs"
 import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
 import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from "./corrections.js"
 // Stale-build self-healing: BUILD_SHA / BUILT_AT come from
@@ -2863,6 +2863,21 @@ const OUTREACH_PURPOSES={
   word:`PURPOSE — ASK THEM TO PUT IN A WORD. This is the heaviest ask in the set and only works on a real relationship, so write it as one adult asking another for a favor, without groveling and without pretending it is small. Say what the role is, then give ONE line on why the writer is a serious candidate rather than a hopeful one — and write that line to be REPEATED. The recipient is not the audience for it; they will paraphrase it to whoever they forward it to, so it has to survive being retold by someone who does not know the writer's background. That means one concrete result with its scale attached, short enough to say out loud, and free of any context a third person would not have. Two such lines at the very most; a paragraph of them cannot be passed on. Then ask directly whether they would be willing to flag the application internally or pass their name to whoever owns it. Give them an unembarrassing exit: they may not know the team, or may not feel able to vouch, and the note should say so before they have to. If the HOW THEY KNOW EACH OTHER note is empty, keep the ask noticeably lighter — a stranger cannot be asked to vouch. This is the ask where giving something back matters most, so the offer should be the most substantial of the four and has to be real; a token one here is worse than none at all. Where the ABOUT THIS COMPANY research below names the leader whose area covers this role, name that person in the ask, so it is a request the recipient can act on rather than one they have to interpret. Only ever name someone the research actually names. Email body 140 words maximum.`,
   reconnect:`PURPOSE — RECONNECT, WITH NO ASK. Make NO request in this note: no name, no meeting, no favor, no "let me know if you hear of anything". The job of these words is to be back in touch with someone the writer has lost contact with, and to mention in passing that they are looking, so the door is open for a later conversation. Warm, brief, and mostly ABOUT THEM: what they have been working on, how their world has changed, what is new. The writer's search is one line inside a note whose subject is the other person, never the other way round. The posture to write from is the one Making Your Own Weather teaches — how can I be of help to you, personally or professionally — hand up rather than hand out; carry that stance without ever quoting it at them or making it sound like a formula. If it says how they know each other, lead with that; otherwise lead honestly on having seen where they are now. Do not apologize for the time that has passed: someone getting back in touch after three years is welcome, and treating it as an imposition invites the reader to see it that way. Ending on a real question about them is good, and so is ending on something the writer could do for them — an offer is not a request, and here it is often the most natural close there is. Ending on a request is a failure. Email body 90 words maximum, two short paragraphs.`,
 }
+// The five frameworks taught at Career Club Corner, formatted for the prompts
+// that build or rework a Thought Process. Shared so the seed, the refine and the
+// import all suggest the same ones in the same words.
+//
+// Suggesting a framework is not the same as claiming the person used one. The
+// rule in every prompt below is that a framework may be OFFERED where the T is
+// thin, and never asserted as something they did.
+const TP_FRAMEWORK_LIST=THOUGHT_PROCESS_FRAMEWORKS.map(f=>`- ${f.name}: ${f.fits}`).join('\n')
+const TP_FRAMEWORK_RULE=`FRAMEWORKS FOR A THIN THOUGHT PROCESS. The T is the slot people find hardest, because how someone was thinking has no natural shape the way a Situation or a Result does. A named framework gives it one, and naming the framework out loud in an answer is one of the highest-leverage things a candidate can prepare.
+
+These are the ones this person may have been taught:
+${TP_FRAMEWORK_LIST}
+
+NEVER SAY THEY USED ONE. You do not know that, and putting a framework in their mouth is the same failure as inventing an event. Where a T is thin or missing, you may name at most ONE of these in that slot's to_strengthen, as a way they could structure the answer, and only where it genuinely fits the story in front of you: "this one might structure well as What, So What, Now What -- what you found, why it mattered, what you did about it." Where their own words already show a structure, name what they are doing rather than relabelling it as one of these. Where nothing fits, say nothing about frameworks: a forced fit is worse than none.`
+
 const P={
   // Stage one (Personal Brand): the lean analysis. A short coach frame plus the
   // full raw inputs, run "free" against a safety-only system prompt. No
@@ -3635,6 +3650,8 @@ RETURN A STORY ONLY WHERE THE INPUTS SUPPORT ONE. Do NOT manufacture a story to 
 
 EVERY SLOT IS TWO THINGS. A "text" field: what their inputs actually support, stated plainly, no characterization and no "you are X" constructions. And a "to_strengthen" field: the specific missing thing only they can supply, a name, a number, a decision, the moment it turned. Never generic advice, never "add more detail" or "flesh this out". Where a slot has no support at all, leave text empty and put the ask in to_strengthen.
 
+${TP_FRAMEWORK_RULE}
+
 THE WEAKNESS EVIDENCE, and ONLY if an assessment supports it. This is not a story and must not be written as one. Name the strength at its best, then the same strength when it runs unchecked, and say which assessment named it. Nothing else: no situation, no year, no event, no company, no "during the 2017 restructure". If the person has given no assessment, return an empty string and the screen will ask them for it. In the output use plain words for this. NEVER write "balcony", "basement", "shadow", or "assessment signal" — those are internal vocabulary and are banned in anything the person reads.
 
 Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end with }.
@@ -3689,6 +3706,8 @@ WHICH QUESTION EACH STORY ANSWERS. Pick the one kind it answers best from: achie
 
 NEVER FILE A WEAKNESS STORY. If what they pasted is an answer to the greatest-weakness or biggest-failure question, set its kind to "weakness" and leave the slots empty: that question is answered with a different structure elsewhere and a STAR shape is wrong for it. Say in "why" that it belongs there instead.
 
+${TP_FRAMEWORK_RULE}
+
 SEPARATE STORIES, NOT ONE. If they pasted several, return several. If they pasted one long piece covering two different experiences, split it. If two passages are the same experience written twice, return the stronger one only.
 
 Return this shape:
@@ -3736,6 +3755,8 @@ WHAT A STORY IS HERE. Four slots: Situation, Thought Process, Action, Result. Th
 THEIR CORRECTION IS THE BRIEF, and it wins over anything you would otherwise have written. If they say a fact is wrong, the fact is wrong: replace it, and never argue with it or hedge it back in.
 
 CHANGE ONLY WHAT THE NOTE REACHES. Every slot they did not raise comes back as it went in, word for word. Their own edits are in this text and rewriting them for style is how someone quietly loses their own voice. If the note is about one slot, one slot changes.
+
+${TP_FRAMEWORK_RULE}
 
 NEVER INVENT. If the note asks for something the inputs do not support — a number, a name, a moment — put the ask in that slot's to_strengthen rather than filling it with a plausible guess. Inventing someone's own past is the worst failure available here.
 
@@ -11579,7 +11600,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div><strong style={{color:'#1A2540'}}>Thought process.</strong> &ldquo;I knew I had to understand the problem from both sides before designing anything, so I started with structured one-on-ones to separate what people were saying from what they were experiencing.&rdquo; It shows how you think.</div>
           </div>
           <div style={{marginBottom:10}}>Rather than claim you are a strategic thinker, you show them. Showing beats claiming every time.</div>
-          <div>Every part below is yours. Click any line to type over it, or use <strong style={{color:'#1A2540'}}>Does this feel right?</strong> to describe what is off and have Reimagine rework the story around it.</div>
+          <div style={{marginBottom:10}}>Every part below is yours. Click any line to type over it, or use <strong style={{color:'#1A2540'}}>Does this feel right?</strong> to describe what is off and have Reimagine rework the story around it.</div>
+          <div style={{marginBottom:8}}>The Thought Process is the part most people find hardest, because how you were thinking has no obvious shape. A framework gives it one, and naming yours out loud is one of the strongest things you can prepare. These are the ones we teach:</div>
+          {THOUGHT_PROCESS_FRAMEWORKS.map(f=><div key={f.id} style={{marginBottom:6,paddingLeft:14,borderLeft:`2px solid ${C.border}`,lineHeight:1.6}}>
+            <strong style={{color:'#1A2540'}}>{f.name}.</strong> {f.fits}
+          </div>)}
+          <div style={{marginTop:10}}>If you already have your own way of explaining how you work, use that. The point is having one before you are asked rather than reaching for structure in the moment.</div>
         </CoachingCallout>
 
         {!storiesLoaded&&held===0&&<div style={{...S.card,marginBottom:20}}>
