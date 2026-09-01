@@ -113,7 +113,7 @@ At the bottom of the screen, **Start over** clears every story and builds a fres
 
 If you have already written stories somewhere else, paste them in. Any format, however many at once. Reimagine reads them, works out which question each one answers, files them with the rest, and carries your words across as you wrote them rather than rewriting them into its own voice.
 
-One thing to expect on an import. A story written to the usual STAR format has a Task in its T, which is what you were assigned rather than how you were thinking, and that is the one part this method changes. Anything in your writing that shows the thinking gets moved into the Thought Process; where the story does not show it, you get the question that would, rather than a guess. The screen tells you which stories that happened to.
+One thing to expect on an import. A story written to the usual STAR format has a Task in its T: what you were assigned, rather than how you were thinking. That is the one part this method changes. So anything in your writing that shows how you approached it moves into the Thought Process. And if the story never says how you approached it, Reimagine leaves that part blank and asks you the question that would fill it, rather than guessing at an answer. The screen tells you which stories that happened to.
 
 A pasted answer to the weakness question is not filed as a story, and the screen says so: that one has its own section and wants a different structure.
 
