@@ -83,15 +83,15 @@ What it does not do is write the example for you. Reimagine will not invent the 
 
 ## The other questions you will be asked
 
-Seven more questions do not want a story out of your library. Two are answered right where they are asked; the rest point at where Reimagine handles them. Between the six above and these seven, thirteen questions are accounted for before you walk in.
+Seven more questions do not want a story out of your library. One is answered right where it is asked; the rest point at where Reimagine handles them, whether that is a conversation with My Coach or an Opportunity Playbook. Between the six above and these seven, thirteen questions are accounted for before you walk in.
 
 - **"Tell me about yourself."** Work on this one with My Coach. It gets used more than any other answer, and Bridge Story writes you a version aimed at a specific role once you have built a direction or added an opportunity.
 - **"What isn't on your resume?"** Work on this one with My Coach. It is the question that wants the human answer rather than the professional one -- values, what you care about, what shaped you -- and the Coach already knows all of it. It drafts an answer in your voice, says which parts it was least sure about, and works it with you from there.
-- **"What do you know about our company?"** About This Company, on the opportunity. The effort is itself the signal.
+- **"What do you know about our company?"** Add an opening you are pursuing and Reimagine builds a playbook for it. About This Company does the research and hands you the specifics worth referencing. The effort is itself the signal.
 - **"Why are you leaving your current role?"** Your best and fewest reasons. A layoff stated plainly reads as fact and needs no apology.
-- **"What did you like most and least about your last role?"** A values question wearing a preferences question. For the least, pick something this role would not repeat and say what you did about it. Keep both answers about the work itself.
+- **"What did you like most and least about your last role?"** A values question wearing a preferences question. Work it out with My Coach, which knows your values and asks which company is asking. For the least, pick something this role would not repeat and say what you did about it. Keep both answers about the work itself.
 - **"Are you underqualified or overqualified?"** Work on this one with My Coach, which asks which way it is being asked before it drafts anything. Whichever way, the answer redirects to the specific value you bring and stays short.
-- **"Do you have any questions for me?"** Interview Prep gives you questions aimed at what each person you are meeting uniquely knows.
+- **"Do you have any questions for me?"** Also from an Opportunity Playbook: name who you are meeting and Interview Prep writes questions aimed at what each of those people uniquely knows. Saying you have none reads as disengagement.
 
 ## One answer per question
 
