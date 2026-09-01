@@ -281,6 +281,29 @@ export function firstPerKind(stories) {
   })
 }
 
+/**
+ * A suggested framework off a model response, or null.
+ *
+ * Suggested where one fits the SHAPE of the story, which is not the same as
+ * where the Thought Process is thin: a story with a good T can still be one a
+ * framework would sharpen. It is offered, never asserted as something the person
+ * did, and most stories get none — a framework on every card means nothing on
+ * any of them.
+ *
+ * The name is matched against the taught five rather than trusted, so a model
+ * that invents "SWOT" or renames one of ours is dropped instead of teaching
+ * someone vocabulary Career Club does not use.
+ */
+export function readFramework(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const name = String(raw.name || '').trim()
+  const match = THOUGHT_PROCESS_FRAMEWORKS.find(f => f.name.toLowerCase() === name.toLowerCase())
+  if (!match) return null
+  const note = String(raw.note || '').trim()
+  if (!note) return null
+  return { name: match.name, note }
+}
+
 /** The library plus `story`, unless something already there is the same experience. */
 export function addStory(stories, story) {
   const list = Array.isArray(stories) ? stories : []

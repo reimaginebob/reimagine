@@ -103,7 +103,9 @@ A framework gives the Thought Process a shape. These are the ones we teach at Ca
 - **Vision, Alignment, Execution.** Where you were headed, who was behind it, how it got done.
 - **Ability, Resources, Commitment (ARC).** Whether they could do it, whether they had what they needed, whether they were willing.
 
-Use your own if you have one. Where a Thought Process comes back thin, Reimagine may suggest which of these would fit that story, and it never claims you used one.
+Use your own if you have one.
+
+Where one of these fits a story neatly, Reimagine says so under that story's Thought Process, with a line applying it to what actually happened rather than restating the framework. Most stories get no suggestion. It is offered as a shape your answer could take, never as something you did, and a framework on every card would mean nothing on any of them.
 
 ## One answer per question
 
