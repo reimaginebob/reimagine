@@ -4,7 +4,7 @@ import {
   PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS,
   ROUTED_QUESTIONS, orderStories, WEAKNESS_QUESTION, INVENTORY, storyCards, firstPerKind,
   weaknessRecord, hasWeaknessEvidence, numbersIn, storyNumbers, missingNumbers,
-  rankStories, questionGroup, parseStorySeed, THOUGHT_PROCESS_FRAMEWORKS,
+  rankStories, questionGroup, parseStorySeed, THOUGHT_PROCESS_FRAMEWORKS, readFramework,
   newStoryId, normalizeTitle, sameStory, addStory, coverage, emptySlots, isComplete,
 } from '../src/star-stories.mjs'
 
@@ -332,5 +332,20 @@ ok(THOUGHT_PROCESS_FRAMEWORKS.every(f => f.id && /^[a-z-]+$/.test(f.id)), 'stabl
 const REIMAGINE_ONLY = /4 C|Five P|KEEL|Quota of One|Bake a Cake|Like-for-Like/i
 ok(!THOUGHT_PROCESS_FRAMEWORKS.some(f => REIMAGINE_ONLY.test(f.name)),
    'none of Reimagine\'s internal scaffolding leaks into what the person is told to say')
+
+// A suggested framework is offered where one fits the shape of the story, which
+// is not the same as where the Thought Process is thin. Most stories get none.
+eq(readFramework({ name: 'People, Process, Technology', note: 'the technology only looked like the problem' }),
+   { name: 'People, Process, Technology', note: 'the technology only looked like the problem' },
+   'a taught framework with a note comes through')
+eq(readFramework({ name: 'ability, resources, commitment', note: 'n' }).name, 'Ability, Resources, Commitment',
+   'the canonical name and casing win over whatever came back')
+// Matched against the five rather than trusted, so a model that invents one is
+// dropped instead of teaching vocabulary Career Club does not use.
+eq(readFramework({ name: 'SWOT', note: 'x' }), null, 'an invented framework is refused')
+eq(readFramework({ name: 'Vision, Alignment, Execution' }), null, 'a name with no note is not a suggestion')
+eq(readFramework({ name: 'Vision, Alignment, Execution', note: '   ' }), null, 'nor is a blank note')
+eq(readFramework(null), null, 'no suggestion is null')
+eq(readFramework('People, Process, Technology'), null, 'a bare string is not the shape')
 
 console.log(`test-star-stories: OK (${passed} cases passed)`)

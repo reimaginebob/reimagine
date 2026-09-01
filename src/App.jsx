@@ -22,7 +22,7 @@ import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 // holding localStorage state overwrites newer server state. Tested by
 // scripts/test-autosave-gate.mjs.
 import { canPushProfile } from "./autosave-gate.js"
-import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, firstPerKind, weaknessRecord, missingNumbers, questionGroup, parseStorySeed, THOUGHT_PROCESS_FRAMEWORKS } from "./star-stories.mjs"
+import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, firstPerKind, weaknessRecord, missingNumbers, questionGroup, parseStorySeed, THOUGHT_PROCESS_FRAMEWORKS, readFramework } from "./star-stories.mjs"
 import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
 import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from "./corrections.js"
 // Stale-build self-healing: BUILD_SHA / BUILT_AT come from
@@ -2871,10 +2871,20 @@ const OUTREACH_PURPOSES={
 // rule in every prompt below is that a framework may be OFFERED where the T is
 // thin, and never asserted as something they did.
 const TP_FRAMEWORK_LIST=THOUGHT_PROCESS_FRAMEWORKS.map(f=>`- ${f.name}: ${f.model}`).join('\n')
-const TP_FRAMEWORK_RULE=`FRAMEWORKS FOR A THIN THOUGHT PROCESS. A named framework gives the T a shape, and these are the ones this person may have been taught:
+const TP_FRAMEWORK_RULE=`A FRAMEWORK FOR THE THOUGHT PROCESS, where one fits. A named framework gives the T a shape, and these are the ones this person may have been taught:
 ${TP_FRAMEWORK_LIST}
 
-NEVER SAY THEY USED ONE. You do not know that, and putting a framework in their mouth is the same failure as inventing an event. Where a T is thin or missing, you may name at most ONE of these in that slot's to_strengthen, as a way they could structure the answer, and only where it genuinely fits the story in front of you: "this one might structure well as What, So What, Now What -- what you found, why it mattered, what you did about it." Where their own words already show a structure, name what they are doing rather than relabelling it as one of these. Where nothing fits, say nothing about frameworks: a forced fit is worse than none.`
+Read each story and ask whether one of these would carry its thinking neatly. Judge it on the SHAPE OF THE STORY, not on whether the T is thin: a story with a good Thought Process can still be one a framework would sharpen, and that is worth telling them. A problem someone diagnosed before fixing often falls out as People, Process, Technology. Something that needed buy-in before it needed a plan often falls out as Vision, Alignment, Execution. A judgment call about whether something could be done often falls out as ARC.
+
+WHERE ONE FITS, return it in that story's "framework" field: the name exactly as written above, plus one short line applying it to THIS story rather than restating what the framework is. "Your diagnosis was really about process, and the technology only looked like the problem" is the move. "People, Process, Technology helps you diagnose problems" is not.
+
+WHERE NOTHING FITS, return "framework": null. Most stories will. A forced fit is worse than none, and a framework suggested on every card stops meaning anything on any of them. Never suggest one for a story whose thinking is already clearly structured in the person's own way: name nothing rather than relabelling what they already do.
+
+NEVER SAY THEY USED ONE. You do not know that. This is offered as a shape their answer could take, never asserted as something they did — putting a framework in someone's mouth is the same failure as inventing an event.
+
+THE FIELD SHAPE, on any story where you suggest one:
+"framework": { "name": "People, Process, Technology", "note": "one short line applying it to this story" }
+and "framework": null everywhere else.`
 
 const P={
   // Stage one (Personal Brand): the lean analysis. A short coach frame plus the
@@ -3661,6 +3671,7 @@ Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end
     {
       "title": "a short plain name they would recognise, e.g. Toronto acquisition integration",
       "kind": "one of: achievement, authority, collaboration, strategic, ambiguity",
+      "framework": null,
       "question": "the question an interviewer would actually ask that this story answers, written the way they would say it out loud. Where it answers more than one, give the strongest, and never phrase it as advice about when to use the story",
       "why": "one short line on why this story answers that question well",
       "slots": {
@@ -3715,6 +3726,7 @@ Return this shape:
       "title": "a short plain name for it, theirs if they gave one",
       "kind": "achievement | authority | collaboration | strategic | ambiguity | weakness | other",
       "why": "one short line on why this kind, or where it belongs if the kind is weakness or other",
+      "framework": null,
       "task_in_t": false,
       "slots": {
         "S": { "text": "", "to_strengthen": "" },
@@ -3765,6 +3777,7 @@ Use plain words throughout. NEVER write "balcony", "basement", "shadow", or "ass
 RETURN THIS SHAPE, with every field present:
 {
   "title": "the short plain name — keep theirs unless the note asks otherwise",
+  "framework": null,
   "question": "the question an interviewer would actually ask that this story answers, the way they would say it out loud",
   "why": "one short line on why this story answers that question well",
   "slots": {
@@ -7053,6 +7066,7 @@ export default function PivotEngine(){
         title:(typeof obj.title==='string'&&obj.title.trim())?obj.title.trim():story.title,
         question:(typeof obj.question==='string'&&obj.question.trim())?obj.question.trim():(story.question||''),
         why:(typeof obj.why==='string'?obj.why.trim():(story.why||'')),
+        framework:readFramework(obj.framework),
         slots:obj.slots,updatedAt:new Date().toISOString()}
       saveStory(next)
       // The prompt says a correction wins; this checks that it did. A number is
@@ -7122,6 +7136,7 @@ export default function PivotEngine(){
         if(!known.has(kind)){parked.push({title,kind,why:(typeof row.why==='string'?row.why.trim():'')});continue}
         const story={id:newStoryId(),title,kind,origin:'imported',
           why:(typeof row.why==='string'?row.why.trim():''),
+          framework:readFramework(row.framework),
           slots:(row.slots&&typeof row.slots==='object')?row.slots:{},
           createdAt:ts,updatedAt:ts}
         const next=addStory(acc,story)
@@ -7181,6 +7196,7 @@ export default function PivotEngine(){
         const story={id:newStoryId(),title,kind:(row.kind||'').trim()||'achievement',origin:'seed',
           question:(typeof row.question==='string'?row.question.trim():''),
           why:(typeof row.why==='string'?row.why.trim():''),
+          framework:readFramework(row.framework),
           slots:(row.slots&&typeof row.slots==='object')?row.slots:{},
           createdAt:ts,updatedAt:ts}
         const next=addStory(acc,story)
@@ -11674,6 +11690,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   <div style={{fontSize:16,fontWeight:700,color:C.goldL,marginBottom:4}}>{k} &mdash; {SLOT_LABELS[k]}</div>
                   <StorySlotField value={cur.text||''} placeholder={k==='T'?'Still open. How you were thinking about it, not what you were assigned.':'Still open. Click here to write it.'} onChange={v=>slotEdit(story,k,'text',v)}/>
                   {cur.to_strengthen&&<div style={{marginTop:6,fontSize:17,color:C.cream,lineHeight:1.65}}><em style={{color:C.gray}}>To strengthen:</em> {cur.to_strengthen}</div>}
+                  {k==='T'&&story.framework&&<div style={{marginTop:8,padding:'10px 12px',borderLeft:`3px solid ${C.gold}`,background:`${C.gold}0D`,borderRadius:6}}>
+                    <div style={{fontSize:16,color:C.gray,lineHeight:1.6}}>This one might structure well as <strong style={{color:'#1A2540'}}>{story.framework.name}</strong>. {story.framework.note}</div>
+                  </div>}
                 </div>
               })}
             </div>
