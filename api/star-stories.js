@@ -8,6 +8,7 @@
 //   GET    -> { stories: [...] }   every row for the caller
 //   PUT    -> { story }            upsert one, keyed by story.id; stale-write guarded
 //   DELETE -> { storyId }          remove one
+//   DELETE -> { all: true }        remove every story for the caller
 //
 // Cookie-session auth (requireAuth), same as saved-playbooks.
 
@@ -50,6 +51,18 @@ async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
+      // Starting the library over. The seed accumulated across prompt versions
+      // and left several stale answers to the same question, and no title-based
+      // dedupe can merge one event worded three different ways -- so there has to
+      // be a way back to empty.
+      //
+      // Gated on an explicit flag, never on a missing storyId: a client that
+      // forgot to send the id would otherwise wipe the library silently, which is
+      // exactly what per-record storage exists to prevent.
+      if (req.body && req.body.all === true) {
+        const gone = await sql`DELETE FROM star_stories WHERE user_id = ${uid}::uuid RETURNING story_id`
+        return res.status(200).json({ ok: true, deleted: gone.length })
+      }
       const id = req.body && str(req.body.storyId)
       if (!id) return res.status(400).json({ error: 'storyId is required' })
       await sql`DELETE FROM star_stories WHERE user_id = ${uid}::uuid AND story_id = ${id}`

@@ -6943,6 +6943,8 @@ export default function PivotEngine(){
   const[storyLostNums,setStoryLostNums]=useState({})
   // Which questions have their extra candidates expanded.
   const[storyAltsOpen,setStoryAltsOpen]=useState({})
+  // Two-step, because this one is not reversible.
+  const[restartArmed,setRestartArmed]=useState(false)
   const saveStory=(story)=>{
     setStarStories(prev=>{const i=prev.findIndex(x=>x.id===story.id);return i>=0?prev.map(x=>x.id===story.id?story:x):[...prev,story]})
     if(!isDemo&&!isTest){try{fetch('/api/star-stories',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({story})}).catch(()=>{})}catch{}}
@@ -6982,6 +6984,36 @@ export default function PivotEngine(){
       setStoryRefineErr(er=>({...er,[story.id]:e.message||'That did not come back. Try again.'}))
     }finally{setStoryRefining(null)}
   }
+  // Start the library over. The seed ran across several versions of its prompt
+  // and each run added rather than replaced, so one library ended up with three
+  // separate answers to the same question in three different voices. No dedupe
+  // can merge one event worded three ways, which leaves clearing it the only way
+  // back to a clean set.
+  //
+  // Deletes server-side first. Clearing local state first and failing the call
+  // would leave rows on the server that come back on the next load, which reads
+  // as the reset having silently undone itself.
+  const restartLibrary=async()=>{
+    if(storiesBusy)return
+    setStoriesBusy(true);setStoriesErr(null)
+    try{
+      if(!isDemo&&!isTest){
+        const r=await fetch('/api/star-stories',{method:'DELETE',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({all:true})})
+        if(!r.ok)throw new Error('Those could not be cleared. Nothing was changed, so try again.')
+      }
+      setStarStories([])
+      setStoryLostNums({});setStoryRefineErr({});setStoryAltsOpen({})
+    }catch(e){
+      setStoriesErr(e.message||'Those could not be cleared. Nothing was changed, so try again.')
+      setStoriesBusy(false)
+      return
+    }
+    setStoriesBusy(false)
+    // The auto-seed only fires on an empty library and only once per visit, so
+    // the rebuild is asked for here rather than left to that effect.
+    storiesAutoRef.current=true
+    buildStoryLibrary({base:[]})
+  }
   const addStoryByHand=()=>{
     const title=(storyDraft.title||'').trim()
     if(!title){setStoriesErr('Give the story a short name first.');return}
@@ -7004,7 +7036,7 @@ export default function PivotEngine(){
   // dead zone error that took the whole app down, not just this screen.
   // pc.resume is profile.resume, so the shorter reference is also the correct one.
   const storiesSeedable=!!String(profile.resume||'').trim()
-  const buildStoryLibrary=async({weaknessOnly=false}={})=>{
+  const buildStoryLibrary=async({weaknessOnly=false,base=null}={})=>{
     if(storiesBusy)return
     setStoriesBusy(true);setStoriesErr(null)
     try{
@@ -7020,7 +7052,9 @@ export default function PivotEngine(){
       // also forbids: one seed returned four setback stories, two pairs each
       // describing one event in different words, which no title-based dedupe
       // could catch. Instruction plus mechanism, per the voice-gate pattern.
-      let acc=starStories
+      // `base` is passed as [] by a restart. Defaulting to the closed-over
+      // starStories would dedupe the rebuild against the list just cleared.
+      let acc=base||starStories
       for(const row of (weaknessOnly?[]:firstPerKind(rows.filter(r=>r&&typeof r.title==='string'&&r.title.trim()&&r.kind!=='weakness'&&r.kind!=='setback')))){
         const title=row.title.trim()
         const story={id:newStoryId(),title,kind:(row.kind||'').trim()||'achievement',origin:'seed',
@@ -11544,6 +11578,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {storiesErr&&held>0&&<div style={{marginBottom:10}}><ErrBox msg={storiesErr}/></div>}
           <Btn small onClick={addStoryByHand}><Plus size={14}/>Add it</Btn>
         </div>
+
+        {held>0&&storiesSeedable&&<div style={{...S.card,marginTop:14}}>
+          <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:6}}>Start this library over</div>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:12}}>Clears every story here and builds a fresh set from your resume, your reputation answers and your assessment. Worth doing if what is here has accumulated into several answers to the same question. Anything you have typed yourself goes too, and this cannot be undone.</div>
+          {restartArmed
+            ?<div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap'}}>
+              <Btn small disabled={storiesBusy} onClick={()=>{setRestartArmed(false);restartLibrary()}}><RotateCcw size={12}/>{storiesBusy?'Starting over…':`Yes, clear all ${held} and rebuild`}</Btn>
+              <button type="button" onClick={()=>setRestartArmed(false)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',padding:0,fontSize:16,fontFamily:'inherit',textDecoration:'underline'}}>Keep what I have</button>
+            </div>
+            :<Btn small disabled={storiesBusy} onClick={()=>setRestartArmed(true)}><RotateCcw size={12}/>Start over</Btn>}
+        </div>}
       </div>
     }
 
