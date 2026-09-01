@@ -88,6 +88,19 @@ export function linkedInJobSearchGroupUrl(city) {
 // everywhere in the US, and the entry point most job seekers do not know exists.
 export const AMERICAN_JOB_CENTER_URL = 'https://www.careeronestop.org/LocalHelp/local-help.aspx'
 
+// City names come from a free-text field, so "cincinnati" and "los angeles" are
+// as common as the capitalised forms, and both appear in a heading. Capitalise
+// only words that are ENTIRELY lowercase: that fixes "los angeles" without
+// breaking "Washington DC", "St. Louis" or anything the person capitalised
+// themselves. Their own capitalisation always wins.
+export function displayCity(city) {
+  return String(city || '')
+    .trim()
+    .split(/(\s+|-)/)
+    .map(part => (/^[a-z][a-z'’.]*$/.test(part) ? part.charAt(0).toUpperCase() + part.slice(1) : part))
+    .join('')
+}
+
 // ── Dates ───────────────────────────────────────────────────────────────────
 // A specific date is a claim that rots. A recurring cadence is a fact about the
 // organization. Keep the second, remove the first.

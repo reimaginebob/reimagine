@@ -8,7 +8,7 @@
 import {
   CAREER_CLUB_CORNER, meetupCitySlug, meetupUrl, jobSearchGroupSearchUrl,
   hasAssertedDate, stripAssertedDate, normalizeResource, splitResources,
-  resourceScore, rankResources, resourcesCacheKey, packResources, unpackResources,
+  resourceScore, rankResources, resourcesCacheKey, packResources, unpackResources, displayCity,
 } from '../src/job-search-resources.mjs'
 
 let pass = 0, fail = 0
@@ -87,6 +87,16 @@ const NKYAG = normalizeResource({
   url: 'https://www.kentonlibrary.org/nkyag/', confidence: 'high',
 })
 t('a free library program outranks a dues-paying body', resourceScore(NKYAG) > resourceScore(PAID_BOARD))
+
+// ── City display ────────────────────────────────────────────────────────────
+// The city is free text and lands in a heading, so a lowercase entry must not
+// render as "Near los angeles" — but the person's own capitalisation wins.
+eq('a lowercase city is capitalised', displayCity('los angeles'), 'Los Angeles')
+eq('one lowercase word', displayCity('cincinnati'), 'Cincinnati')
+eq('an existing capital is left alone', displayCity('Washington DC'), 'Washington DC')
+eq('a mixed-case abbreviation survives', displayCity('St. Louis'), 'St. Louis')
+eq('hyphens are preserved', displayCity('winston-salem'), 'Winston-Salem')
+eq('empty stays empty', displayCity(''), '')
 
 // ── Deep links ──────────────────────────────────────────────────────────────
 eq('Meetup city slug', meetupCitySlug('Boise', 'ID'), 'us--id--boise')
