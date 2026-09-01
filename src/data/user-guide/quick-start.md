@@ -39,7 +39,7 @@ A few specifics: take an assessment if you do not have one (the difference is si
 
 The Role generates immediately; everything else generates when you ask for it, in whatever order fits your week.
 
-**My Playbooks.** Where all of it lives. Every role you explore and every opportunity you add is saved here, and this is the screen you come back to.
+**My Playbooks.** Every role you explore from Career Paths is saved here. Opportunities live one entry up, on **My Pipeline**, ordered by what needs doing next. Between the two, everything you build is a couple of clicks away.
 
 ## Things worth knowing before you start
 

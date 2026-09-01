@@ -263,6 +263,37 @@ function AddButton({ label, onClick, C }) {
   )
 }
 
+// Where the opportunities went. My Pipeline took ownership of the Opportunity
+// records on 2026-08-30, and this page stopped listing them — but it kept
+// counting them in its header, so someone whose saved set is all opportunities
+// (common: Door 2 is the recommended first move) read "5 of 10 saved" above an
+// empty shelf and concluded their work was gone. At least one did, and rebuilt
+// the same playbook three times in an evening. The count is gone from the
+// header and this says where the work is instead. Renders only when the person
+// actually has opportunities, so it never advertises a screen with nothing on it.
+function MovedToPipeline({ count, onGo, C, independent }) {
+  if (!count || typeof onGo !== 'function') return null
+  return (
+    <div style={{
+      background: `${C.gold}10`, borderLeft: `3px solid ${C.gold}`, borderRadius: 8,
+      padding: '16px 18px', marginBottom: 24,
+    }}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: '#1A2540', marginBottom: 6 }}>
+        Your {count === 1 ? 'opportunity is' : 'opportunities are'} in My Pipeline
+      </div>
+      <div style={{ fontSize: 16, color: C.grayL, lineHeight: 1.6, marginBottom: 12 }}>
+        {count === 1 ? 'The opportunity you added lives' : `The ${count} opportunities you have added live`} on My Pipeline, with where each one stands, when you next talk, and what you are doing next. {independent ? 'This page holds your practice plan.' : 'This page holds the directions you explore from Career Paths.'}
+      </div>
+      <button type="button" onClick={onGo} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8,
+        background: C.gold, color: '#FFFFFF', border: 'none',
+        padding: '10px 18px', borderRadius: 8, cursor: 'pointer',
+        fontSize: 16, fontWeight: 600, fontFamily: 'inherit',
+      }}>Go to My Pipeline</button>
+    </div>
+  )
+}
+
 function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDelete, onRename, onDownload, C }) {
   const showAdd = typeof onAdd === 'function'
   // Complete-page recap (no add handler) omits empty sections; the dashboard
@@ -297,19 +328,22 @@ function Section({ heading, records, addLabel, onAdd, emptyCopy, onRestore, onDe
 // hides empty sections. The split is a pure render-layer filter on rec.source;
 // no schema change. The `layout` prop is retained for caller compatibility but
 // the grid is now owned per-section (the legacy wideView path is vestigial).
-export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, onRename, onDownload, C, layout = 'complete', title, onAddDirection, onAddOpportunity, focusOnly = false, independent = false }) {
+export default function SavedPlaybooks({ savedPlaybooks, onRestore, onDelete, onRename, onDownload, C, layout = 'complete', title, onAddDirection, onAddOpportunity, focusOnly = false, independent = false, onGoToPipeline }) {
   const focus = (savedPlaybooks || []).filter(r => r && r.source !== 'door2')
   // focusOnly: My Pipeline owns the Opportunity records, so this component renders
   // Focus only and never shows a duplicate Opportunity section (gated to flagged
   // users at the call site; default path is unchanged).
-  const opp = focusOnly ? [] : (savedPlaybooks || []).filter(r => r && r.source === 'door2')
-  if (focus.length === 0 && opp.length === 0 && !onAddDirection && !(focusOnly ? false : onAddOpportunity)) return null
+  const door2 = (savedPlaybooks || []).filter(r => r && r.source === 'door2')
+  const opp = focusOnly ? [] : door2
+  const movedCount = focusOnly ? door2.length : 0
+  if (focus.length === 0 && opp.length === 0 && !movedCount && !onAddDirection && !(focusOnly ? false : onAddOpportunity)) return null
   const suppressHeading = title === null
   return (
     <div style={{ marginTop: suppressHeading ? 18 : 36 }}>
       {!suppressHeading && title && (
         <h2 style={{ fontFamily: 'Georgia,serif', fontSize: 24, fontWeight: 700, color: '#1A2540', margin: '0 0 14px' }}>{title}</h2>
       )}
+      <MovedToPipeline count={movedCount} onGo={onGoToPipeline} C={C} independent={independent}/>
       {/* On the practice track this section holds exactly one record, the
           practice plan, and it is built once. "Explore More Roles" called
           startNewDirection, which sets the step to laneSelect -- the Career

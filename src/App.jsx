@@ -5051,7 +5051,11 @@ const POST_P5_SUBMODULES = ROLE_SUBMODULES.filter(k=>k!=='p5')
 // a per-user value loaded from the user record (V2 launch bundle); the accessor is
 // the seam: all cap read sites go through getSavedCap() so V2 can swap the body
 // without touching call sites.
-const SAVED_PLAYBOOKS_CAP = 10
+// null = no ceiling, which is where the product stands for now: nobody is being
+// told how many they have left, and nobody is being stopped. The whole cap path
+// below (the at-cap modal, the remove-one-to-continue flow) is left intact and
+// wired; restoring a limit is putting a number back here.
+const SAVED_PLAYBOOKS_CAP = null
 const getSavedCap = () => SAVED_PLAYBOOKS_CAP
 // LANE_LABELS is the canonical map imported from ./nav-labels.js (keyed on the
 // stored selectedLane values). laneLabelFor reads it; behavior is unchanged.
@@ -11475,7 +11479,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(existingDup){
       setCurrentRoleInSavedSet(true)
       currentSavedSlotIdRef.current=existingDup.id
-    }else if(activePlaybooks.length>=getSavedCap()){
+    }else if(getSavedCap()!=null&&activePlaybooks.length>=getSavedCap()){
       setCurrentRoleInSavedSet(false)
       currentSavedSlotIdRef.current=null
       setAtCapModal({source:'door2',proceed:createRecord})
@@ -12911,10 +12915,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       return <div>
       <div style={{marginBottom:8}}>
         <h1 style={{...S.title,marginBottom:6}}>My Playbooks</h1>
-        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>{isIndependent?'Your practice plan and the clients you are working.':'Your collection of role-strategy work.'} {activePlaybooks.length} of {getSavedCap()} saved.</p>
+        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>{isIndependent?'Your practice plan and the clients you are working.':'The directions you have explored.'}</p>
       </div>
       {_comparable.length>=2&&<div style={{margin:'0 0 16px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({_comparable.length}) <ChevronRight size={14}/></Btn></div>}
-      <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={isIndependent?undefined:startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasPipeline} independent={isIndependent}/>
+      <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={isIndependent?undefined:startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasPipeline} independent={isIndependent} onGoToPipeline={hasPipeline?()=>nav('pipeline'):undefined}/>
       {archivedSection()}
     </div>
     }

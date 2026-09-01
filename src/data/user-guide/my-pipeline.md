@@ -2,7 +2,7 @@
 
 **My Pipeline is where you run your search day to day.** Every opportunity you have added lives here with where it stands, when you next talk, and what you are doing next — ordered so the one that needs you comes first.
 
-It is a permanent entry in the sidebar from the moment you have a Personal Brand, sitting just above My Playbooks. The two are easy to tell apart once you have used both: My Playbooks is the library of everything you have built, browsed by what it is. My Pipeline is the working view of live opportunities, ordered by what needs doing.
+It is a permanent entry in the sidebar from the moment you have a Personal Brand, sitting just above My Playbooks. The two are easy to tell apart once you have used both: My Playbooks holds the directions you explore from Career Paths. My Pipeline holds your live opportunities, ordered by what needs doing.
 
 Only opportunities appear here. Focus Playbooks — the roles you explore from Career Paths — stay in My Playbooks, because exploring a direction is not something that comes due.
 
@@ -28,7 +28,7 @@ Then one card per opportunity.
 
 **My Coach's read on this opportunity.** Opens My Coach on that one opportunity: what is going well, what has stalled, and the single most useful next move.
 
-**Open** takes you into the full playbook. **Remove from pipeline** takes the opportunity out of your active set; like anything removed from My Playbooks, it waits in Archived for 90 days rather than being deleted.
+**Open** takes you into the full playbook. **Remove from pipeline** takes the opportunity out of your active set; it waits in Archived at the bottom of My Playbooks for 90 days rather than being deleted, and you can restore it from there.
 
 ## How the ordering works
 
