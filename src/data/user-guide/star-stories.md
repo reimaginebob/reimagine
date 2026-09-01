@@ -1,27 +1,3 @@
-<!--
-PARKED. This is the user-guide chapter for Your STAR Stories, written and ready,
-held out of src/data/user-guide/ while the surface is an internal-only pilot
-(storiesPilot in src/App.jsx).
-
-It cannot simply sit unlisted in the guide folder: scripts/lib/user-guide-order.mjs
-hard-fails the build when a chapter file exists but is missing from ORDER.json.
-That guard is correct — ORDER.json feeds both the guide AND the single cached
-system block api/coach.js sends to every user, so publishing this would describe
-a surface only internal accounts can open.
-
-TO OPEN THE GATE, four things in one PR:
-  1. Delete storiesPilot in src/App.jsx and its three uses (the const, the
-     Sidebar prop, and the early return in the 'stories' case).
-  2. Move this file to src/data/user-guide/star-stories.md, strip this comment,
-     and add "star-stories.md" to ORDER.json after add-an-opportunity.md.
-  3. Move the slug tripwire in scripts/test-coach-routing.mjs from 22 to 23.
-  4. Restore this entry to FEATURE_MAP in src/coach-routing.js, immediately
-     above the bridge-story entry:
-
-  { slug: 'your-stories',        reach: 'standalone',  labelId: 'stories',
-    does: 'holds the handful of STAR stories they tell in interviews, which the book puts at roughly twelve covering the range of what gets asked. The first set is built from what Orientation already holds, and the parts come from different places: the resume carries Situation and Result, the reputation answers and career pattern carry the Thought Process, and the assessment carries the story about what they are still working on. Nothing is invented -- where an input does not support a story they get the question instead of a guess, and every part is editable because their words win. It tracks the six questions a good set answers and, for one they do not have yet, shows the shape of a strong answer rather than an empty box. Five of those want a story; the weakness question does not, and has a section of its own on the screen built on the book's Real / Addressed / Ongoing model, grounded in whatever their assessment actually says and handed to the Coach to work through rather than written for them. Remember the T here is Thought Process, never Task: that is the change this method makes to STAR and the reason its answers land. This is the set Interview Prep remixes from when it prepares them for named people. The screen also names eight more questions -- the ones that want something other than a story -- and points at where Reimagine answers each: Bridge Story, About This Company, Interview Prep, and for "what is not on your resume" a conversation with the Coach itself. Fourteen questions in all. Every story carries a "Does this feel right?" box that reworks that one story from the person's note; a story Reimagine built has no Remove, because correcting it beats deleting it' },
--->
-
 # Your STAR Stories
 
 **Your STAR Stories** is where the handful of stories you tell in interviews lives. It is a permanent sidebar entry, and it is the source the rest of the product draws on when it prepares you for a specific conversation.
