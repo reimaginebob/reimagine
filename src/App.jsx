@@ -4425,7 +4425,7 @@ const S={
   footnote:{fontSize:15,color:'#718096',lineHeight:1.5,margin:'8px 0 0'},
 }
 
-function Btn({onClick,disabled,secondary,small,prominent,children,style={}}){const base=small?(prominent?S.smSolid:S.sm):(secondary?S.sec:S.btn);return <button style={{...base,opacity:disabled?0.5:1,...style}} onClick={onClick} disabled={disabled}>{children}</button>}
+function Btn({onClick,disabled,secondary,small,prominent,children,style={}}){const base=small?(prominent?S.smSolid:S.sm):(secondary?S.sec:S.btn);return <button style={{...base,opacity:disabled?0.5:1,...(disabled?{cursor:'not-allowed'}:null),...style}} onClick={onClick} disabled={disabled}>{children}</button>}
 // Shared Human / ATS segmented control. Both versions render from the SAME record;
 // the flag only changes arrangement (renderResumeText/buildResumeDoc take `ats`).
 function ResumeVersionSeg({variant,setVariant}){
@@ -6932,6 +6932,9 @@ export default function PivotEngine(){
   // long text in the whole-blob autosave is what lost a user five playbooks.
   const[starStories,setStarStories]=useState([])
   const[storiesBusy,setStoriesBusy]=useState(false)
+  // Whether the stored library has come back yet. The seed fires on an empty
+  // library, and "empty" and "not loaded yet" look identical without this.
+  const[storiesLoaded,setStoriesLoaded]=useState(false)
   const[storiesErr,setStoriesErr]=useState(null)
   const[storyDraft,setStoryDraft]=useState({title:'',kind:'achievement'})
   // Per-story refine state, keyed by story id so one card in flight never puts
@@ -7085,10 +7088,18 @@ export default function PivotEngine(){
   // work from is a reason to say so rather than to spin.
   useEffect(()=>{
     if(step!=='stories'||!storiesPilot)return
+    // storiesLoaded is the whole point of this guard. The stored library arrives
+    // from /api/star-stories after /api/me resolves, and until it does the
+    // library reads as empty -- so arriving here started a seed, the load then
+    // returned the real stories, and minutes later the seed wrote a SECOND full
+    // set on top of them. That race is how one library reached 22 answers to six
+    // questions, and it also left storiesBusy true for the whole generation,
+    // which is why Start over rendered disabled on a screen that looked idle.
+    if(!storiesLoaded)return
     if(storiesAutoRef.current||storiesBusy||starStories.length>0||!storiesSeedable)return
     storiesAutoRef.current=true
     buildStoryLibrary()
-  },[step,storiesPilot,storiesBusy,starStories.length,storiesSeedable])
+  },[step,storiesPilot,storiesBusy,storiesLoaded,starStories.length,storiesSeedable])
   const[manualErr,setManualErr]=useState(null)
   const persistManual=(next)=>{setConnManual(next);try{localStorage.setItem(MANUAL_STORAGE_KEY,JSON.stringify(next))}catch{}}
   const addManualPerson=(company)=>{
@@ -7126,9 +7137,14 @@ export default function PivotEngine(){
   // My Search hydration: load the pursuit-status list once the flag is known.
   // Fires when hasPipeline flips true (after /api/me resolves signedInUser).
   useEffect(()=>{
-    if(isDemo||isTest)return
+    if(isDemo||isTest){setStoriesLoaded(true);return}
     if(!hasPipeline)return
-    fetch('/api/star-stories',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.stories))setStarStories(d.stories)}).catch(()=>{})
+    fetch('/api/star-stories',{credentials:'include'}).then(r=>r.ok?r.json():null)
+      .then(d=>{if(d&&Array.isArray(d.stories))setStarStories(d.stories)})
+      .catch(()=>{})
+      // Settled either way. A failed load must not leave the screen waiting
+      // forever on a library that is never coming.
+      .finally(()=>setStoriesLoaded(true))
     fetch('/api/pursuit-status',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitStatus(d.rows)}).catch(()=>{})
     fetch('/api/pursuit-interviewers',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitInterviewers(d.rows)}).catch(()=>{})
   },[hasPipeline,isDemo,isTest])
@@ -11465,15 +11481,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div>Every part below is yours. Click any line to type over it, or use <strong style={{color:'#1A2540'}}>Does this feel right?</strong> to describe what is off and have Reimagine rework the story around it.</div>
         </CoachingCallout>
 
-        {storiesBusy&&held===0&&<div style={{...S.card,marginBottom:20}}>
+        {!storiesLoaded&&held===0&&<div style={{...S.card,marginBottom:20}}>
+          <div style={{fontSize:16,color:C.gray,lineHeight:1.6}}>Loading your stories…</div>
+        </div>}
+        {storiesLoaded&&storiesBusy&&held===0&&<div style={{...S.card,marginBottom:20}}>
           <Loading msg="Reading what you have already told us…" step="story-seed"/>
           <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:10}}>Your resume, your reputation answers and your assessment hold most of this between them. Nothing gets invented: where an input does not support a story, you will get the question instead of a guess.</div>
         </div>}
-        {!storiesBusy&&held===0&&!storiesSeedable&&<div style={{...S.card,marginBottom:20}}>
+        {storiesLoaded&&!storiesBusy&&held===0&&!storiesSeedable&&<div style={{...S.card,marginBottom:20}}>
           <div style={{fontSize:18,fontWeight:700,color:'#1A2540',marginBottom:4}}>Add your resume and these will build themselves</div>
           <div style={{fontSize:16,color:C.gray,lineHeight:1.6}}>Most of a first set comes from your resume, your reputation answers and your assessment. Add your resume in Orientation and come back, or start one of your own below.</div>
         </div>}
-        {!storiesBusy&&held===0&&storiesSeedable&&storiesErr&&<div style={{...S.card,marginBottom:20}}>
+        {storiesLoaded&&!storiesBusy&&held===0&&storiesSeedable&&storiesErr&&<div style={{...S.card,marginBottom:20}}>
           <div style={{marginBottom:10}}><ErrBox msg={storiesErr}/></div>
           <Btn onClick={()=>{storiesAutoRef.current=true;buildStoryLibrary()}}><RotateCcw size={14}/>Try again</Btn>
         </div>}
