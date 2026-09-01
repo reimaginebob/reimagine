@@ -3671,7 +3671,7 @@ Return ONLY a JSON object, no preamble, no markdown fences. Start with { and end
     {
       "title": "a short plain name they would recognise, e.g. Toronto acquisition integration",
       "kind": "one of: achievement, authority, collaboration, strategic, ambiguity",
-      "framework": null,
+      "framework": { "name": "exactly one of the framework names listed above", "note": "one short line applying it to THIS story" }, or null where none of them fits the story,
       "question": "the question an interviewer would actually ask that this story answers, written the way they would say it out loud. Where it answers more than one, give the strongest, and never phrase it as advice about when to use the story",
       "why": "one short line on why this story answers that question well",
       "slots": {
@@ -3726,7 +3726,7 @@ Return this shape:
       "title": "a short plain name for it, theirs if they gave one",
       "kind": "achievement | authority | collaboration | strategic | ambiguity | weakness | other",
       "why": "one short line on why this kind, or where it belongs if the kind is weakness or other",
-      "framework": null,
+      "framework": { "name": "exactly one of the framework names listed above", "note": "one short line applying it to THIS story" }, or null where none of them fits the story,
       "task_in_t": false,
       "slots": {
         "S": { "text": "", "to_strengthen": "" },
@@ -3777,7 +3777,7 @@ Use plain words throughout. NEVER write "balcony", "basement", "shadow", or "ass
 RETURN THIS SHAPE, with every field present:
 {
   "title": "the short plain name — keep theirs unless the note asks otherwise",
-  "framework": null,
+  "framework": { "name": "exactly one of the framework names listed above", "note": "one short line applying it to THIS story" }, or null where none of them fits the story,
   "question": "the question an interviewer would actually ask that this story answers, the way they would say it out loud",
   "why": "one short line on why this story answers that question well",
   "slots": {

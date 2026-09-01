@@ -343,6 +343,12 @@ eq(readFramework({ name: 'ability, resources, commitment', note: 'n' }).name, 'A
 // Matched against the five rather than trusted, so a model that invents one is
 // dropped instead of teaching vocabulary Career Club does not use.
 eq(readFramework({ name: 'SWOT', note: 'x' }), null, 'an invented framework is refused')
+eq(readFramework({ name: 'People and Process', note: 'x' }), null, 'and so is a near miss')
+// ARC is named as a nickname inside its own description, so a model answering
+// with it is following the material rather than inventing something.
+eq(readFramework({ name: 'ARC', note: 'x' }).name, 'Ability, Resources, Commitment', 'the nickname resolves')
+eq(readFramework({ name: 'Ability, Resources, Commitment (ARC)', note: 'x' }).name, 'Ability, Resources, Commitment',
+   'and so does the name with the nickname appended')
 eq(readFramework({ name: 'Vision, Alignment, Execution' }), null, 'a name with no note is not a suggestion')
 eq(readFramework({ name: 'Vision, Alignment, Execution', note: '   ' }), null, 'nor is a blank note')
 eq(readFramework(null), null, 'no suggestion is null')

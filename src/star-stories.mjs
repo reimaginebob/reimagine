@@ -281,6 +281,10 @@ export function firstPerKind(stories) {
   })
 }
 
+// The one framework with a nickname in its own description ("Called ARC"), so a
+// model that answers with the nickname is following the material.
+const FRAMEWORK_ALIASES = { arc: 'arc' }
+
 /**
  * A suggested framework off a model response, or null.
  *
@@ -296,8 +300,10 @@ export function firstPerKind(stories) {
  */
 export function readFramework(raw) {
   if (!raw || typeof raw !== 'object') return null
-  const name = String(raw.name || '').trim()
-  const match = THOUGHT_PROCESS_FRAMEWORKS.find(f => f.name.toLowerCase() === name.toLowerCase())
+  const name = String(raw.name || '').replace(/\s*\(([^)]*)\)\s*$/, '').trim()
+  const key = name.toLowerCase()
+  const match = THOUGHT_PROCESS_FRAMEWORKS.find(f => f.name.toLowerCase() === key)
+    || (FRAMEWORK_ALIASES[key] && THOUGHT_PROCESS_FRAMEWORKS.find(f => f.id === FRAMEWORK_ALIASES[key]))
   if (!match) return null
   const note = String(raw.note || '').trim()
   if (!note) return null
