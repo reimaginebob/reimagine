@@ -6112,7 +6112,7 @@ function SupportPanel({onClose}){
   </div>
 }
 
-function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,storiesPilot=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false}){
+function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false}){
   const navRef=useRef(null)
   // Below the breakpoint the rail leaves the flex flow and becomes an off-canvas
   // drawer, which is what hands the content column the full width. At or above
@@ -6193,7 +6193,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       // Interview Prep: the same story is told at this company and the next,
       // so it belongs to the person. It is also where someone who already has
       // stories written can be pointed to bring them in.
-      ...(storiesPilot?[{id:'stories',label:NAV_LABELS.stories,Icon:Lightbulb}]:[]),
+      ...(signedIn?[{id:'stories',label:NAV_LABELS.stories,Icon:Lightbulb}]:[]),
       {id:'p3',label:NAV_LABELS.p3,Icon:Fingerprint},
       // Go Independent has one way forward rather than two doors, so its rail
       // names the practice plan and the two things inside it. Career Paths and
@@ -6812,7 +6812,10 @@ export default function PivotEngine(){
   // src/coach-routing.js, and put star-stories.md back in ORDER.json. Those
   // three go together — a surface in the Coach catalog that a user cannot
   // reach is worse than one they have not heard of.
-  const storiesPilot=!!(signedInUser&&/@career\.club$/i.test(String(signedInUser.email||'')))
+  // Stories are stored per user behind requireAuth, so a signed-out visitor
+  // could build a library and lose all of it. This is that requirement, not a
+  // pilot: the internal-only gate came off when the surface opened.
+  const storiesReady=!!signedInUser
   // The connector did NOT go GA with the screen. Letting an outside assistant
   // hold a bearer token and write status unattended is a different risk class
   // from a screen in the app, so it stays a named beta on the same flag value.
@@ -7242,7 +7245,7 @@ export default function PivotEngine(){
   // leaves an error and a retry rather than looping, and a profile too thin to
   // work from is a reason to say so rather than to spin.
   useEffect(()=>{
-    if(step!=='stories'||!storiesPilot)return
+    if(step!=='stories'||!storiesReady)return
     // storiesLoaded is the whole point of this guard. The stored library arrives
     // from /api/star-stories after /api/me resolves, and until it does the
     // library reads as empty -- so arriving here started a seed, the load then
@@ -7254,7 +7257,7 @@ export default function PivotEngine(){
     if(storiesAutoRef.current||storiesBusy||starStories.length>0||!storiesSeedable)return
     storiesAutoRef.current=true
     buildStoryLibrary()
-  },[step,storiesPilot,storiesBusy,storiesLoaded,starStories.length,storiesSeedable])
+  },[step,storiesReady,storiesBusy,storiesLoaded,starStories.length,storiesSeedable])
   const[manualErr,setManualErr]=useState(null)
   const persistManual=(next)=>{setConnManual(next);try{localStorage.setItem(MANUAL_STORAGE_KEY,JSON.stringify(next))}catch{}}
   const addManualPerson=(company)=>{
@@ -11627,7 +11630,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
   const rStep=()=>{switch(step){
     case'stories':{
-      if(!storiesPilot)return null
+      if(!storiesReady)return null
       // Your STAR Stories. The playlist from Lesson 10: a finite set you remix rather
       // than a hundred you memorise. Two states per playlist type, never an empty
       // box — a story built from what this person actually told us, or the shape
@@ -14578,7 +14581,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{display:'flex',flex:1,minHeight:0,position:'relative'}}>
         {isMobile&&drawerOpen&&<div data-print="hide" onClick={closeDrawer} aria-hidden="true" style={{position:'absolute',inset:0,zIndex:20,background:'rgba(15,26,48,0.5)'}}/>}
         {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
-        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} storiesPilot={storiesPilot} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
         <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,padding:isMobile?'22px 16px 40px':'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
