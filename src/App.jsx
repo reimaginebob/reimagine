@@ -3091,7 +3091,7 @@ const SCOPE_LENSES=['Strategy','Culture','Oneself','Passion','Expertise']
 const OUTREACH_PURPOSE_CHOICES=[
   {id:'hiring',   label:'Find out who’s hiring',  hint:'Ask who the hiring manager is, or who would know. It takes them a moment to answer and it tells you who your application needs to reach.'},
   {id:'learn',    label:'Learn about the place',      hint:'Ask for fifteen minutes on what the company is actually like to work for. Use this when you want to know that before you go further, or when you do not know the person well enough to ask for more.'},
-  {id:'word',     label:'Ask them to put in a word',  hint:'Ask them to mention your application to the right people inside. This is the biggest favor on the list, and the best thing you can do with someone who has seen you work.'},
+  {id:'word',     label:'Ask them to put in a good word',  hint:'Ask them to mention your application to the right people inside. This is the biggest favor on the list, and the best thing you can do with someone who has seen you work.'},
   {id:'reconnect',label:'Just reconnect',             hint:'Ask for nothing. Just get back in touch and mention you are looking, so it is easier to ask them something later. Use this for someone you have not spoken to in years.'},
 ]
 const OUTREACH_PURPOSES={
@@ -13906,7 +13906,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       const _mInput={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',marginTop:4}
                       if(!_mOpen)return <Btn secondary onClick={()=>{setManualErr(null);setManualOpen(x=>({...x,[_slotForSearch]:true}))}}><Plus size={14}/>Add someone yourself</Btn>
                       return <div style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 14px'}}>
-                        <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:8}}>Add someone at {_company}, grouped by what each is worth asking</div>
+                        <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:8}}>Add someone at {_company}</div>
                         <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Their name is enough. A title helps the note sound like you know what they do.</div>
                         <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:10,marginBottom:12}}>
                           <label style={{display:'block',fontSize:15,color:C.gray}}>Name<input value={manualDraft.name} onChange={e=>setManualDraft(d=>({...d,name:e.target.value}))} placeholder="Dana Whitfield" style={_mInput}/></label>
@@ -14041,7 +14041,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       {tranches(_hits).map(_tr=><div key={_tr.id}>
                       <div style={{marginTop:18,marginBottom:6,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
                         <div style={{fontSize:17,fontWeight:700,color:'#1A2540'}}>{_tr.label} <span style={{color:C.gray,fontWeight:500}}>({_tr.people.length})</span></div>
-                        <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:2}}>{_tr.ask}</div>
                       </div>
                       {_tr.people.map((h,i)=>{
                         const _pk=outreachKey(currentSavedSlotIdRef.current,h)

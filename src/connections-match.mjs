@@ -214,17 +214,20 @@ export function looseMatchConnections(people, targetCompany) {
  * Exact matches first, then likely ones; alphabetical inside each group so the
  * order does not shuffle between renders.
  */
-// TRANCHES: who to write to first, and what to send them.
+// TRANCHES: an order to work through, not a verdict on each person.
 //
 // The match sorts exact-before-loose then alphabetically, which is a phone book.
-// At 34 people in one company that answers nothing: the question is not who is
-// there, it is who to write to first and which of the four notes to pick.
+// At 34 people in one company that answers nothing, so the list groups by the
+// seniority in their titles and leads with the most senior.
 //
-// Seniority is the cut because it decides the ASK, not because it is tidy. The
-// four outreach purposes already map onto it: a partner is who you ask to put in
-// a word, and only where they know your work; a director knows who owns the role
-// and can say so without it costing them anything; a peer is who tells you what
-// the place is actually like. Band the list and the note picks itself.
+// GROUPING IS NOT ADVICE. An earlier version of this named what each band was
+// worth asking -- these are the people to ask for a good word, these are the
+// people who will tell you what it is like. That was wrong, and wrong in a way
+// worth guarding against: a title says nothing about the relationship. A partner
+// may be someone they met once at a conference; an analyst may be a former
+// direct report who would vouch for them tomorrow. Only the user knows that, and
+// the card already asks each person what they want from that contact. The bands
+// order the list. The user picks the ask.
 //
 // What the export gives us per person is name, company, title, profile URL and
 // connection date. So seniority reads off the title and warmth off the date.
@@ -238,36 +241,32 @@ export function looseMatchConnections(people, targetCompany) {
 // Matched against the LOWERCASED title, longest-first inside each band so
 // "senior manager" is not eaten by "manager". Rank 0 is most senior.
 const SENIORITY_BANDS = [
-  { rank: 0, id: 'leadership', label: 'Senior enough to put in a word',
-    ask: 'These are the people whose word carries weight in a hiring decision. Worth the heaviest ask, but only where they genuinely know your work.',
+  { rank: 0, id: 'leadership', label: 'Most senior',
     terms: ['chief', 'chairman', 'chairwoman', 'president', 'partner', 'managing director',
             'principal', 'general manager', 'head of', 'c-suite', 'cxo', 'ceo', 'cfo', 'coo',
             'cto', 'chro', 'cmo', 'evp', 'svp', 'executive vice president', 'senior vice president'] },
-  { rank: 1, id: 'senior', label: 'Senior enough to know who owns the role',
-    ask: 'Senior enough to know how the hiring actually works there, not so senior that asking is an imposition. This is where "who owns this role" lands best.',
+  { rank: 1, id: 'senior', label: 'Senior',
     terms: ['vice president', 'vp', 'director', 'senior manager', 'sr manager', 'sr. manager'] },
-  { rank: 2, id: 'peer', label: 'Close enough to the work to tell you what it is like',
-    ask: 'The people who will tell you the truth about the place: what the team is actually like, why the seat is open, what the last person ran into.',
+  { rank: 2, id: 'peer', label: 'Managers and specialists',
     terms: ['manager', 'lead', 'senior', 'sr', 'staff', 'consultant', 'engineer', 'analyst',
             'associate', 'specialist', 'advisor', 'accountant', 'recruiter', 'coordinator',
             'principal', 'scientist', 'architect', 'researcher', 'developer', 'designer'] },
 ]
 
-const UNBANDED = { rank: 3, id: 'other', label: 'Everyone else you know there',
-  ask: 'Their titles do not say much about where they sit, so open one before you decide what to ask.' }
+const UNBANDED = { rank: 3, id: 'other', label: 'Titles that do not say much' }
 
 /**
  * Which seniority band a title falls in.
  *
  * A title we cannot read lands in `other` rather than being guessed into a band.
- * Guessing wrong here is worse than not sorting: it would tell someone to ask an
- * analyst to put in a word with a partner.
+ * A wrong band would put someone in the wrong place in the queue, and the fix for
+ * an unreadable title is to say so rather than to invent a rank.
  */
 // "Principal" alone is partner-equivalent at a firm like Deloitte, but
-// "Principal Scientist" or "Principal Engineer" is an individual contributor and
-// banding them as leadership would tell someone to ask an IC to put in a word
-// with a partner. Followed by a role noun, it is seniority within a craft; alone
-// or followed by a comma, "at" or "of", it is the rank.
+// "Principal Scientist" or "Principal Engineer" is an individual contributor, and
+// the two belong in different places in the list. Followed by a role noun it is
+// seniority within a craft; alone, or followed by a comma, "at" or "of", it is
+// the rank.
 const PRINCIPAL_IC = /(^|[^a-z])principal\s+(?!at\b|of\b)[a-z]/
 
 export function seniorityBand(title) {
@@ -312,7 +311,6 @@ export function tranches(hits, now) {
     .map(b => ({
       id: b.id,
       label: b.label,
-      ask: b.ask,
       people: list
         .filter(h => seniorityBand(h && h.t) === b.id)
         .sort((x, y) => {
