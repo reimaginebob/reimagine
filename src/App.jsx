@@ -2131,7 +2131,7 @@ Look for the LOCAL CHAPTER of a professional or trade body serving this function
 
 CONFIRM THE CHAPTER IS ALIVE. Chapters merge and their old pages keep ranking. If a local chapter has merged into a larger one, return the SURVIVING organization, not the page for the one that no longer meets. If you cannot confirm a live local chapter, return the national body and say in whyThisFits that a local chapter could not be confirmed.
 
-${GROUPS_SHARED_RULES}${c.focus?`\n\nFOCUS THIS SEARCH ON: ${c.focus}`:''}${(Array.isArray(c.exclude)&&c.exclude.length)?`\n\nALREADY SHOWN (return DIFFERENT ones): ${c.exclude.join('; ')}`:''}
+${GROUPS_SHARED_RULES}${c.focus?`\n\nFOCUS THIS SEARCH ON: ${c.focus}\n\nIF THE FOCUS NAMES AN ORGANIZATION rather than a theme, that is a person asking "what about this one?" and it is the whole job. Look THAT organization up and return it as the first row, with what it costs and how you take part. Search the name TOGETHER WITH the field \u2014 "TALK talent acquisition", not "talk" \u2014 because a short name is very often an ordinary word too, and searching the word alone returns the topic instead of the body. Try their own site directly. If it is real but its pages sit behind a sign-in, say that plainly in whyThisFits and return it anyway, with the joining page as the url; a members-only community is exactly the kind a person hears about by name rather than finds. Only if you cannot establish it exists at all, say so in whyThisFits and return the nearest genuine matches instead of quietly returning something else.`:''}${(Array.isArray(c.exclude)&&c.exclude.length)?`\n\nALREADY SHOWN (return DIFFERENT ones): ${c.exclude.join('; ')}`:''}
 
 ${GROUPS_JSON_SHAPE(c.limit||6)}`
 // UNPLACED: the same target with NO geography at all. This is the call that
@@ -2149,7 +2149,7 @@ WHAT A GOOD ANSWER LOOKS LIKE. For a consumer-insights professional, the trade a
 
 If the only thing you can honestly return is the field's biggest association, return it and say so plainly in whyThisFits rather than padding the list around it.
 
-${GROUPS_SHARED_RULES}${c.focus?`\n\nFOCUS THIS SEARCH ON: ${c.focus}`:''}${(Array.isArray(c.exclude)&&c.exclude.length)?`\n\nALREADY SHOWN (return DIFFERENT ones): ${c.exclude.join('; ')}`:''}
+${GROUPS_SHARED_RULES}${c.focus?`\n\nFOCUS THIS SEARCH ON: ${c.focus}\n\nIF THE FOCUS NAMES AN ORGANIZATION rather than a theme, that is a person asking "what about this one?" and it is the whole job. Look THAT organization up and return it as the first row, with what it costs and how you take part. Search the name TOGETHER WITH the field \u2014 "TALK talent acquisition", not "talk" \u2014 because a short name is very often an ordinary word too, and searching the word alone returns the topic instead of the body. Try their own site directly. If it is real but its pages sit behind a sign-in, say that plainly in whyThisFits and return it anyway, with the joining page as the url; a members-only community is exactly the kind a person hears about by name rather than finds. Only if you cannot establish it exists at all, say so in whyThisFits and return the nearest genuine matches instead of quietly returning something else.`:''}${(Array.isArray(c.exclude)&&c.exclude.length)?`\n\nALREADY SHOWN (return DIFFERENT ones): ${c.exclude.join('; ')}`:''}
 
 ${GROUPS_JSON_SHAPE(c.limit||6)}`
 // One discovery call. Returns raw rows; the caller merges the two families.
@@ -5022,7 +5022,7 @@ function GroupsCard({data,busy,chosen,onGenerate,onMore,onEditCriteria,subhead})
       {rows.length===0&&<div style={{...S.note,background:C.input,border:`1px solid ${C.border}`,color:'#2D3748'}}>We could not find a community for this exact combination from a source we trust. Try the box below with a different focus — a broader function or a neighbouring industry often turns something up.</div>}
       <div data-print="hide" style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 14px',marginTop:14}}>
         <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:8}}>Looking for something more specific?</div>
-        <input value={more} onChange={e=>setMore(e.target.value)} placeholder="e.g. women in this field, or groups that meet in person" style={{...inp,marginBottom:10}}/>
+        <input value={more} onChange={e=>setMore(e.target.value)} placeholder="e.g. groups that meet in person, or the name of one you have heard of" style={{...inp,marginBottom:10}}/>
         <Btn small prominent disabled={busy} onClick={()=>{onMore&&onMore(more);setMore('')}}><Sparkles size={12}/>Find more</Btn>
       </div>
     </>}
