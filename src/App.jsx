@@ -7397,8 +7397,19 @@ export default function PivotEngine(){
       if(value==='dismiss')return true
       let d=null;try{d=JSON.parse(value)}catch{return true}
       if(!d||!d.activity||!d.state)return true
-      if(!isDemo&&!isTest){try{fetch('/api/activity-facts',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({activity:d.activity,state:d.state,source:'said',detail:d.detail||''})}).catch(()=>{})}catch{}}
-      return true
+      if(isDemo||isTest)return{content:'Got it.'}
+      // Confirmed only after the write lands. Saying "Got it" on a save that
+      // failed is the same defect as the Coach claiming a save it never made --
+      // the person walks away believing it is recorded, and finds out weeks
+      // later that it is not. An honest failure is recoverable; a false
+      // confirmation is not.
+      try{
+        const r=await fetch('/api/activity-facts',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({activity:d.activity,state:d.state,source:'said',detail:d.detail||''})})
+        if(!r.ok)throw new Error(String(r.status))
+        return{content:'Got it — I will not ask you about that again.'}
+      }catch{
+        return{content:'That did not save, so I have not recorded it. Tell me again in a moment and I will try once more.'}
+      }
     }
     if(checkinKey==='pursuit-update'){
       if(value==='dismiss')return true

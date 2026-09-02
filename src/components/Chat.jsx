@@ -440,7 +440,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 content: `Want me to remember that? It stays with your profile so I am not asking you twice.\n\n${line}`,
                 checkinKey: 'activity-fact',
                 quickReplies: [
-                  { label: 'Remember it', value: JSON.stringify(data), followUp: 'Got it.' },
+                  // No canned follow-up: it is pushed optimistically, before the
+                  // write is attempted, so a failed save would still read "Got
+                  // it." The handler confirms only once the write has landed.
+                  { label: 'Remember it', value: JSON.stringify(data) },
                   { label: 'Not now', value: 'dismiss' },
                 ],
               }])
