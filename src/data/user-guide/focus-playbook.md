@@ -42,6 +42,7 @@ You build the playbook at your own pace, in the order that fits you. Nothing is 
 **Plus two bonuses, which sit below the numbered seven and are not numbered alongside them:**
 
 - **Recruiters for This Path.** The executive-search firms that fill senior roles in your space.
+- **Groups for This Path.** The professional communities and career networks for the direction you are moving into.
 - **Income Now.** Bridge income that can run alongside the search.
 
 Two things worth flagging, because the shape is easy to misremember:
@@ -442,7 +443,7 @@ If Go-to-Market is still building, the per-company buttons are disabled until th
 
 ---
 
-# The two bonuses
+# The three bonuses
 
 These sit below the seven numbered sections. They are optional, they are built the same way, and they are saved with your playbook like everything else.
 
@@ -462,6 +463,22 @@ The card also gives you one outreach note you can adapt for each firm, and an **
 Once the list is built, **Download CSV** saves it as a spreadsheet (firm, tier, contact and title, specialty, links, source, and any search open now) and **Print** sends the list to your printer or a PDF, the same controls the company list has.
 
 The list starts short on purpose. Specialty search is a narrow world, and a short accurate list beats a padded one.
+
+## Bonus · Groups for This Path
+
+Under the recruiter card sits **Groups for This Path**: the professional communities and career networks for the direction you are moving into. A recruiter places people into a role. This is the profession itself, and it is where to go when no recruiter has a search open.
+
+Click **Find groups for this path** and Reimagine searches twice. Once near your city, for the local chapter of a trade body, regional associations, and meetup groups. Once with no geography at all, for national bodies with virtual programming, practitioner-run career networks, and members-only communities. The second search is there because some of the best answers have no local chapter to find, and a search anchored on a city can never return them.
+
+It is deliberately looking past the obvious one. The biggest association in any field is the answer you could have given yourself; the useful answer is usually the free, practitioner-run network you had not heard of.
+
+Every row states **what it costs** before you click anything, and free options sort above paid ones. Where a group is invite-only but free, that is treated as a mark of quality rather than a price.
+
+As on Job Search Resources, Reimagine names organizations and links their own pages rather than telling you when the next meeting is. Meeting dates go stale, old event pages keep ranking, and where a local chapter has merged into a larger one you are pointed at the body that still exists.
+
+**Edit** changes what the search is matching on if it read your direction wrong, and the box at the bottom asks for something more specific — groups that meet in person, or groups for women in your field.
+
+This card also appears on every Opportunity Playbook. Two playbooks in the same function and industry share one list, so the second one opens already built. That means the list is not company-specific and does not pretend to be — for who you know at a particular company, use the three doors on the opportunity itself.
 
 ## Bonus · Income Now
 

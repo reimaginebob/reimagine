@@ -9,6 +9,7 @@ import {
   CAREER_CLUB_CORNER, meetupCitySlug, meetupUrl, jobSearchGroupSearchUrl,
   hasAssertedDate, stripAssertedDate, normalizeResource, splitResources,
   resourceScore, rankResources, resourcesCacheKey, packResources, unpackResources, displayCity,
+  groupsSignatureFor, putGroups, getGroups, GROUPS_MAX_SIGNATURES,
 } from '../src/job-search-resources.mjs'
 
 let pass = 0, fail = 0
@@ -112,6 +113,28 @@ eq('cache key without a city', resourcesCacheKey('', ''), 'anywhere')
 const packed = packResources('cincinnati|oh', [NKYAG], [])
 t('a cache hit round-trips', unpackResources(packed, 'cincinnati|oh').rows[0].name === 'NKY Accountability Group')
 t('a different city misses the cache', unpackResources(packed, 'boise|id') === null)
+
+// ── Groups for This Path: signature keying ──────────────────────────────────
+// The whole reason "a card in every playbook" is affordable.
+eq('signature drops geography', groupsSignatureFor({ function: 'CFO', industry: 'Manufacturing', seniority: 'C-suite', geo: 'Charlotte, NC' }), 'cfo|manufacturing|csuite')
+t('two playbooks in different cities share one signature',
+  groupsSignatureFor({ function: 'CFO', industry: 'Manufacturing', seniority: 'C-suite', geo: 'Boise' }) ===
+  groupsSignatureFor({ function: 'CFO', industry: 'Manufacturing', seniority: 'C-suite', geo: 'Miami' }))
+t('a different industry is a different signature',
+  groupsSignatureFor({ function: 'CFO', industry: 'Healthcare', seniority: 'C-suite' }) !==
+  groupsSignatureFor({ function: 'CFO', industry: 'Manufacturing', seniority: 'C-suite' }))
+eq('an empty criteria set is an empty signature', groupsSignatureFor(null), '')
+
+const sig = 'cfo|manufacturing|csuite'
+let store = putGroups(null, sig, [NKYAG])
+eq('a stored signature reads back', getGroups(store, sig).rows[0].name, 'NKY Accountability Group')
+t('an unknown signature misses', getGroups(store, 'other|x|y') === null)
+// The store is capped, oldest-out, so a long search cannot grow it without bound.
+for (let i = 0; i < GROUPS_MAX_SIGNATURES + 4; i++) {
+  store = putGroups(store, `sig-${i}`, [NKYAG])
+}
+t('the store is capped', Object.keys(store).length <= GROUPS_MAX_SIGNATURES)
+t('the newest signature survives the cap', !!getGroups(store, `sig-${GROUPS_MAX_SIGNATURES + 3}`))
 
 console.log(`  ${pass} passed, ${fail} failed`)
 if (fail > 0) process.exit(1)

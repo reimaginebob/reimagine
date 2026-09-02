@@ -245,6 +245,56 @@ export function packResources(key, rows, uncited) {
   return { key, rows: Array.isArray(rows) ? rows : [], uncited: Array.isArray(uncited) ? uncited : [], savedAt: new Date().toISOString() }
 }
 
+// ── Groups for This Path: signature keying ──────────────────────────────────
+// The role-scoped card appears in EVERY playbook, which is the point and also
+// the cost: someone working five supply-chain opportunities would otherwise get
+// the same list five times, generated five times, paid for five times, and
+// stored five times inside savedPlaybooks.
+//
+// So the result is keyed on WHAT WAS SEARCHED, not on which playbook asked.
+// Geography is deliberately excluded, exactly as recruitersSignatureFor excludes
+// it: two opportunities in the same function and industry should share a list
+// even when the offices are in different cities, and a geo-focused refinement
+// must not thrash the key.
+//
+// The consequence to accept: this list is not company-specific and never
+// pretends to be. Company-specific is what the three doors are for.
+export function groupsSignatureFor(c) {
+  if (!c) return ''
+  return [c.function || '', c.industry || '', c.seniority || '']
+    .map(s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, ''))
+    .join('|')
+}
+
+export const GROUPS_STORAGE_KEY = 'reimagine_path_groups_v1'
+// Which signature each playbook resolved to. Separate from the row store so two
+// playbooks can point at one list rather than each holding a copy of it.
+export const GROUPS_SLOTS_KEY = 'reimagine_path_group_slots_v1'
+// One store shared by every playbook, holding a handful of signatures. Capped so
+// a long search cannot grow it without bound; oldest signature falls off first.
+export const GROUPS_MAX_SIGNATURES = 12
+
+export function putGroups(store, signature, rows) {
+  const base = store && typeof store === 'object' ? { ...store } : {}
+  base[signature] = { rows: Array.isArray(rows) ? rows : [], savedAt: new Date().toISOString() }
+  const keys = Object.keys(base)
+  if (keys.length > GROUPS_MAX_SIGNATURES) {
+    keys
+      .sort((a, b) => String(base[a].savedAt || '').localeCompare(String(base[b].savedAt || '')))
+      .slice(0, keys.length - GROUPS_MAX_SIGNATURES)
+      .forEach(k => { delete base[k] })
+  }
+  return base
+}
+
+export function getGroups(store, signature) {
+  if (!store || typeof store !== 'object' || !signature) return null
+  const hit = store[signature]
+  if (!hit || !Array.isArray(hit.rows)) return null
+  const rows = hit.rows.map(normalizeResource).filter(Boolean)
+  return { rows, savedAt: typeof hit.savedAt === 'string' ? hit.savedAt : '' }
+}
+
 export function unpackResources(raw, key) {
   if (!raw || typeof raw !== 'object') return null
   if (raw.key !== key) return null
