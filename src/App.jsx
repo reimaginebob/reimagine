@@ -5023,7 +5023,7 @@ function GroupsCard({data,busy,chosen,onGenerate,onMore,onEditCriteria,subhead})
       <div data-print="hide" style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 14px',marginTop:14}}>
         <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:8}}>Looking for something more specific?</div>
         <input value={more} onChange={e=>setMore(e.target.value)} placeholder="e.g. women in this field, or groups that meet in person" style={{...inp,marginBottom:10}}/>
-        <Btn small disabled={busy} onClick={()=>{onMore&&onMore(more);setMore('')}}><Sparkles size={12}/>Find more</Btn>
+        <Btn small prominent disabled={busy} onClick={()=>{onMore&&onMore(more);setMore('')}}><Sparkles size={12}/>Find more</Btn>
       </div>
     </>}
   </div>
