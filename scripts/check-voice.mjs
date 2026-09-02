@@ -35,6 +35,11 @@ const FILES_TO_CHECK = [
   // encourages someone, so they carry the voice rules in full -- and the
   // comparative-standing patterns in particular, which is the shape a reason to
   // do something slides into ("most people skip this") without anyone noticing.
+  // The pilot knowledge files are prose the coach speaks from, so they carry the
+  // voice rules in full. Added after "genuinely" -- a banned intensifier -- went
+  // into next-step-knowledge.js unnoticed, in a file nothing was scanning.
+  'src/data/next-step-knowledge.js',
+  'src/data/pipeline-capture-knowledge.js',
   'src/activity-catalog.js',
   'src/step-position.js',
   'src/components/Staircase.jsx',
