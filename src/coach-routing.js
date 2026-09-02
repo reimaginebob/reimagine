@@ -58,6 +58,14 @@ export const FEATURE_MAP = [
   // it early and without conditions — it costs nothing and needs no direction.
   { slug: 'job-search-resources', reach: 'standalone',  labelId: 'resources',
     does: 'points someone to free help and community near them: Career Club Corner first (Bob\'s free weekly call, Mondays at 12:00 ET, every session recorded), then public library job-seeker programs and accountability groups, all-volunteer job-search groups, the publicly funded American Job Center system, faith-based career ministries, and college career services open to non-students. It needs no chosen direction and no playbook, so it can be offered to anyone at any point, including on their first day. It names organizations and links their own events pages rather than promising a date, because a meeting time found in a search goes stale. It also carries live searches for job-search groups near them, the same search on LinkedIn, and Meetup. Two things it says about choosing a group: one that spends its time on the work is worth the trip, one that mostly agrees about how bad the market is is not; and trading encouraging posts online is not the same as being in a group' },
+  // Groups for This Path (2026-09-01). focus-gated like its siblings: it needs a
+  // direction, and it renders inside a playbook rather than as its own screen.
+  // Distinct from Job Search Resources above — that one is free local help for
+  // anyone in transition and needs no direction; this one is the profession the
+  // person is moving INTO. When someone has no direction yet, point them at the
+  // other one rather than at a gate.
+  { slug: 'groups-for-this-path',  reach: 'focus-gated', labelId: 'groups',
+    does: 'finds the professional communities and career networks for the direction someone is moving into — the local chapter of a trade body, a national association, a practitioner-run career network, a members-only Slack, a meetup. It is the opposite number of Recruiters for This Path: a recruiter places people into the role, this is the profession itself, and it is what to reach for when no recruiter has a search open. It searches twice, once near their city and once with no geography at all, because the best answer is often a national or online community with no local chapter to find. It names organizations and links their own pages instead of promising a meeting date, and every row states what it costs. It appears on a Focus Playbook and on every Opportunity Playbook, and two playbooks in the same function and industry share one list, so the second one opens already built' },
   { slug: 'role-options',         reach: 'standalone',  labelId: 'laneSelect', parent: 'twoDoors',
     does: 'opens up directions worth exploring, including off the obvious path' },
   { slug: 'income-now',           reach: 'standalone',  labelId: 'income',     parent: 'twoDoors',

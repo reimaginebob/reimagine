@@ -102,8 +102,8 @@ ok('community slugs are in the canonical set',
 // day — Your STAR Stories came off its internal-only pilot gate and joined the
 // catalog, and Job Search Resources was added. The count is a tripwire for an
 // accidental edit to FEATURE_MAP, so it moves deliberately with the map and
-// never on its own.
-ok('CANONICAL_FEATURE_SLUGS has 24 entries', CANONICAL_FEATURE_SLUGS.length === 24)
+// never on its own; 25 when Groups for This Path shipped alongside it.
+ok('CANONICAL_FEATURE_SLUGS has 25 entries', CANONICAL_FEATURE_SLUGS.length === 25)
 
 // --- FEATURE_MAP is the single structured source ---
 eq('CANONICAL_FEATURE_SLUGS derives from FEATURE_MAP (same order)',

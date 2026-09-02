@@ -39,6 +39,9 @@ export const NAV_LABELS = {
   p6: 'Your Bridge Story',
   p7: 'Go-to-Market',
   recruiters: 'Recruiters for This Path',
+  // The recruiter card's opposite number: a recruiter places people INTO the
+  // role, this is the profession itself. Appears in every playbook, both kinds.
+  groups: 'Groups for This Path',
   p8: 'LinkedIn Remix',
   p_res: 'Resume Refresh',
   p11: 'Interview Prep',
