@@ -141,7 +141,13 @@ Everything above still waits for her to arrive at the Coach. The Coach is a room
 
 **4d. Deterministic noticing, model only for the phrasing.** A fresh read on every page load is a model call per arrival — slow, and paid for on visits where nothing has changed. The trigger comes from data already in hand: an interview inside a few days with no prep built, a step well past its date, a fortnight of silence on a live opportunity. Only when something trips does the model phrase it, and the phrasing caches against a fingerprint of the facts that produced it. Facts move, new line. Facts hold, same line, no new call.
 
-**4e. Silence is a valid state, and the feature fails without it.** If nothing is time-bound and nothing has changed, say nothing. A greeter who greets on every visit is furniture inside a week, and then it is worse than absent — she has learned to look past the one place we will need her to look when it matters.
+**4e. Never silent — confirm, then offer one small adjacent thing.** (Bob, 2026-09-02, correcting an earlier draft of this brief that made silence the default.)
+
+The first draft said: if nothing is time-bound and nothing has changed, say nothing, because a greeter who greets every visit becomes furniture. That was the protective posture again, and it undervalued the thing a job seeker actually arrives wanting. **Confirmation is not nothing.** Someone anxious, told that they are set for Thursday and that nothing else needs them today, has been given a real read of their own state — and for a person whose week is mostly silence from employers, being told plainly that they are in good shape is worth more than most nudges.
+
+So when there is nothing pressing: say what IS in hand, and offer one small adjacent move from the activity catalog — something they have not tried, sized to be doable now, framed as available rather than owed.
+
+**The invariant that replaces silence is narrower and does the same job: never say the same thing twice.** Wallpaper comes from repetition, not from speaking. A confirmation has to reflect what is actually true today, and an adjacent offer that was declined or already made never comes back. Where there is genuinely nothing new to confirm and nothing left to offer, THEN it holds its tongue — but that is the rare end state, not the default.
 
 **4f. It does not repeat itself.** One condition, said once, gone when dismissed, back only when the facts underneath it change. `alertOnce` (`api/_lib/ops-alerts.js`) is the existing precedent and its own comment already carries the reasoning — a repeat on a condition that persists trains the reader to ignore it. Same logic, applied to a person instead of an operator.
 
@@ -189,4 +195,8 @@ Two conditions before it is scoped. PR 4 must first show the noticing is any goo
 
 ## Open, for Bob
 
-How hard the encouragement pushes is settled: she holds the dial (3e). What is still open is what the Coach does when several things are urgent at the same time — an interview on Friday with no prep, an offer expiring, and a pipeline that has gone quiet. That is the Sherpa judgment, it cannot come from a table, and it should be written as an intent for the model rather than a priority order. Draft it in PR 3 and put the wording to Bob before merging.
+How hard the encouragement pushes is settled: she holds the dial (3e). So is silence: there is none, per 4e above.
+
+What is still open is what the Coach leads with when several things are urgent at the same time — an interview on Friday with no prep, an offer expiring, and a pipeline gone quiet. That is the Sherpa judgment and it cannot come from a table.
+
+Bob's board already IS that collision, which makes it observable rather than hypothetical: an offer at HOPE, an interview at Imerys on the 14th, and Deloitte silent for 70 days. Watch what the Coach does with it as it stands today before writing any instruction — the engine now hands it all three as a ranked set, so the question is whether its own judgment about which to lead with is better or worse than the ranking, and an instruction written before looking would be a guess.
