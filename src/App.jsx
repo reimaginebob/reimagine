@@ -13515,10 +13515,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }
     case'myCoach':return <div>
       {coachReturn&&<button type="button" onClick={returnFromCoach} style={{background:'none',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6,padding:0,marginBottom:12}}><ArrowLeft size={15}/>Back to {coachReturn.label}</button>}
+      {/* The header is deliberately thin. Everything above the panel pushes it
+          down, and the panel measures its own top to fill the rest of the
+          viewport — so a paragraph here is a paragraph of conversation gone, on
+          every visit, forever. What used to sit here introduced the coach
+          ("ask anything: where to focus, how to tell your story, how to prepare
+          for a conversation") directly above the coach's own first message,
+          which says the same thing in the same order. Saying it twice cost
+          about 200px and taught the reader nothing the transcript did not.
+          The privacy line is a first-run reassurance rather than a standing
+          fact, so it shows while the conversation is empty and steps out of the
+          way once there is one to read. */}
       <div style={{marginBottom:8}}>
-        <h1 style={{...S.title,marginBottom:6}}>My Coach</h1>
-        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your coach for the search, grounded in Making Your Own Weather and in what Reimagine knows about you. Ask anything: where to focus, how to tell your story, how to prepare for a conversation.</p>
-        <div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>
+        <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
+        {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
       </div>
       <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>

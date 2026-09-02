@@ -495,7 +495,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       {messages.map((m, i) => (
         <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
           <div ref={el => { if (m.id) contentRefs.current[m.id] = el }} style={{
-            display: 'inline-block', maxWidth: '85%',
+            // The coach's prose holds a readable line length however wide the
+            // panel gets: past roughly 75 characters the eye starts losing its
+            // place on the return sweep, so a full-width answer would take
+            // fewer lines and be harder to read. The person's own messages are
+            // short and stay narrower still, which keeps the two sides visually
+            // distinct without a rule between them.
+            display: 'inline-block',
+            maxWidth: m.role === 'user' ? 'min(85%, 56ch)' : 'min(100%, 74ch)',
             padding: '10px 14px', borderRadius: 12,
             background: m.role === 'user' ? C.gold : '#F4F6F9',
             color: m.role === 'user' ? '#fff' : '#1A2540',
@@ -619,7 +626,13 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         display: 'flex', flexDirection: 'column',
         minHeight: 360,
         maxHeight: panelMaxH ? `${panelMaxH}px` : 'min(72dvh, 720px)',
-        maxWidth: 820,
+        // Fills the content column. The old 820px cap was doing two jobs at
+        // once -- keeping the READING measure sane and, as a side effect,
+        // leaving most of a wide screen empty. The measure is a property of the
+        // text, so it now lives on the message bubbles below, where it belongs;
+        // the panel itself takes the room, which is what the input row, the
+        // person's own messages and the one-tap save offers actually want.
+        maxWidth: '100%',
         background: '#fff', border: '1px solid #E2E5EA', borderRadius: 14,
         boxShadow: '0 2px 10px rgba(0,0,0,0.06)', overflow: 'hidden',
         fontFamily: 'inherit',
