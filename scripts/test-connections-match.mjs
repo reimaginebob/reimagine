@@ -6,7 +6,7 @@ import {
   linkedInSecondDegreeUrl, linkedInFirstDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey,
   mailtoUrl, firstNameOf, cleanDomain, emailGuesses, searchQuery, resolveSearch,
   manualPerson, withManual, withoutManual,
-  schoolSlug, linkedInAlumniUrl,
+  schoolSlug, linkedInAlumniUrl, seniorityBand, yearsConnected, tranches,
 } from '../src/connections-match.mjs'
 
 let passed = 0
@@ -265,5 +265,55 @@ eq(linkedInAlumniUrl('Yale University', ''), '', 'no company gives no link')
 eq(linkedInAlumniUrl('Yale University', 'Smith & Sons'),
    'https://www.linkedin.com/school/yale-university/people/?keywords=Smith%20%26%20Sons',
    'the company is encoded, not slugged')
+
+// ── Tranches ────────────────────────────────────────────────────────────────
+
+// 34 connections at one company sorted alphabetically answers nothing. The
+// question is who to write to first and which of the four notes to send, and
+// seniority decides both.
+eq(seniorityBand('Partner'), 'leadership', 'a partner is who you ask to put in a word')
+eq(seniorityBand('Managing Director at Deloitte'), 'leadership', 'so is an MD')
+eq(seniorityBand('Senior Manager, Deloitte Consulting'), 'senior', 'senior manager beats the bare "manager" match')
+eq(seniorityBand('VP of Talent'), 'senior', 'vp reads as senior')
+eq(seniorityBand('Tax Manager'), 'peer', 'a manager is a peer')
+eq(seniorityBand('Audit Senior'), 'peer', 'and so is a senior associate')
+
+// "Principal" alone is partner-equivalent at a firm; "Principal Scientist" is an
+// individual contributor. Banding the second as leadership would tell someone to
+// ask an IC to put in a word with a partner.
+eq(seniorityBand('Principal'), 'leadership', 'principal alone is the rank')
+eq(seniorityBand('Principal at Deloitte'), 'leadership', 'and still is with an employer after it')
+eq(seniorityBand('Principal Scientist'), 'peer', 'principal plus a craft noun is an individual contributor')
+eq(seniorityBand('Principal Engineer'), 'peer', 'same for engineering')
+
+// A title we cannot read is never guessed into a band.
+eq(seniorityBand('Honors Accounting Student'), 'other', 'an unreadable title lands in other')
+eq(seniorityBand(''), 'other', 'so does a blank one')
+eq(seniorityBand(null), 'other', 'and a missing one')
+
+const TR_NOW = new Date('2026-09-01T00:00:00Z')
+ok(Math.round(yearsConnected('01 Sep 2024', TR_NOW)) === 2, 'years are counted from the connection date')
+eq(yearsConnected('', TR_NOW), null, 'no date is null rather than zero')
+eq(yearsConnected('not a date', TR_NOW), null, 'an unreadable date is null')
+
+const trPeople = [
+  { n: 'Old Partner', t: 'Partner', d: '01 Jan 2011' },
+  { n: 'New Partner', t: 'Partner', d: '01 Jan 2026' },
+  { n: 'A Director', t: 'Director, HR', d: '01 Jan 2020' },
+  { n: 'A Manager', t: 'Tax Manager', d: '01 Jan 2020' },
+  { n: 'A Mystery', t: '', d: '' },
+]
+const tr = tranches(trPeople, TR_NOW)
+eq(tr.map(b => b.id), ['leadership', 'senior', 'peer', 'other'], 'bands come back most senior first')
+ok(tr.every(b => b.people.length > 0), 'an empty band is dropped rather than shown')
+// Inside a band, the most recent connection leads: it is the easier note to write.
+eq(tr[0].people.map(p => p.n), ['New Partner', 'Old Partner'], 'most recently connected first inside a band')
+ok(tr.every(b => b.label && b.ask), 'every band says what it is and what it is worth asking')
+eq(tranches([], TR_NOW).length, 0, 'no matches means no bands')
+eq(tranches(null, TR_NOW).length, 0, 'no list means no bands')
+// A person with no date sorts last rather than first, since a missing date is
+// not a fresh one.
+eq(tranches([{ n: 'Z', t: 'Partner', d: '' }, { n: 'A', t: 'Partner', d: '01 Jan 2020' }], TR_NOW)[0].people.map(p => p.n),
+   ['A', 'Z'], 'a missing date sorts last')
 
 console.log(`test-connections-match: OK (${passed} cases passed)`)

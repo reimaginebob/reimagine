@@ -23,7 +23,7 @@ import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 // scripts/test-autosave-gate.mjs.
 import { canPushProfile } from "./autosave-gate.js"
 import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, firstPerKind, weaknessRecord, missingNumbers, questionGroup, parseStorySeed, THOUGHT_PROCESS_FRAMEWORKS, readFramework } from "./star-stories.mjs"
-import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, linkedInAlumniUrl, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
+import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, linkedInAlumniUrl, tranches, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
 import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from "./corrections.js"
 // Job Search Resources (docs/networking-groups-brief.md). The date rule and the
 // ranking live in the module, not in the prompt, because a prompt instruction is
@@ -13906,7 +13906,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       const _mInput={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none',marginTop:4}
                       if(!_mOpen)return <Btn secondary onClick={()=>{setManualErr(null);setManualOpen(x=>({...x,[_slotForSearch]:true}))}}><Plus size={14}/>Add someone yourself</Btn>
                       return <div style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 14px'}}>
-                        <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:8}}>Add someone at {_company}</div>
+                        <div style={{fontSize:15,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.gray,marginBottom:8}}>Add someone at {_company}, grouped by what each is worth asking</div>
                         <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Their name is enough. A title helps the note sound like you know what they do.</div>
                         <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:10,marginBottom:12}}>
                           <label style={{display:'block',fontSize:15,color:C.gray}}>Name<input value={manualDraft.name} onChange={e=>setManualDraft(d=>({...d,name:e.target.value}))} placeholder="Dana Whitfield" style={_mInput}/></label>
@@ -14038,7 +14038,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         Before writing anything, each person below asks what you want from them: the name of the hiring manager, a sense of what the company is like to work for, a word put in for you, or just getting back in touch. You would write differently to someone you worked with for four years than to someone you met once.
                         <div style={{marginTop:10}}>Send it by email when you have the address. A LinkedIn message only reaches people who are checking LinkedIn. You get both versions either way, so use the LinkedIn one when you do not have an email for them.</div>
                       </CoachingCallout>
-                      {_hits.map((h,i)=>{
+                      {tranches(_hits).map(_tr=><div key={_tr.id}>
+                      <div style={{marginTop:18,marginBottom:6,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:17,fontWeight:700,color:'#1A2540'}}>{_tr.label} <span style={{color:C.gray,fontWeight:500}}>({_tr.people.length})</span></div>
+                        <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:2}}>{_tr.ask}</div>
+                      </div>
+                      {_tr.people.map((h,i)=>{
                         const _pk=outreachKey(currentSavedSlotIdRef.current,h)
                         const _purpose=outreachPurpose[_pk]||'hiring'
                         const _k=_pk+'::'+_purpose
@@ -14116,6 +14121,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                           </div>}
                         </div>
                       })}
+                      </div>)}
                       <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                         <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>Know someone else at {_company} who is not listed? Add them and they get the same treatment.</div>
                     {_addSomeone}
