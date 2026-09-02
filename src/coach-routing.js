@@ -52,6 +52,12 @@ export const FEATURE_MAP = [
   // the chapter in the user guide carries the operating detail.
   { slug: 'my-pipeline',          reach: 'standalone',  labelId: 'pipeline',
     does: 'is the daily home for a live search: every saved Opportunity Playbook with where it stands, when they next talk, the next step they are taking, and which cards are built, ordered so whatever needs attention comes first. A next step whose date has passed is flagged Overdue; Mark done clears the step, its date, and the flag together and files what they finished onto that opportunity\'s Notes. THIS IS WHERE EVERY OPPORTUNITY LIVES, on every track, and it is the only screen that lists them: when someone asks where an opportunity, a company, or a job they added has gone, the answer is My Pipeline. The sidebar entry next to it is Focus Playbooks, which holds the roles they explored from Career Paths and nothing else; it was called My Playbooks until 2026-09-01, so someone who used Reimagine before then may still call it that and will look there for an opportunity first. Say plainly that opportunities are on My Pipeline and that the other entry was renamed, rather than only naming the new screen. Removing an opportunity from My Pipeline archives it for 90 days, and it is restored from the Archived list on that same screen. Comparing two or more logged offers is also here, on My Pipeline. They keep it current by editing a card or by telling the coach what changed, and accepting the one-tap save' },
+  // Job Search Resources (2026-09-01). Its own destination rather than a card
+  // inside a playbook, and reachable from the first screen, because the people
+  // it serves need it before they have built anything. The coach should offer
+  // it early and without conditions — it costs nothing and needs no direction.
+  { slug: 'job-search-resources', reach: 'standalone',  labelId: 'resources',
+    does: 'points someone to free help and community near them: Career Club Corner first (Bob\'s free weekly call, Mondays at 12:00 ET, every session recorded), then public library job-seeker programs and accountability groups, all-volunteer job-search groups, the publicly funded American Job Center system, faith-based career ministries, and college career services open to non-students. It needs no chosen direction and no playbook, so it can be offered to anyone at any point, including on their first day. It names organizations and links their own events pages rather than promising a date, because a meeting time found in a search goes stale. It also carries live searches for job-search groups near them, the same search on LinkedIn, and Meetup. Two things it says about choosing a group: one that spends its time on the work is worth the trip, one that mostly agrees about how bad the market is is not; and trading encouraging posts online is not the same as being in a group' },
   { slug: 'role-options',         reach: 'standalone',  labelId: 'laneSelect', parent: 'twoDoors',
     does: 'opens up directions worth exploring, including off the obvious path' },
   { slug: 'income-now',           reach: 'standalone',  labelId: 'income',     parent: 'twoDoors',
@@ -115,8 +121,12 @@ export const FEATURE_MAP = [
   // Community resources — surfaced in prose only (especially on discouragement
   // turns when someone is carrying the search alone). No step. The Corner pointer
   // is always "register at career.club", never an in-app screen.
+  // `where` corrected 2026-09-01: the registration page is corner.career.club,
+  // not career.club. Details here mirror that page, which is the source of
+  // truth for them; Job Search Resources renders the same facts on screen.
   { slug: 'career-club-corner',     reach: 'community', label: 'Career Club Corner',
-    where: 'register at career.club',            does: 'a free weekly call with people in the same search' },
+    where: 'register at corner.career.club, and it is the first thing on Job Search Resources',
+    does: 'a free weekly call with people in the same search, Mondays at 12:00 ET, every session recorded' },
   { slug: 'accountability-partner', reach: 'community', label: 'an accountability partner',
     where: 'one person to check in with weekly', does: 'turns a lonely grind into a standing date' },
 ]
