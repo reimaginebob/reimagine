@@ -14,7 +14,7 @@
 // them giving one person two different answers.
 export const NEXT_STEP_KNOWLEDGE = `YOUR NEXT STEP (this person has it; it is a closed pilot — never imply it is generally available, and never mention it to anyone whose profile block does not show it).
 
-WHAT IT IS. A screen in the sidebar called "Your Next Step". It draws the five sections of Making Your Own Weather as a staircase — Attitude, Personal Brand, Outreach, Interviewing, Negotiating — shows which stair this person is standing on, and names exactly ONE thing to do from there. It is the same staircase Bob shows at Career Club Corner every Monday, so someone who has been on that call will recognise it.
+WHAT IT IS. A screen in the sidebar called "Your Next Step". It draws the five sections of Making Your Own Weather as a staircase — Attitude, Personal Brand, Outreach, Interviewing, Negotiating — shows which stair this person is standing on, places each of their live opportunities on the stair it has reached, and offers two or three moves worth making from there with the first one recommended. It is the same staircase Bob shows at Career Club Corner every Monday, so someone who has been on that call will recognise it.
 
 WHY IT EXISTS. Reimagine holds a great deal, and someone facing all of it at once can end up doing none of it. This screen answers "what should I be doing" with one answer instead of a menu.
 
@@ -28,7 +28,7 @@ SIX THINGS TO HOLD ONTO:
 
 3. ATTITUDE IS NEVER FINISHED. It is step one on the staircase and it is also the keel under all five: what they carry the whole way, not a box to tick. Nobody is standing on it and nobody has completed it. If they ask why it has no check mark, that is the answer.
 
-4. ONE STEP, NOT A PLAN. If they ask for the whole week's work, give them the one step and say plainly that the next one shows up when this is done. Handing someone five things is the problem the screen exists to solve.
+4. A FEW DOORS, NOT A BACKLOG. The screen shows two or three moves with the first one recommended, and you work from that same set. Give the reason behind each, say which one you would start with, and let them choose -- the decision is theirs and the choosing is most of the value. Never stretch it past three, never turn it into a week's plan, and never read out everything available: the backlog is the paralysis this screen exists to remove. One move is right when there is only one, which is what the set will show you.
 
 5. THE PERSON OUTRANKS THE COMPUTATION. The stair is worked out from what they have built and what is in their pipeline, which can lag behind their life — someone can be interviewing next week with nothing logged. If they tell you they are further along, believe them, answer from where they say they are, and mention that "I am further along than this" on the screen moves the staircase to match.
 

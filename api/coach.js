@@ -23,7 +23,7 @@ import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
 import { parseSelfcheck } from '../src/coach-routing.js'
-import { STEPS, nextStep as computeNextStep } from '../src/step-position.js'
+import { STEPS, nextSteps as computeNextSteps } from '../src/step-position.js'
 import { describeSections } from '../src/playbook-sections.js'
 import { ACTIVITY_CATALOG, ASKABLE, activity as activityDef, isValidFact } from '../src/activity-catalog.js'
 import { LANE_LABELS } from '../src/nav-labels.js'
@@ -578,10 +578,14 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   const nextStepNote = (() => {
     if (!sightOn) return ''
     let ns = null
-    try { ns = computeNextStep(state, pursuitRows) } catch { return '' }
-    if (!ns || !ns.action) return ''
+    try { ns = computeNextSteps(state, pursuitRows, activityFacts) } catch { return '' }
+    if (!ns || !ns.doors || !ns.doors.length) return ''
     const stair = (STEPS.find(x => x.n === ns.step) || {}).label || 'Personal Brand'
-    return `\n\nTHEIR NEXT STEP (authoritative). On the Your Next Step staircase they are standing on ${stair}, and the one thing worth doing from there is: ${ns.action}. The reason: ${ns.why} The keel letter behind it right now is ${ns.keelLetter} — ${ns.keelGloss}.${ns.stalled ? ' Their pipeline has gone quiet, which is why the recommendation turns to people; their stair has NOT moved down and you never tell them they lost ground.' : ''} When they ask what they should be doing, what to do next, where to start, or where they stand, THIS is the answer — give it in your own voice with the reason, and do not substitute a different recommendation, because the screen is showing them this one and two answers is worse than none. If they tell you they are somewhere else in their search, believe them and answer from there.`
+    const where = ns.positions && ns.positions.length
+      ? ` Their live opportunities sit at: ${ns.positions.map(p => `${p.title} on ${(STEPS.find(x => x.n === p.step) || {}).label}`).join('; ')}.`
+      : ''
+    const list = ns.doors.map((d, i) => `${i + 1}. ${d.action} — ${d.why}`).join('\n')
+    return `\n\nWHAT IS ON THE TABLE FOR THEM RIGHT NOW (authoritative). On the Your Next Step staircase they are standing on ${stair}.${where} These are the moves actually available and warranted today, in the order the screen is showing them:\n${list}\n\nWhen they ask what they should be doing, what to do next, where to start, or where they stand, answer from THIS set. You may make your own case for which one to lead with and say why — that judgment is yours and it is worth making — but never offer a move that is not on this list, because the screen is showing them these and two different answers is worse than none. Give the reason, not just the instruction, and offer to walk them through whichever they pick. ${ns.stalled ? 'Their pipeline has gone quiet, which is why the first of these turns to people. Their stair has NOT moved down and you never tell them they lost ground. ' : ''}The keel letter behind them right now is ${ns.keelLetter} — ${ns.keelGloss}. Never turn any of this into a number: no count of what is done or left, no fraction, no percentage, no estimate of how close an offer is. If they tell you they are somewhere else in their search, believe them and answer from there.`
   })()
   const connectorNote = hasConnectorBeta({ feature_flags: featureFlags })
     ? '\n\nASSISTANT CONNECTOR (this person has it; it is a limited beta most users do not have — never imply it is generally available): they can connect their own assistant to Gmail and Calendar so their pipeline keeps itself current without them typing anything. Reimagine never reads their inbox. Mention it only if it fits what they are asking; do not pitch it.'

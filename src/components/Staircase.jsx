@@ -22,7 +22,6 @@
 //  - STEPS AHEAD STAY QUIET. The climb has a visible top so the dark has a
 //    shape, and nobody is asked to look at it today.
 import React from 'react'
-import { Check } from 'lucide-react'
 import { useIsMobile } from '../use-is-mobile.js'
 
 // Bob's slide, word for word.
@@ -34,9 +33,19 @@ const SECTIONS = [
   { n: 5, name: 'Negotiating',    items: ['BATNA'] },
 ]
 
-export default function Staircase({ step, keelLetter, keelGloss, stalled, C }) {
+export default function Staircase({ step, keelLetter, keelGloss, stalled, positions = [], C }) {
   const isMobile = useIsMobile()
   const here = Number(step) || 2
+  // A search is several journeys at once, so the stairs hold the opportunities
+  // rather than one arrow. Four markers at four heights is something the person
+  // could not have told you at a glance; a single arrow was a restatement of
+  // what they already knew.
+  const byStep = new Map()
+  for (const p of (Array.isArray(positions) ? positions : [])) {
+    if (!p || !p.step) continue
+    if (!byStep.has(p.step)) byStep.set(p.step, [])
+    byStep.get(p.step).push(p)
+  }
 
   // Bottom to top on a narrow screen, so the climb reads the way the staircase
   // does and the ground already covered sits under the person's feet rather than
@@ -54,20 +63,32 @@ export default function Staircase({ step, keelLetter, keelGloss, stalled, C }) {
       }}>
         {order.map(sec => {
           const isHere = sec.n === here
-          // Attitude never carries a check: see the header. Everything else
-          // behind the arrow is ground this person actually covered.
-          const done = sec.n < here && sec.n !== 1
+          // NO COMPLETION CHECKS. A tick behind the arrow claimed they had
+          // finished a section, which is not something this can know: an offer
+          // at one company put a check on Outreach while every other
+          // opportunity was still in it. The stairs carry their work now, and
+          // work is a fact where completion was a claim.
+          const mine = byStep.get(sec.n) || []
+          const behind = sec.n < here && sec.n !== 1
           const ahead = sec.n > here
-          const bar = isHere ? C.gold : done ? C.gold : `${C.gray}30`
+          const bar = (isHere || behind || mine.length) ? C.gold : `${C.gray}30`
           return (
             <div key={sec.n} style={{
               display: 'flex', flexDirection: 'column', minWidth: 0,
               // The ascent. Each step sits higher than the one before it, which
               // is what makes it a staircase rather than a row of boxes.
-              paddingTop: isMobile ? 0 : (5 - sec.n) * 34,
+              // THE ASCENT. React does not skip an undefined style value -- it
+              // assigns the empty string, and `style.padding = ''` clears the
+              // whole shorthand including padding-top. A `padding` key after
+              // this one wiped the ascent every time and the five boxes sat
+              // flat, so this was a row of cards rather than Bob's staircase.
+              // Longhand on both branches; never reintroduce the shorthand here.
+              paddingTop: isMobile ? 10 : (5 - sec.n) * 34,
+              paddingBottom: isMobile ? 10 : 0,
+              paddingLeft: isMobile ? 12 : 0,
+              paddingRight: isMobile ? 12 : 0,
               background: isHere ? `${C.gold}0F` : 'transparent',
               borderRadius: 10,
-              padding: isMobile ? '10px 12px' : undefined,
               border: isMobile && isHere ? `1px solid ${C.gold}` : isMobile ? `1px solid ${C.border}` : undefined,
             }}>
               <div style={{ height: 6, background: bar, borderRadius: isMobile ? 3 : '4px 4px 0 0', marginBottom: 10 }}/>
@@ -76,7 +97,6 @@ export default function Staircase({ step, keelLetter, keelGloss, stalled, C }) {
                   fontFamily: 'Georgia,serif', fontSize: isMobile ? 18 : 19, fontWeight: 700,
                   color: ahead ? C.gray : C.goldL, lineHeight: 1.25,
                 }}>{sec.name}</div>
-                {done && <Check size={15} color={C.gold} aria-label="built"/>}
               </div>
               <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: isMobile ? 0 : '0 12px' }}>
                 {sec.items.map(it => (
@@ -86,6 +106,20 @@ export default function Staircase({ step, keelLetter, keelGloss, stalled, C }) {
               {sec.n === 1 && (
                 <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '1px', color: C.goldL, margin: '8px 0 0', padding: isMobile ? 0 : '0 12px' }}>
                   NEVER FINISHED
+                </div>
+              )}
+              {/* Their actual work, standing on the stair it is on. This is the
+                  whole reason the picture is worth the space: it is their
+                  search, not a diagram of the framework. */}
+              {mine.length > 0 && (
+                <div style={{ margin: '10px 0 0', padding: isMobile ? 0 : '0 12px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {mine.map(p => (
+                    <div key={p.id} style={{
+                      fontSize: 15, lineHeight: 1.35, color: C.cream, fontWeight: 600,
+                      background: `${C.gold}1F`, border: `1px solid ${C.gold}55`, borderRadius: 6,
+                      padding: '5px 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }} title={p.title}>{p.title}</div>
+                  ))}
                 </div>
               )}
               {isHere && (

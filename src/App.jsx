@@ -38,7 +38,7 @@ import { BUILD_SHA, BUILT_AT } from "./build-meta.js"
 import { useVersionCheck } from "./version-check"
 import { useIsMobile } from "./use-is-mobile.js"
 import Staircase from "./components/Staircase"
-import { STEPS, nextStep as computeNextStep } from "./step-position.js"
+import { STEPS, nextSteps as computeNextSteps } from "./step-position.js"
 import Chat from "./components/Chat"
 import SavedPlaybooks from "./components/SavedPlaybooks"
 import PlaybookSectionRail from "./components/PlaybookSectionRail"
@@ -7274,6 +7274,10 @@ export default function PivotEngine(){
   const isIndependent=signedInUser?(signedInUser.track===TRACK_INDEPENDENT):(trackParam===TRACK_INDEPENDENT)
   // pursuit_status rows, column-name shape as returned by GET /api/pursuit-status.
   const[pursuitStatus,setPursuitStatus]=useState([])
+  // What we know about the human half of their search (the group, the
+  // accountability partner, the direct outreach). Read so the doors can stop
+  // offering something they already have or told us they do not want.
+  const[activityFacts,setActivityFacts]=useState([])
   const pursuitReconciledRef=useRef(false)
   // Interview-team suggestions staged by the connector ("found by your assistant").
   const[pursuitInterviewers,setPursuitInterviewers]=useState([])
@@ -7406,6 +7410,9 @@ export default function PivotEngine(){
       try{
         const r=await fetch('/api/activity-facts',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({activity:d.activity,state:d.state,source:'said',detail:d.detail||''})})
         if(!r.ok)throw new Error(String(r.status))
+        // Mirror it locally so Your Next Step stops offering it immediately,
+        // rather than only after a reload.
+        setActivityFacts(prev=>[...prev.filter(f=>f&&f.activity!==d.activity),{activity:d.activity,state:d.state,source:'said',detail:d.detail||'',learned_at:new Date().toISOString()}])
         return{content:'Got it — I will not ask you about that again.'}
       }catch{
         return{content:'That did not save, so I have not recorded it. Tell me again in a moment and I will try once more.'}
@@ -7826,6 +7833,7 @@ export default function PivotEngine(){
       .finally(()=>setStoriesLoaded(true))
     fetch('/api/pursuit-status',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitStatus(d.rows)}).catch(()=>{})
     fetch('/api/pursuit-interviewers',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitInterviewers(d.rows)}).catch(()=>{})
+    if(hasNextStep)fetch('/api/activity-facts',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.facts))setActivityFacts(d.facts)}).catch(()=>{})
   },[hasPipeline,isDemo,isTest])
   // Orphan reconcile: on first arrival at My Playbooks, tell the server which
   // Door 2 record ids still exist so it can prune status rows for deleted /
@@ -13659,29 +13667,38 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={S.sub}>This one is still in testing and is not open on your account yet. Your opportunities and everything you have built are where you left them.</p>
         <div style={S.row}><Btn onClick={()=>nav(hasPipeline?'pipeline':'mylib')}><ArrowRight size={14}/>{hasPipeline?NAV_LABELS.pipeline:NAV_LABELS.mylib}</Btn></div>
       </div>
-      const _ns=computeNextStep({outputs,chosen,savedPlaybooks,stepOverride},pursuitStatus)
-      const _targetLabel=NAV_LABELS[_ns.target]||'Take me there'
-      const _go=()=>{if(_ns.target==='op')return addNewOpportunity();nav(_ns.target)}
+      const _ns=computeNextSteps({outputs,chosen,savedPlaybooks,stepOverride},pursuitStatus,activityFacts)
+      const _go=(t)=>{if(t==='op')return addNewOpportunity();nav(t)}
+      const _doors=Array.isArray(_ns.doors)?_ns.doors:[]
       return <div>
         <div style={{marginBottom:8}}>
           <h1 style={{...S.title,marginBottom:6}}>{NAV_LABELS.step}</h1>
           <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:'0 0 22px',maxWidth:700}}>The five sections of <em>Making Your Own Weather</em>, and where you are standing in them right now.</p>
         </div>
 
-        <Staircase step={_ns.step} keelLetter={_ns.keelLetter} keelGloss={_ns.keelGloss} stalled={_ns.stalled} C={C}/>
+        <Staircase step={_ns.step} keelLetter={_ns.keelLetter} keelGloss={_ns.keelGloss} stalled={_ns.stalled} positions={_ns.positions} C={C}/>
 
-        {/* The one step. Guidance treatment (gold rule + tint) per the standing
-            rule that instructions never look like body copy -- and here it is
-            also the whole point of the screen, so it carries the weight. */}
+        {/* The doors. Two or three, never five, with the first one recommended.
+            Handing someone a single instruction reads as a machine telling them
+            what to do; handing them everything is the paralysis this screen
+            exists to remove. A small set with a recommendation is the shape that
+            leaves the decision theirs. Guidance treatment (gold rule + tint) per
+            the standing rule that instructions never look like body copy. */}
         <div style={{background:`${C.gold}10`,border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'22px 24px',marginBottom:18}}>
-          <div style={{fontSize:15,fontWeight:800,letterSpacing:'1.3px',textTransform:'uppercase',color:C.goldL,margin:'0 0 8px'}}>Your next step</div>
-          <div style={{fontFamily:'Georgia,serif',fontSize:27,fontWeight:700,color:'#1A2540',lineHeight:1.25,margin:'0 0 10px'}}>{_ns.action}</div>
-          <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:0,maxWidth:'60ch'}}>{_ns.why}</p>
-          <div style={{display:'flex',gap:12,flexWrap:'wrap',marginTop:18}}>
-            <Btn onClick={_go}><ArrowRight size={14}/>{_targetLabel}</Btn>
-            <Btn secondary onClick={()=>openCoachWith(`My next step is: ${_ns.action}. Help me work out how to do it.`)}><MessageCircle size={14}/>Talk it through</Btn>
-          </div>
-          <p style={{fontSize:15,color:C.gray,lineHeight:1.55,margin:'16px 0 0',paddingTop:13,borderTop:`1px dashed ${C.border}`}}>One step. When it is done, the next one shows up here — and nothing on this screen counts what you did not get to.</p>
+          <div style={{fontSize:15,fontWeight:800,letterSpacing:'1.3px',textTransform:'uppercase',color:C.goldL,margin:'0 0 4px'}}>{_doors.length>1?'What is worth doing now':'Your next step'}</div>
+          {_doors.length>1&&<p style={{fontSize:16,color:C.gray,lineHeight:1.55,margin:'0 0 16px'}}>Any of these moves your search. The first is the one we would start with, and it is your call.</p>}
+          {_doors.map((d,i)=>(
+            <div key={d.key+i} style={{paddingTop:i?18:8,marginTop:i?18:0,borderTop:i?`1px solid ${C.border}`:'none'}}>
+              {i===0&&_doors.length>1&&<div style={{fontSize:15,fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',color:C.goldL,margin:'0 0 6px'}}>Where we would start</div>}
+              <div style={{fontFamily:'Georgia,serif',fontSize:i?21:27,fontWeight:700,color:'#1A2540',lineHeight:1.25,margin:'0 0 8px'}}>{d.action}</div>
+              <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:0,maxWidth:'60ch'}}>{d.why}</p>
+              <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:14}}>
+                <Btn small={i>0} prominent={i>0} onClick={()=>_go(d.target)}><ArrowRight size={i?11:14}/>{NAV_LABELS[d.target]||'Take me there'}</Btn>
+                <Btn small={i>0} secondary={i===0} onClick={()=>openCoachWith(`I am thinking about this: ${d.action}. Help me work out how to do it.`)}><MessageCircle size={i?11:14}/>Talk it through</Btn>
+              </div>
+            </div>
+          ))}
+          <p style={{fontSize:15,color:C.gray,lineHeight:1.55,margin:'18px 0 0',paddingTop:13,borderTop:`1px dashed ${C.border}`}}>These change as your search does — and nothing on this screen counts what you did not get to.</p>
         </div>
 
         {/* The person outranks the computation. Someone can be interviewing next
