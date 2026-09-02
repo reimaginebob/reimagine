@@ -143,7 +143,19 @@ export function stripAssertedDate(text) {
 
 // ── Row normalisation ───────────────────────────────────────────────────────
 
-const clamp = (v, n) => String(v == null ? '' : v).slice(0, n)
+// A hard slice cuts mid-word, and it showed: live output carried "sector-specific
+// hi" and "funded through federal/p" on screen. Cut at the last sentence that
+// fits, or failing that the last word, and mark the cut so a trailing fragment
+// never reads as the end of the thought.
+const clamp = (v, n) => {
+  const s = String(v == null ? '' : v).trim()
+  if (s.length <= n) return s
+  const head = s.slice(0, n)
+  const sentence = Math.max(head.lastIndexOf('. '), head.lastIndexOf('; '))
+  if (sentence > n * 0.5) return head.slice(0, sentence + 1)
+  const word = head.lastIndexOf(' ')
+  return (word > 0 ? head.slice(0, word) : head).replace(/[\s,;:.—-]+$/, '') + '…'
+}
 const isUrl = (u) => typeof u === 'string' && /^https?:\/\//i.test(u)
 
 export const RESOURCE_KINDS = [
@@ -179,14 +191,42 @@ export function normalizeResource(raw) {
   }
 }
 
+// The institution a row belongs to, for the repeat guard below. Everything up to
+// the first separator, which is where a programme name almost always begins:
+// "Skokie Public Library Career Support Group" and "Skokie Public Library Job
+// Seekers drop-in sessions" both reduce to the library.
+export function institutionOf(name) {
+  const head = String(name || '').split(/\s+[\u2014\u2013-]\s+|[,:(\/]/)[0]
+  const words = head.trim().split(/\s+/)
+  const stop = /^(library|college|university|partnership|church|ministry|chamber|association|society|institute|center|centre|department|foundation)$/i
+  const cut = words.findIndex(w => stop.test(w.replace(/[^a-zA-Z]/g, '')))
+  const kept = cut >= 0 ? words.slice(0, cut + 1) : words
+  return kept.join(' ').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()
+}
+
 // Splits into what can be shown as sourced and what cannot. Never discards.
+//
+// Two guards, and the second was earned. Live output for a Chicago search came
+// back with the same public library three times, which reads as a padded list
+// and costs three of the few slots this card has. The prompt is told to return
+// one row per organization; this enforces it, because an instruction is a draft
+// and a detector is a fix. The FIRST row for an institution survives, and it is
+// the highest-ranked one by the time this matters.
 export function splitResources(arr) {
   const clean = (Array.isArray(arr) ? arr : []).map(normalizeResource).filter(Boolean)
   const seen = new Set()
+  const institutions = new Set()
   const deduped = clean.filter(r => {
     const k = r.name.toLowerCase().replace(/[^a-z0-9]/g, '')
     if (seen.has(k)) return false
     seen.add(k)
+    const inst = institutionOf(r.name)
+    // Only guard on an institution name substantial enough to mean something;
+    // a one-word leader like "Chicago" would collapse unrelated organizations.
+    if (inst && inst.split(' ').length >= 2) {
+      if (institutions.has(inst)) return false
+      institutions.add(inst)
+    }
     return true
   })
   return {

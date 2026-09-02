@@ -1989,6 +1989,12 @@ WHAT TO LOOK FOR, in this order of usefulness to someone out of work:
 - Outplacement providers that run open group programming.
 - Local chapters of professional bodies that run a specific job-transition or careers-in-transition group (a professional association operating a transition group is a legitimate result here).
 
+ONE ROW PER ORGANIZATION. If a library or a college runs three programs, return it ONCE and describe what it offers in a single line. Three rows for the same library reads as a padded list and crowds out the places they have not heard of.
+
+WHO THIS PERSON IS. They are an experienced professional, and often a senior one. Where an area has a job-search group for EXPERIENCED or EXECUTIVE candidates, and most metros have at least one alongside the general services, that matters far more here than a general resume clinic. Put those first. Where a program is aimed at early-career or general audiences, say so plainly in whyThisFits so the reader can judge instead of turning up and finding out.
+
+KEEP THE SHORT FIELDS SHORT. howYouTakePart is a phrase, not a paragraph: how you take part and how often, under about fifteen words. costNote is for something the cost label does not already say, so leave it EMPTY when a thing is simply free and use it only for a real condition, a figure, or a limit ("two appointments per semester", "dues are 200 dollars a year"). Restating that a free thing is free spends the only two lines this card has.
+
 HONESTY RULES (load-bearing):
 - ASK FOR THE ORGANIZATION, NOT THE EVENT. Return the group and link its own events or programs page. A page about one past meeting is not a result.
 - NEVER STATE A DATE. Not a next meeting, not a founding year, not a conference date. A recurring cadence is fine and useful ("meets weekly", "third Tuesday of the month") because it describes the organization. A specific date is a claim that goes stale and will be removed anyway.
@@ -2082,7 +2088,11 @@ async function findJobResources(loc){
 // This also repairs the geography assumption generally: a fully remote worker
 // and someone planning to relocate both break the city anchor, and with half the
 // search never using geography those cases degrade instead of coming back empty.
-const GROUPS_SHARED_RULES=`HONESTY RULES (load-bearing):
+const GROUPS_SHARED_RULES=`ONE ROW PER ORGANIZATION. If a body runs several programmes, return it once and say what it offers in a line. Repeats read as padding and crowd out what they have not heard of.
+
+KEEP THE SHORT FIELDS SHORT. howYouTakePart is a phrase, not a paragraph: how you take part and how often, under about fifteen words. costNote is for what the cost label does not already say, so leave it EMPTY when a thing is simply free and use it only for a condition, a figure, or a limit.
+
+HONESTY RULES (load-bearing):
 - ASK FOR THE ORGANIZATION, NOT THE EVENT. Return the body and link its own events page. A page about one past conference is not a result.
 - NEVER STATE A DATE. Not a next meeting, not a founding year, not a conference date. A recurring cadence is fine and useful ("meets monthly", "third Tuesday") because it describes the organization. A specific date goes stale and will be removed anyway.
 - A LISTICLE IS NOT A SOURCE. "The top 20 groups for X" is somebody's blog post. Follow it to the organization's own site and cite that, or leave the row out.
