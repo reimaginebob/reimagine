@@ -31,6 +31,11 @@ const FILES_TO_CHECK = [
   // the labels around it. Neither sits under src/App.jsx, so without these two
   // lines the copy that answers "what should I be doing" would be the one piece
   // of shipped prose with no detector on it.
+  // The catalog's `why` and `offer` lines are prose the coach draws on when it
+  // encourages someone, so they carry the voice rules in full -- and the
+  // comparative-standing patterns in particular, which is the shape a reason to
+  // do something slides into ("most people skip this") without anyone noticing.
+  'src/activity-catalog.js',
   'src/step-position.js',
   'src/components/Staircase.jsx',
 ]
