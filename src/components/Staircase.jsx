@@ -30,7 +30,10 @@ const SECTIONS = [
   { n: 1, name: 'Attitude',       items: ['KEEL', 'Resilience'] },
   { n: 2, name: 'Personal Brand', items: ['4 C’s', 'Tell Me About Yourself'] },
   { n: 3, name: 'Outreach',       items: ['Networking', 'Direct Contact'] },
-  { n: 4, name: 'Interviewing',   items: ['STAR Stories', 'Remixing'] },
+  // Remixing IS SCOPE -- one lesson, and the acronym is named so someone who has
+  // heard it on the Monday call recognises it here. The 5 Ps are Lesson 9B, the
+  // human half of interviewing that no framework covers.
+  { n: 4, name: 'Interviewing',   items: ['STAR Stories', 'Remixing (SCOPE)', 'The 5 P’s'] },
   { n: 5, name: 'Negotiating',    items: ['BATNA'] },
 ]
 
