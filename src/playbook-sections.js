@@ -36,10 +36,24 @@ export const OP_OFFER_SECTIONS = [
   { key: 'offerNegotiation', label: 'Offer & Negotiation' },
 ]
 
-// Focus Playbook, in the order the screen builds them (FOCUS_ORDER, src/App.jsx).
-// Labels join from NAV_LABELS so a rename lands here at the same time.
-const FOCUS_KEYS = ['p5', 'p6', 'p9', 'p11', 'p_res', 'p8', 'p7', 'groups', 'recruiters', 'income']
+// Focus Playbook. These are the sections that COUNT as building out a
+// direction -- ROLE_OUTPUT_KEYS / PRACTICE_OUTPUT_KEYS in
+// src/components/SavedPlaybooks.jsx, which is what the card's "8 of 8 sections
+// built" is measured against.
+//
+// Networking Groups and Recruiters are deliberately NOT here even though
+// FOCUS_ORDER renders them, exactly as Interview Team is left out of the
+// opportunity count. They are live searches rather than generated sections, and
+// a direction is finished without them. Counting them would have the coach
+// report two things unbuilt on a playbook the screen calls complete -- the same
+// invented gap as reporting a Compensation Read missing before there is an
+// offer. They still appear in `built` when someone has run them; see
+// FOCUS_EXTRA_SECTIONS below.
+const FOCUS_KEYS = ['p5', 'p6', 'p9', 'p11', 'p_res', 'p8', 'p7', 'income']
 const FOCUS_KEYS_INDEPENDENT = ['p6', 'income', 'p8', 'p_res', 'p7', 'p11']
+// Available on a direction, never owed by it. Reported when built, never listed
+// as missing.
+const FOCUS_EXTRA_KEYS = ['groups', 'recruiters']
 // The Go Independent track renames six of them (INDEPENDENT_SECTION_LABELS,
 // src/App.jsx). Someone on that track has never seen the word "resume" here.
 const INDEPENDENT_LABELS = {
@@ -51,12 +65,15 @@ const INDEPENDENT_LABELS = {
   p11: 'Discovery Call & Pitch Prep',
 }
 
+const labelFor = (key, independent) => (independent && INDEPENDENT_LABELS[key]) || NAV_LABELS[key] || key
+
 export function focusSections(independent = false) {
   const keys = independent ? FOCUS_KEYS_INDEPENDENT : FOCUS_KEYS
-  return keys.map(key => ({
-    key,
-    label: (independent && INDEPENDENT_LABELS[key]) || NAV_LABELS[key] || key,
-  }))
+  return keys.map(key => ({ key, label: labelFor(key, independent) }))
+}
+
+export function focusExtraSections(independent = false) {
+  return FOCUS_EXTRA_KEYS.map(key => ({ key, label: labelFor(key, independent) }))
 }
 
 // Whether one section holds real content. Shape is not uniform across records:
@@ -98,17 +115,29 @@ export function sectionState(record, key) {
 // The independent set is a strict subset of the standard one, so a record
 // holding any standard-only section proves which it is. Anything else follows
 // the session, which is right for every record built under the current track.
-const STANDARD_ONLY_KEYS = ['p5', 'p9', 'groups', 'recruiters']
 export function recordIsIndependent(record, sessionIndependent) {
+  // The record says so itself. The positioning step stamps lane 'independent'
+  // the same way Door 2 stamps 'specific' (LANE_LABELS, src/nav-labels.js), and
+  // SavedPlaybooks.jsx already counts its sections off exactly this -- per
+  // record rather than per session, so a direction counted right today stays
+  // counted right whoever opens it later, and a track switch cannot rename
+  // someone's finished work at them.
+  if (record && typeof record === 'object' && record.lane) return record.lane === 'independent'
+  // Only for a record old enough to carry no lane at all. The independent set is
+  // a strict subset of the standard one, so a standard-only section still proves
+  // which it is; anything else follows the session.
   if (!sessionIndependent) return false
-  return !STANDARD_ONLY_KEYS.some(k => sectionState(record, k).built)
+  return !['p5', 'p9'].some(k => sectionState(record, k).built)
 }
 
 // The sections that apply to this record, so nothing is reported missing that
 // was never due. The offer pair joins an opportunity only once one of them
 // exists or the opportunity has reached an offer.
 export function sectionsFor(record, { independent = false, hasOffer = false } = {}) {
-  if (!record || record.source !== 'door2') return focusSections(independent)
+  if (!record || record.source !== 'door2') {
+    const extra = focusExtraSections(independent).filter(s => sectionState(record, s.key).built)
+    return [...focusSections(independent), ...extra]
+  }
   const offer = OP_OFFER_SECTIONS.filter(s => hasOffer || sectionState(record, s.key).built)
   return [...OP_COUNTED_SECTIONS, ...offer]
 }
