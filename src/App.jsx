@@ -11789,8 +11789,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     return <div data-print="hide" style={{position:'relative',background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:14,padding:'20px 22px',margin:'0 0 20px',maxWidth:900}}>
       <button type="button" onClick={dismissPipelineIntro} aria-label="Dismiss" style={{position:'absolute',top:10,right:12,background:'transparent',border:'none',color:C.gray,fontSize:20,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
       <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#1A2540',margin:'0 24px 10px 0',lineHeight:1.35}}>This is where you run your search day to day.</div>
-      <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Every opportunity you've added is here, and you don't sort it yourself. It puts whatever needs you at the top: first anything whose next step has slipped past its date, flagged Overdue, then whatever has a date coming up, then the ones that have gone quiet.</p>
-      <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 16px'}}>Give an opportunity a next step and a date and it will keep track from there. When you've done it, press Mark done: the step clears, the flag goes with it, and what you finished is filed onto that opportunity's notes.</p>
+      <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Every opportunity you've added is here, and you don't sort it yourself. It puts whatever needs you at the top: first anything whose next move has slipped past its date, flagged Overdue, then whatever has a date coming up, then the ones that have gone quiet.</p>
+      <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 16px'}}>Give an opportunity a next move and a date and it will keep track from there. When you've done it, press Mark done: the move clears, the flag goes with it, and what you finished is filed onto that opportunity's notes.</p>
       <div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
         <Btn onClick={()=>{dismissPipelineIntro();openCoachWith('I\'m looking at My Pipeline for the first time. What is this screen for, how should I be using it day to day, and what should I do with it right now given what I have in there?',true)}}><MessageCircle size={15}/>Have questions about My Pipeline? Ask My Coach here</Btn>
         <Btn secondary onClick={dismissPipelineIntro}>Got it</Btn>
@@ -11878,9 +11878,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               </label>
             </div>
             <div style={{marginTop:12}}>
-              <div style={{fontSize:15,color:C.gray,marginBottom:6}}>My Next Steps</div>
+              <div style={{fontSize:15,color:C.gray,marginBottom:6}}>Next move</div>
               <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-                <input key={`ns-${rec.id}-${s.next_move||''}`} ref={el=>{if(el&&pursuitStepFocusRef.current===rec.id){pursuitStepFocusRef.current=null;el.focus()}}} defaultValue={s.next_move||''} placeholder="Your next step (e.g. send a follow-up note)" onBlur={e=>{const v=e.target.value.trim();if(v!==(s.next_move||''))savePursuit(rec.id,{next_move:v||null})}} style={{flex:1,minWidth:220,boxSizing:'border-box',fontSize:16,fontFamily:'inherit',padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
+                <input key={`ns-${rec.id}-${s.next_move||''}`} ref={el=>{if(el&&pursuitStepFocusRef.current===rec.id){pursuitStepFocusRef.current=null;el.focus()}}} defaultValue={s.next_move||''} placeholder="Your next move (e.g. send a follow-up note)" onBlur={e=>{const v=e.target.value.trim();if(v!==(s.next_move||''))savePursuit(rec.id,{next_move:v||null})}} style={{flex:1,minWidth:220,boxSizing:'border-box',fontSize:16,fontFamily:'inherit',padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
                 <label style={{fontSize:15,color:flag?flag.text:C.gray,whiteSpace:'nowrap',fontWeight:flag?700:400}}>{flag?flag.label:'by'}{' '}
                   <input type="date" value={dateInputVal(s.next_step_at)} onChange={e=>savePursuit(rec.id,{next_step_at:e.target.value?new Date(e.target.value).toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${flag?flag.border:C.border}`,borderRadius:7,color:flag?flag.text:'#1A2540',background:flag?flag.inputBg:'#FFF'}}/>
                 </label>
