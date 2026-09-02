@@ -41,7 +41,10 @@ export const NAV_LABELS = {
   recruiters: 'Recruiters for This Path',
   // The recruiter card's opposite number: a recruiter places people INTO the
   // role, this is the profession itself. Appears in every playbook, both kinds.
-  groups: 'Groups for This Path',
+  // Named plainly rather than matched to its sibling: "Groups for This Path"
+  // read as a category nobody was looking for (Bob, 2026-09-01). People are
+  // looking for networking, so the label says networking.
+  groups: 'Networking Groups',
   p8: 'LinkedIn Remix',
   p_res: 'Resume Refresh',
   p11: 'Interview Prep',

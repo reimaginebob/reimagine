@@ -183,6 +183,11 @@ export function normalizeResource(raw) {
     cost: COSTS.includes(raw.cost) ? raw.cost : 'unknown',
     costNote: stripAssertedDate(clamp(raw.costNote, 160)),
     forPeopleInTransition: raw.forPeopleInTransition === true,
+    // Does this body serve THIS person's profession, as opposed to serving job
+    // seekers generally. The single most important thing about a row, and the
+    // reason SHRM outranks a library resume clinic for someone in HR even
+    // though one charges dues and the other is free.
+    fitsProfession: raw.fitsProfession === true,
     whyThisFits: stripAssertedDate(clamp(raw.whyThisFits, 300)),
     url,
     eventsUrl,
@@ -248,20 +253,33 @@ export function splitResources(arr) {
 export function resourceScore(r) {
   if (!r) return 0
   let s = 0
-  if (r.forPeopleInTransition) s += 40         // exists to help people in transition
-  if (r.cost === 'free') s += 30               // free beats paid
-  else if (r.cost === 'invite-only') s += 20   // curated, not costly
-  else if (r.cost === 'dues') s += 8
-  else if (r.cost === 'ticketed') s -= 10      // a conference is not a community
-  if (r.kind === 'career network') s += 14
-  if (r.kind === 'job-search group' || r.kind === 'library program' || r.kind === 'public workforce') s += 12
-  if (r.kind === 'gated peer group') s += 4
+  // FIT FIRST. Bob, 2026-09-01, on a Chicago list for a CHRO candidate that
+  // returned a library resume clinic and two community-college career offices:
+  // an HR person should always get SHRM and their local chapters, and those
+  // cost money — "don't let that override the appropriateness".
+  //
+  // Cost used to be worth almost as much as fit here, which put every free
+  // general service above every professional body and produced exactly that
+  // list. Cost is now a tiebreaker between comparable rows and can no longer
+  // push a body that serves this person's profession below one that does not.
+  // It is still stated on every row, because a price should never be a surprise.
+  if (r.fitsProfession) s += 50
+  if (r.forPeopleInTransition) s += 22
+  if (r.cost === 'free') s += 10
+  else if (r.cost === 'invite-only') s += 9    // curated, and no fee
+  else if (r.cost === 'dues') s += 5
+  else if (r.cost === 'ticketed') s -= 4       // a conference is not a community
+  if (r.kind === 'career network') s += 12
+  else if (r.kind === 'professional body') s += 10
+  else if (r.kind === 'job-search group' || r.kind === 'library program' || r.kind === 'public workforce') s += 8
+  else if (r.kind === 'gated peer group') s += 4
   if (/\bchapter|local|meets in person\b/i.test(r.howYouTakePart)) s += 10 // local presence
   if (r.confidence === 'high') s += 6
   else if (r.confidence === 'low') s -= 4
   if (r.sourceUrl) s += 3                      // carries evidence, not just a link
   return s
 }
+
 
 export function rankResources(rows) {
   return [...(Array.isArray(rows) ? rows : [])]
