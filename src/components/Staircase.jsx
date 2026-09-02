@@ -21,9 +21,11 @@
 //    you for the entire journey." Nobody finishes it.
 //  - STEPS AHEAD STAY QUIET. The climb has a visible top so the dark has a
 //    shape, and nobody is asked to look at it today.
-import React from 'react'
+import React, { useState } from 'react'
 import { useIsMobile } from '../use-is-mobile.js'
 import { KEEL_PRINCIPLES } from '../step-position.js'
+import { STAIRCASE_EXPLAINERS } from '../data/staircase-explainers.js'
+import StaircaseExplainer from './StaircaseExplainer.jsx'
 
 // Bob's slide, word for word.
 const SECTIONS = [
@@ -37,8 +39,15 @@ const SECTIONS = [
   { n: 5, name: 'Negotiating',    items: ['BATNA'] },
 ]
 
-export default function Staircase({ step, keelLetter, keelGloss, stalled, positions = [], C }) {
+export default function Staircase({ step, keelLetter, keelGloss, stalled, positions = [], C, Btn, onGo, canGo }) {
   const isMobile = useIsMobile()
+  // Which term's explainer is open. One at a time; null when none.
+  const [openTerm, setOpenTerm] = useState(null)
+  // A term is a control only where there is something behind it. A word that
+  // looks tappable and does nothing is worse than a word that looks like a
+  // word, and the whole point of the tap is that the term was unexplained.
+  const explained = it => !!STAIRCASE_EXPLAINERS[it] && typeof Btn === 'function' && typeof onGo === 'function'
+  const anyExplained = SECTIONS.some(sec => sec.items.some(explained))
   const here = Number(step) || 2
   // A search is several journeys at once, so the stairs hold the opportunities
   // rather than one arrow. Four markers at four heights is something the person
@@ -102,9 +111,34 @@ export default function Staircase({ step, keelLetter, keelGloss, stalled, positi
                   color: ahead ? C.gray : C.goldL, lineHeight: 1.25,
                 }}>{sec.name}</div>
               </div>
+              {/* EVERY TERM EXPLAINS ITSELF. These are Bob's words from the
+                  slide, and on the Monday call he says what each one means
+                  before moving on. On screen they were nine unexplained pieces
+                  of vocabulary, which reads as the product assuming a book the
+                  person has not read. The dotted underline is the affordance;
+                  16px because it is now something you press. */}
               <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: isMobile ? 0 : '0 12px' }}>
                 {sec.items.map(it => (
-                  <li key={it} style={{ fontSize: 15, color: ahead ? C.gray : C.grayL, lineHeight: 1.5 }}>&bull; {it}</li>
+                  <li key={it} style={{
+                    fontSize: 16, color: ahead ? C.gray : C.grayL, lineHeight: 1.5,
+                    display: 'flex', gap: 6, alignItems: 'baseline',
+                  }}>
+                    <span aria-hidden="true">&bull;</span>
+                    {explained(it) ? (
+                      <button
+                        type="button"
+                        onClick={() => setOpenTerm(it)}
+                        aria-label={`What ${it} means`}
+                        style={{
+                          background: 'none', border: 'none', padding: 0, margin: 0,
+                          font: 'inherit', fontSize: 16, color: 'inherit', textAlign: 'left',
+                          cursor: 'pointer', lineHeight: 1.5,
+                          textDecoration: 'underline dotted',
+                          textDecorationColor: C.gold, textUnderlineOffset: 3,
+                        }}
+                      >{it}</button>
+                    ) : <span>{it}</span>}
+                  </li>
                 ))}
               </ul>
               {sec.n === 1 && (
@@ -144,6 +178,20 @@ export default function Staircase({ step, keelLetter, keelGloss, stalled, positi
           )
         })}
       </div>
+
+      {/* THE INVITATION. Nothing about a term looks pressable at a glance in a
+          dense grid, and a feature nobody discovers is a feature that does not
+          exist. Guidance treatment (gold rule + tint) per the standing rule
+          that instructions never look like body copy. */}
+      {anyExplained && (
+        <div style={{
+          background: `${C.gold}10`, borderLeft: `3px solid ${C.gold}`, borderRadius: 8,
+          padding: isMobile ? '10px 12px' : '11px 16px', marginTop: 14,
+          fontSize: 16, color: C.grayL, lineHeight: 1.55, textWrap: 'pretty',
+        }}>
+          Every term above opens a short explanation of what it means and what Reimagine does about it.
+        </div>
+      )}
 
       {/* THE KEEL BAND, and it has to teach itself.
           Almost nobody who lands on this screen has read the book, so opening
@@ -201,6 +249,17 @@ export default function Staircase({ step, keelLetter, keelGloss, stalled, positi
           </p>
         )}
       </div>
+
+      {openTerm && (
+        <StaircaseExplainer
+          term={openTerm}
+          onClose={() => setOpenTerm(null)}
+          onGo={onGo}
+          canGo={canGo}
+          C={C}
+          Btn={Btn}
+        />
+      )}
     </div>
   )
 }

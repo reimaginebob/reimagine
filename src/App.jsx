@@ -13676,7 +13676,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:'0 0 22px',maxWidth:700,textWrap:'balance'}}>The five sections of <em>Making Your Own Weather</em>, and where you are standing in them right now.</p>
         </div>
 
-        <Staircase step={_ns.step} keelLetter={_ns.keelLetter} keelGloss={_ns.keelGloss} stalled={_ns.stalled} positions={_ns.positions} C={C}/>
+        {/* `Btn` is handed down rather than re-styled inside the component:
+            the button styles live in S here and are not exported, and a second
+            copy of them in components/ would drift the first time either moved.
+            `canGo` is the guard that keeps the explainer honest -- Your STAR
+            Stories renders null when it is not ready, and a button landing on a
+            blank screen is worse than no button, so the row falls back to being
+            named without one. */}
+        <Staircase step={_ns.step} keelLetter={_ns.keelLetter} keelGloss={_ns.keelGloss} stalled={_ns.stalled} positions={_ns.positions} C={C} Btn={Btn} onGo={_go} canGo={(t)=>t==='stories'?storiesReady:true}/>
 
         {/* The doors. Two or three, never five, with the first one recommended.
             Handing someone a single instruction reads as a machine telling them
