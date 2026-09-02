@@ -20,6 +20,15 @@ t('the human half is actually represented', ASKABLE.length >= 5)
 
 // Validation: an unregistered key must never become a row.
 t('a real fact validates', isValidFact('accountability_partner', 'done', 'said'))
+// ONLY THE ASKABLE HALF IS EVER STORED. An observed activity is derived from
+// what they have built, so writing it down means it goes stale the moment they
+// build something -- and offering to "remember" a thing the product can already
+// see is the failure that made someone feel unread. The capture note tells the
+// model to use only askable keys; these make it true whatever it emits.
+t('an observed key is NOT storable, even though it is in the catalog', !isValidFact('personal_brand', 'done', 'said'))
+t('nor is any other observed key', !isValidFact('interview_prepped', 'done', 'said'))
+t('every askable key is storable', ASKABLE.every(a => isValidFact(a.key, 'done', 'said')))
+t('no observed key is storable', ACTIVITY_CATALOG.filter(a => a.evidence === 'observed').every(a => !isValidFact(a.key, 'done', 'said')))
 t('an unknown activity is rejected', !isValidFact('joined_the_circus', 'done', 'said'))
 t('an unknown state is rejected', !isValidFact('accountability_partner', 'pending', 'said'))
 t('an unknown source is rejected', !isValidFact('accountability_partner', 'done', 'guessed'))

@@ -89,8 +89,17 @@ export const activity = (key) => BY_KEY.get(key) || null
 // An unregistered key is rejected rather than written. A row nothing reads looks
 // exactly like a successful save and is the worst outcome available, which is the
 // same reason GRANTABLE_FLAGS validates a flag before setting it.
+//
+// ONLY THE ASKABLE HALF IS EVER STORED. An `observed` activity is read from what
+// the person has built -- it is derived, and derived state written down goes
+// stale the moment they build something. Storing one would also mean offering to
+// "remember" a thing the product can already see, which is the failure that made
+// someone feel unread. The instruction tells the model to use only the askable
+// keys; this makes it true whatever the model emits, because instruction alone
+// has never held on this project.
 export function isValidFact(key, state, source) {
-  return BY_KEY.has(key) && ACTIVITY_STATES.includes(state) && ACTIVITY_SOURCES.includes(source)
+  const def = BY_KEY.get(key)
+  return !!def && def.evidence === 'asked' && ACTIVITY_STATES.includes(state) && ACTIVITY_SOURCES.includes(source)
 }
 
 // The ones only they can answer. The coach asks from this set and never from the

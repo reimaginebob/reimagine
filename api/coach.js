@@ -1308,6 +1308,11 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
       }
     } catch { /* malformed -- drop the line, no offer */ }
   }
+  // A trailer the model mangled (an unclosed brace, a stray newline) matches
+  // nothing above, so it would be left sitting in the reply as machine junk in
+  // the middle of someone's coaching. Remove any ACTIVITY: line whatever its
+  // shape: the offer is already decided, and nothing downstream wants it.
+  strippedText = strippedText.replace(/^\s*ACTIVITY:.*$/gim, '').trim()
   // Values capture: the model may end with a VALUESCAPTURE: {json} line carrying
   // what the conversation settled for Values and/or Passions & Causes. Strip it
   // and ship it on a response header; the client offers a one-tap save that
