@@ -7385,6 +7385,30 @@ export default function PivotEngine(){
       if(move&&data.date)patch.next_step_at=new Date(`${data.date}T12:00:00Z`).toISOString()
       if(meeting)patch.next_conversation_at=new Date(`${meeting}T12:00:00Z`).toISOString()
       savePursuit(targetId,patch)
+      // Say what landed, and offer the way back. A save that ends in silence
+      // leaves the person sitting in the Coach with the card they just changed
+      // one screen away -- the "Back to..." link is at the TOP of the
+      // conversation, which is not where anyone is after a long exchange.
+      // Offered rather than automatic: they may well have more to say, and
+      // pulling them out of the conversation because they saved something is
+      // the product deciding for them.
+      const savedRec=activePlaybooks.find(r=>r&&r.id===targetId)
+      const savedTitle=(savedRec&&savedRec.title)||'this opportunity'
+      const fmtDay=(iso)=>new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})
+      const landed=[]
+      if(move)landed.push(`next move is now \u201c${move}\u201d${data.date?`, by ${fmtDay(data.date)}`:''}`)
+      if(meeting)landed.push(`next scheduled meeting is ${fmtDay(meeting)}`)
+      return{content:`Saved. On ${savedTitle}, your ${landed.join(', and your ')}.`,
+        checkinKey:'pursuit-saved-open',
+        quickReplies:[{label:`Open ${savedTitle}`,value:targetId},{label:'Stay here',value:'dismiss'}]}
+    }
+    // Take them to the opportunity they just updated, using the same navigation
+    // the pipeline card itself uses so they land on the record they changed.
+    if(checkinKey==='pursuit-saved-open'){
+      if(value==='dismiss')return true
+      const rec=activePlaybooks.find(r=>r&&r.id===value&&r.source==='door2')
+      if(!rec)return true
+      restoreFromSavedSlot(rec)
       return true
     }
     // Coach named interviewers the user mentioned; add them to the matching
@@ -7799,7 +7823,9 @@ export default function PivotEngine(){
   const coachReturnLabel=(fromStep,section)=>{
     if(section&&NAV_LABELS[section])return NAV_LABELS[section]
     if(fromStep==='focus')return 'your Focus Playbook'
-    if(fromStep==='op')return 'this opportunity'
+    // Name it. "Back to this opportunity" makes someone work out which one they
+    // came from; "Back to Imerys · Human Resources Vice President" does not.
+    if(fromStep==='op'){const t=coachSaveTarget();return (t&&t.title)||'this opportunity'}
     return NAV_LABELS[fromStep]||'where you were'
   }
   const openCoachWith=(seedText,autoSend=false,returnSection=null)=>{setCoachSeed(seedText||'');setCoachSeedAuto(!!autoSend);setCoachReturn(step==='myCoach'?null:{step,section:returnSection||null,label:coachReturnLabel(step,returnSection)});nav('myCoach')}
@@ -13513,10 +13539,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }
     case'myCoach':return <div>
       {coachReturn&&<button type="button" onClick={returnFromCoach} style={{background:'none',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6,padding:0,marginBottom:12}}><ArrowLeft size={15}/>Back to {coachReturn.label}</button>}
+      {/* The header is deliberately thin. Everything above the panel pushes it
+          down, and the panel measures its own top to fill the rest of the
+          viewport — so a paragraph here is a paragraph of conversation gone, on
+          every visit, forever. What used to sit here introduced the coach
+          ("ask anything: where to focus, how to tell your story, how to prepare
+          for a conversation") directly above the coach's own first message,
+          which says the same thing in the same order. Saying it twice cost
+          about 200px and taught the reader nothing the transcript did not.
+          The privacy line is a first-run reassurance rather than a standing
+          fact, so it shows while the conversation is empty and steps out of the
+          way once there is one to read. */}
       <div style={{marginBottom:8}}>
-        <h1 style={{...S.title,marginBottom:6}}>My Coach</h1>
-        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>Your coach for the search, grounded in Making Your Own Weather and in what Reimagine knows about you. Ask anything: where to focus, how to tell your story, how to prepare for a conversation.</p>
-        <div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>
+        <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
+        {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
       </div>
       <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>
