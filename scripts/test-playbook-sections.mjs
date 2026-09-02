@@ -6,7 +6,7 @@
 // there. That is the exact failure NAV_LABELS was created to stop, so it gets a
 // gate rather than a comment.
 import fs from 'fs'
-import { OP_COUNTED_SECTIONS, focusSections, describeSections, sectionState, recordIsIndependent } from '../src/playbook-sections.js'
+import { OP_COUNTED_SECTIONS, focusSections, focusExtraSections, describeSections, sectionState, recordIsIndependent } from '../src/playbook-sections.js'
 
 const app = fs.readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf-8')
 let pass = 0, fail = 0
@@ -32,14 +32,33 @@ if (labM) {
   }
 }
 
-// --- the focus order, both tracks ---
-const focusM = app.match(/const FOCUS_ORDER=\(isIndependent\?\[([\s\S]*?)\]:\[([\s\S]*?)\]\)/)
-t('FOCUS_ORDER found in App.jsx', !!focusM)
-if (focusM) {
-  const ids = (chunk) => [...chunk.matchAll(/\{id:'([^']+)'/g)].map(m => m[1])
-  t('focus order matches (standard)', JSON.stringify(ids(focusM[2])) === JSON.stringify(focusSections(false).map(s => s.key)))
-  t('focus order matches (independent)', JSON.stringify(ids(focusM[1])) === JSON.stringify(focusSections(true).map(s => s.key)))
+// --- the focus set must match what the CARD COUNTS, not what the rail renders ---
+// This is the check that was missing. The first version of this file compared
+// against FOCUS_ORDER, which renders ten sections, while the card counts eight:
+// Networking Groups and Recruiters are searches rather than built prose and are
+// excluded, exactly as Interview Team is on an opportunity. Comparing against
+// the rail let the coach report two sections unbuilt on a direction the screen
+// calls complete. The counting source is SavedPlaybooks.jsx, so that is what
+// this compares against.
+const saved = fs.readFileSync(new URL('../src/components/SavedPlaybooks.jsx', import.meta.url), 'utf-8')
+const keyList = (name) => {
+  const m = saved.match(new RegExp(`const ${name}\\s*=\\s*\\[([^\\]]*)\\]`))
+  return m ? m[1].split(',').map(x => x.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean) : null
 }
+const roleKeys = keyList('ROLE_OUTPUT_KEYS')
+const practiceKeys = keyList('PRACTICE_OUTPUT_KEYS')
+t('ROLE_OUTPUT_KEYS found in SavedPlaybooks.jsx', !!roleKeys)
+t('PRACTICE_OUTPUT_KEYS found in SavedPlaybooks.jsx', !!practiceKeys)
+if (roleKeys) {
+  t(`standard focus set matches what the card counts (${roleKeys.length})`,
+    JSON.stringify([...roleKeys].sort()) === JSON.stringify(focusSections(false).map(s => s.key).sort()))
+}
+if (practiceKeys) {
+  t(`practice focus set matches what the card counts (${practiceKeys.length})`,
+    JSON.stringify([...practiceKeys].sort()) === JSON.stringify(focusSections(true).map(s => s.key).sort()))
+}
+t('groups and recruiters are NOT in the counted set', !focusSections(false).some(s => s.key === 'groups' || s.key === 'recruiters'))
+t('but they are still named as available extras', focusExtraSections(false).map(s => s.key).join(',') === 'groups,recruiters')
 
 // --- the independent track's renames ---
 const indM = app.match(/const INDEPENDENT_SECTION_LABELS\s*=\s*\{([\s\S]*?)\}/)
@@ -84,13 +103,13 @@ t('a built offer section appears without the flag', describeSections(opp({ secti
 // Focus records store on `outputs`, not `sections`.
 const focus = (over = {}) => ({ id: 'f', title: 'VP Operations', source: 'door1', outputs: {}, ...over })
 t('a focus record reads from outputs', describeSections(focus({ outputs: { p6: 'story' } })).built.includes('Your Bridge Story'))
-t('a focus record lists ten sections', describeSections(focus()).todo.length === 10)
+t('a focus record lists the counted eight', describeSections(focus()).todo.length === 8)
 t('the independent track lists its own six', describeSections(focus(), { independent: true }).todo.length === 6)
 t('and uses its own names', describeSections(focus(), { independent: true }).todo.includes('Your One-Sheet'))
-t('a record with no source is treated as a focus playbook', describeSections({ id: 'x', outputs: {} }).todo.length === 10)
+t('a record with no source is treated as a focus playbook', describeSections({ id: 'x', outputs: {} }).todo.length === 8)
 
 // Safety: junk must never throw, because this runs inside a live coach turn.
-t('survives null', describeSections(null).todo.length === 10)
+t('survives null', describeSections(null).todo.length === 8)
 t('survives a record with no bags', describeSections({ source: 'door2' }).built.length === 0)
 t('survives a non-object section', sectionState(opp({ sections: { p11: 42 } }), 'p11').built === false)
 
@@ -114,6 +133,14 @@ t('content still wins when present', sectionState(opp({ sections: { p6: { conten
 // those under the independent labels renames their own work at them.
 const standardRec = focus({ outputs: { p9: 'the lingo', p_res: 'resume' } })
 t('a record holding a standard-only section is read as standard', recordIsIndependent(standardRec, true) === false)
+// The record's own lane is authoritative and beats the session either way --
+// which is what SavedPlaybooks.jsx has always done to count its sections.
+t('lane independent wins over a standard session', recordIsIndependent(focus({ lane: 'independent' }), false) === true)
+t('lane familiar wins over an independent session', recordIsIndependent(focus({ lane: 'familiar' }), true) === false)
+t('lane specific is not independent', recordIsIndependent(focus({ lane: 'specific' }), true) === false)
+t('a laned record uses its own labels', describeSections(focus({ lane: 'independent', outputs: { p_res: 'x' } }), { independent: false }).built.includes('Your One-Sheet'))
+t('and a standard-laned record keeps standard labels in an independent session', describeSections(focus({ lane: 'insider', outputs: { p_res: 'x' } }), { independent: true }).built.includes('Resume Refresh'))
+t('a laneless legacy record still falls back to the session', recordIsIndependent(focus({ outputs: { income: 'x' } }), true) === true)
 t('so its sections keep the names it was built with', describeSections(standardRec, { independent: true }).built.includes('Resume Refresh'))
 t('and it is not renamed to the independent label', !describeSections(standardRec, { independent: true }).built.includes('Your One-Sheet'))
 const practiceRec = focus({ outputs: { p_res: 'one sheet', income: 'pricing' } })
