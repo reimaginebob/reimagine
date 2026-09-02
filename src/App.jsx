@@ -5013,7 +5013,7 @@ function GroupsCard({data,busy,chosen,onGenerate,onMore,onEditCriteria,subhead})
             <input value={es} onChange={e=>setEs(e.target.value)} placeholder="Seniority" style={inp}/>
           </div>
           <div style={{display:'flex',gap:8}}>
-            <Btn small onClick={()=>{setEditing(false);onEditCriteria&&onEditCriteria({function:ef,industry:ei,seniority:es})}}><Sparkles size={12}/>Update the list</Btn>
+            <Btn small prominent onClick={()=>{setEditing(false);onEditCriteria&&onEditCriteria({function:ef,industry:ei,seniority:es})}}><Sparkles size={12}/>Update the list</Btn>
             <Btn small secondary onClick={()=>setEditing(false)}>Cancel</Btn>
           </div>
         </div>
@@ -5062,7 +5062,7 @@ function RecruitersCard({data,busy,chosen,onGenerate,onMore,onEditCriteria,onCop
             <label style={{display:'block',fontSize:15,color:C.gray}}>Geography<input value={eg} onChange={e=>setEg(e.target.value)} style={editInput}/></label>
           </div>
           <div style={{display:'flex',gap:8}}>
-            <Btn small onClick={()=>{setEditing(false);onEditCriteria&&onEditCriteria({function:ef,industry:ei,seniority:es,geo:eg})}}><Sparkles size={12}/>Update the list</Btn>
+            <Btn small prominent onClick={()=>{setEditing(false);onEditCriteria&&onEditCriteria({function:ef,industry:ei,seniority:es,geo:eg})}}><Sparkles size={12}/>Update the list</Btn>
             <Btn small secondary onClick={()=>setEditing(false)}>Cancel</Btn>
           </div>
         </div>
@@ -6107,7 +6107,7 @@ function SubsectionRefineBox({scopeKey,onSubmit,busy,error,label,placeholder,sub
     {open&&<div style={{padding:'10px 16px 14px',borderTop:`1px solid ${C.gold}33`}}>
       <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={placeholder||''} style={{...S.ta,minHeight:84,fontSize:16,marginBottom:8}} aria-label="What to refine in this block"/>
       <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
-        <Btn small disabled={busy} onClick={()=>{onSubmit(text)}}><RotateCcw size={12}/>{busy?'Regenerating…':(submitLabel||'Regenerate this block')}</Btn>
+        <Btn small prominent disabled={busy} onClick={()=>{onSubmit(text)}}><RotateCcw size={12}/>{busy?'Regenerating…':(submitLabel||'Regenerate this block')}</Btn>
         <span style={{fontSize:15,color:C.gray,fontStyle:'italic'}}>{helperText||'Only this block changes.'}</span>
       </div>
       {error&&<div style={{...S.err,marginTop:8}}>{error}</div>}
@@ -6356,7 +6356,7 @@ function WeaknessPanel({record,onCoach,onPull,canPull,busy}){
           {source&&<div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginTop:6}}>From your {source} results. Naming the assessment out loud is part of what makes it land as evidence.</div>}</>
         :(canPull
           ?<><div style={{fontSize:17,color:C.cream,lineHeight:1.65,marginBottom:10}}>Nothing pulled out yet. Your assessment is on file, so this can be read straight from it.</div>
-            <Btn small disabled={busy} onClick={onPull}><Sparkles size={12}/>{busy?'Reading your assessment…':'Pull this from my assessment'}</Btn></>
+            <Btn small prominent disabled={busy} onClick={onPull}><Sparkles size={12}/>{busy?'Reading your assessment…':'Pull this from my assessment'}</Btn></>
           :<div style={{fontSize:17,color:C.cream,lineHeight:1.65}}>Nothing here yet. This part comes from an assessment, so add one in Orientation and it will be waiting for you. My Coach can work the question with you either way.</div>)}
     </div>
     <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`,display:'flex',gap:14,alignItems:'center',flexWrap:'wrap'}}>
@@ -10037,7 +10037,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               <textarea style={{...S.ta,minHeight:90}} value={sayMore.text} onChange={ev=>setSayMore({ri,text:ev.target.value})} placeholder="What else did you do here? One thought per line. We'll turn it into resume lines."/>
               {draftAreas[ri]&&draftAreas[ri].length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:8,margin:'8px 0'}}>{draftAreas[ri].map((a,ai)=><span key={ai} style={{background:`${C.gold}14`,border:`1px solid ${C.gold}30`,borderRadius:16,padding:'4px 11px',fontSize:15,color:'#1A2540'}}>{a}</span>)}</div>}
               <div style={{display:'flex',gap:10,marginTop:6,flexWrap:'wrap',alignItems:'center'}}>
-                <Btn small disabled={!!builderBuilding} onClick={()=>genDraftSayMore(ri,sayMore.text)}>{builderBuilding==='saymore-'+ri?'Adding…':'Add these'}</Btn>
+                <Btn small prominent disabled={!!builderBuilding} onClick={()=>genDraftSayMore(ri,sayMore.text)}>{builderBuilding==='saymore-'+ri?'Adding…':'Add these'}</Btn>
                 <Btn small secondary onClick={()=>setSayMore({ri:null,text:''})}>Cancel</Btn>
                 {!(draftAreas[ri]&&draftAreas[ri].length)&&<button type="button" disabled={!!builderBuilding} onClick={()=>genDraftAreas(ri)} style={{background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',fontSize:15}}>{builderBuilding==='areas-'+ri?'…':'need ideas?'}</button>}
               </div>
@@ -12921,11 +12921,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!isDemo&&outputs.p3_change&&<BrandChangeNote change={outputs.p3_change} askedFor={outputs.p3_change.askedFor} onRestore={restoreP3Line} onDismiss={dismissP3Change}/>}
         {!isDemo&&sectionStaleUpstreams('p3').includes('resume')&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:'#1A2540',lineHeight:1.6,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
           <span>You updated your resume since this was written. Refresh your Personal Brand so it builds on the new material. It keeps what your new resume still supports and changes what the new material actually affects. Your current version is saved, so you can restore it if you prefer it.</span>
-          <Btn small onClick={generateChain}><RotateCcw size={12}/>Refresh</Btn>
+          <Btn small prominent onClick={generateChain}><RotateCcw size={12}/>Refresh</Btn>
         </div>}
         {!isDemo&&pbNeedsUpdate&&!sectionStaleUpstreams('p3').includes('resume')&&<div data-print="hide" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:16,color:'#1A2540',lineHeight:1.6,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
           <span>You've changed your answers since this Personal Brand was written. Refresh it to pick up what you changed. It keeps what still holds and amends what your change actually affects. Your current version is saved, so you can restore it if you prefer it.</span>
-          <Btn small onClick={generateChain}><RotateCcw size={12}/>Refresh</Btn>
+          <Btn small prominent onClick={generateChain}><RotateCcw size={12}/>Refresh</Btn>
         </div>}
         {!isDemo&&!seenCorrectionsIntro&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,padding:'14px 18px',borderRadius:8,margin:'0 0 20px',fontSize:17,color:'#1A2540',lineHeight:1.65,position:'relative'}}>
           <button type="button" onClick={dismissCorrectionsIntro} aria-label="Dismiss" style={{position:'absolute',top:8,right:12,background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:C.gray,fontFamily:'inherit'}}>×</button>
@@ -13873,7 +13873,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   decision: bring it up to date. */}
               {_staleCards.length>0&&!playbookRefresh.running&&<div style={{marginBottom:20,background:'#FFF7E6',border:'1px solid #F0B856',borderRadius:10,padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
                 <span style={{fontSize:16,color:'#1A2540',lineHeight:1.55}}><strong style={{color:'#8A5E1C'}}>Your Personal Brand has changed since {_staleCards.length===1?'one section of this playbook was':`${_staleCards.length} sections of this playbook were`} written.</strong> Bring it up to date before you use it in a real conversation.</span>
-                <Btn small onClick={()=>refreshOpPlaybook(_rec,_staleCards)}><RotateCcw size={12}/>Bring this playbook up to date</Btn>
+                <Btn small prominent onClick={()=>refreshOpPlaybook(_rec,_staleCards)}><RotateCcw size={12}/>Bring this playbook up to date</Btn>
               </div>}
               {playbookRefresh.running&&playbookRefresh.slot===_rec.id&&<div style={{marginBottom:20,background:`${C.gold}12`,border:`1px solid ${C.gold}44`,borderRadius:10,padding:'14px 18px',fontSize:16,color:'#1A2540',lineHeight:1.55}}>
                 <strong>Bringing your playbook up to date</strong> — {playbookRefresh.label||'starting'} ({playbookRefresh.index+1} of {playbookRefresh.total}). Each section is rebuilt in turn; the ones already done are on the page.
@@ -14095,7 +14095,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                           </div>
                           <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginBottom:12}}>The company decides both who matches below and what LinkedIn searches for. The second field only steers the LinkedIn search — which of your own connections match is always the employer each of them has listed.</div>
                           <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                            <Btn small onClick={()=>{setSearchOverride(_slotForSearch,{company:_draft.company,extra:_draft.extra});setConnSearchOpen(x=>({...x,[_slotForSearch]:false}))}}><Check size={12}/>Update the list</Btn>
+                            <Btn small prominent onClick={()=>{setSearchOverride(_slotForSearch,{company:_draft.company,extra:_draft.extra});setConnSearchOpen(x=>({...x,[_slotForSearch]:false}))}}><Check size={12}/>Update the list</Btn>
                             <Btn small secondary onClick={()=>setConnSearchOpen(x=>({...x,[_slotForSearch]:false}))}>Cancel</Btn>
                             {_srch.edited&&<Btn small secondary onClick={()=>{clearSearchOverride(_slotForSearch);setConnSearchOpen(x=>({...x,[_slotForSearch]:false}))}}><RotateCcw size={11}/>Back to {_recCompany||'the posting'}</Btn>}
                           </div>
@@ -14505,7 +14505,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       </div>:<div>
                         <textarea style={{...S.ta,minHeight:120,fontSize:15}} value={offerPasteDrafts[_slot]||''} onChange={e=>setOfferPasteDrafts(d=>({...d,[_slot]:e.target.value}))} placeholder="Paste your offer letter, or just the key terms, here…"/>
                         <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
-                          <Btn small onClick={()=>parseOfferLetter(offerPasteDrafts[_slot]||'')} disabled={!String(offerPasteDrafts[_slot]||'').trim()}><Sparkles size={12}/>Parse offer</Btn>
+                          <Btn small prominent onClick={()=>parseOfferLetter(offerPasteDrafts[_slot]||'')} disabled={!String(offerPasteDrafts[_slot]||'').trim()}><Sparkles size={12}/>Parse offer</Btn>
                           <Btn small secondary onClick={()=>setOfferPasteOpen(o=>({...o,[_slot]:false}))}>Cancel</Btn>
                         </div>
                       </div>}
