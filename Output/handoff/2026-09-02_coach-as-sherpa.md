@@ -147,7 +147,7 @@ The first draft said: if nothing is time-bound and nothing has changed, say noth
 
 So when there is nothing pressing: say what IS in hand, and offer one small adjacent move from the activity catalog — something they have not tried, sized to be doable now, framed as available rather than owed.
 
-**The invariant that replaces silence is narrower and does the same job: never say the same thing twice.** Wallpaper comes from repetition, not from speaking. A confirmation has to reflect what is actually true today, and an adjacent offer that was declined or already made never comes back. Where there is genuinely nothing new to confirm and nothing left to offer, THEN it holds its tongue — but that is the rare end state, not the default.
+**The invariant that replaces silence is narrower and does the same job: never say the same thing twice.** Wallpaper comes from repetition, not from speaking. A confirmation has to reflect what is actually true today, and an adjacent offer that was declined or already made never comes back. Where there is nothing new to confirm and nothing left to offer, THEN it holds its tongue — but that is the rare end state, not the default.
 
 **4f. It does not repeat itself.** One condition, said once, gone when dismissed, back only when the facts underneath it change. `alertOnce` (`api/_lib/ops-alerts.js`) is the existing precedent and its own comment already carries the reasoning — a repeat on a condition that persists trains the reader to ignore it. Same logic, applied to a person instead of an operator.
 
