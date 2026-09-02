@@ -20,7 +20,7 @@
 // banned constructions). The component is hidden from print via the
 // data-print="hide" attribute carried by the wrapping div.
 
-import { Check, Eye } from 'lucide-react'
+import { Check, Eye, MessageCircle } from 'lucide-react'
 
 function Row({ section, isDone, onJump, C }) {
   const handleClick = () => { if (onJump) onJump(section.id) }
@@ -66,7 +66,7 @@ function Row({ section, isDone, onJump, C }) {
   )
 }
 
-export default function PlaybookSectionRail({ sections, done, onJump, C, title, titleKicker, onViewJd, mobile = false }) {
+export default function PlaybookSectionRail({ sections, done, onJump, C, title, titleKicker, onViewJd, onTalkToCoach, mobile = false }) {
   if (!sections || sections.length === 0) return null
   const isDoneFor = (id) => Array.isArray(done) && done.includes(id)
   // Split sections into the numbered playbook set and the Bonus set
@@ -112,6 +112,30 @@ export default function PlaybookSectionRail({ sections, done, onJump, C, title, 
           >
             {title}
           </div>
+          {/* Talk to My Coach. Sits directly under the opportunity's name, above
+              the job-description link, because this is the thing a person reaches
+              for most and the rail is the only block that stays on screen while
+              they scroll the sections. It opens the Coach with NOTHING typed --
+              the pre-filled "give me your read" prompt lives on the pipeline card
+              and is a different job. The Coach already knows which opportunity is
+              open, so a next move stated here lands on the right card without the
+              person naming the company. */}
+          {onTalkToCoach && (
+            <button
+              type="button"
+              onClick={onTalkToCoach}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                width: '100%', boxSizing: 'border-box', marginTop: 12,
+                padding: '9px 12px', background: 'transparent',
+                border: `1px solid ${C.gold}`, borderRadius: 8,
+                color: C.gold, fontFamily: 'inherit', fontSize: 16, fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <MessageCircle size={15}/> Talk to My Coach
+            </button>
+          )}
           {onViewJd && (
             <button
               type="button"

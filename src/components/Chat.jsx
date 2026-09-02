@@ -269,6 +269,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           surface: embedded ? 'sidebar' : 'help',
           // General-question mode (Career Club team only; re-checked server-side).
           general: generalMode,
+          // Which saved opportunity this conversation is pinned to, when the app
+          // knows. The server otherwise infers it by scanning the person's own
+          // words for the title or company (findInFocusRecord), which works for
+          // the pre-filled "read on this opportunity" prompt and not at all for
+          // someone who opened the Coach from inside a playbook and simply said
+          // what they are doing next. Sent as a hint only: the server re-checks
+          // that the id belongs to this account's saved work before using it.
+          focusRecordId: (coachSaveTarget && coachSaveTarget.id) || undefined,
         }),
       })
       if (!res.ok || !res.body) {
