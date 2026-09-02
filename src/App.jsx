@@ -7213,7 +7213,10 @@ export default function PivotEngine(){
   // whether the client will render an offer. The server independently decides
   // whether the model was ever told it could make one, so a tampered client
   // gains nothing: with no instruction there is no trailer and no header.
-  const hasPipelineCapture=Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('pipeline_capture')
+  // On for the team by email, or for a named outside tester granted the flag.
+  // Mirrors isInternalAccount/hasPipelineCapture in api/_lib/feature-flags.js,
+  // which is the real gate; this only decides whether to render an offer.
+  const hasPipelineCapture=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('pipeline_capture'))
   // Go Independent (2026-08-27). The account's own track wins the moment there
   // is an account; the URL parameter only speaks for a visitor who has not
   // signed in yet, which is exactly the sign-up screens. Deriving it in that

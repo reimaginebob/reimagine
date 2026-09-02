@@ -235,7 +235,7 @@ function searchIntakeNote(si) {
   return `\n\nSEARCH INTAKE (open): two things are worth knowing about this person's own read on their search — what is going well in it right now, and what they would like to improve. ${missing}\n\nWhen they answer one of these, respond to what they actually said FIRST and properly: reflect the substance back, say what it tells you, and where you can see one, offer a concrete idea that builds on it. Someone who says networking is finally working should hear what that is worth and one way to press the advantage; someone who says applications go quiet should get a real read on where that usually breaks and what to try. Give it the weight you would give any other thing they told you. Only after that reply stands on its own do you move to the other question, in the same message, as a natural next beat rather than a form field.\n\nWhen — and only when — their answer carries something real, end your reply with a final line exactly like SEARCHINTAKE: {"goingWell":"their answer in their own words"} or SEARCHINTAKE: {"focus":"their answer in their own words"}. One key only, for the question they just answered. Keep their words, lightly tidied into a sentence or two; never your paraphrase and never your advice. Emit nothing at all for a shrug, a deflection, a change of subject, an "I don't know", or a reply too thin to be worth carrying — an empty field is better than a noisy one, and you will get another chance later in the conversation. The app turns that line into a one-tap offer and never shows it, so do not mention it, and never ask them to type anything anywhere.`
 }
 
-function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake) {
+function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail) {
   if (!state || typeof state !== 'object') {
     // No profile at all — definitionally pre-Personal-Brand, so the sidebar is the
     // Orientation phase list. Carry the same navigation gate as the main path below
@@ -397,7 +397,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // non-flagged account never receives the instruction, so the parser below
   // simply never fires for them -- the same no-op the interview-team capture
   // relies on.
-  const nextMoveNote = hasPipelineCapture({ feature_flags: featureFlags }) ? NEXT_MOVE_CAPTURE_NOTE : ''
+  const nextMoveNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? NEXT_MOVE_CAPTURE_NOTE : ''
   const connectorNote = hasConnectorBeta({ feature_flags: featureFlags })
     ? '\n\nASSISTANT CONNECTOR (this person has it; it is a limited beta most users do not have — never imply it is generally available): they can connect their own assistant to Gmail and Calendar so their pipeline keeps itself current without them typing anything. Reimagine never reads their inbox. Mention it only if it fits what they are asking; do not pitch it.'
     : ''
@@ -865,10 +865,10 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // chapter there would describe the capture to every account, and almost none
   // of them have it. Its own cached block, so a flagged account does not fork
   // the prefix everyone else shares.
-  const pipelineCaptureBlock = (!generalMode && hasPipelineCapture({ feature_flags: featureFlags }))
+  const pipelineCaptureBlock = (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: user.email }))
     ? PIPELINE_CAPTURE_KNOWLEDGE
     : null
-  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake)
+  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, user.email)
   // Anchor today's date. The coach is otherwise never told the current date, so
   // any past/future or elapsed-time reasoning it does itself is unanchored
   // guesswork — it once called an Aug 24 follow-up "overdue by nine weeks" on

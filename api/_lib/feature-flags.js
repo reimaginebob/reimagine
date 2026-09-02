@@ -46,7 +46,28 @@ export function hasConnectorBeta(user) {
 // trailer even by asking for it.
 export const PIPELINE_CAPTURE_FLAG = 'pipeline_capture'
 
+// Internal accounts. Reimagine already treats an @career.club address as staff
+// in three places (api/claude.js cost accounting, api/coach.js general mode, and
+// the client's general-mode prop), so this codifies a rule the codebase was
+// already applying rather than inventing a new one.
+const INTERNAL_EMAIL_RE = /@career\.club$/i
+
+export function isInternalAccount(user) {
+  return !!(user && typeof user.email === 'string' && INTERNAL_EMAIL_RE.test(user.email))
+}
+
+// A pilot is on for an account that holds the flag OR for anyone on the team.
+// Bob quality-controls every pilot before a real user sees it (CLAUDE.md §8), and
+// making him grant himself access by email each time was friction with no safety
+// in it -- the dashboard grant is for named outside testers, which is the case
+// that actually needs a record.
+//
+// Deliberately NOT applied to hasConnectorBeta. That gate is a different risk
+// class: it decides who may mint a long-lived bearer token and let an outside
+// assistant write to a pipeline unattended. Issuing a credential should stay an
+// explicit, per-account act with a row behind it, staff or not.
 export function hasPipelineCapture(user) {
+  if (isInternalAccount(user)) return true
   const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
   return flags.includes(PIPELINE_CAPTURE_FLAG)
 }
