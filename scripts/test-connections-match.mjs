@@ -6,7 +6,7 @@ import {
   linkedInSecondDegreeUrl, linkedInFirstDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey,
   mailtoUrl, firstNameOf, cleanDomain, emailGuesses, searchQuery, resolveSearch,
   manualPerson, withManual, withoutManual,
-  schoolSlug, linkedInAlumniUrl, seniorityBand, yearsConnected, tranches, schoolsFromText,
+  schoolSlug, linkedInAlumniUrl, seniorityBand, yearsConnected, tranches, schoolsFromText, educationSection,
 } from '../src/connections-match.mjs'
 
 let passed = 0
@@ -346,6 +346,27 @@ ok(found.includes('Kellogg School of Management'), 'and a named graduate school'
 // "University of Tennessee, Knoxville Bachelor".
 ok(!found.some(v => /EDUCATION/i.test(v)), 'a heading above the name is not swallowed')
 ok(!found.some(v => /Bachelor|MBA/i.test(v)), 'nor a degree on the line below')
+
+// A resume says where its education section is, so only that is read. Scanning
+// the whole document found real schools in the experience section -- a client
+// account, a training partner -- and offered them as places the person studied.
+ok(!found.includes('Boston College'), 'a school named in the experience section is not offered')
+ok(educationSection(RESUME) !== null, 'the section is located')
+ok(!educationSection(RESUME).some(l => /Xerox/i.test(l)), 'and stops at the next heading')
+
+// Null rather than empty when there is no such heading, so the caller can tell
+// "a section that held nothing" from "text that is not laid out in sections".
+eq(educationSection('just some prose about work'), null, 'no heading means no section')
+eq(educationSection(''), null, 'empty text has no section')
+// Text with no section is still scanned whole -- a LinkedIn paste or a bio has
+// the school in it and no heading to find, and the tiles carry the risk.
+eq(schoolsFromText('Bob Goodwin\nStudied at Boston College'), ['Boston College'],
+   'text with no section falls back to scanning all of it')
+
+// Headings vary; these all open the section.
+for (const h of ['Education', 'EDUCATION', 'Education & Training', 'Academic Background', '## Education']) {
+  ok(educationSection(h + '\nBoston College') !== null, `"${h}" opens the section`)
+}
 
 eq(schoolsFromText('MBA, Harvard Business School, 2004'), ['Harvard Business School'],
    'a school inline with a degree is found, and the degree is stripped')

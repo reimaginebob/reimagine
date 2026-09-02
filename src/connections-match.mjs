@@ -457,6 +457,44 @@ function tidySchool(raw) {
   return v.length >= 6 && v.length <= 80 ? v : ''
 }
 
+// A resume says where its education section is, so read that rather than the
+// whole document. Scanning everything found real schools in the experience
+// section -- a client account, a training partner -- which were offered as
+// places the person had studied. Tiles made that survivable; not offering them
+// at all is better.
+const EDU_HEADING = /^[\s#*_>-]*(education(?:\s*(?:&|and)\s*(?:training|certifications?))?|academic(?:\s+background|s)?|academic\s+history|schooling)\b[\s:*_-]*$/i
+
+// Any other section heading ends it. A resume heading is short and is either
+// shouted or title-case with no sentence punctuation, which is enough to spot
+// one without a list of every heading anyone has ever used.
+function isSectionHeading(line) {
+  const t = String(line || '').replace(/^[\s#*_>-]+|[\s:*_-]+$/g, '').trim()
+  if (!t || t.length > 48) return false
+  if (/[.!?]$/.test(t)) return false
+  const letters = t.replace(/[^A-Za-z]/g, '')
+  if (letters.length < 3) return false
+  if (letters === letters.toUpperCase()) return true
+  return /^(experience|work\s+experience|professional\s+experience|employment(\s+history)?|career\s+history|skills|technical\s+skills|core\s+competencies|certifications?|licen[sc]es?|awards?|honou?rs?|publications?|volunteer(ing)?|interests?|summary|profile|objective|projects?|languages?|affiliations?|memberships?|references?|activities)\b/i.test(t)
+}
+
+/**
+ * The lines of the education section, or null when the text has no such heading.
+ *
+ * Null rather than empty, so the caller can tell "there is a section and it held
+ * nothing" from "this text is not laid out in sections" and fall back.
+ */
+export function educationSection(text) {
+  const lines = String(text || '').split(/\r?\n/)
+  const start = lines.findIndex(l => EDU_HEADING.test(l))
+  if (start === -1) return null
+  const out = []
+  for (let i = start + 1; i < lines.length; i++) {
+    if (isSectionHeading(lines[i])) break
+    out.push(lines[i])
+  }
+  return out
+}
+
 /**
  * School names found in a block of resume or profile text, in the order they
  * appear, deduped case-insensitively.
@@ -465,7 +503,11 @@ function tidySchool(raw) {
  * does with it: everything here is a suggestion the person clicks.
  */
 export function schoolsFromText(text) {
-  const str = String(text || '')
+  const section = educationSection(text)
+  // A resume that names its education section gets read there only. One that
+  // does not -- a LinkedIn paste, a bio, a one-page profile -- is scanned whole,
+  // which is where the tiles earn their keep.
+  const str = section === null ? String(text || '') : section.join('\n')
   if (!str.trim()) return []
   const seen = new Set()
   const out = []
