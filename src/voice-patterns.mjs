@@ -63,7 +63,7 @@ export const HARD_PATTERNS = [
   // Logic-flip cadence: "X is not Y. It is Z." and "X are not Y. We are Z."
   {
     name: 'logic-flip-is-not',
-    re: /\b(?:is|are|was|were)\s+not\s+(?:a\s+|an\s+|about\s+|just\s+|only\s+)?[^.!?\n]{3,80}[.!?]['"’”)\]]*\s*(?:It|That|They|You|We)\s+(?:is|are|was|were)\s+/i,
+    re: /\b(?:is|are|was|were)(?:n['’]t|\s+not)\s+(?:a\s+|an\s+|about\s+|just\s+|only\s+)?[^.!?\n]{3,80}[.!?]['"’”)\]]*\s*(?:It|That|They|You|We)\s*(?:['’](?:s|re)|\s+(?:is|are|was|were))\s+/i,
     severity: 'hard',
     appliesTo: ['runtime'],
     note: 'Logic-flip cadence: replace with the positive claim on its own.',
@@ -71,10 +71,36 @@ export const HARD_PATTERNS = [
   // Logic-flip cadence: "You do not just X, you Y" / "You do not X, you Y"
   {
     name: 'logic-flip-do-not-just',
-    re: /\b(?:do|does|did)\s+not\s+(?:just\s+)?[^,.;\n]{3,80},['"’”)\]]*\s*(?:you|we|they)\s+(?:[a-z]+)/i,
+    re: /\b(?:do|does|did)(?:n['’]t|\s+not)\s+(?:just\s+)?[^,.;\n]{3,80},['"’”)\]]*\s*(?:you|we|they)\s+(?:[a-z]+)/i,
     severity: 'hard',
     appliesTo: ['runtime'],
     note: 'Logic-flip cadence: replace with the positive claim on its own.',
+  },
+  // Logic-flip cadence, COMMA form: "X is not Y, it is Z".
+  //
+  // This is the shape CLAUDE.md's banned list names in as many words, and until
+  // 2026-09-02 nothing detected it. logic-flip-is-not above requires a sentence
+  // boundary between the halves, so the period form was caught and the comma
+  // form -- which is what the model actually writes -- walked straight through.
+  // It reached a user: "a good BATNA isn't just theoretical, it's what gives you
+  // real leverage" shipped in a live coach reply while a DIFFERENT logic flip in
+  // the same reply was caught. A rule with an instruction and no detector is a
+  // draft, which is the whole reason this file exists.
+  //
+  // THE DISCRIMINATOR IS WHAT FOLLOWS THE COMMA. The cadence restates the
+  // subject as a noun phrase or a wh-clause ("it is a pivot", "it's what gives
+  // you leverage"). An ordinary conditional continues with an adjective or a
+  // verb ("if the answer is not clear, it is worth asking"; "when nothing is
+  // moving, it is time to write"). Requiring a determiner or a wh-word after the
+  // pronoun keeps the first and lets the second through, which is why this is
+  // narrower than it looks -- a plain comma rule would fire on half the
+  // conditionals in the guide.
+  {
+    name: 'logic-flip-is-not-comma',
+    re: /\b(?:is|are|was|were)(?:n['’]t|\s+not)\s+(?:just\s+|only\s+|merely\s+|simply\s+)?(?:a\s+|an\s+|the\s+|about\s+)?[^,;.!?\n]{2,70},\s*(?:it|that|they)\s*(?:['’](?:s|re)|\s+(?:is|are|was|were))\s+(?:a|an|the|what|how|why|where|who|your|his|her|their|its|my|our)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Logic-flip cadence in comma form: state the positive claim on its own.',
   },
   // Logic-flip cadence: "not X, but Y" inside a sentence
   {

@@ -201,11 +201,44 @@ const LOGIC_FLIP_DASH_RE = new RegExp(
   '(?=((?:it|that|they|you|It|That|They|You)(?:' + AP + 's|' + AP + 're|\\s+is|\\s+are)\\s))',
   'g'
 )
+// (G) Single-sentence pivot on a comma where the first half is a NOUN PHRASE
+// rather than a pointer: "A good BATNA isn't just theoretical, it's what gives
+// you real leverage."
+//
+// (F) above covers the same shape only when the first half opens with it/that/
+// they/you, so a noun subject walked through every pattern in this file. It
+// reached a user on 2026-09-02 in a live coach reply -- and a DIFFERENT logic
+// flip in the same reply was caught, which is what made the gap visible.
+//
+// Reconstructed rather than trimmed, the way (A) does it: subject + auxiliary +
+// the affirmative half, so "A good BATNA isn't just theoretical, it's what gives
+// you real leverage" becomes "A good BATNA is what gives you real leverage."
+// Trimming the first half instead would drop the subject and leave a sentence
+// about nothing.
+//
+// THE GUARD IS WHAT FOLLOWS THE POINTER. The cadence restates the subject as a
+// noun phrase or a wh-clause; an ordinary conditional continues with an
+// adjective or a verb ("if the answer is not clear, it is worth asking"; "when
+// nothing is moving, it is time to write"). Requiring a determiner or wh-word
+// after the pointer keeps the first and leaves the second alone, and every
+// conditional in the user guide stays untouched.
+const LOGIC_FLIP_COMMA_NP_RE = new RegExp(
+  '(^|[.!?]' + EMPH + '\\s+|\\n+|—\\s*)' + EMPH +
+  '([A-Za-z][^,;:.!?\\n]{1,60}?)\\s+(is|are|was|were)(?:n' + AP + 't|\\s+not)\\s+' +
+  '(?:just\\s+|only\\s+|merely\\s+|simply\\s+)?[^,;:.!?\\n]{2,70},\\s*' +
+  '(?:it|that|they)(?:' + AP + '(?:s|re)|\\s+(?:is|are|was|were))\\s+' +
+  '((?:a|an|the|what|how|why|where|who|your|his|her|their|its|my|our)\\b[^.!?\\n]*)',
+  'g'
+)
 export function stripLogicFlipCadence(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1)
-  let out = text.replace(LOGIC_FLIP_CADENCE_RE, (_match, lead, subject1, aux, negPred, pointerPrefix, phrase2) => {
+  let out = text.replace(LOGIC_FLIP_COMMA_NP_RE, (_m, lead, subject, aux, phrase2) => {
+    count++
+    return `${lead}${subject} ${aux} ${phrase2}`
+  })
+  out = out.replace(LOGIC_FLIP_CADENCE_RE, (_match, lead, subject1, aux, negPred, pointerPrefix, phrase2) => {
     count++
     if (/^(?:is|are|was|were)\b/i.test(negPred.trim())) {
       // Cleft subject ("What they are not is X") -> reconstructing would fragment;
