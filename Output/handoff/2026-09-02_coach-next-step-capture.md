@@ -373,16 +373,21 @@ Then, after merge, on production:
 - Capturing the **meeting** date (`next_conversation_at`) or the stage through this trailer. Both are natural extensions and both should wait until this one has been used by a real person for a week; folding them in now triples the surface under test and makes a bad result hard to attribute.
 - Retiring `STAGE_MENTION_RE`. It keeps working; superseding it is a later call.
 - Non-opportunity activity (networking outreach, recruiter relationships, applications with no playbook). Nothing in the schema models these, and inventing that model belongs in its own brief.
-- The user guide and `FEATURE_MAP` wiring — see the GA checklist below.
+- The public user-guide chapters and any `FEATURE_MAP` entry. Pilot documentation ships in this PR, partitioned by audience — see Documentation below.
 
-## GA checklist (not this PR)
+## Documentation (in THIS PR, partitioned by audience)
 
-CLAUDE.md §8 requires docs to ship with a user-facing change. Documenting a capability that 144 of 145 accounts cannot reach misinforms them in the other direction, and `src/data/user-guide/ORDER.json` carries an explicit warning that a listed chapter becomes Coach grounding **for every user on every turn**. This is the STAR Stories precedent: while the surface is gated, the catalog entry and the guide text stay out. When the gate opens, in one PR:
+CLAUDE.md §8 requires docs to ship with a user-facing change. An earlier draft of this brief proposed holding them until GA; that was wrong, and it reinvented a problem the repo already solved.
 
-1. Delete `PIPELINE_CAPTURE_FLAG`, `hasPipelineCapture`, and their uses; drop the entry from `GRANTABLE_FLAGS`.
-2. Add the capability to `src/data/user-guide/my-coach.md` — that talking to the Coach about a real next step can put it on the card for you, and that nothing is saved without a tap.
-3. Add the same fact to `my-pipeline.md` as an alternative to typing into the card.
-4. If a `FEATURE_MAP` entry is warranted, add it and run `npm run gen:coach-nav-map`.
+`src/data/user-guide/ORDER.json` warns that any listed chapter is interpolated into the ONE cached system block `api/coach.js` sends to **every user on every turn** — so a chapter about a one-account pilot would ship to all 145. The established answer is `src/data/go-independent-knowledge.js`: content in its own plain-`.js` file, deliberately out of `ORDER.json`, imported by `api/coach.js` and injected as its own `cache_control` block only for the audience that has the feature.
+
+Use that pattern here. In this PR:
+
+1. Write the capture's documentation into `src/data/next-step-knowledge.js` if the Your Next Step brief has already created it, or a small `src/data/pipeline-capture-knowledge.js` if not — a paragraph on what the Coach can now offer to save, and that nothing is written without a tap.
+2. Import it in `api/coach.js` and gate its injection on `hasPipelineCapture`, mirroring `goIndependentBlock` (`api/coach.js:833`, spread conditionally into the system array at line 932).
+3. Add it to the file's header comment as the reason it is not in `ORDER.json`.
+
+At GA, the flag and its uses come out, the text moves into `src/data/user-guide/my-coach.md` and `my-pipeline.md`, and a `FEATURE_MAP` entry is added if one is warranted (then `npm run gen:coach-nav-map`).
 
 ## Commit message
 
