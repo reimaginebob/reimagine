@@ -36,3 +36,30 @@ export function hasConnectorBeta(user) {
   const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
   return flags.includes(CONNECTOR_BETA_FLAG)
 }
+
+// PILOT — My Coach next-step capture, 2026-09-02. Gates one thing: whether the
+// Coach is told it may propose a next move and a date for an opportunity. The
+// WRITE it proposes is not gated and does not need to be — it goes through the
+// same PUT /api/pursuit-status the card editor uses, and it only happens when
+// the person taps. What the flag controls is whether the instruction is in the
+// prompt at all, which is also why a non-flagged account cannot produce the
+// trailer even by asking for it.
+export const PIPELINE_CAPTURE_FLAG = 'pipeline_capture'
+
+export function hasPipelineCapture(user) {
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(PIPELINE_CAPTURE_FLAG)
+}
+
+// The flags the admin dashboard may grant and revoke by email. A flag that is
+// not in here cannot be set from the dashboard at all, so a typo in the request
+// body is a 400 rather than a row carrying a string nothing reads. `label` is
+// what the dashboard shows; keep it the user-facing name of the surface.
+//
+// Adding an entry here is how a pilot becomes grantable, and it is deliberately
+// an edit to this file — see the header above for why a flag whose meaning
+// lives only in the database is the failure mode this file exists to prevent.
+export const GRANTABLE_FLAGS = {
+  [CONNECTOR_BETA_FLAG]: { label: 'Assistant connector' },
+  [PIPELINE_CAPTURE_FLAG]: { label: 'Coach next-step capture' },
+}

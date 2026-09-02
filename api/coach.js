@@ -15,8 +15,9 @@
 
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { GO_INDEPENDENT_KNOWLEDGE } from '../src/data/go-independent-knowledge.js'
+import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
-import { hasConnectorBeta } from './_lib/feature-flags.js'
+import { hasConnectorBeta, hasPipelineCapture } from './_lib/feature-flags.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
@@ -73,6 +74,21 @@ function isAllowedOrigin(rawOrigin) {
 // interview-team trailer is. The model already sees current VALUES / PASSIONS AND
 // CAUSES in ANCHOR 1, so it knows whether it is filling a blank or replacing.
 const INTERVIEW_TEAM_CAPTURE_NOTE = '\n\nINTERVIEW TEAM CAPTURE: when this person names one or more specific people they will be interviewing with for one of their opportunities, end your reply with a final line exactly like INTERVIEWTEAM: {"opportunity":"<the opportunity title from their saved work>","people":[{"name":"Full Name","title":"their title if stated","role":"one of hiring_manager|skip_level|peer|cross_functional|recruiter_screen ONLY if they said how this person fits the loop, else omit role"}]} listing only the people they explicitly named. Map what they said to the role: "she is a peer" -> peer, "the hiring manager" -> hiring_manager, "recruiter screen" -> recruiter_screen, "her skip-level" -> skip_level, "a cross-functional partner" -> cross_functional. If they did not say how the person fits, omit role. The app turns that line into a one-tap "add to your Interview Team" offer and never shows it. Only emit it when they clearly named interviewers; otherwise omit it entirely.'
+
+// NEXT MOVE CAPTURE (pilot, gated on PIPELINE_CAPTURE_FLAG). Fourth instance of
+// the pattern INTERVIEW_TEAM_CAPTURE_NOTE and VALUES_CAPTURE_NOTE already use:
+// the model ends its reply with a hidden line, the server validates it onto a
+// response header, the client shows the exact wording and the resolved date,
+// and the person taps. The model still never writes.
+//
+// Model-emitted rather than regex-triggered on purpose. The stage detector in
+// src/components/Chat.jsx (STAGE_MENTION_RE) needs stage vocabulary, so it
+// catches no part of "I'm calling Theresa on the 14th" -- and no regex resolves
+// "next Thursday" against today's date, which the model does from TODAY'S DATE
+// already in this prompt. The field is called "Next move" on the card, so the
+// instruction and the offer say next move, not next step: "Your Next Step" is
+// the name of a different surface.
+const NEXT_MOVE_CAPTURE_NOTE = '\n\nNEXT MOVE CAPTURE: every opportunity on My Pipeline has a "Next move" -- what this person is doing next on it, in their own words, with a date. When they tell you an action THEY have decided to take on one of their opportunities (a call they are making, a follow-up they are sending, someone they are reaching out to, something they will prepare), end your reply with a final line exactly like NEXTMOVE: {"opportunity":"<the opportunity title from their saved work>","move":"Call Theresa","date":"2026-09-14"} . `move` is a short imperative phrase in their own words, under 80 characters, never a sentence and never your paraphrase of their reasoning. `date` is YYYY-MM-DD resolved against TODAY\'S DATE above -- "next Thursday", "the 14th" and "a week from Tuesday" all resolve to a real date; omit the key entirely if they gave no timing, and never invent one. Include `opportunity` only when it is clear which one they mean. Emit it ONLY for an action they have actually decided on: not for something you suggested that they have not agreed to, not for a meeting the employer is scheduling (that is not their move), and not to restate a next move they already have. The app turns that line into a one-tap offer showing the exact wording and date before anything is saved, and never shows the line itself -- so do not mention it, and do not tell them to go and type it in. At most once per reply; otherwise omit it entirely.'
 
 const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passions & Causes live on a screen in Reimagine called "Values, Passions & Causes", and you can offer to write them there. When a conversation has settled into a statement of their values or their passions and causes that they seem happy with — their words and their conclusions, not a list you proposed and they have not responded to — end your reply with a final line exactly like VALUESCAPTURE: {"values":"Independence; Creative problem solving; Belonging","passions":"Youth mentoring; Faith-based service"} carrying whichever of the two you have. Include a key ONLY for a field the conversation actually settled; omit the other entirely. Write each as a short semicolon-separated list in their own words, not a paragraph and not your paraphrase. If ANCHOR 1 shows a field already has content, only emit it when they have clearly landed somewhere new — the tap replaces what is there. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
 
@@ -377,10 +393,15 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // The connector half (Gmail/Calendar keeping it current unattended) is still a
   // named beta, so the Coach is told about it separately, only for those users.
   const myStatusData = buildPursuitStatusBlock(state, pursuitRows)
+  // Pilot: only a flagged account is told it may propose a next move. A
+  // non-flagged account never receives the instruction, so the parser below
+  // simply never fires for them -- the same no-op the interview-team capture
+  // relies on.
+  const nextMoveNote = hasPipelineCapture({ feature_flags: featureFlags }) ? NEXT_MOVE_CAPTURE_NOTE : ''
   const connectorNote = hasConnectorBeta({ feature_flags: featureFlags })
     ? '\n\nASSISTANT CONNECTOR (this person has it; it is a limited beta most users do not have — never imply it is generally available): they can connect their own assistant to Gmail and Calendar so their pipeline keeps itself current without them typing anything. Reimagine never reads their inbox. Mention it only if it fits what they are asking; do not pitch it.'
     : ''
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${nextMoveNote}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -839,6 +860,14 @@ On money, tax, entity structure, insurance, and retirement accounts specifically
 
 ${GO_INDEPENDENT_KNOWLEDGE}`
     : null
+  // Pilot knowledge, partitioned by audience the same way. Held out of
+  // ORDER.json on purpose (see src/data/pipeline-capture-knowledge.js): a
+  // chapter there would describe the capture to every account, and almost none
+  // of them have it. Its own cached block, so a flagged account does not fork
+  // the prefix everyone else shares.
+  const pipelineCaptureBlock = (!generalMode && hasPipelineCapture({ feature_flags: featureFlags }))
+    ? PIPELINE_CAPTURE_KNOWLEDGE
+    : null
   let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake)
   // Anchor today's date. The coach is otherwise never told the current date, so
   // any past/future or elapsed-time reasoning it does itself is unanchored
@@ -930,6 +959,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
         system: [
           { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
           ...(goIndependentBlock ? [{ type: 'text', text: goIndependentBlock, cache_control: { type: 'ephemeral' } }] : []),
+          ...(pipelineCaptureBlock ? [{ type: 'text', text: pipelineCaptureBlock, cache_control: { type: 'ephemeral' } }] : []),
           { type: 'text', text: profileBlock },
         ],
         messages: msgs,
@@ -1059,6 +1089,38 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
       }
     } catch { /* malformed — drop the line, no offer */ }
   }
+  // Next-move capture: the model may end with a NEXTMOVE: {json} line carrying an
+  // action the person said they will take on an opportunity. Strip it and ship it
+  // on a response header; the client shows the exact wording and the resolved date
+  // and offers a one-tap save that writes through the same PUT the card editor
+  // uses. The date is validated here, not trusted: a value outside a sane window
+  // is dropped rather than offered, so a model slip cannot put "overdue by 9,131
+  // days" on a card (the wrong-year failure api/pursuit-status.js parseTs guards,
+  // applied before the offer instead of after the tap).
+  let nextMoveB64 = null
+  const nmMatch = strippedText.match(/^\s*NEXTMOVE:\s*(\{[\s\S]*?\})\s*$/im)
+  if (nmMatch) {
+    strippedText = strippedText.replace(nmMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(nmMatch[1])
+      const move = typeof (parsed && parsed.move) === 'string' ? parsed.move.trim().slice(0, 200) : ''
+      let date = ''
+      const raw = typeof (parsed && parsed.date) === 'string' ? parsed.date.trim() : ''
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        // Midday UTC so the calendar date cannot slip a day either way.
+        const d = new Date(`${raw}T12:00:00Z`)
+        const days = (d.getTime() - Date.now()) / 86400000
+        if (!Number.isNaN(d.getTime()) && days > -400 && days < 1900) date = raw
+      }
+      if (move) {
+        nextMoveB64 = Buffer.from(JSON.stringify({
+          opportunity: String((parsed && parsed.opportunity) || '').slice(0, 200),
+          move,
+          date,
+        })).toString('base64')
+      }
+    } catch { /* malformed — drop the line, no offer */ }
+  }
   // Search intake: the model may end with a SEARCHINTAKE: {json} line when the
   // person has just given a real answer to one of the two intake questions. Strip
   // it, ship it on a header; the client turns it into a one-tap save. No line
@@ -1106,6 +1168,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   if (rowId) res.setHeader('X-Coach-Message-Id', String(rowId))
   if (interviewersB64) res.setHeader('X-Coach-Interviewers', interviewersB64)
   if (valuesB64) res.setHeader('X-Coach-Values', valuesB64)
+  if (nextMoveB64) res.setHeader('X-Coach-Next-Move', nextMoveB64)
   if (searchIntakeB64) res.setHeader('X-Coach-Search-Intake', searchIntakeB64)
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.setHeader('Cache-Control', 'no-cache')

@@ -100,14 +100,24 @@ export default function AdminDashboard() {
   // underlying flag value is still `my_search` (see api/_lib/feature-flags.js);
   // only its meaning narrowed. Testers are already registered, so this is a
   // direct grant/revoke by email.
+  // Which pilot the panel grants. The server owns the list (GRANTABLE_FLAGS in
+  // api/_lib/feature-flags.js) and returns it on the GET, so the picker cannot
+  // drift from what the server will actually accept. Default is the connector
+  // beta, which is what this panel granted when it served one pilot.
+  const [pipelineFlag, setPipelineFlag] = useState("my_search")
+  const [flagOptions, setFlagOptions] = useState({ my_search: { label: "Assistant connector" } })
   const [pipelineEmail, setPipelineEmail] = useState("")
   const [pipelineBusy, setPipelineBusy] = useState(false)
   const [pipelineMsg, setPipelineMsg] = useState("")
   const [testers, setTesters] = useState([])
-  const fetchTesters = useCallback(async (tok) => {
+  const fetchTesters = useCallback(async (tok, flag) => {
     try {
-      const res = await fetch("/api/admin/pipeline-access", { headers: { Authorization: `Bearer ${tok}` } })
-      if (res.ok) { const d = await res.json(); setTesters(Array.isArray(d.testers) ? d.testers : []) }
+      const res = await fetch(`/api/admin/pipeline-access?flag=${encodeURIComponent(flag)}`, { headers: { Authorization: `Bearer ${tok}` } })
+      if (res.ok) {
+        const d = await res.json()
+        setTesters(Array.isArray(d.testers) ? d.testers : [])
+        if (d.flags && typeof d.flags === "object") setFlagOptions(d.flags)
+      }
     } catch { /* leave the list as-is */ }
   }, [])
   const doPipeline = async (action) => {
@@ -118,13 +128,14 @@ export default function AdminDashboard() {
       const res = await fetch("/api/admin/pipeline-access", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ email, action }),
+        body: JSON.stringify({ email, action, flag: pipelineFlag }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) { setPipelineMsg(data.error || `Failed (HTTP ${res.status})`); return }
-      setPipelineMsg(data.enabled ? `Granted My Pipeline to ${data.email}.` : `Revoked My Pipeline from ${data.email}.`)
+      const what = (flagOptions[data.flag] && flagOptions[data.flag].label) || data.flag || pipelineFlag
+      setPipelineMsg(data.enabled ? `Granted ${what} to ${data.email}.` : `Revoked ${what} from ${data.email}.`)
       setPipelineEmail("")
-      fetchTesters(token)
+      fetchTesters(token, pipelineFlag)
     } catch { setPipelineMsg("Network error. Try again.") }
     finally { setPipelineBusy(false) }
   }
@@ -200,7 +211,7 @@ export default function AdminDashboard() {
   // On mount, if a token is present, attempt the fetch. Intentionally runs
   // once; range/token changes are driven explicitly via pickRange/refresh.
   useEffect(() => { if (token) fetchData(token, range) }, [])
-  useEffect(() => { if (authed && token) fetchTesters(token) }, [authed, token, fetchTesters])
+  useEffect(() => { if (authed && token) fetchTesters(token, pipelineFlag) }, [authed, token, pipelineFlag, fetchTesters])
   useEffect(() => { if (authed && token) fetchTrackMembers(token) }, [authed, token, fetchTrackMembers])
 
   const pickRange = (r) => {
@@ -372,11 +383,15 @@ export default function AdminDashboard() {
             {suspendMsg && <div style={{ fontSize: 14, color: "#1A2540", marginTop: 10 }}>{suspendMsg}</div>}
           </Panel>
 
-          {/* Connector beta access: grant / revoke by email */}
-          <Panel title={`Assistant connector access (${testers.length})`}>
+          {/* Pilot access: grant / revoke any registered flag, by email */}
+          <Panel title={`Pilot access — ${(flagOptions[pipelineFlag] && flagOptions[pipelineFlag].label) || pipelineFlag} (${testers.length})`}>
             <div style={{ fontSize: 14, color: "#4A5568", lineHeight: 1.5, marginBottom: 10 }}>
-              Grant or revoke the assistant-connector beta for a registered user by email — letting their own Claude keep their pipeline current from Gmail and Calendar. My Pipeline itself is generally available and needs no grant. Takes effect on their next page load.
+              Grant or revoke a gated pilot for a registered user by email. Bob goes first on every pilot; add anyone else only after he has checked it on production. Takes effect on their next page load.
             </div>
+            <select value={pipelineFlag} onChange={(e) => { setPipelineFlag(e.target.value); setPipelineMsg("") }}
+              style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", fontSize: 15, border: "1px solid #E2E5EA", borderRadius: 8, marginBottom: 10, fontFamily: "inherit", background: "#fff", color: "#1A2540" }}>
+              {Object.keys(flagOptions).map((f) => <option key={f} value={f}>{(flagOptions[f] && flagOptions[f].label) || f}</option>)}
+            </select>
             <input value={pipelineEmail} onChange={(e) => setPipelineEmail(e.target.value)} placeholder="user@example.com"
               style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", fontSize: 15, border: "1px solid #E2E5EA", borderRadius: 8, marginBottom: 10, fontFamily: "inherit" }} />
             <div style={{ display: "flex", gap: 8 }}>
