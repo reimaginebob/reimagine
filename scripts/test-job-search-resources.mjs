@@ -92,12 +92,12 @@ t('a one-word leader does not collapse anything', splitResources([
 const TALK = normalizeResource({
   name: 'TALK Talent', kind: 'career network', cost: 'invite-only',
   howYouTakePart: '80 local chapters across North America, plus an online platform',
-  forPeopleInTransition: true, url: 'https://www.talktalent.com/', confidence: 'high',
+  forPeopleInTransition: true, fitsProfession: true, url: 'https://www.talktalent.com/', confidence: 'high',
 })
 const PAID_BOARD = normalizeResource({
   name: 'i4cp Talent Acquisition Board', kind: 'gated peer group', cost: 'dues',
   howYouTakePart: 'Six meetings a year, two in person',
-  forPeopleInTransition: false, url: 'https://www.i4cp.com/groups/talent-acquisition-board', confidence: 'high',
+  forPeopleInTransition: false, fitsProfession: true, url: 'https://www.i4cp.com/groups/talent-acquisition-board', confidence: 'high',
 })
 const CONFERENCE = normalizeResource({
   name: 'A large annual summit', kind: 'professional body', cost: 'ticketed',
@@ -110,14 +110,47 @@ const ranked = rankResources([CONFERENCE, PAID_BOARD, TALK])
 eq('TALK sorts to the top however it arrives', ranked[0].name, 'TALK Talent')
 t('invite-only is not a demotion when it is free of charge', resourceScore(TALK) > 0)
 
-// A free local job-search group should beat a paid professional body — the
-// Kenton County case.
+// A free local job-search group beats a paid body that does NOT serve this
+// person's profession — the Kenton County case. Where the paid body IS their
+// field's association, the SHRM case below reverses this, and that is the point:
+// fit decides, cost breaks ties.
 const NKYAG = normalizeResource({
   name: 'NKY Accountability Group', kind: 'library program', cost: 'free',
   howYouTakePart: 'Meets weekly, in person and virtually', forPeopleInTransition: true,
   url: 'https://www.kentonlibrary.org/nkyag/', confidence: 'high',
 })
-t('a free library program outranks a dues-paying body', resourceScore(NKYAG) > resourceScore(PAID_BOARD))
+t('a free library program outranks a dues-paying body that does not fit their field', resourceScore(NKYAG) > resourceScore({ ...PAID_BOARD, fitsProfession: false }))
+
+// ── Fit outranks cost: the SHRM case ────────────────────────────────────────
+// Bob, 2026-09-01, on a Chicago list for a CHRO candidate: an HR person should
+// always get SHRM and their local chapters, those cost money, and the cost must
+// not override the appropriateness. Cost used to be worth nearly as much as fit
+// in the score, which put every free general service above every professional
+// body and produced exactly the list he was looking at.
+const SHRM_CHAPTER = normalizeResource({
+  name: 'Chicago SHRM', kind: 'professional body', cost: 'dues',
+  howYouTakePart: 'Local chapter, meets monthly in person', forPeopleInTransition: false,
+  fitsProfession: true, url: 'https://www.chicagoshrm.org/', confidence: 'high',
+})
+const LIBRARY_CLINIC = normalizeResource({
+  name: 'Skokie Public Library Career Support Group', kind: 'library program', cost: 'free',
+  howYouTakePart: 'Drop-in, monthly', forPeopleInTransition: true,
+  fitsProfession: false, url: 'https://skokielibrary.info/', confidence: 'high',
+})
+t('a dues-paying professional body outranks a free general service', resourceScore(SHRM_CHAPTER) > resourceScore(LIBRARY_CLINIC))
+eq('and sorts above it', rankResources([LIBRARY_CLINIC, SHRM_CHAPTER])[0].name, 'Chicago SHRM')
+// The free general service still belongs on the list — it is demoted, not dropped.
+eq('the free service is kept, not discarded', rankResources([LIBRARY_CLINIC, SHRM_CHAPTER]).length, 2)
+// Between two equally fitting bodies, free still wins.
+const SHRM_FREE = normalizeResource({ ...SHRM_CHAPTER, cost: 'free' })
+t('cost still breaks a tie between comparable rows', resourceScore(SHRM_FREE) > resourceScore(SHRM_CHAPTER))
+// Several chapters in one metro is normal and must survive the repeat guard.
+const chapters = splitResources([
+  { name: 'Chicago SHRM', url: 'https://a.org' },
+  { name: 'Fox Valley SHRM', url: 'https://b.org' },
+  { name: 'West Suburban SHRM', url: 'https://c.org' },
+])
+eq('multiple local chapters all survive', chapters.rows.length, 3)
 
 // ── City display ────────────────────────────────────────────────────────────
 // The city is free text and lands in a heading, so a lowercase entry must not

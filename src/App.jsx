@@ -1978,9 +1978,14 @@ async function findRecruiterMatches(criteria){
 const JOB_RESOURCES_PROMPT=(loc)=>`Find real, currently-running places a professional in career transition can get FREE or low-cost help and community near a specific place. Search the web and use only first-party sources — the organization's own site, not a listicle about it.
 
 WHERE THEY ARE: ${[loc.city,loc.region,loc.country].filter(Boolean).join(', ')||'(not given — return national and online options only)'}
+${loc.background?`\nWHAT THEY DO (from their resume \u2014 work out their profession and their level from this):\n${loc.background}`:''}
 ${loc.work?`HOW THEY WORK: ${loc.work}. If they work fully remotely, weight online and national options higher; a weekly meeting 40 minutes away matters less to them.`:''}
 
-WHAT TO LOOK FOR, in this order of usefulness to someone out of work:
+START WITH THEIR OWN PROFESSION'S BODY, AND ITS LOCAL CHAPTERS. Whatever field they are in has one, and it belongs at the top of this list: for someone in HR that is SHRM and the SHRM chapter or chapters near them; every field has its equivalent. Where a metro has SEVERAL local chapters, return them all \u2014 that is normal and useful, not a duplicate.
+
+COST DOES NOT DECIDE THIS. A professional body that charges dues is still the right answer for someone in that profession, and it outranks a free general service that was not built for them. State what it costs and let them decide. Never leave their field's association out because it is not free.
+
+THEN THE FREE LOCAL HELP, which is worth real money to someone out of work:
 - Public library job-seeker programs and job-search accountability groups.
 - All-volunteer community job-search groups that meet on a regular schedule.
 - Public workforce services — the American Job Center / state workforce system for this area.
@@ -1988,6 +1993,8 @@ WHAT TO LOOK FOR, in this order of usefulness to someone out of work:
 - Community college or university career services open to people who are not students.
 - Outplacement providers that run open group programming.
 - Local chapters of professional bodies that run a specific job-transition or careers-in-transition group (a professional association operating a transition group is a legitimate result here).
+
+SET fitsProfession TRUE only when the organization serves THEIR profession specifically \u2014 their field's association, its local chapter, a network for people who do their kind of work. A library, a workforce centre or a general job-search group serves everybody, so it is false there, however good it is.
 
 ONE ROW PER ORGANIZATION. If a library or a college runs three programs, return it ONCE and describe what it offers in a single line. Three rows for the same library reads as a padded list and crowds out the places they have not heard of.
 
@@ -2005,7 +2012,7 @@ HONESTY RULES (load-bearing):
 
 Output JSON only, no preamble:
 {"searched":"<the place you actually searched>","resources":[
-  {"name":"<organization>","kind":"career network|job-search group|professional body|public workforce|library program|faith-based network|local meetup|online community|gated peer group|outplacement","howYouTakePart":"<e.g. 'Meets weekly in person, and virtually for those out of the area'>","cost":"free|dues|invite-only|ticketed|unknown","costNote":"<what it actually costs, plainly, or empty>","forPeopleInTransition":true or false,"whyThisFits":"<one plain sentence>","url":"<their own page>","eventsUrl":"<their own events or programs page, or empty>","sourceUrl":"<the page that establishes what you are claiming, or empty if it is the same as url>","confidence":"high|medium|low"}
+  {"name":"<organization>","kind":"career network|job-search group|professional body|public workforce|library program|faith-based network|local meetup|online community|gated peer group|outplacement","howYouTakePart":"<e.g. 'Meets weekly in person, and virtually for those out of the area'>","cost":"free|dues|invite-only|ticketed|unknown","costNote":"<what it actually costs, plainly, or empty>","forPeopleInTransition":true or false,"fitsProfession":true or false,"whyThisFits":"<one plain sentence>","url":"<their own page>","eventsUrl":"<their own events or programs page, or empty>","sourceUrl":"<the page that establishes what you are claiming, or empty if it is the same as url>","confidence":"high|medium|low"}
 ]}
 Return at most ${loc.limit||8}. The cap is a ceiling, never a target.`
 // One candidate, one cheap check. Confirms the organization is still running and
@@ -2088,7 +2095,11 @@ async function findJobResources(loc){
 // This also repairs the geography assumption generally: a fully remote worker
 // and someone planning to relocate both break the city anchor, and with half the
 // search never using geography those cases degrade instead of coming back empty.
-const GROUPS_SHARED_RULES=`ONE ROW PER ORGANIZATION. If a body runs several programmes, return it once and say what it offers in a line. Repeats read as padding and crowd out what they have not heard of.
+const GROUPS_SHARED_RULES=`COST DOES NOT DECIDE THIS. A body that charges dues is still the right answer when it is the one for this person's field, and it outranks a free general group that was not built for them. State the cost and let them decide.
+
+SET fitsProfession TRUE when the organization serves this function or industry specifically, and false when it serves professionals generally.
+
+ONE ROW PER ORGANIZATION. If a body runs several programmes, return it once and say what it offers in a line. Repeats read as padding and crowd out what they have not heard of.
 
 KEEP THE SHORT FIELDS SHORT. howYouTakePart is a phrase, not a paragraph: how you take part and how often, under about fifteen words. costNote is for what the cost label does not already say, so leave it EMPTY when a thing is simply free and use it only for a condition, a figure, or a limit.
 
@@ -2102,7 +2113,7 @@ HONESTY RULES (load-bearing):
 - A short correct list is the right answer. Do NOT pad toward the cap. Three you can stand behind beats eight you cannot.`
 const GROUPS_JSON_SHAPE=(limit)=>`Output JSON only, no preamble:
 {"resources":[
-  {"name":"<organization>","kind":"career network|job-search group|professional body|local meetup|online community|gated peer group","howYouTakePart":"<e.g. 'Local chapters that meet in person' or 'National, with virtual programming' or 'Online community'>","cost":"free|dues|invite-only|ticketed|unknown","costNote":"<what it costs, plainly, or empty>","forPeopleInTransition":true or false,"whyThisFits":"<one plain sentence on why it fits THIS direction>","url":"<their own page>","eventsUrl":"<their own events or chapters page, or empty>","sourceUrl":"<the page establishing the fit, or empty if it is the same as url>","confidence":"high|medium|low"}
+  {"name":"<organization>","kind":"career network|job-search group|professional body|local meetup|online community|gated peer group","howYouTakePart":"<e.g. 'Local chapters that meet in person' or 'National, with virtual programming' or 'Online community'>","cost":"free|dues|invite-only|ticketed|unknown","costNote":"<what it costs, plainly, or empty>","forPeopleInTransition":true or false,"fitsProfession":true or false,"whyThisFits":"<one plain sentence on why it fits THIS direction>","url":"<their own page>","eventsUrl":"<their own events or chapters page, or empty>","sourceUrl":"<the page establishing the fit, or empty if it is the same as url>","confidence":"high|medium|low"}
 ]}
 Return at most ${limit}. The cap is a ceiling, never a target.`
 // PLACED: function + industry + seniority + city. Local chapters, regional
@@ -11366,6 +11377,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         country:(profile.loc&&profile.loc.country||'').trim(),
         region:'',
         work:Array.isArray(profile.loc&&profile.loc.work)?profile.loc.work.filter(Boolean).join(' or '):((profile.loc&&profile.loc.work)||''),
+        // Enough resume to work out the profession and the level. The screen
+        // asks for no direction on purpose, but "free help near you" is not the
+        // same answer for a CHRO as for someone leaving their first job, and the
+        // resume is already here. Head of the resume only: the summary and the
+        // current role, which is where the title and the level live.
+        background:String(profile.resume||'').trim().slice(0,1200),
       }
       const res=await findJobResources(loc)
       const next={rows:res.rows||[],uncited:res.uncited||[],savedAt:new Date().toISOString()}
@@ -13057,6 +13074,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {id:'p_res',label:NAV_LABELS.p_res,load:'Rewriting your resume for this direction…'},
         {id:'p8',label:NAV_LABELS.p8,load:'Drafting your LinkedIn updates…'},
         {id:'p7',label:NAV_LABELS.p7,load:'Researching companies and building outreach…'},
+        {id:'groups',label:NAV_LABELS.groups,load:'Finding where this profession gathers…'},
         {id:'recruiters',label:NAV_LABELS.recruiters,load:'Finding recruiters who specialize in this path…'},
         {id:'income',label:NAV_LABELS.income,load:'Building your Income Now plan…'},
       ])
@@ -13369,19 +13387,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {/* Recruiters place candidates into roles. Nobody on the practice
                 track is looking to be placed, so the card is not offered. */}
             {!isDemo&&!isIndependent&&<div>
-              <section style={{marginTop:32}}>
-                <h2 id="section-recruiters" style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8,scrollMarginTop:80}}>Recruiters for This Path</h2>
-                <RecruitersCard
-                  data={(savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')||{}).recruiters}
-                  busy={recruitersBuilding}
-                  chosen={chosen}
-                  onGenerate={generateRecruiters}
-                  onMore={moreRecruiters}
-                  onEditCriteria={editRecruiters}
-                  onCopy={copy}
-                  copied={copied}
-                />
-              </section>
               {/* Groups for This Path — the recruiter card's opposite number. A
                   recruiter places people INTO the role; this is the profession
                   itself, and it is where someone goes when no recruiter has a
@@ -13395,6 +13400,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   onGenerate={()=>buildPathGroups()}
                   onMore={(f)=>buildPathGroups({more:true,focus:(typeof f==='string'?f:'').trim()})}
                   onEditCriteria={(criteria)=>buildPathGroups({criteriaOverride:criteria})}
+                />
+              </section>
+              <section style={{marginTop:32}}>
+                <h2 id="section-recruiters" style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8,scrollMarginTop:80}}>Recruiters for This Path</h2>
+                <RecruitersCard
+                  data={(savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')||{}).recruiters}
+                  busy={recruitersBuilding}
+                  chosen={chosen}
+                  onGenerate={generateRecruiters}
+                  onMore={moreRecruiters}
+                  onEditCriteria={editRecruiters}
+                  onCopy={copy}
+                  copied={copied}
                 />
               </section>
             </div>}
