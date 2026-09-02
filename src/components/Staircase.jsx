@@ -23,6 +23,7 @@
 //    shape, and nobody is asked to look at it today.
 import React from 'react'
 import { useIsMobile } from '../use-is-mobile.js'
+import { KEEL_PRINCIPLES } from '../step-position.js'
 
 // Bob's slide, word for word.
 const SECTIONS = [
@@ -122,9 +123,18 @@ export default function Staircase({ step, keelLetter, keelGloss, stalled, positi
                   ))}
                 </div>
               )}
+              {/* The one label that answers the question the screen exists to
+                  answer, so it cannot be the same colour as everything else.
+                  It was gold text on a gold tint on a warm screen and read as
+                  more of the same. Solid navy is the actual contrast here --
+                  a marker rather than another line of copy. */}
               {isHere && (
-                <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '1.4px', color: C.goldL, margin: '10px 0 0', padding: isMobile ? 0 : '0 12px' }}>
-                  YOU ARE HERE
+                <div style={{ margin: '10px 0 0', padding: isMobile ? 0 : '0 12px' }}>
+                  <span style={{
+                    display: 'inline-block', background: '#1A2540', color: '#FFFFFF',
+                    fontSize: 15, fontWeight: 800, letterSpacing: '1.4px',
+                    padding: '5px 10px', borderRadius: 6, lineHeight: 1.2,
+                  }}>YOU ARE HERE</span>
                 </div>
               )}
             </div>
@@ -132,20 +142,61 @@ export default function Staircase({ step, keelLetter, keelGloss, stalled, positi
         })}
       </div>
 
-      {/* The keel, drawn where Part One of the book says it belongs: under the
-          whole thing, not as a stage anyone stands on. When the search has gone
-          quiet this band is what comes forward — the arrow keeps its stair. */}
+      {/* THE KEEL BAND, and it has to teach itself.
+          Almost nobody who lands on this screen has read the book, so opening
+          on "KEEL" is opening in a code they do not speak -- a brand word where
+          a plain one was needed. It now says what a keel IS before it says what
+          the letters stand for, and spends the width it was already occupying
+          on the four principles rather than one line and a lot of empty space.
+
+          Bob's own wording for the letters, from Lesson 1. The sailboat image is
+          his too, rephrased: the book's line uses the negative-parallel cadence
+          the product strips from its own output, so it is put plainly here
+          rather than quoted into UI copy. */}
       <div style={{
-        display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap',
         background: `${C.gold}12`, borderLeft: `3px solid ${C.gold}`, borderRadius: 8,
-        padding: '12px 16px', marginTop: 14,
+        padding: isMobile ? '16px 16px' : '18px 22px', marginTop: 14,
       }}>
-        <span style={{ fontFamily: 'Georgia,serif', fontSize: 19, fontWeight: 700, color: C.goldL, letterSpacing: '3px' }}>KEEL</span>
-        <span style={{ fontSize: 16, color: C.grayL, lineHeight: 1.55, textWrap: 'pretty' }}>
-          The keel that runs under the entire journey.
-          {keelLetter ? <> Right now: <strong style={{ color: C.cream }}>{keelLetter} &mdash; {keelGloss}</strong>.</> : null}
-          {stalled ? ' The stairs hold; this is the part that carries a quiet stretch.' : ''}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
+          <span style={{ fontFamily: 'Georgia,serif', fontSize: 19, fontWeight: 700, color: C.goldL, letterSpacing: '3px' }}>KEEL</span>
+          <span style={{ fontSize: 16, color: C.grayL, lineHeight: 1.55, textWrap: 'pretty', flex: 1, minWidth: 260 }}>
+            A keel is the weighted fin under a sailboat. It runs the whole length of the hull, and it is what keeps the boat steady when the wind picks up. Four things worth carrying the whole way:
+          </span>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, minmax(0, 1fr))',
+          gap: isMobile ? 10 : 16, marginTop: 14,
+        }}>
+          {KEEL_PRINCIPLES.map(k => {
+            // The letter this stair leans on hardest comes forward. The other
+            // three stay legible rather than dimming out -- all four are
+            // carried the whole way, and greying three of them would say the
+            // opposite of what the section means.
+            const live = keelLetter === k.letter && (k.gloss === keelGloss || !keelGloss)
+            return (
+              <div key={k.gloss} style={{
+                background: live ? `${C.gold}22` : 'transparent',
+                border: `1px solid ${live ? C.gold : `${C.gold}33`}`,
+                borderRadius: 8, padding: '10px 12px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <span style={{ fontFamily: 'Georgia,serif', fontSize: 20, fontWeight: 700, color: C.goldL }}>{k.letter}</span>
+                  <span style={{ fontSize: 15, color: C.cream, lineHeight: 1.4, fontWeight: live ? 700 : 500, textWrap: 'pretty' }}>{k.gloss}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {(keelLetter || stalled) && (
+          <p style={{ fontSize: 15, color: C.grayL, lineHeight: 1.55, margin: '14px 0 0', textWrap: 'pretty' }}>
+            {stalled
+              ? 'A quiet stretch is the part of a search this carries you through. Your position has not moved backwards.'
+              : `The one to lean on where you are standing today is highlighted.`}
+          </p>
+        )}
       </div>
     </div>
   )
