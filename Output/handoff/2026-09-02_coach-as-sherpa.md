@@ -42,6 +42,8 @@ What she wants, what she has already done, what she is willing to do — ask, be
 
 One thing survives from the caution, and it is not deference: **never ask for something she has already given us.** A doctor who re-asks the intake questions every visit has not read the chart. That is the same failure as the Coach asking who Marisol was while she sat on the panel with her role filled in.
 
+**And its flip side, which stops that rule rotting into silence.** Never asking for what is on file is not the same as never asking what has changed. The record goes stale the moment she puts the phone down, and nothing in Reimagine can know that except by asking. Absence in the product is not absence in her life — it usually means nobody has done the filing. So the Coach asks what is new, and then **does the filing itself**. She should never have to go and type an update into a form; she tells her assistant and it is handled.
+
 ---
 
 ## Pre-flight discovery
@@ -77,7 +79,7 @@ Report by section **name**, never as a count or a fraction. Three sections of te
 
 **1b. The activity catalog.** A single back-end list of the moves a person can make, in the product and outside it, extending the `reach` distinction `FEATURE_MAP` already carries. In-app entries resolve their state from the record (Recruiters is built or it is not). Off-product entries are the new half and the more valuable one: joined a networking group, been to Career Club Corner, has an accountability partner, explored local job-search resources, written directly to a target company, asked anyone for an introduction.
 
-Store what we learn, **including a no**. "She told us she does not want an accountability partner" is a fact worth keeping — it is precisely what stops the Coach asking a fourth time. Distinguish it from "we have never discussed this," which is not a deficit and is never counted, reported, or totalled.
+Store what we learn, **including a no**. "She told us she does not want an accountability partner" is a fact worth keeping — it is precisely what stops the Coach asking a fourth time. Distinguish it from "we have never discussed this," which is not a deficit and is never counted, reported, or totalled — but which **is** a prompt to ask when the moment fits. Unknown is a question waiting to be asked, never an assumption that it has not happened.
 
 New migration, forward-only and idempotent, following the `search_going_well` precedent: the fact, its state, when it was learned, and how (observed from a record, said in conversation, or answered when asked).
 
@@ -117,7 +119,13 @@ Dependency order is real information and should be carried, not invented at rend
 
 **3e. She holds the dial.** Occasionally, after a nudge that mattered, the Coach offers her the control: **more of this, or should I ease off?** Phrase it as a control, never as a grade — "was that helpful?" asks her to judge us and she will be generous, where declining a preference costs nothing and gets a straight answer. It sticks as a setting she owns and can turn back up. Behaviour informs it too, and costs her nothing: whether she walked through the door, whether she came back, whether the third mention went the way of the first two.
 
-**3f. Log the outcome as a product signal.** One person saying "ease off" is a setting. Everyone declining the same nudge means the nudge is wrong, or the thing behind it is. The Coach already logs a silent per-turn signal; this rides the same plumbing.
+**3f. The Coach does her admin, and asks for the work.** Three capture notes exist today — interview team, pipeline, values — and every one of them is opportunistic and capped at once per reply, handling a single record. Someone who says "I met Deloitte Tuesday, they are moving me to a panel on the 19th, and Imerys came back with a number" loses most of it. Two changes:
+
+*Invite the update.* At a moment that warrants it, the Coach asks plainly: anything moved on your opportunities? New dates, new people, how a conversation went — tell me and I will put it on the cards. The strongest trigger for that question already exists and is already computed: `buildPursuitStatusBlock` reports "last met N days ago, nothing booked since" whenever a meeting date has passed. She had that conversation and something came of it; the product knows the meeting was on the calendar and nothing about how it went. Ask then, not on a schedule.
+
+*Take the whole dictation.* One capture that carries several updates across several opportunities in one turn — dates, stage changes, interview team members, what was said — rather than three narrow notes competing for one slot. The one-tap contract does not change: the model still never writes, the offer still shows exactly what will be saved, and the Coach still never claims a save it has not made. What changes is that a brain dump lands whole instead of being trimmed to its first item.
+
+**3g. Log the outcome as a product signal.** One person saying "ease off" is a setting. Everyone declining the same nudge means the nudge is wrong, or the thing behind it is. The Coach already logs a silent per-turn signal; this rides the same plumbing.
 
 ---
 
