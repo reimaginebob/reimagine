@@ -1,3 +1,5 @@
+import { KEEL_PRINCIPLES } from '../step-position.js'
+
 // What each thing on the staircase actually means, and what Reimagine gives you
 // for it.
 //
@@ -31,10 +33,33 @@
 // when it lives inside something else. `needs` is what has to exist first:
 // 'direction' (a chosen direction), 'opportunity' (a live one), or null for
 // always open.
+//
+// `bullets` is optional and only KEEL carries it today. An acrostic read as
+// prose stops being an acrostic: run the four principles together in a
+// paragraph and the K-E-E-L going down the left is gone, which is the entire
+// reason the mnemonic exists. A renderer MUST set these as a list with the
+// letter leading each row, never fold them back into the `what` text.
+//
+// The four come from KEEL_PRINCIPLES rather than being retyped, so this
+// explainer and the KEEL band on the screen itself cannot name them
+// differently. KEEL_DETAIL pairs to it BY INDEX; the length assertion below is
+// there because a fifth principle or a reordering would otherwise silently
+// attach the wrong sentence to the wrong letter.
+const KEEL_DETAIL = [
+  'One yes ends the search. You are looking for that one.',
+  'Expecting the swings takes most of their power away.',
+  'It changes what you get back.',
+  'Even bitterness you are entitled to is working against you.',
+]
+if (KEEL_DETAIL.length !== KEEL_PRINCIPLES.length) {
+  throw new Error('KEEL_DETAIL must stay index-aligned with KEEL_PRINCIPLES')
+}
+
 export const STAIRCASE_EXPLAINERS = {
   KEEL: {
     title: 'KEEL',
-    what: 'A keel is the weighted fin under a sailboat. It runs the length of the hull and it is what keeps the boat steady when the wind gets up. Your attitude does the same job here, and it is carried the whole way rather than sorted out at the start.\n\nFour things to come back to on a hard day. Know you will find another job — not hope, know; you need one yes, not a hundred. Emotional ups and downs are natural, and expecting them takes away most of their power. Expect the best from yourself and others. Let the past go, because even justified bitterness is not working for you.',
+    what: 'A keel is the weighted fin under a sailboat. It runs the length of the hull and it is what keeps the boat steady when the wind gets up. Your attitude does the same job here, and it is carried the whole way rather than sorted out at the start.\n\nFour things to come back to on a hard day, and the letters spell the word:',
+    bullets: KEEL_PRINCIPLES.map((k, i) => ({ letter: k.letter, lead: k.gloss, rest: KEEL_DETAIL[i] })),
     gives: [
       { label: 'Career Club Corner', to: 'resources', needs: null, does: 'Bob\'s free call, Mondays at noon Eastern. Every session recorded, so a missed week costs nothing.' },
       { label: 'My Coach', to: 'myCoach', needs: null, does: 'There on the bad days as well as the planning ones, and it knows your search.' },
