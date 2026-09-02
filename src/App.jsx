@@ -2035,6 +2035,30 @@ NEVER STATE A DATE in any field. A recurring cadence ("meets weekly", "third Tue
 Output JSON only:
 {"alive":true or false or null,"supersededBy":{"name":"","url":""} or null,"eventsUrl":"<or empty>","cost":"free|dues|invite-only|ticketed|unknown","costNote":"<or empty>","howYouTakePart":"<or empty>","note":"<one short sentence, or empty>"}
 Use null for alive when the sources do not settle it either way.`
+// warmThenAll — run the first call alone, then fan out the rest.
+//
+// Every call to /api/claude re-sends a large standing system prefix behind a
+// cache_control breakpoint. Writing that cache costs 12.5x what reading it
+// costs ($2.50 against $0.20 per million tokens), and measured on four live
+// groups-search calls it was 44-65% of the entire bill — more than the web
+// searches and far more than the actual reading and writing of the answer.
+//
+// Promise.all over N verification calls fires them in the same instant, so all
+// N miss the cache together and all N pay to write it. Letting one land first
+// turns the other N-1 into cache reads, for the price of one call's latency on
+// a card that already takes many seconds. Same list, same quality, same
+// verification — a materially smaller invoice.
+//
+// Failure is per-item and already swallowed by the callers, so a slow or failed
+// first call costs the fan-out nothing beyond its own wait.
+async function warmThenAll(items,fn){
+  if(!Array.isArray(items)||items.length===0)return[]
+  const first=await fn(items[0],0)
+  if(items.length===1)return[first]
+  const rest=await Promise.all(items.slice(1).map((it,i)=>fn(it,i+1)))
+  return[first,...rest]
+}
+
 // findJobResources: discovery, then a parallel liveness pass. Safe-defaults to an
 // empty list on any failure so the screen never blocks — the static links below
 // the list are always there and are worth the visit on their own.
@@ -2051,7 +2075,7 @@ async function findJobResources(loc){
   // Liveness runs per row and is allowed to fail quietly: a row we could not
   // re-check keeps what discovery said and its own confidence, rather than
   // disappearing. Losing a real group to a flaky second call is the worse bug.
-  const checked=await Promise.all(rows.map(async r=>{
+  const checked=await warmThenAll(rows,async r=>{
     try{
       const raw=await callClaude(JOB_RESOURCE_LIVENESS_PROMPT(r,loc),{webSearch:true,maxTokens:1200,effort:'low',step:'resources-verify'})
       const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
@@ -2075,7 +2099,7 @@ async function findJobResources(loc){
       else if(v.alive===true&&next.confidence!=='high')next.confidence='medium'
       return next
     }catch(e){return r}
-  }))
+  })
   return{rows:rankResources(checked),uncited}
 }
 
@@ -2174,7 +2198,7 @@ async function findPathGroups(criteria){
   ])
   const{rows,uncited}=splitResources([...placed,...unplaced])
   if(rows.length===0)return{rows:[],uncited}
-  const checked=await Promise.all(rows.map(async r=>{
+  const checked=await warmThenAll(rows,async r=>{
     try{
       const raw=await callClaude(JOB_RESOURCE_LIVENESS_PROMPT(r,{city:criteria.geo||'',region:''}),{webSearch:true,maxTokens:1200,effort:'low',step:'groups-verify'})
       const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
@@ -2195,7 +2219,7 @@ async function findPathGroups(criteria){
       else if(v.alive===true&&next.confidence!=='high')next.confidence='medium'
       return next
     }catch(e){return r}
-  }))
+  })
   return{rows:rankResources(checked),uncited}
 }
 
