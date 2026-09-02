@@ -6,7 +6,7 @@ import {
   linkedInSecondDegreeUrl, linkedInFirstDegreeUrl, packNetwork, unpackNetwork, daysSince, outreachKey,
   mailtoUrl, firstNameOf, cleanDomain, emailGuesses, searchQuery, resolveSearch,
   manualPerson, withManual, withoutManual,
-  schoolSlug, linkedInAlumniUrl, seniorityBand, yearsConnected, tranches,
+  schoolSlug, linkedInAlumniUrl, seniorityBand, yearsConnected, tranches, schoolsFromText,
 } from '../src/connections-match.mjs'
 
 let passed = 0
@@ -319,5 +319,44 @@ eq(tranches(null, TR_NOW).length, 0, 'no list means no bands')
 // not a fresh one.
 eq(tranches([{ n: 'Z', t: 'Partner', d: '' }, { n: 'A', t: 'Partner', d: '01 Jan 2020' }], TR_NOW)[0].people.map(p => p.n),
    ['A', 'Z'], 'a missing date sorts last')
+
+// ── Schools off the resume ──────────────────────────────────────────────────
+
+// Structured education only exists for people who built their resume here, so
+// everyone else was being asked to type a school they had already given us.
+const RESUME = [
+  'EDUCATION',
+  'University of Tennessee, Knoxville',
+  'Bachelor of Science (BS), Finance, General, 1981-1985',
+  '',
+  'Northwestern University, Kellogg School of Management',
+  'MBA, Marketing, 1990',
+  '',
+  'EXPERIENCE',
+  'Xerox Corporation, Senior Director',
+].join('\n')
+
+const found = schoolsFromText(RESUME)
+ok(found.includes('University of Tennessee, Knoxville'), 'the campus stays on the name, as LinkedIn writes it')
+ok(found.includes('Northwestern University'), 'a second school is found')
+ok(found.includes('Kellogg School of Management'), 'and a named graduate school')
+
+// A school name never spans a line break. The first version used \s+, which
+// matches a newline, and produced "EDUCATION University of Tennessee" and
+// "University of Tennessee, Knoxville Bachelor".
+ok(!found.some(v => /EDUCATION/i.test(v)), 'a heading above the name is not swallowed')
+ok(!found.some(v => /Bachelor|MBA/i.test(v)), 'nor a degree on the line below')
+
+eq(schoolsFromText('MBA, Harvard Business School, 2004'), ['Harvard Business School'],
+   'a school inline with a degree is found, and the degree is stripped')
+eq(schoolsFromText('Massachusetts Institute of Technology'), ['Massachusetts Institute of Technology'],
+   'a long name survives whole')
+eq(schoolsFromText('Senior Director at Xerox Corporation'), [], 'an employer is not a school')
+eq(schoolsFromText(''), [], 'empty text finds nothing')
+eq(schoolsFromText(null), [], 'no text finds nothing')
+
+// Deduped case-insensitively, and a bare category word is never offered.
+eq(schoolsFromText('Boston College\nboston college'), ['Boston College'], 'the same school is offered once')
+ok(!schoolsFromText('I went to University').includes('University'), 'a bare category word is not a school')
 
 console.log(`test-connections-match: OK (${passed} cases passed)`)

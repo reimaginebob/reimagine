@@ -404,6 +404,96 @@ function peopleSearchUrl(company, degrees) {
 // carry no years, so "same era" cannot be filtered or even seen without opening
 // profiles. Worth saying rather than implying the tie is stronger than it is.
 
+// SCHOOLS OFF THE RESUME.
+//
+// Structured education only exists for people who built their resume here
+// (profile.baselineResume.education); anyone who uploaded one has the schools
+// sitting in plain text and nothing reading them. So the alumni card asked
+// everyone to type a school they had already given us.
+//
+// Deterministic on purpose: no API call for something a pattern can find, and
+// these are offered as tiles to CLICK rather than applied silently, so a wrong
+// guess costs a glance instead of a bad search. Missing one is fine too -- the
+// free-text field stays.
+
+const SCHOOL_TAIL = '(?:University|College|Institute|Polytechnic|Academy|Conservatory)'
+// Horizontal whitespace only. \s would match a newline and stitch a school name
+// onto the heading above it or the degree below it.
+const H = '[ \\t]+'
+
+// "University of X", optionally with the campus LinkedIn keeps in the name
+// ("University of Tennessee, Knoxville").
+const RE_UNIVERSITY_OF = new RegExp(
+  '\\b(University|College|Institute)' + H + 'of' + H + '[A-Z][A-Za-z.&\'\u2019-]*' +
+  '(?:' + H + '(?:of|and|the|at)' + H + '[A-Z][A-Za-z.&\'\u2019-]*|' + H + '[A-Z][A-Za-z.&\'\u2019-]*)*' +
+  '(?:,\\s*[A-Z][A-Za-z.&\'\u2019-]*(?:' + H + '[A-Z][A-Za-z.&\'\u2019-]*)?)?', 'g')
+
+// "Boston College", "Georgia Institute of Technology", "Harvard Business School".
+const RE_NAMED = new RegExp(
+  '\\b[A-Z][A-Za-z.&\'\u2019-]*(?:' + H + '[A-Z][A-Za-z.&\'\u2019-]*){0,3}' + H + SCHOOL_TAIL +
+  '(?:' + H + 'of' + H + '[A-Z][A-Za-z.&\'\u2019-]*(?:' + H + '[A-Z][A-Za-z.&\'\u2019-]*)?)?', 'g')
+
+// "Wharton School of Business" and friends, where School trails the name.
+const RE_SCHOOL = new RegExp(
+  '\\b[A-Z][A-Za-z.&\'\u2019-]*(?:' + H + '[A-Z][A-Za-z.&\'\u2019-]*){0,3}' + H + 'School' +
+  '(?:' + H + 'of' + H + '[A-Z][A-Za-z.&\'\u2019-]*(?:' + H + '(?:and' + H + ')?[A-Z][A-Za-z.&\'\u2019-]*)?)?', 'g')
+
+// Words that start a match but are part of a sentence rather than a name.
+const NOT_A_SCHOOL_START = new Set([
+  'the', 'a', 'an', 'at', 'from', 'and', 'my', 'his', 'her', 'their', 'attended',
+  'graduated', 'studied', 'earned', 'received', 'completed', 'degree', 'bachelor',
+  'bachelors', 'master', 'masters', 'mba', 'phd', 'bs', 'ba', 'ms', 'in', 'to', 'for',
+])
+
+function tidySchool(raw) {
+  let v = String(raw || '').replace(/\s+/g, ' ').trim().replace(/[.,;:]+$/, '')
+  const words = v.split(' ')
+  while (words.length && NOT_A_SCHOOL_START.has(words[0].toLowerCase().replace(/[^a-z]/g, ''))) {
+    words.shift()
+  }
+  v = words.join(' ')
+  // A bare category word is not a school name.
+  if (/^(University|College|Institute|School|Academy|Polytechnic|Conservatory)$/i.test(v)) return ''
+  return v.length >= 6 && v.length <= 80 ? v : ''
+}
+
+/**
+ * School names found in a block of resume or profile text, in the order they
+ * appear, deduped case-insensitively.
+ *
+ * Deliberately generous about what it catches and conservative about what it
+ * does with it: everything here is a suggestion the person clicks.
+ */
+export function schoolsFromText(text) {
+  const str = String(text || '')
+  if (!str.trim()) return []
+  const seen = new Set()
+  const out = []
+  const hits = []
+  // Per line: a school name never spans a line break, and scanning the whole
+  // block lets a heading or a degree on the next line join the match.
+  const lines = str.split(/[\r\n]+/)
+  for (let i = 0; i < lines.length; i++) {
+    for (const re of [RE_UNIVERSITY_OF, RE_NAMED, RE_SCHOOL]) {
+      re.lastIndex = 0
+      let m
+      while ((m = re.exec(lines[i])) !== null) hits.push({ at: i * 10000 + m.index, v: m[0] })
+    }
+  }
+  hits.sort((a, b) => a.at - b.at)
+  for (const h of hits) {
+    const v = tidySchool(h.v)
+    if (!v) continue
+    const key = v.toLowerCase()
+    if (seen.has(key)) continue
+    // A longer name already found that contains this one is the better label.
+    if (out.some(o => o.toLowerCase().includes(key))) continue
+    seen.add(key)
+    out.push(v)
+  }
+  return out
+}
+
 /**
  * LinkedIn's slug for a school name.
  *
