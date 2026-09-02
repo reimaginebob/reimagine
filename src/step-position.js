@@ -1,22 +1,40 @@
-// Where this person is on the Making Your Own Weather staircase, and the one
-// thing worth doing from there.
+// Where this person stands, and the two or three moves worth making from there.
 //
 // THIS MODULE IS THE WHOLE REASON THE FEATURE HOLDS TOGETHER. The screen and My
-// Coach must never recommend different things: someone who does not know what to
-// do, handed two answers, is worse off than before they asked. So both call
-// this, and the recommendation is DETERMINISTIC -- a rules table, no model in
-// the loop. The model phrases things; it does not decide them.
+// Coach must never offer different doors: someone who does not know what to do,
+// handed two different answers, is worse off than before they asked. So both
+// read this, and WHAT IS ON THE TABLE is deterministic -- a rules table, no
+// model in the loop. The model phrases and prioritises; it never invents a door.
+//
+// It used to return exactly one action. That was a principle about paralysis
+// ("what you should be doing, not what you could be doing") encoded as a rule
+// about quantity, and the rule outlived the situation it was drawn for. Five
+// tasks is a backlog; two or three doors with a recommendation is agency, which
+// is the thing this product exists to give back. A Sherpa does not hand you one
+// footstep -- it says we can go up the ridge or round the glacier, here is the
+// one I would take, and I will walk it with you.
+//
+// FOUR RULES THAT ARE NOT NEGOTIABLE:
+//
+//  - NEVER MORE THAN THREE. Beyond that it is a to-do list and we are back to
+//    the paralysis.
+//  - AT MOST ONE DOOR PER OPPORTUNITY. Three doors all about Imerys is a card,
+//    not a read of a search. The spread is what makes it worth looking at.
+//  - NO PERCENTAGE, NO FRACTION, NO ESTIMATE OF HOW CLOSE AN OFFER IS. Nobody
+//    knows, a number that sits still for six weeks is a daily reminder of being
+//    stuck, and it is a promise the product cannot keep.
+//  - NOTHING COUNTS WHAT DID NOT HAPPEN. No tally of missed steps, no streaks.
 //
 // Plain `.js`, no JSX: api/coach.js imports it across the api/* <-> src/*
 // boundary, where `.mjs` is unsafe (CLAUDE.md section 8; the 2026-05-27
 // FUNCTION_INVOCATION_FAILED outage, PR #76, reverted at 940557b).
-//
-// The five steps are the book's own sections, in the book's own order --
-// "read it in order, at least the first time" -- and the arrow only ever sits on
-// 2 through 5. Attitude is step one on the staircase and never holds the arrow,
-// because it is the keel: "not just the starting point... what you carry with
-// you for the entire journey." Nobody is ever ON attitude; everybody is always
-// on it.
+import { sectionState } from './playbook-sections.js'
+
+// The five sections of the book, in the book's own order. The staircase draws
+// all five; the arrow only ever sits on 2 through 5. Attitude is step one and
+// never holds the arrow, because it is the keel -- "not just the starting
+// point... what you carry with you for the entire journey." Nobody is ever ON
+// attitude; everybody is always on it.
 export const STEPS = [
   { n: 1, key: 'attitude',  label: 'Attitude' },
   { n: 2, key: 'brand',     label: 'Personal Brand' },
@@ -36,6 +54,11 @@ export const KEEL_LETTER = {
 
 const DAY = 86400000
 const STALL_DAYS = 14
+// A booked conversation inside this window outranks almost everything else on
+// the board: it is the one event that cannot be redone, and preparation has to
+// happen before it, not after. Two weeks rather than one, because "a fortnight
+// out with nothing prepared" is already late for a five-person panel.
+const INTERVIEW_SOON_DAYS = 14
 
 const txt = (v) => (typeof v === 'string' ? v.trim() : '')
 const built = (outputs, key) => !!txt(outputs && outputs[key])
@@ -51,7 +74,10 @@ function daysAgo(value, now) {
   const t = Date.parse(iso)
   if (Number.isNaN(t)) return null
   const today = Date.parse(new Date(now).toISOString().slice(0, 10))
-  return Math.round((today - t) / DAY)
+  const d = Math.round((today - t) / DAY)
+  // A date more than ~1yr past or ~5yr out is a wrong-year value, not a
+  // deadline. Treat it as absent rather than as a number to act on.
+  return (d > 366 || d < -1827) ? null : d
 }
 
 // The opportunities this person is actually working, each joined to its status
@@ -72,27 +98,24 @@ function activeOpportunities(state, pursuitRows) {
  */
 export function stepPosition(state, pursuitRows, now = Date.now()) {
   const outputs = (state && state.outputs) || {}
-  const brandBuilt = built(outputs, 'p3')
-  const directionPicked = !!txt(state && state.chosen)
   const open = activeOpportunities(state, pursuitRows)
 
   // Step 2 holds until the BRANDING work is done, not merely started. The book
-  // puts the resume inside Personal Branding -- "how to express that across your
-  // resume and LinkedIn profile" -- so leaving for Outreach with the brand and a
-  // direction but no refreshed resume is the skipping-ahead the book warns about.
-  // It is not a trap: adding an opportunity or reaching an interview moves the
-  // arrow up regardless, because where someone actually IS beats where the
-  // sequence says they should be.
+  // puts the resume inside Personal Branding, so leaving for Outreach with a
+  // brand and a direction but no refreshed resume is the skipping-ahead it warns
+  // about. It is not a trap: adding an opportunity or reaching an interview
+  // moves the arrow up regardless, because where someone actually IS beats where
+  // the sequence says they should be.
   let step = 2
-  if (brandBuilt && directionPicked && built(outputs, 'p_res')) step = 3
+  if (built(outputs, 'p3') && txt(state && state.chosen) && built(outputs, 'p_res')) step = 3
   if (open.some(o => o.status.stage === 'interviewing')) step = 4
   if (open.some(o => o.status.stage === 'offer')) step = 5
 
   // The person outranks the computation, always. Someone can be interviewing
   // next week with an empty pipeline, and a map that can only ever be right is a
   // map that argues with the person reading it. Their correction wins until the
-  // computed position passes it -- which is the natural expiry, because real
-  // progress retires the correction rather than the product having to.
+  // computed position passes it — the natural expiry, because real progress
+  // retires the correction rather than the product having to.
   const override = Number(state && state.stepOverride)
   if (Number.isFinite(override) && override >= 2 && override <= 5 && override > step) step = override
 
@@ -109,93 +132,182 @@ export function stepPosition(state, pursuitRows, now = Date.now()) {
   return { step, stalled, quietDays }
 }
 
+// Which stair each live opportunity is standing on. This is what turns the
+// staircase from a diagram of the framework into a picture of THIS search: four
+// markers at four different heights is information the person could not have
+// told you at a glance, where a single arrow was a restatement of what they
+// already knew.
+const STAGE_STEP = { researching: 3, applied: 3, in_conversation: 3, interviewing: 4, offer: 5 }
+export function opportunityPositions(state, pursuitRows) {
+  return activeOpportunities(state, pursuitRows).map(o => ({
+    id: o.rec.id,
+    title: txt(o.rec.title) || 'Opportunity',
+    stage: txt(o.status.stage) || 'researching',
+    step: STAGE_STEP[o.status.stage] || 3,
+  }))
+}
+
+// One door. `weight` orders them; lower is more pressing. `scope` is the
+// opportunity it belongs to, or null for an account-level move — used to keep
+// three doors from all being about the same company.
+const door = (key, weight, action, why, target, scope = null, extra = {}) =>
+  ({ key, weight, action, why, target, scope, ...extra })
+
 /**
- * The one thing worth doing, and why. First match wins within the step.
- * Returns { step, stalled, action, why, target, keelLetter, keelGloss }.
+ * Everything actually available and warranted right now, ranked, with the
+ * reason for each. Returns at most three, at most one per opportunity.
+ *
+ * Availability is the deterministic half and lives here. Which one to lead with
+ * is a judgment, and the model may make its own case from this same set — but it
+ * can never offer a door that is not in it, which is what stops the screen and
+ * the coach disagreeing.
  */
-export function nextStep(state, pursuitRows, now = Date.now()) {
+export function nextSteps(state, pursuitRows, activityFacts = [], now = Date.now()) {
   const pos = stepPosition(state, pursuitRows, now)
   const outputs = (state && state.outputs) || {}
   const open = activeOpportunities(state, pursuitRows)
-  const title = (o) => txt(o && o.rec && o.rec.title) || 'this opportunity'
-  // An opportunity's built sections live on rec.sections, and the shape is not
-  // uniform: some are { content, builtAt }, some are a bare string. Read both.
-  const sectionBuilt = (o, key) => {
-    const sec = o && o.rec && o.rec.sections && o.rec.sections[key]
-    if (!sec) return false
-    return !!txt(typeof sec === 'string' ? sec : sec.content)
-  }
-
-  // THE STALL OVERRIDE. Nobody is demoted to step one for a hard fortnight: the
-  // arrow holds its stair and the keel comes forward instead. Going back down
-  // the stairs after two quiet weeks is exactly the message a discouraged person
-  // does not need, and the book's own remedy here is people, not tactics.
-  if (pos.stalled) {
-    return {
-      ...pos,
-      action: 'Take it to the Monday call',
-      why: `Nothing has moved on your pipeline in ${pos.quietDays} days. Career Club Corner is free, Mondays at noon Eastern, and one conversation with people in the same search is the fastest way to break a quiet stretch.`,
-      target: 'resources',
-      keelLetter: 'K',
-      keelGloss: 'Know you will find another job',
-    }
-  }
-
   const keel = KEEL_LETTER[pos.step] || KEEL_LETTER[2]
-  const out = (action, why, target) => ({ ...pos, action, why, target, keelLetter: keel.letter, keelGloss: keel.gloss })
+  const facts = new Map((Array.isArray(activityFacts) ? activityFacts : []).map(f => [f && f.activity, f && f.state]))
+  // Something they told us they do not want is never offered again. That is the
+  // whole reason a negative is worth storing.
+  const declined = (k) => facts.get(k) === 'declined'
+  const sec = (o, k) => sectionState(o.rec, k).built
+  const title = (o) => txt(o.rec.title) || 'this opportunity'
 
-  if (pos.step === 2) {
-    if (!built(outputs, 'p3')) return out('Build your Personal Brand', 'Everything else is built from it, and nothing further opens until it exists.', 'p3')
-    if (!txt(state && state.chosen)) return out('Pick a direction to work', 'Your brand is built. A direction is what turns it into a playbook you can act on.', 'laneSelect')
-    return out('Refresh your resume for this direction', 'Your brand and your direction are settled, and the resume is still the one people read first.', 'focus')
+  const doors = []
+
+  // ---- foundations: nothing else is worth offering until these exist --------
+  if (!built(outputs, 'p3')) {
+    doors.push(door('brand', 0, 'Build your Personal Brand',
+      'Everything else is built from it, and nothing further opens until it exists.', 'p3'))
+  } else if (!txt(state && state.chosen)) {
+    doors.push(door('direction', 1, 'Pick a direction to work',
+      'Your brand is built. A direction turns it into a playbook you can act on.', 'laneSelect'))
+  } else if (!built(outputs, 'p_res')) {
+    doors.push(door('resume', 2, 'Refresh your resume for this direction',
+      'Your brand and direction are settled, and the resume is still the first thing anyone reads.', 'focus'))
   }
 
-  if (pos.step === 3) {
-    const overdue = open
-      .map(o => ({ o, d: daysAgo(o.status.next_step_at, now) }))
-      .filter(x => x.d != null && x.d > 0 && x.d < 400 && txt(x.o.status.next_move))
-      .sort((a, b) => b.d - a.d)[0]
-    if (overdue) {
-      return out(`Do the step you set: ${txt(overdue.o.status.next_move)}`,
-        `On ${title(overdue.o)}, ${overdue.d} day${overdue.d === 1 ? '' : 's'} past the date you gave it.`, 'pipeline')
+  // ---- per opportunity: the most pressing thing on each, one each ----------
+  for (const o of open) {
+    const t = title(o)
+    const meetingIn = daysAgo(o.status.next_conversation_at, now)
+    const soon = meetingIn != null && meetingIn <= 0 && Math.abs(meetingIn) <= INTERVIEW_SOON_DAYS
+    const overdue = daysAgo(o.status.next_step_at, now)
+    const cand = []
+
+    // A conversation days away with nothing prepared outranks everything.
+    if (soon && !sec(o, 'p11')) {
+      cand.push(door('prep', 5, `Build Interview Prep for ${t}`,
+        `You are talking to them ${meetingIn === 0 ? 'today' : `in ${Math.abs(meetingIn)} day${Math.abs(meetingIn) === 1 ? '' : 's'}`} and the prep is not built. It works from your own stories rather than a generic question list.`,
+        'pipeline', o.rec.id))
+    } else if (soon && !sec(o, 'companyRead')) {
+      cand.push(door('company', 6, `Read up on ${t} before you meet them`,
+        'Your prep is built and the company research is not. It is what turns good answers into answers about them.', 'pipeline', o.rec.id))
+    } else if (soon) {
+      cand.push(door('rehearse', 7, `Work through your prep for ${t}`,
+        'It is built and the conversation is close. Saying it out loud is what turns it into an answer.', 'pipeline', o.rec.id))
     }
-    const quiet = open.find(o => {
-      const m = daysAgo(o.status.next_conversation_at, now)
-      return m == null || m > 0
-    })
-    if (quiet) {
-      return out(`Get the next conversation booked on ${title(quiet)}`,
-        'It is live and there is nothing on the calendar ahead of it. A specific ask is easier to answer than a check-in.', 'pipeline')
+
+    if (!cand.length && overdue != null && overdue > 0 && txt(o.status.next_move)) {
+      cand.push(door('overdue', 8, `Do the step you set: ${txt(o.status.next_move)}`,
+        `On ${t}, ${overdue} day${overdue === 1 ? '' : 's'} past the date you gave it.`, 'pipeline', o.rec.id))
     }
-    if (!open.length) {
-      return out('Write to one company that has nothing posted',
-        'A posting is an RFP and your resume is the response — sent, then waited on. Direct outreach is the channel where the next move stays yours.', 'focus')
+
+    if (!cand.length && o.status.stage === 'offer') {
+      cand.push(door('offer', 4, `Work your offer on ${t}`,
+        'You earned it. Now close it on the best terms — the analysis is built from your own priorities, and whether to accept is always your call.', 'pipeline', o.rec.id))
     }
-    return out('Add the opportunity you are working',
-      'Anything not on My Pipeline is being tracked in your head, which is where things go quiet.', 'op')
+
+    if (!cand.length && o.status.stage === 'interviewing' && !sec(o, 'p11')) {
+      cand.push(door('prep', 9, `Build Interview Prep for ${t}`,
+        'You are interviewing there and the prep is not built. It works from your own stories rather than a generic question list.', 'pipeline', o.rec.id))
+    }
+
+    // A conversation on the calendar further out than the urgent window still
+    // gets a door -- lower down, but never silent. An interview with a date is
+    // the most consequential thing on someone's board, and a screen that says
+    // nothing about it because it is three weeks away is a screen they will
+    // stop trusting.
+    if (!cand.length && meetingIn != null && meetingIn < 0) {
+      const away = Math.abs(meetingIn)
+      cand.push(door('ahead', 11, `Get ready for ${t}`,
+        `You are talking to them in ${away} days.${sec(o, 'p11') ? ' The prep is built, so this is about saying it out loud rather than reading it again.' : ' Interview Prep works from your own stories rather than a generic question list.'}`,
+        'pipeline', o.rec.id))
+    }
+
+    if (!cand.length && (meetingIn == null || meetingIn > 0)) {
+      const quietFor = daysAgo(o.status.updated_at, now)
+      cand.push(door('book', quietFor != null && quietFor >= 14 ? 10 : 12,
+        `Get the next conversation booked on ${t}`,
+        quietFor != null && quietFor >= 14
+          ? `Nothing has moved there in ${quietFor} days and there is nothing on the calendar. A specific ask is easier to answer than a check-in.`
+          : 'It is live and there is nothing scheduled ahead of it. A specific ask is easier to answer than a check-in.',
+        'pipeline', o.rec.id))
+    }
+
+    if (cand.length) doors.push(cand.sort((a, b) => a.weight - b.weight)[0])
   }
 
-  if (pos.step === 4) {
-    const iv = open.find(o => o.status.stage === 'interviewing') || open[0]
-    if (!sectionBuilt(iv, 'p11')) {
-      return out(`Build Interview Prep for ${title(iv)}`,
-        'You are interviewing there and the prep is not built. It works from your own stories rather than a generic question list.', 'pipeline')
-    }
-    const panel = iv && iv.rec && iv.rec.panel
-    const people = panel && Array.isArray(panel.interviewers) ? panel.interviewers.filter(p => p && txt(p.name)) : []
-    if (!people.length) {
-      return out(`Add who you are meeting at ${title(iv)}`,
-        'Your prep is built and it does not yet know who you are meeting. Naming them lets it prepare you person by person.', 'pipeline')
-    }
-    return out(`Work through your prep for ${title(iv)}`,
-      `It is built and you know your panel — ${people.length} ${people.length === 1 ? 'person' : 'people'} named. Practising out loud is what turns it into an answer.`, 'pipeline')
+  // ---- breadth: the moves that are not about any one opportunity -----------
+  if (!open.length && built(outputs, 'p3') && txt(state && state.chosen)) {
+    doors.push(door('outreach', 3, 'Write to one company that has nothing posted',
+      'A posting is an RFP: your resume goes in the pile and the waiting starts. Direct outreach is the channel where the next move stays yours.', 'focus'))
+  }
+  if (txt(state && state.chosen) && !declined('talked_to_recruiter') && facts.get('talked_to_recruiter') !== 'done') {
+    doors.push(door('recruiters', 14, 'Find recruiters who work your path',
+      'A recruiter who covers your function and level knows what is open before it is posted, and keeps knowing it after this search ends.', 'focus'))
+  }
+  if (open.length && !declined('asked_for_intro')) {
+    doors.push(door('intro', 13, 'See who you already know at these companies',
+      'A name inside beats a cold application, and your own network usually holds more of them than it feels like.', 'pipeline'))
+  }
+  if (!declined('accountability_partner') && facts.get('accountability_partner') !== 'done') {
+    doors.push(door('partner', 16, 'Get someone holding you accountable',
+      'One person who knows what you said you would do this week. It costs nothing to set up and it changes what gets done between Mondays.', 'resources'))
+  }
+  if (!declined('networking_group') && facts.get('networking_group') !== 'done') {
+    doors.push(door('group', 15, 'Find a group doing this alongside you',
+      'A search run alone gets shorter and lonelier every week. A group is where you hear what other people tried and what came back.', 'resources'))
   }
 
-  const offers = open.filter(o => o.status.stage === 'offer')
-  if (offers.length >= 2) {
-    return out('Compare your offers side by side',
-      `You have ${offers.length} offers open. Seeing them against each other is how the trade-offs stop being abstract.`, 'pipeline')
+  // ---- the stall: people, not tactics -------------------------------------
+  // Nobody is demoted to step one for a hard fortnight. The arrow holds its
+  // stair and the keel comes forward instead, because going back down the stairs
+  // after two quiet weeks is exactly the message a discouraged person does not
+  // need — and the book's own remedy here is people.
+  if (pos.stalled) {
+    doors.unshift(door('corner', -1, 'Take it to the Monday call',
+      `Nothing has moved on your pipeline in ${pos.quietDays} days. Career Club Corner is free, Mondays at noon Eastern, and one conversation with people in the same search is the fastest way to break a quiet stretch.`,
+      'resources'))
   }
-  return out(`Work your offer on ${title(offers[0] || open[0])}`,
-    'You earned it. Now close it on the best terms — the analysis is built from your own priorities, and whether to accept is always your call.', 'pipeline')
+
+  // Rank, then thin. One per opportunity is already guaranteed above; this keeps
+  // the account-level doors from crowding out the live ones and caps the whole
+  // thing at three.
+  const ranked = doors.sort((a, b) => a.weight - b.weight)
+  const picked = []
+  const usedScopes = new Set()
+  for (const d of ranked) {
+    if (picked.length >= 3) break
+    if (d.scope && usedScopes.has(d.scope)) continue
+    if (d.scope) usedScopes.add(d.scope)
+    picked.push(d)
+  }
+
+  return {
+    ...pos,
+    keelLetter: pos.stalled ? 'K' : keel.letter,
+    keelGloss: pos.stalled ? 'Know you will find another job' : keel.gloss,
+    doors: picked.map(({ weight, scope, ...rest }) => rest),
+    positions: opportunityPositions(state, pursuitRows),
+  }
+}
+
+// Back-compat for callers that want the single leading move. The doors are the
+// interface now; this is the first of them.
+export function nextStep(state, pursuitRows, activityFacts = [], now = Date.now()) {
+  const r = nextSteps(state, pursuitRows, activityFacts, now)
+  const first = r.doors[0] || null
+  return { ...r, action: first ? first.action : '', why: first ? first.why : '', target: first ? first.target : 'pipeline' }
 }

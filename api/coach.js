@@ -23,7 +23,9 @@ import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
 import { parseSelfcheck } from '../src/coach-routing.js'
-import { STEPS, nextStep as computeNextStep } from '../src/step-position.js'
+import { STEPS, nextSteps as computeNextSteps } from '../src/step-position.js'
+import { describeSections } from '../src/playbook-sections.js'
+import { ACTIVITY_CATALOG, ASKABLE, activity as activityDef, isValidFact } from '../src/activity-catalog.js'
 import { LANE_LABELS } from '../src/nav-labels.js'
 import { totalCompModel } from '../src/offer-valuation.js'
 import { COMP_KNOWLEDGE } from '../src/comp-knowledge.js'
@@ -99,6 +101,7 @@ const INTERVIEW_TEAM_CAPTURE_NOTE = '\n\nINTERVIEW TEAM CAPTURE: when this perso
 // date, which the model does from TODAY'S DATE already in this prompt.
 const PIPELINE_CAPTURE_NOTE = '\n\nPIPELINE CAPTURE: each opportunity on My Pipeline carries a "Next move" (what this person does next on it, in their own words, with a date) and a "Next scheduled meeting" (a real booked conversation). When they tell you either one, end your reply with a final line exactly like PIPELINE: {"opportunity":"<the opportunity title from their saved work>","move":"Call Teresa","date":"2026-09-14","meeting":"2026-09-14"} carrying whichever of the two the conversation actually settled, and omitting the other entirely. `move` is a short imperative phrase in their own words, under 80 characters, and it is an action THEY take -- a call they are making, a follow-up they are sending, something they will prepare. `date` is when they mean to do that move. `meeting` is the date of a scheduled conversation -- an interview, a screen, a call that is now on the calendar -- no matter who arranged it, so an interview the employer scheduled belongs here even though it is not their move. Emit `meeting` when they say a conversation is booked, confirmed, moved or rescheduled. All dates are YYYY-MM-DD resolved against TODAY\'S DATE above; "next Thursday", "the 14th" and "a week from Tuesday" all resolve to a real date, and you never invent one -- omit the key instead. Include `opportunity` only when it is clear which one they mean. Emit the line ONLY for something they have actually told you, never for a move you suggested and they have not agreed to, and never to restate what their card already says. The app turns that line into a one-tap offer showing exactly what will be written before anything is saved, and never shows the line itself -- so do not mention it, and do not tell them to go and type it in. NEVER SAY YOU HAVE SAVED IT. You have not: the offer appears under your reply and their tap is the only thing that writes. Do not say you are locking it in, logging it, adding it, noting it, putting it on the card, or that you have got it handled -- claiming an action you cannot perform is worse than not offering at all, because they will walk away believing it is on the card. Reply to what they said in your normal voice and let the offer do its own work. If you do not know which of their opportunities this belongs to, ask -- and still emit the line without the `opportunity` key, so the offer is there the moment they answer. At most once per reply; otherwise omit it entirely.'
 
+const ACTIVITY_CAPTURE_NOTE = '\n\nACTIVITY CAPTURE: when this person tells you something about the human side of their search -- that they joined a group, went to Career Club Corner, have someone holding them accountable, wrote directly to a company, asked anyone for an introduction, spoke to a recruiter, or looked at free help near them -- OR tells you plainly that they have not or do not want to, end your reply with a final line exactly like ACTIVITY: {"activity":"accountability_partner","state":"done","detail":"Marta, they talk Fridays"} using ONLY these activity keys: ' + ACTIVITY_CATALOG.filter(a => a.evidence === 'asked').map(a => a.key).join(', ') + '. `state` is one of done (they have it), not_yet (they told you they have not) or declined (they told you they do not want it). `detail` is optional, short, and in their own words. Emit it ONLY for something they actually said in this conversation, never for something you suggested and they have not answered, and never to restate what you were already told above. The app turns that line into a one-tap offer and never shows it, so do not mention it and do not ask them to type anything. NEVER SAY YOU HAVE SAVED IT -- their tap is the only thing that writes, and claiming an action you cannot perform is worse than not offering. At most one per reply; otherwise omit it entirely.'
 const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passions & Causes live on a screen in Reimagine called "Values, Passions & Causes", and you can offer to write them there. When a conversation has settled into a statement of their values or their passions and causes that they seem happy with — their words and their conclusions, not a list you proposed and they have not responded to — end your reply with a final line exactly like VALUESCAPTURE: {"values":"Independence; Creative problem solving; Belonging","passions":"Youth mentoring; Faith-based service"} carrying whichever of the two you have. Include a key ONLY for a field the conversation actually settled; omit the other entirely. Write each as a short semicolon-separated list in their own words, not a paragraph and not your paraphrase. If ANCHOR 1 shows a field already has content, only emit it when they have clearly landed somewhere new — the tap replaces what is there. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
 
 // MY PIPELINE — live status (Move 1, 2026-08-18). coach.js otherwise never sees
@@ -110,7 +113,20 @@ const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passi
 // pipeline — plus a one-line rollup for "how is my search going?". Deliberately
 // NOT the email-derived half (employer silence, missed callbacks); that lives in
 // Gmail, which Reimagine cannot see, so the instruction forbids inferring it.
-function buildPursuitStatusBlock(state, pursuitRows) {
+// How many people this person has named on an opportunity's interview team.
+// Its own helper because the build map reports on it before the panel block
+// below has built its list.
+function _panelCount(rec) {
+  const panel = rec && rec.panel && typeof rec.panel === 'object' ? rec.panel : null
+  const ivs = panel && Array.isArray(panel.interviewers) ? panel.interviewers : []
+  return ivs.filter(iv => iv && typeof iv === 'object' && typeof iv.name === 'string' && iv.name.trim()).length
+}
+
+function buildPursuitStatusBlock(state, pursuitRows, opts = {}) {
+  // `detailed` is the Your Next Step pilot's build map (see buildSectionMap).
+  // Off, every byte of this block is what it was before the pilot existed.
+  const detailed = !!opts.detailed
+  const independent = !!opts.independent
   if (!Array.isArray(pursuitRows) || !pursuitRows.length) return ''
   const saved = Array.isArray(state && state.savedPlaybooks)
     ? state.savedPlaybooks.filter(r => r && r.source === 'door2' && !r.archivedAt)
@@ -176,6 +192,25 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     // Whether Interview Prep is built on this opportunity, so an offer to prep can
     // be phrased right without a round trip: work through what's built vs build it.
     if (!isClosed) parts.push(recordSectionText(rec, 'p11').trim() ? 'Interview Prep built' : 'Interview Prep not built yet')
+    // THE BUILD MAP. Until this, the coach knew every opportunity's title,
+    // stage and day counts and exactly one thing about its contents -- whether
+    // Interview Prep existed -- while recordSectionText could already answer for
+    // all of them. So it spoke with confidence about a search it could not see
+    // inside, which is how it came to offer work that was already done.
+    //
+    // Reported BY NAME and never as a count or a fraction: three sections of six
+    // may be exactly right for this opportunity, and "3 of 6" is the progress bar
+    // this product refuses to draw wearing a different hat.
+    if (detailed && !isClosed) {
+      const { built, todo } = describeSections(rec, { independent, hasOffer: s.stage === 'offer' })
+      if (built.length) parts.push(`built on this opportunity: ${built.join(', ')}`)
+      if (todo.length) parts.push(`not built yet: ${todo.join(', ')}`)
+      const jd = typeof rec.jd === 'string' ? rec.jd.trim() : ''
+      parts.push(jd ? 'the job description is loaded' : 'no job description loaded')
+      const notes = Array.isArray(rec.savedNotes) ? rec.savedNotes.length : 0
+      if (notes) parts.push(`${notes} saved note${notes === 1 ? '' : 's'} on this opportunity`)
+      if (!_panelCount(rec)) parts.push('nobody named on the interview team yet')
+    }
     // Everything the person typed onto this opportunity BY HAND, ALWAYS: the
     // interview team with their own notes on each person, and the context they
     // wrote about how the role came to them.
@@ -221,7 +256,88 @@ function buildPursuitStatusBlock(state, pursuitRows) {
   }
   if (!lines.length) return ''
   const rollup = `${active} active${attention ? `, ${attention} needing attention (an overdue next step)` : ''}${quiet ? `, ${quiet} going quiet (nothing scheduled ahead)` : ''}.`
-  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nEverything above that an opportunity lists as theirs — the interview team, what they know about each person, how the role came to them — was typed in by this person. Treat it as known fact and weave it into what you say: use a person's name and role without being told again, and reason from what they wrote about someone rather than asking them to repeat it. NEVER ask who a named person is, what their role is, or for anything else already recorded here; being asked twice for something they took the trouble to write is how this stops feeling like a coach who knows them. Where a note shows "(trimmed)", more of it exists and you will see it in full once the conversation focuses on that opportunity. When they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
+  // The build map arrives as data; without this the model does the obvious wrong
+  // thing with it and starts scoring people out of six.
+  const mapNote = detailed
+    ? ` Each opportunity also lists what is BUILT on it and what is NOT BUILT YET, by the name the card carries. Use those names exactly -- a section called something else sends them hunting for a card that is not there. Answer "how am I set up for X" from this: what exists, what does not, and what would help most next, without asking them what they have built. NEVER turn it into a number: no "two of six", no fraction, no percentage, no "halfway", no ranking of one opportunity against another, and never call an opportunity incomplete or behind. An unbuilt section is something available to them, never something they failed to do. Offer the one that would actually help the situation in front of them rather than listing everything absent.`
+    : ''
+  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nEverything above that an opportunity lists as theirs — the interview team, what they know about each person, how the role came to them — was typed in by this person. Treat it as known fact and weave it into what you say: use a person's name and role without being told again, and reason from what they wrote about someone rather than asking them to repeat it. NEVER ask who a named person is, what their role is, or for anything else already recorded here; being asked twice for something they took the trouble to write is how this stops feeling like a coach who knows them. Where a note shows "(trimmed)", more of it exists and you will see it in full once the conversation focuses on that opportunity. When they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.${mapNote}`
+}
+
+// FOCUS PLAYBOOKS — what is built in each (Your Next Step pilot, 2026-09-02).
+//
+// Opportunities got a status block a fortnight ago. Focus Playbooks got nothing:
+// they reach the coach as a title inside one semicolon-joined "Saved playbooks"
+// line in the INDEX, mixed in with opportunities and indistinguishable from
+// them. So the coach could not tell a direction from a live opening, let alone
+// say what was built in one.
+//
+// That is the case Bob described: someone with several directions started and
+// none carried far. Answering it needs the names of what exists in each, which
+// is what this gives -- BY NAME, never as a count. Three of ten may be exactly
+// right for a path, and a fraction here would be a completeness score on work
+// that has no required length.
+function buildFocusPlaybookBlock(state, independent) {
+  const saved = Array.isArray(state && state.savedPlaybooks) ? state.savedPlaybooks : []
+  const focus = saved.filter(r => r && r.source !== 'door2' && !r.archivedAt)
+  if (!focus.length) return ''
+  const DAY = 86400000
+  const today = Date.parse(new Date().toISOString().slice(0, 10))
+  const daysAgo = (v) => { if (!v) return null; let iso = ''; try { iso = new Date(v).toISOString().slice(0, 10) } catch { return null } const t = Date.parse(iso); return Number.isNaN(t) ? null : Math.round((today - t) / DAY) }
+  const lines = []
+  for (const rec of focus.slice(0, 12)) {
+    const title = String(rec.title || 'a direction').trim()
+    const { built, todo } = describeSections(rec, { independent })
+    const parts = []
+    parts.push(built.length ? `built: ${built.join(', ')}` : 'nothing built in it yet')
+    if (todo.length) parts.push(`not built: ${todo.join(', ')}`)
+    const cold = daysAgo(rec.updatedAt)
+    if (cold != null && cold >= 1) parts.push(`last worked on ${cold} day${cold === 1 ? '' : 's'} ago`)
+    lines.push(`- ${title} — ${parts.join('; ')}`)
+  }
+  return `\n\nTHEIR FOCUS PLAYBOOKS — a Focus Playbook is a DIRECTION they explored, which is a different thing from an opportunity on My Pipeline (a live opening at a named employer). What is built in each:\n${lines.join('\n')}\n\nUse this to answer what they have and have not explored, and to offer a section by its own name rather than sending them to hunt. Sections carry no required order and no required number: a direction with two built may be finished as far as they need it, so never describe one as incomplete, behind, or thin, never count or total them, and never compare one direction against another. When several directions are part-built and none is moving, that is worth asking about -- which of these still interests them, and would they like to take one further -- and it is an offer, never an observation about them. Name what is unbuilt only as something available.`
+}
+
+// WHAT WE KNOW ABOUT THE MOVES THEY HAVE MADE (activity catalog, 2026-09-02).
+//
+// The product can see everything built inside it and nothing about the human
+// half of a search -- the group, the Monday call, someone holding them
+// accountable, a note written directly to a company. It teaches all of that and
+// then never asks, never knows, and never follows up.
+//
+// Two halves to this block, and they do opposite jobs.
+//
+// KNOWN is what we have actually learned, and its first job is to STOP the
+// coach asking again. Being asked twice for something you took the trouble to
+// answer is the failure that makes a coach feel like a form.
+//
+// OPEN is the ones we have never discussed. It is NOT a checklist and must
+// never be read out. It is a set the coach may draw ONE from, when the
+// conversation is already near it and an answer would change what it advises.
+function buildActivityBlock(facts) {
+  const rows = Array.isArray(facts) ? facts : []
+  const byKey = new Map(rows.map(r => [r.activity, r]))
+  const known = []
+  for (const r of rows) {
+    const def = activityDef(r.activity)
+    if (!def) continue
+    const detail = typeof r.detail === 'string' && r.detail.trim() ? ` -- their words: "${r.detail.trim()}"` : ''
+    if (r.state === 'done') known.push(`- ${def.label}: they have this${detail}`)
+    else if (r.state === 'not_yet') known.push(`- ${def.label}: they told you they have not, and it is open to encourage${detail}`)
+    else if (r.state === 'declined') known.push(`- ${def.label}: they told you they do not want this. DO NOT raise it again${detail}`)
+  }
+  const open = ASKABLE.filter(a => !byKey.has(a.key))
+  if (!known.length && !open.length) return ''
+
+  let out = '\n\nTHE HUMAN SIDE OF THEIR SEARCH (things Reimagine cannot see for itself, so everything here came from them).'
+  if (known.length) {
+    out += `\n\nWHAT THEY HAVE TOLD YOU:\n${known.join('\n')}\n\nTreat every line as known fact. Never ask about any of it again -- reason from it. Where a line says they do not want something, that is settled and raising it a second time is worse than never having offered.`
+  }
+  if (open.length) {
+    const list = open.map(a => `- ${a.label}. Why it matters: ${a.why} Where it lives: ${a.offer}`).join('\n')
+    out += `\n\nNEVER DISCUSSED (you do not know either way):\n${list}\n\nThis is not a checklist and never gets read out. Never present it as things they have not done, never count it, never say how many are left, and never imply a gap -- silence here means nobody has asked, which is not the same as it not having happened. Assume a capable person has been running their own search: they may well already have several of these.\n\nYou may raise AT MOST ONE of these in a conversation, and only when the talk is already near it and knowing the answer would change what you advise. Ask it the way a doctor asks -- because you cannot prescribe well without knowing -- then say plainly why it matters and offer the thing that helps. If they answer, accept it and move on. If they do not, let it go; it is not a form to complete.`
+  }
+  return out
 }
 
 // Search-intake staleness (consult 2026-08-20). Past this age the two intake
@@ -280,7 +396,7 @@ function searchIntakeNote(si) {
   return `\n\nSEARCH INTAKE (open): two things are worth knowing about this person's own read on their search — what is going well in it right now, and what they would like to improve. ${missing}\n\nWhen they answer one of these, respond to what they actually said FIRST and properly: reflect the substance back, say what it tells you, and where you can see one, offer a concrete idea that builds on it. Someone who says networking is finally working should hear what that is worth and one way to press the advantage; someone who says applications go quiet should get a real read on where that usually breaks and what to try. Give it the weight you would give any other thing they told you. Only after that reply stands on its own do you move to the other question, in the same message, as a natural next beat rather than a form field.\n\nWhen — and only when — their answer carries something real, end your reply with a final line exactly like SEARCHINTAKE: {"goingWell":"their answer in their own words"} or SEARCHINTAKE: {"focus":"their answer in their own words"}. One key only, for the question they just answered. Keep their words, lightly tidied into a sentence or two; never your paraphrase and never your advice. Emit nothing at all for a shrug, a deflection, a change of subject, an "I don't know", or a reply too thin to be worth carrying — an empty field is better than a noisy one, and you will get another chance later in the conversation. The app turns that line into a one-tap offer and never shows it, so do not mention it, and never ask them to type anything anywhere.`
 }
 
-function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail) {
+function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, independent = false, activityFacts = []) {
   if (!state || typeof state !== 'object') {
     // No profile at all — definitionally pre-Personal-Brand, so the sidebar is the
     // Orientation phase list. Carry the same navigation gate as the main path below
@@ -437,7 +553,14 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // cached stay here: this person's live pipeline rows, and the capture protocol.
   // The connector half (Gmail/Calendar keeping it current unattended) is still a
   // named beta, so the Coach is told about it separately, only for those users.
-  const myStatusData = buildPursuitStatusBlock(state, pursuitRows)
+  // The pilot's build map and the Focus Playbook block are gated together with
+  // the rest of Your Next Step: they change what the coach says on every turn,
+  // and that is the change Bob quality-controls before 145 accounts see it.
+  const sightOn = hasNextStep({ feature_flags: featureFlags, email: userEmail })
+  const myStatusData = buildPursuitStatusBlock(state, pursuitRows, { detailed: sightOn, independent })
+  const focusData = sightOn ? buildFocusPlaybookBlock(state, independent) : ''
+  const activityData = sightOn ? buildActivityBlock(activityFacts) : ''
+  const activityNote = sightOn ? ACTIVITY_CAPTURE_NOTE : ''
   // Pilot: only a flagged account is told it may propose a next move. A
   // non-flagged account never receives the instruction, so the parser below
   // simply never fires for them -- the same no-op the interview-team capture
@@ -453,17 +576,21 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // block; the feature's standing rules ride in their own cached block
   // (NEXT_STEP_KNOWLEDGE) alongside the other pilot knowledge.
   const nextStepNote = (() => {
-    if (!hasNextStep({ feature_flags: featureFlags, email: userEmail })) return ''
+    if (!sightOn) return ''
     let ns = null
-    try { ns = computeNextStep(state, pursuitRows) } catch { return '' }
-    if (!ns || !ns.action) return ''
+    try { ns = computeNextSteps(state, pursuitRows, activityFacts) } catch { return '' }
+    if (!ns || !ns.doors || !ns.doors.length) return ''
     const stair = (STEPS.find(x => x.n === ns.step) || {}).label || 'Personal Brand'
-    return `\n\nTHEIR NEXT STEP (authoritative). On the Your Next Step staircase they are standing on ${stair}, and the one thing worth doing from there is: ${ns.action}. The reason: ${ns.why} The keel letter behind it right now is ${ns.keelLetter} — ${ns.keelGloss}.${ns.stalled ? ' Their pipeline has gone quiet, which is why the recommendation turns to people; their stair has NOT moved down and you never tell them they lost ground.' : ''} When they ask what they should be doing, what to do next, where to start, or where they stand, THIS is the answer — give it in your own voice with the reason, and do not substitute a different recommendation, because the screen is showing them this one and two answers is worse than none. If they tell you they are somewhere else in their search, believe them and answer from there.`
+    const where = ns.positions && ns.positions.length
+      ? ` Their live opportunities sit at: ${ns.positions.map(p => `${p.title} on ${(STEPS.find(x => x.n === p.step) || {}).label}`).join('; ')}.`
+      : ''
+    const list = ns.doors.map((d, i) => `${i + 1}. ${d.action} — ${d.why}`).join('\n')
+    return `\n\nWHAT IS ON THE TABLE FOR THEM RIGHT NOW (authoritative). On the Your Next Step staircase they are standing on ${stair}.${where} These are the moves actually available and warranted today, in the order the screen is showing them:\n${list}\n\nWhen they ask what they should be doing, what to do next, where to start, or where they stand, answer from THIS set. You may make your own case for which one to lead with and say why — that judgment is yours and it is worth making — but never offer a move that is not on this list, because the screen is showing them these and two different answers is worse than none. Give the reason, not just the instruction, and offer to walk them through whichever they pick. ${ns.stalled ? 'Their pipeline has gone quiet, which is why the first of these turns to people. Their stair has NOT moved down and you never tell them they lost ground. ' : ''}The keel letter behind them right now is ${ns.keelLetter} — ${ns.keelGloss}. Never turn any of this into a number: no count of what is done or left, no fraction, no percentage, no estimate of how close an offer is. If they tell you they are somewhere else in their search, believe them and answer from there.`
   })()
   const connectorNote = hasConnectorBeta({ feature_flags: featureFlags })
     ? '\n\nASSISTANT CONNECTOR (this person has it; it is a limited beta most users do not have — never imply it is generally available): they can connect their own assistant to Gmail and Calendar so their pipeline keeps itself current without them typing anything. Reimagine never reads their inbox. Mention it only if it fits what they are asking; do not pitch it.'
     : ''
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${nextStepNote}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${nextStepNote}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${activityNote}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -890,6 +1017,17 @@ export default async function handler(req, res) {
       console.error('coach pursuit read failed:', err)
     }
   }
+  // The human half of the search, for the pilot only. Best-effort: a failure here
+  // drops the block and never the turn, and an account that has never discussed
+  // any of it comes back empty, which is the normal starting state.
+  let activityFacts = []
+  if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: user.email })) {
+    try {
+      activityFacts = await sql`SELECT activity, state, source, detail, learned_at FROM user_activity_facts WHERE user_id = ${user.id}`
+    } catch (err) {
+      console.error('coach activity-facts read failed:', err)
+    }
+  }
   // Go Independent business-of-consulting grounding (2026-08-28). Six chapters,
   // roughly 30k tokens, for accounts on that track ONLY -- someone still job
   // searching should never have Coach reaching into 401(k)-loan risk or B2B
@@ -942,7 +1080,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // and so can be cached.
   if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: user.email })) pilotKnowledge.push(NEXT_STEP_KNOWLEDGE)
   const pilotKnowledgeBlock = pilotKnowledge.length ? pilotKnowledge.join('\n\n') : null
-  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, user.email)
+  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, user.email, isIndependentTrack, activityFacts)
   // Anchor today's date. The coach is otherwise never told the current date, so
   // any past/future or elapsed-time reasoning it does itself is unanchored
   // guesswork — it once called an Aug 24 follow-up "overdue by nine weeks" on
@@ -1153,6 +1291,32 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
       }
     } catch { /* malformed — drop the line, no offer */ }
   }
+  // Activity capture: the model may end with an ACTIVITY: {json} line recording
+  // something about the human half of the search -- a group joined, an
+  // accountability partner, a note written directly. Validated against the
+  // catalog before it becomes an offer, so an invented key is dropped rather
+  // than shipped: a row nothing reads looks exactly like a successful save.
+  // Non-flagged accounts never receive the instruction, so this no-ops for them.
+  let activityB64 = null
+  const acMatch = strippedText.match(/^\s*ACTIVITY:\s*(\{[\s\S]*?\})\s*$/im)
+  if (acMatch) {
+    strippedText = strippedText.replace(acMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(acMatch[1])
+      const key = typeof parsed.activity === 'string' ? parsed.activity.trim() : ''
+      const st = typeof parsed.state === 'string' ? parsed.state.trim() : ''
+      if (isValidFact(key, st, 'said')) {
+        const def = activityDef(key)
+        const detail = typeof parsed.detail === 'string' ? parsed.detail.trim().slice(0, 300) : ''
+        activityB64 = Buffer.from(JSON.stringify({ activity: key, state: st, detail, label: def ? def.label : key })).toString('base64')
+      }
+    } catch { /* malformed -- drop the line, no offer */ }
+  }
+  // A trailer the model mangled (an unclosed brace, a stray newline) matches
+  // nothing above, so it would be left sitting in the reply as machine junk in
+  // the middle of someone's coaching. Remove any ACTIVITY: line whatever its
+  // shape: the offer is already decided, and nothing downstream wants it.
+  strippedText = strippedText.replace(/^\s*ACTIVITY:.*$/gim, '').trim()
   // Values capture: the model may end with a VALUESCAPTURE: {json} line carrying
   // what the conversation settled for Values and/or Passions & Causes. Strip it
   // and ship it on a response header; the client offers a one-tap save that
@@ -1259,6 +1423,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   if (interviewersB64) res.setHeader('X-Coach-Interviewers', interviewersB64)
   if (valuesB64) res.setHeader('X-Coach-Values', valuesB64)
   if (pipelineB64) res.setHeader('X-Coach-Pipeline', pipelineB64)
+  if (activityB64) res.setHeader('X-Coach-Activity', activityB64)
   if (searchIntakeB64) res.setHeader('X-Coach-Search-Intake', searchIntakeB64)
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.setHeader('Cache-Control', 'no-cache')
