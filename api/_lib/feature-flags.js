@@ -72,6 +72,18 @@ export function hasPipelineCapture(user) {
   return flags.includes(PIPELINE_CAPTURE_FLAG)
 }
 
+// PILOT -- Your Next Step, 2026-09-02. The staircase, the arrow and the one
+// action. Gated because it becomes the top of the sidebar for everyone who has
+// it, which is not a change to make to 145 accounts before Bob has stood in
+// front of it himself.
+export const NEXT_STEP_FLAG = 'next_step'
+
+export function hasNextStep(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(NEXT_STEP_FLAG)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -83,4 +95,5 @@ export function hasPipelineCapture(user) {
 export const GRANTABLE_FLAGS = {
   [CONNECTOR_BETA_FLAG]: { label: 'Assistant connector' },
   [PIPELINE_CAPTURE_FLAG]: { label: 'Coach next-step capture' },
+  [NEXT_STEP_FLAG]: { label: 'Your Next Step' },
 }

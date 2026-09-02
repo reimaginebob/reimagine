@@ -18,6 +18,10 @@ export const NAV_LABELS = {
   // Standalone destinations — sidebar "Your work" (src/App.jsx primaryItems).
   myCoach: 'My Coach',
   pipeline: 'My Pipeline',
+  // Your Next Step (pilot 2026-09-02). Named for what it gives rather than what
+  // it costs: theirs, one thing, and no need to have it all worked out. "Your
+  // Climb" was the alternative and was rejected on exactly that ground.
+  step: 'Your Next Step',
   // Renamed from 'My Playbooks' 2026-09-01. Since My Pipeline took the
   // Opportunity Playbooks at GA, this screen holds Focus Playbooks and nothing
   // else; the old umbrella name promised a library that was no longer here, and

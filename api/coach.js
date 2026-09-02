@@ -16,12 +16,14 @@
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { GO_INDEPENDENT_KNOWLEDGE } from '../src/data/go-independent-knowledge.js'
 import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowledge.js'
+import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
-import { hasConnectorBeta, hasPipelineCapture } from './_lib/feature-flags.js'
+import { hasConnectorBeta, hasPipelineCapture, hasNextStep } from './_lib/feature-flags.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
 import { parseSelfcheck } from '../src/coach-routing.js'
+import { STEPS, nextStep as computeNextStep } from '../src/step-position.js'
 import { LANE_LABELS } from '../src/nav-labels.js'
 import { totalCompModel } from '../src/offer-valuation.js'
 import { COMP_KNOWLEDGE } from '../src/comp-knowledge.js'
@@ -441,10 +443,27 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // simply never fires for them -- the same no-op the interview-team capture
   // relies on.
   const pipelineNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? PIPELINE_CAPTURE_NOTE : ''
+  // YOUR NEXT STEP (pilot 2026-09-02). The stair this person is standing on and
+  // the one thing to do from it, computed by the SAME function the screen calls
+  // (src/step-position.js). Handing the model the answer rather than the rules is
+  // the whole point: a coach that reasons its own way to a different next step
+  // than the screen just told them is worse than a coach that says nothing.
+  //
+  // Per-user and changes on almost every turn, so it belongs in this uncached
+  // block; the feature's standing rules ride in their own cached block
+  // (NEXT_STEP_KNOWLEDGE) alongside the other pilot knowledge.
+  const nextStepNote = (() => {
+    if (!hasNextStep({ feature_flags: featureFlags, email: userEmail })) return ''
+    let ns = null
+    try { ns = computeNextStep(state, pursuitRows) } catch { return '' }
+    if (!ns || !ns.action) return ''
+    const stair = (STEPS.find(x => x.n === ns.step) || {}).label || 'Personal Brand'
+    return `\n\nTHEIR NEXT STEP (authoritative). On the Your Next Step staircase they are standing on ${stair}, and the one thing worth doing from there is: ${ns.action}. The reason: ${ns.why} The keel letter behind it right now is ${ns.keelLetter} — ${ns.keelGloss}.${ns.stalled ? ' Their pipeline has gone quiet, which is why the recommendation turns to people; their stair has NOT moved down and you never tell them they lost ground.' : ''} When they ask what they should be doing, what to do next, where to start, or where they stand, THIS is the answer — give it in your own voice with the reason, and do not substitute a different recommendation, because the screen is showing them this one and two answers is worse than none. If they tell you they are somewhere else in their search, believe them and answer from there.`
+  })()
   const connectorNote = hasConnectorBeta({ feature_flags: featureFlags })
     ? '\n\nASSISTANT CONNECTOR (this person has it; it is a limited beta most users do not have — never imply it is generally available): they can connect their own assistant to Gmail and Calendar so their pipeline keeps itself current without them typing anything. Reimagine never reads their inbox. Mention it only if it fits what they are asking; do not pitch it.'
     : ''
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${nextStepNote}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -908,9 +927,21 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // chapter there would describe the capture to every account, and almost none
   // of them have it. Its own cached block, so a flagged account does not fork
   // the prefix everyone else shares.
-  const pipelineCaptureBlock = (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: user.email }))
-    ? PIPELINE_CAPTURE_KNOWLEDGE
-    : null
+  //
+  // Every pilot shares ONE block rather than taking a breakpoint each. Prompt
+  // caching allows four breakpoints in total and the stable prefix plus the
+  // Go Independent chapters already hold two, so a per-pilot block would put an
+  // internal account on the independent track at the ceiling with the third
+  // pilot. Concatenating costs nothing: the flags an account holds are stable
+  // across a conversation, so the joined text is stable too and caches once.
+  const pilotKnowledge = []
+  if (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: user.email })) pilotKnowledge.push(PIPELINE_CAPTURE_KNOWLEDGE)
+  // Same partition, same reason (see src/data/next-step-knowledge.js). The
+  // person's actual position rides in the uncached per-user block above; this is
+  // only the standing rules, which are identical for everyone who has the pilot
+  // and so can be cached.
+  if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: user.email })) pilotKnowledge.push(NEXT_STEP_KNOWLEDGE)
+  const pilotKnowledgeBlock = pilotKnowledge.length ? pilotKnowledge.join('\n\n') : null
   let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, user.email)
   // Anchor today's date. The coach is otherwise never told the current date, so
   // any past/future or elapsed-time reasoning it does itself is unanchored
@@ -1011,7 +1042,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
         system: [
           { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
           ...(goIndependentBlock ? [{ type: 'text', text: goIndependentBlock, cache_control: { type: 'ephemeral' } }] : []),
-          ...(pipelineCaptureBlock ? [{ type: 'text', text: pipelineCaptureBlock, cache_control: { type: 'ephemeral' } }] : []),
+          ...(pilotKnowledgeBlock ? [{ type: 'text', text: pilotKnowledgeBlock, cache_control: { type: 'ephemeral' } }] : []),
           { type: 'text', text: profileBlock },
         ],
         messages: msgs,

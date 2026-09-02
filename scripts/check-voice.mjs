@@ -25,6 +25,14 @@ const FILES_TO_CHECK = [
   'src/survey-questions.js',
   'api/survey/respond.js',
   ...fs.readdirSync('src/data/user-guide').map(f => path.join('src/data/user-guide', f)),
+  // Your Next Step (2026-09-02). step-position.js writes the sentence a person
+  // reads on the screen AND the sentence My Coach speaks back, which makes it a
+  // user-facing surface that happens to be a rules table; Staircase.jsx carries
+  // the labels around it. Neither sits under src/App.jsx, so without these two
+  // lines the copy that answers "what should I be doing" would be the one piece
+  // of shipped prose with no detector on it.
+  'src/step-position.js',
+  'src/components/Staircase.jsx',
 ]
 
 const BUILD_HARD = patternsFor('build', { includeSoft: false })
