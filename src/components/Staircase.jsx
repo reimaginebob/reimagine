@@ -141,7 +141,7 @@ export default function Staircase({ step, keelLetter, keelGloss, stalled, positi
         padding: '12px 16px', marginTop: 14,
       }}>
         <span style={{ fontFamily: 'Georgia,serif', fontSize: 19, fontWeight: 700, color: C.goldL, letterSpacing: '3px' }}>KEEL</span>
-        <span style={{ fontSize: 16, color: C.grayL, lineHeight: 1.55 }}>
+        <span style={{ fontSize: 16, color: C.grayL, lineHeight: 1.55, textWrap: 'pretty' }}>
           The keel that runs under the entire journey.
           {keelLetter ? <> Right now: <strong style={{ color: C.cream }}>{keelLetter} &mdash; {keelGloss}</strong>.</> : null}
           {stalled ? ' The stairs hold; this is the part that carries a quiet stretch.' : ''}
