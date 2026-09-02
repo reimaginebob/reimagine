@@ -7361,6 +7361,30 @@ export default function PivotEngine(){
       if(move&&data.date)patch.next_step_at=new Date(`${data.date}T12:00:00Z`).toISOString()
       if(meeting)patch.next_conversation_at=new Date(`${meeting}T12:00:00Z`).toISOString()
       savePursuit(targetId,patch)
+      // Say what landed, and offer the way back. A save that ends in silence
+      // leaves the person sitting in the Coach with the card they just changed
+      // one screen away -- the "Back to..." link is at the TOP of the
+      // conversation, which is not where anyone is after a long exchange.
+      // Offered rather than automatic: they may well have more to say, and
+      // pulling them out of the conversation because they saved something is
+      // the product deciding for them.
+      const savedRec=activePlaybooks.find(r=>r&&r.id===targetId)
+      const savedTitle=(savedRec&&savedRec.title)||'this opportunity'
+      const fmtDay=(iso)=>new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})
+      const landed=[]
+      if(move)landed.push(`next move is now \u201c${move}\u201d${data.date?`, by ${fmtDay(data.date)}`:''}`)
+      if(meeting)landed.push(`next scheduled meeting is ${fmtDay(meeting)}`)
+      return{content:`Saved. On ${savedTitle}, your ${landed.join(', and your ')}.`,
+        checkinKey:'pursuit-saved-open',
+        quickReplies:[{label:`Open ${savedTitle}`,value:targetId},{label:'Stay here',value:'dismiss'}]}
+    }
+    // Take them to the opportunity they just updated, using the same navigation
+    // the pipeline card itself uses so they land on the record they changed.
+    if(checkinKey==='pursuit-saved-open'){
+      if(value==='dismiss')return true
+      const rec=activePlaybooks.find(r=>r&&r.id===value&&r.source==='door2')
+      if(!rec)return true
+      restoreFromSavedSlot(rec)
       return true
     }
     // Coach named interviewers the user mentioned; add them to the matching
@@ -7775,7 +7799,9 @@ export default function PivotEngine(){
   const coachReturnLabel=(fromStep,section)=>{
     if(section&&NAV_LABELS[section])return NAV_LABELS[section]
     if(fromStep==='focus')return 'your Focus Playbook'
-    if(fromStep==='op')return 'this opportunity'
+    // Name it. "Back to this opportunity" makes someone work out which one they
+    // came from; "Back to Imerys · Human Resources Vice President" does not.
+    if(fromStep==='op'){const t=coachSaveTarget();return (t&&t.title)||'this opportunity'}
     return NAV_LABELS[fromStep]||'where you were'
   }
   const openCoachWith=(seedText,autoSend=false,returnSection=null)=>{setCoachSeed(seedText||'');setCoachSeedAuto(!!autoSend);setCoachReturn(step==='myCoach'?null:{step,section:returnSection||null,label:coachReturnLabel(step,returnSection)});nav('myCoach')}

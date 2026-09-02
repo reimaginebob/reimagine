@@ -234,8 +234,18 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     // Persistence is best-effort and routed by App: an onQuickReply handler owns
     // where the value lands (e.g. employment status -> its own column endpoint).
     // Falls back to the personal-brand check-in log when App does not handle it.
+    //
+    // A handler may return a message object instead of `true` when the tap has
+    // somewhere to go next. A save that lands and then says nothing leaves the
+    // person sitting in the Coach with the thing they just updated one screen
+    // away and no way back that is on screen -- the "Back to…" link lives at the
+    // top of the conversation, which is exactly where they are not after a long
+    // exchange. The completion moment is where the way back belongs.
     try {
       const handled = onQuickReply ? await onQuickReply(checkinKey, opt.value) : false
+      if (handled && typeof handled === 'object' && handled.content) {
+        setMessages(m => [...m, { role: 'assistant', ...handled }])
+      }
       if (!handled) {
         await fetch('/api/pb-checkin', {
           method: 'POST', credentials: 'include',
