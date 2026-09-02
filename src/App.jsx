@@ -23,7 +23,7 @@ import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 // scripts/test-autosave-gate.mjs.
 import { canPushProfile } from "./autosave-gate.js"
 import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, firstPerKind, weaknessRecord, missingNumbers, questionGroup, parseStorySeed, THOUGHT_PROCESS_FRAMEWORKS, readFramework } from "./star-stories.mjs"
-import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, linkedInAlumniUrl, tranches, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
+import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, linkedInAlumniUrl, tranches, schoolsFromText, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
 import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from "./corrections.js"
 // Job Search Resources (docs/networking-groups-brief.md). The date rule and the
 // ranking live in the module, not in the prompt, because a prompt instruction is
@@ -13943,7 +13943,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 // someone, this is for when both come up empty: alumni of your school who
                 // work there. Verified live on 2026-09-01 — see linkedInAlumniUrl.
                 const _school=String(profile.school||'').trim()
-                const _eduGuess=(()=>{const e=profile.baselineResume&&Array.isArray(profile.baselineResume.education)?profile.baselineResume.education:[];const first=e.find(x=>x&&String(x.institution||'').trim());return first?String(first.institution).trim():''})()
+                // Structured education first where it exists, then whatever the resume
+                // and LinkedIn text carry. Offered as tiles to click rather than applied,
+                // since a resume mentions schools it did not attend -- a client, an
+                // employer's training partner -- and a wrong pick costs a whole search.
+                const _schoolOptions=(()=>{
+                  const out=[],seen=new Set()
+                  const add=v=>{const t=String(v||'').trim();const k=t.toLowerCase();if(!t||seen.has(k))return;seen.add(k);out.push(t)}
+                  const structured=(profile.baselineResume&&Array.isArray(profile.baselineResume.education))?profile.baselineResume.education:[]
+                  for(const e of structured)add(e&&e.institution)
+                  for(const v of schoolsFromText(profile.resume))add(v)
+                  for(const v of schoolsFromText(profile.linkedin))add(v)
+                  return out.slice(0,6)
+                })()
                 const _alumniBtn=<div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                   <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>If you know nobody there and nobody who does, a shared school is one of the few reasons a stranger will still take your call.</div>
                   {_school
@@ -13959,11 +13971,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         <div style={{marginTop:10}}>Your school probably also has an alumni directory and a career office, and they will often make an introduction outright.</div>
                       </CoachingCallout>
                     </>
-                    :<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-start'}}>
-                      <input value={schoolDraft||_eduGuess} onChange={e=>setSchoolDraft(e.target.value)} placeholder="e.g. University of Michigan" style={{flex:1,minWidth:240,boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none'}}/>
-                      <Btn small disabled={!String(schoolDraft||_eduGuess).trim()} onClick={()=>{pr('school',String(schoolDraft||_eduGuess).trim());setSchoolDraft('')}}><Check size={12}/>Use this school</Btn>
-                    </div>}
-                  {!_school&&!String(schoolDraft||_eduGuess).trim()&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:6}}>Type your school above and this turns on.</div>}
+                    :<>
+                      {_schoolOptions.length>0&&<>
+                        <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>{_schoolOptions.length===1?'From your resume:':'From your resume. Pick the one to search:'}</div>
+                        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>
+                          {_schoolOptions.map(sc=><button key={sc} type="button" onClick={()=>{pr('school',sc);setSchoolDraft('')}} style={{fontSize:16,fontFamily:'inherit',padding:'8px 12px',borderRadius:20,cursor:'pointer',border:`1px solid ${C.border}`,background:'#FFFFFF',color:'#1A2540',fontWeight:600,textAlign:'left'}}>{sc}</button>)}
+                        </div>
+                        {_schoolOptions.length>1&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginBottom:10}}>If you did a graduate degree, that network is usually the tighter one.</div>}
+                      </>}
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-start'}}>
+                        <input value={schoolDraft} onChange={e=>setSchoolDraft(e.target.value)} placeholder={_schoolOptions.length?'Or type another':'e.g. University of Michigan'} style={{flex:1,minWidth:240,boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none'}}/>
+                        <Btn small disabled={!schoolDraft.trim()} onClick={()=>{pr('school',schoolDraft.trim());setSchoolDraft('')}}><Check size={12}/>Use this school</Btn>
+                      </div>
+                      {!schoolDraft.trim()&&!_schoolOptions.length&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:6}}>Type your school above and this turns on.</div>}
+                    </>}
                 </div>
                 const _linkBtn=<div>
                   <a href={linkedInSecondDegreeUrl(searchQuery(_company,_srch.extra))} target="_blank" rel="noopener noreferrer" style={_goldBtn}>See who can introduce you<ArrowUpRight size={16}/></a>
