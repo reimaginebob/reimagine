@@ -24,6 +24,7 @@ import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
 import { parseSelfcheck } from '../src/coach-routing.js'
 import { STEPS, nextStep as computeNextStep } from '../src/step-position.js'
+import { describeSections } from '../src/playbook-sections.js'
 import { LANE_LABELS } from '../src/nav-labels.js'
 import { totalCompModel } from '../src/offer-valuation.js'
 import { COMP_KNOWLEDGE } from '../src/comp-knowledge.js'
@@ -110,7 +111,20 @@ const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passi
 // pipeline — plus a one-line rollup for "how is my search going?". Deliberately
 // NOT the email-derived half (employer silence, missed callbacks); that lives in
 // Gmail, which Reimagine cannot see, so the instruction forbids inferring it.
-function buildPursuitStatusBlock(state, pursuitRows) {
+// How many people this person has named on an opportunity's interview team.
+// Its own helper because the build map reports on it before the panel block
+// below has built its list.
+function _panelCount(rec) {
+  const panel = rec && rec.panel && typeof rec.panel === 'object' ? rec.panel : null
+  const ivs = panel && Array.isArray(panel.interviewers) ? panel.interviewers : []
+  return ivs.filter(iv => iv && typeof iv === 'object' && typeof iv.name === 'string' && iv.name.trim()).length
+}
+
+function buildPursuitStatusBlock(state, pursuitRows, opts = {}) {
+  // `detailed` is the Your Next Step pilot's build map (see buildSectionMap).
+  // Off, every byte of this block is what it was before the pilot existed.
+  const detailed = !!opts.detailed
+  const independent = !!opts.independent
   if (!Array.isArray(pursuitRows) || !pursuitRows.length) return ''
   const saved = Array.isArray(state && state.savedPlaybooks)
     ? state.savedPlaybooks.filter(r => r && r.source === 'door2' && !r.archivedAt)
@@ -176,6 +190,25 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     // Whether Interview Prep is built on this opportunity, so an offer to prep can
     // be phrased right without a round trip: work through what's built vs build it.
     if (!isClosed) parts.push(recordSectionText(rec, 'p11').trim() ? 'Interview Prep built' : 'Interview Prep not built yet')
+    // THE BUILD MAP. Until this, the coach knew every opportunity's title,
+    // stage and day counts and exactly one thing about its contents -- whether
+    // Interview Prep existed -- while recordSectionText could already answer for
+    // all of them. So it spoke with confidence about a search it could not see
+    // inside, which is how it came to offer work that was already done.
+    //
+    // Reported BY NAME and never as a count or a fraction: three sections of six
+    // may be exactly right for this opportunity, and "3 of 6" is the progress bar
+    // this product refuses to draw wearing a different hat.
+    if (detailed && !isClosed) {
+      const { built, todo } = describeSections(rec, { independent, hasOffer: s.stage === 'offer' })
+      if (built.length) parts.push(`built on this opportunity: ${built.join(', ')}`)
+      if (todo.length) parts.push(`not built yet: ${todo.join(', ')}`)
+      const jd = typeof rec.jd === 'string' ? rec.jd.trim() : ''
+      parts.push(jd ? 'the job description is loaded' : 'no job description loaded')
+      const notes = Array.isArray(rec.savedNotes) ? rec.savedNotes.length : 0
+      if (notes) parts.push(`${notes} saved note${notes === 1 ? '' : 's'} on this opportunity`)
+      if (!_panelCount(rec)) parts.push('nobody named on the interview team yet')
+    }
     // Everything the person typed onto this opportunity BY HAND, ALWAYS: the
     // interview team with their own notes on each person, and the context they
     // wrote about how the role came to them.
@@ -221,7 +254,46 @@ function buildPursuitStatusBlock(state, pursuitRows) {
   }
   if (!lines.length) return ''
   const rollup = `${active} active${attention ? `, ${attention} needing attention (an overdue next step)` : ''}${quiet ? `, ${quiet} going quiet (nothing scheduled ahead)` : ''}.`
-  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nEverything above that an opportunity lists as theirs — the interview team, what they know about each person, how the role came to them — was typed in by this person. Treat it as known fact and weave it into what you say: use a person's name and role without being told again, and reason from what they wrote about someone rather than asking them to repeat it. NEVER ask who a named person is, what their role is, or for anything else already recorded here; being asked twice for something they took the trouble to write is how this stops feeling like a coach who knows them. Where a note shows "(trimmed)", more of it exists and you will see it in full once the conversation focuses on that opportunity. When they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
+  // The build map arrives as data; without this the model does the obvious wrong
+  // thing with it and starts scoring people out of six.
+  const mapNote = detailed
+    ? ` Each opportunity also lists what is BUILT on it and what is NOT BUILT YET, by the name the card carries. Use those names exactly -- a section called something else sends them hunting for a card that is not there. Answer "how am I set up for X" from this: what exists, what does not, and what would help most next, without asking them what they have built. NEVER turn it into a number: no "two of six", no fraction, no percentage, no "halfway", no ranking of one opportunity against another, and never call an opportunity incomplete or behind. An unbuilt section is something available to them, never something they failed to do. Offer the one that would actually help the situation in front of them rather than listing everything absent.`
+    : ''
+  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nEverything above that an opportunity lists as theirs — the interview team, what they know about each person, how the role came to them — was typed in by this person. Treat it as known fact and weave it into what you say: use a person's name and role without being told again, and reason from what they wrote about someone rather than asking them to repeat it. NEVER ask who a named person is, what their role is, or for anything else already recorded here; being asked twice for something they took the trouble to write is how this stops feeling like a coach who knows them. Where a note shows "(trimmed)", more of it exists and you will see it in full once the conversation focuses on that opportunity. When they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.${mapNote}`
+}
+
+// FOCUS PLAYBOOKS — what is built in each (Your Next Step pilot, 2026-09-02).
+//
+// Opportunities got a status block a fortnight ago. Focus Playbooks got nothing:
+// they reach the coach as a title inside one semicolon-joined "Saved playbooks"
+// line in the INDEX, mixed in with opportunities and indistinguishable from
+// them. So the coach could not tell a direction from a live opening, let alone
+// say what was built in one.
+//
+// That is the case Bob described: someone with several directions started and
+// none carried far. Answering it needs the names of what exists in each, which
+// is what this gives -- BY NAME, never as a count. Three of ten may be exactly
+// right for a path, and a fraction here would be a completeness score on work
+// that has no required length.
+function buildFocusPlaybookBlock(state, independent) {
+  const saved = Array.isArray(state && state.savedPlaybooks) ? state.savedPlaybooks : []
+  const focus = saved.filter(r => r && r.source !== 'door2' && !r.archivedAt)
+  if (!focus.length) return ''
+  const DAY = 86400000
+  const today = Date.parse(new Date().toISOString().slice(0, 10))
+  const daysAgo = (v) => { if (!v) return null; let iso = ''; try { iso = new Date(v).toISOString().slice(0, 10) } catch { return null } const t = Date.parse(iso); return Number.isNaN(t) ? null : Math.round((today - t) / DAY) }
+  const lines = []
+  for (const rec of focus.slice(0, 12)) {
+    const title = String(rec.title || 'a direction').trim()
+    const { built, todo } = describeSections(rec, { independent })
+    const parts = []
+    parts.push(built.length ? `built: ${built.join(', ')}` : 'nothing built in it yet')
+    if (todo.length) parts.push(`not built: ${todo.join(', ')}`)
+    const cold = daysAgo(rec.updatedAt)
+    if (cold != null && cold >= 1) parts.push(`last worked on ${cold} day${cold === 1 ? '' : 's'} ago`)
+    lines.push(`- ${title} — ${parts.join('; ')}`)
+  }
+  return `\n\nTHEIR FOCUS PLAYBOOKS — a Focus Playbook is a DIRECTION they explored, which is a different thing from an opportunity on My Pipeline (a live opening at a named employer). What is built in each:\n${lines.join('\n')}\n\nUse this to answer what they have and have not explored, and to offer a section by its own name rather than sending them to hunt. Sections carry no required order and no required number: a direction with two built may be finished as far as they need it, so never describe one as incomplete, behind, or thin, never count or total them, and never compare one direction against another. When several directions are part-built and none is moving, that is worth asking about -- which of these still interests them, and would they like to take one further -- and it is an offer, never an observation about them. Name what is unbuilt only as something available.`
 }
 
 // Search-intake staleness (consult 2026-08-20). Past this age the two intake
@@ -280,7 +352,7 @@ function searchIntakeNote(si) {
   return `\n\nSEARCH INTAKE (open): two things are worth knowing about this person's own read on their search — what is going well in it right now, and what they would like to improve. ${missing}\n\nWhen they answer one of these, respond to what they actually said FIRST and properly: reflect the substance back, say what it tells you, and where you can see one, offer a concrete idea that builds on it. Someone who says networking is finally working should hear what that is worth and one way to press the advantage; someone who says applications go quiet should get a real read on where that usually breaks and what to try. Give it the weight you would give any other thing they told you. Only after that reply stands on its own do you move to the other question, in the same message, as a natural next beat rather than a form field.\n\nWhen — and only when — their answer carries something real, end your reply with a final line exactly like SEARCHINTAKE: {"goingWell":"their answer in their own words"} or SEARCHINTAKE: {"focus":"their answer in their own words"}. One key only, for the question they just answered. Keep their words, lightly tidied into a sentence or two; never your paraphrase and never your advice. Emit nothing at all for a shrug, a deflection, a change of subject, an "I don't know", or a reply too thin to be worth carrying — an empty field is better than a noisy one, and you will get another chance later in the conversation. The app turns that line into a one-tap offer and never shows it, so do not mention it, and never ask them to type anything anywhere.`
 }
 
-function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail) {
+function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, independent = false) {
   if (!state || typeof state !== 'object') {
     // No profile at all — definitionally pre-Personal-Brand, so the sidebar is the
     // Orientation phase list. Carry the same navigation gate as the main path below
@@ -437,7 +509,12 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // cached stay here: this person's live pipeline rows, and the capture protocol.
   // The connector half (Gmail/Calendar keeping it current unattended) is still a
   // named beta, so the Coach is told about it separately, only for those users.
-  const myStatusData = buildPursuitStatusBlock(state, pursuitRows)
+  // The pilot's build map and the Focus Playbook block are gated together with
+  // the rest of Your Next Step: they change what the coach says on every turn,
+  // and that is the change Bob quality-controls before 145 accounts see it.
+  const sightOn = hasNextStep({ feature_flags: featureFlags, email: userEmail })
+  const myStatusData = buildPursuitStatusBlock(state, pursuitRows, { detailed: sightOn, independent })
+  const focusData = sightOn ? buildFocusPlaybookBlock(state, independent) : ''
   // Pilot: only a flagged account is told it may propose a next move. A
   // non-flagged account never receives the instruction, so the parser below
   // simply never fires for them -- the same no-op the interview-team capture
@@ -453,7 +530,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // block; the feature's standing rules ride in their own cached block
   // (NEXT_STEP_KNOWLEDGE) alongside the other pilot knowledge.
   const nextStepNote = (() => {
-    if (!hasNextStep({ feature_flags: featureFlags, email: userEmail })) return ''
+    if (!sightOn) return ''
     let ns = null
     try { ns = computeNextStep(state, pursuitRows) } catch { return '' }
     if (!ns || !ns.action) return ''
@@ -463,7 +540,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   const connectorNote = hasConnectorBeta({ feature_flags: featureFlags })
     ? '\n\nASSISTANT CONNECTOR (this person has it; it is a limited beta most users do not have — never imply it is generally available): they can connect their own assistant to Gmail and Calendar so their pipeline keeps itself current without them typing anything. Reimagine never reads their inbox. Mention it only if it fits what they are asking; do not pitch it.'
     : ''
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${nextStepNote}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${nextStepNote}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -942,7 +1019,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // and so can be cached.
   if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: user.email })) pilotKnowledge.push(NEXT_STEP_KNOWLEDGE)
   const pilotKnowledgeBlock = pilotKnowledge.length ? pilotKnowledge.join('\n\n') : null
-  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, user.email)
+  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, user.email, isIndependentTrack)
   // Anchor today's date. The coach is otherwise never told the current date, so
   // any past/future or elapsed-time reasoning it does itself is unanchored
   // guesswork — it once called an Aug 24 follow-up "overdue by nine weeks" on
