@@ -8,7 +8,7 @@ Only opportunities appear here. The roles you explore from Career Paths stay und
 
 ## What is on the screen
 
-At the top, a one-line read on the whole search: how many opportunities are in play, how many need attention, how many are going quiet. "Going quiet" means an opportunity that is still open but has nothing scheduled ahead of it — no meeting, no next step. It is the thing easiest to miss and the thing most worth seeing.
+At the top, a one-line read on the whole search: how many opportunities are in play, how many need attention, how many are going quiet. "Going quiet" means an opportunity that is still open but has nothing scheduled ahead of it — no meeting, no next move. It is the thing easiest to miss and the thing most worth seeing.
 
 Under that, **Get My Coach's read on your pipeline** hands the whole picture to My Coach and asks where you are building momentum, where you are stalling, and where to put your energy now. It reads the real dates and stages, not a summary you have to write.
 
@@ -20,11 +20,11 @@ Then one card per opportunity.
 
 **Next scheduled meeting.** The date of your next conversation, if one is booked.
 
-**My Next Steps.** What you are doing next, in your own words, and the date you mean to do it by. This is the field that drives everything else on the screen.
+**Next move.** What you are doing next, in your own words, and the date you mean to do it by. This is the field that drives everything else on the screen.
 
 **The title.** Click it to rename the opportunity. Reimagine titles it from the posting, the company and the role, which is right often enough but not always; type whatever you call it and press Enter, or Escape to leave it alone.
 
-**Mark done.** When you finish a step, press it. The step and its date clear together, the Overdue flag goes with them, and what you finished is filed onto that opportunity's Notes so you keep the record. Then type whatever comes next. This is how you clear an Overdue flag — there is no separate log to keep.
+**Mark done.** When you finish a move, press it. The move and its date clear together, the Overdue flag goes with them, and what you finished is filed onto that opportunity's Notes so you keep the record. Then type whatever comes next. This is how you clear an Overdue flag — there is no separate log to keep.
 
 **What is built.** A row of section names — the cards inside that opportunity's playbook. Gold means built and clicks straight through to it; grey means not built yet. Next to them, a count of any notes you have saved.
 
@@ -44,16 +44,16 @@ An opportunity you remove lands in the **Archived** section at the bottom of thi
 
 You never sort this screen yourself. It sorts by what needs attention:
 
-1. A next step whose date has passed.
+1. A next move whose date has passed.
 2. Anything with an upcoming date, soonest first.
-3. Anything with a next step written but no date.
+3. Anything with a next move written but no date.
 4. An opportunity at Interviewing or Offer with sections still unbuilt.
 5. Everything else, most recently touched first.
 6. Closed opportunities, last and dimmed.
 
 ## The flags
 
-A next step dated **before today** is flagged **Overdue** in red. A step due **today** is flagged **Due today** in green and stays that way all day — you get the whole day to do it, and it is never treated as late.
+A next move dated **before today** is flagged **Overdue** in red. A move due **today** is flagged **Due today** in green and stays that way all day — you get the whole day to do it, and it is never treated as late.
 
 If a date is more than a year in the past or more than five years out, the card says **Check date** in amber rather than counting the days. That is almost always a mistyped year, and telling you a step is overdue by nine thousand days helps nobody.
 
