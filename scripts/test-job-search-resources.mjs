@@ -9,7 +9,7 @@ import {
   CAREER_CLUB_CORNER, meetupCitySlug, meetupUrl, jobSearchGroupSearchUrl,
   hasAssertedDate, stripAssertedDate, normalizeResource, splitResources,
   resourceScore, rankResources, resourcesCacheKey, packResources, unpackResources, displayCity,
-  groupsSignatureFor, putGroups, getGroups, GROUPS_MAX_SIGNATURES,
+  groupsSignatureFor, putGroups, getGroups, GROUPS_MAX_SIGNATURES, institutionOf,
 } from '../src/job-search-resources.mjs'
 
 let pass = 0, fail = 0
@@ -55,6 +55,36 @@ const split = splitResources([
 ])
 eq('sourced rows are kept', split.rows.length, 2)
 eq('an unlinked row is separated, not discarded', split.uncited.length, 1)
+
+// ── Word-safe truncation ────────────────────────────────────────────────────
+// A hard slice put "sector-specific hi" and "funded through federal/p" on screen.
+const longTake = normalizeResource({ name: 'L', url: 'https://l.org',
+  howYouTakePart: 'Visit a local American Job Center in person or attend the listed job fairs and career events, such as the citywide career fair and the sector-specific hiring events held throughout the year' })
+t('a long value no longer ends mid-word', !/\bhi$|\bfederal\/p$/.test(longTake.howYouTakePart))
+t('a truncated value is marked as cut', longTake.howYouTakePart.endsWith('…'))
+t('a short value is untouched', normalizeResource({ name: 'S', url: 'https://s.org', howYouTakePart: 'Meets weekly' }).howYouTakePart === 'Meets weekly')
+
+// ── One row per institution ─────────────────────────────────────────────────
+// Live Chicago output returned the same public library three times, which is
+// three of the few slots this card has spent on one building.
+eq('institution of a library programme', institutionOf('Skokie Public Library Career Support Group'), 'skokie public library')
+eq('a different programme at the same library reduces the same', institutionOf('Skokie Public Library Job Seekers drop-in resume/feedback sessions'), 'skokie public library')
+eq('a college programme reduces to the college', institutionOf('Oakton College Career Development Center — Community Members'), 'oakton college')
+eq('a slash-separated network reduces to the body', institutionOf('Chicago Cook Workforce Partnership / American Job Center Network'), 'chicago cook workforce partnership')
+const chicago = splitResources([
+  { name: 'Skokie Public Library Career Support Group', url: 'https://a.org' },
+  { name: 'Oakton College Career Development Center — Community Members', url: 'https://b.org' },
+  { name: 'Skokie Public Library Job Seekers drop-in resume/feedback sessions', url: 'https://c.org' },
+  { name: 'Harper College Job Placement Resource Center — Community Job Search Assistance', url: 'https://d.org' },
+])
+eq('one row survives per institution', chicago.rows.length, 3)
+t('the first row for an institution is the one kept', chicago.rows[0].name.includes('Career Support Group'))
+t('two different colleges both survive', chicago.rows.filter(r => /College/.test(r.name)).length === 2)
+// A single-word leader must not collapse unrelated organizations.
+t('a one-word leader does not collapse anything', splitResources([
+  { name: 'Chicago Career Collective', url: 'https://e.org' },
+  { name: 'Chicago Innovation Awards', url: 'https://f.org' },
+]).rows.length === 2)
 
 // ── The TALK case ───────────────────────────────────────────────────────────
 // A generic query ranked TALK ninth of nine and the prose summary dropped it.
