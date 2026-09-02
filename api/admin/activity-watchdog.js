@@ -79,8 +79,12 @@ const TOTAL_PLAYBOOKS_HR = 20     // app-wide spike — a runaway loop/bug or co
 // Keep PER_USER_GENERATIONS_HR in step with GENERATION_CAP_HR in api/claude.js;
 // the watchdog is the hourly backstop for the same limit the request path
 // enforces in real time.
-const PER_USER_GENERATIONS_HR = 120  // observed peak 62, average active hour 9.6
-const TOTAL_GENERATIONS_HR = 250
+const PER_USER_GENERATIONS_HR = 240  // 2026-09-02: the 62 peak predates the search features; one click is now ~8-11 rows. See api/claude.js.
+// App-wide is ALERT ONLY, never a pause, so its job is to stay a signal
+// rather than to protect anyone. At 250 it would fire on a single heavy
+// user under the new per-user ceiling and stop meaning anything; 750 is
+// roughly three of them at once, which is still worth an operator email.
+const TOTAL_GENERATIONS_HR = 750
 
 function parseRecipients(raw) {
   return (raw || '').split(',').map(s => s.trim()).filter(Boolean)
