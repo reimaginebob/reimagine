@@ -67,6 +67,26 @@ t('prep built, research missing -> read up on them', keys(prepped, soonRows)[0] 
 const readied = { ...base3, savedPlaybooks: [opp('a', 'Imerys', { sections: { p11: { content: 'p' }, companyRead: { content: 'c' } } }), opp('b', 'Deloitte')] }
 t('prep and research built -> rehearse it', keys(readied, soonRows)[0] === 'rehearse')
 
+// ---- A BOOKED CONVERSATION IS NEVER SILENT ----
+// Found by running Bob's real board through the engine: an interview 12 days
+// out with prep built fell through every branch and produced no door at all,
+// while the screen happily discussed two other opportunities. An interview with
+// a date is the most consequential thing on someone's board and the one event
+// that cannot be redone; a screen that ignores it because it is not this week is
+// a screen they stop trusting.
+const farRows = [row('a', { stage: 'interviewing', next_conversation_at: ahead(21) })]
+const oneOpp = { ...base3, savedPlaybooks: [opp('a', 'Imerys')] }
+t('a meeting three weeks out still gets a door', N(oneOpp, farRows).doors.some(d => /Imerys/.test(d.action)))
+// With nothing built, "build the prep" is the right door whatever the date, so
+// the day count is not the point there. Once prep EXISTS the door is about
+// rehearsing before a specific day, and then the day is exactly the point.
+t('with no prep it points at building it, date or no date', N(oneOpp, farRows).doors[0].key === 'prep')
+const farPrepped = { ...base3, savedPlaybooks: [opp('a', 'Imerys', { sections: { p11: { content: 'p' } } })] }
+t('with prep built and a distant date, it still gets a door', N(farPrepped, farRows).doors.some(d => /Imerys/.test(d.action)))
+t('and that one says how far away it is', /in 21 days/.test(N(farPrepped, farRows).doors.map(d => d.why).join(' ')))
+t('and points at saying it out loud', /out loud/.test(N(farPrepped, farRows).doors.map(d => d.why).join(' ')))
+t('a fortnight out is urgent, not merely upcoming', N(oneOpp, [row('a', { stage: 'interviewing', next_conversation_at: ahead(12) })]).doors[0].key === 'prep')
+
 // ---- AN OFFER IS A CLOCK ----
 const offerRows = [row('c', { stage: 'offer' }), row('b', { stage: 'applied' })]
 const offerState = { ...base3, savedPlaybooks: [opp('c', 'HOPE'), opp('b', 'Deloitte')] }

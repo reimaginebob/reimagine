@@ -54,9 +54,11 @@ export const KEEL_LETTER = {
 
 const DAY = 86400000
 const STALL_DAYS = 14
-// An interview this close is the one thing that outranks everything else on the
-// board. Past it, preparation is still worth doing and is no longer urgent.
-const INTERVIEW_SOON_DAYS = 10
+// A booked conversation inside this window outranks almost everything else on
+// the board: it is the one event that cannot be redone, and preparation has to
+// happen before it, not after. Two weeks rather than one, because "a fortnight
+// out with nothing prepared" is already late for a five-person panel.
+const INTERVIEW_SOON_DAYS = 14
 
 const txt = (v) => (typeof v === 'string' ? v.trim() : '')
 const built = (outputs, key) => !!txt(outputs && outputs[key])
@@ -220,6 +222,18 @@ export function nextSteps(state, pursuitRows, activityFacts = [], now = Date.now
     if (!cand.length && o.status.stage === 'interviewing' && !sec(o, 'p11')) {
       cand.push(door('prep', 9, `Build Interview Prep for ${t}`,
         'You are interviewing there and the prep is not built. It works from your own stories rather than a generic question list.', 'pipeline', o.rec.id))
+    }
+
+    // A conversation on the calendar further out than the urgent window still
+    // gets a door -- lower down, but never silent. An interview with a date is
+    // the most consequential thing on someone's board, and a screen that says
+    // nothing about it because it is three weeks away is a screen they will
+    // stop trusting.
+    if (!cand.length && meetingIn != null && meetingIn < 0) {
+      const away = Math.abs(meetingIn)
+      cand.push(door('ahead', 11, `Get ready for ${t}`,
+        `You are talking to them in ${away} days.${sec(o, 'p11') ? ' The prep is built, so this is about saying it out loud rather than reading it again.' : ' Interview Prep works from your own stories rather than a generic question list.'}`,
+        'pipeline', o.rec.id))
     }
 
     if (!cand.length && (meetingIn == null || meetingIn > 0)) {
