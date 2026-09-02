@@ -1994,7 +1994,7 @@ THEN THE FREE LOCAL HELP, which is worth real money to someone out of work:
 - Outplacement providers that run open group programming.
 - Local chapters of professional bodies that run a specific job-transition or careers-in-transition group (a professional association operating a transition group is a legitimate result here).
 
-SET fitsProfession TRUE only when the organization serves THEIR profession specifically \u2014 their field's association, its local chapter, a network for people who do their kind of work. A library, a workforce centre or a general job-search group serves everybody, so it is false there, however good it is.
+SET fitsProfession TRUE when the organization serves THEIR FIELD \u2014 their field's association, its local chapter, or a network for people who do their kind of work. The field counts even when the body covers more ground than their exact title does: SHRM and its local chapters serve a talent acquisition leader, and a state bar serves a specialist lawyer. It is FALSE only for organizations that serve job seekers or professionals in general, whatever their line of work \u2014 a library, a workforce centre, a general job-search group \u2014 however good those are.
 
 ONE ROW PER ORGANIZATION. If a library or a college runs three programs, return it ONCE and describe what it offers in a single line. Three rows for the same library reads as a padded list and crowds out the places they have not heard of.
 
@@ -2041,7 +2041,7 @@ Use null for alive when the sources do not settle it either way.`
 async function findJobResources(loc){
   let discovered=[]
   try{
-    const raw=await callClaude(JOB_RESOURCES_PROMPT(loc),{webSearch:true,maxTokens:6000,effort:'low'})
+    const raw=await callClaude(JOB_RESOURCES_PROMPT(loc),{webSearch:true,maxTokens:6000,effort:'low',step:'resources-search'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<=a)return{rows:[],uncited:[]}
     const obj=JSON.parse(raw.slice(a,b+1))
@@ -2053,7 +2053,7 @@ async function findJobResources(loc){
   // disappearing. Losing a real group to a flaky second call is the worse bug.
   const checked=await Promise.all(rows.map(async r=>{
     try{
-      const raw=await callClaude(JOB_RESOURCE_LIVENESS_PROMPT(r,loc),{webSearch:true,maxTokens:1200,effort:'low'})
+      const raw=await callClaude(JOB_RESOURCE_LIVENESS_PROMPT(r,loc),{webSearch:true,maxTokens:1200,effort:'low',step:'resources-verify'})
       const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
       if(a<0||b<=a)return r
       const v=JSON.parse(raw.slice(a,b+1))
@@ -2097,7 +2097,7 @@ async function findJobResources(loc){
 // search never using geography those cases degrade instead of coming back empty.
 const GROUPS_SHARED_RULES=`COST DOES NOT DECIDE THIS. A body that charges dues is still the right answer when it is the one for this person's field, and it outranks a free general group that was not built for them. State the cost and let them decide.
 
-SET fitsProfession TRUE when the organization serves this function or industry specifically, and false when it serves professionals generally.
+SET fitsProfession TRUE when the organization serves this FIELD, counting a body that covers more ground than the exact title does \u2014 SHRM and its chapters serve a talent acquisition leader. Set it false only for bodies that serve professionals in general, whatever their line of work.
 
 ONE ROW PER ORGANIZATION. If a body runs several programmes, return it once and say what it offers in a line. Repeats read as padding and crowd out what they have not heard of.
 
@@ -2155,7 +2155,7 @@ ${GROUPS_JSON_SHAPE(c.limit||6)}`
 // One discovery call. Returns raw rows; the caller merges the two families.
 async function runGroupsDiscovery(prompt){
   try{
-    const raw=await callClaude(prompt,{webSearch:true,maxTokens:6000,effort:'low'})
+    const raw=await callClaude(prompt,{webSearch:true,maxTokens:6000,effort:'low',step:'groups-search'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<=a)return[]
     const obj=JSON.parse(raw.slice(a,b+1))
@@ -2176,7 +2176,7 @@ async function findPathGroups(criteria){
   if(rows.length===0)return{rows:[],uncited}
   const checked=await Promise.all(rows.map(async r=>{
     try{
-      const raw=await callClaude(JOB_RESOURCE_LIVENESS_PROMPT(r,{city:criteria.geo||'',region:''}),{webSearch:true,maxTokens:1200,effort:'low'})
+      const raw=await callClaude(JOB_RESOURCE_LIVENESS_PROMPT(r,{city:criteria.geo||'',region:''}),{webSearch:true,maxTokens:1200,effort:'low',step:'groups-verify'})
       const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
       if(a<0||b<=a)return r
       const v=JSON.parse(raw.slice(a,b+1))
