@@ -167,6 +167,38 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     // Whether Interview Prep is built on this opportunity, so an offer to prep can
     // be phrased right without a round trip: work through what's built vs build it.
     if (!isClosed) parts.push(recordSectionText(rec, 'p11').trim() ? 'Interview Prep built' : 'Interview Prep not built yet')
+    // The interview team, ALWAYS. It used to reach the coach only through the
+    // IN FOCUS expansion, which needs two things to line up at once: the
+    // opportunity identified from the person's own typed words, and the turn
+    // judged to be about interviewing. Someone looking at an opportunity who
+    // says "I spoke with Marisol and the interview is on the 14th" satisfies
+    // neither -- they named no company -- so the coach was handed the title and
+    // stage of every opportunity and the contents of none, then asked who
+    // Marisol was. She was already on the panel with her role filled in.
+    //
+    // That failure is worse than knowing nothing: the coach sounds like it
+    // knows the search, because the rollup above lets it cite stages and day
+    // counts, and then asks for something the person typed in themselves. The
+    // rule this encodes is that anything entered BY HAND is always in front of
+    // the coach; generated sections can stay on demand.
+    //
+    // Identity only (name, role, title) -- the notes on each person and the
+    // opportunity context stay in the IN FOCUS expansion, which is where depth
+    // belongs. This is the uncached per-turn block, so it earns its size by
+    // preventing a question, not by carrying everything.
+    const _panel = rec && rec.panel && typeof rec.panel === 'object' ? rec.panel : null
+    const _ivs = (_panel && Array.isArray(_panel.interviewers) ? _panel.interviewers : []).filter(iv => iv && typeof iv === 'object')
+    if (!isClosed && _ivs.length) {
+      const who = _ivs.slice(0, 12).map(iv => {
+        const nm = (typeof iv.name === 'string' ? iv.name.trim() : '') || 'unnamed'
+        const role = ROLE_IN_LOOP_LABEL[iv.role_in_loop] || ''
+        const title = (typeof iv.title === 'string' ? iv.title.trim() : '')
+        const detail = [title, role].filter(Boolean).join(', ')
+        return detail ? `${nm} (${detail})` : nm
+      }).join('; ')
+      const noted = _ivs.filter(iv => typeof iv.learned_note === 'string' && iv.learned_note.trim()).length
+      parts.push(`interview team they have already told you about: ${who}${noted ? ` — ${noted} of them carry their own notes, which you see in full once the conversation focuses on this opportunity` : ''}`)
+    }
     if (!isClosed) {
       active++
       if (overdue) attention++
@@ -176,7 +208,7 @@ function buildPursuitStatusBlock(state, pursuitRows) {
   }
   if (!lines.length) return ''
   const rollup = `${active} active${attention ? `, ${attention} needing attention (an overdue next step)` : ''}${quiet ? `, ${quiet} going quiet (nothing scheduled ahead)` : ''}.`
-  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nWhen they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
+  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nWhere an opportunity lists an interview team, those are people this person entered themselves — use their names and roles as known fact and NEVER ask who someone is, or what their role is, when they are named here. When they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
 }
 
 // Search-intake staleness (consult 2026-08-20). Past this age the two intake
