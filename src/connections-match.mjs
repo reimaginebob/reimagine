@@ -214,6 +214,117 @@ export function looseMatchConnections(people, targetCompany) {
  * Exact matches first, then likely ones; alphabetical inside each group so the
  * order does not shuffle between renders.
  */
+// TRANCHES: an order to work through, not a verdict on each person.
+//
+// The match sorts exact-before-loose then alphabetically, which is a phone book.
+// At 34 people in one company that answers nothing, so the list groups by the
+// seniority in their titles and leads with the most senior.
+//
+// GROUPING IS NOT ADVICE. An earlier version of this named what each band was
+// worth asking -- these are the people to ask for a good word, these are the
+// people who will tell you what it is like. That was wrong, and wrong in a way
+// worth guarding against: a title says nothing about the relationship. A partner
+// may be someone they met once at a conference; an analyst may be a former
+// direct report who would vouch for them tomorrow. Only the user knows that, and
+// the card already asks each person what they want from that contact. The bands
+// order the list. The user picks the ask.
+//
+// What the export gives us per person is name, company, title, profile URL and
+// connection date. So seniority reads off the title and warmth off the date.
+// Location does NOT exist in Connections.csv, so "same country" is not
+// available at all -- it would need a profile visit each.
+//
+// Function is deliberately NOT a band. Titles carry it inconsistently ("Senior
+// Manager" says nothing, "Tax Senior Manager" says plenty), so a function
+// grouping would come out half-empty and read as broken rather than partial.
+
+// Matched against the LOWERCASED title, longest-first inside each band so
+// "senior manager" is not eaten by "manager". Rank 0 is most senior.
+const SENIORITY_BANDS = [
+  { rank: 0, id: 'leadership', label: 'Most senior',
+    terms: ['chief', 'chairman', 'chairwoman', 'president', 'partner', 'managing director',
+            'principal', 'general manager', 'head of', 'c-suite', 'cxo', 'ceo', 'cfo', 'coo',
+            'cto', 'chro', 'cmo', 'evp', 'svp', 'executive vice president', 'senior vice president'] },
+  { rank: 1, id: 'senior', label: 'Senior',
+    terms: ['vice president', 'vp', 'director', 'senior manager', 'sr manager', 'sr. manager'] },
+  { rank: 2, id: 'peer', label: 'Managers and specialists',
+    terms: ['manager', 'lead', 'senior', 'sr', 'staff', 'consultant', 'engineer', 'analyst',
+            'associate', 'specialist', 'advisor', 'accountant', 'recruiter', 'coordinator',
+            'principal', 'scientist', 'architect', 'researcher', 'developer', 'designer'] },
+]
+
+const UNBANDED = { rank: 3, id: 'other', label: 'Titles that do not say much' }
+
+/**
+ * Which seniority band a title falls in.
+ *
+ * A title we cannot read lands in `other` rather than being guessed into a band.
+ * A wrong band would put someone in the wrong place in the queue, and the fix for
+ * an unreadable title is to say so rather than to invent a rank.
+ */
+// "Principal" alone is partner-equivalent at a firm like Deloitte, but
+// "Principal Scientist" or "Principal Engineer" is an individual contributor, and
+// the two belong in different places in the list. Followed by a role noun it is
+// seniority within a craft; alone, or followed by a comma, "at" or "of", it is
+// the rank.
+const PRINCIPAL_IC = /(^|[^a-z])principal\s+(?!at\b|of\b)[a-z]/
+
+export function seniorityBand(title) {
+  const t = String(title || '').toLowerCase()
+  if (!t.trim()) return UNBANDED.id
+  const principalIsCraft = PRINCIPAL_IC.test(t)
+  for (const b of SENIORITY_BANDS) {
+    for (const term of b.terms) {
+      if (term === 'principal' && principalIsCraft) continue
+      // Word-ish boundaries, so "vp" does not match inside another word and
+      // "director" still matches "Managing Director of Tax".
+      const re = new RegExp('(^|[^a-z])' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z]|$)')
+      if (re.test(t)) return b.id
+    }
+  }
+  return UNBANDED.id
+}
+
+/** Years since the connection was made, or null when the date is missing or unreadable. */
+export function yearsConnected(connectedOn, now) {
+  const raw = String(connectedOn || '').trim()
+  if (!raw) return null
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return null
+  const ms = (now instanceof Date ? now : new Date(now)).getTime() - d.getTime()
+  if (!Number.isFinite(ms) || ms < 0) return null
+  return ms / (365.25 * 24 * 60 * 60 * 1000)
+}
+
+/**
+ * The matches grouped into tranches, most senior first, empty bands dropped.
+ *
+ * Inside a band the most recently connected come first: someone met eight months
+ * ago and someone met in 2011 need different opening lines, and the recent one is
+ * usually the easier note to write.
+ */
+export function tranches(hits, now) {
+  const list = Array.isArray(hits) ? hits : []
+  const bands = SENIORITY_BANDS.concat([UNBANDED])
+  const when = now || new Date()
+  return bands
+    .map(b => ({
+      id: b.id,
+      label: b.label,
+      people: list
+        .filter(h => seniorityBand(h && h.t) === b.id)
+        .sort((x, y) => {
+          const a = yearsConnected(x && x.d, when)
+          const c = yearsConnected(y && y.d, when)
+          if (a === null && c === null) return String(x.n || '').localeCompare(String(y.n || ''))
+          if (a === null) return 1
+          if (c === null) return -1
+          return a - c
+        }),
+    }))
+    .filter(b => b.people.length > 0)
+}
+
 export function matchConnections(people, targetCompany) {
   if (!targetCompany || !Array.isArray(people) || !people.length) return []
   const target = normalizeCompany(targetCompany)

@@ -23,7 +23,7 @@ import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 // scripts/test-autosave-gate.mjs.
 import { canPushProfile } from "./autosave-gate.js"
 import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, firstPerKind, weaknessRecord, missingNumbers, questionGroup, parseStorySeed, THOUGHT_PROCESS_FRAMEWORKS, readFramework } from "./star-stories.mjs"
-import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, linkedInAlumniUrl, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
+import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, linkedInAlumniUrl, tranches, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
 import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from "./corrections.js"
 // Job Search Resources (docs/networking-groups-brief.md). The date rule and the
 // ranking live in the module, not in the prompt, because a prompt instruction is
@@ -3102,7 +3102,7 @@ const SCOPE_LENSES=['Strategy','Culture','Oneself','Passion','Expertise']
 const OUTREACH_PURPOSE_CHOICES=[
   {id:'hiring',   label:'Find out who’s hiring',  hint:'Ask who the hiring manager is, or who would know. It takes them a moment to answer and it tells you who your application needs to reach.'},
   {id:'learn',    label:'Learn about the place',      hint:'Ask for fifteen minutes on what the company is actually like to work for. Use this when you want to know that before you go further, or when you do not know the person well enough to ask for more.'},
-  {id:'word',     label:'Ask them to put in a word',  hint:'Ask them to mention your application to the right people inside. This is the biggest favor on the list, and the best thing you can do with someone who has seen you work.'},
+  {id:'word',     label:'Ask them to put in a good word',  hint:'Ask them to mention your application to the right people inside. This is the biggest favor on the list, and the best thing you can do with someone who has seen you work.'},
   {id:'reconnect',label:'Just reconnect',             hint:'Ask for nothing. Just get back in touch and mention you are looking, so it is easier to ask them something later. Use this for someone you have not spoken to in years.'},
 ]
 const OUTREACH_PURPOSES={
@@ -14056,7 +14056,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                         Before writing anything, each person below asks what you want from them: the name of the hiring manager, a sense of what the company is like to work for, a word put in for you, or just getting back in touch. You would write differently to someone you worked with for four years than to someone you met once.
                         <div style={{marginTop:10}}>Send it by email when you have the address. A LinkedIn message only reaches people who are checking LinkedIn. You get both versions either way, so use the LinkedIn one when you do not have an email for them.</div>
                       </CoachingCallout>
-                      {_hits.map((h,i)=>{
+                      {tranches(_hits).map(_tr=><div key={_tr.id}>
+                      <div style={{marginTop:18,marginBottom:6,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:17,fontWeight:700,color:'#1A2540'}}>{_tr.label} <span style={{color:C.gray,fontWeight:500}}>({_tr.people.length})</span></div>
+                      </div>
+                      {_tr.people.map((h,i)=>{
                         const _pk=outreachKey(currentSavedSlotIdRef.current,h)
                         const _purpose=outreachPurpose[_pk]||'hiring'
                         const _k=_pk+'::'+_purpose
@@ -14134,6 +14138,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                           </div>}
                         </div>
                       })}
+                      </div>)}
                       <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                         <div style={{fontSize:16,color:'#33405C',lineHeight:1.6,marginBottom:8}}>Know someone else at {_company} who is not listed? Add them and they get the same treatment.</div>
                     {_addSomeone}
