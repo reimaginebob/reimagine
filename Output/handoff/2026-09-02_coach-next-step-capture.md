@@ -353,9 +353,9 @@ Preview-deploy smoke first — this touches `api/*`. `npm run smoke:preview -- h
 
 Then, after merge, on production:
 
-1. Grant `pipeline_capture` to Lindsey from the admin dashboard. Confirm the result message names "Coach next-step capture", not "My Pipeline".
+1. Grant `pipeline_capture` to **Bob first** from the admin dashboard, and let him quality-control it on production before Lindsey is added. Confirm the result message names "Coach next-step capture", not "My Pipeline".
 2. As a **non-flagged** account: open My Coach with an opportunity open and say *"I'm calling Theresa on the 14th."* Expect a normal reply, no offer, and no `NEXTSTEP:` text visible anywhere in the answer.
-3. As the flagged account, same sentence. Expect the offer, with the date rendered on the button. Tap it; confirm the next step and date appear on that opportunity's My Pipeline card and survive a reload.
+3. As the flagged account (Bob, then Lindsey once he has signed off), same sentence. Expect the offer, with the date rendered on the button. Tap it; confirm the next step and date appear on that opportunity's My Pipeline card and survive a reload.
 4. Say a relative date (*"I'll follow up next Thursday"*) and confirm the rendered date is the correct upcoming Thursday.
 5. Say something with no date (*"I need to email the recruiter"*) and confirm the offer appears with "no date set" and that tapping it does **not** clear a date already on the card.
 6. Decline an offer ("Not now") and confirm nothing is written.

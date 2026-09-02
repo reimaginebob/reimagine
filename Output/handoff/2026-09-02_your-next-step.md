@@ -153,7 +153,17 @@ Add `[NEXT_STEP_FLAG]: { label: 'Your Next Step' }` to `GRANTABLE_FLAGS`.
 
 **7c.** Render case `case'step':` — the `Staircase`, then the one next step in a `CoachingCallout`-style accented block (CLAUDE.md §8 requires guidance to be visually distinct), with its `why`, a button to its `target`, and a *"I'm further along than this"* control. That control is load-bearing: without it the map can only be right.
 
-**7d. The rename.** At `src/App.jsx:11881`, replace the label `My Next Steps` with `Next move`, and the input placeholder `Your next step (e.g. send a follow-up note)` with `Your next move (e.g. send a follow-up note)`. Update the two explanatory paragraphs at lines 11792-11793 to match. This is not cosmetic — two things called "next step" is a support ticket, and the column has been `next_move` all along.
+**7d.** No other change to `src/App.jsx`. In particular the pipeline card's `My Next Steps` label is **NOT** touched here — see the note below.
+
+---
+
+## The one change that cannot be gated
+
+`My Pipeline` renders the label **"My Next Steps"** at `src/App.jsx:11881`, which collides with this feature's name. That rename is real and should happen — the column behind it has been `next_move` since August, so the label finally matching the schema is an improvement on its own.
+
+But **a feature flag cannot hide a rename.** My Pipeline is GA; the moment that label merges, all 145 accounts see it, gated pilot or not. Rendering two different names for the same field depending on a flag would be worse than either name.
+
+So it is **out of this PR** and gets its own, approved on its own: `My Next Steps` → `Next move`, the placeholder `Your next step (e.g. send a follow-up note)` → `Your next move (e.g. send a follow-up note)`, the two explanatory paragraphs at lines 11792-11793, and the matching lines in `src/data/user-guide/my-pipeline.md`. Ship it before or after the pilot; do not ship it inside the pilot.
 
 ---
 
@@ -191,7 +201,7 @@ Add `[NEXT_STEP_FLAG]: { label: 'Your Next Step' }` to `GRANTABLE_FLAGS`.
 
 Any failure is a merge blocker.
 
-**After merge, production:** grant `next_step` to Lindsey; confirm a non-flagged account sees no rail item and cannot reach the step by URL; confirm the arrow matches her real work; confirm "I'm further along than this" sticks across a reload; confirm the pipeline card now reads **Next move**.
+**After merge, production:** grant `next_step` to **Bob first** and let him quality-control it before anyone else is added; then Lindsey. confirm a non-flagged account sees no rail item and cannot reach the step by URL; confirm the arrow matches real work on each account; confirm "I'm further along than this" sticks across a reload.
 
 ## Constraints
 
@@ -206,6 +216,7 @@ Any failure is a merge blocker.
 - A commitments table. A proposed move is a next step on an opportunity; the schema already holds that.
 - Any migration or change to `api/pursuit-status.js`.
 - Generated prose for the recommendation itself.
+- The pipeline card's "My Next Steps" rename. It reaches every account and cannot be gated, so it ships in its own PR.
 - Re-colouring to Career Club's blue and orange. Reimagine's navy and gold are analogous and recognition holds — Bob to overrule if he wants an exact match to the slide.
 
 ## Commit message
@@ -234,10 +245,6 @@ Six rules that are ours rather than the book's are written down because the
 model will not invent them: no percentage ever, a stall never demotes anyone,
 attitude is never finished, one step instead of a plan, the person outranks
 the computed position, and nothing counts what did not happen.
-
-Also renames the pipeline card's "My Next Steps" to "Next move", matching the
-next_move column it has written to since August and leaving the phrase to the
-screen that earns it.
 
 Behind a per-user flag.
 ```
