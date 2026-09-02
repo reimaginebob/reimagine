@@ -882,7 +882,16 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // malformed record must never break the turn. Skipped in general mode (no profile).
   if (!generalMode) try {
     const activeSaved = Array.isArray(profileState && profileState.savedPlaybooks) ? profileState.savedPlaybooks.filter(r => r && !r.archivedAt) : []
-    const inFocus = findInFocusRecord(activeSaved, message, history)
+    // A pinned record beats inference. findInFocusRecord reads the person's own
+    // words for a title or company, which is the only signal available when the
+    // Coach is opened cold -- but someone who opened it from inside a playbook
+    // and said "I'm calling Teresa on the 14th" names nothing, and would get no
+    // IN FOCUS at all. The client sends the record the screen is pinned to; it is
+    // a hint, not authority, so it is resolved against this account's own saved
+    // work and falls back to inference when it does not match.
+    const pinnedId = typeof (req.body && req.body.focusRecordId) === 'string' ? req.body.focusRecordId.trim() : ''
+    const pinned = pinnedId ? activeSaved.find(r => r && r.id === pinnedId) : null
+    const inFocus = pinned || findInFocusRecord(activeSaved, message, history)
     if (inFocus) {
       const expansion = buildPlaybookExpansion(inFocus, detectIntent(message))
       if (expansion) profileBlock += '\n\n' + expansion
