@@ -2,14 +2,14 @@
 
 ## Prompt for Code
 
-Apply this brief in three separate pull requests, in the order given, each with its own gates and its own merge. Read the whole document first: PR 1 builds the sight the other two depend on, and a shortcut taken there will misshape both. Premise-verify every claim in Pre-flight against current `main` before you touch anything — substance-grep, not block-existence — and STOP and surface if anything has moved. Everything user-facing stays behind the existing `next_step` flag; no ungated change rides along. Standard gh flow per CLAUDE.md section 9, preview smoke against the reimagine2 host on any PR touching `api/*`, and report the PR URL and merge SHA for each.
+Apply this brief in four separate pull requests, in the order given, each with its own gates and its own merge. Read the whole document first: PR 1 builds the sight the other three depend on, and a shortcut taken there will misshape all of them. Premise-verify every claim in Pre-flight against current `main` before you touch anything — substance-grep, not block-existence — and STOP and surface if anything has moved. Everything user-facing stays behind the existing `next_step` flag; no ungated change rides along. Standard gh flow per CLAUDE.md section 9, preview smoke against the reimagine2 host on any PR touching `api/*`, and report the PR URL and merge SHA for each.
 
 ---
 
 ## Date / Type / Source
 
 **Date:** 2026-09-02
-**Type:** Replacement of a shipped pilot, in three PRs.
+**Type:** Replacement of a shipped pilot, in four PRs.
 **Source:** Bob, in conversation with Code, immediately after opening the Your Next Step pilot (PR #675, merged `9f5a037`) on his own account.
 
 Bob's verdict on the shipped version was "so what." He was right, and the reasons he gave are the brief:
@@ -121,6 +121,26 @@ Dependency order is real information and should be carried, not invented at rend
 
 ---
 
+## PR 4 — Meet her at the door
+
+Everything above still waits for her to arrive at the Coach. The Coach is a room she has to decide to walk into, and the product currently has nothing to say until she does. This PR has it speak first.
+
+**4a. Nothing in Reimagine notices time passing for a person, and that is the root of it.** Five crons run today and all five watch the business: spend, abuse, surveys, snapshots. None watches a search. Her interview is Thursday and nothing knows. Her step was due last Tuesday and nothing knows until she happens to log in. Build the noticing once — what is about to matter for this account — and it feeds this PR and any future channel.
+
+**4b. It lives on the floating coach bubble, not on a screen.** She lands wherever she left off, so the greeting has to follow her rather than sit somewhere she may not go. The bubble is already on every screen. It carries one line; tapping opens the conversation with that read already made.
+
+**4c. Never a badge with a count.** A number is scorekeeping, and this product does not keep score. A quiet mark that there is something worth a minute is not a number.
+
+**4d. Deterministic noticing, model only for the phrasing.** A fresh read on every page load is a model call per arrival — slow, and paid for on visits where nothing has changed. The trigger comes from data already in hand: an interview inside a few days with no prep built, a step well past its date, a fortnight of silence on a live opportunity. Only when something trips does the model phrase it, and the phrasing caches against a fingerprint of the facts that produced it. Facts move, new line. Facts hold, same line, no new call.
+
+**4e. Silence is a valid state, and the feature fails without it.** If nothing is time-bound and nothing has changed, say nothing. A greeter who greets on every visit is furniture inside a week, and then it is worse than absent — she has learned to look past the one place we will need her to look when it matters.
+
+**4f. It does not repeat itself.** One condition, said once, gone when dismissed, back only when the facts underneath it change. `alertOnce` (`api/_lib/ops-alerts.js`) is the existing precedent and its own comment already carries the reasoning — a repeat on a condition that persists trains the reader to ignore it. Same logic, applied to a person instead of an operator.
+
+**4g. Measure the thing this is for.** No panel currently reports what share of accounts have ever opened the Coach: `chat_messages` is folded into the general activity union in `api/admin/growth.js` and never broken out. Add that figure in this PR — distinct non-internal accounts with at least one message, against active accounts — so the before and after are both readable. Shipping this without it means never learning whether it worked.
+
+---
+
 ## Voice
 
 Everything inserted is user-facing or spoken by the Coach and carries the full voice stack. Particular exposure in this work: no comparative standing ("most job seekers"), no AI-coaching register, no logic-flip cadence, no typology labels, and nothing that frames her current state as deficient — the encouragement in 3c is an offer of something available, never a report of something missing.
@@ -135,17 +155,29 @@ Per PR: `npm run build` clean end to end — voice 0/0, `check-sys-equality`, `c
 
 ## Runtime gates
 
-Preview smoke (`npm run smoke:preview -- <url>`, reimagine2 host, URL copied from the Vercel bot comment) is a merge blocker on PR 1 and PR 3 and on PR 2 if it touches `api/*`.
+Preview smoke (`npm run smoke:preview -- <url>`, reimagine2 host, URL copied from the Vercel bot comment) is a merge blocker on PR 1, PR 3 and PR 4, and on PR 2 if it touches `api/*`.
 
-Then, per PR, against Bob's own account on the preview: PR 1, the Imerys probe above. PR 2, the staircase renders as a staircase with his opportunities on it, and the doors match what the Coach offers. PR 3, the Coach opens on a real read of his pipeline rather than a restatement of it.
+Then, per PR, against Bob's own account on the preview: PR 1, the Imerys probe above. PR 2, the staircase renders as a staircase with his opportunities on it, and the doors match what the Coach offers. PR 3, the Coach opens on a real read of his pipeline rather than a restatement of it. PR 4, arriving with something live and time-bound in the pipeline shows a line worth reading; arriving with nothing changed shows nothing at all, and the second half of that is the half to check hardest.
 
 ## Constraints
 
-Three PRs, in order, each merged before the next begins. Everything user-facing behind `next_step`. No ungated change in any of them. No effort estimates anywhere. Documentation per CLAUDE.md section 8 — the pilot's Coach knowledge stays partitioned in `src/data/next-step-knowledge.js`, out of `ORDER.json` and out of `FEATURE_MAP`, until GA.
+Four PRs, in order, each merged before the next begins. Everything user-facing behind `next_step`. No ungated change in any of them. No effort estimates anywhere. Documentation per CLAUDE.md section 8 — the pilot's Coach knowledge stays partitioned in `src/data/next-step-knowledge.js`, out of `ORDER.json` and out of `FEATURE_MAP`, until GA.
 
 ## Out of scope
 
 The coach-icon audit (separate, already scoped). GA of the pilot. Any change to the Go Independent track's sections. Rendering the activity catalog to the user in any form, ever — it is back-end vocabulary, and the moment it becomes a visible list it is a to-do list and the argument is lost.
+
+## Deferred, but not for long — and reframed
+
+Reaching her by email is out of these four PRs. Bob's words: not ready yet, but not too long afterwards.
+
+**The reframe matters more than the deferral, and it is his.** Email is not extra load piled on top of the product. It is what keeps the product uncluttered. The in-app experience stays focused — one screen, a few doors, the thing worth doing now — and the wider material goes to a medium where skimming is normal, ignoring costs nothing, and a link brings her back in. That is a direct answer to the fear this whole line of work started from: so much in the tool that it produces paralysis and undiscovered features. The breadth has somewhere to live that is not her working surface.
+
+**The line that follows from it:** an email about what is *available* is welcome. An email about what she *has not done* is a report card in her inbox and must never ship. Same facts, opposite meanings — the first is an offer she can browse, the second is the scorekeeping this product refuses to do anywhere else and should not smuggle into email.
+
+The machinery is already there: the Resend sender (`api/_lib/email.js`), the campaign pipeline with delivery tracking through `api/resend-webhook.js`, and cron auth matching the five jobs already scheduled. The noticing built in PR 4 feeds it unchanged — same trigger, second channel.
+
+Two conditions before it is scoped. PR 4 must first show the noticing is any good, because an email built on a bad read is worse than no email. And it is never a calendared digest: Bob declined a Monday email earlier in this project and was right to. Event-driven, or an offer of something available — never a schedule that has to find something to say.
 
 ## Open, for Bob
 
