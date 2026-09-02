@@ -29,7 +29,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, pipelineCaptureActive = false, allowGeneralMode = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, allowGeneralMode = false }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -316,6 +316,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const itHeader = res.headers.get('X-Coach-Interviewers') || null
         const vcHeader = res.headers.get('X-Coach-Values') || null
         const pcHeader = res.headers.get('X-Coach-Pipeline') || null
+        const acHeader = res.headers.get('X-Coach-Activity') || null
         const siHeader = res.headers.get('X-Coach-Search-Intake') || null
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
@@ -407,6 +408,39 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 checkinKey: 'pursuit-update',
                 quickReplies: [
                   { label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to My Pipeline.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Activity capture: the person said something about the human half of
+        // their search -- a group they joined, someone holding them accountable,
+        // a note they wrote directly. Reimagine cannot see any of it, so the only
+        // way it ever gets known is this. The tap writes; the model never does.
+        //
+        // A `not_yet` or `declined` is offered the same way as a `done`, because
+        // recording that they do not want something is what stops the coach
+        // raising it a fourth time. The wording changes so the offer never reads
+        // as logging a failure.
+        if (activityCaptureActive && acHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(acHeader), c => c.charCodeAt(0))))
+            const label = data && typeof data.label === 'string' ? data.label.trim() : ''
+            const st = data && typeof data.state === 'string' ? data.state : ''
+            if (label && st) {
+              const detail = data.detail ? ` — ${data.detail}` : ''
+              const line = st === 'done'
+                ? `Remember: ${label}${detail}`
+                : st === 'declined'
+                  ? `Remember: not interested in ${label}${detail} — I won't bring it up again`
+                  : `Remember: ${label} is still open${detail}`
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to remember that? It stays with your profile so I am not asking you twice.\n\n${line}`,
+                checkinKey: 'activity-fact',
+                quickReplies: [
+                  { label: 'Remember it', value: JSON.stringify(data), followUp: 'Got it.' },
                   { label: 'Not now', value: 'dismiss' },
                 ],
               }])
