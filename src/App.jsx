@@ -897,13 +897,14 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
   // panel-interviewer-read (PR 4) reuses the same citation + fabrication gate as
   // Company Read: every claim about a third party needs an inline source or an
   // explicit hedge, and the fabrication-template detector applies too.
-  // op-salary-read / door1-salary-read (comp-benchmarking brief 2026-08-07) reuse
+  // op-salary-read / salaryRead (comp-benchmarking brief 2026-08-07; 'salaryRead'
+  // is the Focus Playbook section id, which generateSection passes as the step) reuse
   // the same citation + fabrication gate: every dollar figure needs an adjacent
   // source URL or the claim regenerates. offer-negotiation is intentionally NOT
   // here — it restates the candidate's own uncited offer figure, which would
   // false-trip the numeric-claim detector; its market numbers come pre-cited from
   // the salary read it is built on.
-  const isCompanyRead = meta.step === 'op-company-read' || meta.step === 'gtm-company-read' || meta.step === 'panel-interviewer-read' || meta.step === 'op-salary-read' || meta.step === 'door1-salary-read' || meta.step === 'income-buyer-read'
+  const isCompanyRead = meta.step === 'op-company-read' || meta.step === 'gtm-company-read' || meta.step === 'panel-interviewer-read' || meta.step === 'op-salary-read' || meta.step === 'salaryRead' || meta.step === 'income-buyer-read'
   if (isCompanyRead) {
     let crResult = await runVoiceAndDimPhases(promptFn)
     for (let crAttempt = 0; crAttempt <= CR_MAX_RETRIES; crAttempt++) {
@@ -4670,6 +4671,7 @@ const ASK_COACH_SEEDS={
   p5:'Help me think through this role — whether it fits me, and what to focus on.',
   p6:'Help me practice and sharpen my bridge story.',
   p9:'Help me use this industry background — what should I learn or prioritize first?',
+  salaryRead:'Help me read this compensation range — what it means for what I ask for, and where the numbers are weakest.',
   p11:'Help me practice my answers to these interview questions.',
   p_res:'Help me make the most of my refreshed resume.',
   p8:'Help me apply these LinkedIn changes and strengthen my profile.',
@@ -5386,7 +5388,7 @@ const normalizeWork = (p) => {
 // Pure. Normalizes a persisted profile blob to the v1 shape. Returns {normalizedState, didMigrate}.
 // didMigrate is true iff rules 1-5 / 7 / 8 changed state; rule 6 (key defaulting) does NOT count.
 const V1_STEPS = new Set(ALL)
-const ROLE_SUBMODULES = ['p5','p6','p7','p8','p9','p10','p11','p_res','income']
+const ROLE_SUBMODULES = ['p5','p6','p7','p8','p9','p10','p11','p_res','salaryRead','income']
 const POST_P5_SUBMODULES = ROLE_SUBMODULES.filter(k=>k!=='p5')
 // Cap on the user's saved playbooks set. One shared limit across Door 1 (auto-save
 // past The Role) and Door 2 (auto-save on JD upload). Future paid-tier work becomes
@@ -5978,6 +5980,10 @@ const SECTION_EXPLAINERS = {
     subhead: 'The vocabulary and frameworks for the conversations ahead.',
     detail: 'Built from your Personal Brand and the language of this specific role. Surfaces the words this role uses for the work, the frameworks worth referencing in interviews, and the postures that land well. Read it before each conversation to stay grounded in the vocabulary that signals fit.',
   },
+  salaryRead: {
+    subhead: 'A sourced pay range for this direction in your market.',
+    detail: 'Triangulated across public salary sites, with the links so you can check every figure yourself. Built from the direction you picked and the market you gave us in Orientation — not from your current pay, which never anchors the range. Read it before anyone asks what you are looking for, and tell us if we anchored to the wrong company size, industry, or market. A starting point for your own research, not a verdict.',
+  },
   p11: {
     subhead: 'Ten to twelve likely questions with answers built from your evidence.',
     detail: 'For each behavioral question, a Situation-Thinking-Action-Result breakdown with what your inputs support and what would strengthen each part. For non-behavioral questions, framing recommendations. Opening moves connect your past experience to the situation the interviewer is facing now. Use this to prepare without scripting; you should be able to speak the answers in your voice.',
@@ -6006,7 +6012,7 @@ const SECTION_EXPLAINERS = {
 const FOCUS_GROUPS = [
   {label:'Understand the role',           sectionIds:['p5']},
   {label:'Build your story',              sectionIds:['p6','p9']},
-  {label:'Prepare for the conversation',  sectionIds:['p11']},
+  {label:'Prepare for the conversation',  sectionIds:['salaryRead','p11']},
   {label:'Carry it into the market',      sectionIds:['p_res','p8','p7']},
 ]
 // Go Independent's practice plan: the same generations, ordered the way the work
@@ -8461,7 +8467,7 @@ export default function PivotEngine(){
   // (on commit/baseline regen, NOT on keystroke), so the synthesis chain reads as
   // refreshable. The refresh is an explicit offer on the Personal Brand surface,
   // never automatic. p3 -> downstream edges already propagate once p3 is rebuilt.
-  const SECTION_UPSTREAMS={p1:['resume'],p2:['resume'],p3:['resume'],p5:['p3'],p6:['p3'],p7:['p3'],p8:['p3','p6'],p11:['p3','p6'],p_res:['p3'],p9:[],income:['p3','p8']}
+  const SECTION_UPSTREAMS={p1:['resume'],p2:['resume'],p3:['resume'],p5:['p3'],p6:['p3'],p7:['p3'],p8:['p3','p6'],p11:['p3','p6'],p_res:['p3'],p9:[],salaryRead:[],income:['p3','p8']}
   const STAMPABLE_UPSTREAMS=['resume','p3','p6','p8']
   const isSectionStaleAgainst=(sectionId,upstream)=>{
     const sectionAt=outputs[`${sectionId}_built_at`]
@@ -9216,7 +9222,7 @@ export default function PivotEngine(){
     const nameParts=rawFirstLine.replace(/[^a-zA-Z ]/g,'').trim().split(/\s+/).slice(0,4).join(' ')
     const name=nameParts.length>2&&nameParts.length<50?nameParts:''
     const firstName=name?name.split(' ')[0].toLowerCase():(signupForm.firstName?signupForm.firstName.trim().toLowerCase():'reimagine')
-    const stepNames={p3:'Personal Brand',p4:'Role Options',p5:'The Role',p6:'Bridge Story / Tell Me About Yourself',p7:'Go-To-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Industry Background',p10:'Interview Prep',p11:'Interview Prep',income:'Income Now',op:'Live Opportunity Playbook'}
+    const stepNames={p3:'Personal Brand',p4:'Role Options',p5:'The Role',p6:'Bridge Story / Tell Me About Yourself',p7:'Go-To-Market',p8:'LinkedIn Remix',p_res:'Resume Refresh',p9:'Industry Background',salaryRead:'Compensation Read',p10:'Interview Prep',p11:'Interview Prep',income:'Income Now',op:'Live Opportunity Playbook'}
     const sections=Object.entries(stepNames).filter(([k])=>outputs[k]&&outputs[k].trim()).map(([k,n])=>`## ${n}\n\n${outputs[k]}`).join('\n\n---\n\n')
     const md=`# Reimagine: ${name||'Your Career Strategy'}\n\n*Generated ${today}*\n\n---\n\n${sections}\n`
     const blob=new Blob([md],{type:'text/markdown'})
@@ -9574,15 +9580,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const opSectionReqRef=useRef(0)
   // Compensation Read (comp-benchmarking brief 2026-08-07). Opportunity persists on
   // the record (rec.sections.salaryRead / rec.sections.offerNegotiation). The Focus
-  // surface (Income Now) uses a transient per-direction cache — cleared implicitly
-  // by the direction guard (focusSalary.direction===chosen), rebuilt on demand.
+  // surface persists on outputs.salaryRead — it is a numbered Focus Playbook
+  // section (2026-09-02), so it rides the same storage, staleness, save and PDF
+  // machinery as Industry Background rather than a cache of its own.
   // offerDrafts holds the per-slot offer figure typed into the Offer & Negotiation
   // card before building; the figure actually used is persisted on the record.
-  const[focusSalary,setFocusSalary]=useState(null)
-  const[focusSalaryBusy,setFocusSalaryBusy]=useState(false)
-  const[focusSalaryErr,setFocusSalaryErr]=useState(null)
-  // Find Your Clients (income-buyer-read brief 2026-08-26). Same transient
-  // per-direction shape as focusSalary above, plus `screen`: the user's own steer
+  // Find Your Clients (income-buyer-read brief 2026-08-26). Transient
+  // per-direction cache, plus `screen`: the user's own steer
   // from the reshape box, carried on the result so a Rebuild keeps it and the card
   // can show it back. Session-only by design; a rebuild costs one call.
   const[buyerRead,setBuyerRead]=useState(null)
@@ -10936,49 +10940,55 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{fontSize:15,color:C.gray,lineHeight:1.6,marginTop:12,maxWidth:820}}>Bonus shows at the level you modeled on each offer. Equity is held at $0 in every total on purpose — a private grant can be worth nothing, so counting it would flatter the offer. Where an offer's real edge rests on its equity, that's the piece to weigh with your Coach, who can reason about your specific situation.</div>
     </div>
   }
-  // Compensation Read — Focus surface (comp-benchmarking brief 2026-08-07). Lives
-  // inside Income Now. Inputs are the picked direction (chosen) + profile.loc. Uses
-  // a transient per-direction cache guarded by focusSalary.direction===chosen so a
-  // direction switch never shows a stale read. Same webSearch + citation gate as
-  // the Opportunity read (step:'door1-salary-read').
-  const generateDoor1SalaryRead=async(correctionText)=>{
-    if(!(chosen&&chosen.length>0)||focusSalaryBusy)return
+  // Compensation Read — Focus surface (comp-benchmarking brief 2026-08-07;
+  // promoted to a numbered Focus Playbook section 2026-09-02, between Industry
+  // Background and Interview Prep). Inputs are the picked direction (chosen) and
+  // the market from Orientation — no company and no posting, which is what tells
+  // the prompt to read the direction generically. Routed through generateSection
+  // so the section id IS the step tag; 'salaryRead' is on the citation +
+  // fabrication gate's list alongside the Opportunity read, so every dollar
+  // figure still needs an adjacent source URL or an explicit hedge.
+  const focusMarketLocation=()=>{
     const loc=profile.loc||{}
-    const location=((loc.city&&loc.city.trim())?loc.city.trim()+(loc.country?', '+loc.country:''):(loc.country||'')).trim()
-    const direction=chosen
-    setFocusSalaryBusy(true);setFocusSalaryErr(null)
-    try{
-      const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
-      const fn=()=>correctionsBlock(profile.corrections)+P.salaryRead(direction,location)+corrTail
-      const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:2000},{step:'door1-salary-read',onEvent:logVoiceEvent})
-      setFocusSalary({direction,location,content:r,builtAt:new Date().toISOString()})
-    }catch(e){
-      setFocusSalaryErr(e.message||'Generation failed. Try again.')
-    }finally{
-      setFocusSalaryBusy(false)
-    }
+    return((loc.city&&loc.city.trim())?loc.city.trim()+(loc.country?', '+loc.country:''):(loc.country||'')).trim()
   }
-  // Shared Compensation Read card for the Focus surface — rendered both in the
-  // standalone Income Now surface and the in-focus Income Now section so the module
-  // carries it wherever the user meets it. Disclaimer is fixed UI copy (not model
-  // output), consistent with the Opportunity cards.
+  const focusSalaryPrompt=()=>P.salaryRead(chosen,focusMarketLocation())
+  const FOCUS_SALARY_OPTS={webSearch:true,maxTokens:2000}
+  const generateFocusSalaryRead=(correctionText)=>{
+    if(!(chosen&&chosen.length>0))return
+    const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
+    generateSection('salaryRead',()=>focusSalaryPrompt()+corrTail,FOCUS_SALARY_OPTS)
+  }
+  // Fixed UI copy, not model output — the same disclaimer the Opportunity cards
+  // carry, so the caveat reads identically wherever a range appears.
+  const compDisclaimer=<div style={{marginTop:10,fontSize:15,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Compensation figures come from public salary sources, which routinely disagree and can lag the market. Treat this as a starting range for your own research, not a definitive number — click through to the sources and weigh them against your specific company, level, and total package.</div>
+  // The Compensation Read's refine asks about the BASIS the estimate anchored to
+  // — company size, industry, market. That is true of this estimate and of
+  // nothing else, so it never routes through recordCorrection; it is threaded
+  // into this one rebuild only, matching the Opportunity card.
+  const focusSalaryRefine=()=><RefineBox value={feedback.salaryRead||''} onChange={v=>setFb('salaryRead',v)} hint="Did we get the basis wrong — the company size, industry, or market? Tell us and we'll rebuild the estimate." placeholder="e.g. I'm aiming at companies around 300 people, not enterprise… this should be the healthcare side, not corporate… the market should be Denver, not remote-national" onRegenerate={v=>generateFocusSalaryRead(v)} onlyUpdateButton={true}/>
+  // The Compensation Read as a card, for the standalone Income Now screen, which
+  // is reachable without opening the Focus Playbook. Same read, same state: this
+  // is a second view of outputs.salaryRead, never a second read.
   const focusSalaryCard=()=>{
     if(!(chosen&&chosen.length>0))return null
-    const built=!!(focusSalary&&focusSalary.direction===chosen&&focusSalary.content&&focusSalary.content.trim())
+    const built=!!(outputs.salaryRead&&outputs.salaryRead.trim())
+    const busy=generatingSection==='salaryRead'
     return <div style={{marginTop:24,background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,padding:'18px 22px'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
         <div style={{flex:1,minWidth:220}}>
           <div style={{fontSize:20,fontWeight:700,color:'#1A2540'}}>Compensation Read</div>
-          <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4}}>A sourced pay range for this direction in your market, triangulated across public salary sites with links to check yourself. A starting point for your own research, not a verdict.</div>
+          <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginTop:4}}>A sourced pay range for this direction in your market, triangulated across public salary sites with links to check yourself. A starting point for your own research, not a verdict. It also lives in your Focus Playbook, where this is the same read.</div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           {built&&<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:15,fontWeight:600,color:'#1D9E75'}}><Check size={14}/>Built</span>}
-          <Btn small secondary={built} prominent={!built} onClick={()=>generateDoor1SalaryRead()} disabled={focusSalaryBusy}>{focusSalaryBusy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>}</Btn>
+          <Btn small secondary={built} prominent={!built} onClick={()=>generateFocusSalaryRead()} disabled={busy||!canGenSection('salaryRead')}>{busy?'Building…':built?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>}</Btn>
         </div>
       </div>
-      {focusSalaryErr&&<div style={{marginTop:10}}><ErrBox msg={focusSalaryErr}/></div>}
-      {focusSalaryBusy&&<div style={{marginTop:14}}><Loading msg="Building Compensation Read…" step="salaryRead" independent={isIndependent}/></div>}
-      {built&&<div style={{marginTop:14}}><div style={S.out}><MD text={focusSalary.content}/></div><div style={{marginTop:10,fontSize:15,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Compensation figures come from public salary sources, which routinely disagree and can lag the market. Treat this as a starting range for your own research, not a definitive number — click through to the sources and weigh them against your specific company, level, and total package.</div></div>}
+      {sectionErrors.salaryRead&&<div style={{marginTop:10}}><ErrBox msg={sectionErrors.salaryRead}/></div>}
+      {busy&&<div style={{marginTop:14}}><Loading msg="Building Compensation Read…" step="salaryRead" independent={isIndependent}/></div>}
+      {built&&<div style={{marginTop:14}}><div style={S.out}><MD text={outputs.salaryRead}/></div>{compDisclaimer}</div>}
+      {built&&!busy&&!isDemo&&focusSalaryRefine()}
     </div>
   }
   // Find Your Clients (income-buyer-read brief 2026-08-26). Lives under the
@@ -13101,6 +13111,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {id:'p5',label:NAV_LABELS.p5,load:'Reading this role against your background…'},
         {id:'p6',label:NAV_LABELS.p6,load:'Writing your bridge story for this direction…'},
         {id:'p9',label:NAV_LABELS.p9,load:'Building the Industry Background for this role…'},
+        {id:'salaryRead',label:NAV_LABELS.salaryRead,load:'Building your Compensation Read…'},
         {id:'p11',label:NAV_LABELS.p11,load:'Preparing you for the questions ahead…'},
         {id:'p_res',label:NAV_LABELS.p_res,load:'Rewriting your resume for this direction…'},
         {id:'p8',label:NAV_LABELS.p8,load:'Drafting your LinkedIn updates…'},
@@ -13118,6 +13129,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         p5:()=>P.p5(pc,O,chosen,laneLbl),
         p6:()=>P.p6(pc,O,chosen,laneLbl,isIndependent),
         p9:()=>P.p9(pc,O,chosen),
+        salaryRead:()=>focusSalaryPrompt(),
         p11:()=>P.p11(pc,O,chosen),
         p_res:()=>P.p_res(pc,O,chosen),
         p8:()=>P.p8(pc,O,chosen),
@@ -13126,15 +13138,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       }[id])}
       // Migrated surfaces send the canonical profile as a cached block; profileBlock
       // is built lazily (only at generation time) and step tags telemetry per surface.
-      const go=(id)=>{const base={p5:{maxTokens:4000},p6:{maxTokens:7000},p7:{webSearch:true,maxTokens:16000},p8:{maxTokens:16000},p_res:{maxTokens:5000},p9:{maxTokens:4000},p11:{maxTokens:16000},income:{maxTokens:7000}}[id]||{};return ['p5','p7','p8','p11','p_res','income'].includes(id)?{...base,profileBlock:buildUserProfileBlock(pc,sanitizeUpstreamForSection(id,outputs)),step:id}:base}
+      const go=(id)=>{const base={p5:{maxTokens:4000},p6:{maxTokens:7000},p7:{webSearch:true,maxTokens:16000},p8:{maxTokens:16000},p_res:{maxTokens:5000},p9:{maxTokens:4000},salaryRead:FOCUS_SALARY_OPTS,p11:{maxTokens:16000},income:{maxTokens:7000}}[id]||{};return ['p5','p7','p8','p11','p_res','income'].includes(id)?{...base,profileBlock:buildUserProfileBlock(pc,sanitizeUpstreamForSection(id,outputs)),step:id}:base}
       const genSec=(id)=>id==='p6'?generateP6():generateSection(id,gp(id),go(id))
-      const refineSec=(id,v)=>{recordCorrection(id,v);if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
+      const refineSec=(id,v)=>{if(id!=='salaryRead')recordCorrection(id,v);if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
       const renderBody=(id)=>{
         // Legacy tolerance: object-shape outputs.p6 from pre-2026-05-31 records is preserved by normalizeProfileState (no migration). Do not delete this branch.
         if(id==='p6'){const rawP6=typeof outputs.p6==='string'?outputs.p6:(outputs.p6?bridgeStoryToProse(outputs.p6):'');const hasCoaching=typeof rawP6==='string'&&rawP6.includes('---COACHING NOTE---');const parts=hasCoaching?rawP6.split('---COACHING NOTE---').map(s=>s.trim()):[rawP6,''];const storyPart=parts[0]||'';const coachingPart=parts[1]||'';return <><OutPanel text={storyPart} onCopy={copy} copied={copied}/>{hasCoaching&&coachingPart&&<div data-print="content" style={{margin:'16px 0 24px',padding:'18px 22px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,fontStyle:'italic',color:C.cream,lineHeight:1.65,fontSize:16}}><MD text={coachingPart}/></div>}{!isDemo&&<RefineBox guard={submitCorrection} sectionId="p6" value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? Tell us what to adjust: the opening, the tone, which part of your background to lead with, or how you want to close." placeholder="e.g. The opening does not feel personal enough… I want to lead with my sustainability work instead… the ending needs to connect more directly to the role…" onRegenerate={v=>refineSec('p6',v)}/>}</>}
+        if(id==='salaryRead')return <><div style={S.out}><MD text={outputs.salaryRead}/></div>{compDisclaimer}{!isDemo&&focusSalaryRefine()}</>
         if(id==='p9')return <>{!isDemo&&<CoachingCallout><strong style={{color:'#1A2540'}}>How to use this</strong><p style={{margin:'8px 0 0'}}>This section gives you the vocabulary, frameworks, and thought leaders that signal credibility in this space. Use it to prep for conversations and to find people to follow on LinkedIn.</p></CoachingCallout>}<OutPanel text={outputs.p9} onCopy={copy} copied={copied}/></>
         if(id==='p8')return <>{renderLinkedInRemix(outputs.p8,()=>genSec('p8'))}{!isDemo&&<div style={S.footnote}>This is recommended copy. Reimagine does not modify your LinkedIn profile. Open LinkedIn in another tab and apply the changes yourself.</div>}</>
-        if(id==='income')return <>{!isIndependent&&<div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div>}{incomeTargetFields()}<OutPanel text={outputs.income} onCopy={copy} copied={copied} noCollapse={isIndependent}/>{!isDemo&&<RefineBox guard={submitCorrection} sectionId="income" value={feedback.income} onChange={v=>setFb('income',v)} hint="If anything in the plan misses, tell us what's off and we'll rebuild it. This changes the plan itself; the company list below has its own control." onRegenerate={v=>refineSec('income',v)}/>}{!isIndependent&&focusSalaryCard()}{buyerReadCard()}</>
+        if(id==='income')return <>{!isIndependent&&<div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div>}{incomeTargetFields()}<OutPanel text={outputs.income} onCopy={copy} copied={copied} noCollapse={isIndependent}/>{!isDemo&&<RefineBox guard={submitCorrection} sectionId="income" value={feedback.income} onChange={v=>setFb('income',v)} hint="If anything in the plan misses, tell us what's off and we'll rebuild it. This changes the plan itself; the company list below has its own control." onRegenerate={v=>refineSec('income',v)}/>}{buyerReadCard()}</>
         if(id==='p_res'){
           const resumeJson=outputs.p_res?parseResumeJSON(outputs.p_res):null
           if(resumeJson)return <ResumeRefreshView resumeJson={resumeJson} isDemo={isDemo} copy={copy} copied={copied}/>
@@ -13378,7 +13391,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 })()}
                 {renderBody(id)}
                 {!isDemo&&<div data-print="hide" style={{marginTop:14}}><Btn small secondary onClick={()=>openCoachWith((isIndependent&&INDEPENDENT_ASK_COACH_SEEDS[id])||ASK_COACH_SEEDS[id]||ASK_COACH_SEED_DEFAULT,false,id)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
-                {!isDemo&&id!=='p6'&&id!=='income'&&<RefineBox guard={submitCorrection} sectionId={id} value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
+                {!isDemo&&id!=='p6'&&id!=='income'&&id!=='salaryRead'&&<RefineBox guard={submitCorrection} sectionId={id} value={feedback[id]} onChange={v=>setFb(id,v)} hint="If anything here misses, tell us what's off and we'll regenerate this section. Corrections also inform other sections." onRegenerate={v=>refineSec(id,v)}/>}
                 {!isDemo&&nextSec&&<div data-print="hide" style={{marginTop:18,padding:'12px 16px',background:`${C.gold}10`,border:`1px solid ${C.gold}40`,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
                   <div style={{fontSize:15,color:C.grayL}}>Next: {nextNum?nextNum+'. ':''}{nextSec.label}</div>
                   <Btn small secondary onClick={()=>scrollToOutput(nextSec.id)}>Go <ChevronRight size={11}/></Btn>
@@ -13656,6 +13669,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {completeCard('The Role','p5',outputs.p5)}
         {completeCard('Your Bridge Story','p6',bridgeStoryToProse(outputs.p6))}
         {completeCard('Industry Background','p9',outputs.p9)}
+        {completeCard('Compensation Read','salaryRead',outputs.salaryRead)}
         {completeCard('Interview Prep','p11',interviewPrepContent)}
         {completeCard('Resume Refresh','p_res',outputs.p_res)}
         {completeCard('LinkedIn Remix','p8',outputs.p8)}

@@ -29,7 +29,7 @@ A few specifics: take an assessment if you do not have one (the difference is si
 - **Career Paths** shows role options across three directions (Familiar Ground, Industry Insider, Work That Matters), one direction at a time.
 - **Add an Opportunity** takes a job description you already have in hand and builds a playbook for that exact role.
 
-**Your playbooks.** Open any role and Reimagine builds a **Focus Playbook**: seven numbered sections in four groups, plus two bonuses.
+**Your playbooks.** Open any role and Reimagine builds a **Focus Playbook**: eight numbered sections in four groups, plus two bonuses.
 
 - Understand the role: The Role
 - Build your story: Your Bridge Story, Industry Background

@@ -418,15 +418,15 @@ const FOCUS_SECTION_CAP = 3000
 const FOCUS_INTENT_CAP = 6000
 const FOCUS_TOTAL_CAP = 15000
 const INTENT_SECTION = {
-  door2: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'companyRead' },
-  door1: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'p7', linkedin: 'p8', industry: 'p9', outreach: 'p7', income: 'income' },
+  door2: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'companyRead', salary: 'salaryRead' },
+  door1: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'p7', linkedin: 'p8', industry: 'p9', outreach: 'p7', income: 'income', salary: 'salaryRead' },
 }
 // The coaching-relevant sections to surface for the in-focus record, in priority
 // order. The offer, benefits, Compensation Read and priorities check for a record
 // with a logged offer are handled separately under LOGGED OFFERS.
 const FOCUS_SECTIONS = {
   door2: ['p5', 'companyRead', 'salaryRead', 'p6', 'p11', 'p_res', 'p_cover'],
-  door1: ['p5', 'p6', 'p11', 'p9', 'p_res', 'income', 'p7', 'p8'],
+  door1: ['p5', 'p6', 'salaryRead', 'p11', 'p9', 'p_res', 'income', 'p7', 'p8'],
 }
 const SECTION_NAME = { p5: 'WHERE YOU FIT', p6: 'BRIDGE STORY', p_res: 'RESUME REFRESH', p_cover: 'COVER LETTER', p11: 'INTERVIEW PREP', companyRead: 'ABOUT THIS COMPANY', salaryRead: 'COMPENSATION READ', p7: 'GO-TO-MARKET', p8: 'LINKEDIN REMIX', p9: 'INDUSTRY BACKGROUND', income: 'INCOME NOW' }
 
@@ -439,6 +439,10 @@ function detectIntent(message) {
   if (/\bindustry\b|\blingo\b|\bsector\b/.test(m)) return 'industry'
   if (/outreach|target compan|go.?to.?market|\bgtm\b/.test(m)) return 'outreach'
   if (/\bincome\b|contracting|freelanc/.test(m)) return 'income'
+  // Compensation Read is built on both doors, so a pay question pulls it in
+  // rather than leaving the coach to say it has no market number for a range
+  // the person is already holding.
+  if (/\bsalary\b|\bcompensation\b|\bpay range\b|\bmarket rate\b|how much (should|can) i (ask|make)/.test(m)) return 'salary'
   if (/about this company|company culture|research (the|this) company|\bemployer\b/.test(m)) return 'company'
   return null
 }
