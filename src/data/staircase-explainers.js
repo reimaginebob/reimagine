@@ -1,9 +1,9 @@
 // What each thing on the staircase actually means, and what Reimagine gives you
 // for it.
 //
-// WHY THIS EXISTS. The staircase shows nine terms -- KEEL, Resilience, 4 C's,
-// Tell Me About Yourself, Networking, Direct Contact, STAR Stories, Remixing,
-// BATNA -- and almost nobody who lands on that screen has read Making Your Own
+// WHY THIS EXISTS. The staircase shows ten terms -- KEEL, Resilience, 4 C's,
+// Tell Me About Yourself, Networking, Direct Contact, STAR Stories, Remixing
+// (SCOPE), The 5 P's, BATNA -- and almost nobody who lands there has read Making Your Own
 // Weather. Opening in a vocabulary someone does not speak is the same failure as
 // calling a feature by its internal ID, and it was sitting in nine places at
 // once. Each term is now tappable and explains itself.
@@ -42,22 +42,22 @@ export const STAIRCASE_EXPLAINERS = {
   },
   Resilience: {
     title: 'Resilience',
-    what: 'Most people picture a foam ball: squeezed, then bouncing back to the shape it was. Bob calls that recovery. It got back to where it started.\n\nResilience is closer to weight training. Resistance causes small tears in the muscle, and over the days after, it rebuilds slightly stronger than before. The load is what produces the strength. A search puts you under real load, and what you build carrying it is yours afterwards.',
+    what: 'The usual picture of resilience is a foam ball: squeezed in a fist, and when the hand opens it springs back to the shape it was. Bob calls that recovery. It got back to where it started.\n\nResilience is closer to weight training. Resistance causes small tears in the muscle fiber, and over the days that follow it rebuilds a little stronger than before. What would have maxed you out six weeks ago is manageable today. The load is what produces the strength.\n\nA search puts you under real load, and it is forming you while it does — building capacity, sharpening what you actually want, showing you what you are made of. What you build carrying it stays yours afterwards.\n\nOne thing helps on a hard day more than anything else: name the feeling. Confusion, fear, bitterness about how it ended. Naming it is where it starts to lose its grip.',
     gives: [
       { label: 'Job Search Resources', to: 'resources', needs: null, does: 'Free help and people near you, including groups that meet weekly.' },
-      { label: 'An accountability partner', to: null, needs: null, does: 'One person who knows what you said you would do this week. There is a world of difference between a good intention and a good behaviour.' },
+      { label: 'An accountability partner', to: null, needs: null, does: 'One person who knows what you said you would do this week. There is a world of difference between a good intention and a good behavior.' },
     ],
   },
   '4 C’s': {
     title: 'The 4 C’s',
-    what: 'Bob\'s framework for getting your message right, and the order matters: Convictions, Clarity, Confidence, Contagious. Convictions lead to Clarity, Clarity leads to Confidence, and Confidence is Contagious.\n\nConvictions are what you actually believe — what would still be true with the title, the company and the job description stripped away. That is the DNA of a personal brand, and unlike a logo it cannot be designed from outside. It has to be found.',
+    what: 'Bob\'s framework for getting your message right, and the order is the point: Convictions, Clarity, Confidence, Contagious. Convictions lead to Clarity, Clarity leads to Confidence, and Confidence is Contagious.\n\nConvictions are what you actually believe — what would still be true with the title, the company and the job description stripped away. Five things make them up: your values, what you are curious about without anyone paying you to be, your track record, your reputation as other people describe it, and how you are wired. That is the DNA of a personal brand, and unlike a logo it cannot be designed from outside. It has to be found.\n\nClarity follows from that: you can see which openings fit and decline the ones that do not, without apology. Confidence follows from Clarity, because you are pointing at evidence rather than asserting into the air. And when you believe what you are saying, the person across the table starts to believe it too.',
     gives: [
       { label: 'Personal Brand', to: 'p3', needs: null, does: 'Finds the through-line running under a varied background and puts it in words you can say out loud.' },
     ],
   },
   'Tell Me About Yourself': {
     title: 'Tell Me About Yourself',
-    what: 'The first question in most interviews and the one most people answer worst — usually by narrating a CV in reverse.\n\nWhat works is a short story with three beats: something human that shows who you are, the theme running through your work with one real accomplishment behind it, and why this next move is the natural continuation. Thirty to forty-five seconds, spoken. Getting this right before you go wide matters, because going on air before the commercial is ready is expensive.',
+    what: 'The first question in most interviews, and the one usually answered by narrating a resume in reverse.\n\nThink about house hunting. You see forty houses, all with roughly the right square footage and the right number of bedrooms. Weeks later someone asks whether you remember the three-bedroom with two and a half baths, and you have no idea which one they mean. Then they say: the one with the huge oak tree out back. Now you know exactly.\n\nThe personal detail is the oak tree. Three beats, about sixty seconds. Something real about you as a person. How that has played out across your career, with one accomplishment behind it. Therefore, what you are looking for now. The arc has to connect, so the career reads as inevitable given who you are.\n\nThe usual stumble is answering the personal part in professional language — worked in three countries, managed large teams. That is resume content delivered out loud. What lands is color.',
     gives: [
       { label: 'Your Bridge Story', to: null, needs: 'direction', does: 'Builds that answer from your own history, for the direction you are working.' },
       { label: 'Personal Brand', to: 'p3', needs: null, does: 'The through-line the story is built on.' },
@@ -65,16 +65,16 @@ export const STAIRCASE_EXPLAINERS = {
   },
   Networking: {
     title: 'Networking',
-    what: 'Most networking advice makes this an exercise in asking. Bob\'s version turns it around with one question: how can I be of help to you, personally or professionally?\n\nIt is a posture rather than a script — going in curious about the other person, with your hand up rather than out. That shift changes how the conversation feels on both sides, and it is what makes people want to keep talking to you.',
+    what: 'One question changes the whole experience: how can I be of help to you, personally or professionally?\n\nIt is a posture rather than a script — going in curious about the other person, with your hand up rather than out. The personally matters. Someone already running a company may have nothing you can offer professionally and still have something going on outside work you can help with.\n\nThe other surprise is where jobs actually come from. In 1973 the sociologist Mark Granovetter found that people find work through acquaintances far more often than through close friends and family, and LinkedIn has since confirmed it in its own data. Your closest circle reads the same news and knows the same people you do. The former colleague you have not spoken to in seven years is moving in a different orbit.\n\nAnd you are not arriving empty-handed. You know things, and people, that the person across the table does not.',
     gives: [
       { label: 'Who You Know Here', to: null, needs: 'opportunity', does: 'Reads your own LinkedIn connections against a company you are pursuing and drafts the note. Your file never leaves your device.' },
       { label: 'Networking Groups', to: null, needs: 'direction', does: 'The professional communities for the direction you are moving into.' },
-      { label: 'Job Search Resources', to: 'resources', needs: null, does: 'Free groups and public programmes near you.' },
+      { label: 'Job Search Resources', to: 'resources', needs: null, does: 'Free groups and public programs near you.' },
     ],
   },
   'Direct Contact': {
     title: 'Direct Contact',
-    what: 'The lesson the book is named after. Answering a posting means joining a queue that someone else opened; direct outreach is going out to create the opportunity.\n\nThink like a salesperson who knows the product. You have the message, so now you need pipeline — and your quota is one. Not the whole market. One company saying yes.',
+    what: 'The lesson the book is named after. Answering a posting puts you in a queue someone else opened, on someone else\'s timing. Direct outreach is going out to create the conversation yourself.\n\nThe fear underneath it is reaching out to a company with no opening. Three situations are more common than that fear assumes. Someone is already in the seat who is fine and not much more, and they keep the job until you show up. Or the hiring manager knows they need someone like you and has not taken it to HR yet. Or the search has been open three months and nobody has been right.\n\nThe outreach is itself the interview: a researched, specific note demonstrates initiative rather than claiming it on a resume. What makes one land is timing — funding closed, an acquisition done, a new market opened. Change creates need.\n\nAnd your quota is one. One company saying yes.',
     gives: [
       { label: 'Go-to-Market', to: null, needs: 'direction', does: 'Builds the target company list for your direction and drafts the outreach.' },
       { label: 'Recruiters for This Path', to: null, needs: 'direction', does: 'The boutique firms and named practice leaders who work your function and level.' },
@@ -82,7 +82,7 @@ export const STAIRCASE_EXPLAINERS = {
   },
   'STAR Stories': {
     title: 'STAR Stories',
-    what: 'Situation, Task, Action, Result — the structure behind a good interview answer. The part people skip is the thinking: the company is hiring your brain, so how you decided matters more than what you did.\n\nEverything before the interview is preparation. This is game day, and it is worth real time rather than a list of tips.',
+    what: 'Situation, Thought Process, Action, Result. The traditional version calls the T Tasks. Bob changes it, and that change is the whole game.\n\nTasks tell an interviewer what you did. Thought process tells them how you think, which is what they are evaluating — the company is hiring your brain. “I ran one-on-ones with everyone on the team” is a task. “Before designing anything I needed the problem from both sides, so I started with structured one-on-ones to separate what people were saying from what they were experiencing” is a thought process. It shows a repeatable way of working, and showing carries further than claiming.\n\nEverything before the interview is preparation. This is game day, and it deserves real time rather than a list of tips. Four things go wrong in practice: rambling that never finds a period, compression that strips the substance out, a story kept too general to picture, and a good story never connected to what this company is trying to solve.',
     gives: [
       { label: 'Your STAR Stories', to: 'stories', needs: null, does: 'Your stories written once and kept, because the same story is told at this company and the next.' },
       { label: 'Interview Prep', to: null, needs: 'direction', does: 'The questions likely to come up, worked through with your own stories rather than a generic list.' },
@@ -90,15 +90,15 @@ export const STAIRCASE_EXPLAINERS = {
   },
   'Remixing (SCOPE)': {
     title: 'Remixing, and SCOPE',
-    what: 'You do not need a hundred stories for a hundred questions. You need a playlist — a small, well-developed set you know cold, and the ability to angle each one at whatever was actually asked. Same story, same facts, same result, a different emphasis each time. That is remixing.\n\nSCOPE is the frame for doing it. Five lenses most interview questions are reaching for, and a good story can be turned to any of them: Strategy — the business outcome, and the frameworks you brought to the problem. Culture — how you fit and how you work with people. Ownership — what you actually drove. Problem-solving — how you thought, rather than what you did. Execution — that it shipped and it held.\n\nThe discipline is noticing which lens the interviewer is looking through, and adjusting the emphasis rather than reaching for a different story.',
+    what: 'A hundred questions do not need a hundred stories. What works is a playlist — about a dozen well-built ones you know cold, and the ability to angle each at whatever was actually asked. Same story, same facts, a different emphasis. That is remixing.\n\nSCOPE names the five lenses a question can be reaching for. Strategy — the business outcome, and the frameworks you brought to the problem. Culture — how you work with people. Oneself — what you know about your own shortcomings and what you have done about them. Passion — why this work, honestly. Expertise — depth in the craft, which is table stakes rather than the whole answer.\n\nThe skill is noticing which lens is in play and shifting the emphasis, rather than reaching for a different story.',
     gives: [
-      { label: 'Interview Prep', to: null, needs: 'direction', does: 'Reads each person you are meeting and points at which of your stories to lead with for them.' },
+      { label: 'Interview Prep', to: null, needs: 'direction', does: 'Names the one SCOPE dimension each person you are meeting is mainly reading for, and drafts the same story with that emphasis.' },
       { label: 'Your STAR Stories', to: 'stories', needs: null, does: 'The playlist itself, in one place.' },
     ],
   },
   'The 5 P’s': {
     title: 'The 5 P’s',
-    what: 'People hire people. Not resumes, not credentials, not accomplishments on their own. A human being is deciding whether they can picture you working alongside their team every day.\n\nThe mistake most candidates make is turning their humanity down at the exact moment they need it most, because the stakes feel too high to risk being themselves. Getting too careful loses the job in a quieter way: by being forgettable.\n\nFive dimensions to bring deliberately. Proficiency — table stakes, the thing that got you the interview. Passion — what you actually care about in this work. Personality — the part most people flatten under pressure. Perspiration — that you will do the work. Potential — where you are going, not only where you have been.',
+    what: 'People hire people. Not resumes, not credentials, not accomplishments on their own. A human being is deciding whether they can picture you working alongside their team every day.\n\nThe common mistake is turning your humanity down at the exact moment it counts for most, because the stakes feel too high to risk being yourself. Getting too careful loses the job in a quieter way: by being forgettable.\n\nFive dimensions to bring deliberately. Proficiency — table stakes, the thing that got you the interview. Passion — what you actually care about in this work. Personality — the part most people flatten under pressure. Perspiration — that you will do the work. Potential — where you are going, not only where you have been.',
     gives: [
       { label: 'Interview Prep', to: null, needs: 'direction', does: 'Prepares you person by person, so the human read is part of the preparation rather than something you improvise.' },
       { label: 'My Coach', to: 'myCoach', needs: null, does: 'Somewhere to say an answer out loud and hear how it lands before the day.' },
