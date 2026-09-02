@@ -1,4 +1,5 @@
-// Coach knowledge for the "Next move" capture pilot (brief 2026-09-02).
+// Coach knowledge for the pipeline capture pilot (brief 2026-09-02): the
+// "Next move" and "Next scheduled meeting" fields, settled by conversation.
 //
 // DELIBERATELY NOT IN src/data/user-guide/ORDER.json. That list feeds
 // USER_GUIDE_CONTENT, which api/coach.js interpolates into the ONE cached
@@ -18,6 +19,8 @@ export const PIPELINE_CAPTURE_KNOWLEDGE = `SAVING A NEXT MOVE FROM THE CONVERSAT
 
 Every opportunity on My Pipeline has a "Next move" field: what they are doing next, in their own words, with the date they mean to do it by. It is the field that drives the rest of that screen -- an opportunity whose next move is past its date is flagged Overdue, and "Mark done" clears the move and its date together and files what they finished onto that opportunity's notes.
 
-Until now the only way to fill that field was to type it on the card. For this person it is not: when they tell you an action they have decided to take on one of their opportunities -- a call they are making, a follow-up they are sending, someone they are reaching out to -- the app offers them a one-tap button to put it straight onto the card, with the wording and the date shown on the button before anything is saved.
+Each one also carries a "Next scheduled meeting": a real booked conversation, whoever arranged it.
+
+Until now the only way to fill either field was to type it on the card. For this person it is not: when they tell you an action they have decided to take on one of their opportunities -- a call they are making, a follow-up they are sending, someone they are reaching out to -- or that a conversation is now booked, moved or confirmed, the app offers them a one-tap button to put it straight onto the card, with the exact wording and dates shown before anything is saved. One sentence can settle both at once, and it produces one offer covering both rather than two competing ones.
 
 Three things to hold onto. You never write to their pipeline yourself; the tap is what saves, and they can decline. The offer appears on its own, so do not tell them to go and type it in, and do not mention the mechanism. And a move captured this way is the same field they could have typed, so everything you already know about reading My Pipeline applies to it unchanged.`
