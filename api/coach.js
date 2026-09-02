@@ -167,6 +167,42 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     // Whether Interview Prep is built on this opportunity, so an offer to prep can
     // be phrased right without a round trip: work through what's built vs build it.
     if (!isClosed) parts.push(recordSectionText(rec, 'p11').trim() ? 'Interview Prep built' : 'Interview Prep not built yet')
+    // Everything the person typed onto this opportunity BY HAND, ALWAYS: the
+    // interview team with their own notes on each person, and the context they
+    // wrote about how the role came to them.
+    //
+    // This used to reach the coach only through the IN FOCUS expansion, which
+    // needs two things to line up at once: the opportunity identified from the
+    // person's typed words, and the turn classified as interview intent. Someone
+    // looking at an opportunity who says "I spoke with Marisol and the interview
+    // is on the 14th" satisfies neither -- they named no company -- so the coach
+    // was handed every opportunity's title and stage and the contents of none,
+    // then asked who Marisol was. She was already on the panel with her role.
+    //
+    // That failure is worse than knowing nothing, because the rollup above lets
+    // the coach cite stages and day counts with confidence while being blind to
+    // what is inside, and then ask for something the person typed themselves.
+    //
+    // The notes go in too, not just the names. They are the most considered
+    // thing on the card -- someone wrote down what they learned about a person
+    // because they judged it would matter -- and a coach that has the name but
+    // not the knowledge still cannot use it. Capped rather than dropped: a long
+    // note is trimmed with a marker so the coach knows to reach for the full
+    // text, which IN FOCUS still carries in depth.
+    const _panel = rec && rec.panel && typeof rec.panel === 'object' ? rec.panel : null
+    const _clip = (v, n) => { const t = (typeof v === 'string' ? v.trim() : ''); return t.length > n ? `${t.slice(0, n).trim()}… (trimmed)` : t }
+    const _ivs = (_panel && Array.isArray(_panel.interviewers) ? _panel.interviewers : []).filter(iv => iv && typeof iv === 'object')
+    if (!isClosed && _ivs.length) {
+      const who = _ivs.slice(0, 12).map(iv => {
+        const nm = (typeof iv.name === 'string' ? iv.name.trim() : '') || 'unnamed'
+        const detail = [(typeof iv.title === 'string' ? iv.title.trim() : ''), ROLE_IN_LOOP_LABEL[iv.role_in_loop] || ''].filter(Boolean).join(', ')
+        const note = _clip(iv.learned_note, 400)
+        return `${nm}${detail ? ` (${detail})` : ''}${note ? ` — what they know about them: ${note}` : ''}`
+      }).join('\n    ')
+      parts.push(`interview team they have already told you about:\n    ${who}`)
+    }
+    const _ctx = !isClosed ? _clip(_panel && _panel.opportunity_context, 400) : ''
+    if (_ctx) parts.push(`how this opportunity came to them, in their own words: ${_ctx}`)
     if (!isClosed) {
       active++
       if (overdue) attention++
@@ -176,7 +212,7 @@ function buildPursuitStatusBlock(state, pursuitRows) {
   }
   if (!lines.length) return ''
   const rollup = `${active} active${attention ? `, ${attention} needing attention (an overdue next step)` : ''}${quiet ? `, ${quiet} going quiet (nothing scheduled ahead)` : ''}.`
-  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nWhen they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
+  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nEverything above that an opportunity lists as theirs — the interview team, what they know about each person, how the role came to them — was typed in by this person. Treat it as known fact and weave it into what you say: use a person's name and role without being told again, and reason from what they wrote about someone rather than asking them to repeat it. NEVER ask who a named person is, what their role is, or for anything else already recorded here; being asked twice for something they took the trouble to write is how this stops feeling like a coach who knows them. Where a note shows "(trimmed)", more of it exists and you will see it in full once the conversation focuses on that opportunity. When they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
 }
 
 // Search-intake staleness (consult 2026-08-20). Past this age the two intake
@@ -882,7 +918,16 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // malformed record must never break the turn. Skipped in general mode (no profile).
   if (!generalMode) try {
     const activeSaved = Array.isArray(profileState && profileState.savedPlaybooks) ? profileState.savedPlaybooks.filter(r => r && !r.archivedAt) : []
-    const inFocus = findInFocusRecord(activeSaved, message, history)
+    // A pinned record beats inference. findInFocusRecord reads the person's own
+    // words for a title or company, which is the only signal available when the
+    // Coach is opened cold -- but someone who opened it from inside a playbook
+    // and said "I'm calling Teresa on the 14th" names nothing, and would get no
+    // IN FOCUS at all. The client sends the record the screen is pinned to; it is
+    // a hint, not authority, so it is resolved against this account's own saved
+    // work and falls back to inference when it does not match.
+    const pinnedId = typeof (req.body && req.body.focusRecordId) === 'string' ? req.body.focusRecordId.trim() : ''
+    const pinned = pinnedId ? activeSaved.find(r => r && r.id === pinnedId) : null
+    const inFocus = pinned || findInFocusRecord(activeSaved, message, history)
     if (inFocus) {
       const expansion = buildPlaybookExpansion(inFocus, detectIntent(message))
       if (expansion) profileBlock += '\n\n' + expansion
