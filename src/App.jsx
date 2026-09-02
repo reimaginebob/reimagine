@@ -15444,14 +15444,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <p style={{fontSize:18,color:'#2D3748',lineHeight:1.75,margin:0}}>{demoGuide.desc}</p>
           </div>}
           {isDemo&&step!=='welcome'?<div className="demo-content">{rStep()}</div>:rStep()}
-          <footer data-print="hide" style={{marginTop:isMobile?16:24,padding:isMobile?'10px 12px 12px':'14px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',textAlign:'center'}}>
+          {/* Footer sits on ONE horizontal row: guide button, its one-line
+              explainer, then Privacy/Terms. flexWrap lets it fall to a second
+              row on narrow columns rather than stacking three deep. The
+              explainer is desktop-only — on mobile the row is button +
+              Privacy/Terms, which fits without wrapping. */}
+          <footer data-print="hide" style={{marginTop:isMobile?16:24,padding:isMobile?'10px 12px':'12px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',display:'flex',alignItems:'center',justifyContent:'center',flexWrap:'wrap',gap:isMobile?'8px 14px':'8px 20px'}}>
             <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',background:'#FFFFFF',border:`1px solid ${C.gold}`,borderRadius:8,color:C.gold,fontWeight:600,fontSize:17,textDecoration:'none'}}>Read the full User Guide (PDF)</a>
-            {!isMobile&&<p style={{margin:'6px 0 0',fontSize:15,color:'#718096',lineHeight:1.5}}>Everything Reimagine does, explained in plain English.</p>}
-            <p style={{margin:isMobile?'8px 0 0':'10px 0 0',fontSize:15,color:'#718096'}}>
+            {!isMobile&&<span style={{fontSize:15,color:'#718096'}}>Everything Reimagine does, explained in plain English.</span>}
+            <span style={{display:'inline-flex',alignItems:'center',fontSize:15,color:'#718096'}}>
               <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{color:'#718096',textDecoration:'underline'}}>Privacy</a>
               <span style={{margin:'0 8px'}}>·</span>
               <a href="/terms" target="_blank" rel="noopener noreferrer" style={{color:'#718096',textDecoration:'underline'}}>Terms</a>
-            </p>
+            </span>
           </footer>
           {isDemo&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:32,paddingTop:24,borderTop:`1px solid ${C.border}`}}>
             <div>{demoIdx>0&&<button onClick={demoPrev} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,fontSize:17,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>← Previous</button>}</div>
