@@ -69,8 +69,39 @@ export function sectionState(record, key) {
   const v = bag && bag[key]
   if (!v) return { built: false, builtAt: null }
   if (typeof v === 'string') return { built: !!v.trim(), builtAt: null }
+  const builtAt = typeof v.builtAt === 'string' ? v.builtAt : null
   const text = typeof v.content === 'string' ? v.content : ''
-  return { built: !!text.trim(), builtAt: typeof v.builtAt === 'string' ? v.builtAt : null }
+  if (text.trim()) return { built: true, builtAt }
+  // THE BRIDGE STORY IS NOT SHAPED LIKE THE OTHERS. Records written before
+  // 2026-05-31 store it as { bridge_story, user_picks, user_freeform } with no
+  // `content` at all, and normalizeProfileState preserves that rather than
+  // migrating it (see bridgeStoryToProse in src/App.jsx, whose legacy branch
+  // carries a do-not-delete note). The screen decodes it and shows the section
+  // as built; reading only `content` here would report a finished Bridge Story
+  // as missing and have the coach offer to build it again -- the exact failure
+  // this file exists to prevent. Presence is enough: the decoding itself stays
+  // in App.jsx, because all this needs to know is whether there is something.
+  if (v.bridge_story) return { built: true, builtAt }
+  if (typeof v.user_freeform === 'string' && v.user_freeform.trim()) return { built: true, builtAt }
+  return { built: false, builtAt }
+}
+
+// Which section set a saved direction was actually built with.
+//
+// The track is a mutable per-user column (api/admin/track-access.js does
+// `UPDATE users SET track`), so someone moved onto Go Independent still has the
+// directions they built before, and those carry the standard ten. Reading the
+// current session's track for every record would rename their old work -- their
+// Resume Refresh reported to the coach as "Your One-Sheet", a name they have
+// never seen on it.
+//
+// The independent set is a strict subset of the standard one, so a record
+// holding any standard-only section proves which it is. Anything else follows
+// the session, which is right for every record built under the current track.
+const STANDARD_ONLY_KEYS = ['p5', 'p9', 'groups', 'recruiters']
+export function recordIsIndependent(record, sessionIndependent) {
+  if (!sessionIndependent) return false
+  return !STANDARD_ONLY_KEYS.some(k => sectionState(record, k).built)
 }
 
 // The sections that apply to this record, so nothing is reported missing that
@@ -87,7 +118,8 @@ export function sectionsFor(record, { independent = false, hasOffer = false } = 
 // fraction. Callers phrase it; nobody is handed a score.
 export function describeSections(record, opts = {}) {
   const built = [], todo = []
-  for (const sec of sectionsFor(record, opts)) {
+  const resolved = { ...opts, independent: recordIsIndependent(record, !!opts.independent) }
+  for (const sec of sectionsFor(record, resolved)) {
     (sectionState(record, sec.key).built ? built : todo).push(sec.label)
   }
   return { built, todo }

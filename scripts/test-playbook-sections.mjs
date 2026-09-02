@@ -6,7 +6,7 @@
 // there. That is the exact failure NAV_LABELS was created to stop, so it gets a
 // gate rather than a comment.
 import fs from 'fs'
-import { OP_COUNTED_SECTIONS, focusSections, describeSections, sectionState } from '../src/playbook-sections.js'
+import { OP_COUNTED_SECTIONS, focusSections, describeSections, sectionState, recordIsIndependent } from '../src/playbook-sections.js'
 
 const app = fs.readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf-8')
 let pass = 0, fail = 0
@@ -93,6 +93,34 @@ t('a record with no source is treated as a focus playbook', describeSections({ i
 t('survives null', describeSections(null).todo.length === 10)
 t('survives a record with no bags', describeSections({ source: 'door2' }).built.length === 0)
 t('survives a non-object section', sectionState(opp({ sections: { p11: 42 } }), 'p11').built === false)
+
+
+// --- the Bridge Story's own shape (Vercel review, PR #676) ---
+// Pre-2026-05-31 records store p6 as { bridge_story, ... } with NO `content`.
+// The screen decodes it and shows it built. Reading only `content` reported a
+// finished Bridge Story as missing, which would have the coach offer to build
+// what is already there -- the failure this whole file exists to stop.
+const legacyBridge = { bridge_story: { slot1_human_anchor: { options: [{ id: 'a', text: 'anchor' }] } }, user_picks: {} }
+t('legacy p6 object counts as built on an opportunity', sectionState(opp({ sections: { p6: legacyBridge } }), 'p6').built === true)
+t('legacy p6 object counts as built on a direction', sectionState(focus({ outputs: { p6: legacyBridge } }), 'p6').built === true)
+t('and it is reported by name, not as missing', describeSections(opp({ sections: { p6: legacyBridge } })).built.includes('Bridge Story'))
+t('a freeform-only bridge story counts as built', sectionState(opp({ sections: { p6: { user_freeform: 'what I say out loud' } } }), 'p6').built === true)
+t('an empty object does NOT count as built', sectionState(opp({ sections: { p6: {} } }), 'p6').built === false)
+t('content still wins when present', sectionState(opp({ sections: { p6: { content: 'prose' } } }), 'p6').built === true)
+
+// --- the track a record was actually built with (Vercel review, PR #676) ---
+// users.track is mutable (api/admin/track-access.js), so an account moved onto
+// Go Independent still holds directions built with the standard ten. Reporting
+// those under the independent labels renames their own work at them.
+const standardRec = focus({ outputs: { p9: 'the lingo', p_res: 'resume' } })
+t('a record holding a standard-only section is read as standard', recordIsIndependent(standardRec, true) === false)
+t('so its sections keep the names it was built with', describeSections(standardRec, { independent: true }).built.includes('Resume Refresh'))
+t('and it is not renamed to the independent label', !describeSections(standardRec, { independent: true }).built.includes('Your One-Sheet'))
+const practiceRec = focus({ outputs: { p_res: 'one sheet', income: 'pricing' } })
+t('a record with no standard-only section follows the session track', recordIsIndependent(practiceRec, true) === true)
+t('and uses the independent label', describeSections(practiceRec, { independent: true }).built.includes('Your One-Sheet'))
+t('a standard session is never reinterpreted as independent', recordIsIndependent(practiceRec, false) === false)
+t('a standard session keeps standard labels', describeSections(practiceRec, { independent: false }).built.includes('Resume Refresh'))
 
 console.log(`test-playbook-sections: ${fail ? 'FAILED' : 'OK'} (${pass} cases passed${fail ? `, ${fail} FAILED` : ''})`)
 process.exit(fail ? 1 : 0)
