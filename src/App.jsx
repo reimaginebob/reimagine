@@ -13942,9 +13942,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       </CoachingCallout>
                     </>
                     :<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-start'}}>
-                      <input value={schoolDraft||_eduGuess} onChange={e=>setSchoolDraft(e.target.value)} placeholder="University of Tennessee, Knoxville" style={{flex:1,minWidth:240,boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none'}}/>
+                      <input value={schoolDraft||_eduGuess} onChange={e=>setSchoolDraft(e.target.value)} placeholder="e.g. University of Michigan" style={{flex:1,minWidth:240,boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none'}}/>
                       <Btn small disabled={!String(schoolDraft||_eduGuess).trim()} onClick={()=>{pr('school',String(schoolDraft||_eduGuess).trim());setSchoolDraft('')}}><Check size={12}/>Use this school</Btn>
                     </div>}
+                  {!_school&&!String(schoolDraft||_eduGuess).trim()&&<div style={{fontSize:15,color:C.gray,lineHeight:1.55,marginTop:6}}>Type your school above and this turns on.</div>}
                 </div>
                 const _linkBtn=<div>
                   <a href={linkedInSecondDegreeUrl(searchQuery(_company,_srch.extra))} target="_blank" rel="noopener noreferrer" style={_goldBtn}>See who can introduce you<ArrowUpRight size={16}/></a>
