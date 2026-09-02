@@ -7390,6 +7390,27 @@ export default function PivotEngine(){
     // opportunity by title, falling back to the open one — the same resolution
     // the interview-team branch below uses, and the same refusal: with no
     // target, write nothing rather than write to the wrong record.
+    // Activity capture (Your Next Step pilot). The tap is the only thing that
+    // writes, and it writes what the offer showed -- never a paraphrase, never
+    // something the model decided on its own.
+    if(checkinKey==='activity-fact'){
+      if(value==='dismiss')return true
+      let d=null;try{d=JSON.parse(value)}catch{return true}
+      if(!d||!d.activity||!d.state)return true
+      if(isDemo||isTest)return{content:'Got it.'}
+      // Confirmed only after the write lands. Saying "Got it" on a save that
+      // failed is the same defect as the Coach claiming a save it never made --
+      // the person walks away believing it is recorded, and finds out weeks
+      // later that it is not. An honest failure is recoverable; a false
+      // confirmation is not.
+      try{
+        const r=await fetch('/api/activity-facts',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({activity:d.activity,state:d.state,source:'said',detail:d.detail||''})})
+        if(!r.ok)throw new Error(String(r.status))
+        return{content:'Got it — I will not ask you about that again.'}
+      }catch{
+        return{content:'That did not save, so I have not recorded it. Tell me again in a moment and I will try once more.'}
+      }
+    }
     if(checkinKey==='pursuit-update'){
       if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
@@ -13579,7 +13600,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
         {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>
     // Job Search Resources (docs/networking-groups-brief.md). Its own
     // destination, reachable from the first screen, needing no direction and no
