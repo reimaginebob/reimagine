@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock, Mic, Menu, Users } from "lucide-react"
+import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock, Mic, Menu, Users, Pencil } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
 import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-patterns.mjs"
@@ -5209,7 +5209,11 @@ const POST_P5_SUBMODULES = ROLE_SUBMODULES.filter(k=>k!=='p5')
 // a per-user value loaded from the user record (V2 launch bundle); the accessor is
 // the seam: all cap read sites go through getSavedCap() so V2 can swap the body
 // without touching call sites.
-const SAVED_PLAYBOOKS_CAP = 10
+// null = no ceiling, which is where the product stands for now: nobody is being
+// told how many they have left, and nobody is being stopped. The whole cap path
+// below (the at-cap modal, the remove-one-to-continue flow) is left intact and
+// wired; restoring a limit is putting a number back here.
+const SAVED_PLAYBOOKS_CAP = null
 const getSavedCap = () => SAVED_PLAYBOOKS_CAP
 // LANE_LABELS is the canonical map imported from ./nav-labels.js (keyed on the
 // stored selectedLane values). laneLabelFor reads it; behavior is unchanged.
@@ -6230,6 +6234,28 @@ const SUPPORT_ANNOUNCEMENT_COPY={
   cta:'Take a look',
 }
 
+// One-time note for the people the My Pipeline move actually displaced. Shown
+// only to someone holding an Opportunity Playbook built BEFORE that move, which
+// is the population that had work listed on one screen and came back to find it
+// on another; a person who built their first opportunity after the move never
+// saw the old arrangement and has nothing to be told. Someone whose playbooks
+// are all Focus Playbooks is deliberately excluded too: the screen they use was
+// renamed, but their work never left it.
+//
+// The cost of not having this is measured: one user read an empty My Playbooks
+// as lost work and rebuilt the same opportunity three times in an evening.
+const MOVE_ANNOUNCEMENT_COPY={
+  header:'Your opportunities are on My Pipeline',
+  body:[
+    'Opportunity Playbooks used to sit under My Playbooks. They have a screen of their own now, which lists them by what needs doing next: where each one stands, when you next talk, and the step you are taking. Everything you built is there, including the ones you built before the move.',
+    'My Playbooks is now called Focus Playbooks, since what it holds is one playbook per role you opened from Career Paths.',
+  ],
+  cta:'Show me My Pipeline',
+}
+// Opportunities moved to My Pipeline on this date. A record created before it was
+// built while the old arrangement was on screen, which is what the note explains.
+const MOVE_ANNOUNCEMENT_CUTOFF=Date.parse('2026-08-30T00:00:00Z')
+
 // Support panel. Reuses the same overlay primitive as the feedback / migration
 // modals (fixed full-viewport scrim, dialog role, backdrop-click + × to close).
 // It is a pure overlay controlled by local Sidebar state, so opening it never
@@ -6266,7 +6292,7 @@ function SupportPanel({onClose}){
   </div>
 }
 
-function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,storiesPilot=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false}){
+function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false}){
   const navRef=useRef(null)
   // Below the breakpoint the rail leaves the flex flow and becomes an off-canvas
   // drawer, which is what hands the content column the full width. At or above
@@ -6351,7 +6377,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       // Interview Prep: the same story is told at this company and the next,
       // so it belongs to the person. It is also where someone who already has
       // stories written can be pointed to bring them in.
-      ...(storiesPilot?[{id:'stories',label:NAV_LABELS.stories,Icon:Lightbulb}]:[]),
+      ...(signedIn?[{id:'stories',label:NAV_LABELS.stories,Icon:Lightbulb}]:[]),
       {id:'p3',label:NAV_LABELS.p3,Icon:Fingerprint},
       // Go Independent has one way forward rather than two doors, so its rail
       // names the practice plan and the two things inside it. Career Paths and
@@ -6734,6 +6760,11 @@ export default function PivotEngine(){
   const archivedPlaybooks=savedPlaybooks.filter(r=>r&&r.archivedAt)
   const[currentRoleInSavedSet,setCurrentRoleInSavedSet]=useState(false)
   const[atCapModal,setAtCapModal]=useState(null)
+  // Renaming an opportunity from My Pipeline. Renaming lived only on a
+  // SavedPlaybooks card, and My Pipeline took the opportunities at GA without
+  // it, so an auto-generated title from a posting could not be changed at all.
+  const[pipelineRenameId,setPipelineRenameId]=useState(null)
+  const[pipelineRenameDraft,setPipelineRenameDraft]=useState('')
   const[inputStaleModal,setInputStaleModal]=useState(null)
   const[bareInputModal,setBareInputModal]=useState(false)
   // Confirmation for the one control on the Personal Brand screen that destroys
@@ -6858,6 +6889,9 @@ export default function PivotEngine(){
   const dismissPipelineIntro=()=>setSeenPipelineIntro(true)
   const[seenSupportAnnounce,setSeenSupportAnnounce]=useState(()=>{try{return localStorage.getItem('reimagine_support_announce_v1_dismissed')==='1'}catch{return false}})
   const dismissSupportAnnounce=()=>{try{localStorage.setItem('reimagine_support_announce_v1_dismissed','1')}catch{};setSeenSupportAnnounce(true)}
+  // Same two-tier persistence as seenSupportAnnounce above.
+  const[seenMoveAnnounce,setSeenMoveAnnounce]=useState(()=>{try{return localStorage.getItem('reimagine_move_announce_v1_dismissed')==='1'}catch{return false}})
+  const dismissMoveAnnounce=()=>{try{localStorage.setItem('reimagine_move_announce_v1_dismissed','1')}catch{};setSeenMoveAnnounce(true)}
   const[supportOpenReq,setSupportOpenReq]=useState(0)
   const takeLookSupport=()=>{dismissSupportAnnounce();setSupportOpenReq(n=>n+1)}
   const[deepExpanded,setDeepExpanded]=useState(false)
@@ -6978,7 +7012,10 @@ export default function PivotEngine(){
   // src/coach-routing.js, and put star-stories.md back in ORDER.json. Those
   // three go together — a surface in the Coach catalog that a user cannot
   // reach is worse than one they have not heard of.
-  const storiesPilot=!!(signedInUser&&/@career\.club$/i.test(String(signedInUser.email||'')))
+  // Stories are stored per user behind requireAuth, so a signed-out visitor
+  // could build a library and lose all of it. This is that requirement, not a
+  // pilot: the internal-only gate came off when the surface opened.
+  const storiesReady=!!signedInUser
   // The connector did NOT go GA with the screen. Letting an outside assistant
   // hold a bearer token and write status unattended is a different risk class
   // from a screen in the app, so it stays a named beta on the same flag value.
@@ -7415,7 +7452,7 @@ export default function PivotEngine(){
   // leaves an error and a retry rather than looping, and a profile too thin to
   // work from is a reason to say so rather than to spin.
   useEffect(()=>{
-    if(step!=='stories'||!storiesPilot)return
+    if(step!=='stories'||!storiesReady)return
     // storiesLoaded is the whole point of this guard. The stored library arrives
     // from /api/star-stories after /api/me resolves, and until it does the
     // library reads as empty -- so arriving here started a seed, the load then
@@ -7427,7 +7464,7 @@ export default function PivotEngine(){
     if(storiesAutoRef.current||storiesBusy||starStories.length>0||!storiesSeedable)return
     storiesAutoRef.current=true
     buildStoryLibrary()
-  },[step,storiesPilot,storiesBusy,storiesLoaded,starStories.length,storiesSeedable])
+  },[step,storiesReady,storiesBusy,storiesLoaded,starStories.length,storiesSeedable])
   const[manualErr,setManualErr]=useState(null)
   const persistManual=(next)=>{setConnManual(next);try{localStorage.setItem(MANUAL_STORAGE_KEY,JSON.stringify(next))}catch{}}
   const addManualPerson=(company)=>{
@@ -7593,7 +7630,7 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
   // Hydrate the saved playbooks set from its own localStorage key on mount.
   // Demo mode skips persistence; test mode wipes the key so test sessions
   // start clean (mirrors the pe_v4 gating one line up).
@@ -7614,7 +7651,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
@@ -7765,7 +7802,7 @@ export default function PivotEngine(){
       // lives only in the saved_playbooks table (per-record dual-write above), so a
       // whole-profile save can never touch a playbook again. The server merge shim
       // stays as belt-and-suspenders for any old cached client still sending it.
-      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro})
+      const blob=JSON.stringify({step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce})
       localStorage.setItem('pe_v4',blob)
       // The localStorage write above is unconditional; only the server PUT is
       // gated. Holding the PUT until /api/profile/load has settled is what stops
@@ -7788,7 +7825,7 @@ export default function PivotEngine(){
       setSaveStatus('saved')
       setSaveError(null)
     }catch{setSaveStatus('error');setSaveError('device_full')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,signedInUser,serverLoadDone,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,signedInUser,serverLoadDone,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
@@ -7872,6 +7909,14 @@ export default function PivotEngine(){
   // backup in v1; Neon sync is the durable fix and is deferred to V2).
   const isReturningExplorer=done.includes('p3')&&(activePlaybooks.length>0||exploredRoleTitles.length>0)
   const hydrationStable=localHydrationDone&&serverLoadDone
+  // Who the My Pipeline move actually displaced: someone holding an Opportunity
+  // Playbook they built BEFORE it, who had that work listed on one screen and
+  // came back to find it on another. Gated on tableHydrateDone as well as
+  // hydrationStable because savedPlaybooks arrives from the per-record table
+  // AFTER the profile load settles -- testing any earlier reads an empty set and
+  // skips the note for exactly the people it is for.
+  const showMoveAnnounce=!isDemo&&!isTest&&!!signedInUser&&hydrationStable&&tableHydrateDone&&!seenMoveAnnounce
+    &&activePlaybooks.some(r=>{const t=r&&r.createdAt?Date.parse(r.createdAt):NaN;return r&&r.source==='door2'&&!Number.isNaN(t)&&t<MOVE_ANNOUNCEMENT_CUTOFF})
   // One-time baseline for brands written before input snapshots existed. Uses
   // setOutputs rather than out(): out('p3',...) would take a "previous version"
   // snapshot for Restore, and nothing is being replaced here. Waits for
@@ -8234,7 +8279,7 @@ export default function PivotEngine(){
   // Personal Brand. Skips when heading to p3 (they are going there to update).
   const maybeInputStaleNudge=(from,to)=>{if(!isDemo&&INPUT_EDIT_STEPS.has(from)&&inputEditedRef.current&&to!=='p3'&&outputs.p3){inputEditedRef.current=false;setInputStaleModal({from})}}
   const advance=(from,to)=>{maybeInputStaleNudge(from,to);markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
-  const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
+  const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);setShowOfferCompare(false);if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
   // Scroll new output into view AFTER generation completes. Every generate
   // path already scrolls to 0,0 on click (so the loading panel is visible);
   // none scroll after the API returns, leaving the user wherever they
@@ -10653,7 +10698,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const labelCell={...cell,fontWeight:700,color:C.grayL,fontSize:15,textTransform:'uppercase',letterSpacing:0.5,minWidth:150,background:C.bg}
     const strRow=(label,pick)=><tr><td style={labelCell}>{label}</td>{data.map(d=><td key={d.r.id} style={cell}>{pick(d)||<span style={{color:C.gray}}>—</span>}</td>)}</tr>
     return <div>
-      <div style={{marginBottom:14}}><Btn secondary small onClick={()=>setShowOfferCompare(false)}><ArrowLeft size={13}/>Back to My Playbooks</Btn></div>
+      <div style={{marginBottom:14}}><Btn secondary small onClick={()=>setShowOfferCompare(false)}><ArrowLeft size={13}/>Back to {NAV_LABELS.pipeline}</Btn></div>
       <h1 style={{...S.title,marginBottom:6}}>Compare offers</h1>
       <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 6px',maxWidth:760}}>Your logged offers side by side. The “you can bank on” line is the firm money — base, plus the benefits that come back to you (401(k) match, HSA, PTO), minus what you pay for health — so an offer with a higher salary but a costlier health plan doesn't look better than it is. Bonus and equity sit below on their own lines, because what they're really worth depends on attainment and on an exit no one can predict. This is for your own weighing; Reimagine doesn't rank the offers or say which to take.</p>
       <div style={{fontSize:15,color:C.gray,fontStyle:'italic',margin:'0 0 16px'}}>Priced benefits are estimates from the numbers you entered on each offer.</div>
@@ -10981,7 +11026,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(!companyName||gtmCompanyReadBuilding)return
     const slotId=currentSavedSlotIdRef.current
     const rec0=savedPlaybooks.find(r=>r.id===slotId&&r.source==='door1')
-    if(!rec0){setGtmCompanyReadErrors(e=>({...e,[companyName]:'Open this Focus Playbook from My Playbooks first so this can save against it.'}));return}
+    if(!rec0){setGtmCompanyReadErrors(e=>({...e,[companyName]:`Open this Focus Playbook from ${NAV_LABELS.mylib} first so this can save against it.`}));return}
     setGtmCompanyReadBuilding(companyName);setGtmCompanyReadErrors(e=>({...e,[companyName]:null}))
     const reqId=++gtmCompanyReadReqRef.current
     try{
@@ -11440,18 +11485,25 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // scroll target). Delay lets the op page render + the step-change scroll reset
   // fire first, so this scroll wins.
   const openPursuitSection=(rec,key)=>{track('mysearch_section_jump',{recordId:rec.id,section:key});restoreFromSavedSlot(rec);setTimeout(()=>scrollToOutput(key),250)}
-  const removeOpportunity=(rec)=>{if(window.confirm(`Remove "${rec.title||'this opportunity'}" from your pipeline?\n\nIt won't be deleted — it moves to the Archived section at the bottom of My Playbooks, where you can restore it any time in the next 90 days.`))deleteFromSavedSet(rec.id)}
-  // Archived graveyard for both Focus and Opportunity playbooks. "Remove"
-  // archives (90-day grace); this section is where a user restores one or ends
-  // it early. Renders nothing when empty.
-  const archivedSection=()=>{
-    if(!archivedPlaybooks.length)return null
+  const removeOpportunity=(rec)=>{if(window.confirm(`Remove "${rec.title||'this opportunity'}" from your pipeline?\n\nIt won't be deleted — it moves to the Archived section at the bottom of My Pipeline, where you can restore it any time in the next 90 days.`))deleteFromSavedSet(rec.id)}
+  // Archived graveyard. "Remove" archives (90-day grace); this section is where
+  // a user restores one or ends it early. Renders nothing when empty.
+  // Scoped by `only` since the two kinds now live on different screens: a
+  // removed opportunity belongs under My Pipeline, a removed Focus Playbook
+  // under Focus Playbooks. Filing an archived opportunity under a screen named
+  // for Focus Playbooks would be the same misdirection this rename is fixing.
+  // No argument keeps the old both-kinds behaviour for any other caller.
+  const archivedSection=(only)=>{
+    const archived=only==='door2'?archivedPlaybooks.filter(r=>r.source==='door2')
+      :only==='door1'?archivedPlaybooks.filter(r=>r.source!=='door2')
+      :archivedPlaybooks
+    if(!archived.length)return null
     const daysLeft=(iso)=>{const ms=new Date(iso).getTime()+90*24*60*60*1000-Date.now();return Math.max(0,Math.ceil(ms/(24*60*60*1000)))}
     return <div style={{maxWidth:860,margin:'28px 0 24px'}}>
       <h2 style={{...S.title,fontSize:22,marginBottom:6}}>Archived</h2>
       <CoachingCallout>Removed playbooks wait here for 90 days before they're deleted for good. Restore one any time, or delete it now if you're sure.</CoachingCallout>
       <div style={{border:`1px solid ${C.border}`,borderRadius:10,overflow:'hidden'}}>
-        {archivedPlaybooks.map(rec=><div key={rec.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'14px 16px',borderBottom:`1px solid ${C.border}`}}>
+        {archived.map(rec=><div key={rec.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'14px 16px',borderBottom:`1px solid ${C.border}`}}>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:16,fontWeight:600,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{rec.title||'Untitled'}</div>
             <div style={{fontSize:15,color:C.gray,marginTop:2}}>{rec.source==='door2'?'Opportunity':laneLabelFor(rec.lane)} · {daysLeft(rec.archivedAt)} days left</div>
@@ -11485,7 +11537,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     </div>
   }
-  const mySearchPanel=()=>{
+  const mySearchPanel=(comparableCount=0)=>{
     const ops=activePlaybooks.filter(r=>r&&r.source==='door2')
     const wrap=(inner)=><div style={{maxWidth:900,margin:'0 0 32px'}}>
       <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',margin:'0 0 6px'}}>
@@ -11495,6 +11547,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             the screen read as though they did different things. */}
         {!isIndependent&&<Btn small secondary onClick={addNewOpportunity}>+ Add an Opportunity</Btn>}
       </div>
+      {comparableCount>=2&&<div style={{margin:'0 0 14px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({comparableCount}) <ChevronRight size={14}/></Btn></div>}
       <CoachingCallout>All the opportunities you're pursuing, in one place. As things change, update where each one stands, when you'll next talk, and what you're doing next — it all saves, so it's here whenever you come back. Finished a step? Mark it done and put in whatever comes next.</CoachingCallout>
       {pipelineIntroCard()}
       {inner}
@@ -11536,8 +11589,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           const inPipe=daysIn(rec);const quiet=!isClosed(s)&&!needsAttn(s)&&!hasUpcoming(s)
           return <div key={rec.id} style={{padding:'18px 20px',background:'#FFFFFF',border:`1.5px solid ${flag?flag.border:C.border}`,borderRadius:14,opacity:isClosed(s)?0.65:1}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:10}}>
-              <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
-                <div style={{fontSize:18,fontWeight:700,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{title}</div>
+              <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0,flex:1}}>
+                {pipelineRenameId===rec.id
+                  ?<input autoFocus value={pipelineRenameDraft} onChange={e=>setPipelineRenameDraft(e.target.value)}
+                     onBlur={()=>{const t=pipelineRenameDraft.trim();if(t&&t!==rec.title)renameSavedPlaybook(rec.id,t);setPipelineRenameId(null)}}
+                     onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();if(e.key==='Escape'){setPipelineRenameDraft(rec.title||'');setPipelineRenameId(null)}}}
+                     style={{flex:1,minWidth:0,fontSize:18,fontWeight:700,fontFamily:'inherit',color:'#1A2540',padding:'4px 8px',border:`1px solid ${C.gold}`,borderRadius:7,background:'#FFF'}}/>
+                  :<button type="button" onClick={()=>{setPipelineRenameDraft(rec.title||'');setPipelineRenameId(rec.id)}} title="Rename this opportunity"
+                     style={{display:'inline-flex',alignItems:'center',gap:6,minWidth:0,background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                     <span style={{fontSize:18,fontWeight:700,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{title}</span>
+                     <Pencil size={14} color={C.gray} style={{flexShrink:0}}/>
+                   </button>}
                 {flag&&<span style={{flexShrink:0,fontSize:15,fontWeight:700,color:flag.text,background:flag.bg,border:`1px solid ${flag.border}`,borderRadius:20,padding:'1px 9px'}}>{flag.pill}</span>}
               </div>
               <button type="button" onClick={()=>openPursuitRecord(rec,'op')} style={{flexShrink:0,background:'transparent',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Open →</button>
@@ -11696,7 +11758,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(existingDup){
       setCurrentRoleInSavedSet(true)
       currentSavedSlotIdRef.current=existingDup.id
-    }else if(activePlaybooks.length>=getSavedCap()){
+    }else if(getSavedCap()!=null&&activePlaybooks.length>=getSavedCap()){
       setCurrentRoleInSavedSet(false)
       currentSavedSlotIdRef.current=null
       setAtCapModal({source:'door2',proceed:createRecord})
@@ -11825,7 +11887,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
   const rStep=()=>{switch(step){
     case'stories':{
-      if(!storiesPilot)return null
+      if(!storiesReady)return null
       // Your STAR Stories. The playlist from Lesson 10: a finite set you remix rather
       // than a hundred you memorise. Two states per playlist type, never an empty
       // box — a story built from what this person actually told us, or the shape
@@ -12889,7 +12951,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             renders only when the playbook is committed to the dashboard. */}
         {isReturningExplorer&&<div style={{position:'sticky',top:0,zIndex:50,background:C.bg,padding:'10px 0',marginBottom:14,borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap'}}>
           <div style={{display:'inline-flex',alignItems:'center',gap:8,fontSize:15,minWidth:0,flex:1}}>
-            <button onClick={()=>nav('mylib')} style={{background:'transparent',border:'none',padding:0,color:C.gold,fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>My Playbooks</button>
+            <button onClick={()=>nav('mylib')} style={{background:'transparent',border:'none',padding:0,color:C.gold,fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>{NAV_LABELS.mylib}</button>
             <ChevronRight size={14} color={C.gray}/>
             <span style={{color:'#1A2540',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{chosen||'Your Focus Playbook'}</span>
           </div>
@@ -13164,21 +13226,26 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </CoachingCallout>
       </div>
     }
-    case'pipeline':return <div>
-      {mySearchPanel()}
-      {hasConnectorBeta&&connectAssistantPanel()}
-    </div>
-    case'mylib':{
+    case'pipeline':{
+      // Compare offers reads only opportunity records, so it follows them here
+      // rather than staying on a screen named for Focus Playbooks. Same for the
+      // archived opportunities: removed from this screen, restored from it.
       const _comparable=activePlaybooks.filter(offerComparable)
       if(showOfferCompare&&_comparable.length>=2)return offerCompareView()
       return <div>
+      {mySearchPanel(_comparable.length>=2?_comparable.length:0)}
+      {archivedSection('door2')}
+      {hasConnectorBeta&&connectAssistantPanel()}
+    </div>
+    }
+    case'mylib':{
+      return <div>
       <div style={{marginBottom:8}}>
-        <h1 style={{...S.title,marginBottom:6}}>My Playbooks</h1>
-        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>{isIndependent?'Your practice plan and the clients you are working.':'Your collection of role-strategy work.'} {activePlaybooks.length} of {getSavedCap()} saved.</p>
+        <h1 style={{...S.title,marginBottom:6}}>{isIndependent?'Your Practice':NAV_LABELS.mylib}</h1>
+        <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:0}}>{isIndependent?'Your practice plan and the clients you are working.':'The directions you have explored.'}</p>
       </div>
-      {_comparable.length>=2&&<div style={{margin:'0 0 16px'}}><Btn secondary onClick={()=>setShowOfferCompare(true)}>Compare offers ({_comparable.length}) <ChevronRight size={14}/></Btn></div>}
-      <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={isIndependent?undefined:startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasPipeline} independent={isIndependent}/>
-      {archivedSection()}
+      <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} onRename={renameSavedPlaybook} onDownload={downloadPlaybookMarkdown} C={C} layout="complete" title={null} onAddDirection={isIndependent?undefined:startNewDirection} onAddOpportunity={addNewOpportunity} focusOnly={hasPipeline} independent={isIndependent} onGoToPipeline={hasPipeline?()=>nav('pipeline'):undefined}/>
+      {archivedSection(hasPipeline?'door1':undefined)}
     </div>
     }
     case'income':{
@@ -14627,7 +14694,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         primitive: backdrop-click and × both dismiss with zero friction, "Take a
         look" additionally opens the Support panel via the supportOpenReq bump.
         Any dismissal path marks it seen, permanently and across devices. */}
-    {!isDemo&&!isIndependent&&signedInUser&&hydrationStable&&(hasProgress||done.length>0)&&!seenSupportAnnounce&&<div data-print="hide" onClick={dismissSupportAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+    {showMoveAnnounce&&<div data-print="hide" onClick={dismissMoveAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1350,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Where your opportunities moved" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:520,width:'100%',maxHeight:'calc(100vh - 48px)',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
+        <button onClick={dismissMoveAnnounce} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>&times;</button>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 14px',paddingRight:24,lineHeight:1.35}}>{MOVE_ANNOUNCEMENT_COPY.header}</h2>
+        {MOVE_ANNOUNCEMENT_COPY.body.map((para,i)=><p key={i} style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:'0 0 14px'}}>{para}</p>)}
+        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:8}}>
+          <Btn onClick={()=>{dismissMoveAnnounce();nav('pipeline')}}>{MOVE_ANNOUNCEMENT_COPY.cta}</Btn>
+        </div>
+      </div>
+    </div>}
+    {!isDemo&&!isIndependent&&signedInUser&&hydrationStable&&(hasProgress||done.length>0)&&!seenSupportAnnounce&&!showMoveAnnounce&&<div data-print="hide" onClick={dismissSupportAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Support Reimagine announcement" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:480,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
         <button onClick={dismissSupportAnnounce} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 14px',paddingRight:24,lineHeight:1.35}}>{SUPPORT_ANNOUNCEMENT_COPY.header}</h2>
@@ -14813,7 +14890,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{display:'flex',flex:1,minHeight:0,position:'relative'}}>
         {isMobile&&drawerOpen&&<div data-print="hide" onClick={closeDrawer} aria-hidden="true" style={{position:'absolute',inset:0,zIndex:20,background:'rgba(15,26,48,0.5)'}}/>}
         {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
-        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} storiesPilot={storiesPilot} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
         <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,padding:isMobile?'22px 16px 40px':'40px 56px 60px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>

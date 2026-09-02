@@ -19,7 +19,8 @@ It has two halves, and they work differently on purpose.
 | Pick a Direction | **Career Paths** | Where you choose among Familiar Ground, Industry Insider, and Work That Matters. |
 | Upload a Live Opportunity | **Add an Opportunity** | Bring a job description in and get a playbook for that exact role. |
 | Reimagine Help | **My Coach** | Your coach for the search. The button in the bottom-right corner of every screen, and its own sidebar entry. |
-| The Complete screen | **My Playbooks** | Where your work lives. The old screen was an end-of-journey destination; My Playbooks is a library you come back to, and it is available the whole time. |
+| Opportunity Playbooks on My Playbooks | **My Pipeline** | In August 2026 the opportunities you add moved off the playbook library and onto their own screen, which lists them by what needs doing next rather than by what they are. Nothing was lost in the move. If you had opportunities before then, Reimagine says so once, the next time you sign in. |
+| The Complete screen | **Focus Playbooks** | The old screen was an end-of-journey destination; this is a library you come back to, and it is available the whole time. It was called My Playbooks until September 2026, by which point the opportunities it also held had moved to My Pipeline. |
 | Wiring & Compass | *retired* | It became an internal step, and then went away entirely. How you are wired, where you thrive, and what lights you up are now read directly from your assessment, values, and accomplishments inside your Personal Brand. |
 | Brand Synthesis | **Your Personal Brand** | The label changed; the output is the same thing, now with the through-line, the evidence, the transfer reading, and the fit reading all in one place. |
 | Value Proposition | *folded into* **Your Personal Brand** | It was a separately labelled section. The capability-and-proof entries are now woven into the read, with specific accomplishments and numbers cited inline as evidence. |
@@ -32,7 +33,7 @@ It has two halves, and they work differently on purpose.
 
 Short notes on what moved recently and what it means for you. **These entries roll off after about 30 days.** The table above is what remains, so anything worth keeping permanently belongs there, not here.
 
-**August 2026 — the guide matches the product again.** This guide was reorganized around the way Reimagine actually works today rather than the five-phase journey it used to describe. Three chapters became one (Your Focus Playbook), one became two (Put It to Work and Career Paths), and My Playbooks got the chapter it never had. If you ask My Coach about a feature, it is reading this version.
+**August 2026 — the guide matches the product again.** This guide was reorganized around the way Reimagine actually works today rather than the five-phase journey it used to describe. Three chapters became one (Your Focus Playbook), one became two (Put It to Work and Career Paths), and Focus Playbooks got the chapter it never had. If you ask My Coach about a feature, it is reading this version.
 
 **August 2026 — Recruiters for This Path.** A bonus section in your Focus Playbook, under Go-to-Market. Direct outreach reaches the people who own the problem you solve; this finds the executive-search firms that fill roles like the one you are pursuing. It is opt-in and it starts short on purpose.
 

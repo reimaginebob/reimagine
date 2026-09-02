@@ -150,7 +150,7 @@ You built a Focus Playbook for one role. Now you are curious what a different op
 2. Choose a different role, or name a new direction in the input box. Reimagine builds a fresh **Focus Playbook** for it.
 3. Inside that playbook, build the sections you want (The Role, your Bridge Story, and the rest), and refine or regenerate any of them with its feedback box.
 
-**My Playbooks** holds every Focus Playbook you build, and you can flip between them without regenerating anything. Your Personal Brand stays intact throughout, since only the per-role sections depend on the direction you picked.
+**Focus Playbooks** holds every Focus Playbook you build, and you can flip between them without regenerating anything. Your Personal Brand stays intact throughout, since only the per-role sections depend on the direction you picked.
 
 ## A reminder on what regeneration costs
 

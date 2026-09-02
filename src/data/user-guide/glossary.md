@@ -16,7 +16,7 @@ If a term you remember is not here, check **What's Changed**. It carries former 
 
 **Career Paths.** The first of the two cards on Put It to Work, and a sidebar entry under it. It leads to the three directions, and from there to Role Options.
 
-**Compare offers.** A button that appears in My Playbooks once you have logged an offer on two or more opportunities. It lines the offers up around the cash and benefits you can actually bank on, holds equity at $0 with its stage noted, and never ranks them. My Playbooks covers how to read it.
+**Compare offers.** A button that appears on My Pipeline once you have logged an offer on two or more opportunities. It lines the offers up around the cash and benefits you can actually bank on, holds equity at $0 with its stage noted, and never ranks them. My Pipeline covers how to read it.
 
 **Convictions, Clarity, Confidence, Contagious (the 4 C's).** The internal arc of the Reimagine experience. Convictions are what is true about you. Clarity follows from convictions and lets you see options clearly. Confidence comes from evidence. Contagious is the natural result. When you believe, others do too. The framework is part of the methodology, not exposed in the tool's outputs.
 
@@ -40,6 +40,8 @@ Your Personal Brand names what is settled about your fit and what is open. Settl
 **Familiar Ground.** One of the three directions. Same kind of work in a new seat: a bigger scope, the same role elsewhere, or your function in a new industry. Where your existing track record speaks most directly.
 
 **Focus Playbook.** The single assembled page Reimagine builds for one role you opened from Role Options. It opens with an orientation card ("How to use your playbook") and holds seven numbered sections grouped into four named groups, plus Recruiters for This Path and Income Now as unnumbered bonuses. Group 1, Understand the role: The Role. Group 2, Build your story: Your Bridge Story, Industry Background. Group 3, Prepare for the conversation: Interview Prep (with STAR stories inside it). Group 4, Carry it into the market: Resume Refresh, LinkedIn Remix, Go-to-Market. The Role generates immediately; the rest generate on demand.
+
+**Focus Playbooks.** The sidebar entry listing every Focus Playbook you have built, one per role you opened from Career Paths. Open any of them to pick up where you left off. Called My Playbooks until 2026-09-01, by which point the Opportunity Playbooks it used to hold had moved to My Pipeline. They are listed there.
 
 **Go-to-Market.** Section 7 of the Focus Playbook, in Group 4. A target company list, a hiring executive profile, a personalized outreach template, and a LinkedIn signal tweak, built around the role you are exploring. It runs live web research, so it is the most expensive section to generate and sits late in the arc on purpose.
 
@@ -70,8 +72,6 @@ Your Personal Brand names what is settled about your fit and what is open. Settl
 **Making Your Own Weather (MYOW).** The book by Bob Goodwin that the Reimagine methodology is built on.
 
 **My Coach.** Your coach for the search, grounded in *Making Your Own Weather* and in what Reimagine knows about you. It is a sidebar entry and a button in the bottom-right corner of every other screen. Everything it knows about you came from you; it never looks you up.
-
-**My Playbooks.** The sidebar entry listing every Focus Playbook and Opportunity Playbook you have built, split into those two groups. Open any of them to pick up where you left off. This is where your work lives.
 
 **Opportunity Playbook.** The playbook Reimagine builds from a job description you bring in through Add an Opportunity. Its rail lists About This Company, Compensation, Where you fit, Resume Refresh, Cover Letter, Interview Team, Interview Prep, and Offer & Negotiation.
 

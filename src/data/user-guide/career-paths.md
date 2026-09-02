@@ -50,7 +50,7 @@ The umbrella paragraph is the part worth reading closely. It should make a case 
 
 ## Coming back later
 
-You only need one new job, but you can explore as many directions and roles as you want. Every role you open becomes its own Focus Playbook, saved to your account and listed in My Playbooks. Your Personal Brand stays constant across all of them; only the per-role work gets written fresh.
+You only need one new job, but you can explore as many directions and roles as you want. Every role you open becomes its own Focus Playbook, saved to your account and listed in Focus Playbooks. Your Personal Brand stays constant across all of them; only the per-role work gets written fresh.
 
 ---
 
