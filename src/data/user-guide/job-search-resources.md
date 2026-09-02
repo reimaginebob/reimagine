@@ -33,11 +33,17 @@ That is deliberate. Meeting dates are the part of this that goes out of date fas
 
 For the same reason, when a local chapter has merged into a larger one, Reimagine points you at the organisation that still exists rather than the page that still ranks.
 
-## The live searches
+## Places we cannot search for you
 
-At the bottom are four links that are not saved lists. They run a fresh search when you open them, so they show whatever is happening now: job-search groups near you, the same search on LinkedIn, career and business groups on Meetup, and the American Job Center finder.
+At the bottom are three links. Each one goes somewhere that keeps its own listings which Reimagine cannot read from here, so they open where you would land if you went looking yourself, with your details already filled in.
 
-Meetup is strongest for technology, product and startup work and thinner in other fields, so treat an empty result there as a fact about Meetup rather than about your field.
+**Your American Job Center** is a directory lookup for the publicly funded workforce system — free workshops, one-to-one help and job-search planning, everywhere in the country.
+
+**LinkedIn** is worth a separate look because plenty of groups run entirely there and are invisible to an ordinary search.
+
+**Meetup** keeps its own index too. It is strongest for technology, product and startup work and thinner in other fields, so treat an empty result there as a fact about Meetup rather than about your field.
+
+These are not a second version of the search above. The button near the top runs Reimagine's own research and gives you a checked list with the costs stated; these three are the places that research cannot reach.
 
 ## Two things worth asking about
 
@@ -49,8 +55,6 @@ And when you meet someone new, ask whether they are in a group they have found u
 
 ## Choosing a group
 
-Groups vary, and two things tell you quickly whether one is worth your time.
+When you try one, listen for what the hour is spent on. In a group worth going back to, people say what they tried since last time, what came back, and what they are doing next. If most of it goes on how bad the market is, try a different one.
 
-A good group spends most of its time on the work: what people are trying, what landed, what each person is doing this week. If the main activity is agreeing about how bad the market is, that is a different kind of meeting, and it will cost you time you need.
-
-The second is the difference between a group and a feed. Trading encouraging comments online feels like community and takes about as long as the real thing, without the introductions or the accountability that make a group worth joining.
+You will know after one visit, and there is no cost to trying another.
