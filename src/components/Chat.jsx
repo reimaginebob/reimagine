@@ -29,7 +29,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, allowGeneralMode = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, nextMoveCaptureActive = false, allowGeneralMode = false }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -297,6 +297,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const msgId = res.headers.get('X-Coach-Message-Id') || null
         const itHeader = res.headers.get('X-Coach-Interviewers') || null
         const vcHeader = res.headers.get('X-Coach-Values') || null
+        const nmHeader = res.headers.get('X-Coach-Next-Move') || null
         const siHeader = res.headers.get('X-Coach-Search-Intake') || null
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
@@ -358,6 +359,35 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             if (data && data.passions) parts.push(`Passions, Interests & Causes: ${data.passions}`)
             if (parts.length) {
               setMessages(m => [...m, { role: 'assistant', content: `Want me to save this to your Values, Passions & Causes screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, checkinKey: 'values-capture', quickReplies: [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Values, Passions & Causes.' }, { label: 'Not now', value: 'dismiss' }] }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Next-move capture: the server extracted an action the person said they
+        // would take on one of their opportunities. Show the exact wording and the
+        // resolved date ON the button — voice input is least reliable on names and
+        // numbers, and this is entirely names and numbers, so the interpretation has
+        // to be visible BEFORE the tap rather than discovered two weeks later when
+        // the plan is wrong.
+        if (nextMoveCaptureActive && nmHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(nmHeader), c => c.charCodeAt(0))))
+            const move = data && typeof data.move === 'string' ? data.move.trim() : ''
+            if (move) {
+              // Midday UTC, formatted in UTC: the date is a calendar day, not an
+              // instant, and rendering it in local time can show the day before.
+              const when = data.date
+                ? new Date(`${data.date}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
+                : ''
+              const where = data.opportunity ? ` on ${data.opportunity}` : ''
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to put that on My Pipeline as your next move${where}? You can change it there any time.\n\n${move}${when ? ` — ${when}` : ' — no date set'}`,
+                checkinKey: 'pursuit-next-move',
+                quickReplies: [
+                  { label: when ? `Save it — ${when}` : 'Save it', value: JSON.stringify(data), followUp: 'Saved to My Pipeline.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
             }
           } catch { /* malformed header — no offer */ }
         }

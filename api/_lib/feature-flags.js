@@ -36,3 +36,51 @@ export function hasConnectorBeta(user) {
   const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
   return flags.includes(CONNECTOR_BETA_FLAG)
 }
+
+// PILOT — My Coach next-step capture, 2026-09-02. Gates one thing: whether the
+// Coach is told it may propose a next move and a date for an opportunity. The
+// WRITE it proposes is not gated and does not need to be — it goes through the
+// same PUT /api/pursuit-status the card editor uses, and it only happens when
+// the person taps. What the flag controls is whether the instruction is in the
+// prompt at all, which is also why a non-flagged account cannot produce the
+// trailer even by asking for it.
+export const PIPELINE_CAPTURE_FLAG = 'pipeline_capture'
+
+// Internal accounts. Reimagine already treats an @career.club address as staff
+// in three places (api/claude.js cost accounting, api/coach.js general mode, and
+// the client's general-mode prop), so this codifies a rule the codebase was
+// already applying rather than inventing a new one.
+const INTERNAL_EMAIL_RE = /@career\.club$/i
+
+export function isInternalAccount(user) {
+  return !!(user && typeof user.email === 'string' && INTERNAL_EMAIL_RE.test(user.email))
+}
+
+// A pilot is on for an account that holds the flag OR for anyone on the team.
+// Bob quality-controls every pilot before a real user sees it (CLAUDE.md §8), and
+// making him grant himself access by email each time was friction with no safety
+// in it -- the dashboard grant is for named outside testers, which is the case
+// that actually needs a record.
+//
+// Deliberately NOT applied to hasConnectorBeta. That gate is a different risk
+// class: it decides who may mint a long-lived bearer token and let an outside
+// assistant write to a pipeline unattended. Issuing a credential should stay an
+// explicit, per-account act with a row behind it, staff or not.
+export function hasPipelineCapture(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(PIPELINE_CAPTURE_FLAG)
+}
+
+// The flags the admin dashboard may grant and revoke by email. A flag that is
+// not in here cannot be set from the dashboard at all, so a typo in the request
+// body is a 400 rather than a row carrying a string nothing reads. `label` is
+// what the dashboard shows; keep it the user-facing name of the surface.
+//
+// Adding an entry here is how a pilot becomes grantable, and it is deliberately
+// an edit to this file — see the header above for why a flag whose meaning
+// lives only in the database is the failure mode this file exists to prevent.
+export const GRANTABLE_FLAGS = {
+  [CONNECTOR_BETA_FLAG]: { label: 'Assistant connector' },
+  [PIPELINE_CAPTURE_FLAG]: { label: 'Coach next-step capture' },
+}
