@@ -438,6 +438,50 @@ assertEq('stripComparativeStanding: KEEP option comparison (no group/you flatter
   stripComparativeStanding('This offer closes the gap more than the other.'),
   'This offer closes the gap more than the other.')
 
+// ---- (G) noun-phrase subject, comma pivot (2026-09-02) -----------------
+// Every pattern above needed either a sentence boundary between the halves or a
+// pointer subject ("that's not X, it's Y"). A NOUN-PHRASE subject with a comma
+// had neither and walked through all of them. It reached a user in a live coach
+// reply -- while a different logic flip in the same reply was caught, which is
+// what made the gap visible. Reconstructed rather than trimmed, so the subject
+// survives.
+
+assertEq('stripLogicFlipCadence: the sentence that actually shipped',
+  stripLogicFlipCadence("A good BATNA isn't just theoretical, it's what gives you real leverage."),
+  'A good BATNA is what gives you real leverage.')
+
+assertEq('stripLogicFlipCadence: noun subject, uncontracted comma pivot',
+  stripLogicFlipCadence('This is not a job change, it is a pivot.'),
+  'This is a pivot.')
+
+assertEq('stripLogicFlipCadence: mid-sentence after an em dash keeps the lead',
+  stripLogicFlipCadence('That is the right instinct — a good BATNA is not just theoretical, it is what gives you leverage.'),
+  'That is the right instinct — a good BATNA is what gives you leverage.')
+
+// The guard: an ordinary conditional continues with an adjective or a verb after
+// the pointer, never a noun phrase or a wh-clause. These must all be untouched,
+// because a comma rule without this discriminator would fire on half the
+// conditionals in the user guide.
+assertEq('stripLogicFlipCadence: conditional "it is worth" untouched',
+  stripLogicFlipCadence('If the answer is not clear, it is worth asking.'),
+  'If the answer is not clear, it is worth asking.')
+
+assertEq('stripLogicFlipCadence: conditional "it is time to" untouched',
+  stripLogicFlipCadence('When the market is not moving, it is time to reach out.'),
+  'When the market is not moving, it is time to reach out.')
+
+assertEq('stripLogicFlipCadence: predicate adjective untouched',
+  stripLogicFlipCadence('The number is not final, it is negotiable.'),
+  'The number is not final, it is negotiable.')
+
+assertEq('stripLogicFlipCadence: "it is about" untouched',
+  stripLogicFlipCadence('Your prep is not finished, it is about halfway.'),
+  'Your prep is not finished, it is about halfway.')
+
+assertEq('stripLogicFlipCadence: rewriting once is stable on a second pass',
+  stripLogicFlipCadence(stripLogicFlipCadence("A good BATNA isn't just theoretical, it's what gives you real leverage.")),
+  'A good BATNA is what gives you real leverage.')
+
 // ---- Voice-gate fix: broadened logic-flip ------------------------------
 
 assertEq('stripLogicFlipCadence: contracted "That\'s not X. It\'s Y." keeps affirmative',
