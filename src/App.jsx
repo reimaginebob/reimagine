@@ -13360,11 +13360,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <Check size={12} color={C.ok} strokeWidth={2.5}/>Saved
           </div>}
         </div>}
-        {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav(hubStep)} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to {hubLabel}</button></div>}
-        {!isDemo&&<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginBottom:14}}>
-          <div style={{...S.tag('#8A9BB8'),marginBottom:0}}>{isIndependent?'Your Practice':'Put It to Work'}</div>
-          <div style={{...S.tag(C.gold),marginBottom:0}}>{isIndependent?'Practice Plan':'Focus Playbook'}</div>
-        </div>}
+        {/* One way up, not three. Until 2026-09-02 this header stacked the
+            breadcrumb above, a "Back to Put It to Work" link, and two label
+            pills that restated both of those names — three rows of chrome
+            naming two different parents (the library and the hub) before the
+            title had even appeared. The breadcrumb is the trail whenever there
+            is a library to go back to; this hub link is the fallback for the
+            very first playbook, before one exists. Put It to Work stays one
+            click away in the sidebar in both cases, so nothing is stranded. */}
+        {!isDemo&&!isReturningExplorer&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav(hubStep)} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to {hubLabel}</button></div>}
         {/* The practice plan leads with the plan, not with the one-line
             positioning statement as a headline: the line is long, it is a
             sentence rather than a title, and the person just wrote it. It sits
