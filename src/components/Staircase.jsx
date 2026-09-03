@@ -23,7 +23,6 @@
 //    shape, and nobody is asked to look at it today.
 import React, { useState } from 'react'
 import { useIsMobile } from '../use-is-mobile.js'
-import { KEEL_PRINCIPLES } from '../step-position.js'
 import { STAIRCASE_EXPLAINERS } from '../data/staircase-explainers.js'
 import StaircaseExplainer from './StaircaseExplainer.jsx'
 
@@ -39,7 +38,7 @@ const SECTIONS = [
   { n: 5, name: 'Negotiating',    items: ['BATNA'] },
 ]
 
-export default function Staircase({ step, keelLetter, keelGloss, stalled, positions = [], C, Btn, onGo, canGo }) {
+export default function Staircase({ step, positions = [], C, Btn, onGo, canGo }) {
   const isMobile = useIsMobile()
   // Which term's explainer is open. One at a time; null when none.
   const [openTerm, setOpenTerm] = useState(null)
@@ -179,76 +178,24 @@ export default function Staircase({ step, keelLetter, keelGloss, stalled, positi
         })}
       </div>
 
-      {/* THE INVITATION. Nothing about a term looks pressable at a glance in a
-          dense grid, and a feature nobody discovers is a feature that does not
-          exist. Guidance treatment (gold rule + tint) per the standing rule
+      {/* THE INVITATION, and it is now the only guidance under the grid.
+          Nothing about a term looks pressable at a glance in a dense grid, and
+          a feature nobody discovers is a feature that does not exist. It also
+          has to answer the question the picture raises -- WHAT DO I DO WITH
+          THIS -- in terms of the person's search rather than in terms of the
+          framework. Guidance treatment (gold rule + tint) per the standing rule
           that instructions never look like body copy. */}
       {anyExplained && (
         <div style={{
           background: `${C.gold}10`, borderLeft: `3px solid ${C.gold}`, borderRadius: 8,
-          padding: isMobile ? '10px 12px' : '11px 16px', marginTop: 14,
-          fontSize: 16, color: C.grayL, lineHeight: 1.55, textWrap: 'pretty',
+          padding: isMobile ? '12px 14px' : '13px 18px', marginTop: 14,
+          fontSize: 16, color: C.grayL, lineHeight: 1.6, textWrap: 'pretty',
         }}>
-          Every term above opens a short explanation of what it means and what Reimagine does about it.
+          Not sure what one of these means? Press it. Each one explains itself in
+          a sentence or two and points you at the part of Reimagine that does it
+          for you.
         </div>
       )}
-
-      {/* THE KEEL BAND, and it has to teach itself.
-          Almost nobody who lands on this screen has read the book, so opening
-          on "KEEL" is opening in a code they do not speak -- a brand word where
-          a plain one was needed. It now says what a keel IS before it says what
-          the letters stand for, and spends the width it was already occupying
-          on the four principles rather than one line and a lot of empty space.
-
-          Bob's own wording for the letters, from Lesson 1. The sailboat image is
-          his too, rephrased: the book's line uses the negative-parallel cadence
-          the product strips from its own output, so it is put plainly here
-          rather than quoted into UI copy. */}
-      <div style={{
-        background: `${C.gold}12`, borderLeft: `3px solid ${C.gold}`, borderRadius: 8,
-        padding: isMobile ? '16px 16px' : '18px 22px', marginTop: 14,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
-          <span style={{ fontFamily: 'Georgia,serif', fontSize: 19, fontWeight: 700, color: C.goldL, letterSpacing: '3px' }}>KEEL</span>
-          <span style={{ fontSize: 16, color: C.grayL, lineHeight: 1.55, textWrap: 'pretty', flex: 1, minWidth: 260 }}>
-            A keel is the weighted fin under a sailboat. It runs the whole length of the hull, and it is what keeps the boat steady when the wind picks up. Four things worth carrying the whole way:
-          </span>
-        </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, minmax(0, 1fr))',
-          gap: isMobile ? 10 : 16, marginTop: 14,
-        }}>
-          {KEEL_PRINCIPLES.map(k => {
-            // The letter this stair leans on hardest comes forward. The other
-            // three stay legible rather than dimming out -- all four are
-            // carried the whole way, and greying three of them would say the
-            // opposite of what the section means.
-            const live = keelLetter === k.letter && (k.gloss === keelGloss || !keelGloss)
-            return (
-              <div key={k.gloss} style={{
-                background: live ? `${C.gold}22` : 'transparent',
-                border: `1px solid ${live ? C.gold : `${C.gold}33`}`,
-                borderRadius: 8, padding: '10px 12px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                  <span style={{ fontFamily: 'Georgia,serif', fontSize: 20, fontWeight: 700, color: C.goldL }}>{k.letter}</span>
-                  <span style={{ fontSize: 15, color: C.cream, lineHeight: 1.4, fontWeight: live ? 700 : 500, textWrap: 'pretty' }}>{k.gloss}</span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {(keelLetter || stalled) && (
-          <p style={{ fontSize: 15, color: C.grayL, lineHeight: 1.55, margin: '14px 0 0', textWrap: 'pretty' }}>
-            {stalled
-              ? 'A quiet stretch is the part of a search this carries you through. Your position has not moved backwards.'
-              : `The one to lean on where you are standing today is highlighted.`}
-          </p>
-        )}
-      </div>
 
       {openTerm && (
         <StaircaseExplainer
