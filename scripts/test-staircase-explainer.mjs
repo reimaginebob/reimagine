@@ -126,6 +126,15 @@ for (const term of terms) {
     check(/^[A-Z]+$/.test(spelled), `${term}: bullet letters are not letters (${spelled})`)
   }
   if (ex.outro) check(text.includes(ex.outro.slice(0, 40)), `${term}: outro missing`)
+
+  // A quote has to arrive AS a quote, with its credit. An unattributed
+  // borrowed line reads as ours, which is the only way this field can be wrong.
+  if (ex.quote) {
+    check(text.includes(ex.quote.text), `${term}: quote text missing`)
+    check(/<blockquote/.test(html), `${term}: quote did not render as a blockquote`)
+    check(!!ex.quote.attribution, `${term}: quote carries no attribution`)
+    check(text.includes(ex.quote.attribution), `${term}: quote attribution missing from the page`)
+  }
 }
 
 // --- canGo closes the door --------------------------------------------------

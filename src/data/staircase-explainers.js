@@ -40,6 +40,10 @@ import { KEEL_PRINCIPLES } from '../step-position.js'
 // entire reason the mnemonic exists. A renderer MUST set these as a list with
 // the letter leading each row, never fold them back into the `what` text.
 //
+// `quote` is a line worth hearing from someone other than us, with its
+// attribution. It gets the pull-quote treatment rather than being folded into
+// `what`, because a borrowed sentence set as body prose reads as ours.
+//
 // `outro` is the prose that belongs AFTER a bullet list -- the line that says
 // what to do with the five lenses, which reads as a caption under them and as a
 // non-sequitur if it is left stranded at the end of `what` above the list.
@@ -91,7 +95,17 @@ export const STAIRCASE_EXPLAINERS = {
   },
   Resilience: {
     title: 'Resilience',
-    what: 'The usual picture of resilience is a foam ball: squeezed in a fist, and when the hand opens it springs back to the shape it was. Bob calls that recovery. It got back to where it started.\n\nResilience is closer to weight training. Resistance causes small tears in the muscle fiber, and over the days that follow it rebuilds a little stronger than before. What would have maxed you out six weeks ago is manageable today. The load is what produces the strength.\n\nThere is a purpose in the struggle, and it is the part worth holding onto on the days it does not feel true. A search puts you under real load, and it is forming you while it does: building capacity, deepening your empathy, sharpening what you actually want, showing you what you are made of. Nothing about the hard part is wasted while you are learning in it.\n\nYou are aiming past where you started. The person who comes out the far side of this is stronger than the one who went in, and what you build carrying the load stays yours long after the search is over.\n\nOne thing helps on a hard day more than anything else: name the feeling. Confusion, fear, bitterness about how it ended. Naming it is where it starts to lose its grip.',
+    what: 'The usual picture of resilience is a foam ball: squeezed in a fist, and when the hand opens it springs back to the shape it was. Bob calls that recovery. It got back to where it started.\n\nResilience is closer to weight training. Resistance causes small tears in the muscle fiber, and over the days that follow it rebuilds a little stronger than before. What would have maxed you out six weeks ago is manageable today. The load is what produces the strength.\n\nThere is a purpose in the struggle, and it is the part worth holding onto on the days it does not feel true. A search puts you under real load, and it is forming you while it does: building capacity, deepening your empathy, sharpening what you actually want, showing you what you are made of. Nothing about the hard part is wasted while you are learning in it.\n\nYou are aiming past where you started. The person who comes out the far side of this is stronger than the one who went in, and what you build carrying the load stays yours long after the search is over.',
+    // ATTRIBUTION. Bob asked for this as a Frankl quote from Man's Search for
+    // Meaning, and Frankl does write it there -- quoting Nietzsche, whose line
+    // it is (Twilight of the Idols, in Frankl's rendering). Crediting Frankl
+    // alone is wrong in a way a reader who knows the book would catch, and this
+    // product's voice rests on telling the truth, so both are named. It still
+    // lands where Bob wanted it: Frankl is why anyone reading this knows it.
+    quote: {
+      text: 'He who has a why to live can bear almost any how.',
+      attribution: 'Nietzsche, as Viktor Frankl quotes him in Man’s Search for Meaning',
+    },
     gives: [
       { label: 'Job Search Resources', to: 'resources', needs: null, does: 'Free help and people near you, most of it weekly: library job-seeker programs, all-volunteer search groups, the American Job Center system, faith-based career ministries, college career services. It names the organizations and links their own pages rather than promising a date that has gone stale.' },
       { label: 'An accountability partner', to: null, needs: null, does: 'One person who knows what you said you would do this week. There is a world of difference between a good intention and a good behavior.' },
