@@ -17,6 +17,14 @@ in Vercel if it leaks; nothing here stores a copy.
 
 **Two behaviours worth knowing.** Deployments from the sibling `reimagine`
 project are skipped rather than failed — both projects build this repo and post
-checks, and only `reimagine2` holds the token. And a `deployment_status`
-workflow always runs the version on the DEFAULT BRANCH, so edits to this file
-take effect only once merged, including the first time it is added.
+checks, and only `reimagine2` holds the token. As for which version of this file runs:
+do not trust the rule I first wrote here. It said a `deployment_status`
+workflow always runs the copy on the DEFAULT BRANCH, so this one could not
+possibly run on the PR that adds it. It ran (PR #683, 2026-09-02): the file
+was absent from `main` and the `smoke` check posted anyway, against the
+deployment URL. Whatever the mechanism, the operational rule is simpler and
+does not depend on knowing it -- LOOK FOR THE CHECK. If `smoke` posted on the
+PR, the preview was smoked; if it did not, it was not, and no amount of
+reasoning about branch semantics changes that. What is worth knowing is the
+consequence: a preview built from a branch that does not carry this file may
+not be covered, so keep the file on `main`.
