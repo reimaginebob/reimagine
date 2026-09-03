@@ -1177,11 +1177,21 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
         // low end and scopes its work to exactly what was asked, which is the
         // wrong trade for a coach reasoning over someone's whole profile.
         output_config: { effort: 'medium' },
+        // profileBlock gets its own breakpoint (the 4th and last available) because
+        // it changes on its own schedule -- once a day for the date line prepended
+        // above, and whenever pipeline/activity data actually changes -- which is
+        // slower than "every turn" but faster than SYSTEM_PROMPT_STABLE, which
+        // never changes at all. Without a marker here it was rebuilt and resent in
+        // full on every single turn of every conversation, uncached, even though
+        // turn 2 of a conversation almost always carries the identical profile
+        // turn 1 did. Caching is a prefix match: this marker only ever needs a
+        // fresh write when profileBlock itself changed, and the three breakpoints
+        // ahead of it stay valid reads regardless.
         system: [
           { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
           ...(goIndependentBlock ? [{ type: 'text', text: goIndependentBlock, cache_control: { type: 'ephemeral' } }] : []),
           ...(pilotKnowledgeBlock ? [{ type: 'text', text: pilotKnowledgeBlock, cache_control: { type: 'ephemeral' } }] : []),
-          { type: 'text', text: profileBlock },
+          { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
         ],
         messages: msgs,
       }),
