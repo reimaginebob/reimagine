@@ -54,8 +54,24 @@ if (fetchIdx !== -1 && sysIdx !== -1 && sysEnd !== -1) {
   check(markerCount >= 1, `${FILE}: no cache_control markers found at all -- did the array get rewritten?`)
 }
 
+// A marker on profileBlock only pays off if profileBlock's own bytes are
+// actually stable between two otherwise-identical requests. Two of its inputs
+// come from unordered SQL (no ORDER BY means Postgres makes no promise about
+// row order) and get consumed by a plain `for` loop that turns row order
+// directly into output line order -- pursuitRows in buildActivityBlock's
+// sibling buildPursuitStatusBlock reasoning, and activityFacts in
+// buildActivityBlock itself. A reorder between two requests with the same
+// underlying data would still change profileBlock's bytes and force a cache
+// write with no read, same failure as no marker at all, just harder to notice
+// because the marker really is there. Both queries need ORDER BY for the
+// marker above to mean anything.
+check(/FROM pursuit_status WHERE user_id = \$\{user\.id\} ORDER BY record_id/.test(src),
+  `${FILE}: the pursuit_status query lost its ORDER BY -- unordered rows can reorder nextStepNote between requests and defeat the cache marker on profileBlock even though it is present`)
+check(/FROM user_activity_facts WHERE user_id = \$\{user\.id\} ORDER BY activity/.test(src),
+  `${FILE}: the user_activity_facts query lost its ORDER BY -- unordered rows can reorder buildActivityBlock's KNOWN list between requests and defeat the cache marker on profileBlock even though it is present`)
+
 if (failures) {
   console.error(`test-coach-cache-blocks: FAIL (${failures})`)
   process.exit(1)
 }
-console.log('test-coach-cache-blocks: OK (profileBlock cached, markers within the 4-breakpoint limit)')
+console.log('test-coach-cache-blocks: OK (profileBlock cached, markers within the 4-breakpoint limit, both feeder queries ordered)')
