@@ -1012,7 +1012,16 @@ export default async function handler(req, res) {
   let pursuitRows = []
   if (!generalMode) {
     try {
-      pursuitRows = await sql`SELECT record_id, stage, next_conversation_at, next_step_at, next_move, situation_note, closed_at, outcome, updated_at FROM pursuit_status WHERE user_id = ${user.id}`
+      // ORDER BY record_id: without it Postgres makes no promise about row
+      // order, and nextSteps() in step-position.js ranks door candidates by
+      // `doors.sort((a, b) => a.weight - b.weight)` -- a STABLE sort, so a tie
+      // between two candidates at the same weight (two opportunities overdue at
+      // once, say) is broken by the order pursuitRows arrived in. A reorder
+      // between two otherwise-identical requests changes nextStepNote's bytes,
+      // which sit inside profileBlock -- the block this file just started
+      // caching. record_id is part of the table's primary key (user_id,
+      // record_id), so it is stable and unique per row.
+      pursuitRows = await sql`SELECT record_id, stage, next_conversation_at, next_step_at, next_move, situation_note, closed_at, outcome, updated_at FROM pursuit_status WHERE user_id = ${user.id} ORDER BY record_id`
     } catch (err) {
       console.error('coach pursuit read failed:', err)
     }
@@ -1023,7 +1032,13 @@ export default async function handler(req, res) {
   let activityFacts = []
   if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: user.email })) {
     try {
-      activityFacts = await sql`SELECT activity, state, source, detail, learned_at FROM user_activity_facts WHERE user_id = ${user.id}`
+      // ORDER BY activity, same reasoning as pursuitRows above: buildActivityBlock
+      // iterates these rows directly (`for (const r of rows)`) into the KNOWN
+      // list's line order, with no Map indirection in between -- so an
+      // unordered SELECT lets the same set of facts render as different bytes
+      // between two otherwise-identical requests. `activity` is part of the
+      // table's primary key (user_id, activity), so it is stable and unique.
+      activityFacts = await sql`SELECT activity, state, source, detail, learned_at FROM user_activity_facts WHERE user_id = ${user.id} ORDER BY activity`
     } catch (err) {
       console.error('coach activity-facts read failed:', err)
     }
@@ -1177,11 +1192,21 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
         // low end and scopes its work to exactly what was asked, which is the
         // wrong trade for a coach reasoning over someone's whole profile.
         output_config: { effort: 'medium' },
+        // profileBlock gets its own breakpoint (the 4th and last available) because
+        // it changes on its own schedule -- once a day for the date line prepended
+        // above, and whenever pipeline/activity data actually changes -- which is
+        // slower than "every turn" but faster than SYSTEM_PROMPT_STABLE, which
+        // never changes at all. Without a marker here it was rebuilt and resent in
+        // full on every single turn of every conversation, uncached, even though
+        // turn 2 of a conversation almost always carries the identical profile
+        // turn 1 did. Caching is a prefix match: this marker only ever needs a
+        // fresh write when profileBlock itself changed, and the three breakpoints
+        // ahead of it stay valid reads regardless.
         system: [
           { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
           ...(goIndependentBlock ? [{ type: 'text', text: goIndependentBlock, cache_control: { type: 'ephemeral' } }] : []),
           ...(pilotKnowledgeBlock ? [{ type: 'text', text: pilotKnowledgeBlock, cache_control: { type: 'ephemeral' } }] : []),
-          { type: 'text', text: profileBlock },
+          { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
         ],
         messages: msgs,
       }),
