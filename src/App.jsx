@@ -13677,7 +13677,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       return <div>
         <div style={{marginBottom:8}}>
           <h1 style={{...S.title,marginBottom:6}}>{NAV_LABELS.step}</h1>
-          <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:'0 0 22px',maxWidth:700,textWrap:'balance'}}>The five sections of <em>Making Your Own Weather</em>, and where you are standing in them right now.</p>
+          <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:'0 0 22px',maxWidth:700,textWrap:'pretty'}}>Every job search runs on the same five kinds of work. This shows where yours stands today, which of them each opportunity is waiting on, and what to do next &mdash; so the hour you spend goes somewhere that moves you.</p>
         </div>
 
         {/* `Btn` is handed down rather than re-styled inside the component:
@@ -13687,7 +13687,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             Stories renders null when it is not ready, and a button landing on a
             blank screen is worse than no button, so the row falls back to being
             named without one. */}
-        <Staircase step={_ns.step} keelLetter={_ns.keelLetter} keelGloss={_ns.keelGloss} stalled={_ns.stalled} positions={_ns.positions} C={C} Btn={Btn} onGo={_go} canGo={(t)=>t==='stories'?storiesReady:true}/>
+        <Staircase step={_ns.step} positions={_ns.positions} C={C} Btn={Btn} onGo={_go} canGo={(t)=>t==='stories'?storiesReady:true}/>
 
         {/* The doors. Two or three, never five, with the first one recommended.
             Handing someone a single instruction reads as a machine telling them

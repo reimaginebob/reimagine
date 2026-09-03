@@ -126,6 +126,15 @@ for (const term of terms) {
     check(/^[A-Z]+$/.test(spelled), `${term}: bullet letters are not letters (${spelled})`)
   }
   if (ex.outro) check(text.includes(ex.outro.slice(0, 40)), `${term}: outro missing`)
+
+  // A quote has to arrive AS a quote, with its credit. An unattributed
+  // borrowed line reads as ours, which is the only way this field can be wrong.
+  if (ex.quote) {
+    check(text.includes(ex.quote.text), `${term}: quote text missing`)
+    check(/<blockquote/.test(html), `${term}: quote did not render as a blockquote`)
+    check(!!ex.quote.attribution, `${term}: quote carries no attribution`)
+    check(text.includes(ex.quote.attribution), `${term}: quote attribution missing from the page`)
+  }
 }
 
 // --- canGo closes the door --------------------------------------------------
@@ -149,7 +158,13 @@ for (const term of terms) {
     const re = new RegExp(`aria-label="What ${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} means"`)
     check(re.test(wired), `staircase: "${term}" is not a control`)
   }
-  check(strip(wired).includes('Every term above opens a short explanation'), 'staircase: no invitation to open one')
+  // Assert that an invitation EXISTS, not what it says -- the wording is copy
+  // and changes on Bob's read; the affordance is behaviour and must not vanish.
+  // Anchored on the two things it has to do: tell them to press, and say the
+  // features are behind it.
+  const wiredText = strip(wired)
+  check(/press it/i.test(wiredText), 'staircase: nothing tells the reader the terms are pressable')
+  check(/Reimagine/.test(wiredText), 'staircase: the invitation does not say the product is behind them')
 
   // Without the wiring the terms must degrade to plain text rather than to
   // buttons that do nothing.
@@ -157,7 +172,7 @@ for (const term of terms) {
     step: 3, keelLetter: 'E', keelGloss: '', stalled: false, positions: [], C,
   }))
   check(!/aria-label="What /.test(bare), 'staircase: rendered controls with nothing behind them')
-  check(!strip(bare).includes('Every term above opens'), 'staircase: invited a tap that does nothing')
+  check(!/press it/i.test(strip(bare)), 'staircase: invited a press that does nothing')
   for (const term of terms) check(strip(bare).includes(term), `staircase: "${term}" vanished when unwired`)
 }
 

@@ -109,6 +109,26 @@ export default function StaircaseExplainer({ term, onClose, onGo, canGo, C, Btn 
           </ul>
         )}
 
+        {/* A borrowed line, set as one. Body prose would read as ours, and the
+            whole value of a quote here is that it comes from outside the
+            product -- so it gets the rule, the serif and the italic, and its
+            attribution sits under it rather than trailing the sentence. */}
+        {ex.quote && (
+          <figure style={{ margin: '18px 0 0', padding: '2px 0 2px 16px', borderLeft: `3px solid ${C.gold}` }}>
+            <blockquote style={{ margin: 0 }}>
+              <p style={{
+                fontFamily: 'Georgia,serif', fontStyle: 'italic', fontSize: 18,
+                color: C.cream, lineHeight: 1.5, margin: 0, textWrap: 'pretty',
+              }}>{`\u201C${ex.quote.text}\u201D`}</p>
+            </blockquote>
+            {ex.quote.attribution && (
+              <figcaption style={{ fontSize: 15, color: '#6B7688', margin: '7px 0 0', textWrap: 'pretty' }}>
+                {`\u2014 ${ex.quote.attribution}`}
+              </figcaption>
+            )}
+          </figure>
+        )}
+
         {ex.outro && (
           <p style={{ fontSize: 17, color: C.gray, lineHeight: 1.65, margin: '14px 0 0', textWrap: 'pretty' }}>{ex.outro}</p>
         )}
@@ -118,7 +138,7 @@ export default function StaircaseExplainer({ term, onClose, onGo, canGo, C, Btn 
             <div style={{
               fontSize: 15, fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase',
               color: C.goldL, margin: '0 0 12px',
-            }}>What Reimagine gives you for it</div>
+            }}>How Reimagine can help</div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {gives.map(g => {
