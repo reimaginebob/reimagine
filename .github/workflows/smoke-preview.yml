@@ -41,13 +41,57 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # Full history: the scope step below diffs against the default branch, and
+      # a depth-1 checkout has no merge base to diff from.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # The script is plain Node with global fetch and no dependencies, so there
       # is nothing to install. Keep it that way: this job should stay seconds.
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      # WHAT THIS CHANGE ACTUALLY TOUCHES, said out loud before the result.
+      #
+      # The smoke runs on every preview, which is cheap and catches base-branch
+      # regressions. The cost is that a green check on a PR the smoke has
+      # nothing to say about reads as though the PR was validated. That is the
+      # same false confidence as the missing-secret case below, arrived at from
+      # the opposite direction: there the gate looks satisfied because nothing
+      # ran, here because something ran that could not have been affected.
+      #
+      # Bob hit this on the PR that added this workflow: a hand-run smoke came
+      # back green on a branch touching no api/ files at all. Real green, no
+      # bearing on the change.
+      #
+      # Annotation only. `continue-on-error` is deliberate -- this step must
+      # never decide whether the job passes.
+      - name: Say what this change touches
+        continue-on-error: true
+        env:
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          git fetch --no-tags origin "$BASE" 2>/dev/null || true
+          if ! git rev-parse --verify -q "origin/$BASE" >/dev/null; then
+            echo "Could not resolve origin/$BASE, so scope is unknown."
+            exit 0
+          fi
+          if git merge-base --is-ancestor HEAD "origin/$BASE"; then
+            echo "This deployment is $BASE itself (or already merged into it),"
+            echo "so there is no pull-request scope to report."
+            exit 0
+          fi
+          git diff --name-only "origin/$BASE...HEAD" > /tmp/changed.txt
+          xargs -a /tmp/changed.txt node scripts/api-surface.mjs --classify \
+            | tee /tmp/scope.txt
+          {
+            echo '### Preview smoke scope'
+            echo '```'
+            cat /tmp/scope.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Smoke /api/health and /api/claude
         env:
