@@ -40,7 +40,7 @@ export const ACTIVITY_CATALOG = [
   },
   {
     key: 'career_club_corner', evidence: 'asked', label: 'Career Club Corner',
-    why: 'Bob\'s free weekly call, and the room this whole method came out of. Every session is recorded, so a missed week costs nothing.',
+    why: 'A free weekly call with other people in the same search, Mondays at noon Eastern. It is where this method came from, and every session is recorded, so a missed week costs nothing.',
     offer: 'It is on Job Search Resources, pinned at the top.',
   },
   {
