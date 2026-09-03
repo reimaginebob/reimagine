@@ -38,6 +38,10 @@ const FILES_TO_CHECK = [
   // The pilot knowledge files are prose the coach speaks from, so they carry the
   // voice rules in full. Added after "genuinely" -- a banned intensifier -- went
   // into next-step-knowledge.js unnoticed, in a file nothing was scanning.
+  // Ten explainers of Bob's own frameworks, shown to someone who has not read
+  // the book. If any surface in this product has to be in the house voice, it is
+  // the one teaching the house vocabulary.
+  'src/data/staircase-explainers.js',
   'src/data/next-step-knowledge.js',
   'src/data/pipeline-capture-knowledge.js',
   'src/activity-catalog.js',
