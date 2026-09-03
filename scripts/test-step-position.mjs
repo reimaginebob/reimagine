@@ -7,7 +7,7 @@
 // backwards for a quiet fortnight, argue with someone who says they are further
 // along, offer a door they already declined, count anything, or hand back three
 // doors that are all about one company.
-import { stepPosition, nextSteps, opportunityPositions } from '../src/step-position.js'
+import { stepPosition, nextSteps, opportunityPositions, KEEL_PRINCIPLES, KEEL_LETTER } from '../src/step-position.js'
 
 const NOW = Date.parse('2026-09-02T00:00:00Z')
 const ago = d => new Date(NOW - d * 86400000).toISOString()
@@ -139,6 +139,18 @@ t('always returns at least one door for a real account', N(base3, []).doors.leng
 t('a wrong-year date is not treated as overdue',
   !/Call Teresa/.test(actions({ ...base3, savedPlaybooks: [opp('a', 'Imerys')] }, [row('a', { next_move: 'Call Teresa', next_step_at: '2001-09-14' })])))
 t('actions stay short enough to read as a step', N(many, manyRows).doors.every(d => d.action.length < 80))
+
+// ---- THE KEEL, WHICH THE SCREEN NOW SPELLS OUT ----
+// Two of the four principles start with E, so the highlight cannot key on the
+// letter alone -- letter plus wording has to resolve to exactly one, or the
+// screen lights up the wrong principle for half the stairs.
+t('four principles, in Bob\'s own wording', KEEL_PRINCIPLES.length === 4)
+t('every step resolves to exactly one principle', Object.values(KEEL_LETTER)
+  .every(k => KEEL_PRINCIPLES.filter(p => p.letter === k.letter && p.gloss === k.gloss).length === 1))
+t('both E principles are present and distinct',
+  KEEL_PRINCIPLES.filter(p => p.letter === 'E').length === 2 &&
+  new Set(KEEL_PRINCIPLES.map(p => p.gloss)).size === 4)
+t('a stall leans on K', N({ ...base3, savedPlaybooks: [opp('a', 'Imerys')] }, [row('a', { updated_at: ago(20) })]).keelLetter === 'K')
 
 console.log(`test-step-position: ${fail ? 'FAILED' : 'OK'} (${pass} cases passed${fail ? `, ${fail} FAILED` : ''})`)
 process.exit(fail ? 1 : 0)

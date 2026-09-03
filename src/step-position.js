@@ -43,6 +43,20 @@ export const STEPS = [
   { n: 5, key: 'negotiate', label: 'Negotiating' },
 ]
 
+// Bob's four, worded as Lesson 1 words them. Not paraphrased: someone who has
+// been on the Monday call has heard these exact lines, and recognition is the
+// whole reason this screen borrows his picture at all.
+//
+// Lives here rather than in the component so the letter the engine hands out and
+// the list the screen draws cannot drift into disagreeing about their own
+// wording -- the same reason the section labels moved into their own module.
+export const KEEL_PRINCIPLES = [
+  { letter: 'K', gloss: 'Know you will find another job' },
+  { letter: 'E', gloss: 'Emotional ups and downs are natural' },
+  { letter: 'E', gloss: 'Expect the best from yourself and others' },
+  { letter: 'L', gloss: 'Let the past go' },
+]
+
 // The KEEL letter each step leans on hardest. Step 1 carries all four, which is
 // why it has no single letter of its own.
 export const KEEL_LETTER = {

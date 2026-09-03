@@ -13673,10 +13673,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       return <div>
         <div style={{marginBottom:8}}>
           <h1 style={{...S.title,marginBottom:6}}>{NAV_LABELS.step}</h1>
-          <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:'0 0 22px',maxWidth:700}}>The five sections of <em>Making Your Own Weather</em>, and where you are standing in them right now.</p>
+          <p style={{fontSize:18,color:C.gray,lineHeight:1.65,margin:'0 0 22px',maxWidth:700,textWrap:'balance'}}>The five sections of <em>Making Your Own Weather</em>, and where you are standing in them right now.</p>
         </div>
 
-        <Staircase step={_ns.step} keelLetter={_ns.keelLetter} keelGloss={_ns.keelGloss} stalled={_ns.stalled} positions={_ns.positions} C={C}/>
+        {/* `Btn` is handed down rather than re-styled inside the component:
+            the button styles live in S here and are not exported, and a second
+            copy of them in components/ would drift the first time either moved.
+            `canGo` is the guard that keeps the explainer honest -- Your STAR
+            Stories renders null when it is not ready, and a button landing on a
+            blank screen is worse than no button, so the row falls back to being
+            named without one. */}
+        <Staircase step={_ns.step} keelLetter={_ns.keelLetter} keelGloss={_ns.keelGloss} stalled={_ns.stalled} positions={_ns.positions} C={C} Btn={Btn} onGo={_go} canGo={(t)=>t==='stories'?storiesReady:true}/>
 
         {/* The doors. Two or three, never five, with the first one recommended.
             Handing someone a single instruction reads as a machine telling them
@@ -13686,19 +13693,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             the standing rule that instructions never look like body copy. */}
         <div style={{background:`${C.gold}10`,border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'22px 24px',marginBottom:18}}>
           <div style={{fontSize:15,fontWeight:800,letterSpacing:'1.3px',textTransform:'uppercase',color:C.goldL,margin:'0 0 4px'}}>{_doors.length>1?'What is worth doing now':'Your next step'}</div>
-          {_doors.length>1&&<p style={{fontSize:16,color:C.gray,lineHeight:1.55,margin:'0 0 16px'}}>Any of these moves your search. The first is the one we would start with, and it is your call.</p>}
+          {_doors.length>1&&<p style={{fontSize:16,color:C.gray,lineHeight:1.55,margin:'0 0 16px',textWrap:'pretty'}}>Any of these moves your search. The first is the one we would start with, and it is your call.</p>}
           {_doors.map((d,i)=>(
             <div key={d.key+i} style={{paddingTop:i?18:8,marginTop:i?18:0,borderTop:i?`1px solid ${C.border}`:'none'}}>
               {i===0&&_doors.length>1&&<div style={{fontSize:15,fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',color:C.goldL,margin:'0 0 6px'}}>Where we would start</div>}
-              <div style={{fontFamily:'Georgia,serif',fontSize:i?21:27,fontWeight:700,color:'#1A2540',lineHeight:1.25,margin:'0 0 8px'}}>{d.action}</div>
-              <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:0,maxWidth:'60ch'}}>{d.why}</p>
+              <div style={{fontFamily:'Georgia,serif',fontSize:i?21:27,fontWeight:700,color:'#1A2540',lineHeight:1.25,margin:'0 0 8px',textWrap:'balance'}}>{d.action}</div>
+              <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:0,maxWidth:'60ch',textWrap:'pretty'}}>{d.why}</p>
               <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:14}}>
                 <Btn small={i>0} prominent={i>0} onClick={()=>_go(d.target)}><ArrowRight size={i?11:14}/>{NAV_LABELS[d.target]||'Take me there'}</Btn>
                 <Btn small={i>0} secondary={i===0} onClick={()=>openCoachWith(`I am thinking about this: ${d.action}. Help me work out how to do it.`)}><MessageCircle size={i?11:14}/>Talk it through</Btn>
               </div>
             </div>
           ))}
-          <p style={{fontSize:15,color:C.gray,lineHeight:1.55,margin:'18px 0 0',paddingTop:13,borderTop:`1px dashed ${C.border}`}}>These change as your search does — and nothing on this screen counts what you did not get to.</p>
+          <p style={{fontSize:15,color:C.gray,lineHeight:1.55,margin:'18px 0 0',paddingTop:13,borderTop:`1px dashed ${C.border}`,textWrap:'pretty'}}>These change as your search does — and nothing on this screen counts what you did not get to.</p>
         </div>
 
         {/* The person outranks the computation. Someone can be interviewing next
@@ -15444,14 +15451,19 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <p style={{fontSize:18,color:'#2D3748',lineHeight:1.75,margin:0}}>{demoGuide.desc}</p>
           </div>}
           {isDemo&&step!=='welcome'?<div className="demo-content">{rStep()}</div>:rStep()}
-          <footer data-print="hide" style={{marginTop:isMobile?16:24,padding:isMobile?'10px 12px 12px':'14px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',textAlign:'center'}}>
+          {/* Footer sits on ONE horizontal row: guide button, its one-line
+              explainer, then Privacy/Terms. flexWrap lets it fall to a second
+              row on narrow columns rather than stacking three deep. The
+              explainer is desktop-only — on mobile the row is button +
+              Privacy/Terms, which fits without wrapping. */}
+          <footer data-print="hide" style={{marginTop:isMobile?16:24,padding:isMobile?'10px 12px':'12px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',display:'flex',alignItems:'center',justifyContent:'center',flexWrap:'wrap',gap:isMobile?'8px 14px':'8px 20px'}}>
             <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',background:'#FFFFFF',border:`1px solid ${C.gold}`,borderRadius:8,color:C.gold,fontWeight:600,fontSize:17,textDecoration:'none'}}>Read the full User Guide (PDF)</a>
-            {!isMobile&&<p style={{margin:'6px 0 0',fontSize:15,color:'#718096',lineHeight:1.5}}>Everything Reimagine does, explained in plain English.</p>}
-            <p style={{margin:isMobile?'8px 0 0':'10px 0 0',fontSize:15,color:'#718096'}}>
+            {!isMobile&&<span style={{fontSize:15,color:'#718096'}}>Everything Reimagine does, explained in plain English.</span>}
+            <span style={{display:'inline-flex',alignItems:'center',fontSize:15,color:'#718096'}}>
               <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{color:'#718096',textDecoration:'underline'}}>Privacy</a>
               <span style={{margin:'0 8px'}}>·</span>
               <a href="/terms" target="_blank" rel="noopener noreferrer" style={{color:'#718096',textDecoration:'underline'}}>Terms</a>
-            </p>
+            </span>
           </footer>
           {isDemo&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:32,paddingTop:24,borderTop:`1px solid ${C.border}`}}>
             <div>{demoIdx>0&&<button onClick={demoPrev} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 24px',background:'transparent',color:C.gray,border:`1px solid ${C.border}`,borderRadius:8,fontSize:17,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>← Previous</button>}</div>
