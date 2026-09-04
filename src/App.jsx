@@ -8070,7 +8070,7 @@ export default function PivotEngine(){
   // Coach-as-Concierge onboarding narration (2026-09-04, next_step-adjacent
   // pilot gated on its own flag — see hasOnboardingConcierge above), first
   // piece: the moment a true first-time signed-in user lands on
-  // 'welcome', Coach opens once and frames the whole intake up front — what
+  // 'welcome', Coach frames the whole intake up front once — what
   // it is about to ask for, roughly how long, what comes out the other end —
   // instead of the person meeting a silent form with no context. "Genuinely
   // first-time" is done.length===0 && !outputs.p3, not the pre-account
@@ -8082,7 +8082,11 @@ export default function PivotEngine(){
   // profile; onboardingFramingFiredRef guards the same-session double-fire
   // window before it persists. Content mirrors the existing track-forked
   // "See how this works" copy on this same screen (a few lines down) rather
-  // than inventing new claims about the product.
+  // than inventing new claims about the product. banner:true (Chat.jsx) is
+  // what actually surfaces it -- a small dismissing card next to the closed
+  // bubble rather than the full panel, since this is Coach telling the
+  // person something, not asking, and the full panel would otherwise sit on
+  // top of the very screen this message is pointing them at.
   useEffect(()=>{
     if(isDemo||isTest)return
     if(step!=='welcome'||!signedInUser)return
@@ -8094,8 +8098,7 @@ export default function PivotEngine(){
     const whatComesNext=isIndependent
       ? 'Once it\'s built, we turn it into how you position yourself, which companies are worth pitching, and a plan for pricing your work while your client list grows.'
       : 'Once it\'s built, you get two ways to put it to work: a tailored playbook for one specific opportunity, or a map of directions if you\'re still deciding.'
-    setChatMessages(m=>[...m,{role:'assistant',content:`Welcome — I'm glad you're here. I'll walk you through this: your resume, an assessment if you have one, your values, your priorities, a few reputation questions, and your story. That's what builds your Personal Brand, the through-line of who you are at work. It takes about half an hour, and it saves as you go, so there's no rush. ${whatComesNext} Let's start with your resume.`}])
-    setPbCheckinOpenReq(x=>x+1)
+    setChatMessages(m=>[...m,{role:'assistant',banner:true,content:`Welcome — I'm glad you're here. I'll walk you through this: your resume, an assessment if you have one, your values, your priorities, a few reputation questions, and your story. That's what builds your Personal Brand, the through-line of who you are at work. It takes about half an hour, and it saves as you go, so there's no rush. ${whatComesNext} Let's start with your resume.`}])
   },[step,signedInUser,hasOnboardingConcierge,seenOnboardingFraming,done,outputs,isIndependent,isDemo,isTest])
   // Coach-as-Concierge onboarding narration, second piece: a short line from
   // Coach on arrival at each orientation step listed in ORIENTATION_NARRATION,
@@ -8105,7 +8108,11 @@ export default function PivotEngine(){
   // editing an answer, not onboarding, and should not suddenly get proactive
   // narration for a step that predates this feature. Per-step dedupe
   // (narratedOrientationSteps) means each line fires once per account, ever,
-  // regardless of how many times the step is revisited afterward.
+  // regardless of how many times the step is revisited afterward. Like the
+  // framing message above, banner:true means this surfaces as a small
+  // dismissing card rather than the full panel -- it names the step the
+  // person is about to use, so opening the full panel over that same step
+  // would be the exact thing it exists to avoid.
   // orientationCheckInFlight holds this off while a real reaction to the
   // screen just left (e.g. Location's search-intake check) is still in
   // flight -- Location always advances straight to resume, so without this a
@@ -8122,8 +8129,7 @@ export default function PivotEngine(){
     if(narratedOrientationSteps.includes(step)||narratedOrientationStepsFiredRef.current.has(step))return
     narratedOrientationStepsFiredRef.current.add(step)
     setNarratedOrientationSteps(prev=>prev.includes(step)?prev:[...prev,step])
-    setChatMessages(m=>[...m,{role:'assistant',content:line}])
-    setPbCheckinOpenReq(x=>x+1)
+    setChatMessages(m=>[...m,{role:'assistant',banner:true,content:line}])
   },[step,signedInUser,hasOnboardingConcierge,narratedOrientationSteps,outputs,orientationCheckInFlight,isDemo,isTest])
   // Coach-as-Concierge onboarding narration, third piece: the Personal Brand
   // delivery presence moment. The first time a flagged, signed-in account

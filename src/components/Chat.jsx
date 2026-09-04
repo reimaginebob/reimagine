@@ -144,6 +144,38 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   }, [input])
   const [loading, setLoading] = useState(false)
   const messagesContainerRef = useRef(null)
+  // Narration-only Coach messages (banner:true -- the onboarding "here's
+  // what's coming" / "why this matters" lines, which tell the person
+  // something rather than asking them anything) show as a small dismissing
+  // card next to the closed bubble instead of forcing the full panel open.
+  // The full panel still floats over a good chunk of the screen by design
+  // (it floats over the content column it discusses), which is fine for a
+  // real back-and-forth but was the wrong footprint for a message whose
+  // entire job is to point the person at a field on the same screen -- Coach
+  // ends up sitting on top of the very thing it just told them to do. The
+  // message still lands in the transcript either way; opening the panel
+  // (bubble, banner tap, or a forced open elsewhere) always supersedes it.
+  const [bannerMsg, setBannerMsg] = useState(null)
+  const bannerPrevLenRef = useRef(0)
+  const bannerTimerRef = useRef(null)
+  useEffect(() => {
+    const len = messages ? messages.length : 0
+    const prevLen = bannerPrevLenRef.current
+    bannerPrevLenRef.current = len
+    if (len <= prevLen || open) return
+    const added = messages.slice(prevLen)
+    const latest = [...added].reverse().find(m => m.banner)
+    if (!latest) return
+    setBannerMsg(latest.content)
+    if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
+    bannerTimerRef.current = setTimeout(() => setBannerMsg(null), 10000)
+  }, [messages, open])
+  useEffect(() => {
+    if (!open) return
+    setBannerMsg(null)
+    if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
+  }, [open])
+  useEffect(() => () => { if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current) }, [])
   // Per-message DOM refs populated by the ref callback in the messages.map
   // render. Indexed by position in the messages array. The scroll effect
   // below pins the user's most recent question to the top of the visible
@@ -766,40 +798,68 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   if (!open) {
     return (
       <>
-        {showPulse && <style>{"@keyframes pe-chat-pulse-scale{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}@keyframes pe-chat-pulse-fade{0%,100%{opacity:0.7}50%{opacity:1}}"}</style>}
+        {showPulse && !bannerMsg && <style>{"@keyframes pe-chat-pulse-scale{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}@keyframes pe-chat-pulse-fade{0%,100%{opacity:0.7}50%{opacity:1}}"}</style>}
         <div data-print="hide" style={{
           position: 'fixed', bottom: 24 + bottomOffset, right: 24, zIndex: 1000,
-          display: 'flex', alignItems: 'center', gap: 8,
+          display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10,
         }}>
-          {showPulse && (
-            <div style={{
-              background: '#fff',
-              border: `1px solid ${C.gold}`,
-              color: C.gold,
-              padding: '6px 12px',
-              borderRadius: 16,
-              fontSize: 15,
-              fontWeight: 600,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
-              animation: 'pe-chat-pulse-fade 2s ease-in-out infinite',
-              fontFamily: 'inherit',
+          {bannerMsg && (
+            <div role="status" onClick={() => setOpen(true)} style={{
+              background: '#fff', border: `1px solid ${C.gold}`, borderRadius: 12,
+              padding: '12px 14px', width: 'min(320px, calc(100vw - 48px))',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.18)', cursor: 'pointer',
+              fontFamily: 'inherit', display: 'flex', flexDirection: 'column', gap: 6,
             }}>
-              Talk to your coach
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: '.03em' }}>Coach</span>
+                <button
+                  onClick={e => { e.stopPropagation(); setBannerMsg(null); if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current) }}
+                  aria-label="Dismiss"
+                  style={{ background: 'none', border: 'none', color: '#8A9BB8', cursor: 'pointer', fontSize: 17, lineHeight: 1, padding: 0, fontFamily: 'inherit' }}
+                >
+                  &times;
+                </button>
+              </div>
+              <div style={{
+                fontSize: 16, color: '#1A2540', lineHeight: 1.5,
+                overflow: 'hidden', textOverflow: 'ellipsis',
+                display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
+              }}>
+                {bannerMsg}
+              </div>
             </div>
           )}
-          <button
-            onClick={() => { setOpen(true); if (onDismissPulse) onDismissPulse() }}
-            style={{
-              background: C.gold, color: '#fff', border: 'none',
-              borderRadius: '50%', width: 56, height: 56,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              fontSize: 22, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
-              animation: showPulse ? 'pe-chat-pulse-scale 2s ease-in-out infinite' : 'none',
-            }}
-            aria-label={showPulse ? 'Talk to your coach. Open My Coach' : 'Open My Coach'}
-          >
-            ?
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {!bannerMsg && showPulse && (
+              <div style={{
+                background: '#fff',
+                border: `1px solid ${C.gold}`,
+                color: C.gold,
+                padding: '6px 12px',
+                borderRadius: 16,
+                fontSize: 15,
+                fontWeight: 600,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                animation: 'pe-chat-pulse-fade 2s ease-in-out infinite',
+                fontFamily: 'inherit',
+              }}>
+                Talk to your coach
+              </div>
+            )}
+            <button
+              onClick={() => { setOpen(true); if (onDismissPulse) onDismissPulse() }}
+              style={{
+                background: C.gold, color: '#fff', border: 'none',
+                borderRadius: '50%', width: 56, height: 56,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                fontSize: 22, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
+                animation: (showPulse && !bannerMsg) ? 'pe-chat-pulse-scale 2s ease-in-out infinite' : 'none',
+              }}
+              aria-label={showPulse ? 'Talk to your coach. Open My Coach' : 'Open My Coach'}
+            >
+              ?
+            </button>
+          </div>
         </div>
       </>
     )
