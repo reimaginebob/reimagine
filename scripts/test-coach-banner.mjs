@@ -68,9 +68,25 @@ check(chat.includes('onClick={() => setOpen(true)}') ,
 check(chat.includes("onClick={e => { e.stopPropagation(); setBannerMsg(null); if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current) }}"),
   `${CHAT}: the banner's dismiss button no longer stops propagation -- dismissing would also open the panel`)
 
+// Two "hello" bubbles stacked (2026-09-04, reported live): the generic
+// INTRO_MSG was always seeded first, and the framing effect always appended
+// after it, so a flagged account saw both on arrival. INTRO_MSG is now the
+// single shared source (App.jsx seeds chatMessages from it, no longer a
+// second hardcoded copy of the same string), and the framing effect
+// REPLACES it rather than appending, when the chat is still exactly that
+// untouched seed.
+check(chat.includes('export const INTRO_MSG ='),
+  `${CHAT}: INTRO_MSG is no longer exported -- App.jsx cannot import the single source of truth for the intro text`)
+check(app.includes('import Chat, { INTRO_MSG } from "./components/Chat"'),
+  `${APP}: App.jsx no longer imports INTRO_MSG from Chat.jsx -- it may have reverted to a second hardcoded copy of the intro text, which is exactly the drift that caused the double-stack`)
+check(app.includes('return[INTRO_MSG]'),
+  `${APP}: chatMessages no longer seeds from the shared INTRO_MSG constant`)
+check(app.includes("setChatMessages(m=>(m.length===1&&m[0]&&m[0].role==='assistant'&&!m[0].banner&&m[0].content===INTRO_MSG.content)?[framingMsg]:[...m,framingMsg])"),
+  `${APP}: the framing effect no longer replaces an untouched intro-only chat with the framing message -- it would append after INTRO_MSG again, stacking two "hello" bubbles on arrival`)
+
 if (failures) {
   console.error(`test-coach-banner: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-banner: OK (narration messages flagged banner:true and no longer force the panel open, Chat.jsx detects and renders the dismissing banner card, font sizes meet the tappable-label floor)')
+  console.log('test-coach-banner: OK (narration messages flagged banner:true and no longer force the panel open, Chat.jsx detects and renders the dismissing banner card, font sizes meet the tappable-label floor, framing message replaces rather than stacks on the untouched intro)')
 }

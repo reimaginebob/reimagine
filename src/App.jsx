@@ -40,7 +40,7 @@ import { useVersionCheck } from "./version-check"
 import { useIsMobile } from "./use-is-mobile.js"
 import Staircase from "./components/Staircase"
 import { STEPS, nextSteps as computeNextSteps } from "./step-position.js"
-import Chat from "./components/Chat"
+import Chat, { INTRO_MSG } from "./components/Chat"
 import SavedPlaybooks from "./components/SavedPlaybooks"
 import PlaybookSectionRail from "./components/PlaybookSectionRail"
 import SpeechBtn, { hasSpeech } from "./components/SpeechBtn"
@@ -7944,7 +7944,7 @@ export default function PivotEngine(){
   // the My Next Steps date only; a passed meeting simply reads as "last met" (see
   // the coach status block). The earlier auto-clear was removed: it silently
   // erased data and made a still-active opportunity look empty.
-  const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p}}catch{}return[{role:'assistant',content:"Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you."}]})
+  const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p}}catch{}return[INTRO_MSG]})
   const[showPulse,setShowPulse]=useState(false)
   // Coach doors (PR-3, item H): a one-shot seed that prefills the My Coach input
   // when a "prep with My Coach" / "talk it through" affordance navigates here.
@@ -8114,7 +8114,15 @@ export default function PivotEngine(){
     const whatComesNext=isIndependent
       ? 'Once it\'s built, we turn it into how you position yourself, which companies are worth pitching, and a plan for pricing your work while your client list grows.'
       : 'Once it\'s built, you get two ways to put it to work: a tailored playbook for one specific opportunity, or a map of directions if you\'re still deciding.'
-    setChatMessages(m=>[...m,{role:'assistant',banner:true,content:`Welcome — I'm glad you're here. I'll walk you through this: your resume, an assessment if you have one, your values, your priorities, a few reputation questions, and your story. That's what builds your Personal Brand, the through-line of who you are at work. It takes about half an hour, and it saves as you go, so there's no rush. ${whatComesNext} Let's start with your resume.`}])
+    const framingMsg={role:'assistant',banner:true,content:`Welcome — I'm glad you're here. I'll walk you through this: your resume, an assessment if you have one, your values, your priorities, a few reputation questions, and your story. That's what builds your Personal Brand, the through-line of who you are at work. It takes about half an hour, and it saves as you go, so there's no rush. ${whatComesNext} Let's start with your resume.`}
+    // Two "hello" bubbles stacked (the generic intro, then this one) reads as
+    // Coach not paying attention to itself. When the chat is still exactly
+    // the untouched seed -- nothing sent, nothing else has happened yet --
+    // this framing REPLACES it instead of appending, so a flagged account
+    // only ever sees one opening message. Any real conversation already in
+    // progress (a longer array, or the seed edited) is left alone and this
+    // just appends normally.
+    setChatMessages(m=>(m.length===1&&m[0]&&m[0].role==='assistant'&&!m[0].banner&&m[0].content===INTRO_MSG.content)?[framingMsg]:[...m,framingMsg])
   },[step,signedInUser,hasOnboardingConcierge,seenOnboardingFraming,done,outputs,isIndependent,isDemo,isTest])
   // Shared between the narration effect right below and the orientation
   // quality-check effect further down -- computed once, plainly, during
