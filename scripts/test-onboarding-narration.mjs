@@ -81,6 +81,15 @@ for (const [step, text] of Object.entries(ORIENTATION_NARRATION)) {
     `orientation-narration.js: "${step}" opens with a "do not" directive instead of leading with the positive ask`)
 }
 
+// Partnership, not self-interest (2026-09-04): none of these lines should
+// frame an ask around what Coach itself wants, needs, or is looking for.
+// Regression guard for the live catch on reputation ("that is exactly what I
+// want") and fit ("I want yours first" / "I will test it").
+for (const [step, text] of Object.entries(ORIENTATION_NARRATION)) {
+  check(!/\bi\s+(?:want|need)\b(?!\s+to\b)|\bi(?:'m|\s+am)\s+looking\s+for\b|\bgive\s+me\b/i.test(text),
+    `orientation-narration.js: "${step}" frames an ask around what Coach itself wants/needs instead of the shared work`)
+}
+
 if (failures) {
   console.error(`test-onboarding-narration: ${failures} check(s) failed`)
   process.exit(1)
