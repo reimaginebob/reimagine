@@ -7257,12 +7257,25 @@ export default function PivotEngine(){
   // flag, because more than one field can be in flight at once (each fires
   // independently below) -- a count only reaches zero once every request now
   // running has actually finished. Purely a display signal for Chat's closed
-  // bubble; never read by any gating logic. That distinction matters here:
-  // the counter this session removed for gating narration order did not
-  // work as a same-commit signal between sibling effects (see the comment
-  // above orientationCheckFields) -- this one only ever drives a render, so
-  // that failure mode does not apply to it.
+  // bubble. It has since grown a second consumer below (deferring Continue
+  // while a check is in flight) -- safe for the same reason the original
+  // narration-ordering counter this session removed was NOT: that one read
+  // a just-incremented counter synchronously from a SIBLING EFFECT in the
+  // same commit, before the update had actually propagated. This one is
+  // read from a useEffect keyed on coachThinkingCount itself, which by
+  // definition only runs in a render AFTER the state has actually changed
+  // -- an ordinary effect-reacts-to-state-change, not a same-commit read.
   const[coachThinkingCount,setCoachThinkingCount]=useState(0)
+  // Reported live: nothing stopped a person from clicking Continue faster
+  // than Coach could react to what they just gave it, so the reaction
+  // always arrived on a LATER screen with no visible link back to what it
+  // was about to -- "Coach on the sideline waving his hands while she just
+  // keeps going." Holds the target of an advance() call that landed while
+  // coachThinkingCount was still >0; the effect below fires it the moment
+  // the count returns to zero, so Coach can never be outrun, and every
+  // other Continue click (the overwhelming majority, since most steps have
+  // nothing in flight) is completely unaffected.
+  const[pendingAdvance,setPendingAdvance]=useState(null)
   // Employment status (consult 2026-08-13). The VALUE lives in a users column
   // (seeded from /api/me as signedInUser.employment_status), written by
   // /api/employment — never in the profile blob, whose whole-object autosave
@@ -8370,8 +8383,15 @@ export default function PivotEngine(){
           const reply=raw&&raw.trim()
           setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}))
           if(reply){
-            setChatMessages(m=>[...m,{role:'assistant',content:reply}])
-            setPbCheckinOpenReq(x=>x+1)
+            // banner:true (2026-09-04, alongside the Continue-defer above):
+            // this used to force the full panel open, which meant a
+            // reaction that landed after the person had already moved on
+            // yanked the panel over whatever screen they were now reading.
+            // With Continue now held until this resolves, forcing the
+            // panel open is no longer buying anything -- the small
+            // dismissing card is enough, same treatment the per-step
+            // narration already gets.
+            setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply}])
           }
         }catch{
           // Same release as the !res.ok branch above -- a network failure
@@ -8978,7 +8998,22 @@ export default function PivotEngine(){
   // On leaving a changed input surface (returning user), nudge to update the
   // Personal Brand. Skips when heading to p3 (they are going there to update).
   const maybeInputStaleNudge=(from,to)=>{if(!isDemo&&INPUT_EDIT_STEPS.has(from)&&inputEditedRef.current&&to!=='p3'&&outputs.p3){inputEditedRef.current=false;setInputStaleModal({from})}}
-  const advance=(from,to)=>{maybeInputStaleNudge(from,to);markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
+  const doAdvance=(from,to)=>{maybeInputStaleNudge(from,to);markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
+  // Defers to doAdvance immediately unless Coach is still reacting to
+  // something (coachThinkingCount>0), in which case the click is held
+  // rather than dropped -- see pendingAdvance above and the release effect
+  // just below. Every orientation Continue button already calls advance();
+  // this is the one place that needed to change.
+  const advance=(from,to)=>{
+    if(coachThinkingCount>0){setPendingAdvance({from,to});return}
+    doAdvance(from,to)
+  }
+  useEffect(()=>{
+    if(coachThinkingCount>0||!pendingAdvance)return
+    const{from,to}=pendingAdvance
+    setPendingAdvance(null)
+    doAdvance(from,to)
+  },[coachThinkingCount,pendingAdvance])
   const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);setShowOfferCompare(false);if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
   // Scroll new output into view AFTER generation completes. Every generate
   // path already scrolls to 0,0 on click (so the loading panel is visible);
@@ -15921,6 +15956,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     </div>}
     {toast&&<div data-print="hide" role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'#1A2540',color:'#FFFFFF',padding:'12px 22px',borderRadius:8,fontSize:16,fontWeight:500,boxShadow:'0 4px 16px rgba(0,0,0,0.18)',zIndex:1200}}>{toast}</div>}
+    {/* Tied to pendingAdvance itself, not a timer -- the wait is a live
+        network call of variable length, so this stays up exactly as long
+        as the hold does and clears the instant doAdvance actually fires. */}
+    {pendingAdvance&&<div data-print="hide" role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'#1A2540',color:'#FFFFFF',padding:'12px 22px',borderRadius:8,fontSize:16,fontWeight:500,boxShadow:'0 4px 16px rgba(0,0,0,0.18)',zIndex:1200}}>Just a sec — Coach is still reacting to what you just added.</div>}
     {/* ?debug=1 diagnostic footer. Bottom-right corner, low-contrast text.
         Renders four data points so Bob can confirm at a glance whether a
         user is seeing the current build:
