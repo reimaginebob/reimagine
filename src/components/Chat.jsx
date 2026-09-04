@@ -180,6 +180,22 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     if (!open) return
     setBannerMsg(null)
   }, [open])
+  // Reported live: with several banner:true narration messages now piling up
+  // in the open transcript one after another (each step's "here's what's
+  // coming" line), the newest, currently-relevant one was competing for
+  // attention with everything Coach had already said and moved past.
+  // Collapsing a superseded narration message to a thin, one-line strip --
+  // present, not deleted, expandable on tap -- keeps the transcript honest
+  // (nothing vanishes) while keeping the visual weight on what is current. A
+  // banner message collapses once something has been said after it; the
+  // most recent message is never collapsed, whatever it is.
+  const [expandedBanners, setExpandedBanners] = useState(() => new Set())
+  const toggleBannerExpanded = i => setExpandedBanners(prev => {
+    const next = new Set(prev)
+    if (next.has(i)) next.delete(i)
+    else next.add(i)
+    return next
+  })
   // Per-message DOM refs populated by the ref callback in the messages.map
   // render. Indexed by position in the messages array. The scroll effect
   // below pins the user's most recent question to the top of the visible
@@ -661,8 +677,25 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // would overflow the panel instead of scrolling).
   const transcript = (
     <div ref={messagesContainerRef} style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '14px 18px' }}>
-      {messages.map((m, i) => (
+      {messages.map((m, i) => {
+        const isCollapsedBanner = m.banner && i < messages.length - 1 && !expandedBanners.has(i)
+        return (
         <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
+          {isCollapsedBanner ? (
+            <button onClick={() => toggleBannerExpanded(i)} style={{
+              display: 'flex', alignItems: 'center', gap: 6, maxWidth: 'min(100%, 74ch)',
+              background: '#F4F6F9', border: 'none', borderRadius: 8,
+              padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+            }}>
+              <span aria-hidden="true" style={{ color: '#8A9BB8', fontSize: 16, flexShrink: 0 }}>›</span>
+              <span style={{
+                fontSize: 16, color: '#8A9BB8', lineHeight: 1.4,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {m.content}
+              </span>
+            </button>
+          ) : (
           <div ref={el => { if (m.id) contentRefs.current[m.id] = el }} style={{
             // The coach's prose holds a readable line length however wide the
             // panel gets: past roughly 75 characters the eye starts losing its
@@ -688,7 +721,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 ? <MD text={m.content} />
                 : m.content}
           </div>
-          {m.role === 'assistant' && Array.isArray(m.quickReplies) && m.quickReplies.length > 0 && (
+          )}
+          {!isCollapsedBanner && m.role === 'assistant' && Array.isArray(m.quickReplies) && m.quickReplies.length > 0 && (
             <div data-print="hide" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {m.quickReplies.map((opt, qi) => (
                 <button key={qi} onClick={() => tapQuickReply(i, opt, m.checkinKey)}
@@ -742,7 +776,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             </div>
           )}
         </div>
-      ))}
+      )})}
     </div>
   )
 
