@@ -84,6 +84,23 @@ export function hasNextStep(user) {
   return flags.includes(NEXT_STEP_FLAG)
 }
 
+// PILOT -- Coach-as-Concierge, onboarding narration (2026-09-04). Coach talks a
+// brand-new user through orientation -- the upfront framing, why-this-matters
+// narration on each step, the Personal Brand delivery moment, and the direct
+// "what's already in motion" routing question -- instead of the silent form
+// sequence. A separate flag from NEXT_STEP_FLAG on purpose: this is a
+// materially different, higher-stakes surface (the first-run experience for
+// brand-new signups, not a returning-session recap), and a shared flag would
+// couple the two rollouts together with no way to toggle one without the
+// other.
+export const ONBOARDING_CONCIERGE_FLAG = 'onboarding_concierge'
+
+export function hasOnboardingConcierge(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(ONBOARDING_CONCIERGE_FLAG)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
