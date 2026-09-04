@@ -155,9 +155,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // ends up sitting on top of the very thing it just told them to do. The
   // message still lands in the transcript either way; opening the panel
   // (bubble, banner tap, or a forced open elsewhere) always supersedes it.
+  //
+  // No auto-dismiss timer (reported live, 2026-09-04): a fixed timeout meant
+  // the card could vanish before someone had actually read it -- caught when
+  // it disappeared while going to go find and copy a resume, leaving the
+  // resume screen with no visible guidance and no way to bring it back short
+  // of opening the full panel and scrolling. The card is small and sits
+  // beside a closed bubble, not over the page, so there is no real cost to
+  // leaving it up: it now stays until the person dismisses it or opens the
+  // panel, same as it always has for those two paths.
   const [bannerMsg, setBannerMsg] = useState(null)
   const bannerPrevLenRef = useRef(0)
-  const bannerTimerRef = useRef(null)
   useEffect(() => {
     const len = messages ? messages.length : 0
     const prevLen = bannerPrevLenRef.current
@@ -167,15 +175,11 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     const latest = [...added].reverse().find(m => m.banner)
     if (!latest) return
     setBannerMsg(latest.content)
-    if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
-    bannerTimerRef.current = setTimeout(() => setBannerMsg(null), 10000)
   }, [messages, open])
   useEffect(() => {
     if (!open) return
     setBannerMsg(null)
-    if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
   }, [open])
-  useEffect(() => () => { if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current) }, [])
   // Per-message DOM refs populated by the ref callback in the messages.map
   // render. Indexed by position in the messages array. The scroll effect
   // below pins the user's most recent question to the top of the visible
@@ -835,7 +839,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <span style={{ fontSize: 16, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: '.03em' }}>Coach</span>
                 <button
-                  onClick={e => { e.stopPropagation(); setBannerMsg(null); if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current) }}
+                  onClick={e => { e.stopPropagation(); setBannerMsg(null) }}
                   aria-label="Dismiss"
                   style={{ background: 'none', border: 'none', color: '#8A9BB8', cursor: 'pointer', fontSize: 17, lineHeight: 1, padding: 0, fontFamily: 'inherit' }}
                 >

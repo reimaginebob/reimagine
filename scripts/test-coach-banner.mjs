@@ -45,8 +45,15 @@ check(chat.includes('const latest = [...added].reverse().find(m => m.banner)'),
   `${CHAT}: the banner-detection effect no longer looks for banner-flagged messages`)
 check(chat.includes('if (len <= prevLen || open) return'),
   `${CHAT}: the banner-detection effect lost its growth/open guard -- it would fire on every render or override an already-open panel`)
-check(chat.includes('bannerTimerRef.current = setTimeout(() => setBannerMsg(null), 10000)'),
-  `${CHAT}: the banner lost its auto-dismiss timer`)
+// No auto-dismiss timer (2026-09-04, reported live): a fixed timeout could
+// hide the card before someone had actually read it, with no way to bring
+// it back short of opening the full panel and scrolling. The card now stays
+// until the person dismisses it or opens the panel -- pin the ABSENCE of a
+// timer so it does not quietly come back.
+check(!chat.includes('setTimeout(() => setBannerMsg(null)'),
+  `${CHAT}: the banner has an auto-dismiss timer again -- it can hide guidance before the person has read it, with no way to bring it back (this is the exact live-reported failure this fixed)`)
+check(!chat.includes('bannerTimerRef'),
+  `${CHAT}: bannerTimerRef is back -- the banner should have no auto-dismiss mechanism`)
 const openClearIdx = chat.indexOf('useEffect(() => {\n    if (!open) return\n    setBannerMsg(null)')
 check(openClearIdx !== -1,
   `${CHAT}: opening the panel no longer clears the banner -- it would linger behind the open panel and reappear on close`)
@@ -65,7 +72,7 @@ check(chat.includes("fontSize: 16, color: '#1A2540', lineHeight: 1.5,"),
 // dedicated dismiss control stops propagation so it does not also open it.
 check(chat.includes('onClick={() => setOpen(true)}') ,
   `${CHAT}: the banner card lost its click-to-open handler`)
-check(chat.includes("onClick={e => { e.stopPropagation(); setBannerMsg(null); if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current) }}"),
+check(chat.includes("onClick={e => { e.stopPropagation(); setBannerMsg(null) }}"),
   `${CHAT}: the banner's dismiss button no longer stops propagation -- dismissing would also open the panel`)
 
 // Two "hello" bubbles stacked (2026-09-04, reported live): the generic
