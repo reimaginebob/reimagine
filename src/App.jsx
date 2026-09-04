@@ -8181,14 +8181,15 @@ export default function PivotEngine(){
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,hasOnboardingConcierge,seenOrientationRoute,outputs,isDemo,isTest])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04): the
-  // moment someone leaves Values, Reputation, Life Story, Location (which
-  // also carries employment status and search intake), or Priorities (the
-  // freeform deal-breakers field) with new content, Coach reads it and
-  // reacts -- see buildOrientationCheckTurnText in api/coach.js for the
-  // judgment itself, which is a real per-answer call the model makes each
-  // time, not a word-count rule or a fixed script; Location and Priorities
-  // get their own framing there (orient/acknowledge, not judge-for-depth --
-  // the reflective-fields framing would be the wrong lens for "what's going
+  // moment someone leaves Values, Reputation, Life Story, Where You Think
+  // You Fit (Go Independent), Location (which also carries employment
+  // status and search intake), or Priorities (the freeform deal-breakers
+  // field) with new content, Coach reads it and reacts -- see
+  // buildOrientationCheckTurnText in api/coach.js for the judgment itself,
+  // which is a real per-answer call the model makes each time, not a
+  // word-count rule or a fixed script; Location and Priorities get their
+  // own framing there (orient/acknowledge, not judge-for-depth -- the
+  // reflective-fields framing would be the wrong lens for "what's going
   // well in your search" or a deal-breaker). Runs independent checks off the
   // same shape; each is keyed on `done` containing the step AND the
   // submitted text differing from the last text actually checked for it, so
@@ -8219,6 +8220,11 @@ export default function PivotEngine(){
       // and firing on an empty deal-breakers field (the common case, since
       // it is explicitly optional) would manufacture a reaction to nothing.
       {step:'priorities',done:done.includes('priorities'),combined:(profile.dealBreakers||'').trim(),text:`Hard deal-breakers: ${profile.dealBreakers||''}`},
+      // Go Independent track only -- same reflective-depth judgment as
+      // values/reputation/life-events, since the screen's own copy draws
+      // the identical specificity contrast ("companies that need better
+      // marketing" vs. a named stage, sector, and trigger).
+      {step:'fit',done:done.includes('fit'),combined:[profile.fitNeed,profile.fitBuyer].filter(Boolean).join(' ').trim(),text:`The Need: ${profile.fitNeed||''}\nThe Buyer: ${profile.fitBuyer||''}`},
     ]
     for(const f of fields){
       if(!f.done||!f.combined)continue
@@ -8244,7 +8250,7 @@ export default function PivotEngine(){
         }
       })()
     }
-  },[step,signedInUser,hasOnboardingConcierge,done,profile.values,profile.passions,profile.rep,profile.lifeEvents,profile.dealBreakers,employmentStatus,searchGoingWell,searchFocus,qualityCheckedFields,isDemo,isTest])
+  },[step,signedInUser,hasOnboardingConcierge,done,profile.values,profile.passions,profile.rep,profile.lifeEvents,profile.dealBreakers,profile.fitNeed,profile.fitBuyer,employmentStatus,searchGoingWell,searchFocus,qualityCheckedFields,isDemo,isTest])
   // One-tap employment prompt (consult 2026-08-13). Fires once for a signed-in
   // user with no employment value, on the dashboard surface (a between-tasks
   // pause, same intent as the Personal Brand check-in). Dedupes on

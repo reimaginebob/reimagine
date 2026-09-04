@@ -130,6 +130,13 @@ const ORIENTATION_CHECK_LABELS = {
   'life-events': 'Life Story',
   location: 'Situation',
   priorities: 'Priorities & Non-Negotiables',
+  // Go Independent track only. Same shape as Reputation -- the screen's own
+  // copy draws the identical Good-example/Better-example specificity
+  // contrast ("companies that need better marketing" vs. a named stage,
+  // sector, and trigger) -- so it gets the same reflective-depth judgment,
+  // no new framing needed; buildOrientationCheckTurnText's default branch
+  // already covers any step not given its own builder below.
+  fit: 'Where You Think You Fit',
 }
 function clip(text) {
   return text.length > 4000 ? text.slice(0, 4000) + '…' : text

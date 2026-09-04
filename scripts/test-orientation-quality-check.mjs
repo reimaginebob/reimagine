@@ -32,7 +32,7 @@ check(coach.includes('do not manufacture a follow-up question where none is warr
   `${COACH}: buildOrientationCheckTurnText lost the instruction NOT to push back on an already-specific answer`)
 
 check(/const ORIENTATION_CHECK_LABELS = \{/.test(coach), `${COACH}: ORIENTATION_CHECK_LABELS is missing`)
-for (const step of ['values', 'reputation', 'life-events', 'location', 'priorities']) {
+for (const step of ['values', 'reputation', 'life-events', 'location', 'priorities', 'fit']) {
   check(coach.includes(`${step}:`) || new RegExp(`'${step}':`).test(coach),
     `${COACH}: ORIENTATION_CHECK_LABELS is missing the "${step}" key`)
 }
@@ -63,10 +63,10 @@ const app = fs.readFileSync(APP, 'utf8')
 check(/const\[qualityCheckedFields,setQualityCheckedFields\]=useState\(\{\}\)/.test(app),
   `${APP}: qualityCheckedFields useState declaration is missing`)
 
-// The trigger: five fields, each gated on done + a real content-changed
+// The trigger: six fields, each gated on done + a real content-changed
 // check (not a flat "seen it once" flag -- editing an answer must re-ask).
-check(app.includes("step:'values'") && app.includes("step:'reputation'") && app.includes("step:'life-events'") && app.includes("step:'location'") && app.includes("step:'priorities'"),
-  `${APP}: the quality-check effect no longer covers all five fields (values, reputation, life-events, location, priorities)`)
+check(app.includes("step:'values'") && app.includes("step:'reputation'") && app.includes("step:'life-events'") && app.includes("step:'location'") && app.includes("step:'priorities'") && app.includes("step:'fit'"),
+  `${APP}: the quality-check effect no longer covers all six fields (values, reputation, life-events, location, priorities, fit)`)
 // Priorities must skip firing on an empty deal-breakers field -- it is
 // explicitly optional, and reacting to nothing would manufacture a check
 // where there is nothing to check.
