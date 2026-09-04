@@ -12938,7 +12938,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={S.field}><label style={S.label}>What would you like to improve? <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label>
           <div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={searchFocus} onChange={e=>setSearchFocus(e.target.value)} onBlur={()=>saveSearchIntake({focus:searchFocus})} placeholder="e.g. applications go quiet after I send them, I want more warm introductions, I get to final rounds and stop there…"/>{hasSpeech&&<SpeechBtn onResult={t=>setSearchFocus(searchFocus+t)}/>}</div>
         </div>
-        <ThinNudge text="Say as much as you want in both. Whatever you write here is yours to change any time, and it is what lets your coach pick up where you are rather than starting from scratch." mic="Prefer to talk? Tap a mic and say it out loud; it's often easier than typing."/>
+        <ThinNudge text="Say as much as you want in both of these — what's going well and what you'd like to improve. Whatever you write here is yours to change any time, and it is what lets your coach pick up where you are rather than starting from scratch." mic="Prefer to talk? Tap a mic and say it out loud; it's often easier than typing."/>
         </>}
       </div>
       {err&&<ErrBox msg={err}/>}
