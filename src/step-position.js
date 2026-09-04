@@ -97,7 +97,11 @@ function daysAgo(value, now) {
 // The opportunities this person is actually working, each joined to its status
 // row. Archived and closed drop out: a closed opportunity is history, and
 // history never decides where someone stands today.
-function activeOpportunities(state, pursuitRows) {
+//
+// Exported so computeSessionDelta below can reuse the exact same join rather
+// than re-deriving it -- the screen, Coach's next-step read, and Coach's
+// session-opening recap all have to agree on which opportunities are live.
+export function activeOpportunities(state, pursuitRows) {
   const saved = Array.isArray(state && state.savedPlaybooks) ? state.savedPlaybooks : []
   const byId = new Map((Array.isArray(pursuitRows) ? pursuitRows : []).map(r => [r.record_id, r]))
   return saved
@@ -316,6 +320,77 @@ export function nextSteps(state, pursuitRows, activityFacts = [], now = Date.now
     doors: picked.map(({ weight, scope, ...rest }) => rest),
     positions: opportunityPositions(state, pursuitRows),
   }
+}
+
+// What changed since this person's last visit, for Coach's session-opening
+// recap (Coach-as-Concierge, Phase 1). priorSessionAt is users.prior_session_at
+// -- captured at THIS login, one login behind (see
+// migrations/2026-09-04_prior-session-at.sql) -- so "since" means since the
+// visit before this one, never since a few seconds ago.
+//
+// Returns null when there is nothing to diff against: a brand-new account, or
+// an account whose only prior visit was this same session. That is the
+// first-time-user case, and it is handled by the separate onboarding-narration
+// path, not this one -- a null return here is the correct signal to fall back
+// to it, not an empty-but-valid delta.
+//
+// Deliberately conservative about what counts as "changed." Reading a
+// section, or Coach itself touching updated_at on some unrelated pass, must
+// never manufacture a false "since your last visit" claim -- an honest "not
+// much moved" is always better than an invented one (see the brief's
+// "aggregate claims stay honest" principle; the same discipline applies to
+// claims about the person's OWN data, not just population claims).
+export function computeSessionDelta(state, pursuitRows, activityFacts, priorSessionAt, now = Date.now()) {
+  if (!priorSessionAt) return null
+  const since = new Date(priorSessionAt).getTime()
+  if (Number.isNaN(since)) return null
+
+  const after = (v) => {
+    if (!v) return false
+    const t = new Date(v).getTime()
+    return !Number.isNaN(t) && t > since
+  }
+
+  const open = activeOpportunities(state, pursuitRows)
+
+  const addedOpportunities = open
+    .filter(o => after(o.rec.createdAt))
+    .map(o => o.rec.title || 'an opportunity')
+
+  // A conversation that was on the calendar as of the last visit and has since
+  // passed -- the thing the recap most wants to be able to say happened.
+  const interviewsHappened = open
+    .filter(o => o.status.next_conversation_at)
+    .filter(o => {
+      const t = new Date(o.status.next_conversation_at).getTime()
+      return !Number.isNaN(t) && t > since && t <= now
+    })
+    .map(o => ({ title: o.rec.title || 'an opportunity', when: o.status.next_conversation_at }))
+
+  // Anything else that moved on an EXISTING opportunity -- a stage change, a
+  // logged next move, a note -- that is not already counted above, so the
+  // recap never mentions the same opportunity twice for two views of one fact.
+  const alreadyNamed = new Set([...addedOpportunities, ...interviewsHappened.map(x => x.title)])
+  const otherMovement = open
+    .filter(o => after(o.status.updated_at) && !after(o.rec.createdAt))
+    .map(o => o.rec.title || 'an opportunity')
+    .filter(title => !alreadyNamed.has(title))
+
+  const saved = Array.isArray(state && state.savedPlaybooks) ? state.savedPlaybooks.filter(r => r && !r.archivedAt) : []
+  const addedDirections = saved
+    .filter(r => r.source !== 'door2' && after(r.createdAt))
+    .map(r => r.title || 'a direction')
+
+  const newActivity = (Array.isArray(activityFacts) ? activityFacts : [])
+    .filter(a => after(a.learned_at))
+    .map(a => ({ activity: a.activity, state: a.state, detail: a.detail }))
+
+  const hasMaterialChange = !!(
+    addedOpportunities.length || interviewsHappened.length ||
+    otherMovement.length || addedDirections.length || newActivity.length
+  )
+
+  return { addedOpportunities, interviewsHappened, otherMovement, addedDirections, newActivity, hasMaterialChange }
 }
 
 // Back-compat for callers that want the single leading move. The doors are the
