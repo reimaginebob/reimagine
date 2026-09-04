@@ -7251,12 +7251,6 @@ export default function PivotEngine(){
   // fire before the response lands and the dedupe map updates.
   const[qualityCheckedFields,setQualityCheckedFields]=useState({})
   const orientationCheckFiredRef=useRef({})
-  // Counts in-flight orientationCheck requests so the per-step narration
-  // effect below can hold off while one is pending -- see its own comment for
-  // why the ordering matters (a real reaction to what someone just said
-  // needs to land before Coach moves on to explaining the next screen, not
-  // arrive seconds afterward as a non sequitur once narration already fired).
-  const[orientationCheckInFlight,setOrientationCheckInFlight]=useState(0)
   // Employment status (consult 2026-08-13). The VALUE lives in a users column
   // (seeded from /api/me as signedInUser.employment_status), written by
   // /api/employment — never in the profile blob, whose whole-object autosave
@@ -8100,6 +8094,57 @@ export default function PivotEngine(){
       : 'Once it\'s built, you get two ways to put it to work: a tailored playbook for one specific opportunity, or a map of directions if you\'re still deciding.'
     setChatMessages(m=>[...m,{role:'assistant',banner:true,content:`Welcome — I'm glad you're here. I'll walk you through this: your resume, an assessment if you have one, your values, your priorities, a few reputation questions, and your story. That's what builds your Personal Brand, the through-line of who you are at work. It takes about half an hour, and it saves as you go, so there's no rush. ${whatComesNext} Let's start with your resume.`}])
   },[step,signedInUser,hasOnboardingConcierge,seenOnboardingFraming,done,outputs,isIndependent,isDemo,isTest])
+  // Shared between the narration effect right below and the orientation
+  // quality-check effect further down -- computed once, plainly, during
+  // render rather than tracked through a ref or state flag written by one
+  // effect and read by another. An in-flight counter written via setState in
+  // one effect is NOT visible to a sibling effect in the SAME commit (a
+  // state update schedules a future render; it does not mutate anything a
+  // co-running effect can see), so that approach silently lost the race
+  // exactly when both effects fired together -- narration always won,
+  // because it read the counter before the OTHER effect's increment had
+  // taken effect. Deriving "is a check still owed for this field" directly
+  // from done/profile/qualityCheckedFields sidesteps the whole problem: it
+  // is true from the moment a field becomes due until qualityCheckedFields
+  // actually reflects it, which is exactly the window -- before the fetch
+  // starts, while it is in flight, and until its result lands -- that the
+  // narration below needs to hold off for, and it is correct on first read,
+  // every render, with no ordering dependency between the two effects.
+  const empLabelForCheck={employed:'Currently Employed',in_transition:'In Transition',role_ending:'Role Ending Soon'}[employmentStatus]||employmentStatus
+  const orientationCheckFields=[
+    // Resume, LinkedIn, and assessment each get a genuine first-read
+    // reaction to what was actually uploaded, not a canned "thanks for
+    // adding X" -- a fixed acknowledgment reads as mechanical exactly
+    // when the whole point is to feel like Coach is paying attention.
+    // LinkedIn's text carries the resume alongside it so the model can
+    // notice a real, concrete cross-reference (a role or date that does
+    // not line up) when one actually exists, rather than manufacturing
+    // one.
+    {step:'resume',done:done.includes('resume'),combined:(profile.resume||'').trim(),text:`Resume:\n${profile.resume||''}`},
+    {step:'linkedin',done:done.includes('linkedin'),combined:(profile.linkedin||'').trim(),text:`LinkedIn:\n${profile.linkedin||''}${profile.resume?`\n\nFor cross-reference, here is the resume they already gave you:\n${profile.resume}`:''}`},
+    {step:'assessment',done:done.includes('assessment'),combined:(profile.assess||'').trim(),text:`Assessment:\n${profile.assess||''}`},
+    {step:'values',done:done.includes('values'),combined:[profile.values,profile.passions].filter(Boolean).join(' ').trim(),text:`Values: ${profile.values||''}\nPassions, Interests & Causes: ${profile.passions||''}`},
+    {step:'reputation',done:done.includes('reputation'),combined:[profile.rep&&profile.rep.memory,profile.rep&&profile.rep.emergency,profile.rep&&profile.rep.twoWords,profile.rep&&profile.rep.other].filter(Boolean).join(' ').trim(),text:`The Memory: ${(profile.rep&&profile.rep.memory)||''}\nThe Emergency Call: ${(profile.rep&&profile.rep.emergency)||''}\nThe Two Words: ${(profile.rep&&profile.rep.twoWords)||''}\nAdditional Feedback: ${(profile.rep&&profile.rep.other)||''}`},
+    {step:'life-events',done:done.includes('life-events'),combined:(profile.lifeEvents||'').trim(),text:`Life Story: ${profile.lifeEvents||''}`},
+    // Location also captures employment status and search intake -- the
+    // earliest read on this person's state of mind coming in. Combined
+    // is built from all three so the check re-fires if any of them
+    // changes, even after an initial pass already ran on employment
+    // status alone.
+    {step:'location',done:done.includes('location'),combined:[employmentStatus,searchGoingWell,searchFocus].filter(Boolean).join(' ').trim(),text:`Employment status: ${empLabelForCheck||'not provided'}\nWhat's going well in their search: ${searchGoingWell||'not provided'}\nWhat they'd like to improve: ${searchFocus||'not provided'}`},
+    // Priorities: only the freeform deal-breakers field gets a check --
+    // the structured fields (comp floor, work requirements, benefits
+    // weight, risk tolerance) are self-explanatory and do not need one,
+    // and firing on an empty deal-breakers field (the common case, since
+    // it is explicitly optional) would manufacture a reaction to nothing.
+    {step:'priorities',done:done.includes('priorities'),combined:(profile.dealBreakers||'').trim(),text:`Hard deal-breakers: ${profile.dealBreakers||''}`},
+    // Go Independent track only -- same reflective-depth judgment as
+    // values/reputation/life-events, since the screen's own copy draws
+    // the identical specificity contrast ("companies that need better
+    // marketing" vs. a named stage, sector, and trigger).
+    {step:'fit',done:done.includes('fit'),combined:[profile.fitNeed,profile.fitBuyer].filter(Boolean).join(' ').trim(),text:`The Need: ${profile.fitNeed||''}\nThe Buyer: ${profile.fitBuyer||''}`},
+  ]
+  const orientationCheckPending=orientationCheckFields.some(f=>f.done&&f.combined&&qualityCheckedFields[f.step]!==f.combined)
   // Coach-as-Concierge onboarding narration, second piece: a short line from
   // Coach on arrival at each orientation step listed in ORIENTATION_NARRATION,
   // explaining why that step matters right before the person hits it, instead
@@ -8113,26 +8158,25 @@ export default function PivotEngine(){
   // dismissing card rather than the full panel -- it names the step the
   // person is about to use, so opening the full panel over that same step
   // would be the exact thing it exists to avoid.
-  // orientationCheckInFlight holds this off while a real reaction to the
-  // screen just left (values/reputation/life-events/location/priorities/fit,
-  // and now also resume/linkedin/assessment below) is still in flight -- each
-  // of those steps advances straight into the next narrated one, so without
-  // this a person leaving real content behind saw Coach start explaining the
-  // NEXT screen before its own reaction to what they just gave arrived
-  // seconds later, out of order and reading like two unrelated things
-  // stacked on each other rather than Coach actually responding.
+  // orientationCheckPending holds this off while a real reaction to the
+  // screen just left is still owed -- each covered step advances straight
+  // into the next narrated one, so without this a person leaving real
+  // content behind saw Coach start explaining the NEXT screen before its
+  // own reaction to what they just gave arrived seconds later, out of order
+  // and reading like two unrelated things stacked on each other rather than
+  // Coach actually responding.
   useEffect(()=>{
     if(isDemo||isTest)return
     if(!signedInUser||!hasOnboardingConcierge)return
     if(outputs&&outputs.p3)return
-    if(orientationCheckInFlight)return
+    if(orientationCheckPending)return
     const line=ORIENTATION_NARRATION[step]
     if(!line)return
     if(narratedOrientationSteps.includes(step)||narratedOrientationStepsFiredRef.current.has(step))return
     narratedOrientationStepsFiredRef.current.add(step)
     setNarratedOrientationSteps(prev=>prev.includes(step)?prev:[...prev,step])
     setChatMessages(m=>[...m,{role:'assistant',banner:true,content:line}])
-  },[step,signedInUser,hasOnboardingConcierge,narratedOrientationSteps,outputs,orientationCheckInFlight,isDemo,isTest])
+  },[step,signedInUser,hasOnboardingConcierge,narratedOrientationSteps,outputs,orientationCheckPending,isDemo,isTest])
   // Coach-as-Concierge onboarding narration, third piece: the Personal Brand
   // delivery presence moment. The first time a flagged, signed-in account
   // has a built Personal Brand to see, Coach shows up right on the p3 screen
@@ -8226,60 +8270,26 @@ export default function PivotEngine(){
   // resume alongside it so a real cross-reference -- a role or date that
   // does not line up -- can surface when one actually exists); Location and
   // Priorities get an orient/acknowledge framing; Values/Reputation/Life
-  // Story/Fit get a judged-for-specificity one. Runs independent checks off
-  // the same shape; each is keyed on `done` containing the step AND the
-  // submitted text differing from the last text actually checked for it, so
-  // editing an answer and leaving again re-asks but revisiting unchanged
-  // does not. This is the one onboarding piece that is a real network call
-  // rather than an instant local push, so it fetches directly rather than
-  // going through Chat's scripted-check-in helpers, and fails silently
-  // (leaving the field unchecked so the account's next visit with the same
-  // content tries again) rather than surfacing an error the person never
-  // asked for.
+  // Story/Fit get a judged-for-specificity one. See orientationCheckFields
+  // above (shared with the narration effect) for the field shapes. Runs
+  // independent checks off that same array; each is keyed on `done`
+  // containing the step AND the submitted text differing from the last text
+  // actually checked for it, so editing an answer and leaving again re-asks
+  // but revisiting unchanged does not. This is the one onboarding piece
+  // that is a real network call rather than an instant local push, so it
+  // fetches directly rather than going through Chat's scripted-check-in
+  // helpers, and fails silently (leaving the field unchecked so the
+  // account's next visit with the same content tries again) rather than
+  // surfacing an error the person never asked for.
   useEffect(()=>{
     if(isDemo||isTest)return
     if(!signedInUser||!hasOnboardingConcierge)return
-    const empLabel={employed:'Currently Employed',in_transition:'In Transition',role_ending:'Role Ending Soon'}[employmentStatus]||employmentStatus
-    const fields=[
-      // Resume, LinkedIn, and assessment each get a genuine first-read
-      // reaction to what was actually uploaded, not a canned "thanks for
-      // adding X" -- a fixed acknowledgment reads as mechanical exactly
-      // when the whole point is to feel like Coach is paying attention.
-      // LinkedIn's text carries the resume alongside it so the model can
-      // notice a real, concrete cross-reference (a role or date that does
-      // not line up) when one actually exists, rather than manufacturing
-      // one.
-      {step:'resume',done:done.includes('resume'),combined:(profile.resume||'').trim(),text:`Resume:\n${profile.resume||''}`},
-      {step:'linkedin',done:done.includes('linkedin'),combined:(profile.linkedin||'').trim(),text:`LinkedIn:\n${profile.linkedin||''}${profile.resume?`\n\nFor cross-reference, here is the resume they already gave you:\n${profile.resume}`:''}`},
-      {step:'assessment',done:done.includes('assessment'),combined:(profile.assess||'').trim(),text:`Assessment:\n${profile.assess||''}`},
-      {step:'values',done:done.includes('values'),combined:[profile.values,profile.passions].filter(Boolean).join(' ').trim(),text:`Values: ${profile.values||''}\nPassions, Interests & Causes: ${profile.passions||''}`},
-      {step:'reputation',done:done.includes('reputation'),combined:[profile.rep&&profile.rep.memory,profile.rep&&profile.rep.emergency,profile.rep&&profile.rep.twoWords,profile.rep&&profile.rep.other].filter(Boolean).join(' ').trim(),text:`The Memory: ${(profile.rep&&profile.rep.memory)||''}\nThe Emergency Call: ${(profile.rep&&profile.rep.emergency)||''}\nThe Two Words: ${(profile.rep&&profile.rep.twoWords)||''}\nAdditional Feedback: ${(profile.rep&&profile.rep.other)||''}`},
-      {step:'life-events',done:done.includes('life-events'),combined:(profile.lifeEvents||'').trim(),text:`Life Story: ${profile.lifeEvents||''}`},
-      // Location also captures employment status and search intake -- the
-      // earliest read on this person's state of mind coming in. Combined
-      // is built from all three so the check re-fires if any of them
-      // changes, even after an initial pass already ran on employment
-      // status alone.
-      {step:'location',done:done.includes('location'),combined:[employmentStatus,searchGoingWell,searchFocus].filter(Boolean).join(' ').trim(),text:`Employment status: ${empLabel||'not provided'}\nWhat's going well in their search: ${searchGoingWell||'not provided'}\nWhat they'd like to improve: ${searchFocus||'not provided'}`},
-      // Priorities: only the freeform deal-breakers field gets a check --
-      // the structured fields (comp floor, work requirements, benefits
-      // weight, risk tolerance) are self-explanatory and do not need one,
-      // and firing on an empty deal-breakers field (the common case, since
-      // it is explicitly optional) would manufacture a reaction to nothing.
-      {step:'priorities',done:done.includes('priorities'),combined:(profile.dealBreakers||'').trim(),text:`Hard deal-breakers: ${profile.dealBreakers||''}`},
-      // Go Independent track only -- same reflective-depth judgment as
-      // values/reputation/life-events, since the screen's own copy draws
-      // the identical specificity contrast ("companies that need better
-      // marketing" vs. a named stage, sector, and trigger).
-      {step:'fit',done:done.includes('fit'),combined:[profile.fitNeed,profile.fitBuyer].filter(Boolean).join(' ').trim(),text:`The Need: ${profile.fitNeed||''}\nThe Buyer: ${profile.fitBuyer||''}`},
-    ]
-    for(const f of fields){
+    for(const f of orientationCheckFields){
       if(!f.done||!f.combined)continue
       if(qualityCheckedFields[f.step]===f.combined)continue
       if(orientationCheckFiredRef.current[f.step]===f.combined)continue
       orientationCheckFiredRef.current={...orientationCheckFiredRef.current,[f.step]:f.combined}
       const stepId=f.step,combinedText=f.combined,sendText=f.text
-      setOrientationCheckInFlight(n=>n+1)
       ;(async()=>{
         try{
           const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({orientationCheck:{step:stepId,text:sendText},history:chatMessages.slice(-10),currentStep:stepId,surface:'sidebar'})})
@@ -8295,8 +8305,6 @@ export default function PivotEngine(){
         }catch{
           // best-effort -- failure leaves qualityCheckedFields unset for this
           // step so the same content is judged again on the next visit
-        }finally{
-          setOrientationCheckInFlight(n=>Math.max(0,n-1))
         }
       })()
     }

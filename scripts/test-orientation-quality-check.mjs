@@ -105,6 +105,31 @@ check(app.includes("combined:[employmentStatus,searchGoingWell,searchFocus].filt
   `${APP}: the location check no longer combines employment status and search intake for its dedupe key`)
 check(/if\(qualityCheckedFields\[f\.step\]===f\.combined\)continue/.test(app),
   `${APP}: the quality-check effect lost its content-based dedupe -- it would either never re-ask after an edit, or ask every render`)
+
+// The ordering fix (narration holds off until a real reaction is no longer
+// owed) MUST be a plain, synchronous, render-time computation, not a
+// counter one effect increments via setState and another effect reads --
+// a state update is not visible to a sibling effect in the SAME commit (it
+// schedules a future render), so that shape loses the race exactly when
+// both effects fire together: narration always wins, because it reads the
+// counter before the other effect's increment has taken effect. This is
+// the actual bug caught live (reputation's reaction landing AFTER the
+// priorities narration it should have preceded) after the first version of
+// this fix (an in-flight useState counter) shipped in #699.
+check(!app.includes('orientationCheckInFlight'),
+  `${APP}: orientationCheckInFlight (the racy useState-counter version of the ordering fix) is back -- it does not work across sibling effects in the same commit, see the comment above orientationCheckFields`)
+check(app.includes('const orientationCheckPending=orientationCheckFields.some(f=>f.done&&f.combined&&qualityCheckedFields[f.step]!==f.combined)'),
+  `${APP}: orientationCheckPending is missing or no longer derived synchronously from done/profile/qualityCheckedFields -- this is what makes the ordering fix correct on first read instead of racing a sibling effect`)
+check(/if\(orientationCheckPending\)return/.test(app),
+  `${APP}: the narration effect no longer holds off on orientationCheckPending`)
+// Both effects must build their field list from the SAME array, not two
+// independently maintained copies that can drift out of sync with each
+// other (a step added to one and not the other silently breaks either the
+// ordering fix or the check itself for that step).
+const orientationCheckFieldsIdx = app.indexOf('const orientationCheckFields=[')
+check(orientationCheckFieldsIdx !== -1, `${APP}: orientationCheckFields is missing`)
+check(app.includes('for(const f of orientationCheckFields){'),
+  `${APP}: the quality-check effect no longer iterates the shared orientationCheckFields array -- it may have grown its own separate copy again, which is exactly the drift this refactor removed`)
 check(app.includes("orientationCheck:{step:stepId,text:sendText}"),
   `${APP}: the quality-check effect no longer posts orientationCheck to /api/coach in the expected shape`)
 check(app.includes("if(res.status===204)"),
