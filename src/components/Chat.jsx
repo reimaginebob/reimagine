@@ -29,7 +29,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, allowGeneralMode = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, brandReworkCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, allowGeneralMode = false }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -413,6 +413,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const msgId = res.headers.get('X-Coach-Message-Id') || null
         const itHeader = res.headers.get('X-Coach-Interviewers') || null
         const vcHeader = res.headers.get('X-Coach-Values') || null
+        const brHeader = res.headers.get('X-Coach-Brand-Rework') || null
         const pcHeader = res.headers.get('X-Coach-Pipeline') || null
         const acHeader = res.headers.get('X-Coach-Activity') || null
         const siHeader = res.headers.get('X-Coach-Search-Intake') || null
@@ -476,6 +477,27 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             if (data && data.passions) parts.push(`Passions, Interests & Causes: ${data.passions}`)
             if (parts.length) {
               setMessages(m => [...m, { role: 'assistant', content: `Want me to save this to your Values, Passions & Causes screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, checkinKey: 'values-capture', quickReplies: [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Values, Passions & Causes.' }, { label: 'Not now', value: 'dismiss' }] }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Brand rework capture: the server judged the reply as a real
+        // correction to the Personal Brand, not just a reaction. Show the
+        // note back before acting on it — the DTFR box always shows what it
+        // is about to send, and this offer holds to the same bar.
+        if (brandReworkCaptureActive && brHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(brHeader), c => c.charCodeAt(0))))
+            const note = data && typeof data.note === 'string' ? data.note.trim() : ''
+            if (note) {
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to rework it with that?\n\n${note}`,
+                checkinKey: 'brand-rework',
+                quickReplies: [
+                  { label: 'Yes, rework it', value: JSON.stringify(data), followUp: 'Reworking it now — give it a moment.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
             }
           } catch { /* malformed header — no offer */ }
         }

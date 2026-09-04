@@ -7562,6 +7562,28 @@ export default function PivotEngine(){
       if(!isDemo&&outputs.p3&&!pbNeedsUpdate)setPbNeedsUpdate(true)
       return true
     }
+    // Coach judged a chat reply as a real correction to the Personal Brand
+    // and the person confirmed. Routes through the exact path the p3 "Does
+    // this feel right?" box uses (submitCorrection -> refreshP3, mirroring
+    // its onRegenerate exactly) so a Coach-originated correction gets the
+    // same conflict check a typed one gets, and shows up in the corrections
+    // history the same way. NOT the generic refineSec/gp/go machinery --
+    // that path has no 'p3' case (it serves the downstream Focus sections
+    // p3 itself feeds), Personal Brand's own build/regen path is refreshP3.
+    if(checkinKey==='brand-rework'){
+      if(value==='dismiss')return true
+      let data;try{data=JSON.parse(value)}catch{return false}
+      const note=data&&typeof data.note==='string'?data.note.trim():''
+      if(!note)return false
+      submitCorrection('p3',note,()=>{
+        const prevBrand=outputs.p3||''
+        const prevPres=(outputs.p3_structured&&outputs.p3_structured.presentation)||null
+        recordCorrection('p3',note)
+        out('p3','')
+        refreshP3(note,prevBrand,prevPres)
+      })
+      return true
+    }
     return false
   }
   // Who You Know Here (2026-08-30): the user's LinkedIn connections export, held
@@ -8207,7 +8229,7 @@ export default function PivotEngine(){
     setSeenBrandDeliveryMoment(true)
     pbCheckinFiredRef.current=true
     setSeenPbCheckin(true)
-    setChatMessages(m=>[...m,{role:'assistant',content:'Your story just came together above. Take a look, and tell me how it reads — does it sound like you?'}])
+    setChatMessages(m=>[...m,{role:'assistant',content:'Your story just came together above. Take a look, and tell me how it reads. If anything is off, tell me right here and I will rework it, or use "Does this feel right?" right below if you would rather do it there.'}])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,hasOnboardingConcierge,outputs,loading,seenBrandDeliveryMoment,isDemo,isTest])
   // Personal Brand check-in. The first time a signed-in user reaches Put it to
@@ -13961,7 +13983,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
         {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>
     // Job Search Resources (docs/networking-groups-brief.md). Its own
     // destination, reachable from the first screen, needing no direction and no
@@ -15833,7 +15855,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>

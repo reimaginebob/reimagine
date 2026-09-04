@@ -104,6 +104,17 @@ const PIPELINE_CAPTURE_NOTE = '\n\nPIPELINE CAPTURE: each opportunity on My Pipe
 const ACTIVITY_CAPTURE_NOTE = '\n\nACTIVITY CAPTURE: when this person tells you something about the human side of their search -- that they joined a group, went to Career Club Corner, have someone holding them accountable, wrote directly to a company, asked anyone for an introduction, spoke to a recruiter, or looked at free help near them -- OR tells you plainly that they have not or do not want to, end your reply with a final line exactly like ACTIVITY: {"activity":"accountability_partner","state":"done","detail":"Marta, they talk Fridays"} using ONLY these activity keys: ' + ACTIVITY_CATALOG.filter(a => a.evidence === 'asked').map(a => a.key).join(', ') + '. `state` is one of done (they have it), not_yet (they told you they have not) or declined (they told you they do not want it). `detail` is optional, short, and in their own words. Emit it ONLY for something they actually said in this conversation, never for something you suggested and they have not answered, and never to restate what you were already told above. The app turns that line into a one-tap offer and never shows it, so do not mention it and do not ask them to type anything. NEVER SAY YOU HAVE SAVED IT -- their tap is the only thing that writes, and claiming an action you cannot perform is worse than not offering. At most one per reply; otherwise omit it entirely.'
 const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passions & Causes live on a screen in Reimagine called "Values, Passions & Causes", and you can offer to write them there. When a conversation has settled into a statement of their values or their passions and causes that they seem happy with — their words and their conclusions, not a list you proposed and they have not responded to — end your reply with a final line exactly like VALUESCAPTURE: {"values":"Independence; Creative problem solving; Belonging","passions":"Youth mentoring; Faith-based service"} carrying whichever of the two you have. Include a key ONLY for a field the conversation actually settled; omit the other entirely. Write each as a short semicolon-separated list in their own words, not a paragraph and not your paraphrase. If ANCHOR 1 shows a field already has content, only emit it when they have clearly landed somewhere new — the tap replaces what is there. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
 
+// BRAND REWORK CAPTURE, 2026-09-04. Step-gated (p3 only, appended outside
+// buildCoachProfileSlice below since that function does not receive
+// currentStep), not a new flag -- part of the same onboarding_concierge
+// delivery moment (Personal Brand delivery, src/App.jsx), just wired to act
+// instead of only redirecting. Mirrors the one-tap capture contract every
+// note above uses: the model proposes, the tap writes, via the exact path
+// the "Does this feel right?" box already uses (submitCorrection ->
+// refreshP3(text, ...)), so a Coach-originated correction gets the same
+// conflict check a typed one gets.
+const BRAND_REWORK_CAPTURE_NOTE = '\n\nBRAND REWORK CAPTURE: the Personal Brand you just showed this person lives on this screen, with a "Does this feel right?" box under it that rewrites the section from a note like the one you would write here. When their reply names something specifically WRONG or OFF about it — a fact you got wrong, a tone that is not them, something missing, something overstated — and is not merely a reaction, a compliment, or a question, end your reply with a final line exactly like BRANDREWORK: {"note":"<what they said is off, tightened to the point, in their own words, not your paraphrase of the feeling behind it>"} . Do not emit it for "yeah that\'s me," "I like it," a question about what happens next, or anything that has not identified something to actually change — a reaction is not a correction. The app turns that line into a one-tap offer to rework the section with exactly that note, and never shows the line itself, so do not mention it and do not tell them to type it into a box. At most once per reply; otherwise omit it entirely.'
+
 // Session-open recap (Phase 1). The client fires a turn with no typed message
 // at all when it wants the coach to speak first with what changed since the
 // account's last session -- see the sessionOpen handling in the handler and
@@ -1317,6 +1328,14 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   const turnIndex = Array.isArray(history) ? history.length : 0
   const entryPoint = (surface === 'help' || surface === 'sidebar') ? surface : null
 
+  // Brand rework capture: only on the one screen it applies to, only once the
+  // brand exists to react to, and only for the flag this delivery moment
+  // already runs behind. A non-matching turn gets no instruction at all, so
+  // the parser below simply never finds a trailer to strip.
+  if (currentStep === 'p3' && hasPersonalBrand && hasOnboardingConcierge({ feature_flags: featureFlags, email: user.email })) {
+    profileBlock += BRAND_REWORK_CAPTURE_NOTE
+  }
+
   const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".]` : ''
 
   const messages = [
@@ -1537,6 +1556,21 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
       }
     } catch { /* malformed — drop the line, no offer */ }
   }
+  // Brand rework capture: the model may end with a BRANDREWORK: {json} line
+  // carrying a correction to the Personal Brand it judged as real (not just a
+  // reaction). Strip it and ship it on a response header; the client offers a
+  // one-tap rework through the exact path the "Does this feel right?" box
+  // uses, so this gets the same conflict check a typed correction gets.
+  let brandReworkB64 = null
+  const brMatch = strippedText.match(/^\s*BRANDREWORK:\s*(\{[\s\S]*?\})\s*$/im)
+  if (brMatch) {
+    strippedText = strippedText.replace(brMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(brMatch[1])
+      const note = typeof (parsed && parsed.note) === 'string' ? parsed.note.trim().slice(0, 600) : ''
+      if (note) brandReworkB64 = Buffer.from(JSON.stringify({ note })).toString('base64')
+    } catch { /* malformed — drop the line, no offer */ }
+  }
   // Pipeline capture: the model may end with a PIPELINE: {json} line carrying a
   // next move, a scheduled meeting, or both. Strip it and ship it on a response
   // header; the client shows exactly what will be written and offers a one-tap
@@ -1623,6 +1657,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   if (rowId) res.setHeader('X-Coach-Message-Id', String(rowId))
   if (interviewersB64) res.setHeader('X-Coach-Interviewers', interviewersB64)
   if (valuesB64) res.setHeader('X-Coach-Values', valuesB64)
+  if (brandReworkB64) res.setHeader('X-Coach-Brand-Rework', brandReworkB64)
   if (pipelineB64) res.setHeader('X-Coach-Pipeline', pipelineB64)
   if (activityB64) res.setHeader('X-Coach-Activity', activityB64)
   if (searchIntakeB64) res.setHeader('X-Coach-Search-Intake', searchIntakeB64)
