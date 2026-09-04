@@ -41,6 +41,9 @@
 //   - closer-*               (closer-template variants; p3-only as of #84)
 //   - transition-*           (narrower stock-transition survivors)
 //   - contamination-*        (SYS-exemplar verbatim leak; universal, #85)
+//   - partnership-*          (Coach framing an ask around its own want/need
+//                             rather than shared work; universal, runtime-
+//                             only, 2026-09-04)
 //
 // Keep regexes Unicode-aware where it matters; use the case-insensitive flag.
 
@@ -1086,6 +1089,32 @@ export const HARD_PATTERNS = [
     severity: 'hard',
     appliesTo: ['runtime'],
     note: 'Softening: state the claim if it has evidence; mark it as a hypothesis if it does not.',
+  },
+  // Partnership, not self-interest (2026-09-04, added as a standing voice
+  // principle after a live catch: "that is exactly what I want" on the
+  // Reputation screen, and "I want yours first" on Fit). Reimagine speaks in
+  // terms of what the two of you build together, never what it wants, needs,
+  // or is looking for FROM the person -- "bring me an old review" serves
+  // Coach; "that's exactly the kind of detail we can build from" keeps the
+  // work joint. Runtime-only (appliesTo does not include 'build'): the same
+  // first-person shapes appear constantly and legitimately elsewhere in the
+  // source this gate also scans -- placeholder examples of what a USER might
+  // type ("e.g. I want more warm introductions"), demo-profile data written
+  // in a fictional demo user's own voice, and quoted banned-phrase examples
+  // in comments. None of those are Coach speaking about itself, and a
+  // build-wide sweep would misfire on all of them; this pattern instead
+  // governs actual Coach/model output; the static lines this was caught on
+  // were fixed by hand in src/data/orientation-narration.js.
+  // "I want to help" / "I need to know" are excluded (the negative lookahead
+  // after want/need): wanting to DO something for the person is not the
+  // violation; wanting to RECEIVE something from them, framed as Coach's own
+  // want, is.
+  {
+    name: 'partnership-self-interest',
+    re: /\bI(?:['’]m|\s+am)\s+looking\s+for\b|\bI\s+(?:want|need)\b(?!\s+to\b)|\bwhat\s+I\s+(?:want|need)\b|\bgive\s+me\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Partnership register: frame this as what we build together, not what Coach wants, needs, or is looking for from the person.',
   },
 ]
 

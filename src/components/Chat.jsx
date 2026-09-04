@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import MD from './MD'
 import SpeechBtn, { hasSpeech } from './SpeechBtn'
 import { useIsMobile } from '../use-is-mobile.js'
+import { detectVoiceViolations } from '../voice-patterns.mjs'
 
 export const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
 
@@ -29,7 +30,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, allowGeneralMode = false, thinking = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -452,6 +453,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             return copy
           })
         }
+        // Coach's live replies stream straight into the visible UI, so a
+        // silent pre-display retry (matching generation's callClaudeWithVoiceGate)
+        // is not possible without buffering the whole reply and losing the
+        // live-typing effect. This checks the completed reply after it has
+        // already rendered and reports hard violations for detection and
+        // telemetry rather than correcting the displayed text.
+        const voiceViolations = detectVoiceViolations(fullText, { scope: 'runtime' }).filter(v => v.severity === 'hard')
+        if (voiceViolations.length && onVoiceViolation) onVoiceViolation(voiceViolations)
         // One-time in-conversation offer to persist a stated employment status.
         // Only when the value is unset, we have not offered this session, and no
         // employment prompt is already pending — so the on-open prompt and this
