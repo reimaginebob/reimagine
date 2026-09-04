@@ -4715,7 +4715,7 @@ const BASE_DOC_TITLE=typeof document!=='undefined'?document.title:'Reimagine'
 // handleEmploymentQuickReply -> saveEmployment -> /api/employment.
 const EMPLOYMENT_QUICK_REPLIES=[
   {label:'Currently Employed',value:'employed',followUp:'Good to know — I\'ll keep that in mind as we work.'},
-  {label:'In Transition',value:'in_transition',followUp:'Thanks, that\'s helpful to know.'},
+  {label:'In Transition',value:'in_transition',followUp:'Thanks for telling me — that shapes how I\'ll coach you.'},
   {label:'Role Ending Soon',value:'role_ending',followUp:'Got it — we\'ll treat this like a search on a clock when it matters.'},
 ]
 const employmentPromptMessage=(lead)=>({role:'assistant',content:(lead||'One quick thing so your coaching fits where you actually are — ')+'how would you describe your work situation right now?',checkinKey:'employment-status',quickReplies:EMPLOYMENT_QUICK_REPLIES})
@@ -7415,7 +7415,20 @@ export default function PivotEngine(){
   // The handler Chat calls on a quick-reply tap. Returns true for the employment
   // key so Chat does NOT fall back to the pb-checkin log.
   const handleEmploymentQuickReply=async(checkinKey,value)=>{
-    if(checkinKey==='employment-status'){await saveEmployment(value);return true}
+    if(checkinKey==='employment-status'){
+      await saveEmployment(value)
+      // A save-and-stop here was a dead end: the acknowledgment landed and the
+      // conversation had nowhere left to go. If search intake is still unknown,
+      // Coach continues right into it in the same exchange instead of queuing
+      // it silently for some future visit that may never come -- movement, not
+      // a person left staring at an empty box after answering a question.
+      if(!searchGoingWell&&!searchFocus&&!seenSearchIntakePrompt&&!searchIntakePromptFiredRef.current){
+        searchIntakePromptFiredRef.current=true
+        setSeenSearchIntakePrompt(true)
+        return searchIntakeOpener()
+      }
+      return true
+    }
     // Coach-as-Concierge onboarding narration, fourth piece: the direct
     // routing question's answer. The tap is what actually navigates -- the
     // same two actions the twoDoors screen's own two cards already perform
