@@ -18,6 +18,10 @@ Then one card per opportunity.
 
 **Where it stands.** Researching, Applied, In conversation, Interviewing, Offer, or Closed. Leave it unset until you know.
 
+**How it ended.** Choosing Closed adds a second question: Accepted, Declined, Not selected, Withdrew, or No response. Closed on its own only says the opportunity is over, which is the same word for the job you turned down and the job you were given — this is where you say which. Change the stage back and the outcome clears with it.
+
+**Accepted.** An opportunity you accepted stays lit rather than dimming, carries an **Offer accepted** mark, and moves to the top of the screen. It also asks you one question while it is fresh: what actually moved this one. Your answer is saved to that opportunity's notes, where you can read it the next time you run a search.
+
 **Next scheduled meeting.** The date of your next conversation, if one is booked.
 
 **Next move.** What you are doing next, in your own words, and the date you mean to do it by. This is the field that drives everything else on the screen.
@@ -44,12 +48,13 @@ An opportunity you remove lands in the **Archived** section at the bottom of thi
 
 You never sort this screen yourself. It sorts by what needs attention:
 
-1. A next move whose date has passed.
-2. Anything with an upcoming date, soonest first.
-3. Anything with a next move written but no date.
-4. An opportunity at Interviewing or Offer with sections still unbuilt.
-5. Everything else, most recently touched first.
-6. Closed opportunities, last and dimmed.
+1. An offer you accepted.
+2. A next move whose date has passed.
+3. Anything with an upcoming date, soonest first.
+4. Anything with a next move written but no date.
+5. An opportunity at Interviewing or Offer with sections still unbuilt.
+6. Everything else, most recently touched first.
+7. Every other closed opportunity, last and dimmed.
 
 ## The flags
 
