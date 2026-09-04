@@ -7251,6 +7251,12 @@ export default function PivotEngine(){
   // fire before the response lands and the dedupe map updates.
   const[qualityCheckedFields,setQualityCheckedFields]=useState({})
   const orientationCheckFiredRef=useRef({})
+  // Counts in-flight orientationCheck requests so the per-step narration
+  // effect below can hold off while one is pending -- see its own comment for
+  // why the ordering matters (a real reaction to what someone just said
+  // needs to land before Coach moves on to explaining the next screen, not
+  // arrive seconds afterward as a non sequitur once narration already fired).
+  const[orientationCheckInFlight,setOrientationCheckInFlight]=useState(0)
   // Employment status (consult 2026-08-13). The VALUE lives in a users column
   // (seeded from /api/me as signedInUser.employment_status), written by
   // /api/employment — never in the profile blob, whose whole-object autosave
@@ -8100,10 +8106,17 @@ export default function PivotEngine(){
   // narration for a step that predates this feature. Per-step dedupe
   // (narratedOrientationSteps) means each line fires once per account, ever,
   // regardless of how many times the step is revisited afterward.
+  // orientationCheckInFlight holds this off while a real reaction to the
+  // screen just left (e.g. Location's search-intake check) is still in
+  // flight -- Location always advances straight to resume, so without this a
+  // person leaving real content on that screen saw Coach start explaining the
+  // resume BEFORE its own reaction to what they just said arrived seconds
+  // later, out of order and reading like two unrelated things at once.
   useEffect(()=>{
     if(isDemo||isTest)return
     if(!signedInUser||!hasOnboardingConcierge)return
     if(outputs&&outputs.p3)return
+    if(orientationCheckInFlight)return
     const line=ORIENTATION_NARRATION[step]
     if(!line)return
     if(narratedOrientationSteps.includes(step)||narratedOrientationStepsFiredRef.current.has(step))return
@@ -8111,7 +8124,7 @@ export default function PivotEngine(){
     setNarratedOrientationSteps(prev=>prev.includes(step)?prev:[...prev,step])
     setChatMessages(m=>[...m,{role:'assistant',content:line}])
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,narratedOrientationSteps,outputs,isDemo,isTest])
+  },[step,signedInUser,hasOnboardingConcierge,narratedOrientationSteps,outputs,orientationCheckInFlight,isDemo,isTest])
   // Coach-as-Concierge onboarding narration, third piece: the Personal Brand
   // delivery presence moment. The first time a flagged, signed-in account
   // has a built Personal Brand to see, Coach shows up right on the p3 screen
@@ -8245,6 +8258,7 @@ export default function PivotEngine(){
       if(orientationCheckFiredRef.current[f.step]===f.combined)continue
       orientationCheckFiredRef.current={...orientationCheckFiredRef.current,[f.step]:f.combined}
       const stepId=f.step,combinedText=f.combined,sendText=f.text
+      setOrientationCheckInFlight(n=>n+1)
       ;(async()=>{
         try{
           const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({orientationCheck:{step:stepId,text:sendText},history:chatMessages.slice(-10),currentStep:stepId,surface:'sidebar'})})
@@ -8260,6 +8274,8 @@ export default function PivotEngine(){
         }catch{
           // best-effort -- failure leaves qualityCheckedFields unset for this
           // step so the same content is judged again on the next visit
+        }finally{
+          setOrientationCheckInFlight(n=>Math.max(0,n-1))
         }
       })()
     }

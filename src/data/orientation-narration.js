@@ -11,7 +11,7 @@
 // Voice-gated in full (scripts/check-voice.mjs's FILES_TO_CHECK carries this
 // path) since this is prose a person reads, spoken as Coach.
 export const ORIENTATION_NARRATION = {
-  resume: 'Your resume is the biggest single input here — I read it for the shape of what you have built: scope, trajectory, the kind of decisions you were making. It does not need to be current or polished. If yours is dated, there is a guided builder right on this screen that walks you through it instead.',
+  resume: 'Now let\'s get started — first up is your resume. It does not need to be current or polished — give me what you have and I will help you shape it from there. If yours is dated, there is a guided builder right on this screen that walks you through it instead.',
 
   linkedin: 'This one is optional, but worth adding if you have it. Your LinkedIn holds three things your resume does not: how you already describe yourself publicly, what colleagues have said about you in their own words, and what you engage with, which tells me something about what you value.',
 
