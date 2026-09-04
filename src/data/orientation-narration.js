@@ -13,7 +13,7 @@
 export const ORIENTATION_NARRATION = {
   resume: 'Now let\'s get started — first up is your resume. It does not need to be current or polished — give me what you have and I will help you shape it from there. If yours is dated, there is a guided builder right on this screen that walks you through it instead.',
 
-  linkedin: 'This one is optional, but worth adding if you have it. Your LinkedIn holds three things your resume does not: how you already describe yourself publicly, what colleagues have said about you in their own words, and what you engage with, which tells me something about what you value.',
+  linkedin: 'This one is optional, but worth adding if you have it. There is a quick how-to right on this screen: open your LinkedIn profile, click More, choose Save to PDF, then upload it here.',
 
   assessment: 'This is the step I would prioritize if you only add one optional thing here. An assessment shows the part of you that stays constant no matter what job you are in — where you do your best work, what you carry with you. Without it I can only work from your track record; with it I can connect what you have done to why you are good at it. Affintus is free if you do not already have one.',
 
