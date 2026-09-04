@@ -29,7 +29,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, allowGeneralMode = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, allowGeneralMode = false }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -115,6 +115,27 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       if (typeof onSeedConsumed === 'function') onSeedConsumed()
     }
   }, [seed])
+  // Session-open recap (Phase 1, next_step pilot only): the first time this
+  // account opens My Coach in a NEW LOGIN SESSION, the coach leads with what
+  // changed since the last one instead of waiting to be asked. The persisted
+  // transcript (reimagine_chat_history, localStorage) spans every login on
+  // this browser, so it cannot tell "a new session" from "the same session,
+  // reopened" -- sessionStorage can, because it clears when the tab/browser
+  // session ends. Firing is idempotent across both Chat surfaces (the
+  // floating bubble and the embedded My Coach view) because they read and
+  // write the same sessionStorage key and are never mounted at once (the
+  // bubble is suppressed on the 'myCoach' step -- see the render call below).
+  // embedded is "always open" (no open/close state of its own), so mounting
+  // it IS opening it; the floating variant fires when `open` flips true.
+  useEffect(() => {
+    if (!sessionOpenEligible) return
+    if (!embedded && !open) return
+    let already = false
+    try { already = sessionStorage.getItem('reimagine_session_recap_fired') === '1' } catch {}
+    if (already) return
+    try { sessionStorage.setItem('reimagine_session_recap_fired', '1') } catch {}
+    if (sendRef.current) sendRef.current(null, { silent: true })
+  }, [sessionOpenEligible, embedded, open])
   useEffect(() => {
     const el = inputTaRef.current
     if (!el) return
@@ -256,29 +277,43 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     } catch { /* the conversation already continued; the tap is best-effort */ }
   }
 
-  const send = async (explicit) => {
-    const text = (typeof explicit === 'string' ? explicit : input).trim()
-    if (!text || loading) return
+  // `silent` (session-open recap, Phase 1): the app fires this itself, with
+  // no typed text and no user bubble — the coach speaks first with what
+  // changed since the account's last session. Everything below reduces to
+  // the same request/stream/log path a normal send takes; the two
+  // differences are what goes in the request body (sessionOpen instead of a
+  // message) and that nothing is pushed into the transcript until we know
+  // there is something to show (a 204 means there wasn't, and that renders
+  // nothing at all rather than a bubble that briefly appears and vanishes).
+  const send = async (explicit, { silent = false } = {}) => {
+    const text = silent ? '' : (typeof explicit === 'string' ? explicit : input).trim()
+    if (silent) { if (loading) return } else if (!text || loading) return
     const userMsg = { role: 'user', content: text }
     // (sendRef is refreshed just below so the seed effect can call the latest send.)
     const historyAtSend = messages
-    setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])
-    setInput('')
-    setLoading(true)
+    if (silent) {
+      setLoading(true)
+    } else {
+      setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])
+      setInput('')
+      setLoading(true)
+    }
     try {
       const res = await fetch('/api/coach', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: userMsg.content,
+          ...(silent ? { sessionOpen: true } : { message: userMsg.content }),
           history: historyAtSend,
           currentStep,
           // Entry point for insight logging: the embedded variant is the My
           // Coach sidebar; the floating variant is the help bubble.
           surface: embedded ? 'sidebar' : 'help',
           // General-question mode (Career Club team only; re-checked server-side).
-          general: generalMode,
+          // Never sent on a silent open — the recap needs this account's real
+          // profile, and general mode explicitly has none loaded.
+          general: silent ? false : generalMode,
           // Which saved opportunity this conversation is pinned to, when the app
           // knows. The server otherwise infers it by scanning the person's own
           // words for the title or company (findInFocusRecord), which works for
@@ -289,6 +324,22 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           focusRecordId: (coachSaveTarget && coachSaveTarget.id) || undefined,
         }),
       })
+      if (silent && res.status === 204) {
+        // Nothing to recap (no prior session to diff against, or the pilot
+        // turned out not to be on) — say nothing, exactly as if this call had
+        // never been made.
+        setLoading(false)
+        return
+      }
+      if (silent && !res.ok) {
+        // A proactive opener nobody asked for; a failure here should not
+        // greet the person with an error message they never triggered. A
+        // normal send still shows its fallback below — this branch only
+        // covers the silent path.
+        setLoading(false)
+        return
+      }
+      if (silent) setMessages(m => [...m, { role: 'assistant', content: '' }])
       if (!res.ok || !res.body) {
         // When the model itself is unreachable the server sends one written
         // sentence explaining it (api/_lib/anthropic-error.js), so the coach
@@ -467,11 +518,19 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         }
       }
     } catch {
-      setMessages(m => {
-        const copy = [...m]
-        copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach your coach just now. Try again in a moment.' }
-        return copy
-      })
+      // A silent open never pushed a placeholder to overwrite here (it only
+      // does that once a real, non-204 response is in hand) -- so on a thrown
+      // error (network down, etc.) there is nothing of its own to fail into,
+      // and clobbering whatever the transcript's real last message happens to
+      // be would be worse than saying nothing. Fail exactly as silently as
+      // the 204/!res.ok branches above do.
+      if (!silent) {
+        setMessages(m => {
+          const copy = [...m]
+          copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach your coach just now. Try again in a moment.' }
+          return copy
+        })
+      }
     } finally {
       setLoading(false)
     }
