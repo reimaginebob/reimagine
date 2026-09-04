@@ -12892,9 +12892,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {signedInUser&&<button onClick={deleteAccount} style={{background:'transparent',color:'#CBD5E0',border:'none',padding:'4px 0',fontSize:15,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Or start fresh (delete everything and begin again)</button>}
         </div>
       </div>}
-      {!hasProgress&&!isDemo&&!isTest&&<div style={{background:'#1A2540',borderRadius:12,padding:'18px 28px',marginBottom:24,display:'flex',justifyContent:'center'}}>
-        <Btn onClick={()=>{window.location.href='/quick-start'}} style={{background:C.gold}}>Read the Quick Start Guide <ChevronRight size={14}/></Btn>
-      </div>}
       <div style={{display:'flex',justifyContent:'flex-start',alignItems:'flex-start',marginBottom:16}}>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="380" height="132" fontFamily="Inter,-apple-system,Segoe UI,Roboto,sans-serif" style={{display:'block'}}>
           <circle cx="44" cy="60" r="28" fill="#e4572e" opacity="0.18"/>
