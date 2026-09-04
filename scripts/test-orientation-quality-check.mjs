@@ -28,10 +28,21 @@ check(coach.includes('not a word-count checker'),
   `${COACH}: buildOrientationCheckTurnText lost its "judge on substance, not length" framing`)
 check(coach.includes('could the same words describe almost anyone in a similar career'),
   `${COACH}: buildOrientationCheckTurnText lost its specificity test (distinctive vs. generic)`)
-check(coach.includes('ask ONE real, specific question'),
-  `${COACH}: buildOrientationCheckTurnText lost the instruction to ask one grounded follow-up when an answer is generic`)
 check(coach.includes('do not manufacture a follow-up question where none is warranted'),
   `${COACH}: buildOrientationCheckTurnText lost the instruction NOT to push back on an already-specific answer`)
+
+// The follow-up itself: caught live asking about honesty AND sports AND
+// family in one reply, with each question presuming its own answer ("was
+// there a moment this cost you", "a sport that shaped how you lead a
+// team") instead of drawing the person out. Pin down both fixes: one
+// thread per reply, and an open question rather than a hypothesis handed
+// to them to confirm.
+check(coach.includes('ONE thread only'),
+  `${COACH}: buildReflectiveDepthCheckText lost the instruction to follow up on a single topic, not several stacked into one reply`)
+check(coach.includes('leading the witness'),
+  `${COACH}: buildReflectiveDepthCheckText lost the instruction against a leading question that supplies its own answer`)
+check(coach.includes('gets asked what integrity actually means to them and why it matters to them, not a guess'),
+  `${COACH}: buildReflectiveDepthCheckText lost its open-question example`)
 
 check(/const ORIENTATION_CHECK_LABELS = \{/.test(coach), `${COACH}: ORIENTATION_CHECK_LABELS is missing`)
 for (const step of ['resume', 'linkedin', 'assessment', 'values', 'reputation', 'life-events', 'location', 'priorities', 'fit']) {
