@@ -8181,25 +8181,44 @@ export default function PivotEngine(){
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,hasOnboardingConcierge,seenOrientationRoute,outputs,isDemo,isTest])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04): the
-  // moment someone leaves Values, Reputation, or Life Story with new content,
-  // Coach reads it and reacts -- see buildOrientationCheckTurnText in
-  // api/coach.js for the judgment itself, which is a real per-answer call
-  // the model makes each time, not a word-count rule. Runs three independent
-  // checks off the same shape; each is keyed on `done` containing the step
-  // AND the submitted text differing from the last text actually checked for
-  // it, so editing and leaving again re-asks but revisiting unchanged does
-  // not. This is the one onboarding piece that is a real network call rather
-  // than an instant local push, so it fetches directly rather than going
-  // through Chat's scripted-check-in helpers, and fails silently (leaving
-  // the field unchecked so the account's next visit with the same content
-  // tries again) rather than surfacing an error the person never asked for.
+  // moment someone leaves Values, Reputation, Life Story, Location (which
+  // also carries employment status and search intake), or Priorities (the
+  // freeform deal-breakers field) with new content, Coach reads it and
+  // reacts -- see buildOrientationCheckTurnText in api/coach.js for the
+  // judgment itself, which is a real per-answer call the model makes each
+  // time, not a word-count rule or a fixed script; Location and Priorities
+  // get their own framing there (orient/acknowledge, not judge-for-depth --
+  // the reflective-fields framing would be the wrong lens for "what's going
+  // well in your search" or a deal-breaker). Runs independent checks off the
+  // same shape; each is keyed on `done` containing the step AND the
+  // submitted text differing from the last text actually checked for it, so
+  // editing an answer and leaving again re-asks but revisiting unchanged
+  // does not. This is the one onboarding piece that is a real network call
+  // rather than an instant local push, so it fetches directly rather than
+  // going through Chat's scripted-check-in helpers, and fails silently
+  // (leaving the field unchecked so the account's next visit with the same
+  // content tries again) rather than surfacing an error the person never
+  // asked for.
   useEffect(()=>{
     if(isDemo||isTest)return
     if(!signedInUser||!hasOnboardingConcierge)return
+    const empLabel={employed:'Currently Employed',in_transition:'In Transition',role_ending:'Role Ending Soon'}[employmentStatus]||employmentStatus
     const fields=[
       {step:'values',done:done.includes('values'),combined:[profile.values,profile.passions].filter(Boolean).join(' ').trim(),text:`Values: ${profile.values||''}\nPassions, Interests & Causes: ${profile.passions||''}`},
       {step:'reputation',done:done.includes('reputation'),combined:[profile.rep&&profile.rep.memory,profile.rep&&profile.rep.emergency,profile.rep&&profile.rep.twoWords,profile.rep&&profile.rep.other].filter(Boolean).join(' ').trim(),text:`The Memory: ${(profile.rep&&profile.rep.memory)||''}\nThe Emergency Call: ${(profile.rep&&profile.rep.emergency)||''}\nThe Two Words: ${(profile.rep&&profile.rep.twoWords)||''}\nAdditional Feedback: ${(profile.rep&&profile.rep.other)||''}`},
       {step:'life-events',done:done.includes('life-events'),combined:(profile.lifeEvents||'').trim(),text:`Life Story: ${profile.lifeEvents||''}`},
+      // Location also captures employment status and search intake -- the
+      // earliest read on this person's state of mind coming in. Combined
+      // is built from all three so the check re-fires if any of them
+      // changes, even after an initial pass already ran on employment
+      // status alone.
+      {step:'location',done:done.includes('location'),combined:[employmentStatus,searchGoingWell,searchFocus].filter(Boolean).join(' ').trim(),text:`Employment status: ${empLabel||'not provided'}\nWhat's going well in their search: ${searchGoingWell||'not provided'}\nWhat they'd like to improve: ${searchFocus||'not provided'}`},
+      // Priorities: only the freeform deal-breakers field gets a check --
+      // the structured fields (comp floor, work requirements, benefits
+      // weight, risk tolerance) are self-explanatory and do not need one,
+      // and firing on an empty deal-breakers field (the common case, since
+      // it is explicitly optional) would manufacture a reaction to nothing.
+      {step:'priorities',done:done.includes('priorities'),combined:(profile.dealBreakers||'').trim(),text:`Hard deal-breakers: ${profile.dealBreakers||''}`},
     ]
     for(const f of fields){
       if(!f.done||!f.combined)continue
@@ -8225,7 +8244,7 @@ export default function PivotEngine(){
         }
       })()
     }
-  },[step,signedInUser,hasOnboardingConcierge,done,profile.values,profile.passions,profile.rep,profile.lifeEvents,qualityCheckedFields,isDemo,isTest])
+  },[step,signedInUser,hasOnboardingConcierge,done,profile.values,profile.passions,profile.rep,profile.lifeEvents,profile.dealBreakers,employmentStatus,searchGoingWell,searchFocus,qualityCheckedFields,isDemo,isTest])
   // One-tap employment prompt (consult 2026-08-13). Fires once for a signed-in
   // user with no employment value, on the dashboard surface (a between-tasks
   // pause, same intent as the Personal Brand check-in). Dedupes on

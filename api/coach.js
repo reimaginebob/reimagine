@@ -128,11 +128,45 @@ const ORIENTATION_CHECK_LABELS = {
   values: 'Values, Passions & Causes',
   reputation: 'Reputation',
   'life-events': 'Life Story',
+  location: 'Situation',
+  priorities: 'Priorities & Non-Negotiables',
+}
+function clip(text) {
+  return text.length > 4000 ? text.slice(0, 4000) + '…' : text
+}
+// The three reflective "who they are" fields: judged on whether the answer
+// differentiates this person or could describe almost anyone -- see the
+// header comment above for why this is a real per-answer call rather than a
+// length threshold.
+function buildReflectiveDepthCheckText(label, text) {
+  return `[They just left the ${label} screen during orientation. Here is exactly what they wrote:\n\n${clip(text)}\n\nRead it the way a sharp career coach would, not a word-count checker. Some short answers are already specific and telling; some long ones are still generic. Judge on one question: if a stranger read only this, would they learn something distinctive about THIS person, or could the same words describe almost anyone in a similar career? A bare trait word or a common phrase with nothing behind it ("Integrity", "Hard work", "Family") is generic even when it is true — the test is whether the specific shape of it, the moment or story behind it, actually came through.\n\nIf it is generic: do not just say "add more" or "can you elaborate" — ask ONE real, specific question that would surface the story behind what they wrote, the way a good interviewer follows a vague answer. Someone who wrote "Integrity" needs a question about what integrity has actually meant for them, or a moment holding to it cost them something — never a generic prompt to expand.\n\nIf it is already specific: say so plainly and briefly, naming the actual specific detail that makes it land — never a generic "great answer" — and do not manufacture a follow-up question where none is warranted.\n\nOpen with this directly, in your own voice, in one or two sentences — this is the first thing they see after leaving the screen, before you have said anything else. Do not mention that you are evaluating their answer or that this is an automated check, and do not repeat their words back as a block quote.]`
+}
+// The 'location' screen also captures employment status and search intake
+// (what's going well, what they'd like to improve) -- the earliest read
+// Reimagine gets on this person's state of mind coming in, and until now it
+// was captured through a cold form with no reaction at all. This is not a
+// specificity judgment like the reflective fields above; it's the same
+// "respond to what they actually said" engagement searchIntakeNote already
+// specifies for the fallback path where Coach has to ask for this later in
+// chat -- applied here as the FIRST reaction instead.
+function buildSituationCheckText(text) {
+  return `[They just told us about their situation at Orientation. Here is exactly what they gave us -- some of these may be blank if they had nothing to say yet:\n\n${clip(text)}\n\nThis is the first real read you have on where they stand and how their search is actually going. Respond to what they actually said, not a generic welcome. If they told you something is working, say what that is worth and one way to press the advantage. If they told you something is stuck, give a real read on where that usually breaks and one thing worth trying. If their employment status shows a role ending soon or being between roles, let that shape the weight and urgency of what you say without assuming how much time they have — ask if it would change your advice rather than assuming. Address only what they actually gave you; do not ask for anything left blank here, they will get another chance later.\n\nKeep it to a few sentences. Open with this directly, in your own voice — this is the first thing they see after this screen. Do not mention that this is an automated check.]`
+}
+// The 'priorities' screen's freeform "hard deal-breakers" field is where
+// something significant sometimes shows up unprompted -- a caregiving
+// responsibility, a health situation, something from a past job that will
+// not repeat -- alongside plainly practical ones (an industry, a company
+// stage). Both deserve a real acknowledgment, calibrated to which kind it
+// is, rather than silently filing it away until Coach happens to reference
+// it later.
+function buildDealBreakersCheckText(text) {
+  return `[They just told us their priorities at Orientation. Here is exactly what they wrote for hard deal-breakers:\n\n${clip(text)}\n\nSome deal-breakers are plainly practical (an industry, a company stage, a location). Some carry something more personal underneath (a caregiving responsibility, a health situation, something from a past job they do not want to repeat). Read which kind this is and acknowledge it plainly and briefly, calibrated to that — a practical one gets a practical acknowledgment of how it narrows the search; a personal one gets a genuine, unpressured acknowledgment that it registered, without probing for details they have not offered. Always say something; never a generic "got it" or "noted", and never manufacture significance that is not there.\n\nKeep it to one or two sentences. Open with this directly, in your own voice — this is the first thing they see after this screen. Do not mention that this is an automated check.]`
 }
 function buildOrientationCheckTurnText(step, text) {
+  if (step === 'location') return buildSituationCheckText(text)
+  if (step === 'priorities') return buildDealBreakersCheckText(text)
   const label = ORIENTATION_CHECK_LABELS[step] || 'this'
-  const clipped = text.length > 4000 ? text.slice(0, 4000) + '…' : text
-  return `[They just left the ${label} screen during orientation. Here is exactly what they wrote:\n\n${clipped}\n\nRead it the way a sharp career coach would, not a word-count checker. Some short answers are already specific and telling; some long ones are still generic. Judge on one question: if a stranger read only this, would they learn something distinctive about THIS person, or could the same words describe almost anyone in a similar career? A bare trait word or a common phrase with nothing behind it ("Integrity", "Hard work", "Family") is generic even when it is true — the test is whether the specific shape of it, the moment or story behind it, actually came through.\n\nIf it is generic: do not just say "add more" or "can you elaborate" — ask ONE real, specific question that would surface the story behind what they wrote, the way a good interviewer follows a vague answer. Someone who wrote "Integrity" needs a question about what integrity has actually meant for them, or a moment holding to it cost them something — never a generic prompt to expand.\n\nIf it is already specific: say so plainly and briefly, naming the actual specific detail that makes it land — never a generic "great answer" — and do not manufacture a follow-up question where none is warranted.\n\nOpen with this directly, in your own voice, in one or two sentences — this is the first thing they see after leaving the screen, before you have said anything else. Do not mention that you are evaluating their answer or that this is an automated check, and do not repeat their words back as a block quote.]`
+  return buildReflectiveDepthCheckText(label, text)
 }
 
 // MY PIPELINE — live status (Move 1, 2026-08-18). coach.js otherwise never sees

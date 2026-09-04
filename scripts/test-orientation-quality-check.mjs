@@ -1,9 +1,13 @@
 // Guards the orientation quality check (Coach-as-Concierge follow-on): Coach
-// reads what someone actually wrote for Values, Reputation, or Life Story
-// and judges it on substance, not word count -- a real per-answer model
-// judgment, not a length threshold or keyword list. Source-level for the
-// same reason its siblings are: this needs a live signed-in session and a
-// real model call to exercise end to end, and cannot be run here.
+// reads what someone actually wrote for Values, Reputation, Life Story,
+// Location (employment status + search intake), and Priorities (the
+// freeform deal-breakers field), and reacts on substance -- a real
+// per-answer model judgment, never a length threshold or keyword list, and
+// never the same framing for every field (Location/Priorities get an
+// orient-and-acknowledge reaction, not the reflective fields' judged-for-
+// specificity one). Source-level for the same reason its siblings are: this
+// needs a live signed-in session and a real model call to exercise end to
+// end, and cannot be run here.
 import fs from 'node:fs'
 
 let failures = 0
@@ -28,7 +32,7 @@ check(coach.includes('do not manufacture a follow-up question where none is warr
   `${COACH}: buildOrientationCheckTurnText lost the instruction NOT to push back on an already-specific answer`)
 
 check(/const ORIENTATION_CHECK_LABELS = \{/.test(coach), `${COACH}: ORIENTATION_CHECK_LABELS is missing`)
-for (const step of ['values', 'reputation', 'life-events']) {
+for (const step of ['values', 'reputation', 'life-events', 'location', 'priorities']) {
   check(coach.includes(`${step}:`) || new RegExp(`'${step}':`).test(coach),
     `${COACH}: ORIENTATION_CHECK_LABELS is missing the "${step}" key`)
 }
@@ -39,16 +43,39 @@ check(/const orientationCheckRequested = orientationCheckShapeOk && !generalMode
 check(/orientationCheckRequested \? buildOrientationCheckTurnText\(orientationCheck\.step, orientationCheck\.text\)/.test(coach),
   `${COACH}: the message construction no longer builds the orientation-check turn text for a granted request`)
 
+// Location and Priorities must NOT share the reflective-fields framing --
+// that would judge "what's going well in your search" for specificity,
+// which is the wrong lens entirely. Confirm the dispatcher routes them to
+// their own builders, and that those builders carry orient/acknowledge
+// language rather than the depth-judgment language.
+check(/if \(step === 'location'\) return buildSituationCheckText\(text\)/.test(coach),
+  `${COACH}: buildOrientationCheckTurnText no longer routes 'location' to its own builder -- it would fall through to the reflective-depth framing`)
+check(/if \(step === 'priorities'\) return buildDealBreakersCheckText\(text\)/.test(coach),
+  `${COACH}: buildOrientationCheckTurnText no longer routes 'priorities' to its own builder -- it would fall through to the reflective-depth framing`)
+check(coach.includes('This is not a specificity judgment like the reflective fields above') || coach.includes('is the first real read you have on where they stand'),
+  `${COACH}: buildSituationCheckText lost its orient-not-judge framing`)
+check(coach.includes('carry something more personal underneath') && coach.includes('calibrated to that'),
+  `${COACH}: buildDealBreakersCheckText lost its practical-vs-personal calibration instruction`)
+
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
 
 check(/const\[qualityCheckedFields,setQualityCheckedFields\]=useState\(\{\}\)/.test(app),
   `${APP}: qualityCheckedFields useState declaration is missing`)
 
-// The trigger: three fields, each gated on done + a real content-changed
+// The trigger: five fields, each gated on done + a real content-changed
 // check (not a flat "seen it once" flag -- editing an answer must re-ask).
-check(app.includes("step:'values'") && app.includes("step:'reputation'") && app.includes("step:'life-events'"),
-  `${APP}: the quality-check effect no longer covers all three fields (values, reputation, life-events)`)
+check(app.includes("step:'values'") && app.includes("step:'reputation'") && app.includes("step:'life-events'") && app.includes("step:'location'") && app.includes("step:'priorities'"),
+  `${APP}: the quality-check effect no longer covers all five fields (values, reputation, life-events, location, priorities)`)
+// Priorities must skip firing on an empty deal-breakers field -- it is
+// explicitly optional, and reacting to nothing would manufacture a check
+// where there is nothing to check.
+check(app.includes("combined:(profile.dealBreakers||'').trim()"),
+  `${APP}: the priorities check no longer gates on non-empty deal-breakers content`)
+// Location combines employment status with search intake so the check
+// re-fires if either changes independently after an initial pass.
+check(app.includes("combined:[employmentStatus,searchGoingWell,searchFocus].filter(Boolean).join(' ').trim()"),
+  `${APP}: the location check no longer combines employment status and search intake for its dedupe key`)
 check(/if\(qualityCheckedFields\[f\.step\]===f\.combined\)continue/.test(app),
   `${APP}: the quality-check effect lost its content-based dedupe -- it would either never re-ask after an edit, or ask every render`)
 check(app.includes("orientationCheck:{step:stepId,text:sendText}"),
