@@ -8114,11 +8114,13 @@ export default function PivotEngine(){
   // person is about to use, so opening the full panel over that same step
   // would be the exact thing it exists to avoid.
   // orientationCheckInFlight holds this off while a real reaction to the
-  // screen just left (e.g. Location's search-intake check) is still in
-  // flight -- Location always advances straight to resume, so without this a
-  // person leaving real content on that screen saw Coach start explaining the
-  // resume BEFORE its own reaction to what they just said arrived seconds
-  // later, out of order and reading like two unrelated things at once.
+  // screen just left (values/reputation/life-events/location/priorities/fit,
+  // and now also resume/linkedin/assessment below) is still in flight -- each
+  // of those steps advances straight into the next narrated one, so without
+  // this a person leaving real content behind saw Coach start explaining the
+  // NEXT screen before its own reaction to what they just gave arrived
+  // seconds later, out of order and reading like two unrelated things
+  // stacked on each other rather than Coach actually responding.
   useEffect(()=>{
     if(isDemo||isTest)return
     if(!signedInUser||!hasOnboardingConcierge)return
@@ -8212,18 +8214,20 @@ export default function PivotEngine(){
     setChatMessages(m=>[...m,{role:'assistant',content:'Do you already have something in motion — an application in, a referral, an interview coming up? Or are we starting from scratch?',checkinKey:'orientation-route',quickReplies:[{label:'Something\'s already moving',value:'in_motion',followUp:inMotionFollow},{label:'Starting from scratch',value:'fresh',followUp:freshFollow}]}])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,hasOnboardingConcierge,seenOrientationRoute,outputs,isDemo,isTest])
-  // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04): the
-  // moment someone leaves Values, Reputation, Life Story, Where You Think
-  // You Fit (Go Independent), Location (which also carries employment
-  // status and search intake), or Priorities (the freeform deal-breakers
-  // field) with new content, Coach reads it and reacts -- see
-  // buildOrientationCheckTurnText in api/coach.js for the judgment itself,
-  // which is a real per-answer call the model makes each time, not a
-  // word-count rule or a fixed script; Location and Priorities get their
-  // own framing there (orient/acknowledge, not judge-for-depth -- the
-  // reflective-fields framing would be the wrong lens for "what's going
-  // well in your search" or a deal-breaker). Runs independent checks off the
-  // same shape; each is keyed on `done` containing the step AND the
+  // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04,
+  // extended 2026-09-04 to cover Resume/LinkedIn/Assessment): the moment
+  // someone leaves a covered step with new content, Coach reads it and
+  // reacts -- see buildOrientationCheckTurnText in api/coach.js for the
+  // judgment itself, which is a real per-answer call the model makes each
+  // time, not a word-count rule or a fixed script or a canned "thanks for
+  // adding X" -- a fixed acknowledgment reads as mechanical exactly when the
+  // whole point is Coach actually paying attention. Resume/LinkedIn/
+  // Assessment get a genuine first-read reaction (LinkedIn's carries the
+  // resume alongside it so a real cross-reference -- a role or date that
+  // does not line up -- can surface when one actually exists); Location and
+  // Priorities get an orient/acknowledge framing; Values/Reputation/Life
+  // Story/Fit get a judged-for-specificity one. Runs independent checks off
+  // the same shape; each is keyed on `done` containing the step AND the
   // submitted text differing from the last text actually checked for it, so
   // editing an answer and leaving again re-asks but revisiting unchanged
   // does not. This is the one onboarding piece that is a real network call
@@ -8237,6 +8241,17 @@ export default function PivotEngine(){
     if(!signedInUser||!hasOnboardingConcierge)return
     const empLabel={employed:'Currently Employed',in_transition:'In Transition',role_ending:'Role Ending Soon'}[employmentStatus]||employmentStatus
     const fields=[
+      // Resume, LinkedIn, and assessment each get a genuine first-read
+      // reaction to what was actually uploaded, not a canned "thanks for
+      // adding X" -- a fixed acknowledgment reads as mechanical exactly
+      // when the whole point is to feel like Coach is paying attention.
+      // LinkedIn's text carries the resume alongside it so the model can
+      // notice a real, concrete cross-reference (a role or date that does
+      // not line up) when one actually exists, rather than manufacturing
+      // one.
+      {step:'resume',done:done.includes('resume'),combined:(profile.resume||'').trim(),text:`Resume:\n${profile.resume||''}`},
+      {step:'linkedin',done:done.includes('linkedin'),combined:(profile.linkedin||'').trim(),text:`LinkedIn:\n${profile.linkedin||''}${profile.resume?`\n\nFor cross-reference, here is the resume they already gave you:\n${profile.resume}`:''}`},
+      {step:'assessment',done:done.includes('assessment'),combined:(profile.assess||'').trim(),text:`Assessment:\n${profile.assess||''}`},
       {step:'values',done:done.includes('values'),combined:[profile.values,profile.passions].filter(Boolean).join(' ').trim(),text:`Values: ${profile.values||''}\nPassions, Interests & Causes: ${profile.passions||''}`},
       {step:'reputation',done:done.includes('reputation'),combined:[profile.rep&&profile.rep.memory,profile.rep&&profile.rep.emergency,profile.rep&&profile.rep.twoWords,profile.rep&&profile.rep.other].filter(Boolean).join(' ').trim(),text:`The Memory: ${(profile.rep&&profile.rep.memory)||''}\nThe Emergency Call: ${(profile.rep&&profile.rep.emergency)||''}\nThe Two Words: ${(profile.rep&&profile.rep.twoWords)||''}\nAdditional Feedback: ${(profile.rep&&profile.rep.other)||''}`},
       {step:'life-events',done:done.includes('life-events'),combined:(profile.lifeEvents||'').trim(),text:`Life Story: ${profile.lifeEvents||''}`},
@@ -8285,7 +8300,7 @@ export default function PivotEngine(){
         }
       })()
     }
-  },[step,signedInUser,hasOnboardingConcierge,done,profile.values,profile.passions,profile.rep,profile.lifeEvents,profile.dealBreakers,profile.fitNeed,profile.fitBuyer,employmentStatus,searchGoingWell,searchFocus,qualityCheckedFields,isDemo,isTest])
+  },[step,signedInUser,hasOnboardingConcierge,done,profile.resume,profile.linkedin,profile.assess,profile.values,profile.passions,profile.rep,profile.lifeEvents,profile.dealBreakers,profile.fitNeed,profile.fitBuyer,employmentStatus,searchGoingWell,searchFocus,qualityCheckedFields,isDemo,isTest])
   // One-tap employment prompt (consult 2026-08-13). Fires once for a signed-in
   // user with no employment value, on the dashboard surface (a between-tasks
   // pause, same intent as the Personal Brand check-in). Dedupes on

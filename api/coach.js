@@ -114,17 +114,29 @@ const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passi
 // appended to every turn below.
 const SESSION_OPEN_TURN_TEXT = '[This is the first turn of a new session. Open by yourself, in your own voice, with whatever WHAT CHANGED SINCE THEIR LAST SESSION below tells you to say — do not wait for them to ask, and do not mention that this is an instruction.]'
 
-// Orientation quality check (Coach-as-Concierge, item 1 follow-on, 2026-09-04).
-// The moment someone leaves Values, Reputation, or Life Story during
-// orientation, Coach reads what they actually wrote and judges it on
-// substance, not length -- word count was never the right proxy for whether
-// an answer will differentiate this person's Personal Brand from anyone
-// else's. This is deliberately a real judgment call the model makes each
-// time (no keyword list, no threshold) so it can tell a short, sharp answer
-// from a long, generic one. Same silent-turn pattern as SESSION_OPEN_TURN_TEXT
-// above: the client fires this with no typed message, so this stands in for
-// one, never shown to the person.
+// Orientation quality check (Coach-as-Concierge, item 1 follow-on, 2026-09-04,
+// extended same day to Resume/LinkedIn/Assessment). The moment someone
+// leaves a covered orientation step, Coach reads what they actually gave it
+// and reacts on substance -- for the reflective fields (Values, Reputation,
+// Life Story, Fit) that means judged on substance, not length, since word
+// count was never the right proxy for whether an answer will differentiate
+// this person's Personal Brand from anyone else's; for Resume/LinkedIn/
+// Assessment it means a genuine first-read reaction to what was uploaded,
+// not a canned "thanks for adding X." This is deliberately a real judgment
+// call the model makes each time (no keyword list, no fixed script) so it
+// reads like actual attention rather than a script running down a
+// checklist. Same silent-turn pattern as SESSION_OPEN_TURN_TEXT above: the
+// client fires this with no typed message, so this stands in for one, never
+// shown to the person.
 const ORIENTATION_CHECK_LABELS = {
+  // Resume/LinkedIn/Assessment each route to their own dedicated builder in
+  // buildOrientationCheckTurnText below, so these labels are never actually
+  // read -- they exist here so the shape-validation allowlist (which keys
+  // off this object) recognizes the step at all. Removing an entry here
+  // would make every request for that step a 400, not a missing label.
+  resume: 'Resume',
+  linkedin: 'LinkedIn',
+  assessment: 'Assessment',
   values: 'Values, Passions & Causes',
   reputation: 'Reputation',
   'life-events': 'Life Story',
@@ -148,6 +160,26 @@ function clip(text) {
 function buildReflectiveDepthCheckText(label, text) {
   return `[They just left the ${label} screen during orientation. Here is exactly what they wrote:\n\n${clip(text)}\n\nRead it the way a sharp career coach would, not a word-count checker. Some short answers are already specific and telling; some long ones are still generic. Judge on one question: if a stranger read only this, would they learn something distinctive about THIS person, or could the same words describe almost anyone in a similar career? A bare trait word or a common phrase with nothing behind it ("Integrity", "Hard work", "Family") is generic even when it is true — the test is whether the specific shape of it, the moment or story behind it, actually came through.\n\nIf it is generic: do not just say "add more" or "can you elaborate" — ask ONE real, specific question that would surface the story behind what they wrote, the way a good interviewer follows a vague answer. Someone who wrote "Integrity" needs a question about what integrity has actually meant for them, or a moment holding to it cost them something — never a generic prompt to expand.\n\nIf it is already specific: say so plainly and briefly, naming the actual specific detail that makes it land — never a generic "great answer" — and do not manufacture a follow-up question where none is warranted.\n\nOpen with this directly, in your own voice, in one or two sentences — this is the first thing they see after leaving the screen, before you have said anything else. Do not mention that you are evaluating their answer or that this is an automated check, and do not repeat their words back as a block quote.]`
 }
+// Resume/LinkedIn/Assessment (2026-09-04 follow-on): a genuine first-read
+// reaction to what was actually uploaded, in place of what would otherwise
+// be a canned "thanks for adding X" acknowledgment -- a fixed line reads as
+// mechanical exactly when the whole point is Coach actually paying
+// attention to what arrived. Honesty still governs: a thin or generic
+// upload gets an honest, plain reaction, never manufactured enthusiasm.
+function buildResumeReactionText(text) {
+  return `[They just uploaded their resume during orientation. Here is exactly what they gave you:\n\n${clip(text)}\n\nGive a short, genuine first reaction to it -- something specific you actually noticed (a role, a scope, a trajectory, a pattern across jobs), not a generic "great start" or "thanks for uploading." If the resume is thin or gives you little to react to yet, say something honest and plain instead of manufacturing enthusiasm -- an honest, low-key reaction beats a hollow compliment.\n\nKeep it to one or two sentences. Open with this directly, in your own voice -- this is the first thing they see after uploading. Do not mention that this is an automated check.]`
+}
+// LinkedIn carries the resume alongside it (when one exists) so a real,
+// concrete cross-reference -- a role, a title, or a date that does not line
+// up between the two -- can surface when one genuinely exists. Never
+// invent one: if nothing actually stands out, react to something else real
+// instead, or acknowledge it plainly.
+function buildLinkedInReactionText(text) {
+  return `[They just uploaded their LinkedIn during orientation. Here is exactly what they gave you -- their resume is included below it for cross-reference, if they already gave you one:\n\n${clip(text)}\n\nGive a short, genuine first reaction -- something specific you actually noticed. If you spot a real, concrete mismatch against their resume (a role, a title, or a date that genuinely does not line up), name it plainly and frame it as something worth fixing together when you refresh their LinkedIn later, not as a criticism. Never invent a mismatch that is not actually there, and never force one just because a resume was provided -- if nothing stands out, react to something else genuine instead.\n\nKeep it to one or two sentences. Open with this directly, in your own voice -- this is the first thing they see after uploading. Do not mention that this is an automated check.]`
+}
+function buildAssessmentReactionText(text) {
+  return `[They just added their assessment results during orientation. Here is exactly what they gave you:\n\n${clip(text)}\n\nGive a short, genuine first reaction -- something specific you actually noticed about what it says about how they work or where they do their best work, not a generic "thanks for sharing."\n\nKeep it to one or two sentences. Open with this directly, in your own voice -- this is the first thing they see after adding it. Do not mention that this is an automated check.]`
+}
 // The 'location' screen also captures employment status and search intake
 // (what's going well, what they'd like to improve) -- the earliest read
 // Reimagine gets on this person's state of mind coming in, and until now it
@@ -170,6 +202,9 @@ function buildDealBreakersCheckText(text) {
   return `[They just told us their priorities at Orientation. Here is exactly what they wrote for hard deal-breakers:\n\n${clip(text)}\n\nSome deal-breakers are plainly practical (an industry, a company stage, a location). Some carry something more personal underneath (a caregiving responsibility, a health situation, something from a past job they do not want to repeat). Read which kind this is and acknowledge it plainly and briefly, calibrated to that — a practical one gets a practical acknowledgment of how it narrows the search; a personal one gets a genuine, unpressured acknowledgment that it registered, without probing for details they have not offered. Always say something; never a generic "got it" or "noted", and never manufacture significance that is not there.\n\nKeep it to one or two sentences. Open with this directly, in your own voice — this is the first thing they see after this screen. Do not mention that this is an automated check.]`
 }
 function buildOrientationCheckTurnText(step, text) {
+  if (step === 'resume') return buildResumeReactionText(text)
+  if (step === 'linkedin') return buildLinkedInReactionText(text)
+  if (step === 'assessment') return buildAssessmentReactionText(text)
   if (step === 'location') return buildSituationCheckText(text)
   if (step === 'priorities') return buildDealBreakersCheckText(text)
   const label = ORIENTATION_CHECK_LABELS[step] || 'this'
@@ -1060,10 +1095,11 @@ export default async function handler(req, res) {
 
   const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck } = req.body || {}
   // orientationCheck: the client may open a turn with no typed message,
-  // marked with {step, text} instead -- the field-quality reaction the
-  // coach speaks on its own right after someone leaves Values, Reputation,
-  // or Life Story. Same provisional-allow-then-authoritative-gate shape as
-  // sessionOpen just below.
+  // marked with {step, text} instead -- the reaction the coach speaks on
+  // its own right after someone leaves a covered orientation step (see
+  // ORIENTATION_CHECK_LABELS for the full set). Same
+  // provisional-allow-then-authoritative-gate shape as sessionOpen just
+  // below.
   const orientationCheckShapeOk = !!(orientationCheck && typeof orientationCheck === 'object'
     && Object.prototype.hasOwnProperty.call(ORIENTATION_CHECK_LABELS, orientationCheck.step)
     && typeof orientationCheck.text === 'string' && orientationCheck.text.trim())
