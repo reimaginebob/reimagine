@@ -23,7 +23,7 @@ export const ORIENTATION_NARRATION = {
 
   reputation: 'This is where other people\'s words about you do the work — I can see patterns in how you are described that are hard to see in yourself. A specific quote beats a general compliment every time, so if you have an old review or a message someone sent you, that is exactly what I want.',
 
-  'life-events': 'This one is about what shaped you, not what you accomplished — the things that do not show up on a resume but explain a lot about how you work, and it stays private to your account.',
+  'life-events': 'This one is about what shaped you, not what you accomplished — the things that do not show up on a resume but explain a lot about who you are, and it stays private to your account.',
 
   skills: 'I already pulled a first pass of your skills from your resume and LinkedIn — take a look and fix anything that is off. This list decides which roles actually fit and which keywords land later.',
 
