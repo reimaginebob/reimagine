@@ -67,6 +67,14 @@ check(/if \(step === 'priorities'\) return buildDealBreakersCheckText\(text\)/.t
   `${COACH}: buildOrientationCheckTurnText no longer routes 'priorities' to its own builder -- it would fall through to the reflective-depth framing`)
 check(coach.includes('This is not a specificity judgment like the reflective fields above') || coach.includes('is the first real read you have on where they stand'),
   `${COACH}: buildSituationCheckText lost its orient-not-judge framing`)
+// Caught live: the model named an unrequested framework ("circle of
+// concern"/"circle of control") to explain a job-search pattern, reading as
+// a teaching moment instead of a friend saying "yeah, that happens." Pin the
+// guard against naming or teaching any framework/method/model in this reply.
+check(coach.includes('NEVER by naming, labeling, or teaching a framework, method, or model'),
+  `${COACH}: buildSituationCheckText lost its guard against naming or teaching a framework -- this is the fix for the live "circle of concern" incident`)
+check(coach.includes('a person telling a friend what\'s going on, not a student being taught a course'),
+  `${COACH}: buildSituationCheckText lost its friend-not-teacher register instruction`)
 check(coach.includes('carry something more personal underneath') && coach.includes('calibrated to that'),
   `${COACH}: buildDealBreakersCheckText lost its practical-vs-personal calibration instruction`)
 
