@@ -12273,6 +12273,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const sec=(rec)=>rec.sections||{}
     const builtCount=(rec)=>OP_COUNTED_KEYS.filter(k=>_opSectionBuilt(sec(rec),k)).length
     const stat=(rec)=>pursuitStatusFor(rec.id)||{}
+    // closed_at is half of this test, so it has to be cleared when the stage moves
+    // OFF Closed -- the select used to only ever set it. A user who marked an
+    // opportunity Closed and changed their mind was left with stage='offer' and a
+    // closed_at that still read as closed everywhere: card faded to 0.65, sorted
+    // last, dropped from the "in play" count, and reported to the Coach as over.
+    // Nothing in the app could undo it. (Found 2026-09-04 on a live pipeline: a
+    // user with an actual offer in hand, greyed out on his own screen.)
     const isClosed=(s)=>s.stage==='closed'||!!s.closed_at
     const ncaMs=(s)=>s.next_conversation_at?new Date(s.next_conversation_at).getTime():null
     const stepMs=(s)=>s.next_step_at?new Date(s.next_step_at).getTime():null
@@ -12323,7 +12330,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {s.situation_note&&<div style={{fontSize:15,color:C.grayL,fontStyle:'italic',borderLeft:`3px solid ${C.gold}`,background:`${C.gold}0D`,borderRadius:6,padding:'8px 12px',margin:'0 0 12px',lineHeight:1.5}}>“{s.situation_note}” <span style={{fontStyle:'normal',color:C.gray}}>— from your assistant</span></div>}
             <div style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'center'}}>
               <label style={{fontSize:15,color:C.gray}}>Where it stands{' '}
-                <select value={s.stage||''} onChange={e=>savePursuit(rec.id,{stage:e.target.value||null,...(e.target.value==='closed'?{closed_at:new Date().toISOString()}:{})})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}>
+                <select value={s.stage||''} onChange={e=>savePursuit(rec.id,{stage:e.target.value||null,closed_at:e.target.value==='closed'?new Date().toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}>
                   <option value="">Not set yet</option>
                   {PURSUIT_STAGES.map(st=><option key={st.value} value={st.value}>{st.label}</option>)}
                 </select>
