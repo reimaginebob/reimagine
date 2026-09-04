@@ -104,6 +104,15 @@ const PIPELINE_CAPTURE_NOTE = '\n\nPIPELINE CAPTURE: each opportunity on My Pipe
 const ACTIVITY_CAPTURE_NOTE = '\n\nACTIVITY CAPTURE: when this person tells you something about the human side of their search -- that they joined a group, went to Career Club Corner, have someone holding them accountable, wrote directly to a company, asked anyone for an introduction, spoke to a recruiter, or looked at free help near them -- OR tells you plainly that they have not or do not want to, end your reply with a final line exactly like ACTIVITY: {"activity":"accountability_partner","state":"done","detail":"Marta, they talk Fridays"} using ONLY these activity keys: ' + ACTIVITY_CATALOG.filter(a => a.evidence === 'asked').map(a => a.key).join(', ') + '. `state` is one of done (they have it), not_yet (they told you they have not) or declined (they told you they do not want it). `detail` is optional, short, and in their own words. Emit it ONLY for something they actually said in this conversation, never for something you suggested and they have not answered, and never to restate what you were already told above. The app turns that line into a one-tap offer and never shows it, so do not mention it and do not ask them to type anything. NEVER SAY YOU HAVE SAVED IT -- their tap is the only thing that writes, and claiming an action you cannot perform is worse than not offering. At most one per reply; otherwise omit it entirely.'
 const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passions & Causes live on a screen in Reimagine called "Values, Passions & Causes", and you can offer to write them there. When a conversation has settled into a statement of their values or their passions and causes that they seem happy with — their words and their conclusions, not a list you proposed and they have not responded to — end your reply with a final line exactly like VALUESCAPTURE: {"values":"Independence; Creative problem solving; Belonging","passions":"Youth mentoring; Faith-based service"} carrying whichever of the two you have. Include a key ONLY for a field the conversation actually settled; omit the other entirely. Write each as a short semicolon-separated list in their own words, not a paragraph and not your paraphrase. If ANCHOR 1 shows a field already has content, only emit it when they have clearly landed somewhere new — the tap replaces what is there. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
 
+// ASSESSMENT CAPTURE, 2026-09-04. Same one-tap contract as VALUES_CAPTURE_NOTE
+// above, for the same reason: someone who does not have a full assessment
+// report often still remembers real pieces of it (CliftonStrengths themes, a
+// type, specific traits), and today the only thing Coach could do with that
+// was tell them to go retype it themselves into the field on the assessment
+// screen -- the same redirect-instead-of-act gap the brand-rework bridge
+// closed for Personal Brand, caught live for this field too.
+const ASSESSMENT_CAPTURE_NOTE = '\n\nASSESSMENT CAPTURE: this person\'s assessment results (CliftonStrengths, Predictive Index, Big Five, Affintus, MBTI, DiSC, Hogan, or any other) live in a free-text field on the Assessment screen, and you can offer to add to it. When they name specific results they actually remember from a real assessment -- individual strengths, traits, a type, dimensions -- even without the full report, end your reply with a final line exactly like ASSESSMENTCAPTURE: {"text":"CliftonStrengths (remembered, not full report): Strategic, Belief, Activator"} . Write `text` as plain, factual content suitable for pasting directly into that field, in their own words and the names they gave -- never your interpretation or elaboration of what those results mean, that belongs in your reply, not in what gets saved. Name the assessment type if they said which one; if they did not say, describe it plainly ("remembered, no assessment named") rather than guessing one. Emit it ONLY for something concrete they actually named in this conversation, never for a vague self-description with no named instrument or result ("I think I am strategic" alone does not qualify), and never to restate content already on the screen (ANCHOR 1). The app turns that line into a one-tap offer -- appended to whatever is already in the field, never overwriting it -- and never shows the line itself, so do not mention it and do not tell them to type it in themselves. NEVER SAY YOU HAVE SAVED IT; their tap is the only thing that writes. At most once per reply; otherwise omit it entirely.'
+
 // BRAND REWORK CAPTURE, 2026-09-04. Step-gated (p3 only, appended outside
 // buildCoachProfileSlice below since that function does not receive
 // currentStep), not a new flag -- part of the same onboarding_concierge
@@ -520,7 +529,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
     // Orientation phase list. Carry the same navigation gate as the main path below
     // (keyed there on `done`): none of Career Paths, Add an Opportunity, Income Now
     // or the Focus Playbook sections is on this person's screen yet.
-    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.${VALUES_CAPTURE_NOTE}`
+    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}`
   }
   const pr = state.profile && typeof state.profile === 'object' ? state.profile : {}
   const outs = state.outputs && typeof state.outputs === 'object' ? state.outputs : {}
@@ -730,7 +739,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   const connectorNote = hasConnectorBeta({ feature_flags: featureFlags })
     ? '\n\nASSISTANT CONNECTOR (this person has it; it is a limited beta most users do not have — never imply it is generally available): they can connect their own assistant to Gmail and Calendar so their pipeline keeps itself current without them typing anything. Reimagine never reads their inbox. Mention it only if it fits what they are asking; do not pitch it.'
     : ''
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${activityNote}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${activityNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${searchIntakeNote(si)}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -1556,6 +1565,20 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
       }
     } catch { /* malformed — drop the line, no offer */ }
   }
+  // Assessment capture: the model may end with an ASSESSMENTCAPTURE: {json}
+  // line carrying remembered assessment content. Strip it and ship it on a
+  // response header; the client offers a one-tap add that appends to the
+  // assessment field rather than overwriting it.
+  let assessmentB64 = null
+  const assessMatch = strippedText.match(/^\s*ASSESSMENTCAPTURE:\s*(\{[\s\S]*?\})\s*$/im)
+  if (assessMatch) {
+    strippedText = strippedText.replace(assessMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(assessMatch[1])
+      const text = typeof (parsed && parsed.text) === 'string' ? parsed.text.trim().slice(0, 2000) : ''
+      if (text) assessmentB64 = Buffer.from(JSON.stringify({ text })).toString('base64')
+    } catch { /* malformed — drop the line, no offer */ }
+  }
   // Brand rework capture: the model may end with a BRANDREWORK: {json} line
   // carrying a correction to the Personal Brand it judged as real (not just a
   // reaction). Strip it and ship it on a response header; the client offers a
@@ -1657,6 +1680,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   if (rowId) res.setHeader('X-Coach-Message-Id', String(rowId))
   if (interviewersB64) res.setHeader('X-Coach-Interviewers', interviewersB64)
   if (valuesB64) res.setHeader('X-Coach-Values', valuesB64)
+  if (assessmentB64) res.setHeader('X-Coach-Assessment', assessmentB64)
   if (brandReworkB64) res.setHeader('X-Coach-Brand-Rework', brandReworkB64)
   if (pipelineB64) res.setHeader('X-Coach-Pipeline', pipelineB64)
   if (activityB64) res.setHeader('X-Coach-Activity', activityB64)
