@@ -12954,7 +12954,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         ?<>Have any resume, even a rough or dated one? A bio, LinkedIn profile, or one-pager works too. Start here. Starting completely fresh? There&apos;s a guided option just below.</>
         :<>Have any resume, even a rough or dated one? Start here. Starting completely fresh, or from your LinkedIn? There&apos;s a guided option just below.</>}</div>
       <div style={{...S.card,marginBottom:14,border:`1.5px solid ${C.gold}`,display:'flex',flexDirection:'column'}}>
-        <div style={{alignSelf:'flex-start',fontSize:15,letterSpacing:'.04em',textTransform:'uppercase',color:'#8A6D10',background:`${C.gold}1F`,borderRadius:12,padding:'3px 12px',marginBottom:10}}>Most people start here</div>
         <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>Have a resume? Use it.</div>
         <p style={{fontSize:15,color:C.gray,margin:'0 0 14px',lineHeight:1.55}}>Even if it's a little dated or missing your latest role. Reimagine reads it for patterns, scope, and trajectory, not polish. You don't need to fix it first.</p>
         <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
