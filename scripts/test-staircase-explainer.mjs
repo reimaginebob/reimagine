@@ -16,6 +16,7 @@
 // would be a label the UI does not render.
 import fs from 'node:fs'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import esbuild from 'esbuild'
 
 const ROOT = process.cwd()
@@ -44,7 +45,11 @@ await esbuild.build({
   external: ['react', 'react-dom', 'react-dom/server'],
 })
 
-const M = await import(out)
+// pathToFileURL, not the bare path: on Windows `out` is C:\... and the ESM
+// loader reads the drive letter as a URL scheme (ERR_UNSUPPORTED_ESM_URL_SCHEME).
+// Linux CI never sees it, so this failed only on a developer machine -- and it
+// failed by halting `npm run build` before vite ever ran.
+const M = await import(pathToFileURL(out).href)
 const { React, renderToStaticMarkup, Staircase, StaircaseExplainer, STAIRCASE_EXPLAINERS, NEEDS_LABEL, NAV_LABELS } = M
 
 const C = {
