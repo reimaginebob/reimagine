@@ -209,9 +209,24 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     // turn). In-place mutations — rating a reply, opening/closing its note box —
     // keep the same length and must not move the view (that yanked the user off
     // the note textarea they just opened).
-    const grew = len > prevLenRef.current
+    const prevLen = prevLenRef.current
+    const grew = len > prevLen
     prevLenRef.current = len
     if (!grew || len === 0) return
+    // A Coach-initiated turn (a check-in, a chained continuation) appends only
+    // assistant messages, with no new user message in this growth. Pinning the
+    // last EXISTING user message in that case scrolls to wherever that older
+    // turn was, which can leave the new message stranded below the fold in a
+    // conversation with any real history -- the person opens the panel, lands
+    // on old ground, and never sees Coach was waiting on them. Scroll those
+    // straight to the new message; only pin-to-top when this turn's growth
+    // itself included a fresh user message.
+    const turnHasNewUserMsg = messages.slice(prevLen).some(m => m.role === 'user')
+    if (!turnHasNewUserMsg) {
+      const el = messageRefs.current[len - 1]
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: 'end', behavior: 'smooth' })
+      return
+    }
     // Find the most recent user message and scroll it to the top of the
     // messages container so the assistant response reads downward.
     let lastUserIdx = -1
