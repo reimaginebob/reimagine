@@ -71,7 +71,7 @@ const OUTCOME_LABELS = {
   withdrew: "Withdrew", no_response: "No response",
 }
 const SOURCE_LABELS = {
-  referral: "Someone recommended it", bob: "Bob Goodwin or Career Club", linkedin: "LinkedIn",
+  referral: "Someone recommended it", outplacement: "Outplacement firm referral", bob: "Bob Goodwin or Career Club", linkedin: "LinkedIn",
   media: "Newsletter, podcast, or article", search: "Web search", event: "Event or workshop",
   other: "Something else", "(not asked)": "Predates the question",
 }

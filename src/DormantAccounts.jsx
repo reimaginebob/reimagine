@@ -29,7 +29,7 @@ const LISTS = [
 ]
 
 const SOURCE_LABELS = {
-  referral: "Referral", bob: "Bob / Career Club", linkedin: "LinkedIn", media: "Media",
+  referral: "Referral", outplacement: "Outplacement firm", bob: "Bob / Career Club", linkedin: "LinkedIn", media: "Media",
   search: "Search", event: "Event", other: "Other",
 }
 const DUP_KIND_LABELS = { case: "same address, different case", address: "same inbox", name: "same name" }

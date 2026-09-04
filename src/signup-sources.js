@@ -20,6 +20,7 @@
 
 export const SIGNUP_SOURCES = [
   { code: 'referral',   label: 'Someone I know recommended it', detailPrompt: 'Who, if you would like to say? (optional)' },
+  { code: 'outplacement', label: 'My outplacement firm referred me', detailPrompt: 'Which one? (optional)' },
   { code: 'bob',        label: 'Bob Goodwin or Career Club' },
   { code: 'linkedin',   label: 'LinkedIn' },
   { code: 'media',      label: 'A newsletter, podcast, or article', detailPrompt: 'Which one? (optional)' },
