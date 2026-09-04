@@ -64,6 +64,23 @@ const saveDepsIdx = app.indexOf('saveRef.current=save')
 check(app.slice(saveDepsIdx, saveDepsIdx + 500).includes('narratedOrientationSteps'),
   `${APP}: narratedOrientationSteps is missing from the autosave effect's dependency array`)
 
+// The "this is optional" apology framing: Coach should lead with why an
+// input is worth giving, not open by flagging it as skippable friction.
+for (const [step, text] of Object.entries(ORIENTATION_NARRATION)) {
+  check(!/^(this one is optional|this is (the step i would prioritize if you only add one )?optional)/i.test(text.trim()),
+    `orientation-narration.js: "${step}" still opens by apologizing for being optional instead of leading with its value`)
+}
+check(!ORIENTATION_NARRATION['life-events'].includes('Entirely optional, and'),
+  `orientation-narration.js: "life-events" still leads its closing reassurance with "Entirely optional" instead of folding privacy in as a plain fact`)
+
+// Same positive-framing principle, different shape: opening with a
+// prohibition aimed at the person ("Do not X") reads as a correction before
+// they have done anything, not an invitation.
+for (const [step, text] of Object.entries(ORIENTATION_NARRATION)) {
+  check(!/^(do not|don't)\b/i.test(text.trim()),
+    `orientation-narration.js: "${step}" opens with a "do not" directive instead of leading with the positive ask`)
+}
+
 if (failures) {
   console.error(`test-onboarding-narration: ${failures} check(s) failed`)
   process.exit(1)
