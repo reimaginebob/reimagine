@@ -8075,7 +8075,7 @@ export default function PivotEngine(){
     const whatComesNext=isIndependent
       ? 'Once it\'s built, we turn it into how you position yourself, which companies are worth pitching, and a plan for pricing your work while your client list grows.'
       : 'Once it\'s built, you get two ways to put it to work: a tailored playbook for one specific opportunity, or a map of directions if you\'re still deciding.'
-    setChatMessages(m=>[...m,{role:'assistant',content:`Hi, I'm your coach — I'll walk you through this with you rather than leave you to a form. Here's what's coming: your resume, an assessment if you have one, your values, your priorities, a few reputation questions, and your story. That's what builds your Personal Brand, the through-line of who you are at work. It takes about half an hour, and it saves as you go, so there's no rush. ${whatComesNext} Let's start with your resume.`}])
+    setChatMessages(m=>[...m,{role:'assistant',content:`Welcome — I'm glad you're here. I'll walk you through this: your resume, an assessment if you have one, your values, your priorities, a few reputation questions, and your story. That's what builds your Personal Brand, the through-line of who you are at work. It takes about half an hour, and it saves as you go, so there's no rush. ${whatComesNext} Let's start with your resume.`}])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,hasOnboardingConcierge,seenOnboardingFraming,done,outputs,isIndependent,isDemo,isTest])
   // Coach-as-Concierge onboarding narration, second piece: a short line from
