@@ -9885,9 +9885,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // done on My Pipeline) or 'user' (typed on the opportunity's Notes card). Same
   // row shape saveCoachNoteToOpportunity writes, so the render stays one list.
   // personName is Coach-only and stays null here.
+  // Retrospective draft, keyed by record: unlike the Notes composer, several
+  // pipeline cards are on screen at once, so one shared string would type into
+  // every open prompt.
+  const [winDraft,setWinDraft]=useState({})
   const addOpNote=(slotId,{text,source})=>{
     const t=(typeof text==='string'?text:'').trim();if(!slotId||!t)return
-    const note={id:newNoteId(),text:t,source:source==='step'?'step':'user',personName:null,createdAt:new Date().toISOString()}
+    const note={id:newNoteId(),text:t,source:['step','win'].includes(source)?source:'user',personName:null,createdAt:new Date().toISOString()}
     setSavedPlaybooks(prev=>prev.map(r=>r.id===slotId?{...r,savedNotes:[...getOpSavedNotes(r),note],updatedAt:new Date().toISOString()}:r))
   }
   const coachSaveTarget=()=>{const r=savedPlaybooks.find(x=>x&&x.id===currentSavedSlotIdRef.current&&x.source==='door2');return r?{id:r.id,title:r.title||'this opportunity'}:null}
@@ -12285,7 +12289,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const stepMs=(s)=>s.next_step_at?new Date(s.next_step_at).getTime():null
     // Attention-first: overdue next step (you meant to act) > passed meeting >
     // soonest upcoming date (step or meeting) > has a next step > build gap > rest.
-    const priority=(rec)=>{const s=stat(rec);if(isClosed(s))return 600;const st=stepMs(s);const n=ncaMs(s);if(st!=null&&st<now)return 100;if([st,n].some(x=>x!=null&&x>=now))return 200;if(s.next_move&&String(s.next_move).trim())return 300;if((s.stage==='interviewing'||s.stage==='offer')&&builtCount(rec)<OP_COUNTED_KEYS.length)return 400;return 500}
+    // An accepted offer is the one thing in a pipeline worth seeing before the
+    // overdue work. It is still closed -- it is over, and it stays out of the
+    // "in play" counts -- but it does not get filed at the bottom in grey with
+    // the roles that turned the person down.
+    const isWon=(s)=>isClosed(s)&&s.outcome==='accepted'
+    const priority=(rec)=>{const s=stat(rec);if(isWon(s))return 50;if(isClosed(s))return 600;const st=stepMs(s);const n=ncaMs(s);if(st!=null&&st<now)return 100;if([st,n].some(x=>x!=null&&x>=now))return 200;if(s.next_move&&String(s.next_move).trim())return 300;if((s.stage==='interviewing'||s.stage==='offer')&&builtCount(rec)<OP_COUNTED_KEYS.length)return 400;return 500}
     const tieKey=(rec)=>{const s=stat(rec);const p=priority(rec);const st=stepMs(s);const n=ncaMs(s);if(p===100)return st;if(p===200)return Math.min(...[st,n].filter(x=>x!=null&&x>=now));return -(new Date(s.updated_at||rec.updatedAt||0).getTime()||0)}
     const sorted=[...ops].sort((a,b)=>{const pa=priority(a),pb=priority(b);if(pa!==pb)return pa-pb;return tieKey(a)-tieKey(b)})
     const dateInputVal=(iso)=>{try{return iso?new Date(iso).toISOString().slice(0,10):''}catch{return ''}}
@@ -12309,7 +12318,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           const dueState=isClosed(s)?null:pursuitStepDueState(s.next_step_at)
           const flag=dueState==='overdue'?{text:'#B42318',border:'#FDA29B',bg:'#FEE4E2',inputBg:'#FFF7F6',label:'overdue —',pill:'Overdue'}:dueState==='today'?{text:'#067647',border:'#6CE9A6',bg:'#ECFDF3',inputBg:'#F6FEF9',label:'due today —',pill:'Due today'}:dueState==='invalid'?{text:'#B54708',border:'#FEC84B',bg:'#FEF0C7',inputBg:'#FFFAEB',label:'check date —',pill:'Check date'}:null
           const inPipe=daysIn(rec);const quiet=!isClosed(s)&&!needsAttn(s)&&!hasUpcoming(s)
-          return <div key={rec.id} style={{padding:'18px 20px',background:'#FFFFFF',border:`1.5px solid ${flag?flag.border:C.border}`,borderRadius:14,opacity:isClosed(s)?0.65:1}}>
+          const won=isWon(s)
+          return <div key={rec.id} style={{padding:'18px 20px',background:won?'#FCFBF7':'#FFFFFF',border:`1.5px solid ${won?C.gold:flag?flag.border:C.border}`,borderRadius:14,opacity:isClosed(s)&&!won?0.65:1}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:10}}>
               <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0,flex:1}}>
                 {pipelineRenameId===rec.id
@@ -12322,19 +12332,37 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                      <span style={{fontSize:18,fontWeight:700,color:'#1A2540',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{title}</span>
                      <Pencil size={14} color={C.gray} style={{flexShrink:0}}/>
                    </button>}
+                {won&&<span style={{flexShrink:0,fontSize:15,fontWeight:700,color:'#7A6212',background:`${C.gold}22`,border:`1px solid ${C.gold}`,borderRadius:20,padding:'1px 9px'}}>Offer accepted</span>}
                 {flag&&<span style={{flexShrink:0,fontSize:15,fontWeight:700,color:flag.text,background:flag.bg,border:`1px solid ${flag.border}`,borderRadius:20,padding:'1px 9px'}}>{flag.pill}</span>}
               </div>
               <button type="button" onClick={()=>openPursuitRecord(rec,'op')} style={{flexShrink:0,background:'transparent',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Open →</button>
             </div>
             {!isClosed(s)&&(inPipe!=null||quiet)&&<div style={{fontSize:15,color:C.gray,margin:'-4px 0 10px'}}>{inPipe!=null?`In your pipeline ${inPipe} day${inPipe===1?'':'s'}`:''}{quiet?`${inPipe!=null?' · ':''}nothing scheduled yet`:''}</div>}
+            {won&&(()=>{const _asked=getOpSavedNotes(rec).some(n=>n&&n.source==='win');const _d=(winDraft[rec.id]||'').trim()
+              return <div style={{border:`1px solid ${C.gold}`,background:`${C.gold}14`,borderRadius:10,padding:'14px 16px',margin:'0 0 12px'}}>
+                <div style={{fontSize:17,fontWeight:700,color:'#1A2540',marginBottom:_asked?0:6}}>Congratulations — you got it.</div>
+                {_asked
+                  ?<div style={{fontSize:15,color:C.grayL,lineHeight:1.6}}>What worked is saved to this opportunity's notes.</div>
+                  :<>
+                    <div style={{fontSize:15,color:C.grayL,lineHeight:1.6,marginBottom:10}}>While it's fresh — what actually moved this one? Worth having written down.</div>
+                    <textarea style={{...S.ta,minHeight:70,fontSize:16}} value={winDraft[rec.id]||''} onChange={e=>setWinDraft(d=>({...d,[rec.id]:e.target.value}))} placeholder="The conversation, the person, the thing you said that landed"/>
+                    <Btn small prominent disabled={!_d} onClick={()=>{addOpNote(rec.id,{text:winDraft[rec.id],source:'win'});setWinDraft(d=>({...d,[rec.id]:''}))}} style={{marginTop:8}}>Save to notes</Btn>
+                  </>}
+              </div>})()}
             {s.situation_note&&<div style={{fontSize:15,color:C.grayL,fontStyle:'italic',borderLeft:`3px solid ${C.gold}`,background:`${C.gold}0D`,borderRadius:6,padding:'8px 12px',margin:'0 0 12px',lineHeight:1.5}}>“{s.situation_note}” <span style={{fontStyle:'normal',color:C.gray}}>— from your assistant</span></div>}
             <div style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'center'}}>
               <label style={{fontSize:15,color:C.gray}}>Where it stands{' '}
-                <select value={s.stage||''} onChange={e=>savePursuit(rec.id,{stage:e.target.value||null,closed_at:e.target.value==='closed'?new Date().toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}>
+                <select value={s.stage||''} onChange={e=>{const v=e.target.value||null;savePursuit(rec.id,{stage:v,closed_at:v==='closed'?new Date().toISOString():null,...(v==='closed'?{}:{outcome:null})})}} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}>
                   <option value="">Not set yet</option>
                   {PURSUIT_STAGES.map(st=><option key={st.value} value={st.value}>{st.label}</option>)}
                 </select>
               </label>
+              {s.stage==='closed'&&<label style={{fontSize:15,color:C.gray}}>How did it end{' '}
+                <select value={s.outcome||''} onChange={e=>savePursuit(rec.id,{outcome:e.target.value||null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${won?C.gold:C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}>
+                  <option value="">Not set yet</option>
+                  {Object.entries(PURSUIT_OUTCOME_LABELS).map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                </select>
+              </label>}
               <label style={{fontSize:15,color:C.gray}}>Next scheduled meeting{' '}
                 <input type="date" value={dateInputVal(s.next_conversation_at)} onChange={e=>savePursuit(rec.id,{next_conversation_at:e.target.value?new Date(e.target.value).toISOString():null})} style={{fontSize:16,fontFamily:'inherit',padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7,color:'#1A2540',background:'#FFF'}}/>
               </label>
@@ -15357,7 +15385,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   </div>
                   {hasSpeech&&<SpeechBtn onResult={t=>setNoteDraft(x=>x+t)}/>}
                 </div>
-                {_notes.map(n=>{const _stamp=n.source==='coach'?`From My Coach${n.personName?` · ${n.personName}`:''}`:`${n.source==='step'?'Completed':'Your note'}${noteStampDate(n.createdAt)?` · ${noteStampDate(n.createdAt)}`:''}`;return <div key={n.id} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 14px',marginBottom:10,background:C.bg}}>
+                {_notes.map(n=>{const _stamp=n.source==='coach'?`From My Coach${n.personName?` · ${n.personName}`:''}`:`${n.source==='step'?'Completed':n.source==='win'?'What worked':'Your note'}${noteStampDate(n.createdAt)?` · ${noteStampDate(n.createdAt)}`:''}`;return <div key={n.id} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 14px',marginBottom:10,background:C.bg}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:6,flexWrap:'wrap'}}>
                     <span style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>{_stamp}</span>
                     {!isDemo&&<Btn small secondary onClick={()=>removeOpSavedNote(_rec.id,n.id)} style={{padding:'4px 10px'}}><X size={12}/>Remove</Btn>}
