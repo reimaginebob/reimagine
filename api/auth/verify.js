@@ -64,7 +64,11 @@ export default async function handler(req, res) {
   let userId
   if (existing.length > 0) {
     userId = existing[0].id
-    await sql`UPDATE users SET last_login_at = NOW() WHERE id = ${userId}`
+    // prior_session_at takes whatever last_login_at held a moment ago, before
+    // this same statement moves last_login_at to NOW() -- see
+    // migrations/2026-09-04_prior-session-at.sql for why last_login_at alone
+    // cannot serve as the session-delta anchor.
+    await sql`UPDATE users SET prior_session_at = last_login_at, last_login_at = NOW() WHERE id = ${userId}`
   } else {
     // Carry the acceptance captured on the signup form (stored on the token
     // row by request-link.js) onto the new users row. New accounts always

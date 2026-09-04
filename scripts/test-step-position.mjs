@@ -7,7 +7,7 @@
 // backwards for a quiet fortnight, argue with someone who says they are further
 // along, offer a door they already declined, count anything, or hand back three
 // doors that are all about one company.
-import { stepPosition, nextSteps, opportunityPositions, KEEL_PRINCIPLES, KEEL_LETTER } from '../src/step-position.js'
+import { stepPosition, nextSteps, opportunityPositions, KEEL_PRINCIPLES, KEEL_LETTER, computeSessionDelta } from '../src/step-position.js'
 
 const NOW = Date.parse('2026-09-02T00:00:00Z')
 const ago = d => new Date(NOW - d * 86400000).toISOString()
@@ -151,6 +151,57 @@ t('both E principles are present and distinct',
   KEEL_PRINCIPLES.filter(p => p.letter === 'E').length === 2 &&
   new Set(KEEL_PRINCIPLES.map(p => p.gloss)).size === 4)
 t('a stall leans on K', N({ ...base3, savedPlaybooks: [opp('a', 'Imerys')] }, [row('a', { updated_at: ago(20) })]).keelLetter === 'K')
+
+// ---- SESSION DELTA (Coach-as-Concierge, Phase 1) ----
+// The recap's whole claim to trust is that "since your last visit" is real,
+// never invented -- these cases are the ways that claim could quietly go
+// false: a section touched before the last visit but re-saved after with no
+// real change, an interview double-counted as both "added" and "happened," a
+// first-time account treated as having a diffable history.
+const D = (s, r, f, since) => computeSessionDelta(s, r, f, since, NOW)
+
+t('no prior session returns null, not an empty delta', D(base3, [], [], null) === null)
+t('an unparseable timestamp returns null rather than throwing', D(base3, [], [], 'not-a-date') === null)
+
+const sinceT = ago(5)
+t('an opportunity created after the last visit is added, not just "moved"',
+  D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(1) })] }, [row('a', { updated_at: ago(1) })], [], sinceT)
+    .addedOpportunities.includes('Imerys'))
+t('an opportunity created before the last visit is not "added" even if touched since',
+  !D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(20) })] }, [row('a', { updated_at: ago(1) })], [], sinceT)
+    .addedOpportunities.includes('Imerys'))
+t('a conversation scheduled and completed since the last visit counts as happened', (() => {
+  const d = D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(20) })] },
+    [row('a', { next_conversation_at: ago(1) })], [], sinceT)
+  return d.interviewsHappened.some(x => x.title === 'Imerys')
+})())
+t('a conversation still ahead of NOW is not "happened" yet', (() => {
+  const d = D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(20) })] },
+    [row('a', { next_conversation_at: ahead(2) })], [], sinceT)
+  return !d.interviewsHappened.length
+})())
+t('a newly-added opportunity is never ALSO listed as "other movement" (no double count)', (() => {
+  const d = D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(1) })] }, [row('a', { updated_at: ago(1) })], [], sinceT)
+  return d.addedOpportunities.includes('Imerys') && !d.otherMovement.includes('Imerys')
+})())
+t('an interview-happened opportunity is never ALSO listed as "other movement"', (() => {
+  const d = D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(20) })] }, [row('a', { next_conversation_at: ago(1), updated_at: ago(1) })], [], sinceT)
+  return d.interviewsHappened.length === 1 && !d.otherMovement.includes('Imerys')
+})())
+t('a row touched before the last visit is not reported as movement',
+  D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(20) })] }, [row('a', { updated_at: ago(20) })], [], sinceT).otherMovement.length === 0)
+t('a direction (not a live opportunity) created since the last visit is reported separately from opportunities', (() => {
+  const d = D({ ...base3, savedPlaybooks: [{ id: 'x', title: 'Ops Director track', source: 'door1', createdAt: ago(1) }] }, [], [], sinceT)
+  return d.addedDirections.includes('Ops Director track') && !d.addedOpportunities.includes('Ops Director track')
+})())
+t('activity logged since the last visit is surfaced',
+  D(base3, [], [{ activity: 'accountability_partner', state: 'done', learned_at: ago(1) }], sinceT).newActivity.length === 1)
+t('activity logged before the last visit is not re-surfaced',
+  D(base3, [], [{ activity: 'accountability_partner', state: 'done', learned_at: ago(20) }], sinceT).newActivity.length === 0)
+t('nothing changed reads as hasMaterialChange: false, never as a fabricated positive',
+  D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(20) })] }, [row('a', { updated_at: ago(20) })], [], sinceT).hasMaterialChange === false)
+t('an archived opportunity never appears in the delta even if created since the last visit',
+  !D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(1), archivedAt: ago(1) })] }, [], [], sinceT).addedOpportunities.includes('Imerys'))
 
 console.log(`test-step-position: ${fail ? 'FAILED' : 'OK'} (${pass} cases passed${fail ? `, ${fail} FAILED` : ''})`)
 process.exit(fail ? 1 : 0)
