@@ -44,6 +44,10 @@ const FILES_TO_CHECK = [
   'src/data/staircase-explainers.js',
   'src/data/next-step-knowledge.js',
   'src/data/pipeline-capture-knowledge.js',
+  // Coach-as-Concierge onboarding narration (2026-09-04): what Coach says
+  // aloud right before each orientation step. Prose a person reads, spoken
+  // as Coach, same reasoning as the pilot knowledge files above.
+  'src/data/orientation-narration.js',
   'src/activity-catalog.js',
   'src/step-position.js',
   'src/components/Staircase.jsx',
