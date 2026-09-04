@@ -7239,6 +7239,18 @@ export default function PivotEngine(){
   // pieces above.
   const[seenOrientationRoute,setSeenOrientationRoute]=useState(false)
   const orientationRouteFiredRef=useRef(false)
+  // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04):
+  // the moment someone leaves Values, Reputation, or Life Story, Coach reads
+  // what they actually wrote and reacts -- a real judgment call on
+  // specificity, not a word-count threshold. Dedupe keys on the exact
+  // submitted TEXT per step (not a flat seen-it-once flag): editing an
+  // answer and leaving again should be read again, but re-visiting with the
+  // same words should not ask twice. Persists in the same autosave blob;
+  // orientationCheckFiredRef guards the in-flight request itself (this one
+  // is a real network call, not an instant local push) against a duplicate
+  // fire before the response lands and the dedupe map updates.
+  const[qualityCheckedFields,setQualityCheckedFields]=useState({})
+  const orientationCheckFiredRef=useRef({})
   // Employment status (consult 2026-08-13). The VALUE lives in a users column
   // (seeded from /api/me as signedInUser.employment_status), written by
   // /api/employment — never in the profile blob, whose whole-object autosave
@@ -7999,7 +8011,7 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
   // Hydrate the saved playbooks set from its own localStorage key on mount.
   // Demo mode skips persistence; test mode wipes the key so test sessions
   // start clean (mirrors the pe_v4 gating one line up).
@@ -8020,7 +8032,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
@@ -8168,6 +8180,52 @@ export default function PivotEngine(){
     setChatMessages(m=>[...m,{role:'assistant',content:'Do you already have something in motion — an application in, a referral, an interview coming up? Or are we starting from scratch?',checkinKey:'orientation-route',quickReplies:[{label:'Something\'s already moving',value:'in_motion',followUp:inMotionFollow},{label:'Starting from scratch',value:'fresh',followUp:freshFollow}]}])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,hasOnboardingConcierge,seenOrientationRoute,outputs,isDemo,isTest])
+  // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04): the
+  // moment someone leaves Values, Reputation, or Life Story with new content,
+  // Coach reads it and reacts -- see buildOrientationCheckTurnText in
+  // api/coach.js for the judgment itself, which is a real per-answer call
+  // the model makes each time, not a word-count rule. Runs three independent
+  // checks off the same shape; each is keyed on `done` containing the step
+  // AND the submitted text differing from the last text actually checked for
+  // it, so editing and leaving again re-asks but revisiting unchanged does
+  // not. This is the one onboarding piece that is a real network call rather
+  // than an instant local push, so it fetches directly rather than going
+  // through Chat's scripted-check-in helpers, and fails silently (leaving
+  // the field unchecked so the account's next visit with the same content
+  // tries again) rather than surfacing an error the person never asked for.
+  useEffect(()=>{
+    if(isDemo||isTest)return
+    if(!signedInUser||!hasOnboardingConcierge)return
+    const fields=[
+      {step:'values',done:done.includes('values'),combined:[profile.values,profile.passions].filter(Boolean).join(' ').trim(),text:`Values: ${profile.values||''}\nPassions, Interests & Causes: ${profile.passions||''}`},
+      {step:'reputation',done:done.includes('reputation'),combined:[profile.rep&&profile.rep.memory,profile.rep&&profile.rep.emergency,profile.rep&&profile.rep.twoWords,profile.rep&&profile.rep.other].filter(Boolean).join(' ').trim(),text:`The Memory: ${(profile.rep&&profile.rep.memory)||''}\nThe Emergency Call: ${(profile.rep&&profile.rep.emergency)||''}\nThe Two Words: ${(profile.rep&&profile.rep.twoWords)||''}\nAdditional Feedback: ${(profile.rep&&profile.rep.other)||''}`},
+      {step:'life-events',done:done.includes('life-events'),combined:(profile.lifeEvents||'').trim(),text:`Life Story: ${profile.lifeEvents||''}`},
+    ]
+    for(const f of fields){
+      if(!f.done||!f.combined)continue
+      if(qualityCheckedFields[f.step]===f.combined)continue
+      if(orientationCheckFiredRef.current[f.step]===f.combined)continue
+      orientationCheckFiredRef.current={...orientationCheckFiredRef.current,[f.step]:f.combined}
+      const stepId=f.step,combinedText=f.combined,sendText=f.text
+      ;(async()=>{
+        try{
+          const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({orientationCheck:{step:stepId,text:sendText},history:chatMessages.slice(-10),currentStep:stepId,surface:'sidebar'})})
+          if(res.status===204){setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}));return}
+          if(!res.ok)return
+          const raw=await res.text()
+          const reply=raw&&raw.trim()
+          setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}))
+          if(reply){
+            setChatMessages(m=>[...m,{role:'assistant',content:reply}])
+            setPbCheckinOpenReq(x=>x+1)
+          }
+        }catch{
+          // best-effort -- failure leaves qualityCheckedFields unset for this
+          // step so the same content is judged again on the next visit
+        }
+      })()
+    }
+  },[step,signedInUser,hasOnboardingConcierge,done,profile.values,profile.passions,profile.rep,profile.lifeEvents,qualityCheckedFields,isDemo,isTest])
   // One-tap employment prompt (consult 2026-08-13). Fires once for a signed-in
   // user with no employment value, on the dashboard surface (a between-tasks
   // pause, same intent as the Personal Brand check-in). Dedupes on
@@ -8286,7 +8344,7 @@ export default function PivotEngine(){
       // lives only in the saved_playbooks table (per-record dual-write above), so a
       // whole-profile save can never touch a playbook again. The server merge shim
       // stays as belt-and-suspenders for any old cached client still sending it.
-      const blob=JSON.stringify({step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute})
+      const blob=JSON.stringify({step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields})
       localStorage.setItem('pe_v4',blob)
       // The localStorage write above is unconditional; only the server PUT is
       // gated. Holding the PUT until /api/profile/load has settled is what stops
@@ -8309,7 +8367,7 @@ export default function PivotEngine(){
       setSaveStatus('saved')
       setSaveError(null)
     }catch{setSaveStatus('error');setSaveError('device_full')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,signedInUser,serverLoadDone,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields,signedInUser,serverLoadDone,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
