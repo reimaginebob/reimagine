@@ -91,6 +91,27 @@ check(app.includes('return[INTRO_MSG]'),
 check(app.includes("setChatMessages(m=>(m.length===1&&m[0]&&m[0].role==='assistant'&&!m[0].banner&&m[0].content===INTRO_MSG.content)?[framingMsg]:[...m,framingMsg])"),
   `${APP}: the framing effect no longer replaces an untouched intro-only chat with the framing message -- it would append after INTRO_MSG again, stacking two "hello" bubbles on arrival`)
 
+// "Coach is thinking" indicator (2026-09-04, reported live): a small dot on
+// the closed bubble, visible for as long as an orientation-check request is
+// in flight, so a reaction that lands after the person has already moved on
+// does not arrive with zero warning it was ever coming.
+check(chat.includes('thinking = false'),
+  `${CHAT}: the thinking prop is missing from Chat's destructured props`)
+const thinkingDotIdx = chat.indexOf('{thinking && (')
+check(thinkingDotIdx !== -1, `${CHAT}: the thinking-dot render block is missing`)
+const thinkingDotBlock = chat.slice(thinkingDotIdx, thinkingDotIdx + 600)
+check(thinkingDotBlock.includes("aria-hidden=\"true\""),
+  `${CHAT}: the thinking dot is missing aria-hidden -- it is decorative, and the button's own aria-label already carries the same information for a screen reader`)
+check(thinkingDotBlock.includes('pe-chat-thinking-dot'),
+  `${CHAT}: the thinking dot lost its pulse animation`)
+check(chat.includes("aria-label={thinking ? 'Coach is thinking. Open My Coach'"),
+  `${CHAT}: the closed bubble's aria-label no longer announces "Coach is thinking" for a screen reader when a check is in flight`)
+check(app.includes('thinking={coachThinkingCount>0}'),
+  `${APP}: coachThinkingCount is not passed through as the thinking prop -- check both <Chat> call sites if this fails`)
+const thinkingMountHits = (app.match(/thinking=\{coachThinkingCount>0\}/g) || []).length
+check(thinkingMountHits === 2,
+  `${APP}: expected thinking={coachThinkingCount>0} passed at both <Chat> call sites -- found ${thinkingMountHits}`)
+
 if (failures) {
   console.error(`test-coach-banner: ${failures} check(s) failed`)
   process.exit(1)

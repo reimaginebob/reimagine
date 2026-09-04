@@ -7251,6 +7251,18 @@ export default function PivotEngine(){
   // fire before the response lands and the dedupe map updates.
   const[qualityCheckedFields,setQualityCheckedFields]=useState({})
   const orientationCheckFiredRef=useRef({})
+  // Reported live: this network call can take several seconds, and the
+  // person is often already on the next screen by the time it lands, so the
+  // reaction arrives with no warning it was ever coming. A count, not a
+  // flag, because more than one field can be in flight at once (each fires
+  // independently below) -- a count only reaches zero once every request now
+  // running has actually finished. Purely a display signal for Chat's closed
+  // bubble; never read by any gating logic. That distinction matters here:
+  // the counter this session removed for gating narration order did not
+  // work as a same-commit signal between sibling effects (see the comment
+  // above orientationCheckFields) -- this one only ever drives a render, so
+  // that failure mode does not apply to it.
+  const[coachThinkingCount,setCoachThinkingCount]=useState(0)
   // Employment status (consult 2026-08-13). The VALUE lives in a users column
   // (seeded from /api/me as signedInUser.employment_status), written by
   // /api/employment — never in the profile blob, whose whole-object autosave
@@ -8321,6 +8333,7 @@ export default function PivotEngine(){
       orientationCheckFiredRef.current={...orientationCheckFiredRef.current,[f.step]:f.combined}
       const stepId=f.step,combinedText=f.combined,sendText=f.text
       ;(async()=>{
+        setCoachThinkingCount(c=>c+1)
         try{
           const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({orientationCheck:{step:stepId,text:sendText},history:chatMessages.slice(-10),currentStep:stepId,surface:'sidebar'})})
           if(res.status===204){setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}));return}
@@ -8349,6 +8362,8 @@ export default function PivotEngine(){
           // must not permanently block retries within this session either.
           const{[stepId]:_dropped,...rest}=orientationCheckFiredRef.current
           orientationCheckFiredRef.current=rest
+        }finally{
+          setCoachThinkingCount(c=>c-1)
         }
       })()
     }
@@ -13987,7 +14002,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
         {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>
     </div>
     // Job Search Resources (docs/networking-groups-brief.md). Its own
     // destination, reachable from the first screen, needing no direction and no
@@ -15859,7 +15874,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>

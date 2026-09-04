@@ -29,7 +29,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, brandReworkCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, allowGeneralMode = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, brandReworkCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, allowGeneralMode = false, thinking = false }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -825,6 +825,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     return (
       <>
         {showPulse && !bannerMsg && <style>{"@keyframes pe-chat-pulse-scale{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}@keyframes pe-chat-pulse-fade{0%,100%{opacity:0.7}50%{opacity:1}}"}</style>}
+        {thinking && <style>{"@keyframes pe-chat-thinking-dot{0%,100%{opacity:0.35}50%{opacity:1}}"}</style>}
         <div data-print="hide" style={{
           position: 'fixed', bottom: 24 + bottomOffset, right: 24, zIndex: 1000,
           display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10,
@@ -872,19 +873,42 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 Talk to your coach
               </div>
             )}
-            <button
-              onClick={() => { setOpen(true); if (onDismissPulse) onDismissPulse() }}
-              style={{
-                background: C.gold, color: '#fff', border: 'none',
-                borderRadius: '50%', width: 56, height: 56,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                fontSize: 22, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
-                animation: (showPulse && !bannerMsg) ? 'pe-chat-pulse-scale 2s ease-in-out infinite' : 'none',
-              }}
-              aria-label={showPulse ? 'Talk to your coach. Open My Coach' : 'Open My Coach'}
-            >
-              ?
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => { setOpen(true); if (onDismissPulse) onDismissPulse() }}
+                style={{
+                  background: C.gold, color: '#fff', border: 'none',
+                  borderRadius: '50%', width: 56, height: 56,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  fontSize: 22, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
+                  animation: (showPulse && !bannerMsg) ? 'pe-chat-pulse-scale 2s ease-in-out infinite' : 'none',
+                }}
+                aria-label={thinking ? 'Coach is thinking. Open My Coach' : (showPulse ? 'Talk to your coach. Open My Coach' : 'Open My Coach')}
+              >
+                ?
+              </button>
+              {/* Reported live: the reaction to a pasted resume or LinkedIn
+                  upload is a real network call, often several seconds, and
+                  the person is usually already on the next screen by the
+                  time it lands -- with nothing to say Coach was ever working
+                  on it. This dot is the entire fix: visible the moment the
+                  request goes out, gone the moment every request in flight
+                  has resolved. Decorative (aria-hidden); the aria-label
+                  above already carries the same information for a screen
+                  reader. */}
+              {thinking && (
+                <div aria-hidden="true" style={{
+                  position: 'absolute', top: -2, right: -2, width: 14, height: 14,
+                  borderRadius: '50%', background: '#fff', border: `2px solid ${C.gold}`,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)', pointerEvents: 'none',
+                }}>
+                  <div style={{
+                    width: '100%', height: '100%', borderRadius: '50%', background: C.gold,
+                    animation: 'pe-chat-thinking-dot 1.1s ease-in-out infinite',
+                  }} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </>

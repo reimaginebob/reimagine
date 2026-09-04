@@ -171,6 +171,18 @@ check(catchIdx !== -1, `${APP}: the quality-check fetch no longer has a catch bl
 check(app.slice(catchIdx, catchIdx + 400).includes('orientationCheckFiredRef.current=rest'),
   `${APP}: a network failure (catch) no longer releases orientationCheckFiredRef -- same permanent-block bug as the non-OK case above`)
 
+// "Coach is thinking" indicator (2026-09-04, reported live): this fetch can
+// take several seconds and the person is usually already on the next screen
+// by the time it lands, with nothing to say Coach was ever working on it. A
+// count (not a flag) because more than one field can be in flight at once;
+// must increment before the fetch and decrement in a finally so it releases
+// on every exit path (204, non-OK, success, and a thrown network error).
+check(app.includes('const[coachThinkingCount,setCoachThinkingCount]=useState(0)'),
+  `${APP}: coachThinkingCount state is missing`)
+check(app.includes('setCoachThinkingCount(c=>c+1)'),
+  `${APP}: the quality-check fetch no longer increments coachThinkingCount before firing`)
+check(app.includes('}finally{\n          setCoachThinkingCount(c=>c-1)\n        }'),
+  `${APP}: coachThinkingCount is no longer released in a finally block -- it would get stuck "thinking" forever on whichever exit path lost the decrement`)
 // Dedupe threading: both hydration paths and the autosave blob.
 const hydrationHits = (app.match(/if\(d\.qualityCheckedFields&&typeof d\.qualityCheckedFields==='object'\)setQualityCheckedFields\(d\.qualityCheckedFields\)/g) || []).length
 check(hydrationHits === 2,
@@ -181,6 +193,16 @@ check(app.slice(saveBlobIdx, saveBlobIdx + 500).includes('qualityCheckedFields')
 const saveDepsIdx = app.indexOf('saveRef.current=save')
 check(app.slice(saveDepsIdx, saveDepsIdx + 600).includes('qualityCheckedFields'),
   `${APP}: qualityCheckedFields is missing from the autosave effect's dependency array`)
+
+// coachThinkingCount is purely a display signal: it must never be threaded
+// into the autosave blob or either hydration path. In-flight state cannot
+// survive a reload (there is no in-flight request left to resume), so
+// persisting it would let a stale "thinking" dot stick forever with no
+// request ever coming to release it via the finally block above.
+check(!app.slice(saveBlobIdx, saveBlobIdx + 500).includes('coachThinkingCount'),
+  `${APP}: coachThinkingCount is in the autosave blob -- it is transient in-flight state and must not persist across a reload`)
+check(!app.slice(saveDepsIdx, saveDepsIdx + 600).includes('coachThinkingCount'),
+  `${APP}: coachThinkingCount is in the autosave effect's dependency array -- it is transient in-flight state and must not persist across a reload`)
 
 if (failures) {
   console.error(`test-orientation-quality-check: ${failures} check(s) failed`)
