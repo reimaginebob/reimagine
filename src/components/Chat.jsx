@@ -29,7 +29,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, brandReworkCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, allowGeneralMode = false, thinking = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, allowGeneralMode = false, thinking = false }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -433,6 +433,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const msgId = res.headers.get('X-Coach-Message-Id') || null
         const itHeader = res.headers.get('X-Coach-Interviewers') || null
         const vcHeader = res.headers.get('X-Coach-Values') || null
+        const assessHeader = res.headers.get('X-Coach-Assessment') || null
         const brHeader = res.headers.get('X-Coach-Brand-Rework') || null
         const pcHeader = res.headers.get('X-Coach-Pipeline') || null
         const acHeader = res.headers.get('X-Coach-Activity') || null
@@ -497,6 +498,28 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             if (data && data.passions) parts.push(`Passions, Interests & Causes: ${data.passions}`)
             if (parts.length) {
               setMessages(m => [...m, { role: 'assistant', content: `Want me to save this to your Values, Passions & Causes screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, checkinKey: 'values-capture', quickReplies: [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Values, Passions & Causes.' }, { label: 'Not now', value: 'dismiss' }] }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Assessment capture: the server extracted remembered assessment
+        // content onto X-Coach-Assessment. Show it back in full, and make
+        // clear it ADDS to the field rather than replacing it -- unlike
+        // Values above, someone may already have real assessment content
+        // saved, and this should never look like it could wipe that out.
+        if (assessmentCaptureActive && assessHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(assessHeader), c => c.charCodeAt(0))))
+            const text = data && typeof data.text === 'string' ? data.text.trim() : ''
+            if (text) {
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to add this to your assessment field? It adds to whatever is already there, and you can edit it any time.\n\n${text}`,
+                checkinKey: 'assessment-capture',
+                quickReplies: [
+                  { label: 'Add it', value: JSON.stringify(data), followUp: 'Added to your assessment field.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
             }
           } catch { /* malformed header — no offer */ }
         }
