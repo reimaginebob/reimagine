@@ -146,6 +146,23 @@ check(app.includes("orientationCheck:{step:stepId,text:sendText}"),
 check(app.includes("if(res.status===204)"),
   `${APP}: the quality-check effect no longer handles a 204 (nothing to say) from the server`)
 
+// A failed check (a non-OK response, or a network error) MUST release
+// orientationCheckFiredRef for that step, or the field is permanently
+// blocked from retrying for the rest of the browser session -- caught live
+// as "got nothing" for a field across an entire orientation pass, which one
+// transient failure with no self-heal is exactly consistent with.
+// qualityCheckedFields staying unset (the pre-existing half of the retry
+// story) only helps a future attempt if the fired-ref also forgets this one.
+const qcFetchIdx = app.indexOf("orientationCheck:{step:stepId,text:sendText}")
+const notOkIdx = qcFetchIdx !== -1 ? app.indexOf("if(!res.ok){", qcFetchIdx) : -1
+check(notOkIdx !== -1, `${APP}: the quality-check fetch no longer branches on a non-OK response`)
+check(app.slice(notOkIdx, notOkIdx + 900).includes('orientationCheckFiredRef.current=rest'),
+  `${APP}: a non-OK response no longer releases orientationCheckFiredRef -- one failed check would permanently block retries for that field within this session`)
+const catchIdx = app.indexOf("}catch{", notOkIdx)
+check(catchIdx !== -1, `${APP}: the quality-check fetch no longer has a catch block for network failures`)
+check(app.slice(catchIdx, catchIdx + 400).includes('orientationCheckFiredRef.current=rest'),
+  `${APP}: a network failure (catch) no longer releases orientationCheckFiredRef -- same permanent-block bug as the non-OK case above`)
+
 // Dedupe threading: both hydration paths and the autosave blob.
 const hydrationHits = (app.match(/if\(d\.qualityCheckedFields&&typeof d\.qualityCheckedFields==='object'\)setQualityCheckedFields\(d\.qualityCheckedFields\)/g) || []).length
 check(hydrationHits === 2,

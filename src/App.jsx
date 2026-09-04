@@ -8294,7 +8294,19 @@ export default function PivotEngine(){
         try{
           const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({orientationCheck:{step:stepId,text:sendText},history:chatMessages.slice(-10),currentStep:stepId,surface:'sidebar'})})
           if(res.status===204){setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}));return}
-          if(!res.ok)return
+          if(!res.ok){
+            // Release the fired-guard on failure -- leaving it set (as this
+            // used to) blocked every retry for the rest of THIS session, not
+            // just this attempt: qualityCheckedFields staying unset only
+            // lets a future visit try again if orientationCheckFiredRef also
+            // forgets the attempt. Without this, one transient failure (a
+            // 500, a blip) silently and permanently skipped the field until
+            // a full page reload, which is what turned "the model call
+            // failed once" into "this field never got a reaction at all."
+            const{[stepId]:_dropped,...rest}=orientationCheckFiredRef.current
+            orientationCheckFiredRef.current=rest
+            return
+          }
           const raw=await res.text()
           const reply=raw&&raw.trim()
           setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}))
@@ -8303,8 +8315,10 @@ export default function PivotEngine(){
             setPbCheckinOpenReq(x=>x+1)
           }
         }catch{
-          // best-effort -- failure leaves qualityCheckedFields unset for this
-          // step so the same content is judged again on the next visit
+          // Same release as the !res.ok branch above -- a network failure
+          // must not permanently block retries within this session either.
+          const{[stepId]:_dropped,...rest}=orientationCheckFiredRef.current
+          orientationCheckFiredRef.current=rest
         }
       })()
     }
