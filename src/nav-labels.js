@@ -52,6 +52,12 @@ export const NAV_LABELS = {
   p8: 'LinkedIn Remix',
   p_res: 'Resume Refresh',
   p11: 'Interview Prep',
+  // Compensation Read sits between Industry Background and Interview Prep in the
+  // Focus Playbook (2026-09-02). It is also a card on every Opportunity Playbook
+  // and inside Income Now; those two carry an explicit label in FEATURE_MAP
+  // because they are cards, but the Focus section is a real section and joins
+  // its label from here like its siblings.
+  salaryRead: 'Compensation Read',
   // p9's user-facing name is the SINGLE place to change it (renames the Focus
   // Playbook section header AND what the coach calls it, together). Bob to
   // confirm "Industry Background" vs "The Lingo".

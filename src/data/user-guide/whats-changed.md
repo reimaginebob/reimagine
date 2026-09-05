@@ -33,6 +33,8 @@ It has two halves, and they work differently on purpose.
 
 Short notes on what moved recently and what it means for you. **These entries roll off after about 30 days.** The table above is what remains, so anything worth keeping permanently belongs there, not here.
 
+**September 2026 — Compensation Read is now part of your Focus Playbook.** It is section 4, between Industry Background and Interview Prep, so a sourced pay range for your direction sits with the rest of what you take into a conversation instead of only inside Income Now. It is the same read in both places: build it in one and the other shows it.
+
 **August 2026 — the guide matches the product again.** This guide was reorganized around the way Reimagine actually works today rather than the five-phase journey it used to describe. Three chapters became one (Your Focus Playbook), one became two (Put It to Work and Career Paths), and Focus Playbooks got the chapter it never had. If you ask My Coach about a feature, it is reading this version.
 
 **August 2026 — Recruiters for This Path.** A bonus section in your Focus Playbook, under Go-to-Market. Direct outreach reaches the people who own the problem you solve; this finds the executive-search firms that fill roles like the one you are pursuing. It is opt-in and it starts short on purpose.

@@ -18,7 +18,7 @@ You build the playbook at your own pace, in the order that fits you. Nothing is 
 
 ## The sections, at a glance
 
-**Seven numbered sections, in four groups:**
+**Eight numbered sections, in four groups:**
 
 **Group 1 · Understand the role**
 
@@ -31,15 +31,16 @@ You build the playbook at your own pace, in the order that fits you. Nothing is 
 
 **Group 3 · Prepare for the conversation**
 
-4. **Interview Prep.** The questions this role will surface, with STAR stories woven in so each story sits next to the question it best answers.
+4. **Compensation Read.** A sourced pay range for this direction in your market, with the links so you can check every figure.
+5. **Interview Prep.** The questions this role will surface, with STAR stories woven in so each story sits next to the question it best answers.
 
 **Group 4 · Carry it into the market**
 
-5. **Resume Refresh.** Your resume reframed for this direction, ready to download as a Word document.
-6. **LinkedIn Remix.** Headline, About, and experience copy you paste into your profile yourself.
-7. **Go-to-Market.** Live research into target companies and the people inside them, with an outreach approach.
+6. **Resume Refresh.** Your resume reframed for this direction, ready to download as a Word document.
+7. **LinkedIn Remix.** Headline, About, and experience copy you paste into your profile yourself.
+8. **Go-to-Market.** Live research into target companies and the people inside them, with an outreach approach.
 
-**Plus two bonuses, which sit below the numbered seven and are not numbered alongside them:**
+**Plus two bonuses, which sit below the numbered eight and are not numbered alongside them:**
 
 - **Recruiters for This Path.** The executive-search firms that fill senior roles in your space.
 - **Networking Groups.** The professional communities, associations and career networks for the direction you are moving into.
@@ -48,7 +49,7 @@ You build the playbook at your own pace, in the order that fits you. Nothing is 
 Two things worth flagging, because the shape is easy to misremember:
 
 - **STAR Stories is not its own section.** The stories live inside Interview Prep, under the behavioral questions they answer.
-- **The two bonuses are real sections you can build**, not marketing. They are unnumbered because the seven are the spine and these two are optional additions to it.
+- **The two bonuses are real sections you can build**, not marketing. They are unnumbered because the eight are the spine and these two are optional additions to it.
 
 ## The arc has a logic
 
@@ -223,7 +224,25 @@ Review Industry Background before networking events, informational calls, and an
 
 # Group 3 · Prepare for the conversation
 
-## 4. Interview Prep
+## 4. Compensation Read
+
+**What this section does.** Gives you a sourced pay range for this direction in your market, triangulated across public salary sites, before anyone asks what you are looking for. It reads the direction and the market you gave us in Orientation. It does not read your current pay, so what comes back is what the market pays for this work, not a raise on what you earn now.
+
+**What you will get back.**
+
+- **A range for the direction in your market**, with the figures each source reports rather than one blended number, because the sources routinely disagree and the spread is information.
+- **A link next to every figure**, so you can open the source and see the sample it rests on. Every dollar figure either carries its source or says plainly that public signal does not confirm it.
+- **The basis the estimate anchored to** — the company size, industry, and market it assumed. This is the part most worth checking, because it is where a range goes wrong.
+
+**If the basis is wrong, say so.** Under the read there is a box for exactly that: *the market should be Denver, not remote-national*, or *I am aiming at companies around 300 people, not enterprise*. That rebuilds the estimate against the right basis. It stays with this estimate and does not change anything else in your playbook.
+
+**What it is not.** It is not a verdict on whether a number is good, and it is not advice on what to ask for. Public salary sources disagree with each other and lag the market. Treat the range as the starting point for your own research and weigh it against the specific company, level, and total package in front of you.
+
+**The same read, in two other places.** This section is also the Compensation Read shown inside Income Now — one read for your direction, shown wherever you meet it, so building or rebuilding it in either place updates both. An Opportunity Playbook has its own Compensation Read, separate from this one, because there it can anchor to a named company's size and industry.
+
+**When to use it.** Build it before the first conversation where money can come up, which is usually the recruiter screen. Walking in with a sourced range is the difference between naming a number and being asked for one.
+
+## 5. Interview Prep
 
 **What this section does.** The questions this role's interview cycle is most likely to surface, with the raw material from your own inputs to build each answer. The set grounds in the classic questions every candidate should expect (why you are leaving, your strengths and weaknesses, what you know about the company, how you handle conflict, a difficult situation you faced) each one tuned to this role rather than answered generically. The strongest version of each answer is in your voice, with the specifics only you can add.
 
@@ -262,7 +281,7 @@ Review Interview Prep before any interview. Review the STAR stories before any c
 
 **One thing to know before this group:** Reimagine does not modify your actual LinkedIn profile or your resume file. It produces the copy and the recommendations. You take that copy and apply the changes yourself, by editing your LinkedIn profile in your browser and by updating your resume in your own document. There is no integration with LinkedIn and no edit to the file you uploaded. That separation is by design: the changes go on your screen, in your own tools, where you control the final word.
 
-## 5. Resume Refresh
+## 6. Resume Refresh
 
 **What this section does.** Reimagine generates a refreshed version of your resume: a repositioned summary, a Key Accomplishments section that pulls your strongest evidence above the fold, the rest of your work history rewritten for relevance to your target, and your education. The recommendations are designed to make the strongest evidence for your target role land in the first seven seconds, which is the average time a recruiter spends on a first read.
 
@@ -318,7 +337,7 @@ If you were promoted or changed roles at the same employer, Resume Refresh keeps
 
 **If the download looks off,** regenerate the section. The output usually lands right the second time.
 
-## 6. LinkedIn Remix
+## 7. LinkedIn Remix
 
 **What this section does.** Reimagine generates suggested updates for your LinkedIn profile: a new headline, a new About section, and reframed experience bullets, all written for the role you are pursuing. You then go into LinkedIn yourself and apply the changes.
 
@@ -346,7 +365,7 @@ LinkedIn is your personal brand on the web, more than an online resume, and how 
 
 Refine until the copy sounds like you, then copy the headline you chose into the headline field on your LinkedIn profile. Do the same with the About section, the experience bullets, and the keyword skills.
 
-## 7. Go-to-Market
+## 8. Go-to-Market
 
 The best opportunities are filled through relationships, not job boards. This section is about getting you in front of the people making hiring decisions before any posting goes live.
 
@@ -445,7 +464,7 @@ If Go-to-Market is still building, the per-company buttons are disabled until th
 
 # The three bonuses
 
-These sit below the seven numbered sections. They are optional, they are built the same way, and they are saved with your playbook like everything else.
+These sit below the eight numbered sections. They are optional, they are built the same way, and they are saved with your playbook like everything else.
 
 ## Bonus · Networking Groups
 
@@ -482,7 +501,7 @@ The list starts short on purpose. Specialty search is a narrow world, and a shor
 
 ## Bonus · Income Now
 
-Bridge income that can run alongside the main search: how to position your existing expertise for paid consulting or fractional work while you keep looking. It renders below the numbered seven as a bonus stripe and is also its own entry in the sidebar.
+Bridge income that can run alongside the main search: how to position your existing expertise for paid consulting or fractional work while you keep looking. It renders below the numbered eight as a bonus stripe and is also its own entry in the sidebar.
 
 Optional. Skip it if income continuity is not a concern for you right now. Income Now has its own chapter with the detail.
 
