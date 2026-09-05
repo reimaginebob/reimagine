@@ -7019,6 +7019,15 @@ export default function PivotEngine(){
   const[upstreamCheck,setUpstreamCheck]=useState(null)
   const correctionConflictRef=useRef(null)
   const currentSavedSlotIdRef=useRef(null)
+  // Where "Back to X" on an opportunity/role playbook actually goes (2026-09-05,
+  // reported live: opening an opportunity from My Pipeline showed "Back to Put
+  // It to Work" -- the hub link was hardcoded to hubStep/hubLabel regardless of
+  // where the person actually came from). Captured in restoreFromSavedSlot,
+  // which every entry into a saved record already routes through, so this
+  // needs no new call sites. Guarded against capturing 'op'/'focus' themselves:
+  // switching between records while already inside one must not overwrite a
+  // real external origin with the screen the person is leaving.
+  const opReturnStepRef=useRef(null)
   // Landing decision is one-shot per session. The useEffect that owns it watches
   // [done, savedPlaybooks, signedInUser] so it can re-evaluate after pe_v4
   // hydration AND after /api/profile/load resolves for signed-in users. Once
@@ -12340,6 +12349,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // restore stay consistent with the playbook's original Personal Brand
   // context, regardless of what the user's current live p3 says.
   const restoreFromSavedSlot=(rec)=>{
+    if(step!=='op'&&step!=='focus')opReturnStepRef.current=step
     setOutputs(o=>{
       const u={...o}
       for(const k of ROLE_SUBMODULES)u[k]=(rec.outputs&&rec.outputs[k])||''
@@ -13943,7 +13953,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             is a library to go back to; this hub link is the fallback for the
             very first playbook, before one exists. Put It to Work stays one
             click away in the sidebar in both cases, so nothing is stranded. */}
-        {!isDemo&&!isReturningExplorer&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav(hubStep)} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to {hubLabel}</button></div>}
+        {!isDemo&&!isReturningExplorer&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav(opReturnStepRef.current||hubStep)} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to {NAV_LABELS[opReturnStepRef.current]||hubLabel}</button></div>}
         {/* The practice plan leads with the plan, not with the one-line
             positioning statement as a headline: the line is long, it is a
             sentence rather than a title, and the person just wrote it. It sits
@@ -14510,7 +14520,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // cards-only markDone criterion: legacy v1 (outputs.op truthy) OR any v2 card built
       if((outputs.op||_anyOpCardBuilt)&&!done.includes('op'))markDone('op')
       return <div>
-      {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav(hubStep)} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to {hubLabel}</button></div>}
+      {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav(opReturnStepRef.current||hubStep)} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to {NAV_LABELS[opReturnStepRef.current]||hubLabel}</button></div>}
       <h1 style={S.title}>{isIndependent?((opIsV2||outputs.op)?'This Client Opportunity':'Add a Client Opportunity'):((opIsV2||outputs.op)?'Your Opportunity Playbook':'Add an Opportunity')}</h1>
       {loading?<Loading msg={loadMsg||'Building your Opportunity Playbook…'} step="op"/>:<>
         {(opIsV2||outputs.op)?<>
