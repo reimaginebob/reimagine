@@ -4767,6 +4767,13 @@ function pursuitStepDueState(nextStepAtIso){
 const PURSUIT_OUTCOME_LABELS={accepted:'Accepted',declined:'Declined',not_selected:'Not selected',withdrew:'Withdrew',no_response:'No response'}
 const PURSUIT_STAGE_QUICK_REPLIES=PURSUIT_STAGES.map(s=>({label:s.label,value:s.value,followUp:s.value==='closed'?'Saved — I\'ve marked it closed on My Pipeline.':s.value==='interviewing'?'Saved — it\'ll show up first if a conversation is coming.':'Saved to My Pipeline.'}))
 const pursuitOfferMessage=(title)=>({role:'assistant',content:`Sounds like something moved on ${title||'this opportunity'} — where does it stand now? I\'ll save it to My Pipeline so it carries across every session.`,checkinKey:'pursuit-stage',quickReplies:PURSUIT_STAGE_QUICK_REPLIES})
+// Proactive pipeline check-in (2026-09-05, brief: "let Coach ask what it
+// doesn't know when something moves on your pipeline"). Opens the exchange
+// only -- the answer goes to the coach like any other message, and Coach's
+// own instructions (STAGE MOVE FOLLOW-THROUGH, INTERVIEW_TEAM_CAPTURE_NOTE,
+// PIPELINE_CAPTURE_NOTE, all in api/coach.js) do the rest through the same
+// one-tap offers those already use. No special handling needed here.
+const pipelineCheckinOpener=()=>({role:'assistant',content:"Before you dive in — has anything moved on your pipeline since you were last here? A new stage, an interview on the calendar, someone you're meeting with — tell me and I'll get it onto the right card.",checkinKey:'pipeline-checkin-opener'})
 
 const S={
   title:{fontFamily:'Georgia,serif',fontSize:38,fontWeight:700,color:"#1A2540",margin:'0 0 14px',lineHeight:1.2},
@@ -7292,6 +7299,11 @@ export default function PivotEngine(){
   const[searchFocus,setSearchFocus]=useState('')
   const[seenSearchIntakePrompt,setSeenSearchIntakePrompt]=useState(false)
   const searchIntakePromptFiredRef=useRef(false)
+  // Proactive pipeline check-in (2026-09-05, brief: "let Coach ask what it
+  // doesn't know when something moves on your pipeline"). Ref-guarded like its
+  // siblings above, but capped via sessionStorage rather than a profile-blob
+  // "seen" flag -- see the triggering effect below for why.
+  const pipelineCheckinFiredRef=useRef(false)
   const[coachOpenTick,setCoachOpenTick]=useState(0)
   // My Search (brief 2026-08-14). Per-user gate + the pursuit-status list.
   // My Pipeline went GA on 2026-08-30. It used to hang off the `my_search` entry
@@ -7570,7 +7582,7 @@ export default function PivotEngine(){
       const tgt=coachSaveTarget()
       const targetId=(match&&match.id)||(tgt&&tgt.id)||null
       if(!targetId)return false
-      updateOpPanel(targetId,p=>({...p,interviewers:[...p.interviewers,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:(typeof pe.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===pe.role))?pe.role:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:''}))]}))
+      updateOpPanel(targetId,p=>({...p,interviewers:[...p.interviewers,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:(typeof pe.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===pe.role))?pe.role:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:String(pe.note||'')}))]}))
       return true
     }
     // Values capture (brief 2026-08-15). Writes through pr() — the same setter the
@@ -8459,6 +8471,28 @@ export default function PivotEngine(){
     setChatMessages(m=>[...m,searchIntakeOpener()])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,searchGoingWell,searchFocus,seenSearchIntakePrompt,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest])
+  // Proactive pipeline check-in (2026-09-05). Fires once per LOGIN SESSION on
+  // arrival at My Pipeline, not once ever -- whether something moved is worth
+  // asking again every time they come back, unlike the one-time prompts above,
+  // so this is capped via sessionStorage (mirroring sessionOpenNote's own
+  // reimagine_session_recap_fired cap) rather than a profile-blob "seen" flag.
+  // Skipped on the practice track: interview-team capture is already off for
+  // independent consultants elsewhere (Chat's interviewTeamCaptureActive
+  // prop), and this opener leans on that same capture. Skipped entirely with
+  // an empty pipeline -- "has anything moved" has nothing to answer against.
+  useEffect(()=>{
+    if(isDemo||isTest||isIndependent)return
+    if(step!=='pipeline'||!signedInUser)return
+    if(pipelineCheckinFiredRef.current)return
+    if(!activePlaybooks.some(r=>r&&r.source==='door2'))return
+    let already=false
+    try{already=sessionStorage.getItem('reimagine_pipeline_checkin_fired')==='1'}catch{}
+    if(already)return
+    pipelineCheckinFiredRef.current=true
+    try{sessionStorage.setItem('reimagine_pipeline_checkin_fired','1')}catch{}
+    setChatMessages(m=>[...m,pipelineCheckinOpener()])
+    setPbCheckinOpenReq(x=>x+1)
+  },[step,signedInUser,isDemo,isTest,isIndependent,activePlaybooks])
   // Skills step: on first arrival with empty skills and at least one source
   // document (resume or LinkedIn paste), trigger a JSON-only extraction pass.
   // Subsequent visits or pre-populated skills skip the call. The Re-extract
