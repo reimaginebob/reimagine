@@ -764,6 +764,13 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     <div ref={messagesContainerRef} style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '14px 18px' }}>
       {messages.map((m, i) => {
         const isCollapsedBanner = (m.banner || m.intro) && i < messages.length - 1 && !expandedBanners.has(i)
+        // Same eligibility as isCollapsedBanner, minus the expanded check --
+        // true whether the strip is showing or the person tapped it open.
+        // Reported live (2026-09-05): the strip's tap toggled expandedBanners
+        // in both directions, but nothing on the EXPANDED bubble called
+        // toggleBannerExpanded back -- once opened, a superseded message had
+        // no way to return to its one-line strip.
+        const isExpandableBanner = (m.banner || m.intro) && i < messages.length - 1
         return (
         <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
           {isCollapsedBanner ? (
@@ -806,6 +813,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 ? <MD text={m.content} />
                 : m.content}
           </div>
+          )}
+          {!isCollapsedBanner && isExpandableBanner && (
+            <button onClick={() => toggleBannerExpanded(i)} style={{
+              display: 'block', marginTop: 4, background: 'transparent', border: 'none',
+              color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+            }}>
+              ‹ Collapse
+            </button>
           )}
           {!isCollapsedBanner && m.role === 'assistant' && Array.isArray(m.quickReplies) && m.quickReplies.length > 0 && (
             <div data-print="hide" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
