@@ -470,6 +470,10 @@ These sit below the eight numbered sections. They are optional, they are built t
 
 Above the recruiter card sits **Networking Groups**: the professional communities and career networks for the direction you are moving into. A recruiter places people into a role. This is the profession itself, and it is where to go when no recruiter has a search open.
 
+**What these are for, before they are anywhere to apply.** Joining a chapter in a field you are moving toward does several things at once, and finding a job is the slowest of them. You hear how people in the field actually talk about the work. You meet the suppliers, consultants and partners who serve it, which is most of the ecosystem and almost invisible from outside. And you get to say out loud what you are considering, and hear back from people who do the job on how your background reads to them and where they would point it.
+
+That is information gathering and network building, and it is worth the most when you are moving toward a field rather than staying in one — the Industry Insider and Work That Matters paths especially. A role may come of it. It tends to arrive last.
+
 Click **Find groups for this path** and Reimagine searches twice. Once near your city, for the local chapter of a trade body, regional associations, and meetup groups. Once with no geography at all, for national bodies with virtual programming, practitioner-run career networks, and members-only communities. The second search is there because some of the best answers have no local chapter to find, and a search anchored on a city can never return them.
 
 It is deliberately looking past the obvious one. The biggest association in any field is the answer you could have given yourself; the useful answer is usually the free, practitioner-run network you had not heard of.

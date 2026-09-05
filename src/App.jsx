@@ -5026,7 +5026,7 @@ function CornerRow(){
 // alike: gated on having a direction, one Generate, a criteria line with Edit,
 // and a Find-more box. Pure presentation; state and handlers come from the
 // render site, and the same component serves both playbook types.
-function GroupsCard({data,busy,chosen,onGenerate,onMore,onEditCriteria,subhead}){
+function GroupsCard({data,busy,chosen,lane,onGenerate,onMore,onEditCriteria,subhead}){
   const isMobile=useIsMobile()
   const[editing,setEditing]=useState(false)
   const[ef,setEf]=useState('');const[ei,setEi]=useState('');const[es,setEs]=useState('')
@@ -5040,7 +5040,11 @@ function GroupsCard({data,busy,chosen,onGenerate,onMore,onEditCriteria,subhead})
   const startEdit=()=>{setEf(c.function||'');setEi(c.industry||'');setEs(c.seniority||'');setEditing(true)}
   const inp={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none'}
   return <div>
-    <p style={S.sub}>{subhead||'Where the people already doing this work gather — local chapters, online communities, and what each one costs before you join.'}</p>
+    <p style={S.sub}>{subhead||'Where the people already doing this work gather, and where you find out how your move lands on them.'}</p>
+    <CoachingCallout>
+      Most of what these are worth arrives before any opportunity does. You hear how people in the field talk about the work. You meet the suppliers, consultants and partners around it, which is most of the ecosystem and hard to see from outside. And you can say what you are considering and hear back, from people who do the job, on how your background reads to them and where they would point it.
+      {(lane==='insider'||lane==='wtm')&&<div style={{marginTop:10}}>That matters most on the path you are on, where you are moving toward a field rather than staying in one. Going to learn and to test how you are landing is the work here; a role, if one comes, tends to arrive last.</div>}
+    </CoachingCallout>
     {!built&&!busy&&<div style={S.row}><Btn disabled={busy} onClick={onGenerate}><Sparkles size={14}/>Find groups for this path</Btn></div>}
     {busy&&<Loading msg="Finding where this profession gathers…" step="groups"/>}
     {built&&!busy&&<>
@@ -14136,6 +14140,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   data={pathGroupsFor('door1')}
                   busy={pathGroupsBusy}
                   chosen={chosen}
+                  lane={selectedLane}
                   onGenerate={()=>buildPathGroups()}
                   onMore={(f)=>buildPathGroups({more:true,focus:(typeof f==='string'?f:'').trim()})}
                   onEditCriteria={(criteria)=>buildPathGroups({criteriaOverride:criteria})}
