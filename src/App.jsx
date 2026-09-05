@@ -6594,14 +6594,17 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       ]},
       ...(hasPipeline?[{id:'pipeline',label:NAV_LABELS.pipeline,Icon:Target,badge:pipelineOverdue}]:[]),
     ]:[
-      // PILOT — Your Next Step, 2026-09-02. First entry deliberately: it is the
-      // spine. Bob's fear about this product is that there is so much in it that
-      // it "creates a kind of paralysis or at best undiscovered features," and a
-      // rail that opens on the one thing worth doing is the answer to that. It
-      // needs My Pipeline, because from Outreach on the recommendation is read
-      // off live opportunities. Not offered on the Go Independent track, whose
-      // sections are the practice plan rather than the book's five.
-      ...(hasPipeline&&hasNextStep?[{id:'step',label:NAV_LABELS.step,Icon:Route}]:[]),
+      // PILOT — Your Next Step, 2026-09-02, HIDDEN 2026-09-05 (Bob's call): the
+      // Staircase screen and Coach's session-open agency question (api/coach.js
+      // sessionOpenNote, gated on the same hasNextStep/NEXT_STEP_FLAG) read the
+      // same deterministic position engine (src/step-position.js) and were built
+      // to never disagree. Coach now delivers that read conversationally, better
+      // and with its own visual, so the dedicated nav screen is redundant --
+      // hidden here rather than removed, since hasNextStep still drives Coach's
+      // side of the same feature and nothing else about that should change.
+      // Always false: uncomment the hasPipeline&&hasNextStep check to bring the
+      // screen back.
+      ...(false?[{id:'step',label:NAV_LABELS.step,Icon:Route}]:[]),
       {id:'myCoach',label:NAV_LABELS.myCoach,Icon:MessageCircle},
       // My Pipeline is its own surface — the daily action home, distinct from the
       // exploration library (My Playbooks). Signed-in accounts only: it reads and
