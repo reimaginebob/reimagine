@@ -655,6 +655,18 @@ const voiceGuideCases = [
   ['truth-here-is-the-thing: thing-elsewhere does not fire', null,
     "Here is one thing the data suggests, and it lands clearly."],
 
+  // Caught live 2026-09-05 in a My Coach reply: "Here's the real shape of it
+  // right now: three opportunities, and they're each at a different point
+  // in the arc." Two separate patterns fire on this one sentence.
+  ['truth-heres-the-real: fires', 'truth-heres-the-real',
+    "Here's the real shape of it right now: three opportunities, each moving."],
+  ['jargon-point-in-the-arc: fires', 'jargon-point-in-the-arc',
+    "Three opportunities, and they're each at a different point in the arc."],
+  ['jargon-point-in-the-arc: career arc does not fire', null,
+    'This role fits the pattern in your career arc, not a detour from it.'],
+  ['jargon-point-in-the-arc: life-arc framing does not fire', null,
+    'That framing turns a single choice into your whole life-arc.'],
+
   ['truth-the-real-answer-is: fires', 'truth-the-real-answer-is',
     "The real answer is that your read is closer to right than you have admitted."],
 
