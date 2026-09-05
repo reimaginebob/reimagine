@@ -18,7 +18,7 @@ const check = (ok, msg) => { if (!ok) { failures++; console.error(`  FAIL ${msg}
 const COACH = 'api/coach.js'
 const coach = fs.readFileSync(COACH, 'utf8')
 
-check(/import \{ hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge \} from '\.\/_lib\/feature-flags\.js'/.test(coach),
+check(/import \{[^}]*\bhasOnboardingConcierge\b[^}]*\} from '\.\/_lib\/feature-flags\.js'/.test(coach),
   `${COACH}: hasOnboardingConcierge is not imported`)
 
 // The judgment instructions themselves must actually ask for a real

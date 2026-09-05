@@ -4729,6 +4729,12 @@ const employmentPromptMessage=(lead)=>({role:'assistant',content:(lead||'One qui
 // One nudge, never a campaign: this is an intake question, and someone weeks into
 // their search has already given the coach plenty to work with.
 const searchIntakeOpener=()=>({role:'assistant',content:"Before we get into it, one thing I'd normally know about you and don't. What's going well in your search right now? Whatever is working, even if it feels small.",checkinKey:'search-intake-opener'})
+// Save-to-notes disclosure (2026-09-05). Told once, plainly, the first time
+// Coach opens with a specific opportunity in view -- not a judgment call
+// repeated per reply. After this, saving is always available on request
+// (COACH_NOTE_CAPTURE_NOTE, api/coach.js); nothing here needs a second
+// mention.
+const notesCapabilityMessage=()=>({role:'assistant',content:"By the way — anytime something in here is worth keeping, just say so and I'll add it to this opportunity's notes so you can find it again.",checkinKey:'notes-capability-mention'})
 // My Search (brief 2026-08-14). Stage vocabulary shared by the card editor and
 // the Coach one-tap capture. value is the stored enum; label is the render-true
 // name. The tap is always the user's — the detector only decides whether to
@@ -7300,6 +7306,11 @@ export default function PivotEngine(){
   const[searchFocus,setSearchFocus]=useState('')
   const[seenSearchIntakePrompt,setSeenSearchIntakePrompt]=useState(false)
   const searchIntakePromptFiredRef=useRef(false)
+  // Save-to-notes disclosure (2026-09-05). Told once ever, like the prompts
+  // above -- not a per-opportunity repeat, and not a judgment call Coach
+  // re-evaluates each reply.
+  const[seenNotesCapabilityMention,setSeenNotesCapabilityMention]=useState(false)
+  const notesCapabilityFiredRef=useRef(false)
   // Proactive pipeline check-in (2026-09-05, brief: "let Coach ask what it
   // doesn't know when something moves on your pipeline"). Ref-guarded like its
   // siblings above, but capped via sessionStorage rather than a profile-blob
@@ -7356,6 +7367,10 @@ export default function PivotEngine(){
   // api/_lib/feature-flags.js; the server decides who may use the underlying
   // writes, this only decides whether the client renders the summary board.
   const hasPipelineBoard=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('pipeline_board'))
+  // PILOT — Save-to-notes agency, 2026-09-05. Mirrors hasCoachNoteAgency in
+  // api/_lib/feature-flags.js; the server decides who gets the instruction,
+  // this only decides whether the client renders the disclosure and the offer.
+  const hasCoachNoteAgency=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('coach_note_agency'))
   // Go Independent (2026-08-27). The account's own track wins the moment there
   // is an account; the URL parameter only speaks for a visitor who has not
   // signed in yet, which is exactly the sign-up screens. Deriving it in that
@@ -7589,6 +7604,15 @@ export default function PivotEngine(){
       if(!targetId)return false
       updateOpPanel(targetId,p=>({...p,interviewers:[...p.interviewers,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:(typeof pe.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===pe.role))?pe.role:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:String(pe.note||'')}))]}))
       return true
+    }
+    // Save-to-notes (2026-09-05): the person explicitly asked Coach to save a
+    // reply, and the tap is what writes it -- the exact same write the manual
+    // "Save to this opportunity" button already uses. value is that reply's
+    // own text, carried straight through from the quick-reply offer.
+    if(checkinKey==='coach-note-save'){
+      if(value==='dismiss')return true
+      const title=saveCoachNoteToOpportunity(value)
+      return title?{content:`Saved to ${title}'s notes.`}:false
     }
     // Values capture (brief 2026-08-15). Writes through pr() — the same setter the
     // Values screen's own textareas use — so autosave carries it and nothing races
@@ -8104,7 +8128,7 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
   // Hydrate the saved playbooks set from its own localStorage key on mount.
   // Demo mode skips persistence; test mode wipes the key so test sessions
   // start clean (mirrors the pe_v4 gating one line up).
@@ -8125,7 +8149,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
@@ -8476,6 +8500,24 @@ export default function PivotEngine(){
     setChatMessages(m=>[...m,searchIntakeOpener()])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,searchGoingWell,searchFocus,seenSearchIntakePrompt,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest])
+  // Save-to-notes disclosure (2026-09-05, brief: "let Coach save to notes on
+  // request, not on its own judgment"). Fires once ever, the first time Coach
+  // opens with a specific opportunity already in focus -- coachOpenTick only
+  // increments from the floating bubble's onOpen, which fires everywhere
+  // including an opportunity's own page. Yields to the employment/search-intake
+  // prompts if either just fired on this same open, so at most one thing is
+  // said per open, never three stacked.
+  useEffect(()=>{
+    if(isDemo||isTest)return
+    if(!hasCoachNoteAgency)return
+    if(!coachOpenTick)return
+    if(seenNotesCapabilityMention||notesCapabilityFiredRef.current)return
+    if(!coachSaveTarget())return
+    if(employmentPromptFiredRef.current||searchIntakePromptFiredRef.current)return
+    notesCapabilityFiredRef.current=true
+    setSeenNotesCapabilityMention(true)
+    setChatMessages(m=>[...m,notesCapabilityMessage()])
+  },[coachOpenTick,hasCoachNoteAgency,seenNotesCapabilityMention,isDemo,isTest])
   // Proactive pipeline check-in (2026-09-05). Fires once per LOGIN SESSION on
   // arrival at My Pipeline, not once ever -- whether something moved is worth
   // asking again every time they come back, unlike the one-time prompts above,
@@ -8561,7 +8603,7 @@ export default function PivotEngine(){
       // lives only in the saved_playbooks table (per-record dual-write above), so a
       // whole-profile save can never touch a playbook again. The server merge shim
       // stays as belt-and-suspenders for any old cached client still sending it.
-      const blob=JSON.stringify({step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields})
+      const blob=JSON.stringify({step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields})
       localStorage.setItem('pe_v4',blob)
       // The localStorage write above is unconditional; only the server PUT is
       // gated. Holding the PUT until /api/profile/load has settled is what stops
@@ -8584,7 +8626,7 @@ export default function PivotEngine(){
       setSaveStatus('saved')
       setSaveError(null)
     }catch{setSaveStatus('error');setSaveError('device_full')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields,signedInUser,serverLoadDone,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields,signedInUser,serverLoadDone,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
@@ -14145,7 +14187,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
         {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
     </div>
     // Job Search Resources (docs/networking-groups-brief.md). Its own
     // destination, reachable from the first screen, needing no direction and no
@@ -16017,7 +16059,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>
