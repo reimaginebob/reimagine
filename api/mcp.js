@@ -30,7 +30,7 @@ import { baseUrl } from './_lib/oauth.js'
 const PROTOCOL_VERSION = '2025-06-18'
 const SERVER_INFO = { name: 'Reimagine', version: '1.0.0' }
 
-const VALID_STAGES = new Set(['researching', 'applied', 'in_conversation', 'interviewing', 'offer', 'closed'])
+const VALID_STAGES = new Set(['researching', 'applied', 'phone_screen', 'interviewing', 'final_round', 'offer', 'closed'])
 const VALID_IV_ROLES = new Set(['hiring_manager', 'skip_level', 'peer', 'cross_functional', 'recruiter_screen'])
 const VALID_OUTCOMES = new Set(['accepted', 'declined', 'not_selected', 'withdrew', 'no_response'])
 

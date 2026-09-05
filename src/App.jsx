@@ -4736,8 +4736,9 @@ const searchIntakeOpener=()=>({role:'assistant',content:"Before we get into it, 
 const PURSUIT_STAGES=[
   {value:'researching',label:'Researching'},
   {value:'applied',label:'Applied'},
-  {value:'in_conversation',label:'In conversation'},
+  {value:'phone_screen',label:'Phone Screen'},
   {value:'interviewing',label:'Interviewing'},
+  {value:'final_round',label:'Final Round'},
   {value:'offer',label:'Offer'},
   {value:'closed',label:'Closed'},
 ]
@@ -7351,6 +7352,10 @@ export default function PivotEngine(){
   // client fires the check-ins that narrate onboarding. A separate flag from
   // hasNextStep so the two rollouts can be toggled independently.
   const hasOnboardingConcierge=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('onboarding_concierge'))
+  // PILOT — Pipeline board, 2026-09-05. Mirrors hasPipelineBoard in
+  // api/_lib/feature-flags.js; the server decides who may use the underlying
+  // writes, this only decides whether the client renders the summary board.
+  const hasPipelineBoard=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('pipeline_board'))
   // Go Independent (2026-08-27). The account's own track wins the moment there
   // is an account; the URL parameter only speaks for a visitor who has not
   // signed in yet, which is exactly the sign-up screens. Deriving it in that
@@ -12447,8 +12452,53 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     let attnN=0,quietN=0
     activeList.forEach(r=>{const s=stat(r);if(needsAttn(s))attnN++;else if(!hasUpcoming(s))quietN++})
     const rollup=activeList.length?`${activeList.length} in play${attnN?` · ${attnN} need${attnN===1?'s':''} attention`:''}${quietN?` · ${quietN} going quiet`:''}`:''
+    // Pipeline board (2026-09-05, pilot: pipeline_board). Equal-width columns,
+    // not a narrowing funnel -- a taper at the stage where most opportunities
+    // naturally sit reads as attrition, not progress. Depth is shown with a
+    // single hue (the brand gold) deepening left to right rather than
+    // distinct colors, which sidesteps the traffic-light association a
+    // red/yellow/green scheme would carry. Offer is the deepest step in the
+    // same family, not a different color -- a final round only ever resolves
+    // into an offer or nothing, so it is the end of the gold progression, not
+    // a separate kind of milestone. Additive: renders above the existing
+    // editable list below, which stays the place to actually change a stage,
+    // a date, or a next move. A stage the app cannot place (unset, or a
+    // legacy value) buckets into Researching for display only -- never
+    // written back.
+    const boardCols=[
+      {value:'researching',label:'Researching',bg:'#FBF6EE',border:'#E9D9BC'},
+      {value:'applied',label:'Applied',bg:'#F8EDD9',border:'#DFC08A'},
+      {value:'phone_screen',label:'Phone Screen',bg:'#F3E0BC',border:'#D2A55E'},
+      {value:'interviewing',label:'Interviewing',bg:'#EDD094',border:'#C8924A'},
+      {value:'final_round',label:'Final Round',bg:'#E4BC72',border:'#A06828'},
+      {value:'offer',label:'Offer',bg:'#D9A94F',border:'#7A4E1E'},
+    ]
+    const boardEl=(hasPipelineBoard&&activeList.length)?(()=>{
+      const colFor=(rec)=>{const st=stat(rec).stage;return boardCols.some(c=>c.value===st)?st:'researching'}
+      return <div data-print="hide" style={{marginBottom:24,overflowX:'auto'}}>
+        <div style={{display:'grid',gridTemplateColumns:`repeat(${boardCols.length},minmax(0,1fr))`,gap:10,minWidth:560}}>
+          {boardCols.map(col=>{
+            const inCol=activeList.filter(r=>colFor(r)===col.value)
+            return <div key={col.value} style={{display:'flex',flexDirection:'column',gap:8,minWidth:0}}>
+              <div>
+                <div style={{fontFamily:'Georgia,serif',fontSize:15,fontWeight:700,color:'#1A2540',lineHeight:1.3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{col.label}</div>
+                <div style={{height:3,background:col.border,marginTop:6,borderRadius:2}}/>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                {inCol.length?inCol.map(rec=>
+                  <button key={rec.id} type="button" onClick={()=>openPursuitRecord(rec,'op')} title={rec.title||rec.company||'Opportunity'} style={{textAlign:'left',background:col.bg,border:`1.5px solid ${col.border}`,borderRadius:8,padding:'8px 10px',fontSize:15,fontWeight:600,color:'#1A2540',cursor:'pointer',fontFamily:'inherit',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    {rec.title||rec.company||'Opportunity'}
+                  </button>
+                ):<div style={{border:'1.5px dashed #C9CFD8',borderRadius:8,padding:'8px 10px',fontSize:15,fontStyle:'italic',color:'#8A94A3'}}>Nothing here yet</div>}
+              </div>
+            </div>
+          })}
+        </div>
+      </div>
+    })():null
     return wrap(
       <div style={{display:'flex',flexDirection:'column',gap:16}}>
+        {boardEl}
         {!isDemo&&signedInUser&&<button type="button" data-print="hide" onClick={()=>openCoachWith(`Step back and look at my whole pipeline. How is my search going overall — where am I building momentum and where am I stalling — and where should I focus my energy right now?`,true)} style={{width:'100%',boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:C.gold,color:'#FFFFFF',border:'none',borderRadius:10,padding:'13px 16px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}><MessageCircle size={18}/>Get My Coach's read on your pipeline</button>}
         {rollup&&<div style={{fontSize:15,color:C.grayL,fontWeight:600,margin:'0 0 2px'}}>{rollup}</div>}
         {sorted.map(rec=>{

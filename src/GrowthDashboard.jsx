@@ -50,12 +50,12 @@ const weekLabel = (iso) => {
 }
 
 const STAGE_LABELS = {
-  researching: "Researching", applied: "Applied", in_conversation: "In conversation",
-  interviewing: "Interviewing", offer: "Offer", closed: "Closed", "(none)": "No stage set",
+  researching: "Researching", applied: "Applied", phone_screen: "Phone Screen",
+  interviewing: "Interviewing", final_round: "Final Round", offer: "Offer", closed: "Closed", "(none)": "No stage set",
 }
 // The ladder, in order. Rendered in full even where a stage has no rows: a
 // stage nobody has reached is information, not an absent row.
-const STAGE_LADDER = ["researching", "applied", "in_conversation", "interviewing", "offer", "closed"]
+const STAGE_LADDER = ["researching", "applied", "phone_screen", "interviewing", "final_round", "offer", "closed"]
 // The journey milestones, in order, for the movement table. Short labels: this
 // table is wide and the column header has to survive a phone.
 const MOVE_STAGES = [

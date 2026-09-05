@@ -101,6 +101,19 @@ export function hasOnboardingConcierge(user) {
   return flags.includes(ONBOARDING_CONCIERGE_FLAG)
 }
 
+// PILOT -- Pipeline board, 2026-09-05. The equal-width, stage-grouped visual
+// summary above the existing editable My Pipeline list. Gated because it is a
+// new rendering of live opportunity data on a screen every signed-in account
+// already uses, which is not a change to make to 145 accounts before Bob has
+// looked at it himself.
+export const PIPELINE_BOARD_FLAG = 'pipeline_board'
+
+export function hasPipelineBoard(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(PIPELINE_BOARD_FLAG)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -113,4 +126,5 @@ export const GRANTABLE_FLAGS = {
   [CONNECTOR_BETA_FLAG]: { label: 'Assistant connector' },
   [PIPELINE_CAPTURE_FLAG]: { label: 'Coach next-step capture' },
   [NEXT_STEP_FLAG]: { label: 'Your Next Step' },
+  [PIPELINE_BOARD_FLAG]: { label: 'Pipeline board' },
 }
