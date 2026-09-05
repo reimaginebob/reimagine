@@ -58,6 +58,22 @@ check(collapsedBlock.includes('fontSize: 16, color: \'#8A9BB8\''),
 check(chat.includes('{!isCollapsedBanner && m.role === \'assistant\' && Array.isArray(m.quickReplies)'),
   `${CHAT}: quick replies are no longer gated on !isCollapsedBanner -- they could render detached from a collapsed bubble`)
 
+// Re-collapse control (2026-09-05, reported live): the strip's own tap
+// toggled expandedBanners both ways, but nothing on the expanded bubble
+// called it back -- a superseded message opened once had no way back to its
+// one-line strip. isExpandableBanner is the same eligibility as
+// isCollapsedBanner with the expanded check dropped, so it stays true
+// whichever way the toggle currently sits.
+check(chat.includes('const isExpandableBanner = (m.banner || m.intro) && i < messages.length - 1'),
+  `${CHAT}: isExpandableBanner is missing -- there is no way to compute re-collapse eligibility once a banner/intro message is expanded`)
+const recollapseIdx = chat.indexOf('{!isCollapsedBanner && isExpandableBanner && (')
+check(recollapseIdx !== -1, `${CHAT}: the expanded-banner re-collapse control is missing`)
+const recollapseBlock = recollapseIdx !== -1 ? chat.slice(recollapseIdx, recollapseIdx + 300) : ''
+check(recollapseBlock.includes('onClick={() => toggleBannerExpanded(i)}'),
+  `${CHAT}: the re-collapse control no longer calls toggleBannerExpanded`)
+check(chat.includes('‹ Collapse'),
+  `${CHAT}: the re-collapse control lost its label`)
+
 // Already-persisted accounts have INTRO_MSG saved in localStorage from
 // before intro:true existed -- the hydration path must backfill the flag by
 // content match, or the fix would only ever apply to brand-new sessions.

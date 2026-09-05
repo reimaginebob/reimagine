@@ -20,9 +20,14 @@ check(/const sessionOpenNote = \(sightOn && sessionOpenRequested\)/.test(coach),
 check(/computeSessionDelta\(state, pursuitRows, activityFacts, priorSessionAt\)/.test(coach),
   `${COACH}: sessionOpenNote no longer computes the session delta -- the opener needs it to weave in what actually happened`)
 
-// The opener must lead with the person, not recite a status update.
-check(coach.includes('Lead with them, not their pipeline'),
-  `${COACH}: sessionOpenNote no longer instructs Coach to lead with how the person is doing before their search`)
+// The opener must lead with the person, not recite a status update, and ask
+// exactly one mood question rather than the same question phrased twice
+// (reported live 2026-09-05: the model asked "how's it going?" and then
+// "how are you doing this week?" back to back in one reply).
+check(coach.includes('ask ONE question about how they are doing'),
+  `${COACH}: sessionOpenNote no longer instructs Coach to ask exactly one mood question`)
+check(coach.includes('never ask twice in different words in the same reply'),
+  `${COACH}: sessionOpenNote lost the guard against restating the mood question in a second phrasing`)
 
 // The agency question -- name a focus, or ask for a suggestion -- is the
 // actual point of this brief. Losing it silently reverts to the old
