@@ -1,4 +1,4 @@
-// Unit tests for src/voice-patterns.mjs. Wired into prebuild via package.json
+// Unit tests for src/voice-patterns.js. Wired into prebuild via package.json
 // so a regression on any of the named patterns fails the build before the
 // bundle ships.
 //
@@ -16,7 +16,7 @@
 //   4. detectDimensionalFitRegression fires on the dedicated-paragraph
 //      failure shape and returns null on the rewritten worked example.
 
-import { detectVoiceViolations, detectDimensionalFitRegression } from '../src/voice-patterns.mjs'
+import { detectVoiceViolations, detectDimensionalFitRegression } from '../src/voice-patterns.js'
 
 const cases = [
   // [label, expected-pattern-name-or-null, input]
@@ -655,6 +655,18 @@ const voiceGuideCases = [
   ['truth-here-is-the-thing: thing-elsewhere does not fire', null,
     "Here is one thing the data suggests, and it lands clearly."],
 
+  // Caught live 2026-09-05 in a My Coach reply: "Here's the real shape of it
+  // right now: three opportunities, and they're each at a different point
+  // in the arc." Two separate patterns fire on this one sentence.
+  ['truth-heres-the-real: fires', 'truth-heres-the-real',
+    "Here's the real shape of it right now: three opportunities, each moving."],
+  ['jargon-point-in-the-arc: fires', 'jargon-point-in-the-arc',
+    "Three opportunities, and they're each at a different point in the arc."],
+  ['jargon-point-in-the-arc: career arc does not fire', null,
+    'This role fits the pattern in your career arc, not a detour from it.'],
+  ['jargon-point-in-the-arc: life-arc framing does not fire', null,
+    'That framing turns a single choice into your whole life-arc.'],
+
   ['truth-the-real-answer-is: fires', 'truth-the-real-answer-is',
     "The real answer is that your read is closer to right than you have admitted."],
 
@@ -994,10 +1006,57 @@ for (const [label, expectedName, input] of kickerCases) {
   }
 }
 
+// --- partnership-self-interest (2026-09-04) -------------------------------
+// Runtime-only: Coach speaking about its own want/need when asking the user
+// for something ("I want yours first", "that is exactly what I want"), as
+// opposed to wanting to DO something for them ("I want to help") or the user
+// naming their own want ("you want", "we need"). Caught live on the
+// Reputation and Fit orientation-narration lines.
+const partnershipCases = [
+  ['partnership: "I want X" fires', 'partnership-self-interest',
+    'That is exactly what I want.'],
+  ['partnership: "I want yours first" fires', 'partnership-self-interest',
+    'I want yours first, before I run my own read.'],
+  ['partnership: "I need" fires', 'partnership-self-interest',
+    'I need a specific quote, not a general compliment.'],
+  ['partnership: "I\'m looking for" fires', 'partnership-self-interest',
+    "I'm looking for a specific quote, not a general compliment."],
+  ['partnership: "I am looking for" fires', 'partnership-self-interest',
+    'I am looking for signal in what people say about you.'],
+  ['partnership: "what I want" fires', 'partnership-self-interest',
+    'What I want is a specific quote.'],
+  ['partnership: "give me" fires', 'partnership-self-interest',
+    'Give me an old review and I will work from it.'],
+  ['partnership: "I want to help" does not fire (wanting to DO, not receive)', null,
+    'I want to help you find the sharpest evidence.'],
+  ['partnership: "I need to know" does not fire (verb-to variant)', null,
+    'I need to know what matters most to you before we start.'],
+  ['partnership: "we need" does not fire (joint framing)', null,
+    'We need a specific quote, not a general compliment.'],
+  ['partnership: "you want" does not fire (quoting the user)', null,
+    'You said you want more warm introductions.'],
+  ['partnership: "what you want" does not fire', null,
+    'Tell me what you want out of this conversation.'],
+]
+let partnershipFailed = 0
+for (const [label, expectedName, input] of partnershipCases) {
+  const violations = detectVoiceViolations(input, { includeSoft: false, scope: 'runtime' })
+  const names = violations.map(v => v.name)
+  const fired = names.includes('partnership-self-interest')
+  if (expectedName === null ? fired : !fired) {
+    console.error(`FAIL: ${label}`)
+    console.error(`  input:    ${JSON.stringify(input)}`)
+    console.error(`  expected: ${expectedName === null ? 'no partnership-self-interest match' : expectedName}`)
+    console.error(`  got:      ${names.join(', ') || '(none)'}`)
+    failed++; partnershipFailed++
+  }
+}
+
 const kickerTotal = kickerCases.length + 1 // kickerCases + the p3 step-scoping check
 const formulaTotal = formulaCases.length + 1 + 4 // formulaCases + combined-detection + 4 step-filter checks (formula-* now universal)
 const voiceGuideTotal = voiceGuideCases.length + 1 + 4 + 2 + 4 + 1 // voiceGuideCases + combined-detection + 4 universal step-filter checks + 2 closer step-filter checks + 4 contamination step-filter checks + 1 verbatim SYS regression
-const total = cases.length + 2 + formulaTotal + voiceGuideTotal + kickerTotal
+const partnershipTotal = partnershipCases.length
+const total = cases.length + 2 + formulaTotal + voiceGuideTotal + kickerTotal + partnershipTotal
 if (failed > 0) {
   console.error(`\ntest-voice-patterns: ${failed} of ${total} cases failed.`)
   process.exit(1)

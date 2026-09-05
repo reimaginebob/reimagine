@@ -1,0 +1,24 @@
+-- Captures what last_login_at WAS, one login behind, so a later request can
+-- diff against it. last_login_at itself cannot serve this: api/auth/verify.js
+-- overwrites it to NOW() the instant a session starts, so any code that reads
+-- it to compute "what changed since your last visit" sees this session's own
+-- timestamp -- a few seconds old, never useful for a delta.
+--
+-- prior_session_at is set once per login, in the same UPDATE that stamps
+-- last_login_at, to whatever last_login_at held immediately before that
+-- statement ran (standard UPDATE semantics -- every SET expression reads the
+-- pre-update row, even one also being written in the same statement, so no
+-- read-then-write race is possible between two logins). It then holds steady
+-- for the rest of that session, which is exactly the anchor the Coach
+-- session-delta computation (src/session-delta.js) needs: "the last time
+-- before this session" rather than "an instant ago."
+--
+-- NULL on a brand-new account (the INSERT path in verify.js does not set it,
+-- deliberately -- see the ON CONFLICT comment there about touching as little
+-- as possible on that path). NULL is the correct signal for "no prior session
+-- to diff against," which is the first-time-user case Phase 1 does not cover
+-- (that's onboarding narration, a separate build item).
+--
+-- Forward-only, idempotent.
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS prior_session_at timestamptz;

@@ -1,0 +1,111 @@
+# Runs the api/* preview smoke test automatically, so it stops being a manual
+# step somebody has to remember.
+#
+# WHY THIS EXISTS. CLAUDE.md section 8 makes a preview smoke a merge blocker on
+# any PR touching api/* -- it catches the class of failure where the Vercel
+# function bundler cannot load a route, which local builds, unit tests and the
+# Vite build all pass straight through (the 2026-05-27 outage: PR #76 shipped a
+# .mjs import across the api/* <-> src/* boundary, every local check was green,
+# and production returned FUNCTION_INVOCATION_FAILED on every request for 45
+# minutes). Until now the only way to run it was by hand, on a machine holding
+# the bypass token, which made a merge blocker depend on someone remembering.
+#
+# TRIGGERED BY THE DEPLOYMENT, NOT THE PUSH. The smoke needs a built preview to
+# aim at, so it waits for Vercel to report a successful deployment rather than
+# racing it. `environment_url` is the deployment Vercel just finished.
+#
+# ONLY reimagine2. Two Vercel projects build this repo and both post checks;
+# only reimagine2 is production and only reimagine2 holds the bypass token.
+# Requests to a `reimagine-git-*` preview are redirected to Vercel's SSO login,
+# which an unguarded script once scored as a pass. Deployments from the other
+# project are skipped here rather than failed, so they never post a red check
+# for a URL this repo was never meant to smoke.
+name: Preview smoke
+
+on:
+  deployment_status:
+
+# Several deployments can land quickly on an active branch. Only the newest is
+# worth smoking; the older runs are cancelled rather than left racing.
+concurrency:
+  group: smoke-${{ github.event.deployment_status.environment_url }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    # Success only -- a deployment still building has nothing to aim at, and a
+    # failed one has its own error. The URL filter keeps the sibling project out.
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      contains(github.event.deployment_status.environment_url, 'reimagine2-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Full history: the scope step below diffs against the default branch, and
+      # a depth-1 checkout has no merge base to diff from.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # The script is plain Node with global fetch and no dependencies, so there
+      # is nothing to install. Keep it that way: this job should stay seconds.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # WHAT THIS CHANGE ACTUALLY TOUCHES, said out loud before the result.
+      #
+      # The smoke runs on every preview, which is cheap and catches base-branch
+      # regressions. The cost is that a green check on a PR the smoke has
+      # nothing to say about reads as though the PR was validated. That is the
+      # same false confidence as the missing-secret case below, arrived at from
+      # the opposite direction: there the gate looks satisfied because nothing
+      # ran, here because something ran that could not have been affected.
+      #
+      # Bob hit this on the PR that added this workflow: a hand-run smoke came
+      # back green on a branch touching no api/ files at all. Real green, no
+      # bearing on the change.
+      #
+      # Annotation only. `continue-on-error` is deliberate -- this step must
+      # never decide whether the job passes.
+      - name: Say what this change touches
+        continue-on-error: true
+        env:
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          git fetch --no-tags origin "$BASE" 2>/dev/null || true
+          if ! git rev-parse --verify -q "origin/$BASE" >/dev/null; then
+            echo "Could not resolve origin/$BASE, so scope is unknown."
+            exit 0
+          fi
+          if git merge-base --is-ancestor HEAD "origin/$BASE"; then
+            echo "This deployment is $BASE itself (or already merged into it),"
+            echo "so there is no pull-request scope to report."
+            exit 0
+          fi
+          git diff --name-only "origin/$BASE...HEAD" > /tmp/changed.txt
+          xargs -a /tmp/changed.txt node scripts/api-surface.mjs --classify \
+            | tee /tmp/scope.txt
+          {
+            echo '### Preview smoke scope'
+            echo '```'
+            cat /tmp/scope.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke /api/health and /api/claude
+        env:
+          VERCEL_PROTECTION_BYPASS: ${{ secrets.VERCEL_PROTECTION_BYPASS }}
+          TARGET: ${{ github.event.deployment_status.environment_url }}
+        run: |
+          if [ -z "$VERCEL_PROTECTION_BYPASS" ]; then
+            echo "::error::VERCEL_PROTECTION_BYPASS is not set as a repository secret."
+            echo "Add it under Settings → Secrets and variables → Actions."
+            echo "The value comes from Vercel → project reimagine2 → Settings →"
+            echo "Deployment Protection → Protection Bypass for Automation."
+            echo "Failing rather than skipping: a smoke that silently does not run"
+            echo "is worse than no smoke, because the merge gate looks satisfied."
+            exit 1
+          fi
+          echo "Smoking $TARGET"
+          node scripts/smoke-preview.mjs "$TARGET"

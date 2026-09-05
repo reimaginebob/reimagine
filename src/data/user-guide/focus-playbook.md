@@ -478,7 +478,7 @@ Every row states **what it costs** before you click anything. Cost is not what d
 
 As on Job Search Resources, Reimagine names organizations and links their own pages rather than telling you when the next meeting is. Meeting dates go stale, old event pages keep ranking, and where a local chapter has merged into a larger one you are pointed at the body that still exists.
 
-**Edit** changes what the search is matching on if it read your direction wrong, and the box at the bottom asks for something more specific — groups that meet in person, or groups for women in your field.
+**Edit** changes what the search is matching on if it read your direction wrong. The box at the bottom asks for something more specific, and it takes two kinds of answer: a theme, like groups that meet in person or groups for women in your field, or **the name of a group you have heard of**. Naming one is worth knowing about, because a community whose pages sit behind a sign-in is hard to find by searching for what it does but easy to look up once you have the name — and those are often the ones people recommend to each other.
 
 This card also appears on every Opportunity Playbook. Two playbooks in the same function and industry share one list, so the second one opens already built. That means the list is not company-specific and does not pretend to be — for who you know at a particular company, use the three doors on the opportunity itself.
 

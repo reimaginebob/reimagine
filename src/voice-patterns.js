@@ -1,9 +1,17 @@
-// src/voice-patterns.mjs
+// src/voice-patterns.js
 // Banned constructions across every Reimagine analytical output.
 // Single source of truth, used by:
 //   - scripts/check-voice.mjs at build time (scans source code; honors // voice-allow regions)
 //   - generate() / generateSection() at runtime (scans model output before it reaches the user)
-// ESM (.mjs) so Node can import it directly from check-voice.mjs while Vite bundles it for the app.
+//   - api/coach.js at runtime (Coach chat's own pre-display regenerate-on-violation retry)
+// Plain .js, not .mjs: Node parses the ESM export/import syntax fine either
+// way (see the MODULE_TYPELESS_PACKAGE_JSON warning already benign on every
+// other .js module here, e.g. src/text-strippers.js), but the .js extension
+// is what lets api/coach.js import this across the Vercel function bundler's
+// api/src boundary -- a .mjs import there fails at invocation time
+// (FUNCTION_INVOCATION_FAILED), which is why this file was renamed from
+// .mjs on 2026-09-05 to close the gap that let "Here's the real shape of
+// it" / "the arc" reach a live Coach reply uncaught.
 //
 // Two-tier model (appliesTo):
 //   ['build','runtime'] - tight constructions we author deliberately. Their
@@ -41,6 +49,12 @@
 //   - closer-*               (closer-template variants; p3-only as of #84)
 //   - transition-*           (narrower stock-transition survivors)
 //   - contamination-*        (SYS-exemplar verbatim leak; universal, #85)
+//   - partnership-*          (Coach framing an ask around its own want/need
+//                             rather than shared work; universal, runtime-
+//                             only, 2026-09-04)
+//   - jargon-*               (consulting-speak abstraction standing in for
+//                             something plain and specific; runtime-only,
+//                             2026-09-05)
 //
 // Keep regexes Unicode-aware where it matters; use the case-insensitive flag.
 
@@ -63,7 +77,7 @@ export const HARD_PATTERNS = [
   // Logic-flip cadence: "X is not Y. It is Z." and "X are not Y. We are Z."
   {
     name: 'logic-flip-is-not',
-    re: /\b(?:is|are|was|were)\s+not\s+(?:a\s+|an\s+|about\s+|just\s+|only\s+)?[^.!?\n]{3,80}[.!?]['"’”)\]]*\s*(?:It|That|They|You|We)\s+(?:is|are|was|were)\s+/i,
+    re: /\b(?:is|are|was|were)(?:n['’]t|\s+not)\s+(?:a\s+|an\s+|about\s+|just\s+|only\s+)?[^.!?\n]{3,80}[.!?]['"’”)\]]*\s*(?:It|That|They|You|We)\s*(?:['’](?:s|re)|\s+(?:is|are|was|were))\s+/i,
     severity: 'hard',
     appliesTo: ['runtime'],
     note: 'Logic-flip cadence: replace with the positive claim on its own.',
@@ -71,10 +85,36 @@ export const HARD_PATTERNS = [
   // Logic-flip cadence: "You do not just X, you Y" / "You do not X, you Y"
   {
     name: 'logic-flip-do-not-just',
-    re: /\b(?:do|does|did)\s+not\s+(?:just\s+)?[^,.;\n]{3,80},['"’”)\]]*\s*(?:you|we|they)\s+(?:[a-z]+)/i,
+    re: /\b(?:do|does|did)(?:n['’]t|\s+not)\s+(?:just\s+)?[^,.;\n]{3,80},['"’”)\]]*\s*(?:you|we|they)\s+(?:[a-z]+)/i,
     severity: 'hard',
     appliesTo: ['runtime'],
     note: 'Logic-flip cadence: replace with the positive claim on its own.',
+  },
+  // Logic-flip cadence, COMMA form: "X is not Y, it is Z".
+  //
+  // This is the shape CLAUDE.md's banned list names in as many words, and until
+  // 2026-09-02 nothing detected it. logic-flip-is-not above requires a sentence
+  // boundary between the halves, so the period form was caught and the comma
+  // form -- which is what the model actually writes -- walked straight through.
+  // It reached a user: "a good BATNA isn't just theoretical, it's what gives you
+  // real leverage" shipped in a live coach reply while a DIFFERENT logic flip in
+  // the same reply was caught. A rule with an instruction and no detector is a
+  // draft, which is the whole reason this file exists.
+  //
+  // THE DISCRIMINATOR IS WHAT FOLLOWS THE COMMA. The cadence restates the
+  // subject as a noun phrase or a wh-clause ("it is a pivot", "it's what gives
+  // you leverage"). An ordinary conditional continues with an adjective or a
+  // verb ("if the answer is not clear, it is worth asking"; "when nothing is
+  // moving, it is time to write"). Requiring a determiner or a wh-word after the
+  // pronoun keeps the first and lets the second through, which is why this is
+  // narrower than it looks -- a plain comma rule would fire on half the
+  // conditionals in the guide.
+  {
+    name: 'logic-flip-is-not-comma',
+    re: /\b(?:is|are|was|were)(?:n['’]t|\s+not)\s+(?:just\s+|only\s+|merely\s+|simply\s+)?(?:a\s+|an\s+|the\s+|about\s+)?[^,;.!?\n]{2,70},\s*(?:it|that|they)\s*(?:['’](?:s|re)|\s+(?:is|are|was|were))\s+(?:a|an|the|what|how|why|where|who|your|his|her|their|its|my|our)\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Logic-flip cadence in comma form: state the positive claim on its own.',
   },
   // Logic-flip cadence: "not X, but Y" inside a sentence
   {
@@ -826,6 +866,24 @@ export const HARD_PATTERNS = [
     note: 'Framework name not exposed in user-facing outputs.',
   },
 
+  // Consulting-speak abstractions: a jargon noun standing in for something
+  // plain and specific. Caught live 2026-09-05 in a My Coach reply about the
+  // pipeline board: "three opportunities, and they're each at a different
+  // point in the arc" -- "the arc" is a career-coach abstraction for "where
+  // things stand" or a named stage. Scoped to "point/stage/place in the arc"
+  // rather than the bare word "arc" so the many legitimate "career arc" /
+  // "life-arc framing" uses elsewhere in this codebase's own prompts are
+  // untouched -- those describe a whole career's trajectory, a normal English
+  // phrase, not this jargon shorthand for a single opportunity's stage.
+  {
+    name: 'jargon-point-in-the-arc',
+    re: /\b(?:point|points|stage|place)\s+(?:in|along|on)\s+the\s+arc\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'A different point in the arc',
+    note: 'Consulting jargon: "the arc" as a stand-in for where something stands. Name the actual stage or say "where things stand" plainly.',
+  },
+
   // Drama punches: stock attention-grabbing transitions.
   {
     name: 'drama-heres-the-kicker',
@@ -871,6 +929,21 @@ export const HARD_PATTERNS = [
     appliesTo: ['runtime'],
     surface: "Here's the thing",
     note: 'Truth announcement. State the thing directly.',
+  },
+  // Caught live 2026-09-05 in a My Coach reply describing the pipeline board:
+  // "Here's the real shape of it right now: three opportunities...". Same
+  // preannouncing family as here-is-the-thing/the-real-answer-is, but neither
+  // existing pattern's exact wording matched this "here's the real NOUN"
+  // variant. Broad on the noun deliberately -- shape/picture/story/situation
+  // are all the same move, and a narrow enumerated list would just relocate
+  // the gap to the next noun the model reaches for.
+  {
+    name: 'truth-heres-the-real',
+    re: /\bhere'?s the real\s+\w+/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: "Here's the real [shape/picture/story] of it",
+    note: 'Truth announcement / preannouncing: "here\'s the real X" sets up the reveal instead of making it. State the thing directly.',
   },
   {
     name: 'truth-the-real-answer-is',
@@ -1060,6 +1133,32 @@ export const HARD_PATTERNS = [
     severity: 'hard',
     appliesTo: ['runtime'],
     note: 'Softening: state the claim if it has evidence; mark it as a hypothesis if it does not.',
+  },
+  // Partnership, not self-interest (2026-09-04, added as a standing voice
+  // principle after a live catch: "that is exactly what I want" on the
+  // Reputation screen, and "I want yours first" on Fit). Reimagine speaks in
+  // terms of what the two of you build together, never what it wants, needs,
+  // or is looking for FROM the person -- "bring me an old review" serves
+  // Coach; "that's exactly the kind of detail we can build from" keeps the
+  // work joint. Runtime-only (appliesTo does not include 'build'): the same
+  // first-person shapes appear constantly and legitimately elsewhere in the
+  // source this gate also scans -- placeholder examples of what a USER might
+  // type ("e.g. I want more warm introductions"), demo-profile data written
+  // in a fictional demo user's own voice, and quoted banned-phrase examples
+  // in comments. None of those are Coach speaking about itself, and a
+  // build-wide sweep would misfire on all of them; this pattern instead
+  // governs actual Coach/model output; the static lines this was caught on
+  // were fixed by hand in src/data/orientation-narration.js.
+  // "I want to help" / "I need to know" are excluded (the negative lookahead
+  // after want/need): wanting to DO something for the person is not the
+  // violation; wanting to RECEIVE something from them, framed as Coach's own
+  // want, is.
+  {
+    name: 'partnership-self-interest',
+    re: /\bI(?:['’]m|\s+am)\s+looking\s+for\b|\bI\s+(?:want|need)\b(?!\s+to\b)|\bwhat\s+I\s+(?:want|need)\b|\bgive\s+me\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Partnership register: frame this as what we build together, not what Coach wants, needs, or is looking for from the person.',
   },
 ]
 

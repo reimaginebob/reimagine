@@ -16,12 +16,17 @@
 import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
 import { GO_INDEPENDENT_KNOWLEDGE } from '../src/data/go-independent-knowledge.js'
 import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowledge.js'
+import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
-import { hasConnectorBeta, hasPipelineCapture } from './_lib/feature-flags.js'
+import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency } from './_lib/feature-flags.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
+import { detectVoiceViolations } from '../src/voice-patterns.js'
 import { parseSelfcheck } from '../src/coach-routing.js'
+import { STEPS, nextSteps as computeNextSteps, computeSessionDelta } from '../src/step-position.js'
+import { describeSections } from '../src/playbook-sections.js'
+import { ACTIVITY_CATALOG, ASKABLE, activity as activityDef, isValidFact } from '../src/activity-catalog.js'
 import { LANE_LABELS } from '../src/nav-labels.js'
 import { totalCompModel } from '../src/offer-valuation.js'
 import { COMP_KNOWLEDGE } from '../src/comp-knowledge.js'
@@ -73,24 +78,184 @@ function isAllowedOrigin(rawOrigin) {
 // throughout", and this is the narrow, explicit exception to that, exactly as the
 // interview-team trailer is. The model already sees current VALUES / PASSIONS AND
 // CAUSES in ANCHOR 1, so it knows whether it is filling a blank or replacing.
-const INTERVIEW_TEAM_CAPTURE_NOTE = '\n\nINTERVIEW TEAM CAPTURE: when this person names one or more specific people they will be interviewing with for one of their opportunities, end your reply with a final line exactly like INTERVIEWTEAM: {"opportunity":"<the opportunity title from their saved work>","people":[{"name":"Full Name","title":"their title if stated","role":"one of hiring_manager|skip_level|peer|cross_functional|recruiter_screen ONLY if they said how this person fits the loop, else omit role"}]} listing only the people they explicitly named. Map what they said to the role: "she is a peer" -> peer, "the hiring manager" -> hiring_manager, "recruiter screen" -> recruiter_screen, "her skip-level" -> skip_level, "a cross-functional partner" -> cross_functional. If they did not say how the person fits, omit role. The app turns that line into a one-tap "add to your Interview Team" offer and never shows it. Only emit it when they clearly named interviewers; otherwise omit it entirely.'
+// Extended 2026-09-05 (brief: "let Coach ask what it doesn't know when
+// something moves on your pipeline"): Coach already sees this opportunity's
+// full existing roster above (see buildCoachProfileSlice's interview-team
+// block) but never checked it before offering to add someone again, so
+// nothing stopped it from re-offering a person already logged. Also reverses
+// the old "if they did not say how the person fits, omit role" instruction --
+// a deliberate stay-passive choice -- into an active ask, and adds an
+// optional `note` key so "anything that would help with prep" has somewhere
+// to land (src/App.jsx:7573 threads it through as learned_note, the same
+// write path already proven at src/App.jsx:9942).
+const INTERVIEW_TEAM_CAPTURE_NOTE = '\n\nINTERVIEW TEAM CAPTURE: when this person names one or more specific people they will be interviewing with for one of their opportunities, first check the interview team roster already shown to you above for this opportunity. If the name they just gave matches someone already listed, do not re-offer to add them -- acknowledge that you already have them logged instead, and only emit the capture line below if there is something genuinely new to add (a role you did not have, a detail they just shared). If the person is new to the roster, offer to add them as usual. A name is what a capture record needs to exist at all: if they gave you a role or title but no name yet ("the VP of Engineering, but I did not get his name"), do not emit a capture line -- ask for the name first, naturally, before there is anything to offer to add. Once you have a name -- with or without a role -- end your reply with a final line exactly like INTERVIEWTEAM: {"opportunity":"<the opportunity title from their saved work>","people":[{"name":"Full Name","title":"their title if stated","role":"one of hiring_manager|skip_level|peer|cross_functional|recruiter_screen ONLY if they said how this person fits the loop, else omit role","note":"something substantive they told you about this person, else omit note"}]} listing only the people they explicitly named. Map what they said to the role: "she is a peer" -> peer, "the hiring manager" -> hiring_manager, "recruiter screen" -> recruiter_screen, "her skip-level" -> skip_level, "a cross-functional partner" -> cross_functional. A one-tap add should never wait on anything else, so emit the line the moment you have a name -- then, in the same reply, ask like a person would (never a checklist, never a form) for whatever is still missing: their role if you do not have it, and always something like "anything else you have picked up about them that would help me prep you for this one?" -- since that detail is what actually shapes the interview prep this person gets. If they already gave you both in the same breath, do not ask again for what you already have. The app turns that line into a one-tap "add to your Interview Team" offer and never shows it. Only emit it when they clearly named interviewers; otherwise omit it entirely.'
 
-// NEXT MOVE CAPTURE (pilot, gated on PIPELINE_CAPTURE_FLAG). Fourth instance of
-// the pattern INTERVIEW_TEAM_CAPTURE_NOTE and VALUES_CAPTURE_NOTE already use:
-// the model ends its reply with a hidden line, the server validates it onto a
-// response header, the client shows the exact wording and the resolved date,
-// and the person taps. The model still never writes.
+// PIPELINE CAPTURE (pilot, gated on PIPELINE_CAPTURE_FLAG). Third and fourth
+// instances of the pattern INTERVIEW_TEAM_CAPTURE_NOTE and VALUES_CAPTURE_NOTE
+// already use: the model ends its reply with a hidden line, the server validates
+// it onto a response header, the client shows exactly what will be written, and
+// the person taps. The model still never writes.
 //
-// Model-emitted rather than regex-triggered on purpose. The stage detector in
-// src/components/Chat.jsx (STAGE_MENTION_RE) needs stage vocabulary, so it
-// catches no part of "I'm calling Theresa on the 14th" -- and no regex resolves
-// "next Thursday" against today's date, which the model does from TODAY'S DATE
-// already in this prompt. The field is called "Next move" on the card, so the
-// instruction and the offer say next move, not next step: "Your Next Step" is
-// the name of a different surface.
-const NEXT_MOVE_CAPTURE_NOTE = '\n\nNEXT MOVE CAPTURE: every opportunity on My Pipeline has a "Next move" -- what this person is doing next on it, in their own words, with a date. When they tell you an action THEY have decided to take on one of their opportunities (a call they are making, a follow-up they are sending, someone they are reaching out to, something they will prepare), end your reply with a final line exactly like NEXTMOVE: {"opportunity":"<the opportunity title from their saved work>","move":"Call Theresa","date":"2026-09-14"} . `move` is a short imperative phrase in their own words, under 80 characters, never a sentence and never your paraphrase of their reasoning. `date` is YYYY-MM-DD resolved against TODAY\'S DATE above -- "next Thursday", "the 14th" and "a week from Tuesday" all resolve to a real date; omit the key entirely if they gave no timing, and never invent one. Include `opportunity` only when it is clear which one they mean. Emit it ONLY for an action they have actually decided on: not for something you suggested that they have not agreed to, not for a meeting the employer is scheduling (that is not their move), and not to restate a next move they already have. The app turns that line into a one-tap offer showing the exact wording and date before anything is saved, and never shows the line itself -- so do not mention it, and do not tell them to go and type it in. At most once per reply; otherwise omit it entirely.'
+// ONE trailer carries both fields, because people say both in one breath ("I
+// spoke with Marisol, the interviews are the 14th, and I'm calling Teresa
+// Thursday") and two competing offers under one reply is worse than one that
+// covers what they said.
+//
+// The two are genuinely different fields and the distinction is the whole
+// reason the first version missed: `move` is an action THIS PERSON takes, and
+// `meeting` is a real booked conversation whoever arranged it. Live testing hit
+// this twice -- "the interview has been scheduled for September 14th" was
+// correctly refused as a next move, and then had nowhere else to land.
+//
+// Model-emitted rather than regex-triggered: the stage detector in Chat.jsx
+// needs stage vocabulary, and no regex resolves "next Thursday" against today's
+// date, which the model does from TODAY'S DATE already in this prompt.
+const PIPELINE_CAPTURE_NOTE = '\n\nPIPELINE CAPTURE: each opportunity on My Pipeline carries a "Next move" (what this person does next on it, in their own words, with a date) and a "Next scheduled meeting" (a real booked conversation). When they tell you either one, end your reply with a final line exactly like PIPELINE: {"opportunity":"<the opportunity title from their saved work>","move":"Call Teresa","date":"2026-09-14","meeting":"2026-09-14"} carrying whichever of the two the conversation actually settled, and omitting the other entirely. `move` is a short imperative phrase in their own words, under 80 characters, and it is an action THEY take -- a call they are making, a follow-up they are sending, something they will prepare. `date` is when they mean to do that move. `meeting` is the date of a scheduled conversation -- an interview, a screen, a call that is now on the calendar -- no matter who arranged it, so an interview the employer scheduled belongs here even though it is not their move. Emit `meeting` when they say a conversation is booked, confirmed, moved or rescheduled. All dates are YYYY-MM-DD resolved against TODAY\'S DATE above; "next Thursday", "the 14th" and "a week from Tuesday" all resolve to a real date, and you never invent one -- omit the key instead. Include `opportunity` only when it is clear which one they mean. Emit the line ONLY for something they have actually told you, never for a move you suggested and they have not agreed to, and never to restate what their card already says. The app turns that line into a one-tap offer showing exactly what will be written before anything is saved, and never shows the line itself -- so do not mention it, and do not tell them to go and type it in. NEVER SAY YOU HAVE SAVED IT. You have not: the offer appears under your reply and their tap is the only thing that writes. Do not say you are locking it in, logging it, adding it, noting it, putting it on the card, or that you have got it handled -- claiming an action you cannot perform is worse than not offering at all, because they will walk away believing it is on the card. Reply to what they said in your normal voice and let the offer do its own work. If you do not know which of their opportunities this belongs to, ask -- and still emit the line without the `opportunity` key, so the offer is there the moment they answer. At most once per reply; otherwise omit it entirely.'
 
+// Ties the three existing capture mechanisms above (stage movement in
+// Chat.jsx, PIPELINE_CAPTURE_NOTE's move/meeting, INTERVIEW_TEAM_CAPTURE_NOTE)
+// into one natural conversation instead of three purely reactive ones. Placed
+// alongside PIPELINE_CAPTURE_NOTE and gated the same way (hasPipelineCapture)
+// since it references the same next-conversation/meeting concepts.
+const STAGE_MOVE_FOLLOWTHROUGH_NOTE = '\n\nSTAGE MOVE FOLLOW-THROUGH: when someone reports that something moved on one of their opportunities -- a new stage, an interview, an offer -- treat it as an opening to learn more, not just a fact to log. Naturally ask what you do not already have: when the next conversation is, and who they are meeting with, if either is missing. Ask like a person would, not a checklist -- skip anything they already told you in the same breath, and never ask for something you can already see in their saved work.'
+
+const ACTIVITY_CAPTURE_NOTE = '\n\nACTIVITY CAPTURE: when this person tells you something about the human side of their search -- that they joined a group, went to Career Club Corner, have someone holding them accountable, wrote directly to a company, asked anyone for an introduction, spoke to a recruiter, or looked at free help near them -- OR tells you plainly that they have not or do not want to, end your reply with a final line exactly like ACTIVITY: {"activity":"accountability_partner","state":"done","detail":"Marta, they talk Fridays"} using ONLY these activity keys: ' + ACTIVITY_CATALOG.filter(a => a.evidence === 'asked').map(a => a.key).join(', ') + '. `state` is one of done (they have it), not_yet (they told you they have not) or declined (they told you they do not want it). `detail` is optional, short, and in their own words. Emit it ONLY for something they actually said in this conversation, never for something you suggested and they have not answered, and never to restate what you were already told above. The app turns that line into a one-tap offer and never shows it, so do not mention it and do not ask them to type anything. NEVER SAY YOU HAVE SAVED IT -- their tap is the only thing that writes, and claiming an action you cannot perform is worse than not offering. At most one per reply; otherwise omit it entirely.'
 const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passions & Causes live on a screen in Reimagine called "Values, Passions & Causes", and you can offer to write them there. When a conversation has settled into a statement of their values or their passions and causes that they seem happy with — their words and their conclusions, not a list you proposed and they have not responded to — end your reply with a final line exactly like VALUESCAPTURE: {"values":"Independence; Creative problem solving; Belonging","passions":"Youth mentoring; Faith-based service"} carrying whichever of the two you have. Include a key ONLY for a field the conversation actually settled; omit the other entirely. Write each as a short semicolon-separated list in their own words, not a paragraph and not your paraphrase. If ANCHOR 1 shows a field already has content, only emit it when they have clearly landed somewhere new — the tap replaces what is there. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
+
+// SAVE-TO-NOTES CAPTURE, 2026-09-05. Deliberately request-only, never a
+// content-worthiness judgment call: Coach is told once, elsewhere (the
+// client's one-time disclosure message), that saving is available on
+// request, and this instruction only ever fires in response to an actual
+// ask. No JSON payload needed -- the content to save is this reply's own
+// visible text, already what the client has once the stream completes.
+const COACH_NOTE_CAPTURE_NOTE = '\n\nSAVE-TO-NOTES CAPTURE: when this person asks you, in their own words, to save, keep, remember, or write down this reply or what you just covered to the opportunity\'s notes, end your reply with a final line exactly like COACHNOTE: save. Only emit it when they clearly asked for this themselves in this turn -- never because you judged the reply worth keeping on your own; that call is always theirs, not yours, and you make no exceptions for a reply that feels important. The app turns that line into a one-tap offer showing exactly what will be saved (this reply, in full) and never shows the line itself, so do not mention it, and never say you have already saved it -- their tap is the only thing that writes.'
+
+// ASSESSMENT CAPTURE, 2026-09-04. Same one-tap contract as VALUES_CAPTURE_NOTE
+// above, for the same reason: someone who does not have a full assessment
+// report often still remembers real pieces of it (CliftonStrengths themes, a
+// type, specific traits), and today the only thing Coach could do with that
+// was tell them to go retype it themselves into the field on the assessment
+// screen -- the same redirect-instead-of-act gap the brand-rework bridge
+// closed for Personal Brand, caught live for this field too.
+const ASSESSMENT_CAPTURE_NOTE = '\n\nASSESSMENT CAPTURE: this person\'s assessment results (CliftonStrengths, Predictive Index, Big Five, Affintus, MBTI, DiSC, Hogan, or any other) live in a free-text field on the Assessment screen, and you can offer to add to it. When they name specific results they actually remember from a real assessment -- individual strengths, traits, a type, dimensions -- even without the full report, end your reply with a final line exactly like ASSESSMENTCAPTURE: {"text":"CliftonStrengths (remembered, not full report): Strategic, Belief, Activator"} . Write `text` as plain, factual content suitable for pasting directly into that field, in their own words and the names they gave -- never your interpretation or elaboration of what those results mean, that belongs in your reply, not in what gets saved. Name the assessment type if they said which one; if they did not say, describe it plainly ("remembered, no assessment named") rather than guessing one. Emit it ONLY for something concrete they actually named in this conversation, never for a vague self-description with no named instrument or result ("I think I am strategic" alone does not qualify), and never to restate content already on the screen (ANCHOR 1). The app turns that line into a one-tap offer -- appended to whatever is already in the field, never overwriting it -- and never shows the line itself, so do not mention it and do not tell them to type it in themselves. NEVER SAY YOU HAVE SAVED IT; their tap is the only thing that writes. At most once per reply; otherwise omit it entirely.'
+
+// BRAND REWORK CAPTURE, 2026-09-04. Step-gated (p3 only, appended outside
+// buildCoachProfileSlice below since that function does not receive
+// currentStep), not a new flag -- part of the same onboarding_concierge
+// delivery moment (Personal Brand delivery, src/App.jsx), just wired to act
+// instead of only redirecting. Mirrors the one-tap capture contract every
+// note above uses: the model proposes, the tap writes, via the exact path
+// the "Does this feel right?" box already uses (submitCorrection ->
+// refreshP3(text, ...)), so a Coach-originated correction gets the same
+// conflict check a typed one gets.
+const BRAND_REWORK_CAPTURE_NOTE = '\n\nBRAND REWORK CAPTURE: the Personal Brand you just showed this person lives on this screen, with a "Does this feel right?" box under it that rewrites the section from a note like the one you would write here. When their reply names something specifically WRONG or OFF about it — a fact you got wrong, a tone that is not them, something missing, something overstated — and is not merely a reaction, a compliment, or a question, end your reply with a final line exactly like BRANDREWORK: {"note":"<what they said is off, tightened to the point, in their own words, not your paraphrase of the feeling behind it>"} . Do not emit it for "yeah that\'s me," "I like it," a question about what happens next, or anything that has not identified something to actually change — a reaction is not a correction. The app turns that line into a one-tap offer to rework the section with exactly that note, and never shows the line itself, so do not mention it and do not tell them to type it into a box. At most once per reply; otherwise omit it entirely.'
+
+// Session-open recap (Phase 1). The client fires a turn with no typed message
+// at all when it wants the coach to speak first with what changed since the
+// account's last session -- see the sessionOpen handling in the handler and
+// the WHAT CHANGED SINCE THEIR LAST SESSION block buildCoachProfileSlice adds
+// for that one turn. This directive stands in for a real user message so the
+// existing messages-array plumbing needs no special casing; it is never shown
+// to the person, same as the "[The user is currently on step ...]" contextNote
+// appended to every turn below.
+const SESSION_OPEN_TURN_TEXT = '[This is the first turn of a new session. Open by yourself, in your own voice, with whatever WHAT CHANGED SINCE THEIR LAST SESSION below tells you to say — do not wait for them to ask, and do not mention that this is an instruction.]'
+
+// Orientation quality check (Coach-as-Concierge, item 1 follow-on, 2026-09-04,
+// extended same day to Resume/LinkedIn/Assessment). The moment someone
+// leaves a covered orientation step, Coach reads what they actually gave it
+// and reacts on substance -- for the reflective fields (Values, Reputation,
+// Life Story, Fit) that means judged on substance, not length, since word
+// count was never the right proxy for whether an answer will differentiate
+// this person's Personal Brand from anyone else's; for Resume/LinkedIn/
+// Assessment it means a genuine first-read reaction to what was uploaded,
+// not a canned "thanks for adding X." This is deliberately a real judgment
+// call the model makes each time (no keyword list, no fixed script) so it
+// reads like actual attention rather than a script running down a
+// checklist. Same silent-turn pattern as SESSION_OPEN_TURN_TEXT above: the
+// client fires this with no typed message, so this stands in for one, never
+// shown to the person.
+const ORIENTATION_CHECK_LABELS = {
+  // Resume/LinkedIn/Assessment each route to their own dedicated builder in
+  // buildOrientationCheckTurnText below, so these labels are never actually
+  // read -- they exist here so the shape-validation allowlist (which keys
+  // off this object) recognizes the step at all. Removing an entry here
+  // would make every request for that step a 400, not a missing label.
+  resume: 'Resume',
+  linkedin: 'LinkedIn',
+  assessment: 'Assessment',
+  values: 'Values, Passions & Causes',
+  reputation: 'Reputation',
+  'life-events': 'Life Story',
+  location: 'Situation',
+  priorities: 'Priorities & Non-Negotiables',
+  // Go Independent track only. Same shape as Reputation -- the screen's own
+  // copy draws the identical Good-example/Better-example specificity
+  // contrast ("companies that need better marketing" vs. a named stage,
+  // sector, and trigger) -- so it gets the same reflective-depth judgment,
+  // no new framing needed; buildOrientationCheckTurnText's default branch
+  // already covers any step not given its own builder below.
+  fit: 'Where You Think You Fit',
+}
+function clip(text) {
+  return text.length > 4000 ? text.slice(0, 4000) + '…' : text
+}
+// The three reflective "who they are" fields: judged on whether the answer
+// differentiates this person or could describe almost anyone -- see the
+// header comment above for why this is a real per-answer call rather than a
+// length threshold.
+function buildReflectiveDepthCheckText(label, text) {
+  return `[They just left the ${label} screen during orientation. Here is exactly what they wrote:\n\n${clip(text)}\n\nRead it the way a sharp career coach would, not a word-count checker. Some short answers are already specific and telling; some long ones are still generic. Judge on one question: if a stranger read only this, would they learn something distinctive about THIS person, or could the same words describe almost anyone in a similar career? A bare trait word or a common phrase with nothing behind it ("Integrity", "Hard work", "Family") is generic even when it is true — the test is whether the specific shape of it, the moment or story behind it, actually came through.\n\nIf it is generic: follow up the way a good counselor draws someone out, not the way a form asks them to elaborate. Two rules govern this:\n1. ONE thread only. If they gave you several generic words or topics (say, "Honesty, Hard work" plus something about family and sports), pick the single one that seems most worth pulling and ask about ONLY that — never stack two or three questions, or two or three topics, into the same reply. The rest can wait for another turn.\n2. Ask, do not guess. The question has to be genuinely open, not a hypothesis you are handing them to confirm — "was there a moment this cost you" or "a sport that shaped how you lead a team" already supplies the shape of the answer, which is leading the witness, not drawing them out. Someone who wrote "Integrity" gets asked what integrity actually means to them and why it matters to them, not a guess about a specific moment it cost them. Someone who mentioned sports gets asked what it gave them, not a guess about leadership.\n\nIf it is already specific: say so plainly and briefly, naming the actual specific detail that makes it land — never a generic "great answer" — and do not manufacture a follow-up question where none is warranted.\n\nOpen with this directly, in your own voice, in one or two sentences — this is the first thing they see after leaving the screen, before you have said anything else. Do not mention that you are evaluating their answer or that this is an automated check, and do not repeat their words back as a block quote.]`
+}
+// Resume/LinkedIn/Assessment (2026-09-04 follow-on): a genuine first-read
+// reaction to what was actually uploaded, in place of what would otherwise
+// be a canned "thanks for adding X" acknowledgment -- a fixed line reads as
+// mechanical exactly when the whole point is Coach actually paying
+// attention to what arrived. Honesty still governs: a thin or generic
+// upload gets an honest, plain reaction, never manufactured enthusiasm.
+function buildResumeReactionText(text) {
+  return `[They just uploaded their resume during orientation. Here is exactly what they gave you:\n\n${clip(text)}\n\nGive a short, genuine first reaction to it -- something specific you actually noticed (a role, a scope, a trajectory, a pattern across jobs), not a generic "great start" or "thanks for uploading." If the resume is thin or gives you little to react to yet, say something honest and plain instead of manufacturing enthusiasm -- an honest, low-key reaction beats a hollow compliment.\n\nKeep it to one or two sentences. Open with this directly, in your own voice -- this is the first thing they see after uploading. Do not mention that this is an automated check.]`
+}
+// LinkedIn carries the resume alongside it (when one exists) so a real,
+// concrete cross-reference -- a role, a title, or a date that does not line
+// up between the two -- can surface when one genuinely exists. Never
+// invent one: if nothing actually stands out, react to something else real
+// instead, or acknowledge it plainly.
+function buildLinkedInReactionText(text) {
+  return `[They just uploaded their LinkedIn during orientation. Here is exactly what they gave you -- their resume is included below it for cross-reference, if they already gave you one:\n\n${clip(text)}\n\nGive a short, genuine first reaction -- something specific you actually noticed. If you spot a real, concrete mismatch against their resume (a role, a title, or a date that genuinely does not line up), name it plainly and frame it as something worth fixing together when you refresh their LinkedIn later, not as a criticism. Never invent a mismatch that is not actually there, and never force one just because a resume was provided -- if nothing stands out, react to something else genuine instead.\n\nKeep it to one or two sentences. Open with this directly, in your own voice -- this is the first thing they see after uploading. Do not mention that this is an automated check.]`
+}
+function buildAssessmentReactionText(text) {
+  return `[They just added their assessment results during orientation. Here is exactly what they gave you:\n\n${clip(text)}\n\nGive a short, genuine first reaction -- something specific you actually noticed about what it says about how they work or where they do their best work, not a generic "thanks for sharing."\n\nKeep it to one or two sentences. Open with this directly, in your own voice -- this is the first thing they see after adding it. Do not mention that this is an automated check.]`
+}
+// The 'location' screen also captures employment status and search intake
+// (what's going well, what they'd like to improve) -- the earliest read
+// Reimagine gets on this person's state of mind coming in, and until now it
+// was captured through a cold form with no reaction at all. This is not a
+// specificity judgment like the reflective fields above; it's the same
+// "respond to what they actually said" engagement searchIntakeNote already
+// specifies for the fallback path where Coach has to ask for this later in
+// chat -- applied here as the FIRST reaction instead.
+function buildSituationCheckText(text) {
+  return `[They just told us about their situation at Orientation. Here is exactly what they gave us -- some of these may be blank if they had nothing to say yet:\n\n${clip(text)}\n\nThis is the first real read you have on where they stand and how their search is actually going. Respond to what they actually said, not a generic welcome. Reflect the specific thing they told you back in plain words first -- they should recognize themselves in your first sentence, not a diagnosis of themselves. If it is a pattern you see often, it is fine to say so in plain language ("that's a common spot to get stuck," "a lot of people find that once..."), but NEVER by naming, labeling, or teaching a framework, method, or model -- no borrowed vocabulary ("circle of concern," "circle of control," or any other named technique), and no "here's what this is called" register. This is a person telling a friend what's going on, not a student being taught a course. If they told you something is working, say what that is worth and one way to press the advantage, in plain language. If they told you something is stuck, say in plain terms what is likely going on and one concrete thing worth trying — a read, not a labeled diagnosis. If their employment status shows a role ending soon or being between roles, let that shape the weight and urgency of what you say without assuming how much time they have — ask if it would change your advice rather than assuming. Address only what they actually gave you; do not ask for anything left blank here, they will get another chance later.\n\nKeep it to a few sentences. Open with this directly, in your own voice — this is the first thing they see after this screen. Do not mention that this is an automated check.]`
+}
+// The 'priorities' screen's freeform "hard deal-breakers" field is where
+// something significant sometimes shows up unprompted -- a caregiving
+// responsibility, a health situation, something from a past job that will
+// not repeat -- alongside plainly practical ones (an industry, a company
+// stage). Both deserve a real acknowledgment, calibrated to which kind it
+// is, rather than silently filing it away until Coach happens to reference
+// it later.
+function buildDealBreakersCheckText(text) {
+  return `[They just told us their priorities at Orientation. Here is exactly what they wrote for hard deal-breakers:\n\n${clip(text)}\n\nSome deal-breakers are plainly practical (an industry, a company stage, a location). Some carry something more personal underneath (a caregiving responsibility, a health situation, something from a past job they do not want to repeat). Read which kind this is and acknowledge it plainly and briefly, calibrated to that — a practical one gets a practical acknowledgment of how it narrows the search; a personal one gets a genuine, unpressured acknowledgment that it registered, without probing for details they have not offered. Always say something; never a generic "got it" or "noted", and never manufacture significance that is not there.\n\nKeep it to one or two sentences. Open with this directly, in your own voice — this is the first thing they see after this screen. Do not mention that this is an automated check.]`
+}
+function buildOrientationCheckTurnText(step, text) {
+  if (step === 'resume') return buildResumeReactionText(text)
+  if (step === 'linkedin') return buildLinkedInReactionText(text)
+  if (step === 'assessment') return buildAssessmentReactionText(text)
+  if (step === 'location') return buildSituationCheckText(text)
+  if (step === 'priorities') return buildDealBreakersCheckText(text)
+  const label = ORIENTATION_CHECK_LABELS[step] || 'this'
+  return buildReflectiveDepthCheckText(label, text)
+}
 
 // MY PIPELINE — live status (Move 1, 2026-08-18). coach.js otherwise never sees
 // the pursuit_status table, so the coach knew the feature and the titles but not
@@ -101,7 +266,20 @@ const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passi
 // pipeline — plus a one-line rollup for "how is my search going?". Deliberately
 // NOT the email-derived half (employer silence, missed callbacks); that lives in
 // Gmail, which Reimagine cannot see, so the instruction forbids inferring it.
-function buildPursuitStatusBlock(state, pursuitRows) {
+// How many people this person has named on an opportunity's interview team.
+// Its own helper because the build map reports on it before the panel block
+// below has built its list.
+function _panelCount(rec) {
+  const panel = rec && rec.panel && typeof rec.panel === 'object' ? rec.panel : null
+  const ivs = panel && Array.isArray(panel.interviewers) ? panel.interviewers : []
+  return ivs.filter(iv => iv && typeof iv === 'object' && typeof iv.name === 'string' && iv.name.trim()).length
+}
+
+function buildPursuitStatusBlock(state, pursuitRows, opts = {}) {
+  // `detailed` is the Your Next Step pilot's build map (see buildSectionMap).
+  // Off, every byte of this block is what it was before the pilot existed.
+  const detailed = !!opts.detailed
+  const independent = !!opts.independent
   if (!Array.isArray(pursuitRows) || !pursuitRows.length) return ''
   const saved = Array.isArray(state && state.savedPlaybooks)
     ? state.savedPlaybooks.filter(r => r && r.source === 'door2' && !r.archivedAt)
@@ -119,7 +297,7 @@ function buildPursuitStatusBlock(state, pursuitRows) {
   // Date.parse of a yearless date defaults to 2001 in V8 — which read every
   // pipeline date as ~9,131 days (25 years) overdue.
   const dayDiff = (iso) => { if (!iso) return null; let s = ''; try { s = new Date(iso).toISOString().slice(0, 10) } catch { return null } const t = Date.parse(s); return Number.isNaN(t) ? null : Math.round((todayMs - t) / DAY) }
-  const STAGE = { researching: 'Researching', applied: 'Applied', in_conversation: 'In conversation', interviewing: 'Interviewing', offer: 'Offer', closed: 'Closed' }
+  const STAGE = { researching: 'Researching', applied: 'Applied', phone_screen: 'Phone Screen', interviewing: 'Interviewing', final_round: 'Final Round', offer: 'Offer', closed: 'Closed' }
   const lines = []
   let active = 0, attention = 0, quiet = 0
   for (const rec of saved) {
@@ -167,6 +345,61 @@ function buildPursuitStatusBlock(state, pursuitRows) {
     // Whether Interview Prep is built on this opportunity, so an offer to prep can
     // be phrased right without a round trip: work through what's built vs build it.
     if (!isClosed) parts.push(recordSectionText(rec, 'p11').trim() ? 'Interview Prep built' : 'Interview Prep not built yet')
+    // THE BUILD MAP. Until this, the coach knew every opportunity's title,
+    // stage and day counts and exactly one thing about its contents -- whether
+    // Interview Prep existed -- while recordSectionText could already answer for
+    // all of them. So it spoke with confidence about a search it could not see
+    // inside, which is how it came to offer work that was already done.
+    //
+    // Reported BY NAME and never as a count or a fraction: three sections of six
+    // may be exactly right for this opportunity, and "3 of 6" is the progress bar
+    // this product refuses to draw wearing a different hat.
+    if (detailed && !isClosed) {
+      const { built, todo } = describeSections(rec, { independent, hasOffer: s.stage === 'offer' })
+      if (built.length) parts.push(`built on this opportunity: ${built.join(', ')}`)
+      if (todo.length) parts.push(`not built yet: ${todo.join(', ')}`)
+      const jd = typeof rec.jd === 'string' ? rec.jd.trim() : ''
+      parts.push(jd ? 'the job description is loaded' : 'no job description loaded')
+      const notes = Array.isArray(rec.savedNotes) ? rec.savedNotes.length : 0
+      if (notes) parts.push(`${notes} saved note${notes === 1 ? '' : 's'} on this opportunity`)
+      if (!_panelCount(rec)) parts.push('nobody named on the interview team yet')
+    }
+    // Everything the person typed onto this opportunity BY HAND, ALWAYS: the
+    // interview team with their own notes on each person, and the context they
+    // wrote about how the role came to them.
+    //
+    // This used to reach the coach only through the IN FOCUS expansion, which
+    // needs two things to line up at once: the opportunity identified from the
+    // person's typed words, and the turn classified as interview intent. Someone
+    // looking at an opportunity who says "I spoke with Marisol and the interview
+    // is on the 14th" satisfies neither -- they named no company -- so the coach
+    // was handed every opportunity's title and stage and the contents of none,
+    // then asked who Marisol was. She was already on the panel with her role.
+    //
+    // That failure is worse than knowing nothing, because the rollup above lets
+    // the coach cite stages and day counts with confidence while being blind to
+    // what is inside, and then ask for something the person typed themselves.
+    //
+    // The notes go in too, not just the names. They are the most considered
+    // thing on the card -- someone wrote down what they learned about a person
+    // because they judged it would matter -- and a coach that has the name but
+    // not the knowledge still cannot use it. Capped rather than dropped: a long
+    // note is trimmed with a marker so the coach knows to reach for the full
+    // text, which IN FOCUS still carries in depth.
+    const _panel = rec && rec.panel && typeof rec.panel === 'object' ? rec.panel : null
+    const _clip = (v, n) => { const t = (typeof v === 'string' ? v.trim() : ''); return t.length > n ? `${t.slice(0, n).trim()}… (trimmed)` : t }
+    const _ivs = (_panel && Array.isArray(_panel.interviewers) ? _panel.interviewers : []).filter(iv => iv && typeof iv === 'object')
+    if (!isClosed && _ivs.length) {
+      const who = _ivs.slice(0, 12).map(iv => {
+        const nm = (typeof iv.name === 'string' ? iv.name.trim() : '') || 'unnamed'
+        const detail = [(typeof iv.title === 'string' ? iv.title.trim() : ''), ROLE_IN_LOOP_LABEL[iv.role_in_loop] || ''].filter(Boolean).join(', ')
+        const note = _clip(iv.learned_note, 400)
+        return `${nm}${detail ? ` (${detail})` : ''}${note ? ` — what they know about them: ${note}` : ''}`
+      }).join('\n    ')
+      parts.push(`interview team they have already told you about:\n    ${who}`)
+    }
+    const _ctx = !isClosed ? _clip(_panel && _panel.opportunity_context, 400) : ''
+    if (_ctx) parts.push(`how this opportunity came to them, in their own words: ${_ctx}`)
     if (!isClosed) {
       active++
       if (overdue) attention++
@@ -176,7 +409,88 @@ function buildPursuitStatusBlock(state, pursuitRows) {
   }
   if (!lines.length) return ''
   const rollup = `${active} active${attention ? `, ${attention} needing attention (an overdue next step)` : ''}${quiet ? `, ${quiet} going quiet (nothing scheduled ahead)` : ''}.`
-  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nWhen they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.`
+  // The build map arrives as data; without this the model does the obvious wrong
+  // thing with it and starts scoring people out of six.
+  const mapNote = detailed
+    ? ` Each opportunity also lists what is BUILT on it and what is NOT BUILT YET, by the name the card carries. Use those names exactly -- a section called something else sends them hunting for a card that is not there. Answer "how am I set up for X" from this: what exists, what does not, and what would help most next, without asking them what they have built. NEVER turn it into a number: no "two of six", no fraction, no percentage, no "halfway", no ranking of one opportunity against another, and never call an opportunity incomplete or behind. An unbuilt section is something available to them, never something they failed to do. Offer the one that would actually help the situation in front of them rather than listing everything absent.`
+    : ''
+  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nEverything above that an opportunity lists as theirs — the interview team, what they know about each person, how the role came to them — was typed in by this person. Treat it as known fact and weave it into what you say: use a person's name and role without being told again, and reason from what they wrote about someone rather than asking them to repeat it. NEVER ask who a named person is, what their role is, or for anything else already recorded here; being asked twice for something they took the trouble to write is how this stops feeling like a coach who knows them. Where a note shows "(trimmed)", more of it exists and you will see it in full once the conversation focuses on that opportunity. When they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.${mapNote}`
+}
+
+// FOCUS PLAYBOOKS — what is built in each (Your Next Step pilot, 2026-09-02).
+//
+// Opportunities got a status block a fortnight ago. Focus Playbooks got nothing:
+// they reach the coach as a title inside one semicolon-joined "Saved playbooks"
+// line in the INDEX, mixed in with opportunities and indistinguishable from
+// them. So the coach could not tell a direction from a live opening, let alone
+// say what was built in one.
+//
+// That is the case Bob described: someone with several directions started and
+// none carried far. Answering it needs the names of what exists in each, which
+// is what this gives -- BY NAME, never as a count. Three of ten may be exactly
+// right for a path, and a fraction here would be a completeness score on work
+// that has no required length.
+function buildFocusPlaybookBlock(state, independent) {
+  const saved = Array.isArray(state && state.savedPlaybooks) ? state.savedPlaybooks : []
+  const focus = saved.filter(r => r && r.source !== 'door2' && !r.archivedAt)
+  if (!focus.length) return ''
+  const DAY = 86400000
+  const today = Date.parse(new Date().toISOString().slice(0, 10))
+  const daysAgo = (v) => { if (!v) return null; let iso = ''; try { iso = new Date(v).toISOString().slice(0, 10) } catch { return null } const t = Date.parse(iso); return Number.isNaN(t) ? null : Math.round((today - t) / DAY) }
+  const lines = []
+  for (const rec of focus.slice(0, 12)) {
+    const title = String(rec.title || 'a direction').trim()
+    const { built, todo } = describeSections(rec, { independent })
+    const parts = []
+    parts.push(built.length ? `built: ${built.join(', ')}` : 'nothing built in it yet')
+    if (todo.length) parts.push(`not built: ${todo.join(', ')}`)
+    const cold = daysAgo(rec.updatedAt)
+    if (cold != null && cold >= 1) parts.push(`last worked on ${cold} day${cold === 1 ? '' : 's'} ago`)
+    lines.push(`- ${title} — ${parts.join('; ')}`)
+  }
+  return `\n\nTHEIR FOCUS PLAYBOOKS — a Focus Playbook is a DIRECTION they explored, which is a different thing from an opportunity on My Pipeline (a live opening at a named employer). What is built in each:\n${lines.join('\n')}\n\nUse this to answer what they have and have not explored, and to offer a section by its own name rather than sending them to hunt. Sections carry no required order and no required number: a direction with two built may be finished as far as they need it, so never describe one as incomplete, behind, or thin, never count or total them, and never compare one direction against another. When several directions are part-built and none is moving, that is worth asking about -- which of these still interests them, and would they like to take one further -- and it is an offer, never an observation about them. Name what is unbuilt only as something available.`
+}
+
+// WHAT WE KNOW ABOUT THE MOVES THEY HAVE MADE (activity catalog, 2026-09-02).
+//
+// The product can see everything built inside it and nothing about the human
+// half of a search -- the group, the Monday call, someone holding them
+// accountable, a note written directly to a company. It teaches all of that and
+// then never asks, never knows, and never follows up.
+//
+// Two halves to this block, and they do opposite jobs.
+//
+// KNOWN is what we have actually learned, and its first job is to STOP the
+// coach asking again. Being asked twice for something you took the trouble to
+// answer is the failure that makes a coach feel like a form.
+//
+// OPEN is the ones we have never discussed. It is NOT a checklist and must
+// never be read out. It is a set the coach may draw ONE from, when the
+// conversation is already near it and an answer would change what it advises.
+function buildActivityBlock(facts) {
+  const rows = Array.isArray(facts) ? facts : []
+  const byKey = new Map(rows.map(r => [r.activity, r]))
+  const known = []
+  for (const r of rows) {
+    const def = activityDef(r.activity)
+    if (!def) continue
+    const detail = typeof r.detail === 'string' && r.detail.trim() ? ` -- their words: "${r.detail.trim()}"` : ''
+    if (r.state === 'done') known.push(`- ${def.label}: they have this${detail}`)
+    else if (r.state === 'not_yet') known.push(`- ${def.label}: they told you they have not, and it is open to encourage${detail}`)
+    else if (r.state === 'declined') known.push(`- ${def.label}: they told you they do not want this. DO NOT raise it again${detail}`)
+  }
+  const open = ASKABLE.filter(a => !byKey.has(a.key))
+  if (!known.length && !open.length) return ''
+
+  let out = '\n\nTHE HUMAN SIDE OF THEIR SEARCH (things Reimagine cannot see for itself, so everything here came from them).'
+  if (known.length) {
+    out += `\n\nWHAT THEY HAVE TOLD YOU:\n${known.join('\n')}\n\nTreat every line as known fact. Never ask about any of it again -- reason from it. Where a line says they do not want something, that is settled and raising it a second time is worse than never having offered.`
+  }
+  if (open.length) {
+    const list = open.map(a => `- ${a.label}. Why it matters: ${a.why} Where it lives: ${a.offer}`).join('\n')
+    out += `\n\nNEVER DISCUSSED (you do not know either way):\n${list}\n\nThis is not a checklist and never gets read out. Never present it as things they have not done, never count it, never say how many are left, and never imply a gap -- silence here means nobody has asked, which is not the same as it not having happened. Assume a capable person has been running their own search: they may well already have several of these.\n\nYou may raise AT MOST ONE of these in a conversation, and only when the talk is already near it and knowing the answer would change what you advise. Ask it the way a doctor asks -- because you cannot prescribe well without knowing -- then say plainly why it matters and offer the thing that helps. If they answer, accept it and move on. If they do not, let it go; it is not a form to complete.`
+  }
+  return out
 }
 
 // Search-intake staleness (consult 2026-08-20). Past this age the two intake
@@ -235,13 +549,13 @@ function searchIntakeNote(si) {
   return `\n\nSEARCH INTAKE (open): two things are worth knowing about this person's own read on their search — what is going well in it right now, and what they would like to improve. ${missing}\n\nWhen they answer one of these, respond to what they actually said FIRST and properly: reflect the substance back, say what it tells you, and where you can see one, offer a concrete idea that builds on it. Someone who says networking is finally working should hear what that is worth and one way to press the advantage; someone who says applications go quiet should get a real read on where that usually breaks and what to try. Give it the weight you would give any other thing they told you. Only after that reply stands on its own do you move to the other question, in the same message, as a natural next beat rather than a form field.\n\nWhen — and only when — their answer carries something real, end your reply with a final line exactly like SEARCHINTAKE: {"goingWell":"their answer in their own words"} or SEARCHINTAKE: {"focus":"their answer in their own words"}. One key only, for the question they just answered. Keep their words, lightly tidied into a sentence or two; never your paraphrase and never your advice. Emit nothing at all for a shrug, a deflection, a change of subject, an "I don't know", or a reply too thin to be worth carrying — an empty field is better than a noisy one, and you will get another chance later in the conversation. The app turns that line into a one-tap offer and never shows it, so do not mention it, and never ask them to type anything anywhere.`
 }
 
-function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail) {
+function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, independent = false, activityFacts = [], priorSessionAt = null, sessionOpenRequested = false) {
   if (!state || typeof state !== 'object') {
     // No profile at all — definitionally pre-Personal-Brand, so the sidebar is the
     // Orientation phase list. Carry the same navigation gate as the main path below
     // (keyed there on `done`): none of Career Paths, Add an Opportunity, Income Now
     // or the Focus Playbook sections is on this person's screen yet.
-    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.${VALUES_CAPTURE_NOTE}`
+    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}`
   }
   const pr = state.profile && typeof state.profile === 'object' ? state.profile : {}
   const outs = state.outputs && typeof state.outputs === 'object' ? state.outputs : {}
@@ -392,16 +706,86 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // cached stay here: this person's live pipeline rows, and the capture protocol.
   // The connector half (Gmail/Calendar keeping it current unattended) is still a
   // named beta, so the Coach is told about it separately, only for those users.
-  const myStatusData = buildPursuitStatusBlock(state, pursuitRows)
+  // The pilot's build map and the Focus Playbook block are gated together with
+  // the rest of Your Next Step: they change what the coach says on every turn,
+  // and that is the change Bob quality-controls before 145 accounts see it.
+  const sightOn = hasNextStep({ feature_flags: featureFlags, email: userEmail })
+  const myStatusData = buildPursuitStatusBlock(state, pursuitRows, { detailed: sightOn, independent })
+  const focusData = sightOn ? buildFocusPlaybookBlock(state, independent) : ''
+  const activityData = sightOn ? buildActivityBlock(activityFacts) : ''
+  const activityNote = sightOn ? ACTIVITY_CAPTURE_NOTE : ''
   // Pilot: only a flagged account is told it may propose a next move. A
   // non-flagged account never receives the instruction, so the parser below
   // simply never fires for them -- the same no-op the interview-team capture
   // relies on.
-  const nextMoveNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? NEXT_MOVE_CAPTURE_NOTE : ''
+  const pipelineNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? PIPELINE_CAPTURE_NOTE + STAGE_MOVE_FOLLOWTHROUGH_NOTE : ''
+  // YOUR NEXT STEP (pilot 2026-09-02). The stair this person is standing on and
+  // the one thing to do from it, computed by the SAME function the screen calls
+  // (src/step-position.js). Handing the model the answer rather than the rules is
+  // the whole point: a coach that reasons its own way to a different next step
+  // than the screen just told them is worse than a coach that says nothing.
+  //
+  // Per-user and changes on almost every turn, so it belongs in this uncached
+  // block; the feature's standing rules ride in their own cached block
+  // (NEXT_STEP_KNOWLEDGE) alongside the other pilot knowledge.
+  const nextStepNote = (() => {
+    if (!sightOn) return ''
+    let ns = null
+    try { ns = computeNextSteps(state, pursuitRows, activityFacts) } catch { return '' }
+    if (!ns || !ns.doors || !ns.doors.length) return ''
+    const stair = (STEPS.find(x => x.n === ns.step) || {}).label || 'Personal Brand'
+    const where = ns.positions && ns.positions.length
+      ? ` Their live opportunities sit at: ${ns.positions.map(p => `${p.title} on ${(STEPS.find(x => x.n === p.step) || {}).label}`).join('; ')}.`
+      : ''
+    const list = ns.doors.map((d, i) => `${i + 1}. ${d.action} — ${d.why}`).join('\n')
+    return `\n\nWHAT IS ON THE TABLE FOR THEM RIGHT NOW (authoritative). On the Your Next Step staircase they are standing on ${stair}.${where} These are the moves actually available and warranted today, in the order the screen is showing them:\n${list}\n\nWhen they ask what they should be doing, what to do next, where to start, or where they stand, answer from THIS set. You may make your own case for which one to lead with and say why — that judgment is yours and it is worth making — but never offer a move that is not on this list, because the screen is showing them these and two different answers is worse than none. Give the reason, not just the instruction, and offer to walk them through whichever they pick. ${ns.stalled ? 'Their pipeline has gone quiet, which is why the first of these turns to people. Their stair has NOT moved down and you never tell them they lost ground. ' : ''}The keel letter behind them right now is ${ns.keelLetter} — ${ns.keelGloss}. Never turn any of this into a number: no count of what is done or left, no fraction, no percentage, no estimate of how close an offer is. If they tell you they are somewhere else in their search, believe them and answer from there.`
+  })()
+  // RETURNING-SESSION OPENER (Coach-as-Concierge Phase 1, next_step pilot
+  // only; generalized 2026-09-05 from a status recap into an agency-first
+  // check-in per Bob's standing anticipation principle). Only ever built for
+  // the one turn the client marks as a session's opener (sessionOpenRequested)
+  // -- on every other turn this stays empty, so an ordinary mid-conversation
+  // reply never drags in "since your last visit" out of nowhere. The handler
+  // already refuses to even reach here without a real priorSessionAt (see the
+  // 204 short-circuit above the buildCoachProfileSlice call): a null anchor
+  // means this account's very first session ever, which is onboarding
+  // territory this phase does not cover, so there is deliberately no note for
+  // that case.
+  //
+  // Leads with how the person is doing, not with a status report -- people
+  // cannot think clearly about strategy before whatever they are carrying has
+  // somewhere to go first. What changed since last time (computed below,
+  // exactly as before) becomes something to weave into that check-in by name
+  // when there is something real to reference, not a report Coach recites
+  // unprompted. The turn closes by handing the person a real choice: name
+  // their own focus for today, or ask Coach to suggest one -- the suggestion
+  // itself draws on nextStepNote below, which already exists and already
+  // matches the screen; this just stops Coach from volunteering it before
+  // being asked.
+  const sessionOpenNote = (sightOn && sessionOpenRequested) ? (() => {
+    let delta = null
+    try { delta = computeSessionDelta(state, pursuitRows, activityFacts, priorSessionAt) } catch { return '' }
+    if (!delta) return ''
+    const lines = []
+    if (delta.addedOpportunities.length) lines.push(`Added since last time: ${delta.addedOpportunities.join('; ')}.`)
+    if (delta.interviewsHappened.length) lines.push(`Interview(s) that happened: ${delta.interviewsHappened.map(x => x.title).join('; ')}.`)
+    if (delta.otherMovement.length) lines.push(`Other movement logged on an existing opportunity: ${delta.otherMovement.join('; ')}.`)
+    if (delta.addedDirections.length) lines.push(`New direction(s) saved: ${delta.addedDirections.join('; ')}.`)
+    if (delta.newActivity.length) lines.push(`Search activity noted: ${delta.newActivity.map(a => a.activity).join('; ')}.`)
+    const factsBlock = lines.length ? lines.join('\n') : 'Nothing changed in their pipeline or activity since their last session — a quiet stretch, not a stalled one.'
+    return `\n\nWHAT CHANGED SINCE THEIR LAST SESSION (authoritative — the ONLY source for what happened; never invent or infer anything beyond it, and never turn it into a count, a fraction, or a percentage):\n${factsBlock}\n\nThis is the first turn of a new session — open with this yourself, in your own voice, before they ask anything. Say hello and ask ONE question about how they are doing — pick a single natural way to ask it and stop; never ask twice in different words in the same reply ("how's it going?" followed later by "how has your week been?" is the same question asked twice, not two things). ${delta.hasMaterialChange ? 'Fold the one real thing that happened into that same greeting, naming it by name — the actual interview, the actual company — instead of adding it afterward as a separate status line.' : 'Nothing changed, so skip a status line entirely — do not add a second sentence saying so; go straight from the mood question to the closing one.'} Close with one more sentence handing them the wheel: ask whether there is something specific they would like to work on today, or whether they would rather you suggest something based on what you can see in their search. That is the whole opener: a greeting with one mood question, at most one line of context, and one closing question — if what you have written is longer than three sentences or asks more than those two questions, cut it down before you send it. If they name their own focus once they reply, follow it completely rather than steering back to your own read of what matters most; only when they ask you to suggest something do you reach for what is on the table for them below and make the case for it.`
+  })() : ''
   const connectorNote = hasConnectorBeta({ feature_flags: featureFlags })
     ? '\n\nASSISTANT CONNECTOR (this person has it; it is a limited beta most users do not have — never imply it is generally available): they can connect their own assistant to Gmail and Calendar so their pipeline keeps itself current without them typing anything. Reimagine never reads their inbox. Mention it only if it fits what they are asking; do not pitch it.'
     : ''
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${nextMoveNote}${VALUES_CAPTURE_NOTE}${searchIntakeNote(si)}`
+  const coachNoteAgencyNote = hasCoachNoteAgency({ feature_flags: featureFlags, email: userEmail }) ? COACH_NOTE_CAPTURE_NOTE : ''
+  // The session-open turn already asks its own open question (what do you want
+  // to focus on today, or should Coach suggest something) -- stacking search
+  // intake's separate ask in the same reply would hand the person two open
+  // questions at once. Suppressed only for this one turn; intake capture
+  // resumes normally starting the very next turn if it is still thin.
+  const searchIntakeNoteThisTurn = sessionOpenRequested ? '' : searchIntakeNote(si)
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${searchIntakeNoteThisTurn}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -587,6 +971,7 @@ Posture rules, hold these firmly:
 ${COMP_KNOWLEDGE}
 - When someone is discouraged or worn down by the search, coach them. That is the default and almost always the right response — this is a job-search coaching tool, not a crisis line, and a tired job seeker is still a job seeker. How to coach a discouraged turn is laid out in the DISCOURAGEMENT section below: read where this person actually is, choose the one angle that fits their moment, and say it in your own words in this voice. Vary which angle you reach for across a conversation; do not run the same response every time, and do not send every discouraged person to community — most of these moments are met by steadying the person and handing back agency. Do not play therapist. Ordinary search fatigue — "I'm exhausted," "I don't know if I can keep doing this," "I don't know if it's even worth it" — is discouragement, not crisis; coach it, do not hand it off. Only if someone says something clearly beyond a job search — explicit self-harm — add one natural line suggesting they reach out to someone they trust, then return to coaching.
 - You are read-only. You can read and reason about the user's profile and saved work, but you cannot change anything, and you never imply that you can. Do not say "let me generate your Personal Brand," "I'll write that for you," "let me pull that up," or "one moment" as if you were performing an action. When something needs to be produced or edited in Reimagine (a Personal Brand, a Resume Refresh, a playbook), point the person to the step that does it — name it in prose by its feature-map name — and describe what they will do there. Frame it as "you can generate that in [step]," not "let me generate it."
+- Speak as a partner, not a separate party with your own wants. Frame every ask around what the two of you build together, never around what you want, need, or are looking for from them — "give me an old review" serves you; "bring an old review — that's exactly the kind of detail this works from" keeps it joint. This applies most when you are asking them for something (a quote, a remembered result, a detail): the reason it matters is what it does for their case, never that it is something you want. "I want," "I need," "I'm looking for," and "give me" are the shapes to catch yourself using; "we," "together," and "let's" are usually the fix.
 - Do not assume what screen the person is on or how far along they are. You cannot see their current view or their journey progress, so never say "as you can see on your screen" and never point to a gated screen as if it is in front of them. Lead with the action that works no matter where they are. For the free weekly community call, that action is "register at career.club" — that is the canonical, always-correct link, not an in-app screen. Reference a gated screen only conditionally: "once you've finished your playbook, it's also on your Complete screen," never "go to your Complete screen now."
 - You are talking with the person in a text chat. You cannot accept file uploads, open attachments, or see their screen — when they want you to work from a document like a job description, a posting, or a resume, ask them to paste the relevant text into the chat. You see the titles of their saved playbooks in the index, and when the conversation is about a specific one, its key sections are provided to you under IN FOCUS in the profile block — reason from those. Any offer they have logged in Reimagine is provided in full under LOGGED OFFERS (the terms, the benefits numbers they entered, the sourced market range from their Compensation Read when built, and how it read against their priorities) — when they ask about their offer or negotiating, work from those specifics, cite the market range that is already there, and do not ask them to paste the offer or go find data you already hold. If a section they need is not built yet, point them to build it in Reimagine.
 - When they ask a general question about their saved playbooks or opportunities — "my playbooks," "my opportunities," "my saved work," "can you help me with my opportunity playbooks" — and the INDEX shows saved playbooks, treat it as being about what they already have, not a request to make a new one: name the saved playbooks you see in the index and offer to dig into a specific one (they can name it for you to work from, or open it in Reimagine). Point them to Add an Opportunity only when they have nothing saved.
@@ -699,7 +1084,7 @@ BANNED SHAPES. These are structures, not words, and they matter more than any vo
 
 3. Negative parallelism. Never define a thing by what it is not — no "it's not X, it's Y", "isn't a survey, it's a way to", "not just X but Y", "less about X and more about Y". State the positive directly. This shape is seductive because it sounds insightful; it is the clearest single marker of AI prose.
 
-4. Signposting. Do not narrate the structure of your own reply — no "Here's the thing", "Here's how it works", "Here's what doesn't fit", "One more thing", "I want to say something plain", "Let me explain". Say the thing.
+4. Signposting. Do not narrate the structure of your own reply — no "Here's the thing", "Here's how it works", "Here's what doesn't fit", "Here's the real shape of it", "One more thing", "I want to say something plain", "Let me explain". Say the thing.
 
 5. The empty closing question. Ending on a question is fine and often right — you are a coach, and a real question moves someone. The test is whether their answer would change what you say next. Offering a genuine choice between two concrete next steps passes, and so does asking for a fact you need and do not have. "Is that helpful?", "Does that resonate?", "Make sense?", and a question that only restates what you just said all fail it, and asking purely to keep the conversation going is the one reason never to ask. When nothing real is being asked, end on the statement instead.
 
@@ -715,7 +1100,7 @@ REWRITE THESE SHAPES. The left side is what this voice does wrong; the right sid
 - NO: "That feeling is common, and it usually means the pool you've been drawing from is tapped." → YES: "That usually means the pool you have been drawing from is tapped, rather than the network being finished."
 
 Voice rules, enforce strictly:
-- No AI filler words: unlock, genuinely, truly, honestly, navigate, journey, lean in, double down.
+- No AI filler words: unlock, genuinely, truly, honestly, navigate, journey, lean in, double down. And no consulting jargon for where something stands — never "point in the arc," "along the arc," or "the arc" as a stand-in for a stage. Name the actual stage (researching, interviewing, final round, whatever it is) or say "where things stand" plainly.
 - No "the move" tic: do not write "X is the move," "here's the play," "the key is to," or "what you want to do is." Just state the action, or "a good next step is to…". And no coaching-therapy register: do not write "sit with"/"sitting with," "lean into," "hold space for," or "be present with" — say "think about it" or "give it some thought." And do not use "into the room" or "in the room" as a stand-in for the interview or the conversation — name it plainly ("the interview," "the conversation").
 - No logic-flip cadence: "not just X, you Y" or "this is not Z, it is W". Rewrite from the positive side.
 - No comparison framing. Never write "Most people do X, you do Y" or "Most professionals do X, but you do Y" or similar. This is a flattery pattern dressed as observation. Rewrite either from the second person addressed directly to the reader ("You probably see one or two obvious next steps"), or from the positive side without a comparison ("This step maps a wider landscape of options"), or from factual evidence with a source. Banned examples: "Most people take assessments and file them away." "Most people see one or two obvious next steps." "When someone asks what do you do, most people default to a job title." Good rewrites: "This step puts your assessment to work." "This step maps a wider landscape of options." "When someone asks what do you do, you want a better answer than your job title."
@@ -779,8 +1164,22 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Not signed in' })
   if (user.suspended_at) return res.status(403).json({ error: 'account_suspended' })
 
-  const { message, history = [], currentStep, surface, general } = req.body || {}
-  if (!message || typeof message !== 'string') {
+  const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck } = req.body || {}
+  // orientationCheck: the client may open a turn with no typed message,
+  // marked with {step, text} instead -- the reaction the coach speaks on
+  // its own right after someone leaves a covered orientation step (see
+  // ORIENTATION_CHECK_LABELS for the full set). Same
+  // provisional-allow-then-authoritative-gate shape as sessionOpen just
+  // below.
+  const orientationCheckShapeOk = !!(orientationCheck && typeof orientationCheck === 'object'
+    && Object.prototype.hasOwnProperty.call(ORIENTATION_CHECK_LABELS, orientationCheck.step)
+    && typeof orientationCheck.text === 'string' && orientationCheck.text.trim())
+  // Session-open recap (Phase 1): the client may open a turn with no typed
+  // message at all, marked sessionOpen instead — the returning-session
+  // opener the coach speaks on its own. Provisionally let it through here;
+  // featureFlags is not loaded yet, so the authoritative check (does this
+  // account actually have the pilot?) happens below once it is.
+  if ((!rawMessage || typeof rawMessage !== 'string') && sessionOpen !== true && !orientationCheckShapeOk) {
     return res.status(400).json({ error: 'message required' })
   }
   // General-question mode (Career Club team only): answer a general or client
@@ -827,11 +1226,70 @@ export default async function handler(req, res) {
   let pursuitRows = []
   if (!generalMode) {
     try {
-      pursuitRows = await sql`SELECT record_id, stage, next_conversation_at, next_step_at, next_move, situation_note, closed_at, outcome, updated_at FROM pursuit_status WHERE user_id = ${user.id}`
+      // ORDER BY record_id: without it Postgres makes no promise about row
+      // order, and nextSteps() in step-position.js ranks door candidates by
+      // `doors.sort((a, b) => a.weight - b.weight)` -- a STABLE sort, so a tie
+      // between two candidates at the same weight (two opportunities overdue at
+      // once, say) is broken by the order pursuitRows arrived in. A reorder
+      // between two otherwise-identical requests changes nextStepNote's bytes,
+      // which sit inside profileBlock -- the block this file just started
+      // caching. record_id is part of the table's primary key (user_id,
+      // record_id), so it is stable and unique per row.
+      pursuitRows = await sql`SELECT record_id, stage, next_conversation_at, next_step_at, next_move, situation_note, closed_at, outcome, updated_at FROM pursuit_status WHERE user_id = ${user.id} ORDER BY record_id`
     } catch (err) {
       console.error('coach pursuit read failed:', err)
     }
   }
+  // The human half of the search, for the pilot only. Best-effort: a failure here
+  // drops the block and never the turn, and an account that has never discussed
+  // any of it comes back empty, which is the normal starting state.
+  let activityFacts = []
+  if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: user.email })) {
+    try {
+      // ORDER BY activity, same reasoning as pursuitRows above: buildActivityBlock
+      // iterates these rows directly (`for (const r of rows)`) into the KNOWN
+      // list's line order, with no Map indirection in between -- so an
+      // unordered SELECT lets the same set of facts render as different bytes
+      // between two otherwise-identical requests. `activity` is part of the
+      // table's primary key (user_id, activity), so it is stable and unique.
+      activityFacts = await sql`SELECT activity, state, source, detail, learned_at FROM user_activity_facts WHERE user_id = ${user.id} ORDER BY activity`
+    } catch (err) {
+      console.error('coach activity-facts read failed:', err)
+    }
+  }
+  // Session-open recap, authoritative half. featureFlags is loaded now, so this
+  // is the real gate: general mode never gets it, and neither does an account
+  // without the next_step pilot, regardless of what the client sent.
+  const sessionOpenRequested = sessionOpen === true && !generalMode && hasNextStep({ feature_flags: featureFlags, email: user.email })
+  if (sessionOpen === true && !sessionOpenRequested && (!rawMessage || typeof rawMessage !== 'string')) {
+    // A sessionOpen request from an account that turns out not to have the
+    // pilot (or is in general mode) and carried no real message either — the
+    // same "message required" refusal an ordinary request would get.
+    return res.status(400).json({ error: 'message required' })
+  }
+  if (sessionOpenRequested && !user.prior_session_at) {
+    // No prior login to diff against — this account's very first session
+    // ever. That is onboarding narration, not a recap, and out of this
+    // phase's scope (see computeSessionDelta's null contract in
+    // src/step-position.js). Nothing to say, so say nothing rather than
+    // spending a generation on it: no model call at all.
+    return res.status(204).end()
+  }
+  // Orientation quality check, authoritative half. Same shape as
+  // sessionOpenRequested above -- the client's say-so alone never grants it.
+  const orientationCheckRequested = orientationCheckShapeOk && !generalMode && hasOnboardingConcierge({ feature_flags: featureFlags, email: user.email })
+  if (orientationCheckShapeOk && !orientationCheckRequested && (!rawMessage || typeof rawMessage !== 'string')) {
+    return res.status(400).json({ error: 'message required' })
+  }
+  // The message the model actually sees this turn. A real typed message wins
+  // when present; otherwise, for the one turn the client marked as a
+  // session's opener or an orientation quality check, a standing internal
+  // instruction — never shown to the person, same pattern as the "[The user
+  // is currently on step ...]" contextNote appended further down.
+  const message = (typeof rawMessage === 'string' && rawMessage.trim())
+    ? rawMessage
+    : orientationCheckRequested ? buildOrientationCheckTurnText(orientationCheck.step, orientationCheck.text)
+    : (sessionOpenRequested ? SESSION_OPEN_TURN_TEXT : '')
   // Go Independent business-of-consulting grounding (2026-08-28). Six chapters,
   // roughly 30k tokens, for accounts on that track ONLY -- someone still job
   // searching should never have Coach reaching into 401(k)-loan risk or B2B
@@ -869,10 +1327,22 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // chapter there would describe the capture to every account, and almost none
   // of them have it. Its own cached block, so a flagged account does not fork
   // the prefix everyone else shares.
-  const pipelineCaptureBlock = (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: user.email }))
-    ? PIPELINE_CAPTURE_KNOWLEDGE
-    : null
-  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, user.email)
+  //
+  // Every pilot shares ONE block rather than taking a breakpoint each. Prompt
+  // caching allows four breakpoints in total and the stable prefix plus the
+  // Go Independent chapters already hold two, so a per-pilot block would put an
+  // internal account on the independent track at the ceiling with the third
+  // pilot. Concatenating costs nothing: the flags an account holds are stable
+  // across a conversation, so the joined text is stable too and caches once.
+  const pilotKnowledge = []
+  if (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: user.email })) pilotKnowledge.push(PIPELINE_CAPTURE_KNOWLEDGE)
+  // Same partition, same reason (see src/data/next-step-knowledge.js). The
+  // person's actual position rides in the uncached per-user block above; this is
+  // only the standing rules, which are identical for everyone who has the pilot
+  // and so can be cached.
+  if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: user.email })) pilotKnowledge.push(NEXT_STEP_KNOWLEDGE)
+  const pilotKnowledgeBlock = pilotKnowledge.length ? pilotKnowledge.join('\n\n') : null
+  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, user.email, isIndependentTrack, activityFacts, user.prior_session_at, sessionOpenRequested)
   // Anchor today's date. The coach is otherwise never told the current date, so
   // any past/future or elapsed-time reasoning it does itself is unanchored
   // guesswork — it once called an Aug 24 follow-up "overdue by nine weeks" on
@@ -886,7 +1356,16 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // malformed record must never break the turn. Skipped in general mode (no profile).
   if (!generalMode) try {
     const activeSaved = Array.isArray(profileState && profileState.savedPlaybooks) ? profileState.savedPlaybooks.filter(r => r && !r.archivedAt) : []
-    const inFocus = findInFocusRecord(activeSaved, message, history)
+    // A pinned record beats inference. findInFocusRecord reads the person's own
+    // words for a title or company, which is the only signal available when the
+    // Coach is opened cold -- but someone who opened it from inside a playbook
+    // and said "I'm calling Teresa on the 14th" names nothing, and would get no
+    // IN FOCUS at all. The client sends the record the screen is pinned to; it is
+    // a hint, not authority, so it is resolved against this account's own saved
+    // work and falls back to inference when it does not match.
+    const pinnedId = typeof (req.body && req.body.focusRecordId) === 'string' ? req.body.focusRecordId.trim() : ''
+    const pinned = pinnedId ? activeSaved.find(r => r && r.id === pinnedId) : null
+    const inFocus = pinned || findInFocusRecord(activeSaved, message, history)
     if (inFocus) {
       const expansion = buildPlaybookExpansion(inFocus, detectIntent(message))
       if (expansion) profileBlock += '\n\n' + expansion
@@ -908,6 +1387,14 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   const hasPersonalBrand = _hasText(_poutputs.p3)
   const turnIndex = Array.isArray(history) ? history.length : 0
   const entryPoint = (surface === 'help' || surface === 'sidebar') ? surface : null
+
+  // Brand rework capture: only on the one screen it applies to, only once the
+  // brand exists to react to, and only for the flag this delivery moment
+  // already runs behind. A non-matching turn gets no instruction at all, so
+  // the parser below simply never finds a trailer to strip.
+  if (currentStep === 'p3' && hasPersonalBrand && hasOnboardingConcierge({ feature_flags: featureFlags, email: user.email })) {
+    profileBlock += BRAND_REWORK_CAPTURE_NOTE
+  }
 
   const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".]` : ''
 
@@ -960,11 +1447,21 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
         // low end and scopes its work to exactly what was asked, which is the
         // wrong trade for a coach reasoning over someone's whole profile.
         output_config: { effort: 'medium' },
+        // profileBlock gets its own breakpoint (the 4th and last available) because
+        // it changes on its own schedule -- once a day for the date line prepended
+        // above, and whenever pipeline/activity data actually changes -- which is
+        // slower than "every turn" but faster than SYSTEM_PROMPT_STABLE, which
+        // never changes at all. Without a marker here it was rebuilt and resent in
+        // full on every single turn of every conversation, uncached, even though
+        // turn 2 of a conversation almost always carries the identical profile
+        // turn 1 did. Caching is a prefix match: this marker only ever needs a
+        // fresh write when profileBlock itself changed, and the three breakpoints
+        // ahead of it stay valid reads regardless.
         system: [
           { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
           ...(goIndependentBlock ? [{ type: 'text', text: goIndependentBlock, cache_control: { type: 'ephemeral' } }] : []),
-          ...(pipelineCaptureBlock ? [{ type: 'text', text: pipelineCaptureBlock, cache_control: { type: 'ephemeral' } }] : []),
-          { type: 'text', text: profileBlock },
+          ...(pilotKnowledgeBlock ? [{ type: 'text', text: pilotKnowledgeBlock, cache_control: { type: 'ephemeral' } }] : []),
+          { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
         ],
         messages: msgs,
       }),
@@ -1021,21 +1518,36 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // cleaner. Typical (unflagged) replies skip this entirely, so only flagged
   // responses pay one extra generation on this already-buffered surface.
   const flags = detectResidualVoice(cleaned)
-  if (flags.comparative || flags.sincerity || flags.theMove || flags.sitWith || flags.citedStat) {
+  // Full HARD_PATTERNS set (src/voice-patterns.js) alongside the five
+  // hand-picked categories above. detectResidualVoice was built as a
+  // workaround for the .mjs cross-directory import failure (see its own
+  // comment in src/text-strippers.js); the 2026-09-05 rename to .js clears
+  // that, so this closes the gap that let "Here's the real shape of it" /
+  // "the arc" reach a live reply -- neither is in detectResidualVoice's
+  // five categories. Additive, not a replacement: detectResidualVoice keeps
+  // its deliberately looser coverage on its five categories.
+  const hardViolations = detectVoiceViolations(cleaned, { scope: 'runtime' })
+  if (flags.comparative || flags.sincerity || flags.theMove || flags.sitWith || flags.citedStat || hardViolations.length) {
     const wants = []
     if (flags.comparative) wants.push('do not compare me to "most people", or to "most"/"many"/"every"/"all"/"any" of a group (candidates, leaders, professionals, hiring managers, recruiters), or to anyone else — drop the comparison and state what is true about me directly')
     if (flags.sincerity) wants.push('do not announce your own honesty ("frankly", "candidly", "the honest answer", "to be honest", "being straight with you") — just say the thing')
     if (flags.theMove) wants.push('do not say "X is the move", "here\'s the play", "the key is to", or "what you want to do is" — just state the action, or "a good next step is to…"')
     if (flags.sitWith) wants.push('do not use coaching-therapy register ("sit with"/"sitting with", "lean into", "hold space for", "be present with") — say "think about" or "give it some thought"')
     if (flags.citedStat) wants.push('do not cite a statistic, percentage, or figure with a source you cannot defend ("a study found 70%", "according to LinkedIn…") — speak qualitatively or point me to where real data lives')
+    // Same corrective style callClaudeWithVoiceGate uses in src/App.jsx: name
+    // the actual matched text, not a generic reminder, so the fix targets
+    // exactly what fired. Capped at 3 so a reply with many small hits does
+    // not produce an unreadable rewrite instruction.
+    for (const v of hardViolations.slice(0, 3)) wants.push(`do not write "${String(v.match).replace(/"/g, '\\"').slice(0, 160)}" or anything shaped like it (${v.note})`)
     const corrective = `Rewrite your previous reply for me. Keep all of the substance, the warmth, and roughly the same length, but ${wants.join('; and ')}.`
     try {
       const raw2 = await generate([...messages, { role: 'assistant', content: raw }, { role: 'user', content: corrective }])
       const cleaned2 = applyOutputStrippers(raw2)
       const flags2 = detectResidualVoice(cleaned2)
-      const score = f => (f.comparative ? 1 : 0) + (f.sincerity ? 1 : 0) + (f.theMove ? 1 : 0) + (f.sitWith ? 1 : 0) + (f.citedStat ? 1 : 0)
-      const useRetry = score(flags2) < score(flags)
-      console.log('coach voice-retry', { user_id: user.id, before: flags, after: flags2, used: useRetry ? 'retry' : 'original' })
+      const hardViolations2 = detectVoiceViolations(cleaned2, { scope: 'runtime' })
+      const score = (f, hv) => (f.comparative ? 1 : 0) + (f.sincerity ? 1 : 0) + (f.theMove ? 1 : 0) + (f.sitWith ? 1 : 0) + (f.citedStat ? 1 : 0) + hv.length
+      const useRetry = score(flags2, hardViolations2) < score(flags, hardViolations)
+      console.log('coach voice-retry', { user_id: user.id, before: { ...flags, hard: hardViolations.map(v => v.name) }, after: { ...flags2, hard: hardViolations2.map(v => v.name) }, used: useRetry ? 'retry' : 'original' })
       if (useRetry) cleaned = cleaned2
     } catch (err) {
       console.error('coach voice-retry failed (keeping original):', err)
@@ -1074,6 +1586,42 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
       }
     } catch { /* malformed — drop the line, no offer */ }
   }
+  // Activity capture: the model may end with an ACTIVITY: {json} line recording
+  // something about the human half of the search -- a group joined, an
+  // accountability partner, a note written directly. Validated against the
+  // catalog before it becomes an offer, so an invented key is dropped rather
+  // than shipped: a row nothing reads looks exactly like a successful save.
+  // Non-flagged accounts never receive the instruction, so this no-ops for them.
+  let activityB64 = null
+  const acMatch = strippedText.match(/^\s*ACTIVITY:\s*(\{[\s\S]*?\})\s*$/im)
+  if (acMatch) {
+    strippedText = strippedText.replace(acMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(acMatch[1])
+      const key = typeof parsed.activity === 'string' ? parsed.activity.trim() : ''
+      const st = typeof parsed.state === 'string' ? parsed.state.trim() : ''
+      if (isValidFact(key, st, 'said')) {
+        const def = activityDef(key)
+        const detail = typeof parsed.detail === 'string' ? parsed.detail.trim().slice(0, 300) : ''
+        activityB64 = Buffer.from(JSON.stringify({ activity: key, state: st, detail, label: def ? def.label : key })).toString('base64')
+      }
+    } catch { /* malformed -- drop the line, no offer */ }
+  }
+  // A trailer the model mangled (an unclosed brace, a stray newline) matches
+  // nothing above, so it would be left sitting in the reply as machine junk in
+  // the middle of someone's coaching. Remove any ACTIVITY: line whatever its
+  // shape: the offer is already decided, and nothing downstream wants it.
+  strippedText = strippedText.replace(/^\s*ACTIVITY:.*$/gim, '').trim()
+  // Save-to-notes capture: the model may end with COACHNOTE: save when the
+  // person explicitly asked for this reply (or what was just covered) to be
+  // kept. No payload needed -- the content to save is this reply's own
+  // visible text, already what the client has once the stream completes.
+  let coachNoteOffer = false
+  const cnMatch = strippedText.match(/^\s*COACHNOTE:\s*save\s*$/im)
+  if (cnMatch) {
+    strippedText = strippedText.replace(cnMatch[0], '').trim()
+    coachNoteOffer = true
+  }
   // Values capture: the model may end with a VALUESCAPTURE: {json} line carrying
   // what the conversation settled for Values and/or Passions & Causes. Strip it
   // and ship it on a response header; the client offers a one-tap save that
@@ -1093,34 +1641,70 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
       }
     } catch { /* malformed — drop the line, no offer */ }
   }
-  // Next-move capture: the model may end with a NEXTMOVE: {json} line carrying an
-  // action the person said they will take on an opportunity. Strip it and ship it
-  // on a response header; the client shows the exact wording and the resolved date
-  // and offers a one-tap save that writes through the same PUT the card editor
-  // uses. The date is validated here, not trusted: a value outside a sane window
-  // is dropped rather than offered, so a model slip cannot put "overdue by 9,131
-  // days" on a card (the wrong-year failure api/pursuit-status.js parseTs guards,
-  // applied before the offer instead of after the tap).
-  let nextMoveB64 = null
-  const nmMatch = strippedText.match(/^\s*NEXTMOVE:\s*(\{[\s\S]*?\})\s*$/im)
-  if (nmMatch) {
-    strippedText = strippedText.replace(nmMatch[0], '').trim()
+  // Assessment capture: the model may end with an ASSESSMENTCAPTURE: {json}
+  // line carrying remembered assessment content. Strip it and ship it on a
+  // response header; the client offers a one-tap add that appends to the
+  // assessment field rather than overwriting it.
+  let assessmentB64 = null
+  const assessMatch = strippedText.match(/^\s*ASSESSMENTCAPTURE:\s*(\{[\s\S]*?\})\s*$/im)
+  if (assessMatch) {
+    strippedText = strippedText.replace(assessMatch[0], '').trim()
     try {
-      const parsed = JSON.parse(nmMatch[1])
-      const move = typeof (parsed && parsed.move) === 'string' ? parsed.move.trim().slice(0, 200) : ''
-      let date = ''
-      const raw = typeof (parsed && parsed.date) === 'string' ? parsed.date.trim() : ''
-      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-        // Midday UTC so the calendar date cannot slip a day either way.
+      const parsed = JSON.parse(assessMatch[1])
+      const text = typeof (parsed && parsed.text) === 'string' ? parsed.text.trim().slice(0, 2000) : ''
+      if (text) assessmentB64 = Buffer.from(JSON.stringify({ text })).toString('base64')
+    } catch { /* malformed — drop the line, no offer */ }
+  }
+  // Brand rework capture: the model may end with a BRANDREWORK: {json} line
+  // carrying a correction to the Personal Brand it judged as real (not just a
+  // reaction). Strip it and ship it on a response header; the client offers a
+  // one-tap rework through the exact path the "Does this feel right?" box
+  // uses, so this gets the same conflict check a typed correction gets.
+  let brandReworkB64 = null
+  const brMatch = strippedText.match(/^\s*BRANDREWORK:\s*(\{[\s\S]*?\})\s*$/im)
+  if (brMatch) {
+    strippedText = strippedText.replace(brMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(brMatch[1])
+      const note = typeof (parsed && parsed.note) === 'string' ? parsed.note.trim().slice(0, 600) : ''
+      if (note) brandReworkB64 = Buffer.from(JSON.stringify({ note })).toString('base64')
+    } catch { /* malformed — drop the line, no offer */ }
+  }
+  // Pipeline capture: the model may end with a PIPELINE: {json} line carrying a
+  // next move, a scheduled meeting, or both. Strip it and ship it on a response
+  // header; the client shows exactly what will be written and offers a one-tap
+  // save through the same PUT the card editor uses.
+  //
+  // Dates are validated here, not trusted, against the same window
+  // api/pursuit-status.js parseTs enforces -- so a wrong-year value is dropped
+  // before the offer is shown rather than after the tap, which is the failure
+  // that once read a pipeline date as 9,131 days overdue. A dropped date never
+  // drops the field it belonged to unless that field IS the date: a move keeps
+  // its wording and loses only its deadline, while a meeting with no usable date
+  // is nothing at all.
+  let pipelineB64 = null
+  const pcMatch = strippedText.match(/^\s*PIPELINE:\s*(\{[\s\S]*?\})\s*$/im)
+  if (pcMatch) {
+    strippedText = strippedText.replace(pcMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(pcMatch[1])
+      // Midday UTC so a calendar date cannot slip a day either way.
+      const cleanDate = (v) => {
+        const raw = typeof v === 'string' ? v.trim() : ''
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return ''
         const d = new Date(`${raw}T12:00:00Z`)
         const days = (d.getTime() - Date.now()) / 86400000
-        if (!Number.isNaN(d.getTime()) && days > -400 && days < 1900) date = raw
+        return (!Number.isNaN(d.getTime()) && days > -400 && days < 1900) ? raw : ''
       }
-      if (move) {
-        nextMoveB64 = Buffer.from(JSON.stringify({
+      const move = typeof (parsed && parsed.move) === 'string' ? parsed.move.trim().slice(0, 200) : ''
+      const date = cleanDate(parsed && parsed.date)
+      const meeting = cleanDate(parsed && parsed.meeting)
+      if (move || meeting) {
+        pipelineB64 = Buffer.from(JSON.stringify({
           opportunity: String((parsed && parsed.opportunity) || '').slice(0, 200),
           move,
-          date,
+          date: move ? date : '',
+          meeting,
         })).toString('base64')
       }
     } catch { /* malformed — drop the line, no offer */ }
@@ -1172,7 +1756,11 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   if (rowId) res.setHeader('X-Coach-Message-Id', String(rowId))
   if (interviewersB64) res.setHeader('X-Coach-Interviewers', interviewersB64)
   if (valuesB64) res.setHeader('X-Coach-Values', valuesB64)
-  if (nextMoveB64) res.setHeader('X-Coach-Next-Move', nextMoveB64)
+  if (assessmentB64) res.setHeader('X-Coach-Assessment', assessmentB64)
+  if (brandReworkB64) res.setHeader('X-Coach-Brand-Rework', brandReworkB64)
+  if (pipelineB64) res.setHeader('X-Coach-Pipeline', pipelineB64)
+  if (coachNoteOffer) res.setHeader('X-Coach-Note-Offer', '1')
+  if (activityB64) res.setHeader('X-Coach-Activity', activityB64)
   if (searchIntakeB64) res.setHeader('X-Coach-Search-Intake', searchIntakeB64)
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.setHeader('Cache-Control', 'no-cache')

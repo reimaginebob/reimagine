@@ -72,6 +72,61 @@ export function hasPipelineCapture(user) {
   return flags.includes(PIPELINE_CAPTURE_FLAG)
 }
 
+// PILOT -- Your Next Step, 2026-09-02. The staircase, the arrow and the one
+// action. Gated because it becomes the top of the sidebar for everyone who has
+// it, which is not a change to make to 145 accounts before Bob has stood in
+// front of it himself.
+export const NEXT_STEP_FLAG = 'next_step'
+
+export function hasNextStep(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(NEXT_STEP_FLAG)
+}
+
+// PILOT -- Coach-as-Concierge, onboarding narration (2026-09-04). Coach talks a
+// brand-new user through orientation -- the upfront framing, why-this-matters
+// narration on each step, the Personal Brand delivery moment, and the direct
+// "what's already in motion" routing question -- instead of the silent form
+// sequence. A separate flag from NEXT_STEP_FLAG on purpose: this is a
+// materially different, higher-stakes surface (the first-run experience for
+// brand-new signups, not a returning-session recap), and a shared flag would
+// couple the two rollouts together with no way to toggle one without the
+// other.
+export const ONBOARDING_CONCIERGE_FLAG = 'onboarding_concierge'
+
+export function hasOnboardingConcierge(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(ONBOARDING_CONCIERGE_FLAG)
+}
+
+// PILOT -- Pipeline board, 2026-09-05. The equal-width, stage-grouped visual
+// summary above the existing editable My Pipeline list. Gated because it is a
+// new rendering of live opportunity data on a screen every signed-in account
+// already uses, which is not a change to make to 145 accounts before Bob has
+// looked at it himself.
+export const PIPELINE_BOARD_FLAG = 'pipeline_board'
+
+export function hasPipelineBoard(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(PIPELINE_BOARD_FLAG)
+}
+
+// PILOT -- Save-to-notes agency, 2026-09-05. Coach mentions once, early, that
+// anything worth keeping can be saved to the opportunity's notes on request,
+// then honors that request whenever it is made -- never a judgment call
+// about which reply earns an unprompted offer. A separate flag from the
+// other pilots on this surface so it can be toggled independently.
+export const COACH_NOTE_AGENCY_FLAG = 'coach_note_agency'
+
+export function hasCoachNoteAgency(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(COACH_NOTE_AGENCY_FLAG)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -83,4 +138,7 @@ export function hasPipelineCapture(user) {
 export const GRANTABLE_FLAGS = {
   [CONNECTOR_BETA_FLAG]: { label: 'Assistant connector' },
   [PIPELINE_CAPTURE_FLAG]: { label: 'Coach next-step capture' },
+  [NEXT_STEP_FLAG]: { label: 'Your Next Step' },
+  [PIPELINE_BOARD_FLAG]: { label: 'Pipeline board' },
+  [COACH_NOTE_AGENCY_FLAG]: { label: 'Coach save-to-notes agency' },
 }

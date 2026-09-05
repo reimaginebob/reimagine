@@ -2,8 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import MD from './MD'
 import SpeechBtn, { hasSpeech } from './SpeechBtn'
 import { useIsMobile } from '../use-is-mobile.js'
+import { detectVoiceViolations } from '../voice-patterns.js'
 
-const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
+// intro: true opts this one message into the same collapse-to-strip
+// treatment as banner:true narration (see isCollapsedBanner below) without
+// also feeding the closed-bubble preview-card effect, which keys on
+// banner:true specifically -- this is the generic greeting, not a "here's
+// what's coming" line worth surfacing as a popup.
+export const INTRO_MSG = { role: 'assistant', intro: true, content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
 
 // Plain-language employment mentions. Deliberately conservative: it gates only
 // WHETHER to offer the save prompt (all three options are always shown, so the
@@ -29,7 +35,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, nextMoveCaptureActive = false, allowGeneralMode = false }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -38,6 +44,25 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // App bumps openRequest to open the floating coach programmatically (e.g. the
   // Personal Brand check-in on first arrival at Put it to Work).
   useEffect(() => { if (openRequest) setOpen(true) }, [openRequest])
+  // Focus-return on close (accessibility audit, 2026-09-05): a keyboard or
+  // screen-reader user who opens the floating coach and then closes it --
+  // either the panel's own Close button or Escape, both just set open:false --
+  // was left with focus fallen back to <body>, with no way to tell where they
+  // landed. The trigger bubble and the open panel are two different branches
+  // of one early-return, so the bubble's DOM node does not exist yet at the
+  // instant either close handler fires; it exists once this component
+  // re-renders into the closed branch. A single effect keyed on `open` (not a
+  // .focus() call duplicated inside both close handlers) fires after that
+  // render has committed, and skips the very first render via wasOpenRef --
+  // there is nothing to return focus TO on initial page load, since nothing
+  // was closed yet. Floating only: the embedded My Coach view has no bubble
+  // and no open/close state of its own.
+  const bubbleBtnRef = useRef(null)
+  const wasOpenRef = useRef(false)
+  useEffect(() => {
+    if (!embedded && !open && wasOpenRef.current && bubbleBtnRef.current) bubbleBtnRef.current.focus()
+    wasOpenRef.current = open
+  }, [open, embedded])
   // Tell the app when the floating panel opens, so it can surface a first-time
   // prompt (e.g. the employment one-tap) on coach-open, not only on a hub screen.
   // Floating only; the embedded view is always "open" and handles its own surfacing.
@@ -65,6 +90,12 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // Holds the latest send() so the seed effect (declared above send) can fire it
   // for seedAuto without a use-before-define; refreshed each render below.
   const sendRef = useRef(null)
+  // Stop generating (accessibility/UX audit, 2026-09-05, Gap 1): holds the
+  // AbortController for whichever request is currently in flight, so the
+  // Send button can double as Stop while loading. Only one send() can run at
+  // a time (the guard at the top of send() below returns early if loading is
+  // already true), so a single ref is enough -- no collection needed.
+  const abortRef = useRef(null)
   // The input grows with its content (2026-08-20). It was a fixed 2 rows, which
   // is fine for "how do I answer this?" and wrong for everything longer — a
   // prefilled seed or a dictated interview answer arrived scrolled to its last
@@ -115,6 +146,27 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       if (typeof onSeedConsumed === 'function') onSeedConsumed()
     }
   }, [seed])
+  // Session-open recap (Phase 1, next_step pilot only): the first time this
+  // account opens My Coach in a NEW LOGIN SESSION, the coach leads with what
+  // changed since the last one instead of waiting to be asked. The persisted
+  // transcript (reimagine_chat_history, localStorage) spans every login on
+  // this browser, so it cannot tell "a new session" from "the same session,
+  // reopened" -- sessionStorage can, because it clears when the tab/browser
+  // session ends. Firing is idempotent across both Chat surfaces (the
+  // floating bubble and the embedded My Coach view) because they read and
+  // write the same sessionStorage key and are never mounted at once (the
+  // bubble is suppressed on the 'myCoach' step -- see the render call below).
+  // embedded is "always open" (no open/close state of its own), so mounting
+  // it IS opening it; the floating variant fires when `open` flips true.
+  useEffect(() => {
+    if (!sessionOpenEligible) return
+    if (!embedded && !open) return
+    let already = false
+    try { already = sessionStorage.getItem('reimagine_session_recap_fired') === '1' } catch {}
+    if (already) return
+    try { sessionStorage.setItem('reimagine_session_recap_fired', '1') } catch {}
+    if (sendRef.current) sendRef.current(null, { silent: true })
+  }, [sessionOpenEligible, embedded, open])
   useEffect(() => {
     const el = inputTaRef.current
     if (!el) return
@@ -123,6 +175,65 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   }, [input])
   const [loading, setLoading] = useState(false)
   const messagesContainerRef = useRef(null)
+  // Narration-only Coach messages (banner:true -- the onboarding "here's
+  // what's coming" / "why this matters" lines, which tell the person
+  // something rather than asking them anything) show as a small dismissing
+  // card next to the closed bubble instead of forcing the full panel open.
+  // The full panel still floats over a good chunk of the screen by design
+  // (it floats over the content column it discusses), which is fine for a
+  // real back-and-forth but was the wrong footprint for a message whose
+  // entire job is to point the person at a field on the same screen -- Coach
+  // ends up sitting on top of the very thing it just told them to do. The
+  // message still lands in the transcript either way; opening the panel
+  // (bubble, banner tap, or a forced open elsewhere) always supersedes it.
+  //
+  // No auto-dismiss timer (reported live, 2026-09-04): a fixed timeout meant
+  // the card could vanish before someone had actually read it -- caught when
+  // it disappeared while going to go find and copy a resume, leaving the
+  // resume screen with no visible guidance and no way to bring it back short
+  // of opening the full panel and scrolling. The card is small and sits
+  // beside a closed bubble, not over the page, so there is no real cost to
+  // leaving it up: it now stays until the person dismisses it or opens the
+  // panel, same as it always has for those two paths.
+  const [bannerMsg, setBannerMsg] = useState(null)
+  const bannerPrevLenRef = useRef(0)
+  useEffect(() => {
+    const len = messages ? messages.length : 0
+    const prevLen = bannerPrevLenRef.current
+    bannerPrevLenRef.current = len
+    if (len <= prevLen || open) return
+    const added = messages.slice(prevLen)
+    const latest = [...added].reverse().find(m => m.banner)
+    if (!latest) return
+    setBannerMsg(latest.content)
+  }, [messages, open])
+  useEffect(() => {
+    if (!open) return
+    setBannerMsg(null)
+  }, [open])
+  // Reported live: with several banner:true narration messages now piling up
+  // in the open transcript one after another (each step's "here's what's
+  // coming" line), the newest, currently-relevant one was competing for
+  // attention with everything Coach had already said and moved past.
+  // Collapsing a superseded narration message to a thin, one-line strip --
+  // present, not deleted, expandable on tap -- keeps the transcript honest
+  // (nothing vanishes) while keeping the visual weight on what is current. A
+  // banner message collapses once something has been said after it; the
+  // most recent message is never collapsed, whatever it is.
+  //
+  // Extended 2026-09-05 (reported live) to INTRO_MSG as well: the generic
+  // "Hi, I'm your coach" greeting isn't flagged banner:true (it should not
+  // also trigger the closed-bubble preview-card effect below, which is keyed
+  // on banner:true), but it deserves the same fate once anything follows it
+  // -- it is exactly as superseded as a narration line the moment a real
+  // exchange starts.
+  const [expandedBanners, setExpandedBanners] = useState(() => new Set())
+  const toggleBannerExpanded = i => setExpandedBanners(prev => {
+    const next = new Set(prev)
+    if (next.has(i)) next.delete(i)
+    else next.add(i)
+    return next
+  })
   // Per-message DOM refs populated by the ref callback in the messages.map
   // render. Indexed by position in the messages array. The scroll effect
   // below pins the user's most recent question to the top of the visible
@@ -188,9 +299,24 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     // turn). In-place mutations — rating a reply, opening/closing its note box —
     // keep the same length and must not move the view (that yanked the user off
     // the note textarea they just opened).
-    const grew = len > prevLenRef.current
+    const prevLen = prevLenRef.current
+    const grew = len > prevLen
     prevLenRef.current = len
     if (!grew || len === 0) return
+    // A Coach-initiated turn (a check-in, a chained continuation) appends only
+    // assistant messages, with no new user message in this growth. Pinning the
+    // last EXISTING user message in that case scrolls to wherever that older
+    // turn was, which can leave the new message stranded below the fold in a
+    // conversation with any real history -- the person opens the panel, lands
+    // on old ground, and never sees Coach was waiting on them. Scroll those
+    // straight to the new message; only pin-to-top when this turn's growth
+    // itself included a fresh user message.
+    const turnHasNewUserMsg = messages.slice(prevLen).some(m => m.role === 'user')
+    if (!turnHasNewUserMsg) {
+      const el = messageRefs.current[len - 1]
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: 'end', behavior: 'smooth' })
+      return
+    }
     // Find the most recent user message and scroll it to the top of the
     // messages container so the assistant response reads downward.
     let lastUserIdx = -1
@@ -234,8 +360,18 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     // Persistence is best-effort and routed by App: an onQuickReply handler owns
     // where the value lands (e.g. employment status -> its own column endpoint).
     // Falls back to the personal-brand check-in log when App does not handle it.
+    //
+    // A handler may return a message object instead of `true` when the tap has
+    // somewhere to go next. A save that lands and then says nothing leaves the
+    // person sitting in the Coach with the thing they just updated one screen
+    // away and no way back that is on screen -- the "Back to…" link lives at the
+    // top of the conversation, which is exactly where they are not after a long
+    // exchange. The completion moment is where the way back belongs.
     try {
       const handled = onQuickReply ? await onQuickReply(checkinKey, opt.value) : false
+      if (handled && typeof handled === 'object' && handled.content) {
+        setMessages(m => [...m, { role: 'assistant', ...handled }])
+      }
       if (!handled) {
         await fetch('/api/pb-checkin', {
           method: 'POST', credentials: 'include',
@@ -246,31 +382,72 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     } catch { /* the conversation already continued; the tap is best-effort */ }
   }
 
-  const send = async (explicit) => {
-    const text = (typeof explicit === 'string' ? explicit : input).trim()
-    if (!text || loading) return
+  // `silent` (session-open recap, Phase 1): the app fires this itself, with
+  // no typed text and no user bubble — the coach speaks first with what
+  // changed since the account's last session. Everything below reduces to
+  // the same request/stream/log path a normal send takes; the two
+  // differences are what goes in the request body (sessionOpen instead of a
+  // message) and that nothing is pushed into the transcript until we know
+  // there is something to show (a 204 means there wasn't, and that renders
+  // nothing at all rather than a bubble that briefly appears and vanishes).
+  const send = async (explicit, { silent = false } = {}) => {
+    const text = silent ? '' : (typeof explicit === 'string' ? explicit : input).trim()
+    if (silent) { if (loading) return } else if (!text || loading) return
     const userMsg = { role: 'user', content: text }
     // (sendRef is refreshed just below so the seed effect can call the latest send.)
     const historyAtSend = messages
-    setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])
-    setInput('')
-    setLoading(true)
+    if (silent) {
+      setLoading(true)
+    } else {
+      setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])
+      setInput('')
+      setLoading(true)
+    }
+    const controller = new AbortController()
+    abortRef.current = controller
     try {
       const res = await fetch('/api/coach', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
-          message: userMsg.content,
+          ...(silent ? { sessionOpen: true } : { message: userMsg.content }),
           history: historyAtSend,
           currentStep,
           // Entry point for insight logging: the embedded variant is the My
           // Coach sidebar; the floating variant is the help bubble.
           surface: embedded ? 'sidebar' : 'help',
           // General-question mode (Career Club team only; re-checked server-side).
-          general: generalMode,
+          // Never sent on a silent open — the recap needs this account's real
+          // profile, and general mode explicitly has none loaded.
+          general: silent ? false : generalMode,
+          // Which saved opportunity this conversation is pinned to, when the app
+          // knows. The server otherwise infers it by scanning the person's own
+          // words for the title or company (findInFocusRecord), which works for
+          // the pre-filled "read on this opportunity" prompt and not at all for
+          // someone who opened the Coach from inside a playbook and simply said
+          // what they are doing next. Sent as a hint only: the server re-checks
+          // that the id belongs to this account's saved work before using it.
+          focusRecordId: (coachSaveTarget && coachSaveTarget.id) || undefined,
         }),
       })
+      if (silent && res.status === 204) {
+        // Nothing to recap (no prior session to diff against, or the pilot
+        // turned out not to be on) — say nothing, exactly as if this call had
+        // never been made.
+        setLoading(false)
+        return
+      }
+      if (silent && !res.ok) {
+        // A proactive opener nobody asked for; a failure here should not
+        // greet the person with an error message they never triggered. A
+        // normal send still shows its fallback below — this branch only
+        // covers the silent path.
+        setLoading(false)
+        return
+      }
+      if (silent) setMessages(m => [...m, { role: 'assistant', content: '' }])
       if (!res.ok || !res.body) {
         // When the model itself is unreachable the server sends one written
         // sentence explaining it (api/_lib/anthropic-error.js), so the coach
@@ -297,8 +474,12 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const msgId = res.headers.get('X-Coach-Message-Id') || null
         const itHeader = res.headers.get('X-Coach-Interviewers') || null
         const vcHeader = res.headers.get('X-Coach-Values') || null
-        const nmHeader = res.headers.get('X-Coach-Next-Move') || null
+        const assessHeader = res.headers.get('X-Coach-Assessment') || null
+        const brHeader = res.headers.get('X-Coach-Brand-Rework') || null
+        const pcHeader = res.headers.get('X-Coach-Pipeline') || null
+        const acHeader = res.headers.get('X-Coach-Activity') || null
         const siHeader = res.headers.get('X-Coach-Search-Intake') || null
+        const noteHeader = res.headers.get('X-Coach-Note-Offer') || null
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let fullText = ''
@@ -313,6 +494,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             return copy
           })
         }
+        // Coach's live replies stream straight into the visible UI, so a
+        // silent pre-display retry (matching generation's callClaudeWithVoiceGate)
+        // is not possible without buffering the whole reply and losing the
+        // live-typing effect. This checks the completed reply after it has
+        // already rendered and reports hard violations for detection and
+        // telemetry rather than correcting the displayed text.
+        const voiceViolations = detectVoiceViolations(fullText, { scope: 'runtime' }).filter(v => v.severity === 'hard')
+        if (voiceViolations.length && onVoiceViolation) onVoiceViolation(voiceViolations)
         // One-time in-conversation offer to persist a stated employment status.
         // Only when the value is unset, we have not offered this session, and no
         // employment prompt is already pending — so the on-open prompt and this
@@ -347,6 +536,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             }
           } catch { /* malformed header — no offer */ }
         }
+        // Save-to-notes: the server saw an explicit request to keep this reply
+        // and set X-Coach-Note-Offer. The content offered is this reply's own
+        // text -- exactly what the manual "Save to this opportunity" button
+        // already saves. No JSON to decode: there is nothing to carry beyond
+        // the text already sitting in fullText.
+        if (notesCaptureActive && noteHeader === '1' && fullText.trim()) {
+          setMessages(m => [...m, { role: 'assistant', content: "Want me to add this to the opportunity's notes?", checkinKey: 'coach-note-save', quickReplies: [{ label: 'Save it', value: fullText }, { label: 'Not now', value: 'dismiss' }] }])
+        }
         // Values capture: the server extracted what this turn settled for Values
         // and/or Passions & Causes onto X-Coach-Values. Show it back in full — the
         // person accepts the exact text they are about to store, never a summary
@@ -362,29 +559,112 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             }
           } catch { /* malformed header — no offer */ }
         }
-        // Next-move capture: the server extracted an action the person said they
-        // would take on one of their opportunities. Show the exact wording and the
-        // resolved date ON the button — voice input is least reliable on names and
-        // numbers, and this is entirely names and numbers, so the interpretation has
-        // to be visible BEFORE the tap rather than discovered two weeks later when
-        // the plan is wrong.
-        if (nextMoveCaptureActive && nmHeader) {
+        // Assessment capture: the server extracted remembered assessment
+        // content onto X-Coach-Assessment. Show it back in full, and make
+        // clear it ADDS to the field rather than replacing it -- unlike
+        // Values above, someone may already have real assessment content
+        // saved, and this should never look like it could wipe that out.
+        if (assessmentCaptureActive && assessHeader) {
           try {
-            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(nmHeader), c => c.charCodeAt(0))))
-            const move = data && typeof data.move === 'string' ? data.move.trim() : ''
-            if (move) {
-              // Midday UTC, formatted in UTC: the date is a calendar day, not an
-              // instant, and rendering it in local time can show the day before.
-              const when = data.date
-                ? new Date(`${data.date}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
-                : ''
-              const where = data.opportunity ? ` on ${data.opportunity}` : ''
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(assessHeader), c => c.charCodeAt(0))))
+            const text = data && typeof data.text === 'string' ? data.text.trim() : ''
+            if (text) {
               setMessages(m => [...m, {
                 role: 'assistant',
-                content: `Want me to put that on My Pipeline as your next move${where}? You can change it there any time.\n\n${move}${when ? ` — ${when}` : ' — no date set'}`,
-                checkinKey: 'pursuit-next-move',
+                content: `Want me to add this to your assessment field? It adds to whatever is already there, and you can edit it any time.\n\n${text}`,
+                checkinKey: 'assessment-capture',
                 quickReplies: [
-                  { label: when ? `Save it — ${when}` : 'Save it', value: JSON.stringify(data), followUp: 'Saved to My Pipeline.' },
+                  { label: 'Add it', value: JSON.stringify(data), followUp: 'Added to your assessment field.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Brand rework capture: the server judged the reply as a real
+        // correction to the Personal Brand, not just a reaction. Show the
+        // note back before acting on it — the DTFR box always shows what it
+        // is about to send, and this offer holds to the same bar.
+        if (brandReworkCaptureActive && brHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(brHeader), c => c.charCodeAt(0))))
+            const note = data && typeof data.note === 'string' ? data.note.trim() : ''
+            if (note) {
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to rework it with that?\n\n${note}`,
+                checkinKey: 'brand-rework',
+                quickReplies: [
+                  { label: 'Yes, rework it', value: JSON.stringify(data), followUp: 'Reworking it now — give it a moment.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Pipeline capture: the server extracted a next move, a scheduled meeting,
+        // or both. Show the exact wording and the resolved dates ON the button —
+        // voice input is least reliable on names and numbers, and this is entirely
+        // names and numbers, so the interpretation has to be visible BEFORE the tap
+        // rather than discovered two weeks later when the plan is wrong.
+        if (pipelineCaptureActive && pcHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(pcHeader), c => c.charCodeAt(0))))
+            const move = data && typeof data.move === 'string' ? data.move.trim() : ''
+            const meeting = data && typeof data.meeting === 'string' ? data.meeting.trim() : ''
+            // Formatted in UTC: these are calendar days, not instants, and a local
+            // rendering can show the day before.
+            const fmt = d => new Date(`${d}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
+            if (move || meeting) {
+              const where = data.opportunity ? ` on ${data.opportunity}` : ''
+              // One offer covering whatever they said, so a sentence carrying both
+              // does not produce two competing buttons under one reply.
+              const lines = []
+              if (move) lines.push(`Next move: ${move}${data.date ? ` — ${fmt(data.date)}` : ' — no date set'}`)
+              if (meeting) lines.push(`Next scheduled meeting: ${fmt(meeting)}`)
+              const what = (move && meeting) ? 'both of those' : (meeting ? 'that meeting' : 'that')
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to put ${what} on My Pipeline${where}? You can change it there any time.\n\n${lines.join('\n')}`,
+                checkinKey: 'pursuit-update',
+                quickReplies: [
+                  { label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to My Pipeline.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Activity capture: the person said something about the human half of
+        // their search -- a group they joined, someone holding them accountable,
+        // a note they wrote directly. Reimagine cannot see any of it, so the only
+        // way it ever gets known is this. The tap writes; the model never does.
+        //
+        // A `not_yet` or `declined` is offered the same way as a `done`, because
+        // recording that they do not want something is what stops the coach
+        // raising it a fourth time. The wording changes so the offer never reads
+        // as logging a failure.
+        if (activityCaptureActive && acHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(acHeader), c => c.charCodeAt(0))))
+            const label = data && typeof data.label === 'string' ? data.label.trim() : ''
+            const st = data && typeof data.state === 'string' ? data.state : ''
+            if (label && st) {
+              const detail = data.detail ? ` — ${data.detail}` : ''
+              const line = st === 'done'
+                ? `Remember: ${label}${detail}`
+                : st === 'declined'
+                  ? `Remember: not interested in ${label}${detail} — I won't bring it up again`
+                  : `Remember: ${label} is still open${detail}`
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to remember that? It stays with your profile so I am not asking you twice.\n\n${line}`,
+                checkinKey: 'activity-fact',
+                quickReplies: [
+                  // No canned follow-up: it is pushed optimistically, before the
+                  // write is attempted, so a failed save would still read "Got
+                  // it." The handler confirms only once the write has landed.
+                  { label: 'Remember it', value: JSON.stringify(data) },
                   { label: 'Not now', value: 'dismiss' },
                 ],
               }])
@@ -407,13 +687,34 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           } catch { /* malformed header — no offer */ }
         }
       }
-    } catch {
-      setMessages(m => {
-        const copy = [...m]
-        copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach your coach just now. Try again in a moment.' }
-        return copy
-      })
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        // The person clicked Stop. Whatever streamed in before the click is
+        // already the last message's content -- it was updated on every
+        // chunk as it arrived -- so there is nothing to restore and nothing
+        // to apologize for. The one cleanup this needs: stopping before any
+        // text arrived at all would otherwise leave an empty bubble sitting
+        // in the transcript forever.
+        setMessages(m => {
+          const last = m[m.length - 1]
+          if (last && last.role === 'assistant' && !last.content) return m.slice(0, -1)
+          return m
+        })
+      } else if (!silent) {
+        // A silent open never pushed a placeholder to overwrite here (it only
+        // does that once a real, non-204 response is in hand) -- so on a thrown
+        // error (network down, etc.) there is nothing of its own to fail into,
+        // and clobbering whatever the transcript's real last message happens to
+        // be would be worse than saying nothing. Fail exactly as silently as
+        // the 204/!res.ok branches above do.
+        setMessages(m => {
+          const copy = [...m]
+          copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach your coach just now. Try again in a moment.' }
+          return copy
+        })
+      }
     } finally {
+      abortRef.current = null
       setLoading(false)
     }
   }
@@ -470,10 +771,41 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // would overflow the panel instead of scrolling).
   const transcript = (
     <div ref={messagesContainerRef} style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '14px 18px' }}>
-      {messages.map((m, i) => (
+      {messages.map((m, i) => {
+        const isCollapsedBanner = (m.banner || m.intro) && i < messages.length - 1 && !expandedBanners.has(i)
+        // Same eligibility as isCollapsedBanner, minus the expanded check --
+        // true whether the strip is showing or the person tapped it open.
+        // Reported live (2026-09-05): the strip's tap toggled expandedBanners
+        // in both directions, but nothing on the EXPANDED bubble called
+        // toggleBannerExpanded back -- once opened, a superseded message had
+        // no way to return to its one-line strip.
+        const isExpandableBanner = (m.banner || m.intro) && i < messages.length - 1
+        return (
         <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
+          {isCollapsedBanner ? (
+            <button onClick={() => toggleBannerExpanded(i)} style={{
+              display: 'flex', alignItems: 'center', gap: 6, maxWidth: 'min(100%, 74ch)',
+              background: '#F4F6F9', border: 'none', borderRadius: 8,
+              padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+            }}>
+              <span aria-hidden="true" style={{ color: '#8A9BB8', fontSize: 16, flexShrink: 0 }}>›</span>
+              <span style={{
+                fontSize: 16, color: '#8A9BB8', lineHeight: 1.4,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {m.content}
+              </span>
+            </button>
+          ) : (
           <div ref={el => { if (m.id) contentRefs.current[m.id] = el }} style={{
-            display: 'inline-block', maxWidth: '85%',
+            // The coach's prose holds a readable line length however wide the
+            // panel gets: past roughly 75 characters the eye starts losing its
+            // place on the return sweep, so a full-width answer would take
+            // fewer lines and be harder to read. The person's own messages are
+            // short and stay narrower still, which keeps the two sides visually
+            // distinct without a rule between them.
+            display: 'inline-block',
+            maxWidth: m.role === 'user' ? 'min(85%, 56ch)' : 'min(100%, 74ch)',
             padding: '10px 14px', borderRadius: 12,
             background: m.role === 'user' ? C.gold : '#F4F6F9',
             color: m.role === 'user' ? '#fff' : '#1A2540',
@@ -490,7 +822,16 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 ? <MD text={m.content} />
                 : m.content}
           </div>
-          {m.role === 'assistant' && Array.isArray(m.quickReplies) && m.quickReplies.length > 0 && (
+          )}
+          {!isCollapsedBanner && isExpandableBanner && (
+            <button onClick={() => toggleBannerExpanded(i)} style={{
+              display: 'block', marginTop: 4, background: 'transparent', border: 'none',
+              color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+            }}>
+              ‹ Collapse
+            </button>
+          )}
+          {!isCollapsedBanner && m.role === 'assistant' && Array.isArray(m.quickReplies) && m.quickReplies.length > 0 && (
             <div data-print="hide" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {m.quickReplies.map((opt, qi) => (
                 <button key={qi} onClick={() => tapQuickReply(i, opt, m.checkinKey)}
@@ -544,7 +885,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             </div>
           )}
         </div>
-      ))}
+      )})}
     </div>
   )
 
@@ -574,16 +915,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       />
       {hasSpeech && <SpeechBtn onResult={t => setInput((input || '') + t)} C={C} title="Speak your question" />}
       <button
-        onClick={send}
-        disabled={loading || !input.trim()}
+        onClick={loading ? () => { if (abortRef.current) abortRef.current.abort() } : send}
+        disabled={!loading && !input.trim()}
         style={{
-          background: C.gold, color: '#fff', border: 'none',
-          borderRadius: 8, padding: '8px 14px', cursor: loading || !input.trim() ? 'default' : 'pointer',
+          background: loading ? '#fff' : C.gold, color: loading ? C.gold : '#fff',
+          border: loading ? `1px solid ${C.gold}` : 'none',
+          borderRadius: 8, padding: '8px 14px', cursor: (!loading && !input.trim()) ? 'default' : 'pointer',
           fontFamily: 'inherit', fontSize: 17, fontWeight: 600,
-          opacity: loading || !input.trim() ? 0.6 : 1,
+          opacity: (!loading && !input.trim()) ? 0.6 : 1,
         }}
       >
-        Send
+        {loading ? 'Stop' : 'Send'}
       </button>
       </div>
     </div>
@@ -597,7 +939,13 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         display: 'flex', flexDirection: 'column',
         minHeight: 360,
         maxHeight: panelMaxH ? `${panelMaxH}px` : 'min(72dvh, 720px)',
-        maxWidth: 820,
+        // Fills the content column. The old 820px cap was doing two jobs at
+        // once -- keeping the READING measure sane and, as a side effect,
+        // leaving most of a wide screen empty. The measure is a property of the
+        // text, so it now lives on the message bubbles below, where it belongs;
+        // the panel itself takes the room, which is what the input row, the
+        // person's own messages and the one-tap save offers actually want.
+        maxWidth: '100%',
         background: '#fff', border: '1px solid #E2E5EA', borderRadius: 14,
         boxShadow: '0 2px 10px rgba(0,0,0,0.06)', overflow: 'hidden',
         fontFamily: 'inherit',
@@ -620,40 +968,93 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   if (!open) {
     return (
       <>
-        {showPulse && <style>{"@keyframes pe-chat-pulse-scale{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}@keyframes pe-chat-pulse-fade{0%,100%{opacity:0.7}50%{opacity:1}}"}</style>}
+        {showPulse && !bannerMsg && <style>{"@keyframes pe-chat-pulse-scale{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}@keyframes pe-chat-pulse-fade{0%,100%{opacity:0.7}50%{opacity:1}}"}</style>}
+        {thinking && <style>{"@keyframes pe-chat-thinking-dot{0%,100%{opacity:0.35}50%{opacity:1}}"}</style>}
         <div data-print="hide" style={{
           position: 'fixed', bottom: 24 + bottomOffset, right: 24, zIndex: 1000,
-          display: 'flex', alignItems: 'center', gap: 8,
+          display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10,
         }}>
-          {showPulse && (
-            <div style={{
-              background: '#fff',
-              border: `1px solid ${C.gold}`,
-              color: C.gold,
-              padding: '6px 12px',
-              borderRadius: 16,
-              fontSize: 15,
-              fontWeight: 600,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
-              animation: 'pe-chat-pulse-fade 2s ease-in-out infinite',
-              fontFamily: 'inherit',
+          {bannerMsg && (
+            <div role="status" onClick={() => setOpen(true)} style={{
+              background: '#fff', border: `1px solid ${C.gold}`, borderRadius: 12,
+              padding: '12px 14px', width: 'min(320px, calc(100vw - 48px))',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.18)', cursor: 'pointer',
+              fontFamily: 'inherit', display: 'flex', flexDirection: 'column', gap: 6,
             }}>
-              Talk to your coach
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: '.03em' }}>Coach</span>
+                <button
+                  onClick={e => { e.stopPropagation(); setBannerMsg(null) }}
+                  aria-label="Dismiss"
+                  style={{ background: 'none', border: 'none', color: '#8A9BB8', cursor: 'pointer', fontSize: 17, lineHeight: 1, padding: 0, fontFamily: 'inherit' }}
+                >
+                  &times;
+                </button>
+              </div>
+              <div style={{
+                fontSize: 16, color: '#1A2540', lineHeight: 1.5,
+                overflow: 'hidden', textOverflow: 'ellipsis',
+                display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
+              }}>
+                {bannerMsg}
+              </div>
             </div>
           )}
-          <button
-            onClick={() => { setOpen(true); if (onDismissPulse) onDismissPulse() }}
-            style={{
-              background: C.gold, color: '#fff', border: 'none',
-              borderRadius: '50%', width: 56, height: 56,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              fontSize: 22, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
-              animation: showPulse ? 'pe-chat-pulse-scale 2s ease-in-out infinite' : 'none',
-            }}
-            aria-label={showPulse ? 'Talk to your coach. Open My Coach' : 'Open My Coach'}
-          >
-            ?
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {!bannerMsg && showPulse && (
+              <div style={{
+                background: '#fff',
+                border: `1px solid ${C.gold}`,
+                color: C.gold,
+                padding: '6px 12px',
+                borderRadius: 16,
+                fontSize: 15,
+                fontWeight: 600,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                animation: 'pe-chat-pulse-fade 2s ease-in-out infinite',
+                fontFamily: 'inherit',
+              }}>
+                Talk to your coach
+              </div>
+            )}
+            <div style={{ position: 'relative' }}>
+              <button
+                ref={bubbleBtnRef}
+                onClick={() => { setOpen(true); if (onDismissPulse) onDismissPulse() }}
+                style={{
+                  background: C.gold, color: '#fff', border: 'none',
+                  borderRadius: '50%', width: 56, height: 56,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  fontSize: 22, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
+                  animation: (showPulse && !bannerMsg) ? 'pe-chat-pulse-scale 2s ease-in-out infinite' : 'none',
+                }}
+                aria-label={thinking ? 'Coach is thinking. Open My Coach' : (showPulse ? 'Talk to your coach. Open My Coach' : 'Open My Coach')}
+              >
+                ?
+              </button>
+              {/* Reported live: the reaction to a pasted resume or LinkedIn
+                  upload is a real network call, often several seconds, and
+                  the person is usually already on the next screen by the
+                  time it lands -- with nothing to say Coach was ever working
+                  on it. This dot is the entire fix: visible the moment the
+                  request goes out, gone the moment every request in flight
+                  has resolved. Decorative (aria-hidden); the aria-label
+                  above already carries the same information for a screen
+                  reader. */}
+              {thinking && (
+                <div aria-hidden="true" style={{
+                  position: 'absolute', top: -2, right: -2, width: 14, height: 14,
+                  borderRadius: '50%', background: '#fff', border: `2px solid ${C.gold}`,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)', pointerEvents: 'none',
+                }}>
+                  <div style={{
+                    width: '100%', height: '100%', borderRadius: '50%', background: C.gold,
+                    animation: 'pe-chat-thinking-dot 1.1s ease-in-out infinite',
+                  }} />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </>
     )

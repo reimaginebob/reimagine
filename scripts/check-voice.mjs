@@ -1,10 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { patternsFor } from '../src/voice-patterns.mjs'
+import { patternsFor } from '../src/voice-patterns.js'
 
 // Build-time voice guard. Scans source for banned constructions BEFORE build.
 //
-// Single source of truth: patterns live in src/voice-patterns.mjs and are
+// Single source of truth: patterns live in src/voice-patterns.js and are
 // shared with the runtime validator (generate/generateSection). This file
 // enforces only the 'build' scoped subset - tight constructions we author
 // deliberately (banned intensifiers, AI-coaching register) whose
@@ -25,6 +25,32 @@ const FILES_TO_CHECK = [
   'src/survey-questions.js',
   'api/survey/respond.js',
   ...fs.readdirSync('src/data/user-guide').map(f => path.join('src/data/user-guide', f)),
+  // Your Next Step (2026-09-02). step-position.js writes the sentence a person
+  // reads on the screen AND the sentence My Coach speaks back, which makes it a
+  // user-facing surface that happens to be a rules table; Staircase.jsx carries
+  // the labels around it. Neither sits under src/App.jsx, so without these two
+  // lines the copy that answers "what should I be doing" would be the one piece
+  // of shipped prose with no detector on it.
+  // The catalog's `why` and `offer` lines are prose the coach draws on when it
+  // encourages someone, so they carry the voice rules in full -- and the
+  // comparative-standing patterns in particular, which is the shape a reason to
+  // do something slides into ("most people skip this") without anyone noticing.
+  // The pilot knowledge files are prose the coach speaks from, so they carry the
+  // voice rules in full. Added after "genuinely" -- a banned intensifier -- went
+  // into next-step-knowledge.js unnoticed, in a file nothing was scanning.
+  // Ten explainers of Bob's own frameworks, shown to someone who has not read
+  // the book. If any surface in this product has to be in the house voice, it is
+  // the one teaching the house vocabulary.
+  'src/data/staircase-explainers.js',
+  'src/data/next-step-knowledge.js',
+  'src/data/pipeline-capture-knowledge.js',
+  // Coach-as-Concierge onboarding narration (2026-09-04): what Coach says
+  // aloud right before each orientation step. Prose a person reads, spoken
+  // as Coach, same reasoning as the pilot knowledge files above.
+  'src/data/orientation-narration.js',
+  'src/activity-catalog.js',
+  'src/step-position.js',
+  'src/components/Staircase.jsx',
 ]
 
 const BUILD_HARD = patternsFor('build', { includeSoft: false })

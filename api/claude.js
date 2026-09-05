@@ -33,7 +33,20 @@ import { alertOnce } from './_lib/ops-alerts.js'
 // 62 generations, and the average active hour is 9.6. A cap of 80 left an
 // 18-call margin over real observed behaviour, and tripping it locks the account
 // out of every authed route with no self-serve way back in.
-const GENERATION_CAP_HR = 120
+// Raised 120 -> 240 on 2026-09-02, because the baseline behind 120 no longer
+// describes what one click costs. That measurement — busiest hour 62, average
+// active hour 9.6 — was taken on 2026-08-28, before any fan-out call existed.
+// A generation used to be one button, one call. Networking Groups and Job
+// Search Resources are search features: one click is two discovery calls plus
+// one verification call per organization found, around eight to eleven rows in
+// generation_events for a single press.
+//
+// Plausible heavy hour now: the old 62 of ordinary playbook work, plus three
+// Networking Groups clicks (~33) and one Job Search Resources click (~8) —
+// about 103. Against a cap of 120 that is a 17-call margin, which is the same
+// coin flip the August note was written to remove. Doubling the plausible peak,
+// the way that note set the last number, gives 240.
+const GENERATION_CAP_HR = 240
 
 // Best-effort generation-events logging (rogue-activity watchdog, Phase 2). One
 // row per generation, used by api/admin/activity-watchdog to catch volume
