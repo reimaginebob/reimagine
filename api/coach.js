@@ -714,15 +714,28 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
     const list = ns.doors.map((d, i) => `${i + 1}. ${d.action} — ${d.why}`).join('\n')
     return `\n\nWHAT IS ON THE TABLE FOR THEM RIGHT NOW (authoritative). On the Your Next Step staircase they are standing on ${stair}.${where} These are the moves actually available and warranted today, in the order the screen is showing them:\n${list}\n\nWhen they ask what they should be doing, what to do next, where to start, or where they stand, answer from THIS set. You may make your own case for which one to lead with and say why — that judgment is yours and it is worth making — but never offer a move that is not on this list, because the screen is showing them these and two different answers is worse than none. Give the reason, not just the instruction, and offer to walk them through whichever they pick. ${ns.stalled ? 'Their pipeline has gone quiet, which is why the first of these turns to people. Their stair has NOT moved down and you never tell them they lost ground. ' : ''}The keel letter behind them right now is ${ns.keelLetter} — ${ns.keelGloss}. Never turn any of this into a number: no count of what is done or left, no fraction, no percentage, no estimate of how close an offer is. If they tell you they are somewhere else in their search, believe them and answer from there.`
   })()
-  // RETURNING-SESSION OPENING RECAP (Coach-as-Concierge Phase 1, next_step
-  // pilot only). Only ever built for the one turn the client marks as a
-  // session's opener (sessionOpenRequested) -- on every other turn this stays
-  // empty, so an ordinary mid-conversation reply never drags in "since your
-  // last visit" out of nowhere. The handler already refuses to even reach
-  // here without a real priorSessionAt (see the 204 short-circuit above the
-  // buildCoachProfileSlice call): a null anchor means this account's very
-  // first session ever, which is onboarding territory this phase does not
-  // cover, so there is deliberately no note for that case.
+  // RETURNING-SESSION OPENER (Coach-as-Concierge Phase 1, next_step pilot
+  // only; generalized 2026-09-05 from a status recap into an agency-first
+  // check-in per Bob's standing anticipation principle). Only ever built for
+  // the one turn the client marks as a session's opener (sessionOpenRequested)
+  // -- on every other turn this stays empty, so an ordinary mid-conversation
+  // reply never drags in "since your last visit" out of nowhere. The handler
+  // already refuses to even reach here without a real priorSessionAt (see the
+  // 204 short-circuit above the buildCoachProfileSlice call): a null anchor
+  // means this account's very first session ever, which is onboarding
+  // territory this phase does not cover, so there is deliberately no note for
+  // that case.
+  //
+  // Leads with how the person is doing, not with a status report -- people
+  // cannot think clearly about strategy before whatever they are carrying has
+  // somewhere to go first. What changed since last time (computed below,
+  // exactly as before) becomes something to weave into that check-in by name
+  // when there is something real to reference, not a report Coach recites
+  // unprompted. The turn closes by handing the person a real choice: name
+  // their own focus for today, or ask Coach to suggest one -- the suggestion
+  // itself draws on nextStepNote below, which already exists and already
+  // matches the screen; this just stops Coach from volunteering it before
+  // being asked.
   const sessionOpenNote = (sightOn && sessionOpenRequested) ? (() => {
     let delta = null
     try { delta = computeSessionDelta(state, pursuitRows, activityFacts, priorSessionAt) } catch { return '' }
@@ -734,12 +747,18 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
     if (delta.addedDirections.length) lines.push(`New direction(s) saved: ${delta.addedDirections.join('; ')}.`)
     if (delta.newActivity.length) lines.push(`Search activity noted: ${delta.newActivity.map(a => a.activity).join('; ')}.`)
     const factsBlock = lines.length ? lines.join('\n') : 'Nothing changed in their pipeline or activity since their last session — a quiet stretch, not a stalled one.'
-    return `\n\nWHAT CHANGED SINCE THEIR LAST SESSION (authoritative — the ONLY source for what happened; never invent or infer anything beyond it, and never turn it into a count, a fraction, or a percentage):\n${factsBlock}\n\nThis is the first turn of a new session — open with this yourself, in your own voice, before they ask anything. ${delta.hasMaterialChange ? 'Something real changed, so name it plainly and specifically using the actual names above (never a vague "some things happened"), then connect it to what is worth doing next. If more than one next step is genuinely reasonable from here, lay out the real options with why each one and what it is likely to get them, and let them choose which direction; if only one really makes sense, say so and say why.' : 'Nothing changed, and that is fine to say plainly — confirm what is already in motion and still on track. You may name one small adjacent thing worth doing if one genuinely fits, but never invent movement that did not happen, and never open cold or silent.'} Keep it to a few sentences before handing the conversation to them.`
+    return `\n\nWHAT CHANGED SINCE THEIR LAST SESSION (authoritative — the ONLY source for what happened; never invent or infer anything beyond it, and never turn it into a count, a fraction, or a percentage):\n${factsBlock}\n\nThis is the first turn of a new session — open with this yourself, in your own voice, before they ask anything. Lead with them, not their pipeline: ask how they are doing, or how the week has treated them, before you get anywhere near their search — that comes first because it shapes whether anything you say next actually lands. ${delta.hasMaterialChange ? 'Something real happened, so weave it into that same check-in by name rather than reporting it separately afterward — ask about the actual interview, the actual company, the way someone who noticed would, instead of reciting "here is what changed."' : 'Nothing changed since last time, and that is fine to say plainly if it comes up — never invent movement that did not happen, and never open cold or silent.'} Once they have answered, hand them the wheel: ask, in your own words, whether there is something specific they would like to work on today, or whether they would rather you suggest something based on what you can see in their search. Treat both as equally real — if they name their own focus, follow it completely rather than steering back to your own read of what matters most; only when they ask you to suggest something do you reach for what is on the table for them below and make the case for it. Keep the whole opener to a few sentences and one flowing thought, never a checklist of questions stacked on top of each other.`
   })() : ''
   const connectorNote = hasConnectorBeta({ feature_flags: featureFlags })
     ? '\n\nASSISTANT CONNECTOR (this person has it; it is a limited beta most users do not have — never imply it is generally available): they can connect their own assistant to Gmail and Calendar so their pipeline keeps itself current without them typing anything. Reimagine never reads their inbox. Mention it only if it fits what they are asking; do not pitch it.'
     : ''
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${activityNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${searchIntakeNote(si)}`
+  // The session-open turn already asks its own open question (what do you want
+  // to focus on today, or should Coach suggest something) -- stacking search
+  // intake's separate ask in the same reply would hand the person two open
+  // questions at once. Suppressed only for this one turn; intake capture
+  // resumes normally starting the very next turn if it is still thin.
+  const searchIntakeNoteThisTurn = sessionOpenRequested ? '' : searchIntakeNote(si)
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${activityNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${searchIntakeNoteThisTurn}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
