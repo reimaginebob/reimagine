@@ -32,7 +32,7 @@
 //                            supposed to say "interview".
 //   src/data/*knowledge*     My Coach's teaching material, which discusses
 //                            hiring and recruiters as subject matter.
-//   src/voice-patterns.mjs   the banned-phrase list itself.
+//   src/voice-patterns.js    the banned-phrase list itself.
 //   src/coach-routing.js     instructions to a model, not copy a person reads.
 //
 // Including them would bury four real hits under hundreds of correct ones, and

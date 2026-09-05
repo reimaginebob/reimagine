@@ -1,12 +1,14 @@
 // Guards the "partnership, not self-interest" voice principle (2026-09-04)
 // end to end: the in-prompt instruction in api/coach.js, and the wiring that
-// lets Chat.jsx detect a hard violation in Coach's own streamed reply and
-// report it up to App.jsx's telemetry pipe. Coach's live chat replies stream
-// token-by-token straight into the visible UI, so unlike generated sections
-// (callClaudeWithVoiceGate) there is no silent pre-display retry here --
-// this is detection + logging, not correction. Source-level for the same
-// reason its siblings are: this needs a real signed-in browser session to
-// exercise end to end.
+// lets Chat.jsx detect a hard violation in Coach's completed reply and
+// report it up to App.jsx's telemetry pipe. api/coach.js's own Anthropic
+// call is buffered, not streamed, and (as of 2026-09-05, see
+// test-coach-voice-gate-retry.mjs) already gets a silent pre-display
+// regenerate-on-violation retry against the full HARD_PATTERNS set before
+// the reply ever reaches the client. This check here is the client-side
+// backstop for whatever still slips through that retry -- detection +
+// logging, not correction. Source-level for the same reason its siblings
+// are: this needs a real signed-in browser session to exercise end to end.
 import fs from 'node:fs'
 
 let failures = 0
@@ -21,8 +23,8 @@ check(coach.indexOf('Speak as a partner, not a separate party with your own want
 
 const CHAT = 'src/components/Chat.jsx'
 const chat = fs.readFileSync(CHAT, 'utf8')
-check(/import\s*\{\s*detectVoiceViolations\s*\}\s*from\s*'\.\.\/voice-patterns\.mjs'/.test(chat),
-  `${CHAT}: detectVoiceViolations is not imported from ../voice-patterns.mjs`)
+check(/import\s*\{\s*detectVoiceViolations\s*\}\s*from\s*'\.\.\/voice-patterns\.js'/.test(chat),
+  `${CHAT}: detectVoiceViolations is not imported from ../voice-patterns.js`)
 check(/onVoiceViolation\s*=\s*null/.test(chat),
   `${CHAT}: onVoiceViolation prop (default null) is missing from Chat's destructured props`)
 check(/detectVoiceViolations\(fullText,\s*\{\s*scope:\s*'runtime'\s*\}\)/.test(chat),

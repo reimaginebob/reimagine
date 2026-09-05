@@ -1,10 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { patternsFor } from '../src/voice-patterns.mjs'
+import { patternsFor } from '../src/voice-patterns.js'
 
 // Build-time voice guard. Scans source for banned constructions BEFORE build.
 //
-// Single source of truth: patterns live in src/voice-patterns.mjs and are
+// Single source of truth: patterns live in src/voice-patterns.js and are
 // shared with the runtime validator (generate/generateSection). This file
 // enforces only the 'build' scoped subset - tight constructions we author
 // deliberately (banned intensifiers, AI-coaching register) whose
