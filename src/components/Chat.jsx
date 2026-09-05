@@ -4,7 +4,12 @@ import SpeechBtn, { hasSpeech } from './SpeechBtn'
 import { useIsMobile } from '../use-is-mobile.js'
 import { detectVoiceViolations } from '../voice-patterns.mjs'
 
-export const INTRO_MSG = { role: 'assistant', content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
+// intro: true opts this one message into the same collapse-to-strip
+// treatment as banner:true narration (see isCollapsedBanner below) without
+// also feeding the closed-bubble preview-card effect, which keys on
+// banner:true specifically -- this is the generic greeting, not a "here's
+// what's coming" line worth surfacing as a popup.
+export const INTRO_MSG = { role: 'assistant', intro: true, content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
 
 // Plain-language employment mentions. Deliberately conservative: it gates only
 // WHETHER to offer the save prompt (all three options are always shown, so the
@@ -190,6 +195,13 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // (nothing vanishes) while keeping the visual weight on what is current. A
   // banner message collapses once something has been said after it; the
   // most recent message is never collapsed, whatever it is.
+  //
+  // Extended 2026-09-05 (reported live) to INTRO_MSG as well: the generic
+  // "Hi, I'm your coach" greeting isn't flagged banner:true (it should not
+  // also trigger the closed-bubble preview-card effect below, which is keyed
+  // on banner:true), but it deserves the same fate once anything follows it
+  // -- it is exactly as superseded as a narration line the moment a real
+  // exchange starts.
   const [expandedBanners, setExpandedBanners] = useState(() => new Set())
   const toggleBannerExpanded = i => setExpandedBanners(prev => {
     const next = new Set(prev)
@@ -710,7 +722,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   const transcript = (
     <div ref={messagesContainerRef} style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '14px 18px' }}>
       {messages.map((m, i) => {
-        const isCollapsedBanner = m.banner && i < messages.length - 1 && !expandedBanners.has(i)
+        const isCollapsedBanner = (m.banner || m.intro) && i < messages.length - 1 && !expandedBanners.has(i)
         return (
         <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
           {isCollapsedBanner ? (

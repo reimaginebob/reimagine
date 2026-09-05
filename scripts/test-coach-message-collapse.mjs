@@ -21,10 +21,20 @@ check(chat.includes('const [expandedBanners, setExpandedBanners] = useState(() =
 check(chat.includes('const toggleBannerExpanded = i => setExpandedBanners(prev => {'),
   `${CHAT}: toggleBannerExpanded is missing`)
 
-// The collapse condition itself: a banner message collapses only once it is
-// no longer the last message, and only until the person taps it open again.
-check(chat.includes('const isCollapsedBanner = m.banner && i < messages.length - 1 && !expandedBanners.has(i)'),
-  `${CHAT}: isCollapsedBanner is missing or no longer requires banner:true, a later message present, and not already expanded -- any of those three loosening would collapse the wrong messages (a real answer, the current tail, or one the person just opened)`)
+// The collapse condition itself: a banner (or intro) message collapses only
+// once it is no longer the last message, and only until the person taps it
+// open again.
+check(chat.includes('const isCollapsedBanner = (m.banner || m.intro) && i < messages.length - 1 && !expandedBanners.has(i)'),
+  `${CHAT}: isCollapsedBanner is missing or no longer requires banner:true/intro:true, a later message present, and not already expanded -- any of those loosening would collapse the wrong messages (a real answer, the current tail, or one the person just opened)`)
+
+// The generic "Hi, I'm your coach" greeting (2026-09-05, reported live):
+// opted into the same collapse treatment via intro:true rather than
+// banner:true, since banner:true also feeds the closed-bubble preview-card
+// effect and the greeting should not pop up as a card on every mount.
+check(chat.includes("export const INTRO_MSG = { role: 'assistant', intro: true, content:"),
+  `${CHAT}: INTRO_MSG lost its intro:true flag -- it would no longer collapse once superseded`)
+check(chat.includes('const latest = [...added].reverse().find(m => m.banner)'),
+  `${CHAT}: the closed-bubble preview-card effect should still key on banner:true only, not intro -- the greeting should never pop up as a card`)
 
 // Nothing is destroyed: nothing removes an entry from `messages` to collapse
 // it, and the full content (m.content) is still what renders once expanded
@@ -48,9 +58,17 @@ check(collapsedBlock.includes('fontSize: 16, color: \'#8A9BB8\''),
 check(chat.includes('{!isCollapsedBanner && m.role === \'assistant\' && Array.isArray(m.quickReplies)'),
   `${CHAT}: quick replies are no longer gated on !isCollapsedBanner -- they could render detached from a collapsed bubble`)
 
+// Already-persisted accounts have INTRO_MSG saved in localStorage from
+// before intro:true existed -- the hydration path must backfill the flag by
+// content match, or the fix would only ever apply to brand-new sessions.
+const APP = 'src/App.jsx'
+const app = fs.readFileSync(APP, 'utf8')
+check(app.includes("return p.map(m=>(m&&m.role==='assistant'&&m.content===INTRO_MSG.content&&!m.intro)?{...m,intro:true}:m)"),
+  `${APP}: chatMessages hydration no longer backfills intro:true onto a previously-persisted INTRO_MSG -- an existing account's stale local history would never collapse`)
+
 if (failures) {
   console.error(`test-coach-message-collapse: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-message-collapse: OK (superseded narration collapses to a tap-to-expand strip, nothing removed from message state, tappable-label font floor met, quick replies gated off a collapsed bubble)')
+  console.log('test-coach-message-collapse: OK (superseded narration AND the generic intro greeting collapse to a tap-to-expand strip, nothing removed from message state, tappable-label font floor met, quick replies gated off a collapsed bubble, existing local history backfilled with intro:true)')
 }

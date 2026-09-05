@@ -7985,7 +7985,7 @@ export default function PivotEngine(){
   // the My Next Steps date only; a passed meeting simply reads as "last met" (see
   // the coach status block). The earlier auto-clear was removed: it silently
   // erased data and made a still-active opportunity look empty.
-  const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p}}catch{}return[INTRO_MSG]})
+  const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p.map(m=>(m&&m.role==='assistant'&&m.content===INTRO_MSG.content&&!m.intro)?{...m,intro:true}:m)}}catch{}return[INTRO_MSG]})
   const[showPulse,setShowPulse]=useState(false)
   // Coach doors (PR-3, item H): a one-shot seed that prefills the My Coach input
   // when a "prep with My Coach" / "talk it through" affordance navigates here.
