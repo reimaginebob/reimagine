@@ -90,6 +90,12 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // Holds the latest send() so the seed effect (declared above send) can fire it
   // for seedAuto without a use-before-define; refreshed each render below.
   const sendRef = useRef(null)
+  // Stop generating (accessibility/UX audit, 2026-09-05, Gap 1): holds the
+  // AbortController for whichever request is currently in flight, so the
+  // Send button can double as Stop while loading. Only one send() can run at
+  // a time (the guard at the top of send() below returns early if loading is
+  // already true), so a single ref is enough -- no collection needed.
+  const abortRef = useRef(null)
   // The input grows with its content (2026-08-20). It was a fixed 2 rows, which
   // is fine for "how do I answer this?" and wrong for everything longer — a
   // prefilled seed or a dictated interview answer arrived scrolled to its last
@@ -397,11 +403,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       setInput('')
       setLoading(true)
     }
+    const controller = new AbortController()
+    abortRef.current = controller
     try {
       const res = await fetch('/api/coach', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           ...(silent ? { sessionOpen: true } : { message: userMsg.content }),
           history: historyAtSend,
@@ -669,14 +678,26 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           } catch { /* malformed header — no offer */ }
         }
       }
-    } catch {
-      // A silent open never pushed a placeholder to overwrite here (it only
-      // does that once a real, non-204 response is in hand) -- so on a thrown
-      // error (network down, etc.) there is nothing of its own to fail into,
-      // and clobbering whatever the transcript's real last message happens to
-      // be would be worse than saying nothing. Fail exactly as silently as
-      // the 204/!res.ok branches above do.
-      if (!silent) {
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        // The person clicked Stop. Whatever streamed in before the click is
+        // already the last message's content -- it was updated on every
+        // chunk as it arrived -- so there is nothing to restore and nothing
+        // to apologize for. The one cleanup this needs: stopping before any
+        // text arrived at all would otherwise leave an empty bubble sitting
+        // in the transcript forever.
+        setMessages(m => {
+          const last = m[m.length - 1]
+          if (last && last.role === 'assistant' && !last.content) return m.slice(0, -1)
+          return m
+        })
+      } else if (!silent) {
+        // A silent open never pushed a placeholder to overwrite here (it only
+        // does that once a real, non-204 response is in hand) -- so on a thrown
+        // error (network down, etc.) there is nothing of its own to fail into,
+        // and clobbering whatever the transcript's real last message happens to
+        // be would be worse than saying nothing. Fail exactly as silently as
+        // the 204/!res.ok branches above do.
         setMessages(m => {
           const copy = [...m]
           copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach your coach just now. Try again in a moment.' }
@@ -684,6 +705,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         })
       }
     } finally {
+      abortRef.current = null
       setLoading(false)
     }
   }
@@ -869,16 +891,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       />
       {hasSpeech && <SpeechBtn onResult={t => setInput((input || '') + t)} C={C} title="Speak your question" />}
       <button
-        onClick={send}
-        disabled={loading || !input.trim()}
+        onClick={loading ? () => { if (abortRef.current) abortRef.current.abort() } : send}
+        disabled={!loading && !input.trim()}
         style={{
-          background: C.gold, color: '#fff', border: 'none',
-          borderRadius: 8, padding: '8px 14px', cursor: loading || !input.trim() ? 'default' : 'pointer',
+          background: loading ? '#fff' : C.gold, color: loading ? C.gold : '#fff',
+          border: loading ? `1px solid ${C.gold}` : 'none',
+          borderRadius: 8, padding: '8px 14px', cursor: (!loading && !input.trim()) ? 'default' : 'pointer',
           fontFamily: 'inherit', fontSize: 17, fontWeight: 600,
-          opacity: loading || !input.trim() ? 0.6 : 1,
+          opacity: (!loading && !input.trim()) ? 0.6 : 1,
         }}
       >
-        Send
+        {loading ? 'Stop' : 'Send'}
       </button>
       </div>
     </div>

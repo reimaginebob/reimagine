@@ -59,8 +59,10 @@ check(/silent && res\.status === 204/.test(chat),
 // safely that placeholder. A silent open pushes nothing until a real,
 // non-204 response is in hand -- so if fetch itself throws, that same line
 // would overwrite the transcript's actual last message with an error bubble
-// unless the catch block is guarded.
-check(/if \(!silent\) \{\s*setMessages/.test(chat),
+// unless the catch block is guarded. (2026-09-05, Gap 1: the catch block now
+// branches on AbortError first -- a user-initiated Stop -- before reaching
+// this !silent-gated fallback; see test-coach-stop-generating.mjs for that.)
+check(/\}\s*else if \(!silent\) \{\s*\/\//.test(chat),
   `${CHAT}: the outer catch block's fallback message is not guarded on !silent -- a network error during a silent open would clobber a real message in the transcript`)
 check(chat.includes('sessionOpenEligible = false'),
   `${CHAT}: Chat no longer accepts a sessionOpenEligible prop`)
