@@ -5040,7 +5040,7 @@ function GroupsCard({data,busy,chosen,lane,onGenerate,onMore,onEditCriteria,subh
   const startEdit=()=>{setEf(c.function||'');setEi(c.industry||'');setEs(c.seniority||'');setEditing(true)}
   const inp={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none'}
   return <div>
-    <p style={S.sub}>{subhead||'Where the people already doing this work gather, and where you find out how your move lands on them.'}</p>
+    <p style={S.sub}>{subhead||'Find the people, companies, and insights from local and national networking groups to facilitate your move in that direction.'}</p>
     <CoachingCallout>
       Most of what these are worth arrives before any opportunity does. You hear how people in the field talk about the work. You meet the suppliers, consultants and partners around it, which is most of the ecosystem and hard to see from outside. And you can say what you are considering and hear back, from people who do the job, on how your background reads to them and where they would point it.
       {(lane==='insider'||lane==='wtm')&&<div style={{marginTop:10}}>That matters most on the path you are on, where you are moving toward a field rather than staying in one. Going to learn and to test how you are landing is the work here; a role, if one comes, tends to arrive last.</div>}
@@ -15610,7 +15610,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     data={pathGroupsFor('door2')}
                     busy={pathGroupsBusy}
                     chosen={_rec.title||'this role'}
-                    subhead="The professional communities and career networks for this kind of work — useful for this search, and for the next role like it."
+                    subhead="Find the people, companies, and insights from local and national networking groups around this kind of work — for this search, and for the next role like it."
                     onGenerate={()=>buildPathGroups({source:'door2'})}
                     onMore={(f)=>buildPathGroups({source:'door2',more:true,focus:(typeof f==='string'?f:'').trim()})}
                     onEditCriteria={(criteria)=>buildPathGroups({source:'door2',criteriaOverride:criteria})}

@@ -468,7 +468,7 @@ These sit below the eight numbered sections. They are optional, they are built t
 
 ## Bonus · Networking Groups
 
-Above the recruiter card sits **Networking Groups**: the professional communities and career networks for the direction you are moving into. A recruiter places people into a role. This is the profession itself, and it is where to go when no recruiter has a search open.
+Above the recruiter card sits **Networking Groups**: the people, companies and insights in local and national groups that can help your move in that direction. A recruiter places people into a role. This is the profession itself, and it is where to go when no recruiter has a search open.
 
 **What these are for, before they are anywhere to apply.** Joining a chapter in a field you are moving toward does several things at once, and finding a job is the slowest of them. You hear how people in the field actually talk about the work. You meet the suppliers, consultants and partners who serve it, which is most of the ecosystem and almost invisible from outside. And you get to say out loud what you are considering, and hear back from people who do the job on how your background reads to them and where they would point it.
 
