@@ -33,9 +33,15 @@ check(/res\.status\(204\)\.end\(\)/.test(coach),
   `${COACH}: lost the 204 short-circuit for a session-open request with nothing to recap`)
 
 // buildCoachProfileSlice must actually receive the two new arguments -- a
-// silent regression here would leave the note permanently empty.
-check(/buildCoachProfileSlice\([^)]*user\.prior_session_at,\s*sessionOpenRequested\)/.test(coach),
-  `${COACH}: the buildCoachProfileSlice call site no longer threads user.prior_session_at / sessionOpenRequested`)
+// silent regression here would leave the note permanently empty. The prompt
+// assembly (including this call) was extracted into buildCoachRequest on
+// 2026-09-05, so priorSessionAt/sessionOpenRequested arrive as that
+// function's own parameters rather than as user.prior_session_at directly;
+// check both the extraction boundary and the inner call site.
+check(/priorSessionAt:\s*user\.prior_session_at,\s*sessionOpenRequested,/.test(coach),
+  `${COACH}: buildCoachRequest is no longer called with priorSessionAt: user.prior_session_at and sessionOpenRequested`)
+check(/buildCoachProfileSlice\([^)]*priorSessionAt,\s*sessionOpenRequested\)/.test(coach),
+  `${COACH}: the buildCoachProfileSlice call site no longer threads priorSessionAt / sessionOpenRequested`)
 
 // The note itself must be gated on BOTH the pilot flag and this specific
 // turn being the session's opener -- never on an ordinary mid-conversation

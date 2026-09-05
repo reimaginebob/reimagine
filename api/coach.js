@@ -1171,6 +1171,85 @@ const GENERAL_MODE_BLOCK = `GENERAL QUESTION MODE (no personal profile). The per
 // inside the 300 that api/claude.js uses for the long generations.
 export const config = { maxDuration: 120 }
 
+// Assembles the exact {system, messages} payload generate() sends to the
+// model, extracted verbatim from the handler (2026-09-05) so a live-model
+// eval script can call the real assembly logic instead of a hand-copied
+// stand-in -- see scripts/eval-interview-capture-live.mjs, which existed
+// first as a reduced repro and could not reproduce a live compliance gap
+// this function's full output could. No behavior change: every statement
+// here is moved, not rewritten, and the handler now calls this in place of
+// the inline block it replaced. Also returns hasPersonalBrand, hasResume,
+// and lane, which chat_messages logging in the handler needs downstream.
+export function buildCoachRequest({
+  message, history, currentStep, surface, returnSection, focusRecordId,
+  profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
+  userEmail, track, activityFacts, priorSessionAt, sessionOpenRequested,
+  generalMode,
+}) {
+  const isIndependentTrack = !generalMode && track === TRACK_INDEPENDENT
+  const goIndependentBlock = isIndependentTrack
+    ? `THIS PERSON IS BUILDING A PRACTICE, NOT LOOKING FOR A JOB. They are on the Go Independent track: they have already left, or decided to leave, and they are standing up a consulting or fractional-executive practice. Do not coach them through a job search, do not reach for interview framing, and do not offer features that only make sense to someone applying for roles. When they ask about handling pushback on a rate, that is a sales conversation with a buyer, not interview prep.
+
+The reference material below is yours to reason from on the mechanics of running that practice: pricing, pipeline, scope and contracts, the fractional model and the business behind it, selling expertise, and the personal side of going independent. Use it the way you use the rest of what you know -- draw on it when it fits what they are actually asking, in your own voice, and never recite it or name it as a document. Where a chapter states something as fact, you can state it as fact. Where it says a judgment depends on the specific person, that is a conversation to have with them, not an answer to hand down.
+
+On money, tax, entity structure, insurance, and retirement accounts specifically: these chapters give you the terrain and the real tradeoffs, and that is what to share. You are not their accountant, financial planner, or attorney, and a decision that turns on their actual numbers belongs with one.
+
+${GO_INDEPENDENT_KNOWLEDGE}`
+    : null
+  const pilotKnowledge = []
+  if (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: userEmail })) pilotKnowledge.push(PIPELINE_CAPTURE_KNOWLEDGE)
+  if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: userEmail })) pilotKnowledge.push(NEXT_STEP_KNOWLEDGE)
+  const pilotKnowledgeBlock = pilotKnowledge.length ? pilotKnowledge.join('\n\n') : null
+  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, isIndependentTrack, activityFacts, priorSessionAt, sessionOpenRequested)
+  const nowLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+  profileBlock = `TODAY'S DATE: ${nowLabel} (UTC). Use this as the reference point for anything time-related — whether a date is in the past or still upcoming, how long something has been sitting, how overdue a step is. Where the pipeline status below already gives a computed figure ("due in 6 days", "OVERDUE by 12 days", "in pipeline 74 days"), that figure is authoritative: trust it over any date math you do yourself, and if a step's free-text wording names a different date, do not treat that typed date as the deadline. Never assert an elapsed time you cannot derive from the dates you were actually given. If anything in the data looks inconsistent, reconcile it silently and state the corrected fact plainly — never narrate your own correction to the person ("wait, let me correct that", "the system is showing...", thinking out loud). Just tell them the accurate picture.\n\n${profileBlock}`
+  if (!generalMode) try {
+    const activeSaved = Array.isArray(profileState && profileState.savedPlaybooks) ? profileState.savedPlaybooks.filter(r => r && !r.archivedAt) : []
+    const pinnedId = typeof focusRecordId === 'string' ? focusRecordId.trim() : ''
+    const pinned = pinnedId ? activeSaved.find(r => r && r.id === pinnedId) : null
+    const inFocus = pinned || findInFocusRecord(activeSaved, message, history)
+    if (inFocus) {
+      const expansion = buildPlaybookExpansion(inFocus, detectIntent(message))
+      if (expansion) profileBlock += '\n\n' + expansion
+    }
+  } catch (err) {
+    console.error('coach in-focus expansion failed:', err)
+  }
+
+  const _pstate = profileState && typeof profileState === 'object' ? profileState : {}
+  const _pprofile = _pstate.profile && typeof _pstate.profile === 'object' ? _pstate.profile : {}
+  const _poutputs = _pstate.outputs && typeof _pstate.outputs === 'object' ? _pstate.outputs : {}
+  const _hasText = v => typeof v === 'string' && v.trim().length > 0 && !v.includes('[object Object]')
+  const lane = _hasText(_pstate.selectedLane) ? _pstate.selectedLane.trim() : null
+  const hasResume = _hasText(_pprofile.resume)
+  const hasPersonalBrand = _hasText(_poutputs.p3)
+
+  if (currentStep === 'p3' && hasPersonalBrand && hasOnboardingConcierge({ feature_flags: featureFlags, email: userEmail })) {
+    profileBlock += BRAND_REWORK_CAPTURE_NOTE
+  }
+
+  const sectionReworkLabel = SECTION_REWORK_LABELS[returnSection]
+  if (sectionReworkLabel && _hasText(_poutputs[returnSection]) && hasSectionRework({ feature_flags: featureFlags, email: userEmail })) {
+    profileBlock += sectionReworkCaptureNote(sectionReworkLabel)
+  }
+
+  const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".]` : ''
+
+  const messages = [
+    ...history.slice(-10).map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: message + contextNote },
+  ]
+
+  const system = [
+    { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
+    ...(goIndependentBlock ? [{ type: 'text', text: goIndependentBlock, cache_control: { type: 'ephemeral' } }] : []),
+    ...(pilotKnowledgeBlock ? [{ type: 'text', text: pilotKnowledgeBlock, cache_control: { type: 'ephemeral' } }] : []),
+    { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
+  ]
+
+  return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -1329,107 +1408,19 @@ export default async function handler(req, res) {
   // cache_read_input_tokens per call and the Economics tab surfaces them, so
   // settle this on real sessions rather than by guessing -- if writes dominate
   // reads, move this one block to ttl: '1h'.
-  const isIndependentTrack = !generalMode && track === TRACK_INDEPENDENT
-  const goIndependentBlock = isIndependentTrack
-    ? `THIS PERSON IS BUILDING A PRACTICE, NOT LOOKING FOR A JOB. They are on the Go Independent track: they have already left, or decided to leave, and they are standing up a consulting or fractional-executive practice. Do not coach them through a job search, do not reach for interview framing, and do not offer features that only make sense to someone applying for roles. When they ask about handling pushback on a rate, that is a sales conversation with a buyer, not interview prep.
-
-The reference material below is yours to reason from on the mechanics of running that practice: pricing, pipeline, scope and contracts, the fractional model and the business behind it, selling expertise, and the personal side of going independent. Use it the way you use the rest of what you know -- draw on it when it fits what they are actually asking, in your own voice, and never recite it or name it as a document. Where a chapter states something as fact, you can state it as fact. Where it says a judgment depends on the specific person, that is a conversation to have with them, not an answer to hand down.
-
-On money, tax, entity structure, insurance, and retirement accounts specifically: these chapters give you the terrain and the real tradeoffs, and that is what to share. You are not their accountant, financial planner, or attorney, and a decision that turns on their actual numbers belongs with one.
-
-${GO_INDEPENDENT_KNOWLEDGE}`
-    : null
-  // Pilot knowledge, partitioned by audience the same way. Held out of
-  // ORDER.json on purpose (see src/data/pipeline-capture-knowledge.js): a
-  // chapter there would describe the capture to every account, and almost none
-  // of them have it. Its own cached block, so a flagged account does not fork
-  // the prefix everyone else shares.
-  //
-  // Every pilot shares ONE block rather than taking a breakpoint each. Prompt
-  // caching allows four breakpoints in total and the stable prefix plus the
-  // Go Independent chapters already hold two, so a per-pilot block would put an
-  // internal account on the independent track at the ceiling with the third
-  // pilot. Concatenating costs nothing: the flags an account holds are stable
-  // across a conversation, so the joined text is stable too and caches once.
-  const pilotKnowledge = []
-  if (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: user.email })) pilotKnowledge.push(PIPELINE_CAPTURE_KNOWLEDGE)
-  // Same partition, same reason (see src/data/next-step-knowledge.js). The
-  // person's actual position rides in the uncached per-user block above; this is
-  // only the standing rules, which are identical for everyone who has the pilot
-  // and so can be cached.
-  if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: user.email })) pilotKnowledge.push(NEXT_STEP_KNOWLEDGE)
-  const pilotKnowledgeBlock = pilotKnowledge.length ? pilotKnowledge.join('\n\n') : null
-  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, user.email, isIndependentTrack, activityFacts, user.prior_session_at, sessionOpenRequested)
-  // Anchor today's date. The coach is otherwise never told the current date, so
-  // any past/future or elapsed-time reasoning it does itself is unanchored
-  // guesswork — it once called an Aug 24 follow-up "overdue by nine weeks" on
-  // Aug 18. Lives in the uncached per-user block so it never forks the cached
-  // prefix; the precomputed figures in the pipeline block stay authoritative
-  // over the model's own arithmetic.
-  const nowLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
-  profileBlock = `TODAY'S DATE: ${nowLabel} (UTC). Use this as the reference point for anything time-related — whether a date is in the past or still upcoming, how long something has been sitting, how overdue a step is. Where the pipeline status below already gives a computed figure ("due in 6 days", "OVERDUE by 12 days", "in pipeline 74 days"), that figure is authoritative: trust it over any date math you do yourself, and if a step's free-text wording names a different date, do not treat that typed date as the deadline. Never assert an elapsed time you cannot derive from the dates you were actually given. If anything in the data looks inconsistent, reconcile it silently and state the corrected fact plainly — never narrate your own correction to the person ("wait, let me correct that", "the system is showing...", thinking out loud). Just tell them the accurate picture.\n\n${profileBlock}`
-  // PR-B: if the conversation is about a specific saved playbook, expand its
-  // anchor + intent-matched section into the (uncached) slice. Best-effort — a
-  // malformed record must never break the turn. Skipped in general mode (no profile).
-  if (!generalMode) try {
-    const activeSaved = Array.isArray(profileState && profileState.savedPlaybooks) ? profileState.savedPlaybooks.filter(r => r && !r.archivedAt) : []
-    // A pinned record beats inference. findInFocusRecord reads the person's own
-    // words for a title or company, which is the only signal available when the
-    // Coach is opened cold -- but someone who opened it from inside a playbook
-    // and said "I'm calling Teresa on the 14th" names nothing, and would get no
-    // IN FOCUS at all. The client sends the record the screen is pinned to; it is
-    // a hint, not authority, so it is resolved against this account's own saved
-    // work and falls back to inference when it does not match.
-    const pinnedId = typeof (req.body && req.body.focusRecordId) === 'string' ? req.body.focusRecordId.trim() : ''
-    const pinned = pinnedId ? activeSaved.find(r => r && r.id === pinnedId) : null
-    const inFocus = pinned || findInFocusRecord(activeSaved, message, history)
-    if (inFocus) {
-      const expansion = buildPlaybookExpansion(inFocus, detectIntent(message))
-      if (expansion) profileBlock += '\n\n' + expansion
-    }
-  } catch (err) {
-    console.error('coach in-focus expansion failed:', err)
-  }
-
   // Deterministic per-turn context for question-insight logging (real columns on
   // chat_messages; see migrations/2026-06-12_coach-insight-foundation.sql). All
   // known here at write-time — no classifier. Classified attributes are NOT
   // computed here; the nightly job (api/admin/classify-coach.js) fills those.
-  const _pstate = profileState && typeof profileState === 'object' ? profileState : {}
-  const _pprofile = _pstate.profile && typeof _pstate.profile === 'object' ? _pstate.profile : {}
-  const _poutputs = _pstate.outputs && typeof _pstate.outputs === 'object' ? _pstate.outputs : {}
-  const _hasText = v => typeof v === 'string' && v.trim().length > 0 && !v.includes('[object Object]')
-  const lane = _hasText(_pstate.selectedLane) ? _pstate.selectedLane.trim() : null
-  const hasResume = _hasText(_pprofile.resume)
-  const hasPersonalBrand = _hasText(_poutputs.p3)
+  const { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel } = buildCoachRequest({
+    message, history, currentStep, surface, returnSection,
+    focusRecordId: typeof (req.body && req.body.focusRecordId) === 'string' ? req.body.focusRecordId.trim() : '',
+    profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
+    userEmail: user.email, track, activityFacts, priorSessionAt: user.prior_session_at, sessionOpenRequested,
+    generalMode,
+  })
   const turnIndex = Array.isArray(history) ? history.length : 0
   const entryPoint = (surface === 'help' || surface === 'sidebar') ? surface : null
-
-  // Brand rework capture: only on the one screen it applies to, only once the
-  // brand exists to react to, and only for the flag this delivery moment
-  // already runs behind. A non-matching turn gets no instruction at all, so
-  // the parser below simply never finds a trailer to strip.
-  if (currentStep === 'p3' && hasPersonalBrand && hasOnboardingConcierge({ feature_flags: featureFlags, email: user.email })) {
-    profileBlock += BRAND_REWORK_CAPTURE_NOTE
-  }
-
-  // Section rework capture: only when this conversation started from one of
-  // the four single-target sections' own "Ask My Coach about this" button
-  // (returnSection, threaded from src/App.jsx's coachReturn), only once that
-  // section has something built to react to, and only for the flag this
-  // rollout runs behind. Any other turn gets no instruction, so the parser
-  // below simply never finds a trailer to strip.
-  const sectionReworkLabel = SECTION_REWORK_LABELS[returnSection]
-  if (sectionReworkLabel && _hasText(_poutputs[returnSection]) && hasSectionRework({ feature_flags: featureFlags, email: user.email })) {
-    profileBlock += sectionReworkCaptureNote(sectionReworkLabel)
-  }
-
-  const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".]` : ''
-
-  const messages = [
-    ...history.slice(-10).map(m => ({ role: m.role, content: m.content })),
-    { role: 'user', content: message + contextNote },
-  ]
 
   // One bounded generation call. The stable block (persona + voice + NAVIGATE +
   // guide + book) is the cached prefix; the per-user profile slice is a second,
@@ -1475,9 +1466,10 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
         // low end and scopes its work to exactly what was asked, which is the
         // wrong trade for a coach reasoning over someone's whole profile.
         output_config: { effort: 'medium' },
-        // profileBlock gets its own breakpoint (the 4th and last available) because
-        // it changes on its own schedule -- once a day for the date line prepended
-        // above, and whenever pipeline/activity data actually changes -- which is
+        // profileBlock (the last entry in `system`, built by buildCoachRequest)
+        // gets its own breakpoint (the 4th and last available) because it changes
+        // on its own schedule -- once a day for the date line prepended above,
+        // and whenever pipeline/activity data actually changes -- which is
         // slower than "every turn" but faster than SYSTEM_PROMPT_STABLE, which
         // never changes at all. Without a marker here it was rebuilt and resent in
         // full on every single turn of every conversation, uncached, even though
@@ -1485,12 +1477,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
         // turn 1 did. Caching is a prefix match: this marker only ever needs a
         // fresh write when profileBlock itself changed, and the three breakpoints
         // ahead of it stay valid reads regardless.
-        system: [
-          { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
-          ...(goIndependentBlock ? [{ type: 'text', text: goIndependentBlock, cache_control: { type: 'ephemeral' } }] : []),
-          ...(pilotKnowledgeBlock ? [{ type: 'text', text: pilotKnowledgeBlock, cache_control: { type: 'ephemeral' } }] : []),
-          { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
-        ],
+        system,
         messages: msgs,
       }),
     })
