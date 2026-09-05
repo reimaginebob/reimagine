@@ -44,6 +44,9 @@
 //   - partnership-*          (Coach framing an ask around its own want/need
 //                             rather than shared work; universal, runtime-
 //                             only, 2026-09-04)
+//   - jargon-*               (consulting-speak abstraction standing in for
+//                             something plain and specific; runtime-only,
+//                             2026-09-05)
 //
 // Keep regexes Unicode-aware where it matters; use the case-insensitive flag.
 
@@ -855,6 +858,24 @@ export const HARD_PATTERNS = [
     note: 'Framework name not exposed in user-facing outputs.',
   },
 
+  // Consulting-speak abstractions: a jargon noun standing in for something
+  // plain and specific. Caught live 2026-09-05 in a My Coach reply about the
+  // pipeline board: "three opportunities, and they're each at a different
+  // point in the arc" -- "the arc" is a career-coach abstraction for "where
+  // things stand" or a named stage. Scoped to "point/stage/place in the arc"
+  // rather than the bare word "arc" so the many legitimate "career arc" /
+  // "life-arc framing" uses elsewhere in this codebase's own prompts are
+  // untouched -- those describe a whole career's trajectory, a normal English
+  // phrase, not this jargon shorthand for a single opportunity's stage.
+  {
+    name: 'jargon-point-in-the-arc',
+    re: /\b(?:point|points|stage|place)\s+(?:in|along|on)\s+the\s+arc\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'A different point in the arc',
+    note: 'Consulting jargon: "the arc" as a stand-in for where something stands. Name the actual stage or say "where things stand" plainly.',
+  },
+
   // Drama punches: stock attention-grabbing transitions.
   {
     name: 'drama-heres-the-kicker',
@@ -900,6 +921,21 @@ export const HARD_PATTERNS = [
     appliesTo: ['runtime'],
     surface: "Here's the thing",
     note: 'Truth announcement. State the thing directly.',
+  },
+  // Caught live 2026-09-05 in a My Coach reply describing the pipeline board:
+  // "Here's the real shape of it right now: three opportunities...". Same
+  // preannouncing family as here-is-the-thing/the-real-answer-is, but neither
+  // existing pattern's exact wording matched this "here's the real NOUN"
+  // variant. Broad on the noun deliberately -- shape/picture/story/situation
+  // are all the same move, and a narrow enumerated list would just relocate
+  // the gap to the next noun the model reaches for.
+  {
+    name: 'truth-heres-the-real',
+    re: /\bhere'?s the real\s+\w+/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: "Here's the real [shape/picture/story] of it",
+    note: 'Truth announcement / preannouncing: "here\'s the real X" sets up the reveal instead of making it. State the thing directly.',
   },
   {
     name: 'truth-the-real-answer-is',
