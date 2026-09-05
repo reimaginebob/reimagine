@@ -127,6 +127,21 @@ export function hasCoachNoteAgency(user) {
   return flags.includes(COACH_NOTE_AGENCY_FLAG)
 }
 
+// PILOT -- Section rework from chat, 2026-09-05. Generalizes the correction
+// bridge already shipped for Personal Brand (BRAND_REWORK_CAPTURE_NOTE,
+// onboarding_concierge) to the single-target Focus Playbook sections: Bridge
+// Story, Resume Refresh, Industry Background, Income Now. A separate flag
+// from onboarding_concierge on purpose -- unlike the p3 bridge, this fires
+// any time on these screens, not just during the onboarding delivery moment,
+// so it is its own rollout Bob can QC and toggle independently.
+export const SECTION_REWORK_FLAG = 'section_rework'
+
+export function hasSectionRework(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(SECTION_REWORK_FLAG)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -141,4 +156,5 @@ export const GRANTABLE_FLAGS = {
   [NEXT_STEP_FLAG]: { label: 'Your Next Step' },
   [PIPELINE_BOARD_FLAG]: { label: 'Pipeline board' },
   [COACH_NOTE_AGENCY_FLAG]: { label: 'Coach save-to-notes agency' },
+  [SECTION_REWORK_FLAG]: { label: 'Coach section rework from chat' },
 }
