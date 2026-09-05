@@ -51,7 +51,7 @@ function isAllowedOrigin(rawOrigin) {
   }
 }
 
-const VALID_STAGES = new Set(['researching', 'applied', 'in_conversation', 'interviewing', 'offer', 'closed'])
+const VALID_STAGES = new Set(['researching', 'applied', 'phone_screen', 'interviewing', 'final_round', 'offer', 'closed'])
 const VALID_OUTCOMES = new Set(['accepted', 'declined', 'not_selected', 'withdrew', 'no_response'])
 
 // Parse an incoming timestamp field. Returns { ok, value } where value is an ISO

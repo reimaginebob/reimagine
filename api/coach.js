@@ -288,7 +288,7 @@ function buildPursuitStatusBlock(state, pursuitRows, opts = {}) {
   // Date.parse of a yearless date defaults to 2001 in V8 — which read every
   // pipeline date as ~9,131 days (25 years) overdue.
   const dayDiff = (iso) => { if (!iso) return null; let s = ''; try { s = new Date(iso).toISOString().slice(0, 10) } catch { return null } const t = Date.parse(s); return Number.isNaN(t) ? null : Math.round((todayMs - t) / DAY) }
-  const STAGE = { researching: 'Researching', applied: 'Applied', in_conversation: 'In conversation', interviewing: 'Interviewing', offer: 'Offer', closed: 'Closed' }
+  const STAGE = { researching: 'Researching', applied: 'Applied', phone_screen: 'Phone Screen', interviewing: 'Interviewing', final_round: 'Final Round', offer: 'Offer', closed: 'Closed' }
   const lines = []
   let active = 0, attention = 0, quiet = 0
   for (const rec of saved) {

@@ -155,7 +155,7 @@ export function stepPosition(state, pursuitRows, now = Date.now()) {
 // markers at four different heights is information the person could not have
 // told you at a glance, where a single arrow was a restatement of what they
 // already knew.
-const STAGE_STEP = { researching: 3, applied: 3, in_conversation: 3, interviewing: 4, offer: 5 }
+const STAGE_STEP = { researching: 3, applied: 3, phone_screen: 3, interviewing: 4, final_round: 4, offer: 5 }
 export function opportunityPositions(state, pursuitRows) {
   return activeOpportunities(state, pursuitRows).map(o => ({
     id: o.rec.id,
