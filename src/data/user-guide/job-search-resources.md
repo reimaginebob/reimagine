@@ -33,9 +33,9 @@ That is deliberate. Meeting dates are the part of this that goes out of date fas
 
 For the same reason, when a local chapter has merged into a larger one, Reimagine points you at the organisation that still exists rather than the page that still ranks.
 
-## Places we cannot search for you
+## Three more places to look
 
-At the bottom are three links. Each one goes somewhere that keeps its own listings which Reimagine cannot read from here, so they open where you would land if you went looking yourself, with your details already filled in.
+At the bottom are three links. Each goes somewhere that keeps its own listings, and each opens a live search with your details already filled in, so you see whatever is running right now.
 
 **Your American Job Center** is a directory lookup for the publicly funded workforce system — free workshops, one-to-one help and job-search planning, everywhere in the country.
 

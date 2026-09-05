@@ -5026,7 +5026,7 @@ function CornerRow(){
 // alike: gated on having a direction, one Generate, a criteria line with Edit,
 // and a Find-more box. Pure presentation; state and handlers come from the
 // render site, and the same component serves both playbook types.
-function GroupsCard({data,busy,chosen,onGenerate,onMore,onEditCriteria,subhead}){
+function GroupsCard({data,busy,chosen,lane,onGenerate,onMore,onEditCriteria,subhead}){
   const isMobile=useIsMobile()
   const[editing,setEditing]=useState(false)
   const[ef,setEf]=useState('');const[ei,setEi]=useState('');const[es,setEs]=useState('')
@@ -5040,9 +5040,10 @@ function GroupsCard({data,busy,chosen,onGenerate,onMore,onEditCriteria,subhead})
   const startEdit=()=>{setEf(c.function||'');setEi(c.industry||'');setEs(c.seniority||'');setEditing(true)}
   const inp={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none'}
   return <div>
-    <p style={S.sub}>{subhead||'The professional communities and career networks for this direction — where the people already doing this work gather.'}</p>
+    <p style={S.sub}>{subhead||'Find the people, companies, and insights from local and national networking groups to facilitate your move in that direction.'}</p>
     <CoachingCallout>
-      We name organizations and link their own pages rather than telling you when the next meeting is. Meeting dates are the part that goes stale fastest, and old event pages stay findable long after the meeting happened. What each group costs is on the card before you click anything.
+      Most of what these are worth arrives before any opportunity does. You hear how people in the field talk about the work. You meet the suppliers, consultants and partners around it, which is most of the ecosystem and hard to see from outside. And you can say what you are considering and hear back, from people who do the job, on how your background reads to them and where they would point it.
+      {(lane==='insider'||lane==='wtm')&&<div style={{marginTop:10}}>That matters most on the path you are on, where you are moving toward a field rather than staying in one. Going to learn and to test how you are landing is the work here; a role, if one comes, tends to arrive last.</div>}
     </CoachingCallout>
     {!built&&!busy&&<div style={S.row}><Btn disabled={busy} onClick={onGenerate}><Sparkles size={14}/>Find groups for this path</Btn></div>}
     {busy&&<Loading msg="Finding where this profession gathers…" step="groups"/>}
@@ -14187,6 +14188,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   data={pathGroupsFor('door1')}
                   busy={pathGroupsBusy}
                   chosen={chosen}
+                  lane={selectedLane}
                   onGenerate={()=>buildPathGroups()}
                   onMore={(f)=>buildPathGroups({more:true,focus:(typeof f==='string'?f:'').trim()})}
                   onEditCriteria={(criteria)=>buildPathGroups({criteriaOverride:criteria})}
@@ -14288,9 +14290,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </>}
         {!jobResourcesBusy&&_searched&&_rows.length===0&&<div style={{...S.note,background:C.input,border:`1px solid ${C.border}`,color:'#2D3748'}}>We did not find a group we could stand behind near {_city||'you'} from a source we trust. That often means the groups near you are small enough not to rank, rather than that there are none — the three places below keep their own listings and are worth checking directly.</div>}
 
-        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'32px 0 6px'}}>Places we cannot search for you</h2>
-        <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 14px'}}>Each of these keeps its own listings, and we cannot read them from here. They open where you would land if you went looking yourself, already filled in.</p>
-        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:8}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'32px 0 6px'}}>Three more places to look</h2>
+                <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:8}}>
           <a href={AMERICAN_JOB_CENTER_URL} target="_blank" rel="noopener noreferrer" style={_resLink}><span><strong style={{color:'#1A2540'}}>Your American Job Center.</strong> Free workshops, one-to-one help and job-search planning, publicly funded, in every part of the country.</span><ArrowUpRight size={16}/></a>
           <a href={linkedInJobSearchGroupUrl(_city)} target="_blank" rel="noopener noreferrer" style={_resLink}><span><strong style={{color:'#1A2540'}}>Job-search groups on LinkedIn.</strong> Plenty of groups run entirely there and are invisible to a normal search.</span><ArrowUpRight size={16}/></a>
           <a href={meetupUrl(_city,'','career-business')} target="_blank" rel="noopener noreferrer" style={_resLink}><span><strong style={{color:'#1A2540'}}>Meetup, career and business near you.</strong> Strongest for tech, product and startup work; thinner in other fields.</span><ArrowUpRight size={16}/></a>
@@ -15657,7 +15658,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     data={pathGroupsFor('door2')}
                     busy={pathGroupsBusy}
                     chosen={_rec.title||'this role'}
-                    subhead="The professional communities and career networks for this kind of work — useful for this search, and for the next role like it."
+                    subhead="Find the people, companies, and insights from local and national networking groups around this kind of work — for this search, and for the next role like it."
                     onGenerate={()=>buildPathGroups({source:'door2'})}
                     onMore={(f)=>buildPathGroups({source:'door2',more:true,focus:(typeof f==='string'?f:'').trim()})}
                     onEditCriteria={(criteria)=>buildPathGroups({source:'door2',criteriaOverride:criteria})}
