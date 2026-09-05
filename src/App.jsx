@@ -5040,10 +5040,7 @@ function GroupsCard({data,busy,chosen,onGenerate,onMore,onEditCriteria,subhead})
   const startEdit=()=>{setEf(c.function||'');setEi(c.industry||'');setEs(c.seniority||'');setEditing(true)}
   const inp={width:'100%',boxSizing:'border-box',padding:'8px 10px',fontSize:16,color:'#1A2540',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:6,fontFamily:'inherit',outline:'none'}
   return <div>
-    <p style={S.sub}>{subhead||'The professional communities and career networks for this direction — where the people already doing this work gather.'}</p>
-    <CoachingCallout>
-      We name organizations and link their own pages rather than telling you when the next meeting is. Meeting dates are the part that goes stale fastest, and old event pages stay findable long after the meeting happened. What each group costs is on the card before you click anything.
-    </CoachingCallout>
+    <p style={S.sub}>{subhead||'Where the people already doing this work gather — the local chapters, the practitioner-run networks, and the free ones alongside the big names.'}</p>
     {!built&&!busy&&<div style={S.row}><Btn disabled={busy} onClick={onGenerate}><Sparkles size={14}/>Find groups for this path</Btn></div>}
     {busy&&<Loading msg="Finding where this profession gathers…" step="groups"/>}
     {built&&!busy&&<>
@@ -14240,8 +14237,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </>}
         {!jobResourcesBusy&&_searched&&_rows.length===0&&<div style={{...S.note,background:C.input,border:`1px solid ${C.border}`,color:'#2D3748'}}>We did not find a group we could stand behind near {_city||'you'} from a source we trust. That often means the groups near you are small enough not to rank, rather than that there are none — the three places below keep their own listings and are worth checking directly.</div>}
 
-        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'32px 0 6px'}}>Places we cannot search for you</h2>
-        <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 14px'}}>Each of these keeps its own listings, and we cannot read them from here. They open where you would land if you went looking yourself, already filled in.</p>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'32px 0 6px'}}>Three more places to look</h2>
+        <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 14px'}}>Each of these keeps its own listings. They open a live search, already filled in, so you see whatever is running right now.</p>
         <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:8}}>
           <a href={AMERICAN_JOB_CENTER_URL} target="_blank" rel="noopener noreferrer" style={_resLink}><span><strong style={{color:'#1A2540'}}>Your American Job Center.</strong> Free workshops, one-to-one help and job-search planning, publicly funded, in every part of the country.</span><ArrowUpRight size={16}/></a>
           <a href={linkedInJobSearchGroupUrl(_city)} target="_blank" rel="noopener noreferrer" style={_resLink}><span><strong style={{color:'#1A2540'}}>Job-search groups on LinkedIn.</strong> Plenty of groups run entirely there and are invisible to a normal search.</span><ArrowUpRight size={16}/></a>
