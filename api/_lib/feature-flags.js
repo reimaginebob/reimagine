@@ -114,6 +114,19 @@ export function hasPipelineBoard(user) {
   return flags.includes(PIPELINE_BOARD_FLAG)
 }
 
+// PILOT -- Save-to-notes agency, 2026-09-05. Coach mentions once, early, that
+// anything worth keeping can be saved to the opportunity's notes on request,
+// then honors that request whenever it is made -- never a judgment call
+// about which reply earns an unprompted offer. A separate flag from the
+// other pilots on this surface so it can be toggled independently.
+export const COACH_NOTE_AGENCY_FLAG = 'coach_note_agency'
+
+export function hasCoachNoteAgency(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(COACH_NOTE_AGENCY_FLAG)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -127,4 +140,5 @@ export const GRANTABLE_FLAGS = {
   [PIPELINE_CAPTURE_FLAG]: { label: 'Coach next-step capture' },
   [NEXT_STEP_FLAG]: { label: 'Your Next Step' },
   [PIPELINE_BOARD_FLAG]: { label: 'Pipeline board' },
+  [COACH_NOTE_AGENCY_FLAG]: { label: 'Coach save-to-notes agency' },
 }

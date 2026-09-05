@@ -18,7 +18,7 @@ import { GO_INDEPENDENT_KNOWLEDGE } from '../src/data/go-independent-knowledge.j
 import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowledge.js'
 import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
-import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge } from './_lib/feature-flags.js'
+import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency } from './_lib/feature-flags.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
@@ -120,6 +120,14 @@ const STAGE_MOVE_FOLLOWTHROUGH_NOTE = '\n\nSTAGE MOVE FOLLOW-THROUGH: when someo
 
 const ACTIVITY_CAPTURE_NOTE = '\n\nACTIVITY CAPTURE: when this person tells you something about the human side of their search -- that they joined a group, went to Career Club Corner, have someone holding them accountable, wrote directly to a company, asked anyone for an introduction, spoke to a recruiter, or looked at free help near them -- OR tells you plainly that they have not or do not want to, end your reply with a final line exactly like ACTIVITY: {"activity":"accountability_partner","state":"done","detail":"Marta, they talk Fridays"} using ONLY these activity keys: ' + ACTIVITY_CATALOG.filter(a => a.evidence === 'asked').map(a => a.key).join(', ') + '. `state` is one of done (they have it), not_yet (they told you they have not) or declined (they told you they do not want it). `detail` is optional, short, and in their own words. Emit it ONLY for something they actually said in this conversation, never for something you suggested and they have not answered, and never to restate what you were already told above. The app turns that line into a one-tap offer and never shows it, so do not mention it and do not ask them to type anything. NEVER SAY YOU HAVE SAVED IT -- their tap is the only thing that writes, and claiming an action you cannot perform is worse than not offering. At most one per reply; otherwise omit it entirely.'
 const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passions & Causes live on a screen in Reimagine called "Values, Passions & Causes", and you can offer to write them there. When a conversation has settled into a statement of their values or their passions and causes that they seem happy with — their words and their conclusions, not a list you proposed and they have not responded to — end your reply with a final line exactly like VALUESCAPTURE: {"values":"Independence; Creative problem solving; Belonging","passions":"Youth mentoring; Faith-based service"} carrying whichever of the two you have. Include a key ONLY for a field the conversation actually settled; omit the other entirely. Write each as a short semicolon-separated list in their own words, not a paragraph and not your paraphrase. If ANCHOR 1 shows a field already has content, only emit it when they have clearly landed somewhere new — the tap replaces what is there. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
+
+// SAVE-TO-NOTES CAPTURE, 2026-09-05. Deliberately request-only, never a
+// content-worthiness judgment call: Coach is told once, elsewhere (the
+// client's one-time disclosure message), that saving is available on
+// request, and this instruction only ever fires in response to an actual
+// ask. No JSON payload needed -- the content to save is this reply's own
+// visible text, already what the client has once the stream completes.
+const COACH_NOTE_CAPTURE_NOTE = '\n\nSAVE-TO-NOTES CAPTURE: when this person asks you, in their own words, to save, keep, remember, or write down this reply or what you just covered to the opportunity\'s notes, end your reply with a final line exactly like COACHNOTE: save. Only emit it when they clearly asked for this themselves in this turn -- never because you judged the reply worth keeping on your own; that call is always theirs, not yours, and you make no exceptions for a reply that feels important. The app turns that line into a one-tap offer showing exactly what will be saved (this reply, in full) and never shows the line itself, so do not mention it, and never say you have already saved it -- their tap is the only thing that writes.'
 
 // ASSESSMENT CAPTURE, 2026-09-04. Same one-tap contract as VALUES_CAPTURE_NOTE
 // above, for the same reason: someone who does not have a full assessment
@@ -769,13 +777,14 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   const connectorNote = hasConnectorBeta({ feature_flags: featureFlags })
     ? '\n\nASSISTANT CONNECTOR (this person has it; it is a limited beta most users do not have — never imply it is generally available): they can connect their own assistant to Gmail and Calendar so their pipeline keeps itself current without them typing anything. Reimagine never reads their inbox. Mention it only if it fits what they are asking; do not pitch it.'
     : ''
+  const coachNoteAgencyNote = hasCoachNoteAgency({ feature_flags: featureFlags, email: userEmail }) ? COACH_NOTE_CAPTURE_NOTE : ''
   // The session-open turn already asks its own open question (what do you want
   // to focus on today, or should Coach suggest something) -- stacking search
   // intake's separate ask in the same reply would hand the person two open
   // questions at once. Suppressed only for this one turn; intake capture
   // resumes normally starting the very next turn if it is still thin.
   const searchIntakeNoteThisTurn = sessionOpenRequested ? '' : searchIntakeNote(si)
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${activityNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${searchIntakeNoteThisTurn}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${INTERVIEW_TEAM_CAPTURE_NOTE}${pipelineNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${searchIntakeNoteThisTurn}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -1583,6 +1592,16 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // the middle of someone's coaching. Remove any ACTIVITY: line whatever its
   // shape: the offer is already decided, and nothing downstream wants it.
   strippedText = strippedText.replace(/^\s*ACTIVITY:.*$/gim, '').trim()
+  // Save-to-notes capture: the model may end with COACHNOTE: save when the
+  // person explicitly asked for this reply (or what was just covered) to be
+  // kept. No payload needed -- the content to save is this reply's own
+  // visible text, already what the client has once the stream completes.
+  let coachNoteOffer = false
+  const cnMatch = strippedText.match(/^\s*COACHNOTE:\s*save\s*$/im)
+  if (cnMatch) {
+    strippedText = strippedText.replace(cnMatch[0], '').trim()
+    coachNoteOffer = true
+  }
   // Values capture: the model may end with a VALUESCAPTURE: {json} line carrying
   // what the conversation settled for Values and/or Passions & Causes. Strip it
   // and ship it on a response header; the client offers a one-tap save that
@@ -1720,6 +1739,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   if (assessmentB64) res.setHeader('X-Coach-Assessment', assessmentB64)
   if (brandReworkB64) res.setHeader('X-Coach-Brand-Rework', brandReworkB64)
   if (pipelineB64) res.setHeader('X-Coach-Pipeline', pipelineB64)
+  if (coachNoteOffer) res.setHeader('X-Coach-Note-Offer', '1')
   if (activityB64) res.setHeader('X-Coach-Activity', activityB64)
   if (searchIntakeB64) res.setHeader('X-Coach-Search-Intake', searchIntakeB64)
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')

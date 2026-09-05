@@ -35,7 +35,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -479,6 +479,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const pcHeader = res.headers.get('X-Coach-Pipeline') || null
         const acHeader = res.headers.get('X-Coach-Activity') || null
         const siHeader = res.headers.get('X-Coach-Search-Intake') || null
+        const noteHeader = res.headers.get('X-Coach-Note-Offer') || null
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let fullText = ''
@@ -534,6 +535,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               setMessages(m => [...m, { role: 'assistant', content: `It looks like you're interviewing with ${names.join(', ')}. Want me to add ${names.length > 1 ? 'them' : 'them'}${where}?`, checkinKey: 'interview-team', quickReplies: [{ label: 'Add to my team', value: JSON.stringify(data), followUp: 'Added to your Interview Team.' }, { label: 'Not now', value: 'dismiss' }] }])
             }
           } catch { /* malformed header — no offer */ }
+        }
+        // Save-to-notes: the server saw an explicit request to keep this reply
+        // and set X-Coach-Note-Offer. The content offered is this reply's own
+        // text -- exactly what the manual "Save to this opportunity" button
+        // already saves. No JSON to decode: there is nothing to carry beyond
+        // the text already sitting in fullText.
+        if (notesCaptureActive && noteHeader === '1' && fullText.trim()) {
+          setMessages(m => [...m, { role: 'assistant', content: "Want me to add this to the opportunity's notes?", checkinKey: 'coach-note-save', quickReplies: [{ label: 'Save it', value: fullText }, { label: 'Not now', value: 'dismiss' }] }])
         }
         // Values capture: the server extracted what this turn settled for Values
         // and/or Passions & Causes onto X-Coach-Values. Show it back in full — the
