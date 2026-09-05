@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock, Mic, Menu, Users, Pencil } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
-import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-patterns.mjs"
+import { detectVoiceViolations, detectDimensionalFitRegression } from "./voice-patterns.js"
 // Foundation A (p3 structured emit): tail parser, schema validator, and
 // first-sentence extractor used by callClaudeWithVoiceGate's Phase 3
 // and the lead-drift comparator. See scripts/test-personal-brand-tail.mjs.
@@ -424,7 +424,7 @@ const COMPOSITOR_OWNED_VIOLATIONS = new Set(['typology-kicker-label'])
 const KICKER_CORRECTIVE = `\n\nCRITICAL: one of your "kicker" values named the person as a TYPE ("The Architect", "The Translator", "The Operator" and the like). A kicker names what its section is ABOUT, never what the person IS. Re-emit the identical object with those kickers replaced by plain labels drawn from the section's own subject — "How You Work", "Track Record", "Where You Thrive". Change nothing else: every body, every value, every order stays exactly as it is.`
 
 // Second-pass dimensional-fit regression detector for p3 (Personal Brand).
-// The detector itself lives in src/voice-patterns.mjs alongside the other
+// The detector itself lives in src/voice-patterns.js alongside the other
 // domain-specific detectors so the unit tests in scripts/test-voice-
 // patterns.mjs can import it without pulling in the whole React app. The
 // retry-budget constant stays here because the gate is the only consumer.
@@ -504,7 +504,7 @@ function detectResumeSummaryViolation(raw) {
 // and any other pattern outside the four targeted families).
 //
 // Surface text is extracted from violation.surface (the human-readable
-// label from voice-patterns.mjs) with fall-back to violation.match (the
+// label from voice-patterns.js) with fall-back to violation.match (the
 // actual regex match text). The [FIRED_SURFACE] token in the brief
 // becomes literal interpolation of those values.
 function buildVarianceCorrective(violations) {

@@ -1,4 +1,4 @@
-// Unit tests for src/voice-patterns.mjs. Wired into prebuild via package.json
+// Unit tests for src/voice-patterns.js. Wired into prebuild via package.json
 // so a regression on any of the named patterns fails the build before the
 // bundle ships.
 //
@@ -16,7 +16,7 @@
 //   4. detectDimensionalFitRegression fires on the dedicated-paragraph
 //      failure shape and returns null on the rewritten worked example.
 
-import { detectVoiceViolations, detectDimensionalFitRegression } from '../src/voice-patterns.mjs'
+import { detectVoiceViolations, detectDimensionalFitRegression } from '../src/voice-patterns.js'
 
 const cases = [
   // [label, expected-pattern-name-or-null, input]

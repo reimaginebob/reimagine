@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import MD from './MD'
 import SpeechBtn, { hasSpeech } from './SpeechBtn'
 import { useIsMobile } from '../use-is-mobile.js'
-import { detectVoiceViolations } from '../voice-patterns.mjs'
+import { detectVoiceViolations } from '../voice-patterns.js'
 
 // intro: true opts this one message into the same collapse-to-strip
 // treatment as banner:true narration (see isCollapsedBanner below) without

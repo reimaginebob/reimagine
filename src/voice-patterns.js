@@ -1,9 +1,17 @@
-// src/voice-patterns.mjs
+// src/voice-patterns.js
 // Banned constructions across every Reimagine analytical output.
 // Single source of truth, used by:
 //   - scripts/check-voice.mjs at build time (scans source code; honors // voice-allow regions)
 //   - generate() / generateSection() at runtime (scans model output before it reaches the user)
-// ESM (.mjs) so Node can import it directly from check-voice.mjs while Vite bundles it for the app.
+//   - api/coach.js at runtime (Coach chat's own pre-display regenerate-on-violation retry)
+// Plain .js, not .mjs: Node parses the ESM export/import syntax fine either
+// way (see the MODULE_TYPELESS_PACKAGE_JSON warning already benign on every
+// other .js module here, e.g. src/text-strippers.js), but the .js extension
+// is what lets api/coach.js import this across the Vercel function bundler's
+// api/src boundary -- a .mjs import there fails at invocation time
+// (FUNCTION_INVOCATION_FAILED), which is why this file was renamed from
+// .mjs on 2026-09-05 to close the gap that let "Here's the real shape of
+// it" / "the arc" reach a live Coach reply uncaught.
 //
 // Two-tier model (appliesTo):
 //   ['build','runtime'] - tight constructions we author deliberately. Their
