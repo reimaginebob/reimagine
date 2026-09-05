@@ -44,6 +44,25 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // App bumps openRequest to open the floating coach programmatically (e.g. the
   // Personal Brand check-in on first arrival at Put it to Work).
   useEffect(() => { if (openRequest) setOpen(true) }, [openRequest])
+  // Focus-return on close (accessibility audit, 2026-09-05): a keyboard or
+  // screen-reader user who opens the floating coach and then closes it --
+  // either the panel's own Close button or Escape, both just set open:false --
+  // was left with focus fallen back to <body>, with no way to tell where they
+  // landed. The trigger bubble and the open panel are two different branches
+  // of one early-return, so the bubble's DOM node does not exist yet at the
+  // instant either close handler fires; it exists once this component
+  // re-renders into the closed branch. A single effect keyed on `open` (not a
+  // .focus() call duplicated inside both close handlers) fires after that
+  // render has committed, and skips the very first render via wasOpenRef --
+  // there is nothing to return focus TO on initial page load, since nothing
+  // was closed yet. Floating only: the embedded My Coach view has no bubble
+  // and no open/close state of its own.
+  const bubbleBtnRef = useRef(null)
+  const wasOpenRef = useRef(false)
+  useEffect(() => {
+    if (!embedded && !open && wasOpenRef.current && bubbleBtnRef.current) bubbleBtnRef.current.focus()
+    wasOpenRef.current = open
+  }, [open, embedded])
   // Tell the app when the floating panel opens, so it can surface a first-time
   // prompt (e.g. the employment one-tap) on coach-open, not only on a hub screen.
   // Floating only; the embedded view is always "open" and handles its own surfacing.
@@ -953,6 +972,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             )}
             <div style={{ position: 'relative' }}>
               <button
+                ref={bubbleBtnRef}
                 onClick={() => { setOpen(true); if (onDismissPulse) onDismissPulse() }}
                 style={{
                   background: C.gold, color: '#fff', border: 'none',
