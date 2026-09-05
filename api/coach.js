@@ -18,7 +18,7 @@ import { GO_INDEPENDENT_KNOWLEDGE } from '../src/data/go-independent-knowledge.j
 import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowledge.js'
 import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
-import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency } from './_lib/feature-flags.js'
+import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework } from './_lib/feature-flags.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
@@ -27,7 +27,7 @@ import { parseSelfcheck } from '../src/coach-routing.js'
 import { STEPS, nextSteps as computeNextSteps, computeSessionDelta } from '../src/step-position.js'
 import { describeSections } from '../src/playbook-sections.js'
 import { ACTIVITY_CATALOG, ASKABLE, activity as activityDef, isValidFact } from '../src/activity-catalog.js'
-import { LANE_LABELS } from '../src/nav-labels.js'
+import { LANE_LABELS, NAV_LABELS } from '../src/nav-labels.js'
 import { totalCompModel } from '../src/offer-valuation.js'
 import { COMP_KNOWLEDGE } from '../src/comp-knowledge.js'
 import { getSessionUser } from './_lib/session.js'
@@ -149,6 +149,23 @@ const ASSESSMENT_CAPTURE_NOTE = '\n\nASSESSMENT CAPTURE: this person\'s assessme
 // refreshP3(text, ...)), so a Coach-originated correction gets the same
 // conflict check a typed one gets.
 const BRAND_REWORK_CAPTURE_NOTE = '\n\nBRAND REWORK CAPTURE: the Personal Brand you just showed this person lives on this screen, with a "Does this feel right?" box under it that rewrites the section from a note like the one you would write here. When their reply names something specifically WRONG or OFF about it — a fact you got wrong, a tone that is not them, something missing, something overstated — and is not merely a reaction, a compliment, or a question, end your reply with a final line exactly like BRANDREWORK: {"note":"<what they said is off, tightened to the point, in their own words, not your paraphrase of the feeling behind it>"} . Do not emit it for "yeah that\'s me," "I like it," a question about what happens next, or anything that has not identified something to actually change — a reaction is not a correction. The app turns that line into a one-tap offer to rework the section with exactly that note, and never shows the line itself, so do not mention it and do not tell them to type it into a box. At most once per reply; otherwise omit it entirely.'
+
+// SECTION REWORK CAPTURE, 2026-09-05. Generalizes BRAND_REWORK_CAPTURE_NOTE
+// (above) to the single-target Focus Playbook sections -- Bridge Story,
+// Resume Refresh, Industry Background, Income Now -- each with exactly one
+// refine box, so a "which box" resolver is not needed. Those sections all
+// share one generic step ('focus'), unlike Personal Brand's own dedicated
+// screen, so this activates only when the conversation itself started from
+// that section's own "Ask My Coach about this" button (src/App.jsx
+// openCoachWith, threaded here as returnSection) -- never from a cold reply
+// typed into the always-on floating bubble while someone is just scrolling
+// the Focus Playbook, where there would be no reliable way to know which
+// section a correction is about. Same one-tap contract as every capture
+// note above: the model proposes, the tap writes, through submitCorrection
+// so a Coach-originated correction gets the same conflict check a typed one
+// gets (src/App.jsx handleEmploymentQuickReply, checkinKey 'section-rework').
+const SECTION_REWORK_LABELS = { p6: NAV_LABELS.p6, p_res: NAV_LABELS.p_res, p9: NAV_LABELS.p9, income: NAV_LABELS.income }
+const sectionReworkCaptureNote = (label) => `\n\nSECTION REWORK CAPTURE: this conversation started from the "${label}" section of the person's Focus Playbook, which has a refine box under it that rewrites the section from a note like the one you would write here. When their reply names something specifically WRONG or OFF about it — a fact you got wrong, a detail that does not fit, something missing, something overstated — and is not merely a reaction, a compliment, or a question, end your reply with a final line exactly like SECTIONREWORK: {"note":"<what they said is off, tightened to the point, in their own words, not your paraphrase of the feeling behind it>"} . Do not emit it for "yeah that's right," a question about what happens next, or anything that has not identified something to actually change — a reaction is not a correction. The app turns that line into a one-tap offer to rework the section with exactly that note, and never shows the line itself, so do not mention it and do not tell them to type it into a box. At most once per reply; otherwise omit it entirely.`
 
 // Session-open recap (Phase 1). The client fires a turn with no typed message
 // at all when it wants the coach to speak first with what changed since the
@@ -1164,7 +1181,7 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Not signed in' })
   if (user.suspended_at) return res.status(403).json({ error: 'account_suspended' })
 
-  const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck } = req.body || {}
+  const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck, returnSection } = req.body || {}
   // orientationCheck: the client may open a turn with no typed message,
   // marked with {step, text} instead -- the reaction the coach speaks on
   // its own right after someone leaves a covered orientation step (see
@@ -1394,6 +1411,17 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // the parser below simply never finds a trailer to strip.
   if (currentStep === 'p3' && hasPersonalBrand && hasOnboardingConcierge({ feature_flags: featureFlags, email: user.email })) {
     profileBlock += BRAND_REWORK_CAPTURE_NOTE
+  }
+
+  // Section rework capture: only when this conversation started from one of
+  // the four single-target sections' own "Ask My Coach about this" button
+  // (returnSection, threaded from src/App.jsx's coachReturn), only once that
+  // section has something built to react to, and only for the flag this
+  // rollout runs behind. Any other turn gets no instruction, so the parser
+  // below simply never finds a trailer to strip.
+  const sectionReworkLabel = SECTION_REWORK_LABELS[returnSection]
+  if (sectionReworkLabel && _hasText(_poutputs[returnSection]) && hasSectionRework({ feature_flags: featureFlags, email: user.email })) {
+    profileBlock += sectionReworkCaptureNote(sectionReworkLabel)
   }
 
   const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".]` : ''
@@ -1670,6 +1698,22 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
       if (note) brandReworkB64 = Buffer.from(JSON.stringify({ note })).toString('base64')
     } catch { /* malformed — drop the line, no offer */ }
   }
+  // Section rework capture: the model may end with a SECTIONREWORK: {json}
+  // line carrying a correction to one of the four single-target Focus
+  // sections. The section itself is not read from the model's json -- it is
+  // known server-side (sectionReworkLabel/returnSection, above) and embedded
+  // here, so a mis-worded or omitted section field from the model can never
+  // point the client's write at the wrong section.
+  let sectionReworkB64 = null
+  const secMatch = strippedText.match(/^\s*SECTIONREWORK:\s*(\{[\s\S]*?\})\s*$/im)
+  if (secMatch && sectionReworkLabel) {
+    strippedText = strippedText.replace(secMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(secMatch[1])
+      const note = typeof (parsed && parsed.note) === 'string' ? parsed.note.trim().slice(0, 600) : ''
+      if (note) sectionReworkB64 = Buffer.from(JSON.stringify({ note, section: returnSection })).toString('base64')
+    } catch { /* malformed — drop the line, no offer */ }
+  }
   // Pipeline capture: the model may end with a PIPELINE: {json} line carrying a
   // next move, a scheduled meeting, or both. Strip it and ship it on a response
   // header; the client shows exactly what will be written and offers a one-tap
@@ -1758,6 +1802,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   if (valuesB64) res.setHeader('X-Coach-Values', valuesB64)
   if (assessmentB64) res.setHeader('X-Coach-Assessment', assessmentB64)
   if (brandReworkB64) res.setHeader('X-Coach-Brand-Rework', brandReworkB64)
+  if (sectionReworkB64) res.setHeader('X-Coach-Section-Rework', sectionReworkB64)
   if (pipelineB64) res.setHeader('X-Coach-Pipeline', pipelineB64)
   if (coachNoteOffer) res.setHeader('X-Coach-Note-Offer', '1')
   if (activityB64) res.setHeader('X-Coach-Activity', activityB64)

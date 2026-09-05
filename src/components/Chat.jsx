@@ -35,7 +35,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -430,6 +430,12 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           // what they are doing next. Sent as a hint only: the server re-checks
           // that the id belongs to this account's saved work before using it.
           focusRecordId: (coachSaveTarget && coachSaveTarget.id) || undefined,
+          // Which single-target Focus section (if any) this conversation
+          // started from, via that section's own "Ask My Coach about this"
+          // button -- the only signal that safely disambiguates a correction
+          // among the several sections sharing the 'focus' step. See
+          // sectionReworkCaptureNote in api/coach.js.
+          returnSection: sectionReworkTarget || undefined,
         }),
       })
       if (silent && res.status === 204) {
@@ -476,6 +482,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const vcHeader = res.headers.get('X-Coach-Values') || null
         const assessHeader = res.headers.get('X-Coach-Assessment') || null
         const brHeader = res.headers.get('X-Coach-Brand-Rework') || null
+        const secHeader = res.headers.get('X-Coach-Section-Rework') || null
         const pcHeader = res.headers.get('X-Coach-Pipeline') || null
         const acHeader = res.headers.get('X-Coach-Activity') || null
         const siHeader = res.headers.get('X-Coach-Search-Intake') || null
@@ -594,6 +601,28 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 role: 'assistant',
                 content: `Want me to rework it with that?\n\n${note}`,
                 checkinKey: 'brand-rework',
+                quickReplies: [
+                  { label: 'Yes, rework it', value: JSON.stringify(data), followUp: 'Reworking it now — give it a moment.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Section rework capture: same shape as brand rework, generalized to
+        // the four single-target Focus sections. The section id rides in the
+        // header payload itself (set server-side from returnSection, never
+        // from the model), so the write path always targets the section this
+        // conversation actually started from.
+        if (sectionReworkTarget && secHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(secHeader), c => c.charCodeAt(0))))
+            const note = data && typeof data.note === 'string' ? data.note.trim() : ''
+            if (note) {
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to rework it with that?\n\n${note}`,
+                checkinKey: 'section-rework',
                 quickReplies: [
                   { label: 'Yes, rework it', value: JSON.stringify(data), followUp: 'Reworking it now — give it a moment.' },
                   { label: 'Not now', value: 'dismiss' },

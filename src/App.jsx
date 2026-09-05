@@ -7386,6 +7386,10 @@ export default function PivotEngine(){
   // api/_lib/feature-flags.js; the server decides who gets the instruction,
   // this only decides whether the client renders the disclosure and the offer.
   const hasCoachNoteAgency=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('coach_note_agency'))
+  // PILOT — Section rework from chat, 2026-09-05. Mirrors hasSectionRework in
+  // api/_lib/feature-flags.js; the server decides who gets the instruction,
+  // this only decides whether the client threads returnSection at all.
+  const hasSectionRework=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('section_rework'))
   // Go Independent (2026-08-27). The account's own track wins the moment there
   // is an account; the URL parameter only speaks for a visitor who has not
   // signed in yet, which is exactly the sign-up screens. Deriving it in that
@@ -7678,6 +7682,39 @@ export default function PivotEngine(){
         recordCorrection('p3',note)
         out('p3','')
         refreshP3(note,prevBrand,prevPres)
+      })
+      return true
+    }
+    // Coach judged a chat reply as a real correction to one of the four
+    // single-target Focus sections (Bridge Story, Resume Refresh, Industry
+    // Background, Income Now) and the person confirmed. The section rides in
+    // the payload itself, set server-side from returnSection -- never from
+    // the model -- so this can only ever act on the section the conversation
+    // actually started from. Routes through submitCorrection so a
+    // Coach-originated correction gets the same conflict check a typed one
+    // gets. Rebuilds the same prompt/options shape the Focus Playbook's own
+    // per-section RefineBox uses (gp/go/refineSec, inside case'focus') rather
+    // than reusing those functions directly: they are declared inside that
+    // case's own block and are not reachable from this closure. p6 is the
+    // one exception -- generateP6 (like refreshP3) lives in this same outer
+    // scope, so it is called directly, exactly as refineSec('p6',...) does.
+    if(checkinKey==='section-rework'){
+      if(value==='dismiss')return true
+      let data;try{data=JSON.parse(value)}catch{return false}
+      const note=data&&typeof data.note==='string'?data.note.trim():''
+      const section=data&&typeof data.section==='string'?data.section:''
+      if(!note||!['p6','p_res','p9','income'].includes(section))return false
+      submitCorrection(section,note,()=>{
+        recordCorrection(section,note)
+        if(section==='p6'){generateP6({refine:note});return}
+        const O=sanitizeUpstreamForSection(section,outputs)
+        const promptText=section==='p9'?P.p9(pc,O,chosen)
+          :section==='p_res'?P.p_res(pc,O,chosen)
+          :P.income(pc,O,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent)
+        const opts=section==='p9'?{maxTokens:4000}
+          :section==='p_res'?{maxTokens:5000,profileBlock:buildUserProfileBlock(pc,O),step:'p_res'}
+          :{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,O),step:'income'}
+        generateSection(section,()=>promptText+`\n\nNEW CORRECTION FROM THIS SECTION: ${note}`,opts)
       })
       return true
     }
@@ -8063,6 +8100,14 @@ export default function PivotEngine(){
   // not the top of the page. Cleared by nav() on any move that is not into the
   // coach, so the link can never point somewhere the user has since left.
   const[coachReturn,setCoachReturn]=useState(null)
+  // Which single-target Focus section (if any) this My Coach conversation
+  // started from — the only signal that safely disambiguates a correction
+  // among the several sections sharing the 'focus' step (see
+  // sectionReworkCaptureNote, api/coach.js). coachReturn is cleared by nav()
+  // the moment the person leaves myCoach, so this can never point at a
+  // section they have since left; hasSectionRework governs the whole feature
+  // client-side (the server independently re-checks it).
+  const sectionReworkTarget=hasSectionRework&&coachReturn&&coachReturn.step==='focus'&&['p6','p_res','p9','income'].includes(coachReturn.section)?coachReturn.section:null
   const coachReturnLabel=(fromStep,section)=>{
     if(section&&NAV_LABELS[section])return NAV_LABELS[section]
     if(fromStep==='focus')return 'your Focus Playbook'
@@ -14210,7 +14255,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
         {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
     </div>
     // Job Search Resources (docs/networking-groups-brief.md). Its own
     // destination, reachable from the first screen, needing no direction and no
@@ -16083,7 +16128,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>
