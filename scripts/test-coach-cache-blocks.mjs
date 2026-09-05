@@ -20,6 +20,12 @@
 //      preference, it is a 400 in production the day a user hits the branch
 //      that adds it (e.g. a pilot user on the Go Independent track, where
 //      goIndependentBlock and pilotKnowledgeBlock can both be present at once).
+//
+// The array itself lives in buildCoachRequest (extracted 2026-09-05 so a live
+// eval script could call the real prompt assembly directly), not inline in
+// the fetch call -- generate() now just passes the `system` it returns
+// through. Anchored on the `const system = [` declaration rather than the
+// fetch call for that reason.
 import fs from 'node:fs'
 
 const FILE = 'api/coach.js'
@@ -28,21 +34,13 @@ const src = fs.readFileSync(FILE, 'utf8')
 let failures = 0
 const check = (ok, msg) => { if (!ok) { failures++; console.error(`  FAIL ${msg}`) } }
 
-// Isolate the `system: [ ... ]` array inside the generate() function that
-// calls the Anthropic API directly (there is exactly one `fetch('https://api.
-// anthropic.com/v1/messages'` call in this file -- the coach's own generation
-// call -- so anchoring on that finds the right array even if unrelated code
-// above or below also mentions "system:").
-const fetchIdx = src.indexOf("fetch('https://api.anthropic.com/v1/messages'")
-check(fetchIdx !== -1, `${FILE}: could not find the Anthropic messages fetch call`)
+const sysIdx = src.indexOf('const system = [')
+check(sysIdx !== -1, `${FILE}: could not find "const system = [" in buildCoachRequest`)
 
-const sysIdx = src.indexOf('system: [', fetchIdx)
-check(sysIdx !== -1, `${FILE}: could not find "system: [" after the fetch call`)
-
-const sysEnd = src.indexOf('\n        ],', sysIdx)
+const sysEnd = src.indexOf('\n  ]', sysIdx)
 check(sysEnd !== -1, `${FILE}: could not find the end of the system array`)
 
-if (fetchIdx !== -1 && sysIdx !== -1 && sysEnd !== -1) {
+if (sysIdx !== -1 && sysEnd !== -1) {
   const systemArray = src.slice(sysIdx, sysEnd)
 
   check(/profileBlock,\s*cache_control:\s*\{\s*type:\s*'ephemeral'\s*\}/.test(systemArray),
