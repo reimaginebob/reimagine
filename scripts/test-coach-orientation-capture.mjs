@@ -33,16 +33,20 @@ const coach = fs.readFileSync(COACH, 'utf8')
 check(/import \{[^}]*hasOrientationCapture[^}]*\} from '\.\/_lib\/feature-flags\.js'/.test(coach),
   `${COACH}: hasOrientationCapture is not imported`)
 
-// The two capture notes themselves: Reputation replaces (like Values --
-// short, single-value reflective answers), Skills appends (like Assessment
-// -- resume/LinkedIn extraction may already hold real chips this
-// conversation never mentioned).
+// The two capture notes themselves: Reputation replaces for its three
+// single-fact fields (memory/emergency/twoWords), but merges rather than
+// drops for `other`, which can accumulate like Values' lists (2026-09-06
+// merge-not-overwrite fix). Skills appends (like Assessment -- resume/
+// LinkedIn extraction may already hold real chips this conversation never
+// mentioned).
 check(coach.includes('const REPUTATION_CAPTURE_NOTE ='),
   `${COACH}: REPUTATION_CAPTURE_NOTE is missing`)
 check(coach.includes('REPUTATIONCAPTURE: {"memory":'),
   `${COACH}: REPUTATION_CAPTURE_NOTE's trailer contract is missing or has drifted from the four Reputation fields`)
-check(coach.includes('only emit it when they have clearly landed somewhere new -- the tap replaces what is there'),
-  `${COACH}: REPUTATION_CAPTURE_NOTE does not tell the model this replaces rather than appends`)
+check(coach.includes('write the new answer alone once they have clearly landed on it, since it is meant to supersede whatever was there before'),
+  `${COACH}: REPUTATION_CAPTURE_NOTE does not tell the model memory/emergency/twoWords are single-answer replacements`)
+check(coach.includes('write the COMPLETE list -- what was already there plus what is new -- never just today'),
+  `${COACH}: REPUTATION_CAPTURE_NOTE's \`other\` field does not require merging with existing content -- a person adding a second reputation note could lose the first`)
 
 check(coach.includes('const SKILLS_CAPTURE_NOTE ='),
   `${COACH}: SKILLS_CAPTURE_NOTE is missing`)
