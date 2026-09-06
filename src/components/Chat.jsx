@@ -4,6 +4,7 @@ import SpeechBtn, { hasSpeech } from './SpeechBtn'
 import { useIsMobile } from '../use-is-mobile.js'
 import { detectVoiceViolations } from '../voice-patterns.js'
 import { PURSUIT_STAGE_LABELS } from '../pursuit-stages.js'
+import { OP_COUNTED_SECTIONS } from '../playbook-sections.js'
 
 // intro: true opts this one message into the same collapse-to-strip
 // treatment as banner:true narration (see isCollapsedBanner below) without
@@ -36,7 +37,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -522,6 +523,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // the thumbs below it can attach a rating to that exact row.
         const msgId = res.headers.get('X-Coach-Message-Id') || null
         const ouHeader = res.headers.get('X-Coach-Opportunity-Update') || null
+        const ocrHeader = res.headers.get('X-Coach-Op-Card-Rework') || null
         const vcHeader = res.headers.get('X-Coach-Values') || null
         const assessHeader = res.headers.get('X-Coach-Assessment') || null
         const brHeader = res.headers.get('X-Coach-Brand-Rework') || null
@@ -612,6 +614,30 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 quickReplies: [
                   { label: "That's everything — update it", value: JSON.stringify(data), followUp: 'Updated.' },
                   { label: 'Not yet', value: 'dismiss' },
+                ],
+              }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Op card rework: the server named a specific built card and a note
+        // that should change it. Recap both in plain language before offering
+        // the tap -- the person should know exactly what's about to change
+        // and where, the same as every other capture offer.
+        if (opCardReworkCaptureActive && ocrHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(ocrHeader), c => c.charCodeAt(0))))
+            const section = data && typeof data.section === 'string' ? data.section : ''
+            const note = data && typeof data.note === 'string' ? data.note.trim() : ''
+            const label = (OP_COUNTED_SECTIONS.find(s => s.key === section) || {}).label || section
+            if (section && note) {
+              const where = data.opportunity ? ` on ${data.opportunity}` : ''
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to update ${label}${where} with this: "${note}"?`,
+                checkinKey: 'op-card-rework',
+                quickReplies: [
+                  { label: `Update ${label}`, value: JSON.stringify(data) },
+                  { label: 'Not now', value: 'dismiss' },
                 ],
               }])
             }
