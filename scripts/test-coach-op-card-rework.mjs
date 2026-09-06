@@ -41,7 +41,8 @@ check(coach.includes('Only propose a card that is already built'),
 // the independent-track exclusion lives client-side).
 check(/const opCardReworkNote = hasSectionRework\(\{ feature_flags: featureFlags, email: userEmail \}\) \? OP_CARD_REWORK_CAPTURE_NOTE : ''/.test(coach),
   `${COACH}: opCardReworkNote is not gated on hasSectionRework the same way opportunityUpdateNote is gated on hasPipelineCapture`)
-check(coach.includes('${opCardReworkNote}${activityNote}'),
+const profileTemplateMatch = coach.match(/return `THIS USER'S REIMAGINE PROFILE[\s\S]*?`\n\}/)
+check(!!profileTemplateMatch && profileTemplateMatch[0].includes('${opCardReworkNote}'),
   `${COACH}: opCardReworkNote is not spliced into the profile block template`)
 
 // Trailer parser: reads section from the model's own json (unlike

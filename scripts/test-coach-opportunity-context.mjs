@@ -30,7 +30,8 @@ check(coach.includes('appended to whatever is already in that field, never overw
 
 check(/const opportunityContextNote = hasPipelineCapture\(\{ feature_flags: featureFlags, email: userEmail \}\) \? OPPORTUNITY_CONTEXT_CAPTURE_NOTE : ''/.test(coach),
   `${COACH}: opportunityContextNote is not gated on hasPipelineCapture, the same flag opportunityUpdateNote already uses for this same panel object`)
-check(coach.includes('${opportunityUpdateNote}${opportunityContextNote}${opCardReworkNote}'),
+const profileTemplateMatch = coach.match(/return `THIS USER'S REIMAGINE PROFILE[\s\S]*?`\n\}/)
+check(!!profileTemplateMatch && profileTemplateMatch[0].includes('${opportunityContextNote}'),
   `${COACH}: opportunityContextNote is not spliced into the profile block template`)
 
 check(/const occMatch = strippedText\.match\(\/\^\\s\*OPPORTUNITYCONTEXT:\\s\*/.test(coach),

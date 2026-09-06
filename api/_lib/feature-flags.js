@@ -153,6 +153,23 @@ export function hasSectionRework(user) {
   return flags.includes(SECTION_REWORK_FLAG)
 }
 
+// PILOT -- Milestone prompts, 2026-09-06. Phase 3 of the Opportunity Playbook
+// proactive-signals brief: Coach may notice a milestone in the process (an
+// opportunity is past applied with no Cover Letter, an interview is
+// confirmed with no Interview Prep) and mention the relevant unbuilt card
+// once, in prose, letting the person decide. A separate flag from the other
+// two phases (opportunity context and card rework) on purpose -- this is
+// pure model judgment with no data write to verify against, the riskiest of
+// the three to get right on a first pass, so Bob QCs it as its own rollout
+// rather than inheriting an existing flag's staff-only pass/fail.
+export const MILESTONE_PROMPT_FLAG = 'milestone_prompt'
+
+export function hasMilestonePrompt(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(MILESTONE_PROMPT_FLAG)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -168,4 +185,5 @@ export const GRANTABLE_FLAGS = {
   [PIPELINE_BOARD_FLAG]: { label: 'Pipeline board' },
   [COACH_NOTE_AGENCY_FLAG]: { label: 'Coach save-to-notes agency' },
   [SECTION_REWORK_FLAG]: { label: 'Coach section rework from chat' },
+  [MILESTONE_PROMPT_FLAG]: { label: 'Coach milestone prompts' },
 }
