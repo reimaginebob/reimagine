@@ -18,7 +18,7 @@ import { GO_INDEPENDENT_KNOWLEDGE } from '../src/data/go-independent-knowledge.j
 import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowledge.js'
 import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
-import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework } from './_lib/feature-flags.js'
+import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt } from './_lib/feature-flags.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
@@ -104,6 +104,38 @@ function isAllowedOrigin(rawOrigin) {
 // actually threaded through the server's own extraction -- silently dropped
 // every time. Fixed below by including it in the validated payload.
 const OPPORTUNITY_UPDATE_CAPTURE_NOTE = '\n\nOPPORTUNITY UPDATE CAPTURE: each opportunity on My Pipeline can have its stage moved, a "Next move" (an action THEY take, in their own words, with a date), a "Next scheduled meeting" (a real booked conversation, no matter who arranged it), and an Interview Team (people they expect to meet, with role and any detail they have shared). When this person tells you anything that would change one or more of these -- often several in one breath ("just got moved to final round, meeting Sally again next Tuesday, and picked up a new interviewer named Marcus") -- end your reply with a final line exactly like OPPORTUNITYUPDATE: {"opportunity":"<the opportunity title from their saved work>","stage":"one of researching|applied|phone_screen|interviewing|final_round|offer|closed ONLY if they told you a new stage","move":"Call Teresa","date":"2026-09-14","meeting":"2026-09-14","people":[{"name":"Full Name","title":"their title if stated","role":"one of hiring_manager|skip_level|peer|cross_functional|recruiter_screen ONLY if they said how this person fits the loop","note":"something substantive they told you about this person"}]} including only the keys the conversation actually settled -- never invent a stage, a date, or a person they did not name. `date` applies only to `move`; `meeting` carries its own date directly, resolved the same way. All dates are YYYY-MM-DD resolved against TODAY\'S DATE above; "next Thursday", "the 14th" and "a week from Tuesday" all resolve to a real date, and you never invent one -- omit the key instead. First check the interview team roster already shown to you above for this opportunity: if a name they gave matches someone already listed, do not re-add them -- acknowledge you already have them logged, and only include them in `people` if there is something genuinely new (a role or detail you did not have before). A one-tap update should never wait on anything else, so emit the line the moment you have ANYTHING worth capturing. But keep the REPLY that carries it short -- a plain, two-or-three-sentence acknowledgment of what you heard, nothing more. Do NOT give interview prep, coaching, or next-step advice in this same reply, even when the update obviously calls for it (a new interviewer, an interview now on the calendar) -- that conversation happens in your NEXT reply, right after they confirm the update, once it is actually on their card. Tapping through the tactical update should never cost them the coaching that follows it, and the two competing for their attention in one reply is what causes that. If your own previous reply already offered an update for this opportunity and this person is now adding to it rather than confirming, capture everything from before together with the new detail in one fresh line, not just the new piece alone. Removing or editing someone already on the Interview Team is not something you can capture this way -- if they ask for that, tell them plainly you cannot yet and point them to the Interview Team section itself. The app turns the line into a one-tap offer that already names exactly what it caught and asks what, if anything, is still missing -- so do not mention the line, do not ask them to type anything, and do not separately ask "should I update this" yourself; the offer already asks that. NEVER SAY YOU HAVE SAVED, ADDED, LOGGED, MOVED, OR UPDATED ANYTHING -- their tap is the only thing that writes, and claiming an action you cannot perform is worse than not offering at all. If they later ask how or why something changed -- "did that update automatically," "how did it move to interviewing" -- be exact: their tap on the offer is what wrote it, not this conversation by itself. Never say no extra step was needed or that it happened on its own; that undersells the one thing that actually controls whether anything gets written, and it teaches them the wrong lesson about what this app will do without asking. At most once per reply; otherwise omit it entirely.'
+
+// OPPORTUNITY CONTEXT CAPTURE, 2026-09-06. Sibling to OPPORTUNITY_UPDATE_CAPTURE_NOTE
+// above, for a different kind of thing: not a pipeline fact and not something
+// about a specific person (that already belongs in OPPORTUNITYUPDATE's own
+// `people[].note`), but durable intel about the opportunity itself -- company
+// context, a culture signal, what the loop is really testing for, how the role
+// came about. Lands in the same free-text field the Interview Team card's own
+// "opportunity context" box already writes to (src/App.jsx buildP11PanelBlock
+// already folds it into Interview Prep generation), so this is a chat-driven
+// way to fill in a field that already existed and already mattered -- not a
+// new destination for the content. Append-only, same contract as
+// ASSESSMENT_CAPTURE_NOTE, since someone may already have real intel logged
+// there and a tap should never look like it could wipe that out.
+const OPPORTUNITY_CONTEXT_CAPTURE_NOTE = '\n\nOPPORTUNITY CONTEXT CAPTURE: each opportunity has a free-text "opportunity context" field -- anything the person knows about it: how they came across it, insider intel, what the team has said, what the role is really testing for. It feeds Interview Prep whenever it is next built. When this person tells you something like that about an opportunity itself -- not a stage, move, meeting, or interviewer detail (those go through the opportunity-update capture instead), and not tied to a specific named person in the loop -- end your reply with a final line exactly like OPPORTUNITYCONTEXT: {"opportunity":"<the opportunity title from their saved work>","text":"<the context, tightened to the point, in their own words>"} . Emit it ONLY for something concrete and durable worth remembering, never for a passing remark, a question, or something that only matters this instant. The app turns that line into a one-tap offer -- appended to whatever is already in that field, never overwriting it -- and never shows the line itself, so do not mention it and do not tell them to type it in themselves. NEVER SAY YOU HAVE ADDED OR SAVED IT; their tap is the only thing that writes. At most once per reply; otherwise omit it entirely.'
+
+// MILESTONE PROMPTS, 2026-09-06. Phase 3 of the same brief, and the only one
+// of the three that captures nothing -- no trailer, no header, no tap, because
+// there is no content to write. Coach already receives, per in-focus
+// opportunity, which cards are built (WHAT IS BUILT ON THIS PLAYBOOK, via
+// buildPlaybookExpansion below) and its pursuit stage (buildPursuitStatusBlock
+// above); this is a pure instruction to notice a specific, bounded set of
+// milestones in that data and mention the relevant next card in prose, the
+// same way Coach already talks about any other part of the product. No
+// persisted "already mentioned" memory: rather than a first-of-its-kind
+// silent write with no tap behind it, this leans on the model's own
+// conversational memory (it can see its own prior turns) to avoid repeating
+// itself within one conversation. That does not stop a fresh conversation
+// from mentioning the same milestone again if the underlying gap is still
+// real -- worth watching in practice, and revisiting with a persisted flag
+// only if that turns out to actually read as nagging rather than as
+// noticing.
+const MILESTONE_PROMPT_NOTE = '\n\nMILESTONE PROMPTS: when you are discussing a specific saved opportunity whose build-state and stage are shown to you above, you may notice one of these and mention the relevant next card, once, in plain language, letting them decide -- never a task list, never more than one in a single reply, and never twice in this same conversation once you have already brought one up:\n- The opportunity is at applied or a later stage and its Cover Letter is not built -- you may mention building a Cover Letter.\n- The opportunity is at applied or a later stage and its Resume Refresh is not built -- you may mention refreshing the resume for this opportunity.\n- An interview is confirmed (the stage is interviewing or final round, or someone is on the Interview Team) and Interview Prep is not built -- you may mention building Interview Prep.\n- They describe an offer as imminent or already in hand, right here in this conversation, and Offer & Negotiation has no content yet -- you may mention starting Offer & Negotiation prep. This one comes from what they just told you, not from the stage field alone.\nName the card by its real name, exactly as it appears on their Opportunity Playbook -- About This Company, Where you fit, Bridge Story, Resume Refresh, Cover Letter, Interview Prep, Compensation, Offer & Negotiation -- never an internal id. This is a suggestion that fits naturally into what you are already talking about, not a rule to apply every turn -- most turns, none of these will be the right moment, and that is fine. You cannot build these for them or take them there yourself; say what it is for and let them decide, the same as anything else you point to in Reimagine.'
 
 const ACTIVITY_CAPTURE_NOTE = '\n\nACTIVITY CAPTURE: when this person tells you something about the human side of their search -- that they joined a group, went to Career Club Corner, have someone holding them accountable, wrote directly to a company, asked anyone for an introduction, spoke to a recruiter, or looked at free help near them -- OR tells you plainly that they have not or do not want to, end your reply with a final line exactly like ACTIVITY: {"activity":"accountability_partner","state":"done","detail":"Marta, they talk Fridays"} using ONLY these activity keys: ' + ACTIVITY_CATALOG.filter(a => a.evidence === 'asked').map(a => a.key).join(', ') + '. `state` is one of done (they have it), not_yet (they told you they have not) or declined (they told you they do not want it). `detail` is optional, short, and in their own words. Emit it ONLY for something they actually said in this conversation, never for something you suggested and they have not answered, and never to restate what you were already told above. The app turns that line into a one-tap offer and never shows it, so do not mention it and do not ask them to type anything. NEVER SAY YOU HAVE SAVED IT -- their tap is the only thing that writes, and claiming an action you cannot perform is worse than not offering. At most one per reply; otherwise omit it entirely.'
 const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passions & Causes live on a screen in Reimagine called "Values, Passions & Causes", and you can offer to write them there. When a conversation has settled into a statement of their values or their passions and causes that they seem happy with — their words and their conclusions, not a list you proposed and they have not responded to — end your reply with a final line exactly like VALUESCAPTURE: {"values":"Independence; Creative problem solving; Belonging","passions":"Youth mentoring; Faith-based service"} carrying whichever of the two you have. Include a key ONLY for a field the conversation actually settled; omit the other entirely. Write each as a short semicolon-separated list in their own words, not a paragraph and not your paraphrase. If ANCHOR 1 shows a field already has content, only emit it when they have clearly landed somewhere new — the tap replaces what is there. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
@@ -753,7 +785,16 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // move, meeting, or interview-team addition. A non-flagged account never
   // receives the instruction, so the parser below simply never fires for them.
   const opportunityUpdateNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? OPPORTUNITY_UPDATE_CAPTURE_NOTE : ''
+  // Reuses hasPipelineCapture rather than a new flag: this is the same
+  // "opportunity data" idea opportunity-update capture already covers, just a
+  // different field on the same panel object (getOpPanel/updateOpPanel).
+  const opportunityContextNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? OPPORTUNITY_CONTEXT_CAPTURE_NOTE : ''
   const opCardReworkNote = hasSectionRework({ feature_flags: featureFlags, email: userEmail }) ? OP_CARD_REWORK_CAPTURE_NOTE : ''
+  // Gated on the flag alone, matching the other capture notes above -- its
+  // data dependency (WHAT IS BUILT ON THIS PLAYBOOK, buildPlaybookExpansion
+  // below) comes from the in-focus record, not from sightOn's Next-Step-
+  // specific focusData/myStatusData detail level.
+  const milestonePromptNote = hasMilestonePrompt({ feature_flags: featureFlags, email: userEmail }) ? MILESTONE_PROMPT_NOTE : ''
   // YOUR NEXT STEP (pilot 2026-09-02). The stair this person is standing on and
   // the one thing to do from it, computed by the SAME function the screen calls
   // (src/step-position.js). Handing the model the answer rather than the rules is
@@ -820,7 +861,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // questions at once. Suppressed only for this one turn; intake capture
   // resumes normally starting the very next turn if it is still thin.
   const searchIntakeNoteThisTurn = sessionOpenRequested ? '' : searchIntakeNote(si)
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${opCardReworkNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${searchIntakeNoteThisTurn}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${opportunityContextNote}${opCardReworkNote}${milestonePromptNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${searchIntakeNoteThisTurn}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -843,11 +884,17 @@ const INTENT_SECTION = {
 // The coaching-relevant sections to surface for the in-focus record, in priority
 // order. The offer, benefits, Compensation Read and priorities check for a record
 // with a logged offer are handled separately under LOGGED OFFERS.
+// offerNegotiation added to door2 2026-09-06 (Milestone Prompts, Phase 3 of
+// the Opportunity Playbook proactive-signals brief): the milestone judgment
+// needs to know whether this card is built, and until now nothing surfaced
+// that -- LOGGED OFFERS covers offerStage.offer (the raw terms the person
+// entered), a different field from sections.offerNegotiation (the generated
+// analysis card) that this array drives visibility for.
 const FOCUS_SECTIONS = {
-  door2: ['p5', 'companyRead', 'salaryRead', 'p6', 'p11', 'p_res', 'p_cover'],
+  door2: ['p5', 'companyRead', 'salaryRead', 'p6', 'p11', 'p_res', 'p_cover', 'offerNegotiation'],
   door1: ['p5', 'p6', 'salaryRead', 'p11', 'p9', 'p_res', 'income', 'p7', 'p8'],
 }
-const SECTION_NAME = { p5: 'WHERE YOU FIT', p6: 'BRIDGE STORY', p_res: 'RESUME REFRESH', p_cover: 'COVER LETTER', p11: 'INTERVIEW PREP', companyRead: 'ABOUT THIS COMPANY', salaryRead: 'COMPENSATION READ', p7: 'GO-TO-MARKET', p8: 'LINKEDIN REMIX', p9: 'INDUSTRY BACKGROUND', income: 'INCOME NOW' }
+const SECTION_NAME = { p5: 'WHERE YOU FIT', p6: 'BRIDGE STORY', p_res: 'RESUME REFRESH', p_cover: 'COVER LETTER', p11: 'INTERVIEW PREP', companyRead: 'ABOUT THIS COMPANY', salaryRead: 'COMPENSATION READ', p7: 'GO-TO-MARKET', p8: 'LINKEDIN REMIX', p9: 'INDUSTRY BACKGROUND', income: 'INCOME NOW', offerNegotiation: 'OFFER & NEGOTIATION' }
 
 function detectIntent(message) {
   const m = (typeof message === 'string' ? message : '').toLowerCase()
@@ -1750,6 +1797,23 @@ export default async function handler(req, res) {
       if (validSection && note) opCardReworkB64 = Buffer.from(JSON.stringify({ section, note, opportunity })).toString('base64')
     } catch { /* malformed — drop the line, no offer */ }
   }
+  // Opportunity context capture: the model may end with an OPPORTUNITYCONTEXT:
+  // {json} line naming an opportunity and durable context to append to its
+  // free-text "opportunity context" field. No enum to validate against here
+  // (unlike OPCARDREWORK's fixed card list) -- the destination is a single
+  // field, not one of several, so there is nothing for a malformed value to
+  // misdirect.
+  let opportunityContextB64 = null
+  const occMatch = strippedText.match(/^\s*OPPORTUNITYCONTEXT:\s*(\{[\s\S]*?\})\s*$/im)
+  if (occMatch) {
+    strippedText = strippedText.replace(occMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(occMatch[1])
+      const text = typeof (parsed && parsed.text) === 'string' ? parsed.text.trim().slice(0, 800) : ''
+      const opportunity = typeof (parsed && parsed.opportunity) === 'string' ? parsed.opportunity.trim().slice(0, 200) : ''
+      if (text) opportunityContextB64 = Buffer.from(JSON.stringify({ text, opportunity })).toString('base64')
+    } catch { /* malformed — drop the line, no offer */ }
+  }
   // Opportunity update capture: the model may end with an OPPORTUNITYUPDATE:
   // {json} line carrying any combination of a stage move, a next move (with
   // optional date), a scheduled meeting, and new Interview Team members --
@@ -1859,6 +1923,7 @@ export default async function handler(req, res) {
   if (brandReworkB64) res.setHeader('X-Coach-Brand-Rework', brandReworkB64)
   if (sectionReworkB64) res.setHeader('X-Coach-Section-Rework', sectionReworkB64)
   if (opCardReworkB64) res.setHeader('X-Coach-Op-Card-Rework', opCardReworkB64)
+  if (opportunityContextB64) res.setHeader('X-Coach-Opportunity-Context', opportunityContextB64)
   if (opportunityUpdateB64) res.setHeader('X-Coach-Opportunity-Update', opportunityUpdateB64)
   if (coachNoteOffer) res.setHeader('X-Coach-Note-Offer', '1')
   if (activityB64) res.setHeader('X-Coach-Activity', activityB64)
