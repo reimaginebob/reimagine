@@ -25,7 +25,7 @@ check(chat.includes("} catch (err) {\n      if (err && err.name === 'AbortError'
   `${CHAT}: the catch block no longer distinguishes AbortError from a real failure`)
 check(chat.includes('if (last && last.role === \'assistant\' && !last.content) return m.slice(0, -1)'),
   `${CHAT}: the abort branch no longer cleans up an empty placeholder -- stopping before any text streamed back would leave a blank bubble forever`)
-check(chat.includes("} else if (!silent) {\n        // A silent open never pushed a placeholder"),
+check(chat.includes("} else if (!isSilentTurn) {\n        // A silent turn (session-open or post-capture) never pushed a"),
   `${CHAT}: the real-failure branch (the pre-existing fallback message) is no longer gated behind the AbortError check`)
 check(chat.includes('abortRef.current = null\n      setLoading(false)'),
   `${CHAT}: the finally block no longer clears abortRef.current -- a stale controller could be aborted again on a later, unrelated send`)
