@@ -97,6 +97,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // a time (the guard at the top of send() below returns early if loading is
   // already true), so a single ref is enough -- no collection needed.
   const abortRef = useRef(null)
+  // Handle to the mic button so send() can stop an in-progress recording the
+  // moment the person hits Send -- pressing Send means "I'm done talking,"
+  // and leaving the mic listening after that reads as the app not noticing.
+  const speechBtnRef = useRef(null)
   // The input grows with its content (2026-08-20). It was a fixed 2 rows, which
   // is fine for "how do I answer this?" and wrong for everything longer — a
   // prefilled seed or a dictated interview answer arrived scrolled to its last
@@ -431,6 +435,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     if (isSilentTurn) {
       setLoading(true)
     } else {
+      // Pressing Send (or Enter) means "I'm done talking" -- stop an
+      // in-progress dictation rather than leaving it listening into
+      // whatever the person says next.
+      if (speechBtnRef.current) speechBtnRef.current.stop()
       setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])
       setInput('')
       setLoading(true)
@@ -976,7 +984,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           resize: 'vertical', lineHeight: 1.4, minHeight: 62, maxHeight: 220, overflowY: 'auto',
         }}
       />
-      {hasSpeech && <SpeechBtn onResult={t => setInput((input || '') + t)} C={C} title="Speak your question" />}
+      {hasSpeech && <SpeechBtn ref={speechBtnRef} onResult={t => setInput((input || '') + t)} C={C} title="Speak your question" />}
       <button
         onClick={loading ? () => { if (abortRef.current) abortRef.current.abort() } : send}
         disabled={!loading && !input.trim()}

@@ -9,14 +9,20 @@
 //   setX((x||'') + t)} — the base is frozen at record-start, t accumulates).
 // `C` is optional; it defaults to the app's border/gray tokens so existing call
 // sites need not pass it.
-import { useState, useRef } from 'react'
+//
+// Ref API (2026-09-06): a caller with an action that means "I'm done talking"
+// -- Coach's Send button chief among them -- can pass a ref and call
+// `.stop()` on it to end an in-progress recording programmatically, the same
+// as the person clicking the mic again themselves. Optional: existing call
+// sites that never pass a ref are unaffected.
+import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
 import { Mic } from 'lucide-react'
 
 export const hasSpeech = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
 
 const DEFAULT_C = { border: '#E2E5EA', gray: '#3D4A5C' }
 
-export default function SpeechBtn({ onResult, style, C = DEFAULT_C, title }) {
+const SpeechBtn = forwardRef(function SpeechBtn({ onResult, style, C = DEFAULT_C, title }, ref) {
   const [listening, setListening] = useState(false)
   const recRef = useRef(null)
   const toggle = () => {
@@ -42,10 +48,15 @@ export default function SpeechBtn({ onResult, style, C = DEFAULT_C, title }) {
     rec.start()
     setListening(true)
   }
+  useImperativeHandle(ref, () => ({
+    stop: () => { if (listening) recRef.current?.stop() },
+  }))
   return <>
     <style>{"@keyframes recordingPulse{0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,0.6)}50%{box-shadow:0 0 0 8px rgba(231,76,60,0)}}"}</style>
     <button onClick={toggle} title={listening ? 'Recording. Click to stop.' : (title || 'Speak instead of typing')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 10, border: `2px solid ${listening ? '#e74c3c' : C.border}`, background: listening ? '#e74c3c' : 'white', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0, ...(listening ? { animation: 'recordingPulse 1.5s infinite' } : {}), ...(style || {}) }}>
       <Mic size={18} color={listening ? '#FFFFFF' : C.gray} />
     </button>
   </>
-}
+})
+
+export default SpeechBtn
