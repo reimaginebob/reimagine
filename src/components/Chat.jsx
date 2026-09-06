@@ -37,7 +37,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -538,6 +538,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const msgId = res.headers.get('X-Coach-Message-Id') || null
         const ouHeader = res.headers.get('X-Coach-Opportunity-Update') || null
         const ocrHeader = res.headers.get('X-Coach-Op-Card-Rework') || null
+        const occHeader = res.headers.get('X-Coach-Opportunity-Context') || null
         const vcHeader = res.headers.get('X-Coach-Values') || null
         const assessHeader = res.headers.get('X-Coach-Assessment') || null
         const brHeader = res.headers.get('X-Coach-Brand-Rework') || null
@@ -651,6 +652,30 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 checkinKey: 'op-card-rework',
                 quickReplies: [
                   { label: `Update ${label}`, value: JSON.stringify(data) },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Opportunity context: durable, non-person-attached intel about the
+        // opportunity itself, appended to the same free-text field the
+        // Interview Team card's own "opportunity context" box writes to.
+        // ADDS to whatever is already there, same append contract as
+        // assessment capture above -- never a replace, so a tap can never
+        // look like it could wipe out real intel already logged.
+        if (opportunityContextCaptureActive && occHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(occHeader), c => c.charCodeAt(0))))
+            const text = data && typeof data.text === 'string' ? data.text.trim() : ''
+            if (text) {
+              const where = data.opportunity ? ` to ${data.opportunity}'s context` : " to this opportunity's context"
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to add this${where}? It adds to whatever's already there, and it'll shape Interview Prep the next time you build it.\n\n${text}`,
+                checkinKey: 'opportunity-context',
+                quickReplies: [
+                  { label: 'Add it', value: JSON.stringify(data), followUp: "Added to the opportunity's context." },
                   { label: 'Not now', value: 'dismiss' },
                 ],
               }])
