@@ -67,10 +67,12 @@ check(coach.includes("res.setHeader('X-Coach-Opportunity-Update', opportunityUpd
 check(!coach.includes("X-Coach-Interviewers'") && !coach.includes("X-Coach-Pipeline',"),
   `${COACH}: the old X-Coach-Interviewers/X-Coach-Pipeline headers are still emitted alongside the merged one`)
 
-// Removing or editing an existing Interview Team member is explicitly out of
-// scope for this pass -- higher stakes, deferred deliberately.
-check(coach.includes('Removing or editing someone already on the Interview Team is not something you can capture this way'),
-  `${COACH}: OPPORTUNITY_UPDATE_CAPTURE_NOTE no longer declines to handle removing/editing an existing interviewer`)
+// Removal was added 2026-09-06 (deletion/retraction Tier 1) -- guarded in
+// scripts/test-coach-interview-team-removal.mjs. Editing a person already on
+// the roster (as opposed to removing them entirely) is still explicitly out
+// of scope -- higher stakes, deferred deliberately.
+check(coach.includes('Editing an existing person') && coach.includes('role, title, or note (as opposed to removing them entirely) is still not something you can capture this way'),
+  `${COACH}: OPPORTUNITY_UPDATE_CAPTURE_NOTE no longer declines to handle editing an existing interviewer`)
 
 // The recap-and-invite confirmation is client-built, never model-phrased --
 // the model must not also verbally ask "should I update this" itself.
@@ -137,7 +139,7 @@ check(app.includes("import { PURSUIT_STAGES, PURSUIT_STAGE_LABELS } from \"./pur
 
 const opportunityUpdateWriteIdx = app.indexOf("if(checkinKey==='opportunity-update'){")
 check(opportunityUpdateWriteIdx !== -1, `${APP}: the opportunity-update quick-reply write path is missing`)
-const opportunityUpdateWriteBlock = opportunityUpdateWriteIdx !== -1 ? app.slice(opportunityUpdateWriteIdx, opportunityUpdateWriteIdx + 2000) : ''
+const opportunityUpdateWriteBlock = opportunityUpdateWriteIdx !== -1 ? app.slice(opportunityUpdateWriteIdx, opportunityUpdateWriteIdx + 3200) : ''
 // The learned_note fix must survive the merge: threading the captured note
 // through as learned_note instead of hardcoding it empty.
 check(!opportunityUpdateWriteBlock.includes("learned_note:''"),

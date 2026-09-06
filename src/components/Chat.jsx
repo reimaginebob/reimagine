@@ -37,7 +37,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -539,9 +539,11 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const ouHeader = res.headers.get('X-Coach-Opportunity-Update') || null
         const ocrHeader = res.headers.get('X-Coach-Op-Card-Rework') || null
         const occHeader = res.headers.get('X-Coach-Opportunity-Context') || null
+        const oaHeader = res.headers.get('X-Coach-Opportunity-Archive') || null
         const vcHeader = res.headers.get('X-Coach-Values') || null
         const repHeader = res.headers.get('X-Coach-Reputation') || null
         const skillsHeader = res.headers.get('X-Coach-Skills') || null
+        const skillsRemoveHeader = res.headers.get('X-Coach-Skills-Remove') || null
         const prioritiesHeader = res.headers.get('X-Coach-Priorities') || null
         const lifeStoryHeader = res.headers.get('X-Coach-Life-Story') || null
         const assessHeader = res.headers.get('X-Coach-Assessment') || null
@@ -613,7 +615,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             const move = data && typeof data.move === 'string' ? data.move.trim() : ''
             const meeting = data && typeof data.meeting === 'string' ? data.meeting.trim() : ''
             const people = (data && Array.isArray(data.people) ? data.people : []).filter(p => p && p.name)
-            if (stage || move || meeting || people.length) {
+            const removePeople = (data && Array.isArray(data.removePeople) ? data.removePeople : []).filter(n => typeof n === 'string' && n.trim())
+            if (stage || move || meeting || people.length || removePeople.length) {
               // Formatted in UTC: these are calendar days, not instants, and a
               // local rendering can show the day before.
               const fmt = d => new Date(`${d}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
@@ -622,6 +625,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               if (move) heard.push(`Next move: ${move}${data.date ? ` — ${fmt(data.date)}` : ' — no date set'}`)
               if (meeting) heard.push(`Next scheduled meeting: ${fmt(meeting)}`)
               if (people.length) heard.push(`Interview Team: ${people.map(p => p.name).join(', ')}`)
+              if (removePeople.length) heard.push(`Remove from Interview Team: ${removePeople.join(', ')}`)
               const where = data.opportunity ? ` on ${data.opportunity}` : ''
               const ask = (move && !data.date)
                 ? "I didn't catch a date for that — anything else, or is that everything?"
@@ -686,6 +690,27 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             }
           } catch { /* malformed header — no offer */ }
         }
+        // Opportunity archive (2026-09-06, deletion/retraction Tier 1): the
+        // person is done tracking this one. Says plainly it archives, not
+        // deletes, and that it is recoverable -- the same honesty the
+        // screen's own "Remove from pipeline" language already uses.
+        if (opportunityArchiveCaptureActive && oaHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(oaHeader), c => c.charCodeAt(0))))
+            const opportunity = data && typeof data.opportunity === 'string' ? data.opportunity.trim() : ''
+            if (opportunity) {
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to take ${opportunity} off your active pipeline? It moves to Archived, not gone — you can restore it any time in the next 90 days.`,
+                checkinKey: 'opportunity-archive',
+                quickReplies: [
+                  { label: `Archive ${opportunity}`, value: JSON.stringify(data), followUp: 'Archived.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
         // Save-to-notes: the server saw an explicit request to keep this reply
         // and set X-Coach-Note-Offer. The content offered is this reply's own
         // text -- exactly what the manual "Save to this opportunity" button
@@ -739,6 +764,30 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 checkinKey: 'skills-capture',
                 quickReplies: [
                   { label: 'Add it', value: JSON.stringify(data), followUp: 'Added to your Skills screen.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Skills removal (2026-09-06): same gate as the add offer above --
+        // one account eligibility, two directions. Named items are shown
+        // back in full; the client write path is the one that actually
+        // checks each name against the real current list, so a name that
+        // does not match anything simply removes nothing rather than
+        // erroring.
+        if (skillsCaptureActive && skillsRemoveHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(skillsRemoveHeader), c => c.charCodeAt(0))))
+            const CAT_LABEL = { technical: 'Technical and tools', systems: 'Systems and platforms', certifications: 'Certifications', languages: 'Languages', methodologies: 'Methodologies and frameworks' }
+            const parts = Object.keys(CAT_LABEL).map(k => (data && Array.isArray(data[k]) && data[k].length) ? `${CAT_LABEL[k]}: ${data[k].join(', ')}` : null).filter(Boolean)
+            if (parts.length) {
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to remove this from your Skills screen?\n\n${parts.join('\n')}`,
+                checkinKey: 'skills-remove',
+                quickReplies: [
+                  { label: 'Remove it', value: JSON.stringify(data), followUp: 'Removed from your Skills screen.' },
                   { label: 'Not now', value: 'dismiss' },
                 ],
               }])
