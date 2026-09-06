@@ -81,6 +81,27 @@ const chat = fs.readFileSync(CHAT, 'utf8')
 
 check(chat.includes("opportunityUpdateCaptureActive = false"),
   `${CHAT}: Chat no longer accepts an opportunityUpdateCaptureActive prop`)
+
+// Live-caught regression (2026-09-06): the merge carried over pipeline
+// capture's `!!coachSaveTarget()` requirement onto the WHOLE merged
+// mechanism, including the interview-team half that never had it --
+// interview-team capture used to resolve its target purely by title match
+// against saved opportunities (App.jsx's write path still does exactly
+// that, coachSaveTarget is only its fallback), so it used to work from any
+// screen, not just from inside a specifically-focused opportunity. Adding
+// the requirement silently meant a Coach reply about ANY opportunity not
+// currently open produced no offer at all, even when the model correctly
+// emitted the trailer and the header carried real data -- exactly what
+// happened live on a real Deloitte conversation the day this shipped.
+for (const app of ['src/App.jsx']) {
+  const src = fs.readFileSync(app, 'utf8')
+  const propOccurrences = (src.match(/opportunityUpdateCaptureActive=\{[^}]*\}/g) || [])
+  check(propOccurrences.length === 2, `${app}: expected opportunityUpdateCaptureActive on both <Chat> mounts, found ${propOccurrences.length}`)
+  for (const occ of propOccurrences) {
+    check(!occ.includes('coachSaveTarget'),
+      `${app}: ${occ} still requires coachSaveTarget() -- this narrows the merged mechanism to only fire inside a focused opportunity, a real regression from interview-team capture's old (broader) title-match-only gating`)
+  }
+}
 check(chat.includes("res.headers.get('X-Coach-Opportunity-Update')"),
   `${CHAT}: Chat no longer reads the merged X-Coach-Opportunity-Update header`)
 check(!chat.includes("X-Coach-Interviewers") && !chat.includes("X-Coach-Pipeline"),
