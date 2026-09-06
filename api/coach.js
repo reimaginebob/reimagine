@@ -1311,8 +1311,20 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
 
   const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".]` : ''
 
+  // 50, not 10 (2026-09-06): matches the client's own persistence cap
+  // (App.jsx localStorage.setItem('reimagine_chat_history', ...chatMessages.slice(-50)))
+  // rather than quietly discarding 4/5 of what the browser already keeps. The
+  // old 10-message window meant Coach could lose track of something it said
+  // (or was told) just a few exchanges ago -- easy to hit in one sitting on a
+  // product meant to be leaned on throughout the whole session, not just a
+  // long-running conversation across days. This is about near-term
+  // conversational coherence, not durable memory -- anything that needs to
+  // survive indefinitely still belongs in a captured field (stage, notes,
+  // opportunity context, values), read fresh from the profile every turn
+  // regardless of window size; no fixed history window, however large, is a
+  // substitute for that.
   const messages = [
-    ...history.slice(-10).map(m => ({ role: m.role, content: m.content })),
+    ...history.slice(-50).map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: message + contextNote },
   ]
 
