@@ -7622,7 +7622,8 @@ export default function PivotEngine(){
       const move=data&&typeof data.move==='string'?data.move.trim():''
       const meeting=data&&typeof data.meeting==='string'?data.meeting.trim():''
       const people=data&&Array.isArray(data.people)?data.people.filter(p=>p&&p.name):[]
-      if(!stage&&!move&&!meeting&&!people.length)return false
+      const removePeople=data&&Array.isArray(data.removePeople)?data.removePeople.filter(n=>typeof n==='string'&&n.trim()):[]
+      if(!stage&&!move&&!meeting&&!people.length&&!removePeople.length)return false
       const oppName=String(data.opportunity||'').trim().toLowerCase()
       const match=oppName?activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName)):null
       const tgt=coachSaveTarget()
@@ -7637,7 +7638,25 @@ export default function PivotEngine(){
       if(move&&data.date)patch.next_step_at=new Date(`${data.date}T12:00:00Z`).toISOString()
       if(meeting)patch.next_conversation_at=new Date(`${meeting}T12:00:00Z`).toISOString()
       if(Object.keys(patch).length)savePursuit(targetId,patch)
-      if(people.length)updateOpPanel(targetId,p=>({...p,interviewers:[...p.interviewers,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:(typeof pe.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===pe.role))?pe.role:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:String(pe.note||'')}))]}))
+      // Interview Team removal (2026-09-06): the model names people already
+      // on the roster; existence is checked here, against the real current
+      // list, not assumed -- a hallucinated or mismatched name is simply
+      // dropped from `removed` rather than silently doing nothing while
+      // claiming success. Add and remove apply in ONE updateOpPanel call so
+      // a name that is both being removed and re-added in the same trailer
+      // (a genuine edge case, not the normal path) resolves deterministically
+      // rather than racing two separate state updates.
+      let removed=[]
+      if(people.length||removePeople.length){
+        updateOpPanel(targetId,p=>{
+          const keep=p.interviewers.filter(iv=>{
+            const hit=removePeople.some(n=>n.trim().toLowerCase()===String(iv.name||'').trim().toLowerCase())
+            if(hit)removed.push(iv.name)
+            return!hit
+          })
+          return{...p,interviewers:[...keep,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:(typeof pe.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===pe.role))?pe.role:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:String(pe.note||'')}))]}
+        })
+      }
       const savedRec=activePlaybooks.find(r=>r&&r.id===targetId)
       const savedTitle=(savedRec&&savedRec.title)||'this opportunity'
       const fmtDay=(iso)=>new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})
@@ -7646,6 +7665,8 @@ export default function PivotEngine(){
       if(move)landed.push(`next move is now “${move}”${data.date?`, by ${fmtDay(data.date)}`:''}`)
       if(meeting)landed.push(`next scheduled meeting is ${fmtDay(meeting)}`)
       if(people.length)landed.push(`Interview Team now includes ${people.map(p=>p.name).join(', ')}`)
+      if(removed.length)landed.push(`Interview Team no longer includes ${removed.join(', ')}`)
+      if(!landed.length)return false
       return{content:`Saved. On ${savedTitle}, your ${landed.join(', and your ')}.`,
         checkinKey:'pursuit-saved-open',
         quickReplies:[{label:`Open ${savedTitle}`,value:targetId},{label:'Stay here',value:'dismiss'}]}
@@ -7695,6 +7716,19 @@ export default function PivotEngine(){
       const targetId=(match&&match.id)||(tgt&&tgt.id)||null
       if(!targetId)return false
       updateOpPanel(targetId,p=>({...p,opportunity_context:(p.opportunity_context&&p.opportunity_context.trim()?p.opportunity_context.trim()+'\n\n':'')+text}))
+      return true
+    }
+    // Opportunity archive (2026-09-06, deletion/retraction Tier 1). Routes
+    // through deleteFromSavedSet -- the exact function the screen's own
+    // "Remove from pipeline" button calls -- so a chat-driven archive is
+    // reversible the same way and shows up in Archived the same way.
+    if(checkinKey==='opportunity-archive'){
+      if(value==='dismiss')return true
+      let data;try{data=JSON.parse(value)}catch{return false}
+      const oppName=String(data.opportunity||'').trim().toLowerCase()
+      const match=oppName?activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName)):null
+      if(!match)return false
+      deleteFromSavedSet(match.id)
       return true
     }
     if(checkinKey==='interview-team'){
@@ -7766,6 +7800,29 @@ export default function PivotEngine(){
         const merged=[...existing]
         for(const s of add){const v=s.trim();if(!merged.some(e=>e.toLowerCase()===v.toLowerCase()))merged.push(v)}
         if(merged.length!==existing.length){next[cat]=merged;changed=true}
+      }
+      if(!changed)return false
+      pr('skills',next)
+      return true
+    }
+    // Skills removal (2026-09-06, deletion/retraction Tier 1). Case-
+    // insensitive exact-match filter against the REAL current list -- this
+    // is the actual existence check named items are validated against; a
+    // name that does not match anything already there removes nothing
+    // rather than erroring or claiming success.
+    if(checkinKey==='skills-remove'){
+      if(value==='dismiss')return true
+      let data;try{data=JSON.parse(value)}catch{return false}
+      const cats=['technical','systems','certifications','languages','methodologies']
+      const base=profile.skills||{technical:[],systems:[],certifications:[],languages:[],methodologies:[]}
+      const next={...base}
+      let changed=false
+      for(const cat of cats){
+        const remove=Array.isArray(data&&data[cat])?data[cat].filter(s=>typeof s==='string'&&s.trim()).map(s=>s.trim().toLowerCase()):[]
+        if(!remove.length)continue
+        const existing=Array.isArray(base[cat])?base[cat]:[]
+        const kept=existing.filter(e=>!remove.includes(String(e).trim().toLowerCase()))
+        if(kept.length!==existing.length){next[cat]=kept;changed=true}
       }
       if(!changed)return false
       pr('skills',next)
@@ -14436,7 +14493,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
         {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
     </div>
     // Job Search Resources (docs/networking-groups-brief.md). Its own
     // destination, reachable from the first screen, needing no direction and no
@@ -16309,7 +16366,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>
