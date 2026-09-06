@@ -159,11 +159,26 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // bubble is suppressed on the 'myCoach' step -- see the render call below).
   // embedded is "always open" (no open/close state of its own), so mounting
   // it IS opening it; the floating variant fires when `open` flips true.
+  //
+  // 2026-09-06 fix: `open` also flips true when App.jsx's proactive pipeline
+  // check-in (pipelineCheckinOpener) force-opens the bubble via openRequest,
+  // on arrival at My Pipeline -- not just on a real tap from the person. That
+  // opener already asks "has anything moved on your pipeline" and pushes its
+  // own message before bumping openRequest, so this effect used to fire right
+  // behind it and answer its own question a beat later ("Nothing's shifted in
+  // your pipeline..."), reading as Coach greeting the person twice and
+  // contradicting itself in the same breath. Checking reimagine_pipeline_
+  // checkin_fired here is the same "whichever opener claims the welcome-back
+  // slot first, the other stands down" pattern already used for the Personal
+  // Brand delivery / check-in pair -- see test-onboarding-brand-delivery.mjs.
   useEffect(() => {
     if (!sessionOpenEligible) return
     if (!embedded && !open) return
     let already = false
-    try { already = sessionStorage.getItem('reimagine_session_recap_fired') === '1' } catch {}
+    try {
+      already = sessionStorage.getItem('reimagine_session_recap_fired') === '1' ||
+        sessionStorage.getItem('reimagine_pipeline_checkin_fired') === '1'
+    } catch {}
     if (already) return
     try { sessionStorage.setItem('reimagine_session_recap_fired', '1') } catch {}
     if (sendRef.current) sendRef.current(null, { silent: true })

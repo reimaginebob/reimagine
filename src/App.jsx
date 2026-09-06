@@ -8623,13 +8623,19 @@ export default function PivotEngine(){
   // for independent consultants elsewhere (Chat's opportunityUpdateCaptureActive
   // prop), and this opener leans on that same capture. Skipped entirely with
   // an empty pipeline -- "has anything moved" has nothing to answer against.
+  // Also skipped if the session-open recap (Chat.jsx, next_step pilot only)
+  // already fired this session on an earlier screen -- it already covers
+  // pipeline delta as part of its own mood-first opener, and asking again
+  // here would repeat something the person was just told. See the matching
+  // check on reimagine_pipeline_checkin_fired in Chat.jsx for the reverse
+  // ordering (arriving at My Pipeline first, opening Coach elsewhere second).
   useEffect(()=>{
     if(isDemo||isTest||isIndependent)return
     if(step!=='pipeline'||!signedInUser)return
     if(pipelineCheckinFiredRef.current)return
     if(!activePlaybooks.some(r=>r&&r.source==='door2'))return
     let already=false
-    try{already=sessionStorage.getItem('reimagine_pipeline_checkin_fired')==='1'}catch{}
+    try{already=sessionStorage.getItem('reimagine_pipeline_checkin_fired')==='1'||sessionStorage.getItem('reimagine_session_recap_fired')==='1'}catch{}
     if(already)return
     pipelineCheckinFiredRef.current=true
     try{sessionStorage.setItem('reimagine_pipeline_checkin_fired','1')}catch{}
