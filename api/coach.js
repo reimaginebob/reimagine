@@ -119,23 +119,37 @@ const OPPORTUNITY_UPDATE_CAPTURE_NOTE = '\n\nOPPORTUNITY UPDATE CAPTURE: each op
 // there and a tap should never look like it could wipe that out.
 const OPPORTUNITY_CONTEXT_CAPTURE_NOTE = '\n\nOPPORTUNITY CONTEXT CAPTURE: each opportunity has a free-text "opportunity context" field -- anything the person knows about it: how they came across it, insider intel, what the team has said, what the role is really testing for. It feeds Interview Prep whenever it is next built. When this person tells you something like that about an opportunity itself -- not a stage, move, meeting, or interviewer detail (those go through the opportunity-update capture instead), and not tied to a specific named person in the loop -- end your reply with a final line exactly like OPPORTUNITYCONTEXT: {"opportunity":"<the opportunity title from their saved work>","text":"<the context, tightened to the point, in their own words>"} . Emit it ONLY for something concrete and durable worth remembering, never for a passing remark, a question, or something that only matters this instant. The app turns that line into a one-tap offer -- appended to whatever is already in that field, never overwriting it -- and never shows the line itself, so do not mention it and do not tell them to type it in themselves. NEVER SAY YOU HAVE ADDED OR SAVED IT; their tap is the only thing that writes. At most once per reply; otherwise omit it entirely.'
 
-// MILESTONE PROMPTS, 2026-09-06. Phase 3 of the same brief, and the only one
-// of the three that captures nothing -- no trailer, no header, no tap, because
-// there is no content to write. Coach already receives, per in-focus
-// opportunity, which cards are built (WHAT IS BUILT ON THIS PLAYBOOK, via
-// buildPlaybookExpansion below) and its pursuit stage (buildPursuitStatusBlock
-// above); this is a pure instruction to notice a specific, bounded set of
-// milestones in that data and mention the relevant next card in prose, the
-// same way Coach already talks about any other part of the product. No
-// persisted "already mentioned" memory: rather than a first-of-its-kind
-// silent write with no tap behind it, this leans on the model's own
-// conversational memory (it can see its own prior turns) to avoid repeating
-// itself within one conversation. That does not stop a fresh conversation
-// from mentioning the same milestone again if the underlying gap is still
-// real -- worth watching in practice, and revisiting with a persisted flag
-// only if that turns out to actually read as nagging rather than as
-// noticing.
-const MILESTONE_PROMPT_NOTE = '\n\nMILESTONE PROMPTS: when you are discussing a specific saved opportunity whose build-state and stage are shown to you above, you may notice one of these and mention the relevant next card, once, in plain language, letting them decide -- never a task list, never more than one in a single reply, and never twice in this same conversation once you have already brought one up:\n- The opportunity is at applied or a later stage and its Cover Letter is not built -- you may mention building a Cover Letter.\n- The opportunity is at applied or a later stage and its Resume Refresh is not built -- you may mention refreshing the resume for this opportunity.\n- An interview is confirmed (the stage is interviewing or final round, or someone is on the Interview Team) and Interview Prep is not built -- you may mention building Interview Prep.\n- They describe an offer as imminent or already in hand, right here in this conversation, and Offer & Negotiation has no content yet -- you may mention starting Offer & Negotiation prep. This one comes from what they just told you, not from the stage field alone.\nName the card by its real name, exactly as it appears on their Opportunity Playbook -- About This Company, Where you fit, Bridge Story, Resume Refresh, Cover Letter, Interview Prep, Compensation, Offer & Negotiation -- never an internal id. This is a suggestion that fits naturally into what you are already talking about, not a rule to apply every turn -- most turns, none of these will be the right moment, and that is fine. You cannot build these for them or take them there yourself; say what it is for and let them decide, the same as anything else you point to in Reimagine.'
+// MILESTONE PROMPTS, 2026-09-06. Phase 3 of the same brief. v1 shipped with no
+// trailer, no header, no tap, because there was no content to write -- Coach
+// already receives, per in-focus opportunity, which cards are built (WHAT IS
+// BUILT ON THIS PLAYBOOK, via buildPlaybookExpansion below) and its pursuit
+// stage (buildPursuitStatusBlock above); this was a pure instruction to
+// notice a specific, bounded set of milestones in that data and mention the
+// relevant next card in prose. v1 deliberately had no persisted "already
+// mentioned" memory, leaning instead on the model's own conversational memory
+// (it can see its own prior turns) to avoid repeating itself within one
+// conversation, with an explicit note to revisit with a persisted flag "only
+// if that turns out to actually read as nagging rather than as noticing."
+//
+// It did. scripts/eval-milestone-repeat-live.mjs (PR #758/#759) probed the
+// exact edge the server's 50-message history window creates: 0/5 repeats
+// while the model could still see its own prior mention, 5/5 once that
+// mention aged past the window. A user leaning on Coach through one long,
+// active sitting -- the intended use -- will cross that boundary and get
+// re-nagged about something already covered.
+//
+// v2 adds the durable flag: a fully silent MILESTONEMENTIONED: <key> trailer
+// (parsed below, never shown, never a client capture -- same silent-log shape
+// as SELFCHECK, not the tap-to-write shape every OTHER capture note in this
+// file uses, because there is still no content for a person to confirm) that
+// records, per opportunity, which of the four milestones has already been
+// raised. buildCoachRequest below folds that history back in as a MILESTONE
+// PROMPTS ALREADY GIVEN block scoped to the in-focus record, so the
+// suppression survives both a dropped history window and a brand-new
+// conversation -- not just the current one.
+const MILESTONE_KEYS = ['coverLetter', 'resumeRefresh', 'interviewPrep', 'offerNegotiation']
+const MILESTONE_LABEL = { coverLetter: 'Cover Letter', resumeRefresh: 'Resume Refresh', interviewPrep: 'Interview Prep', offerNegotiation: 'Offer & Negotiation' }
+const MILESTONE_PROMPT_NOTE = '\n\nMILESTONE PROMPTS: when you are discussing a specific saved opportunity whose build-state and stage are shown to you above, you may notice one of these and mention the relevant next card, once, in plain language, letting them decide -- never a task list, never more than one in a single reply, and never twice in this same conversation once you have already brought one up. If a MILESTONE PROMPTS ALREADY GIVEN block is shown for this opportunity, never raise one listed there again, in this conversation or any later one, unless they ask about it directly:\n- The opportunity is at applied or a later stage and its Cover Letter is not built -- you may mention building a Cover Letter.\n- The opportunity is at applied or a later stage and its Resume Refresh is not built -- you may mention refreshing the resume for this opportunity.\n- An interview is confirmed (the stage is interviewing or final round, or someone is on the Interview Team) and Interview Prep is not built -- you may mention building Interview Prep.\n- They describe an offer as imminent or already in hand, right here in this conversation, and Offer & Negotiation has no content yet -- you may mention starting Offer & Negotiation prep. This one comes from what they just told you, not from the stage field alone.\nName the card by its real name, exactly as it appears on their Opportunity Playbook -- About This Company, Where you fit, Bridge Story, Resume Refresh, Cover Letter, Interview Prep, Compensation, Offer & Negotiation -- never an internal id. This is a suggestion that fits naturally into what you are already talking about, not a rule to apply every turn -- most turns, none of these will be the right moment, and that is fine. You cannot build these for them or take them there yourself; say what it is for and let them decide, the same as anything else you point to in Reimagine. Whenever you DO raise one of the four, end your reply with one additional, fully silent final line exactly like MILESTONEMENTIONED: coverLetter using one of these four keys only: coverLetter, resumeRefresh, interviewPrep, offerNegotiation -- whichever one you just raised. This line is never shown to them, never mentioned, and writes nothing they need to confirm; it only stops this same suggestion from resurfacing later. Omit it entirely on any reply that does not raise one of the four.'
 
 const ACTIVITY_CAPTURE_NOTE = '\n\nACTIVITY CAPTURE: when this person tells you something about the human side of their search -- that they joined a group, went to Career Club Corner, have someone holding them accountable, wrote directly to a company, asked anyone for an introduction, spoke to a recruiter, or looked at free help near them -- OR tells you plainly that they have not or do not want to, end your reply with a final line exactly like ACTIVITY: {"activity":"accountability_partner","state":"done","detail":"Marta, they talk Fridays"} using ONLY these activity keys: ' + ACTIVITY_CATALOG.filter(a => a.evidence === 'asked').map(a => a.key).join(', ') + '. `state` is one of done (they have it), not_yet (they told you they have not) or declined (they told you they do not want it). `detail` is optional, short, and in their own words. Emit it ONLY for something they actually said in this conversation, never for something you suggested and they have not answered, and never to restate what you were already told above. The app turns that line into a one-tap offer and never shows it, so do not mention it and do not ask them to type anything. NEVER SAY YOU HAVE SAVED IT -- their tap is the only thing that writes, and claiming an action you cannot perform is worse than not offering. At most one per reply; otherwise omit it entirely.'
 const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passions & Causes live on a screen in Reimagine called "Values, Passions & Causes", and you can offer to write them there. When a conversation has settled into a statement of their values or their passions and causes that they seem happy with — their words and their conclusions, not a list you proposed and they have not responded to — end your reply with a final line exactly like VALUESCAPTURE: {"values":"Independence; Creative problem solving; Belonging","passions":"Youth mentoring; Faith-based service"} carrying whichever of the two you have. Include a key ONLY for a field the conversation actually settled; omit the other entirely. Write each as a short semicolon-separated list in their own words, not a paragraph and not your paraphrase. If ANCHOR 1 shows a field already has content, only emit it when they have clearly landed somewhere new — the tap replaces what is there. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
@@ -989,6 +1003,20 @@ function findInFocusRecord(savedPlaybooks, message, history) {
   return null
 }
 
+// Milestone Prompts durable memory (2026-09-06). Renders the subset of
+// milestoneMentions rows that belong to this record as a block
+// MILESTONE_PROMPT_NOTE's own text points to by name. Returns '' for a record
+// with nothing logged yet (the normal case for most opportunities, most of
+// the time) so an unflagged account or an empty history costs nothing.
+function buildAlreadyMentionedBlock(recordId, milestoneMentions) {
+  if (!recordId || !Array.isArray(milestoneMentions) || !milestoneMentions.length) return ''
+  const labels = milestoneMentions
+    .filter(m => m && m.record_id === recordId && MILESTONE_LABEL[m.milestone])
+    .map(m => MILESTONE_LABEL[m.milestone])
+  if (!labels.length) return ''
+  return `\n\nMILESTONE PROMPTS ALREADY GIVEN FOR THIS OPPORTUNITY (do not raise these again, in this conversation or any later one, unless they ask): ${labels.join(', ')}.`
+}
+
 // Build the IN FOCUS block: always-on anchor (door2: JD + The Role; door1: the
 // direction + lane + The Role) plus the one intent-matched section, each capped.
 function buildPlaybookExpansion(record, intent) {
@@ -1260,7 +1288,7 @@ export function buildCoachRequest({
   message, history, currentStep, surface, returnSection, focusRecordId,
   profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
   userEmail, track, activityFacts, priorSessionAt, sessionOpenRequested,
-  generalMode,
+  generalMode, milestoneMentions,
 }) {
   const isIndependentTrack = !generalMode && track === TRACK_INDEPENDENT
   const goIndependentBlock = isIndependentTrack
@@ -1279,14 +1307,17 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, isIndependentTrack, activityFacts, priorSessionAt, sessionOpenRequested)
   const nowLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
   profileBlock = `TODAY'S DATE: ${nowLabel} (UTC). Use this as the reference point for anything time-related — whether a date is in the past or still upcoming, how long something has been sitting, how overdue a step is. Where the pipeline status below already gives a computed figure ("due in 6 days", "OVERDUE by 12 days", "in pipeline 74 days"), that figure is authoritative: trust it over any date math you do yourself, and if a step's free-text wording names a different date, do not treat that typed date as the deadline. Never assert an elapsed time you cannot derive from the dates you were actually given. If anything in the data looks inconsistent, reconcile it silently and state the corrected fact plainly — never narrate your own correction to the person ("wait, let me correct that", "the system is showing...", thinking out loud). Just tell them the accurate picture.\n\n${profileBlock}`
+  let inFocusRecordId = null
   if (!generalMode) try {
     const activeSaved = Array.isArray(profileState && profileState.savedPlaybooks) ? profileState.savedPlaybooks.filter(r => r && !r.archivedAt) : []
     const pinnedId = typeof focusRecordId === 'string' ? focusRecordId.trim() : ''
     const pinned = pinnedId ? activeSaved.find(r => r && r.id === pinnedId) : null
     const inFocus = pinned || findInFocusRecord(activeSaved, message, history)
     if (inFocus) {
+      inFocusRecordId = inFocus.id
       const expansion = buildPlaybookExpansion(inFocus, detectIntent(message))
       if (expansion) profileBlock += '\n\n' + expansion
+      profileBlock += buildAlreadyMentionedBlock(inFocus.id, milestoneMentions)
     }
   } catch (err) {
     console.error('coach in-focus expansion failed:', err)
@@ -1335,7 +1366,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
     { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
   ]
 
-  return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel }
+  return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId }
 }
 
 export default async function handler(req, res) {
@@ -1451,6 +1482,19 @@ export default async function handler(req, res) {
       console.error('coach activity-facts read failed:', err)
     }
   }
+  // Milestone Prompts durable memory (2026-09-06, post-eval -- see the comment
+  // above MILESTONE_PROMPT_NOTE). Gated on the same flag the prompt note
+  // itself is gated on: an account without milestone_prompt never receives
+  // the instruction that would write a row here, so the read would always
+  // come back empty for them anyway. Best-effort, same as activityFacts above.
+  let milestoneMentions = []
+  if (!generalMode && hasMilestonePrompt({ feature_flags: featureFlags, email: user.email })) {
+    try {
+      milestoneMentions = await sql`SELECT record_id, milestone FROM coach_milestone_mentions WHERE user_id = ${user.id}`
+    } catch (err) {
+      console.error('coach milestone-mentions read failed:', err)
+    }
+  }
   // Session-open recap, authoritative half. featureFlags is loaded now, so this
   // is the real gate: general mode never gets it, and neither does an account
   // without the next_step pilot, regardless of what the client sent.
@@ -1520,12 +1564,12 @@ export default async function handler(req, res) {
   // chat_messages; see migrations/2026-06-12_coach-insight-foundation.sql). All
   // known here at write-time — no classifier. Classified attributes are NOT
   // computed here; the nightly job (api/admin/classify-coach.js) fills those.
-  const { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel } = buildCoachRequest({
+  const { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId } = buildCoachRequest({
     message, history, currentStep, surface, returnSection,
     focusRecordId: typeof (req.body && req.body.focusRecordId) === 'string' ? req.body.focusRecordId.trim() : '',
     profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
     userEmail: user.email, track, activityFacts, priorSessionAt: user.prior_session_at, sessionOpenRequested,
-    generalMode,
+    generalMode, milestoneMentions,
   })
   const turnIndex = Array.isArray(history) ? history.length : 0
   const entryPoint = (surface === 'help' || surface === 'sidebar') ? surface : null
@@ -1690,6 +1734,19 @@ export default async function handler(req, res) {
   const selfcheckSurfaced = feature ? 'prose' : 'none'
   const strippedText0 = selfcheckStripped.trim()
   let strippedText = strippedText0
+  // Milestone-mention durable flag (2026-09-06, post-eval -- see the comment
+  // above MILESTONE_PROMPT_NOTE). Same silent-log shape as SELFCHECK just
+  // above: nothing renders, nothing the person taps, no response header. The
+  // model may end a reply that raised one of the four milestones with a bare
+  // MILESTONEMENTIONED: <key> line; validated against the fixed four-key enum
+  // so a malformed value is dropped rather than stored, same discipline as
+  // every other capture note's JSON validation.
+  let milestoneMentionedKey = null
+  const mmMatch = strippedText.match(/^\s*MILESTONEMENTIONED:\s*(\w+)\s*$/im)
+  if (mmMatch) {
+    strippedText = strippedText.replace(mmMatch[0], '').trim()
+    if (MILESTONE_KEYS.includes(mmMatch[1])) milestoneMentionedKey = mmMatch[1]
+  }
   // Activity capture: the model may end with an ACTIVITY: {json} line recording
   // something about the human half of the search -- a group joined, an
   // accountability partner, a note written directly. Validated against the
@@ -1955,6 +2012,24 @@ export default async function handler(req, res) {
         WHERE id = ${rowId}
       `
     } catch { /* columns not migrated yet; ignore */ }
+  }
+
+  // Milestone-mention durable write, AFTER the reply is already sent -- the
+  // reply is delivered either way; a failed insert here only means the same
+  // milestone might surface again later, which is the pre-existing v1
+  // behavior, not a new failure mode. inFocusRecordId is null whenever the
+  // in-focus lookup found nothing, in which case there is no opportunity to
+  // scope the row to and the key is dropped rather than written unscoped.
+  if (milestoneMentionedKey && inFocusRecordId) {
+    try {
+      await sql`
+        INSERT INTO coach_milestone_mentions (user_id, record_id, milestone)
+        VALUES (${user.id}, ${inFocusRecordId}, ${milestoneMentionedKey})
+        ON CONFLICT (user_id, record_id, milestone) DO NOTHING
+      `
+    } catch (err) {
+      console.error('coach milestone-mention insert failed:', err)
+    }
   }
 
   // Cost logging for the Economics tab. Best-effort and awaited (serverless may
