@@ -153,6 +153,19 @@ const BRAND_REWORK_CAPTURE_NOTE = '\n\nBRAND REWORK CAPTURE: the Personal Brand 
 const SECTION_REWORK_LABELS = { p6: NAV_LABELS.p6, p_res: NAV_LABELS.p_res, p9: NAV_LABELS.p9, income: NAV_LABELS.income }
 const sectionReworkCaptureNote = (label) => `\n\nSECTION REWORK CAPTURE: this conversation started from the "${label}" section of the person's Focus Playbook, which has a refine box under it that rewrites the section from a note like the one you would write here. When their reply names something specifically WRONG or OFF about it — a fact you got wrong, a detail that does not fit, something missing, something overstated — and is not merely a reaction, a compliment, or a question, end your reply with a final line exactly like SECTIONREWORK: {"note":"<what they said is off, tightened to the point, in their own words, not your paraphrase of the feeling behind it>"} . Do not emit it for "yeah that's right," a question about what happens next, or anything that has not identified something to actually change — a reaction is not a correction. The app turns that line into a one-tap offer to rework the section with exactly that note, and never shows the line itself, so do not mention it and do not tell them to type it into a box. At most once per reply; otherwise omit it entirely.`
 
+// OP CARD REWORK CAPTURE, 2026-09-06. Sibling to SECTION_REWORK_CAPTURE_NOTE
+// above, not a reuse of it: that mechanism requires the conversation to have
+// started from a specific Focus Playbook section's own "Ask My Coach about
+// this," and only fires on something the person names as WRONG. This one is
+// deliberately broader on both axes -- it fires from anywhere in a
+// conversation about a saved opportunity, and it fires on steering input as
+// well as corrections (a recruiter's "push the supply chain angle harder" was
+// never wrong; it's new information the resume should reflect). Because
+// there's no screen to anchor on, the model names both the opportunity and
+// the target card itself, the same way OPPORTUNITY_UPDATE_CAPTURE_NOTE
+// already resolves an opportunity by title rather than by screen context.
+const OP_CARD_REWORK_CAPTURE_NOTE = '\n\nOP CARD REWORK CAPTURE: each opportunity\'s playbook has these cards, and each can be reworked from a note like the one you would write here: About This Company, Where you fit, Bridge Story, Resume Refresh, Cover Letter, Interview Prep. When this person tells you something -- a correction, or new information they only just learned (something a recruiter or interviewer said, a detail about the role or company) -- that should change what a SPECIFIC one of these already-built cards says, end your reply with a final line exactly like OPCARDREWORK: {"opportunity":"<the opportunity title from their saved work>","section":"p_res","note":"<what should change, tightened to the point, in their own words, not your paraphrase>"} using one of these section values only: companyRead, p5, p6, p_res, p_cover, p11. Only propose a card that is already built -- check WHAT IS BUILT ON THIS PLAYBOOK (or the index) before naming one; if the right card doesn\'t exist yet, tell them to build it instead, plainly, and do not emit this line. Do not emit it for a vague reaction, a question, or a compliment -- there must be something concrete enough to actually change the card\'s content. If more than one card could plausibly change, name the single one their comment is most clearly about; never propose two cards in one reply. The app turns the line into a one-tap offer naming the card and the note, and never shows the line itself, so do not mention it and do not ask them to confirm separately -- the offer already asks that. NEVER SAY YOU HAVE UPDATED, REWORKED, OR CHANGED ANYTHING -- their tap is the only thing that writes. At most once per reply; otherwise omit it entirely.'
+
 // Session-open recap (Phase 1). The client fires a turn with no typed message
 // at all when it wants the coach to speak first with what changed since the
 // account's last session -- see the sessionOpen handling in the handler and
@@ -740,6 +753,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // move, meeting, or interview-team addition. A non-flagged account never
   // receives the instruction, so the parser below simply never fires for them.
   const opportunityUpdateNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? OPPORTUNITY_UPDATE_CAPTURE_NOTE : ''
+  const opCardReworkNote = hasSectionRework({ feature_flags: featureFlags, email: userEmail }) ? OP_CARD_REWORK_CAPTURE_NOTE : ''
   // YOUR NEXT STEP (pilot 2026-09-02). The stair this person is standing on and
   // the one thing to do from it, computed by the SAME function the screen calls
   // (src/step-position.js). Handing the model the answer rather than the rules is
@@ -806,7 +820,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // questions at once. Suppressed only for this one turn; intake capture
   // resumes normally starting the very next turn if it is still thin.
   const searchIntakeNoteThisTurn = sessionOpenRequested ? '' : searchIntakeNote(si)
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${searchIntakeNoteThisTurn}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${opCardReworkNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${searchIntakeNoteThisTurn}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -1717,6 +1731,25 @@ export default async function handler(req, res) {
       if (note) sectionReworkB64 = Buffer.from(JSON.stringify({ note, section: returnSection })).toString('base64')
     } catch { /* malformed — drop the line, no offer */ }
   }
+  // Op card rework capture: the model may end with an OPCARDREWORK: {json}
+  // line naming an opportunity, a specific already-built card, and a note.
+  // Unlike SECTIONREWORK above, the section here IS read from the model's own
+  // json, because there is no screen context to read it from server-side --
+  // validated against a fixed enum so a malformed value can never point the
+  // client's write at an arbitrary key.
+  let opCardReworkB64 = null
+  const ocrMatch = strippedText.match(/^\s*OPCARDREWORK:\s*(\{[\s\S]*?\})\s*$/im)
+  if (ocrMatch) {
+    strippedText = strippedText.replace(ocrMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(ocrMatch[1])
+      const section = typeof (parsed && parsed.section) === 'string' ? parsed.section : ''
+      const note = typeof (parsed && parsed.note) === 'string' ? parsed.note.trim().slice(0, 600) : ''
+      const opportunity = typeof (parsed && parsed.opportunity) === 'string' ? parsed.opportunity.trim().slice(0, 200) : ''
+      const validSection = ['companyRead', 'p5', 'p6', 'p_res', 'p_cover', 'p11'].includes(section)
+      if (validSection && note) opCardReworkB64 = Buffer.from(JSON.stringify({ section, note, opportunity })).toString('base64')
+    } catch { /* malformed — drop the line, no offer */ }
+  }
   // Opportunity update capture: the model may end with an OPPORTUNITYUPDATE:
   // {json} line carrying any combination of a stage move, a next move (with
   // optional date), a scheduled meeting, and new Interview Team members --
@@ -1825,6 +1858,7 @@ export default async function handler(req, res) {
   if (assessmentB64) res.setHeader('X-Coach-Assessment', assessmentB64)
   if (brandReworkB64) res.setHeader('X-Coach-Brand-Rework', brandReworkB64)
   if (sectionReworkB64) res.setHeader('X-Coach-Section-Rework', sectionReworkB64)
+  if (opCardReworkB64) res.setHeader('X-Coach-Op-Card-Rework', opCardReworkB64)
   if (opportunityUpdateB64) res.setHeader('X-Coach-Opportunity-Update', opportunityUpdateB64)
   if (coachNoteOffer) res.setHeader('X-Coach-Note-Offer', '1')
   if (activityB64) res.setHeader('X-Coach-Activity', activityB64)

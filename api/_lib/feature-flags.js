@@ -134,6 +134,17 @@ export function hasCoachNoteAgency(user) {
 // from onboarding_concierge on purpose -- unlike the p3 bridge, this fires
 // any time on these screens, not just during the onboarding delivery moment,
 // so it is its own rollout Bob can QC and toggle independently.
+//
+// Extended 2026-09-06 to also gate Card Rework: the same "a chat correction
+// reworks a specific piece of content" idea, applied to Opportunity Playbook
+// cards (companyRead, p5, p6, p_res, p_cover, p11) instead of Focus Playbook
+// sections, and without the screen-anchoring the original mechanism requires
+// -- Coach can propose a card rework from anywhere in an opportunity
+// conversation, not only when the chat was opened from that card's own "Ask
+// My Coach about this." Reusing this flag rather than adding a new one is a
+// deliberate choice: both are the same capability idea on two surfaces, and
+// during the pilot period both are staff-only regardless (isInternalAccount
+// auto-grants either way).
 export const SECTION_REWORK_FLAG = 'section_rework'
 
 export function hasSectionRework(user) {
