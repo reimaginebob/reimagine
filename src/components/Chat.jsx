@@ -3,6 +3,7 @@ import MD from './MD'
 import SpeechBtn, { hasSpeech } from './SpeechBtn'
 import { useIsMobile } from '../use-is-mobile.js'
 import { detectVoiceViolations } from '../voice-patterns.js'
+import { PURSUIT_STAGE_LABELS } from '../pursuit-stages.js'
 
 // intro: true opts this one message into the same collapse-to-strip
 // treatment as banner:true narration (see isCollapsedBanner below) without
@@ -35,7 +36,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, interviewTeamCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, pipelineCaptureActive = false, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -478,12 +479,11 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // it's readable without CORS config). Stash it on the assistant message so
         // the thumbs below it can attach a rating to that exact row.
         const msgId = res.headers.get('X-Coach-Message-Id') || null
-        const itHeader = res.headers.get('X-Coach-Interviewers') || null
+        const ouHeader = res.headers.get('X-Coach-Opportunity-Update') || null
         const vcHeader = res.headers.get('X-Coach-Values') || null
         const assessHeader = res.headers.get('X-Coach-Assessment') || null
         const brHeader = res.headers.get('X-Coach-Brand-Rework') || null
         const secHeader = res.headers.get('X-Coach-Section-Rework') || null
-        const pcHeader = res.headers.get('X-Coach-Pipeline') || null
         const acHeader = res.headers.get('X-Coach-Activity') || null
         const siHeader = res.headers.get('X-Coach-Search-Intake') || null
         const noteHeader = res.headers.get('X-Coach-Note-Offer') || null
@@ -531,15 +531,47 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           pursuitOfferedRef.current = true
           setMessages(m => [...m, pursuitOfferMessage])
         }
-        // Interview-team capture: the server extracted people the user named as
-        // interviewers onto the X-Coach-Interviewers header. Offer a one-tap add.
-        if (interviewTeamCaptureActive && itHeader) {
+        // Opportunity update capture: the server extracted any combination of a
+        // stage move, a next move (+ date), a scheduled meeting, and new
+        // Interview Team members onto X-Coach-Opportunity-Update -- one merged
+        // offer replacing the separate interview-team and pipeline offers this
+        // used to be (2026-09-06, folding a live-eval finding that several
+        // narrow, independently-authored capture notes compete for attention
+        // in Coach's full prompt; see OPPORTUNITY_UPDATE_CAPTURE_NOTE in
+        // api/coach.js). Recaps exactly what it heard, then asks what's
+        // missing -- naming the one gap this can actually detect (a move with
+        // no date) and asking generically otherwise. Never a flat yes/no: a
+        // person who gave four updates and had three caught is naturally going
+        // to say "wait, you forgot..." rather than "no."
+        if (opportunityUpdateCaptureActive && ouHeader) {
           try {
-            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(itHeader), c => c.charCodeAt(0))))
-            const names = (data && Array.isArray(data.people) ? data.people : []).map(p => p && p.name).filter(Boolean)
-            if (names.length) {
-              const where = data.opportunity ? ` to your ${data.opportunity} Interview Team` : ' to your Interview Team'
-              setMessages(m => [...m, { role: 'assistant', content: `It looks like you're interviewing with ${names.join(', ')}. Want me to add ${names.length > 1 ? 'them' : 'them'}${where}?`, checkinKey: 'interview-team', quickReplies: [{ label: 'Add to my team', value: JSON.stringify(data), followUp: 'Added to your Interview Team.' }, { label: 'Not now', value: 'dismiss' }] }])
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(ouHeader), c => c.charCodeAt(0))))
+            const stage = data && typeof data.stage === 'string' ? data.stage : ''
+            const move = data && typeof data.move === 'string' ? data.move.trim() : ''
+            const meeting = data && typeof data.meeting === 'string' ? data.meeting.trim() : ''
+            const people = (data && Array.isArray(data.people) ? data.people : []).filter(p => p && p.name)
+            if (stage || move || meeting || people.length) {
+              // Formatted in UTC: these are calendar days, not instants, and a
+              // local rendering can show the day before.
+              const fmt = d => new Date(`${d}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
+              const heard = []
+              if (stage) heard.push(`Stage: ${PURSUIT_STAGE_LABELS[stage] || stage}`)
+              if (move) heard.push(`Next move: ${move}${data.date ? ` — ${fmt(data.date)}` : ' — no date set'}`)
+              if (meeting) heard.push(`Next scheduled meeting: ${fmt(meeting)}`)
+              if (people.length) heard.push(`Interview Team: ${people.map(p => p.name).join(', ')}`)
+              const where = data.opportunity ? ` on ${data.opportunity}` : ''
+              const ask = (move && !data.date)
+                ? "I didn't catch a date for that — anything else, or is that everything?"
+                : 'Anything else, or is that everything?'
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Here's what I heard${where}:\n\n${heard.join('\n')}\n\n${ask}`,
+                checkinKey: 'opportunity-update',
+                quickReplies: [
+                  { label: "That's everything — update it", value: JSON.stringify(data), followUp: 'Updated.' },
+                  { label: 'Not yet', value: 'dismiss' },
+                ],
+              }])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -625,39 +657,6 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 checkinKey: 'section-rework',
                 quickReplies: [
                   { label: 'Yes, rework it', value: JSON.stringify(data), followUp: 'Reworking it now — give it a moment.' },
-                  { label: 'Not now', value: 'dismiss' },
-                ],
-              }])
-            }
-          } catch { /* malformed header — no offer */ }
-        }
-        // Pipeline capture: the server extracted a next move, a scheduled meeting,
-        // or both. Show the exact wording and the resolved dates ON the button —
-        // voice input is least reliable on names and numbers, and this is entirely
-        // names and numbers, so the interpretation has to be visible BEFORE the tap
-        // rather than discovered two weeks later when the plan is wrong.
-        if (pipelineCaptureActive && pcHeader) {
-          try {
-            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(pcHeader), c => c.charCodeAt(0))))
-            const move = data && typeof data.move === 'string' ? data.move.trim() : ''
-            const meeting = data && typeof data.meeting === 'string' ? data.meeting.trim() : ''
-            // Formatted in UTC: these are calendar days, not instants, and a local
-            // rendering can show the day before.
-            const fmt = d => new Date(`${d}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
-            if (move || meeting) {
-              const where = data.opportunity ? ` on ${data.opportunity}` : ''
-              // One offer covering whatever they said, so a sentence carrying both
-              // does not produce two competing buttons under one reply.
-              const lines = []
-              if (move) lines.push(`Next move: ${move}${data.date ? ` — ${fmt(data.date)}` : ' — no date set'}`)
-              if (meeting) lines.push(`Next scheduled meeting: ${fmt(meeting)}`)
-              const what = (move && meeting) ? 'both of those' : (meeting ? 'that meeting' : 'that')
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Want me to put ${what} on My Pipeline${where}? You can change it there any time.\n\n${lines.join('\n')}`,
-                checkinKey: 'pursuit-update',
-                quickReplies: [
-                  { label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to My Pipeline.' },
                   { label: 'Not now', value: 'dismiss' },
                 ],
               }])
