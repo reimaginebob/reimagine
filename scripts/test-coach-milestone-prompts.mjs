@@ -11,13 +11,17 @@
 // against, the riskiest of the three, so it gets its own rollout rather than
 // riding along on an existing flag's staff-only pass/fail.
 //
-// Deliberately does NOT persist a cross-session "already mentioned" flag --
-// that would be the first mechanism in this system where a model signal
-// writes state with no user tap behind it. v1 instead tells the model not to
-// repeat itself within one conversation (it can see its own prior turns),
-// accepting that a fresh conversation may raise the same still-real gap
-// again. This test guards that this is a deliberate choice, not a missing
-// feature.
+// v1 deliberately did NOT persist a cross-session "already mentioned" flag --
+// that would have been the first mechanism in this system where a model
+// signal writes state with no user tap behind it -- and instead told the
+// model not to repeat itself within one conversation (it can see its own
+// prior turns), accepting that a fresh conversation, or the same one once the
+// history window drops the prior mention, might raise the same still-real gap
+// again. This test guards that the in-conversation instruction below is still
+// present; it does not assert the ABSENCE of durable memory, since
+// scripts/eval-milestone-repeat-live.mjs went on to show the window gap was
+// real and scripts/test-coach-milestone-durable-memory.mjs now guards the v2
+// fix for it (a silent, DB-backed MILESTONEMENTIONED flag).
 import fs from 'node:fs'
 
 let failures = 0
