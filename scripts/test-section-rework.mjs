@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // Guards the 2026-09-05 generalization of the Personal Brand correction
-// bridge (brand-rework) to the four single-target Focus Playbook sections:
+// bridge (brand-rework) to the single-target Focus Playbook sections:
 // Bridge Story (p6), Resume Refresh (p_res), Industry Background (p9), and
-// Income Now (income). Unlike p3, these share one generic 'focus' step, so
-// the mechanism only activates when the conversation started from that
-// section's own "Ask My Coach about this" button (returnSection, threaded
-// from coachReturn) -- never from a cold reply on the always-on floating
-// bubble, where there would be no reliable way to know which section a
-// correction is about.
+// Income Now (income) -- extended 2026-09-06 to Go-to-Market (p7) and
+// LinkedIn Remix (p8), the two sections the structured-capture gap audit
+// found with no chat-driven rework path in either door. Unlike p3, these
+// share one generic 'focus' step, so the mechanism only activates when the
+// conversation started from that section's own "Ask My Coach about this"
+// button (returnSection, threaded from coachReturn) -- never from a cold
+// reply on the always-on floating bubble, where there would be no reliable
+// way to know which section a correction is about.
 import fs from 'node:fs'
 
 let failures = 0
@@ -28,8 +30,8 @@ check(/import \{[^}]*hasSectionRework[^}]*\} from '\.\/_lib\/feature-flags\.js'/
   `${COACH}: hasSectionRework is not imported`)
 check(/returnSection/.test(coach) && /req\.body \|\| \{\}/.test(coach),
   `${COACH}: returnSection is not destructured from the request body`)
-check(/const SECTION_REWORK_LABELS = \{ p6: NAV_LABELS\.p6, p_res: NAV_LABELS\.p_res, p9: NAV_LABELS\.p9, income: NAV_LABELS\.income \}/.test(coach),
-  `${COACH}: SECTION_REWORK_LABELS is missing or no longer keyed off NAV_LABELS -- a label rename would silently desync`)
+check(/const SECTION_REWORK_LABELS = \{ p6: NAV_LABELS\.p6, p_res: NAV_LABELS\.p_res, p9: NAV_LABELS\.p9, income: NAV_LABELS\.income, p7: NAV_LABELS\.p7, p8: NAV_LABELS\.p8 \}/.test(coach),
+  `${COACH}: SECTION_REWORK_LABELS is missing p7/p8 or no longer keyed off NAV_LABELS -- a label rename would silently desync`)
 check(/SECTIONREWORK: \{"note":/.test(coach),
   `${COACH}: sectionReworkCaptureNote lost the exact SECTIONREWORK trailer contract`)
 check(/const sectionReworkLabel = SECTION_REWORK_LABELS\[returnSection\]/.test(coach),
@@ -62,16 +64,16 @@ const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
 check(/const hasSectionRework=/.test(app),
   `${APP}: hasSectionRework client-side flag mirror is missing`)
-check(/const sectionReworkTarget=hasSectionRework&&coachReturn&&coachReturn\.step==='focus'&&\['p6','p_res','p9','income'\]\.includes\(coachReturn\.section\)\?coachReturn\.section:null/.test(app),
-  `${APP}: sectionReworkTarget is not derived from coachReturn, scoped to the four known sections, and gated on hasSectionRework`)
+check(/const sectionReworkTarget=hasSectionRework&&coachReturn&&coachReturn\.step==='focus'&&\['p6','p_res','p9','income','p7','p8'\]\.includes\(coachReturn\.section\)\?coachReturn\.section:null/.test(app),
+  `${APP}: sectionReworkTarget is not derived from coachReturn, scoped to the six known sections, and gated on hasSectionRework`)
 const mountHits = (app.match(/sectionReworkTarget=\{sectionReworkTarget\}/g) || []).length
 check(mountHits === 2,
   `${APP}: expected sectionReworkTarget={sectionReworkTarget} at both <Chat> mount sites, found ${mountHits}`)
 const branchIdx = app.indexOf("checkinKey==='section-rework'")
 check(branchIdx !== -1, `${APP}: the checkinKey==='section-rework' branch is missing from handleEmploymentQuickReply`)
 if (branchIdx !== -1) {
-  const branch = app.slice(branchIdx, branchIdx + 1400)
-  check(/if\(!note\|\|!\['p6','p_res','p9','income'\]\.includes\(section\)\)return false/.test(branch),
+  const branch = app.slice(branchIdx, branchIdx + 1900)
+  check(/if\(!note\|\|!\['p6','p_res','p9','income','p7','p8'\]\.includes\(section\)\)return false/.test(branch),
     `${APP}: the section-rework branch does not validate the section against the known allow-list before acting -- a malformed or unexpected value could reach a generation call`)
   check(/submitCorrection\(section,note,\(\)=>\{/.test(branch),
     `${APP}: the section-rework write no longer routes through submitCorrection with a proceed callback -- calling generateSection/generateP6 directly would skip the conflict-detection guard the RefineBox itself gets`)
@@ -87,5 +89,5 @@ if (failures) {
   console.error(`test-section-rework: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-section-rework: OK (flag + GRANTABLE_FLAGS entry, label map keyed off NAV_LABELS, trailer/header wired with section embedded server-side, client offer wired, write path validates the section and routes p6 through generateP6 / others through generateSection, all under submitCorrection\'s conflict guard)')
+  console.log('test-section-rework: OK (flag + GRANTABLE_FLAGS entry, label map keyed off NAV_LABELS incl. p7/p8, trailer/header wired with section embedded server-side, client offer wired, write path validates the section and routes p6 through generateP6 / others through generateSection, all under submitCorrection\'s conflict guard)')
 }
