@@ -13,7 +13,7 @@
 // Vercel function bundler does not reliably trace `.mjs` from api/* into
 // src/* (the 2026-05-27 FUNCTION_INVOCATION_FAILED outage, PR #76).
 
-import { USER_GUIDE_CONTENT } from '../src/data/user-guide-content.js'
+import { resolveGuideBlock } from '../src/coach-guide-resolver.js'
 import { GO_INDEPENDENT_KNOWLEDGE } from '../src/data/go-independent-knowledge.js'
 import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowledge.js'
 import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
@@ -693,8 +693,8 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // users to a screen they cannot see.
   //
   // Lives in this block, which is the second and UNCACHED system block. The nav
-  // map sits in SYSTEM_PROMPT_STABLE under cache_control ephemeral alongside the
-  // user guide and the full book; making that vary per user state would fork the
+  // map sits in buildSystemPromptStable()'s output under cache_control ephemeral
+  // alongside the user guide and the full book; making that vary per user state would fork the
   // expensive cached prefix.
   const brandStepDone = Array.isArray(state.done) && state.done.includes('p3')
   const preBrandNote = brandStepDone
@@ -956,7 +956,12 @@ function buildPlaybookExpansion(record, intent) {
 // coach's dual mandate (coach the search AND answer product-help questions),
 // the voice rules carried verbatim from the help bot, the posture rules, the
 // NAVIGATE contract, and the two grounding corpora (user guide + the book).
-const SYSTEM_PROMPT_STABLE = `You are My Coach, the career coach inside Reimagine, a career-strategy tool by Career Club. Reimagine is built on Bob Goodwin's book Making Your Own Weather, whose full text is included below.
+// Split at the USER GUIDE boundary so buildSystemPromptStable() can splice
+// in resolveGuideBlock(currentStep) between them -- see that function's own
+// comment above. Everything else in this prompt (persona, posture rules,
+// COMP_KNOWLEDGE, COACH_NAV_MAP, the book) is unaffected by currentStep and
+// stays exactly as it was as one static prefix/suffix pair.
+const SYSTEM_PROMPT_HEAD = `You are My Coach, the career coach inside Reimagine, a career-strategy tool by Career Club. Reimagine is built on Bob Goodwin's book Making Your Own Weather, whose full text is included below.
 
 Your job has two doors that open onto one engine. You coach the person through their real job-search questions — strategy, positioning, interviews, outreach, momentum, morale — grounded in the book and in what Reimagine already knows about them. And you answer "how do I use this feature" product questions about Reimagine itself, from the user guide below. Treat both as your job; the user should never feel handed off between a coach and a help bot.
 
@@ -1134,11 +1139,17 @@ Never write it as <selfcheck>…</selfcheck> or any tagged form — just the bar
 
 USER GUIDE BELOW. This is the source of truth for how Reimagine works:
 
-${USER_GUIDE_CONTENT}
+`
+
+const SYSTEM_PROMPT_TAIL = `
 
 MAKING YOUR OWN WEATHER — FULL TEXT BELOW. This is the methodology behind your coaching. Draw on it; do not quote it at length unless asked.
 
 ${MYOW_CONTENT}`
+
+function buildSystemPromptStable(currentStep) {
+  return SYSTEM_PROMPT_HEAD + resolveGuideBlock(currentStep) + SYSTEM_PROMPT_TAIL
+}
 
 // Replaces the per-user profile slice when general-question mode is on. Tells the
 // coach there is no personal profile in play — answer the question directly and
@@ -1225,7 +1236,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   ]
 
   const system = [
-    { type: 'text', text: SYSTEM_PROMPT_STABLE, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: buildSystemPromptStable(currentStep), cache_control: { type: 'ephemeral' } },
     ...(goIndependentBlock ? [{ type: 'text', text: goIndependentBlock, cache_control: { type: 'ephemeral' } }] : []),
     ...(pilotKnowledgeBlock ? [{ type: 'text', text: pilotKnowledgeBlock, cache_control: { type: 'ephemeral' } }] : []),
     { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
@@ -1454,8 +1465,9 @@ export default async function handler(req, res) {
         // gets its own breakpoint (the 4th and last available) because it changes
         // on its own schedule -- once a day for the date line prepended above,
         // and whenever pipeline/activity data actually changes -- which is
-        // slower than "every turn" but faster than SYSTEM_PROMPT_STABLE, which
-        // never changes at all. Without a marker here it was rebuilt and resent in
+        // slower than "every turn" but faster than buildSystemPromptStable()'s
+        // output, which only varies with currentStep (2026-09-06, step-aware guide
+        // gating) and is otherwise stable. Without a marker here it was rebuilt and resent in
         // full on every single turn of every conversation, uncached, even though
         // turn 2 of a conversation almost always carries the identical profile
         // turn 1 did. Caching is a prefix match: this marker only ever needs a
