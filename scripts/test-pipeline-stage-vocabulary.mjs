@@ -10,14 +10,16 @@ const check = (ok, msg) => { if (!ok) { failures++; console.error(`  FAIL ${msg}
 
 const NEW_STAGES = ['researching', 'applied', 'phone_screen', 'interviewing', 'final_round', 'offer', 'closed']
 
-// 1. src/App.jsx -- PURSUIT_STAGES, the source of truth for the dropdown and
-// the quick-reply labels (both derived from it, so no separate check needed).
-const APP = 'src/App.jsx'
-const app = fs.readFileSync(APP, 'utf8')
-check(!app.includes("{value:'in_conversation'"),
-  `${APP}: PURSUIT_STAGES still carries the retired in_conversation stage`)
-check(app.includes("{value:'phone_screen',label:'Phone Screen'}") && app.includes("{value:'final_round',label:'Final Round'}"),
-  `${APP}: PURSUIT_STAGES is missing phone_screen and/or final_round`)
+// 1. src/pursuit-stages.js -- PURSUIT_STAGES, the source of truth for the
+// dropdown and the quick-reply labels (both derived from it, so no separate
+// check needed). Extracted out of src/App.jsx on 2026-09-06 so Chat.jsx could
+// share it too, without duplicating the vocabulary a seventh time.
+const STAGES = 'src/pursuit-stages.js'
+const stagesSrc = fs.readFileSync(STAGES, 'utf8')
+check(!stagesSrc.includes("value: 'in_conversation'"),
+  `${STAGES}: PURSUIT_STAGES still carries the retired in_conversation stage`)
+check(stagesSrc.includes("{ value: 'phone_screen', label: 'Phone Screen' }") && stagesSrc.includes("{ value: 'final_round', label: 'Final Round' }"),
+  `${STAGES}: PURSUIT_STAGES is missing phone_screen and/or final_round`)
 
 // 2. src/step-position.js -- STAGE_STEP, mapping a stage onto the Staircase.
 const STEP = 'src/step-position.js'

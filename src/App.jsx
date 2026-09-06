@@ -16,6 +16,7 @@ import { findPersonalBrandTailBoundary, parsePersonalBrandTail, validatePersonal
 import { stripCoachSpeak, applyContaminationPlaceholders, stripLogicFlipCadence, stripSincerityQualifiers, stripRoomsPlaceholder, stripMetaNarration, stripCoverLetterBoilerplate, stripUnfoundedBiographicalOrigin } from "./text-strippers.mjs"
 import { asText, formatSkills, buildSynthesisContext, buildUserProfileBlock } from "./profile-block.mjs"
 import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
+import { PURSUIT_STAGES, PURSUIT_STAGE_LABELS } from "./pursuit-stages.js"
 import { ORIENTATION_NARRATION } from "./data/orientation-narration.js"
 // Sign-in clobber guard: the rule deciding when the debounced autosave may PUT.
 // Its module header documents the race in full; the short version is that the
@@ -4737,20 +4738,6 @@ const searchIntakeOpener=()=>({role:'assistant',content:"Before we get into it, 
 // (COACH_NOTE_CAPTURE_NOTE, api/coach.js); nothing here needs a second
 // mention.
 const notesCapabilityMessage=()=>({role:'assistant',content:"By the way — anytime something in here is worth keeping, just say so and I'll add it to this opportunity's notes so you can find it again.",checkinKey:'notes-capability-mention'})
-// My Search (brief 2026-08-14). Stage vocabulary shared by the card editor and
-// the Coach one-tap capture. value is the stored enum; label is the render-true
-// name. The tap is always the user's — the detector only decides whether to
-// offer, never what to write.
-const PURSUIT_STAGES=[
-  {value:'researching',label:'Researching'},
-  {value:'applied',label:'Applied'},
-  {value:'phone_screen',label:'Phone Screen'},
-  {value:'interviewing',label:'Interviewing'},
-  {value:'final_round',label:'Final Round'},
-  {value:'offer',label:'Offer'},
-  {value:'closed',label:'Closed'},
-]
-const PURSUIT_STAGE_LABELS=Object.fromEntries(PURSUIT_STAGES.map(s=>[s.value,s.label]))
 // Calendar-day state for a pursuit's "My Next Step" date. The date input stores
 // midnight-UTC of the day the user picked, so the UTC date slice is exactly that
 // calendar day; we compare it against today's LOCAL calendar day. A step due
@@ -4779,9 +4766,9 @@ const pursuitOfferMessage=(title)=>({role:'assistant',content:`Sounds like somet
 // Proactive pipeline check-in (2026-09-05, brief: "let Coach ask what it
 // doesn't know when something moves on your pipeline"). Opens the exchange
 // only -- the answer goes to the coach like any other message, and Coach's
-// own instructions (STAGE MOVE FOLLOW-THROUGH, INTERVIEW_TEAM_CAPTURE_NOTE,
-// PIPELINE_CAPTURE_NOTE, all in api/coach.js) do the rest through the same
-// one-tap offers those already use. No special handling needed here.
+// own instructions (OPPORTUNITY_UPDATE_CAPTURE_NOTE in api/coach.js) do the
+// rest through the same one-tap offer that note already produces. No special
+// handling needed here.
 const pipelineCheckinOpener=()=>({role:'assistant',content:"Before you dive in — has anything moved on your pipeline since you were last here? A new stage, an interview on the calendar, someone you're meeting with — tell me and I'll get it onto the right card.",checkinKey:'pipeline-checkin-opener'})
 
 const S={
@@ -7613,6 +7600,52 @@ export default function PivotEngine(){
       restoreFromSavedSlot(rec)
       return true
     }
+    // Opportunity update (2026-09-06): one merged offer covering a stage
+    // move, a next move (+ date), a scheduled meeting, and new Interview Team
+    // members in a single tap -- replaces the separate pursuit-update and
+    // interview-team mechanisms above (kept in place, not deleted, only so an
+    // unactioned offer already sitting in someone's chat history from before
+    // this shipped still works if tapped; the server stops emitting the
+    // headers that produce them going forward). See
+    // OPPORTUNITY_UPDATE_CAPTURE_NOTE in api/coach.js for why: live testing
+    // found several narrow, independently authored capture instructions
+    // competing for attention in Coach's full prompt, and the fix was fewer,
+    // broader instructions rather than one more narrow patch.
+    if(checkinKey==='opportunity-update'){
+      if(value==='dismiss')return true
+      let data;try{data=JSON.parse(value)}catch{return false}
+      const stage=data&&typeof data.stage==='string'&&PURSUIT_STAGES.some(s=>s.value===data.stage)?data.stage:''
+      const move=data&&typeof data.move==='string'?data.move.trim():''
+      const meeting=data&&typeof data.meeting==='string'?data.meeting.trim():''
+      const people=data&&Array.isArray(data.people)?data.people.filter(p=>p&&p.name):[]
+      if(!stage&&!move&&!meeting&&!people.length)return false
+      const oppName=String(data.opportunity||'').trim().toLowerCase()
+      const match=oppName?activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName)):null
+      const tgt=coachSaveTarget()
+      const targetId=(match&&match.id)||(tgt&&tgt.id)||null
+      if(!targetId)return false
+      // Same read-merge-write contract as pursuit-update above: send only the
+      // fields this offer actually carried, so an absent key never clears a
+      // value already on the card.
+      const patch={}
+      if(stage){patch.stage=stage;if(stage==='closed')patch.closed_at=new Date().toISOString()}
+      if(move)patch.next_move=move
+      if(move&&data.date)patch.next_step_at=new Date(`${data.date}T12:00:00Z`).toISOString()
+      if(meeting)patch.next_conversation_at=new Date(`${meeting}T12:00:00Z`).toISOString()
+      if(Object.keys(patch).length)savePursuit(targetId,patch)
+      if(people.length)updateOpPanel(targetId,p=>({...p,interviewers:[...p.interviewers,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:(typeof pe.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===pe.role))?pe.role:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:String(pe.note||'')}))]}))
+      const savedRec=activePlaybooks.find(r=>r&&r.id===targetId)
+      const savedTitle=(savedRec&&savedRec.title)||'this opportunity'
+      const fmtDay=(iso)=>new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})
+      const landed=[]
+      if(stage)landed.push(`stage is now ${PURSUIT_STAGE_LABELS[stage]||stage}`)
+      if(move)landed.push(`next move is now “${move}”${data.date?`, by ${fmtDay(data.date)}`:''}`)
+      if(meeting)landed.push(`next scheduled meeting is ${fmtDay(meeting)}`)
+      if(people.length)landed.push(`Interview Team now includes ${people.map(p=>p.name).join(', ')}`)
+      return{content:`Saved. On ${savedTitle}, your ${landed.join(', and your ')}.`,
+        checkinKey:'pursuit-saved-open',
+        quickReplies:[{label:`Open ${savedTitle}`,value:targetId},{label:'Stay here',value:'dismiss'}]}
+    }
     // Coach named interviewers the user mentioned; add them to the matching
     // opportunity's Interview Team (by title, or the open one).
     if(checkinKey==='interview-team'){
@@ -8586,8 +8619,8 @@ export default function PivotEngine(){
   // asking again every time they come back, unlike the one-time prompts above,
   // so this is capped via sessionStorage (mirroring sessionOpenNote's own
   // reimagine_session_recap_fired cap) rather than a profile-blob "seen" flag.
-  // Skipped on the practice track: interview-team capture is already off for
-  // independent consultants elsewhere (Chat's interviewTeamCaptureActive
+  // Skipped on the practice track: opportunity-update capture is already off
+  // for independent consultants elsewhere (Chat's opportunityUpdateCaptureActive
   // prop), and this opener leans on that same capture. Skipped entirely with
   // an empty pipeline -- "has anything moved" has nothing to answer against.
   useEffect(()=>{
@@ -14258,7 +14291,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
         {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture&&!!coachSaveTarget()} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
     </div>
     // Job Search Resources (docs/networking-groups-brief.md). Its own
     // destination, reachable from the first screen, needing no direction and no
@@ -16131,7 +16164,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} interviewTeamCaptureActive={hasPipeline&&!isIndependent} pipelineCaptureActive={hasPipeline&&hasPipelineCapture&&!!coachSaveTarget()} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture&&!!coachSaveTarget()} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>

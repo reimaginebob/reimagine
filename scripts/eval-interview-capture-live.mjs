@@ -103,8 +103,11 @@ const baseInputs = {
   generalMode: false,
 }
 
-const INTERVIEWTEAM_RE = /^\s*INTERVIEWTEAM:\s*(\{[\s\S]*?\})\s*$/im
-const PIPELINE_RE = /^\s*PIPELINE:\s*(\{[\s\S]*?\})\s*$/im
+// 2026-09-06: the fix this eval motivated merged INTERVIEWTEAM:/PIPELINE:
+// into one OPPORTUNITYUPDATE: trailer (OPPORTUNITY_UPDATE_CAPTURE_NOTE in
+// api/coach.js) -- this script's own regexes are updated to match, so a
+// re-run against the new prompt still detects the capture correctly.
+const OPPORTUNITYUPDATE_RE = /^\s*OPPORTUNITYUPDATE:\s*(\{[\s\S]*?\})\s*$/im
 
 async function main() {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -123,8 +126,8 @@ async function main() {
   console.log(`Built real system prompt: ${system.length} block(s), ${totalChars.toLocaleString()} chars total (this is what the live account actually sends -- v1's reduced repro was a few thousand chars).`)
 
   const RUNS = 5
-  let sawInterviewTeam = 0
-  let sawPipeline = 0
+  let sawOpportunityUpdate = 0
+  let sawPeopleCaptured = 0
   let sawQuestion = 0
 
   for (let i = 1; i <= RUNS; i++) {
@@ -149,23 +152,27 @@ async function main() {
     }
     const data = await res.json()
     const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('')
-    const hasIT = INTERVIEWTEAM_RE.test(text)
-    const hasPL = PIPELINE_RE.test(text)
-    const hasQ = /\?\s*$/m.test(text.replace(/^\s*(INTERVIEWTEAM|PIPELINE):.*$/gim, '').trim())
-    if (hasIT) sawInterviewTeam++
-    if (hasPL) sawPipeline++
+    const ouMatch = text.match(OPPORTUNITYUPDATE_RE)
+    const hasOU = !!ouMatch
+    let hasPeople = false
+    if (ouMatch) {
+      try { hasPeople = Array.isArray(JSON.parse(ouMatch[1]).people) && JSON.parse(ouMatch[1]).people.length > 0 } catch { /* malformed -- counts as no capture */ }
+    }
+    const hasQ = /\?\s*$/m.test(text.replace(/^\s*OPPORTUNITYUPDATE:.*$/gim, '').trim())
+    if (hasOU) sawOpportunityUpdate++
+    if (hasPeople) sawPeopleCaptured++
     if (hasQ) sawQuestion++
     console.log(`\n=== Run ${i} ===`)
     console.log(text)
-    console.log(`--- INTERVIEWTEAM emitted: ${hasIT} | PIPELINE emitted: ${hasPL} | ends with a question: ${hasQ} ---`)
+    console.log(`--- OPPORTUNITYUPDATE emitted: ${hasOU} | people captured: ${hasPeople} | ends with a question: ${hasQ} ---`)
   }
 
   console.log(`\n=== Summary over ${RUNS} runs (real prompt assembly, real bulk) ===`)
-  console.log(`INTERVIEWTEAM trailer emitted: ${sawInterviewTeam}/${RUNS}`)
-  console.log(`PIPELINE trailer emitted (should be 0 -- no date was given): ${sawPipeline}/${RUNS}`)
+  console.log(`OPPORTUNITYUPDATE trailer emitted: ${sawOpportunityUpdate}/${RUNS}`)
+  console.log(`...with the interviewer captured in people: ${sawPeopleCaptured}/${RUNS}`)
   console.log(`Reply asks a follow-up question: ${sawQuestion}/${RUNS}`)
-  if (sawInterviewTeam < RUNS) {
-    console.log(`\nREPRODUCED (at least partially): under the real prompt's full bulk, the model does not reliably emit INTERVIEWTEAM: even though a name and an opportunity were both clearly given. This supports the instruction-density theory over pure one-off sampling noise.`)
+  if (sawPeopleCaptured < RUNS) {
+    console.log(`\nREPRODUCED (at least partially): under the real prompt's full bulk, the model does not reliably capture the named interviewer even though a name and an opportunity were both clearly given. This supports the instruction-density theory over pure one-off sampling noise.`)
   } else {
     console.log(`\nStill did NOT reproduce at 5/5. Either the live failure needs an even longer conversation history than this, or something about that specific account/session (not modeled here) was the actual cause -- worth trying more runs, or a longer synthetic history, before concluding it is unreproducible.`)
   }
