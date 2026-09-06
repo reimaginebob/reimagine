@@ -111,7 +111,18 @@ function buildFillerMessages(pairCount) {
 // about the Cover Letter -- so any mention of it in the reply is Coach
 // volunteering the milestone suggestion again, not just answering a direct
 // question about it.
-const PROBE_MESSAGE = "Okay, switching back to Acme -- how should I answer if they ask why I want to work there specifically?"
+//
+// v2 (2026-09-06): the original probe ("how should I answer why this
+// company") gave the model an easy, genuinely more relevant off-ramp --
+// About This Company is unbuilt too, and is the sharper answer to a company
+// question, so all 10 runs across both scenarios pointed there instead of
+// exercising the repeat-guard at all. This version asks about application
+// materials specifically, with no unbuilt card to redirect to except the
+// one under test (Resume Refresh is already built via p_res; About This
+// Company isn't relevant to a materials question) -- so a Cover Letter
+// mention here is the model actually re-volunteering the milestone, not
+// picking whichever unbuilt card best answers the literal question asked.
+const PROBE_MESSAGE = "Okay, switching back to Acme -- before they get back to me, is there anything about my application materials for this one I should tighten up?"
 
 function buildScenario(pairCountBeforeMention, pairCountAfterMention) {
   const before = buildFillerMessages(pairCountBeforeMention)
