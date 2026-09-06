@@ -37,7 +37,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -542,6 +542,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const vcHeader = res.headers.get('X-Coach-Values') || null
         const repHeader = res.headers.get('X-Coach-Reputation') || null
         const skillsHeader = res.headers.get('X-Coach-Skills') || null
+        const prioritiesHeader = res.headers.get('X-Coach-Priorities') || null
+        const lifeStoryHeader = res.headers.get('X-Coach-Life-Story') || null
         const assessHeader = res.headers.get('X-Coach-Assessment') || null
         const brHeader = res.headers.get('X-Coach-Brand-Rework') || null
         const secHeader = res.headers.get('X-Coach-Section-Rework') || null
@@ -737,6 +739,44 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 checkinKey: 'skills-capture',
                 quickReplies: [
                   { label: 'Add it', value: JSON.stringify(data), followUp: 'Added to your Skills screen.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Priorities capture: up to five fields, three different offer
+        // framings depending on which settled -- compFloor/workReq/
+        // benefitsWeight/riskTolerance read as a replace (their own current
+        // answer), dealBreakers reads as add-or-replace the same way Values
+        // does.
+        if (prioritiesCaptureActive && prioritiesHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(prioritiesHeader), c => c.charCodeAt(0))))
+            const parts = []
+            if (data && data.compFloor) parts.push(`Compensation floor: ${data.compFloor}`)
+            if (data && data.workReq) parts.push(`Commute or remote needs: ${data.workReq}`)
+            if (data && data.benefitsWeight) parts.push(`How much benefits weigh: ${data.benefitsWeight}`)
+            if (data && data.riskTolerance) parts.push(`Stability vs upside: ${data.riskTolerance}`)
+            if (data && data.dealBreakers) parts.push(`Hard deal-breakers: ${data.dealBreakers}`)
+            if (parts.length) {
+              setMessages(m => [...m, { role: 'assistant', content: `Want me to save this to your Priorities & Non-Negotiables screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, checkinKey: 'priorities-capture', quickReplies: [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Priorities & Non-Negotiables.' }, { label: 'Not now', value: 'dismiss' }] }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Life Story capture: adds a new paragraph, never overwrites --
+        // same append contract as Assessment and Skills above.
+        if (lifeStoryCaptureActive && lifeStoryHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(lifeStoryHeader), c => c.charCodeAt(0))))
+            const text = data && typeof data.text === 'string' ? data.text.trim() : ''
+            if (text) {
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to add this to your Story screen? It adds a new paragraph to what's already there, and you can edit it any time.\n\n${text}`,
+                checkinKey: 'life-story-capture',
+                quickReplies: [
+                  { label: 'Add it', value: JSON.stringify(data), followUp: 'Added to your Story.' },
                   { label: 'Not now', value: 'dismiss' },
                 ],
               }])
