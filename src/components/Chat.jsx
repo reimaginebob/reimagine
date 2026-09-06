@@ -37,12 +37,26 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
   const [generalMode, setGeneralMode] = useState(false)
-  const [open, setOpen] = useState(false)
+  // Open state (2026-09-06): lifted to App.jsx, mirroring messages/setMessages
+  // above -- fixes the coach silently re-collapsing on every round trip through
+  // the dedicated My Coach step. That step's embedded view fully unmounts this
+  // component's floating counterpart (App.jsx: `step!=='myCoach'` gates the
+  // floating mount), which used to reset `open` to its initial false. A local
+  // fallback state covers embedded (which never reads `open` meaningfully --
+  // see the "always open" comments below) and any caller that does not pass
+  // the controlled props, so this stays safe as a plain uncontrolled component
+  // if setOpenProp/setMaximized are ever omitted.
+  const [localOpen, setLocalOpen] = useState(false)
+  const open = setOpenProp ? openProp : localOpen
+  const setOpen = setOpenProp || setLocalOpen
+  const [localMaximized, setLocalMaximized] = useState(false)
+  const isMaximized = setMaximized ? maximized : localMaximized
+  const setIsMaximized = setMaximized || setLocalMaximized
   // App bumps openRequest to open the floating coach programmatically (e.g. the
   // Personal Brand check-in on first arrival at Put it to Work).
   useEffect(() => { if (openRequest) setOpen(true) }, [openRequest])
@@ -1186,7 +1200,18 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       // ceiling covers less of it (especially the Generate button). Floor stays at
       // the old 480px so it never gets cramped on small windows, and the ceiling
       // still stops short of full-screen (that's the My Coach sidebar view's job).
-      width: 'min(44vw, 620px)', minWidth: 'min(480px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)',
+      //
+      // Maximize (2026-09-06): a reversible size toggle, not a second My Coach
+      // destination -- the whole point is that it stays a panel over the current
+      // screen, not a replacement for it. maxWidth is a hard 300px reserve, not
+      // just vw math, specifically so the 260px nav rail (src/App.jsx Sidebar,
+      // railBase width:260) can never be covered even at the toggle's largest
+      // size -- staying visible is what keeps this reading as part of the
+      // workspace instead of a takeover, the same property VS Code's own
+      // maximized panel keeps by leaving its activity bar on screen.
+      width: isMaximized ? 'min(70vw, 1040px)' : 'min(44vw, 620px)',
+      minWidth: 'min(480px, calc(100vw - 24px))',
+      maxWidth: isMaximized ? 'calc(100vw - 300px)' : 'calc(100vw - 24px)',
       // maxHeight has to reserve the bottom anchor too, not just the 24px gap at
       // each end. The panel is bottom-anchored at 24 + bottomOffset and grows
       // upward, so with bottomOffset at 72 (any playbook surface, src/App.jsx
@@ -1194,7 +1219,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       // and goes negative on any viewport under roughly 686px. On a 1366x768
       // laptop that put the header, and the only close button, above the top of
       // the window. That is the "the X is hidden" report from 2026-08-06.
-      height: 'min(86dvh, 900px)', maxHeight: `calc(100dvh - ${48 + bottomOffset}px)`,
+      height: isMaximized ? 'min(94dvh, 1400px)' : 'min(86dvh, 900px)',
+      maxHeight: `calc(100dvh - ${(isMaximized ? 16 : 48) + bottomOffset}px)`,
+      transition: 'width 0.16s ease, height 0.16s ease, max-width 0.16s ease',
       background: '#fff',
       border: '1px solid #E2E5EA', borderRadius: 14,
       boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
@@ -1214,6 +1241,15 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           >
             Clear
           </button>
+          {!isMobile && (
+            <button
+              onClick={() => setIsMaximized(!isMaximized)}
+              style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
+              aria-label={isMaximized ? 'Restore to default size' : 'Expand for more room'}
+            >
+              {isMaximized ? 'Restore' : 'Expand'}
+            </button>
+          )}
           <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#4A5568', fontFamily: 'inherit' }} aria-label="Close">×</button>
         </div>
       </div>

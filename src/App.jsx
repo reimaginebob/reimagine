@@ -8142,6 +8142,22 @@ export default function PivotEngine(){
   // the coach status block). The earlier auto-clear was removed: it silently
   // erased data and made a still-active opportunity look empty.
   const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p.map(m=>(m&&m.role==='assistant'&&m.content===INTRO_MSG.content&&!m.intro)?{...m,intro:true}:m)}}catch{}return[INTRO_MSG]})
+  // Coach open/maximized state (2026-09-06): lifted here, mirroring chatMessages
+  // above, so the floating panel's own presence and size survive a round trip
+  // through the dedicated My Coach step. That step's embedded view fully
+  // unmounts the floating <Chat> below (step!=='myCoach' gates it) -- before
+  // this, `open` and `maximized` lived as local state inside Chat.jsx and reset
+  // to their initial values on every remount, so leaving My Coach for another
+  // screen always handed back a closed, default-size panel no matter what was
+  // open when the person left.
+  const[coachOpen,setCoachOpen]=useState(false)
+  const[coachMaximized,setCoachMaximized]=useState(false)
+  // Arriving at the dedicated My Coach step counts as opening the coach, so the
+  // floating panel that remounts on the way back out is already open rather
+  // than collapsed -- otherwise someone who reached My Coach straight from the
+  // sidebar (never having opened the floating bubble first) would still hit
+  // the "lost the coach" problem in reverse the moment they left.
+  useEffect(()=>{if(step==='myCoach')setCoachOpen(true)},[step])
   const[showPulse,setShowPulse]=useState(false)
   // Coach doors (PR-3, item H): a one-shot seed that prefills the My Coach input
   // when a "prep with My Coach" / "talk it through" affordance navigates here.
@@ -16197,7 +16213,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>
