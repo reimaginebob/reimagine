@@ -207,6 +207,37 @@ const REPUTATION_CAPTURE_NOTE = '\n\nREPUTATION CAPTURE: this person\'s Reputati
 // clear a category out from under content already there.
 const SKILLS_CAPTURE_NOTE = '\n\nSKILLS CAPTURE: this person\'s hard skills live on a screen called "Your Skills", organized into five categories -- technical and tools, systems and platforms, certifications, languages, and methodologies and frameworks -- and you can offer to add to any of them. When they name a specific skill, tool, certification, language, or methodology they actually have -- not something they are learning or wish they had -- end your reply with a final line exactly like SKILLSCAPTURE: {"technical":["SQL","Tableau"],"certifications":["Six Sigma Green Belt"]} using only these five keys: technical, systems, certifications, languages, methodologies. Include a key ONLY when they named something in that category this turn; list only the new item(s), never ones already shown to you above -- the tap ADDS to what is already there, never replaces it. Keep each entry short -- the name of the thing, not a sentence about it. Emit it ONLY for something concrete they actually named, never for a vague self-description ("I\'m pretty technical" alone does not qualify) and never to restate a skill already listed above. The app turns that line into a one-tap offer and never shows it, so do not mention it and do not tell them to type it in themselves. NEVER SAY YOU HAVE ADDED IT; their tap is the only thing that writes. At most once per reply; otherwise omit it entirely.'
 
+// PRIORITIES CAPTURE, 2026-09-06. Same family as Reputation/Skills above --
+// gated on the same hasOrientationCapture flag, since this is the same
+// underlying idea (extending chat capture to an onboarding screen) applied
+// to a third screen, not a new risk class. Three different semantics on one
+// screen, because the fields themselves are three different shapes:
+// compFloor/workReq are single free-text answers (a new stated preference
+// supersedes the old one -- replace, like Reputation's memory/emergency/
+// twoWords); benefitsWeight/riskTolerance are fixed three-option toggles in
+// the actual UI (segToggle), so capture must match one of those exact values
+// or emit nothing, same discipline as the assessType fix; dealBreakers is a
+// short accumulating list, same merge-not-overwrite contract Values/
+// Reputation\'s `other` already use, applied here from the start instead of
+// needing a follow-up fix.
+const BENEFITS_WEIGHT_VALUES = ['Not much', 'Somewhat', 'A lot']
+const RISK_TOLERANCE_VALUES = ['Stability', 'Balanced', 'Upside']
+const PRIORITIES_CAPTURE_NOTE = '\n\nPRIORITIES CAPTURE: this person\'s Priorities & Non-Negotiables live on a screen in Reimagine called "Priorities & Non-Negotiables" -- their compensation floor, commute or remote needs, how much benefits weigh, whether they lean toward stability or upside, and any hard deal-breakers -- and you can offer to write them there. When a conversation has settled into something concrete on one of these -- their words, not a list you proposed and they have not responded to -- end your reply with a final line exactly like PRIORITIESCAPTURE: {"compFloor":"$150,000 base, or $180k total","workReq":"Remote only","benefitsWeight":"Somewhat","riskTolerance":"Balanced","dealBreakers":"No defense or tobacco; not a pre-Series-A startup"} carrying whichever of the five you have. Include a key ONLY for one the conversation actually settled; omit the rest entirely. Write compFloor and workReq as a short, current answer in their own words -- each REPLACES whatever is there, since a newly stated preference supersedes the old one rather than adding to it. Include benefitsWeight or riskTolerance ONLY when their answer clearly matches one of these exactly: benefitsWeight is one of Not much, Somewhat, A lot; riskTolerance is one of Stability, Balanced, Upside -- omit the key entirely rather than guessing when it does not clearly match one of these. dealBreakers works like Values above: if ANCHOR 1 already shows deal-breakers and this conversation is adding one rather than replacing an earlier one, write the COMPLETE current list -- what was already there plus what is new -- never just today\'s addition by itself; write the new answer alone, dropping what came before, ONLY when they are clearly replacing an earlier deal-breaker rather than adding to it, and merge rather than drop when it is unclear which they mean. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
+
+// LIFE STORY CAPTURE, 2026-09-06. Append-only, like Assessment and
+// Reputation\'s `other` -- and for the same reason the screen itself already
+// treats this field as one: its own mic button appends dictated speech
+// directly onto the existing text rather than replacing it
+// (src/App.jsx onResult=>pr(\'lifeEvents\',(profile.lifeEvents||\'\')+t)).
+// This was flagged and set aside during the original structured-capture
+// scoping over a concern it might behave like a resume upload (a whole
+// document, wrong shape for a short trailer) rather than a short settled
+// fact -- the mic behavior is direct evidence against that: the product
+// already treats Life Story as an accumulating narrative people add to over
+// separate sittings, the same shape Reputation\'s `other` and Assessment
+// already fit.
+const LIFE_STORY_CAPTURE_NOTE = '\n\nLIFE STORY CAPTURE: this person\'s Life Story lives on a screen in Reimagine called "Your Story" -- the life-shaping experiences that explain how they got here, in their own words -- and you can offer to add to it. When they share something concrete and real about a formative experience -- not a passing remark, and not something you asked them to elaborate on that they have not yet answered -- end your reply with a final line exactly like LIFESTORYCAPTURE: {"text":"When I was 19 my father passed away suddenly and I had to take over the family business overnight."} . Write `text` tightened to the point, in their own words, not your interpretation of what it means to them -- that belongs in your reply, not in what gets saved. The app turns that line into a one-tap offer -- appended to whatever is already there as a new paragraph, never overwriting it -- and never shows the line itself, so do not mention it and do not tell them to type it in themselves. NEVER SAY YOU HAVE ADDED IT; their tap is the only thing that writes. At most once per reply; otherwise omit it entirely.'
+
 // BRAND REWORK CAPTURE, 2026-09-04. Step-gated (p3 only, appended outside
 // buildCoachProfileSlice below since that function does not receive
 // currentStep), not a new flag -- part of the same onboarding_concierge
@@ -678,12 +709,14 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   const orientationCaptureOn = hasOrientationCapture({ feature_flags: featureFlags, email: userEmail })
   const reputationCaptureNote = orientationCaptureOn ? REPUTATION_CAPTURE_NOTE : ''
   const skillsCaptureNote = orientationCaptureOn ? SKILLS_CAPTURE_NOTE : ''
+  const prioritiesCaptureNote = orientationCaptureOn ? PRIORITIES_CAPTURE_NOTE : ''
+  const lifeStoryCaptureNote = orientationCaptureOn ? LIFE_STORY_CAPTURE_NOTE : ''
   if (!state || typeof state !== 'object') {
     // No profile at all — definitionally pre-Personal-Brand, so the sidebar is the
     // Orientation phase list. Carry the same navigation gate as the main path below
     // (keyed there on `done`): none of Career Paths, Add an Opportunity, Income Now
     // or the Focus Playbook sections is on this person's screen yet.
-    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}`
+    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}`
   }
   const pr = state.profile && typeof state.profile === 'object' ? state.profile : {}
   const outs = state.outputs && typeof state.outputs === 'object' ? state.outputs : {}
@@ -922,7 +955,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // questions at once. Suppressed only for this one turn; intake capture
   // resumes normally starting the very next turn if it is still thin.
   const searchIntakeNoteThisTurn = sessionOpenRequested ? '' : searchIntakeNote(si)
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${opportunityContextNote}${opCardReworkNote}${milestonePromptNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${searchIntakeNoteThisTurn}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${opportunityContextNote}${opCardReworkNote}${milestonePromptNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${searchIntakeNoteThisTurn}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -1891,6 +1924,48 @@ export default async function handler(req, res) {
       }
     } catch { /* malformed — drop the line, no offer */ }
   }
+  // Priorities capture: the model may end with a PRIORITIESCAPTURE: {json}
+  // line carrying one or more Priorities & Non-Negotiables fields. Strip it
+  // and ship it on a response header; benefitsWeight/riskTolerance are
+  // validated against the screen's own fixed toggle values (same discipline
+  // as the assessType fix), and compFloor/workReq/dealBreakers are length-
+  // capped free text.
+  let prioritiesB64 = null
+  const prioritiesMatch = strippedText.match(/^\s*PRIORITIESCAPTURE:\s*(\{[\s\S]*?\})\s*$/im)
+  if (prioritiesMatch) {
+    strippedText = strippedText.replace(prioritiesMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(prioritiesMatch[1])
+      const clean = v => (typeof v === 'string' ? v.trim().slice(0, 300) : '')
+      // Its own, larger cap: like Values, this carries the COMPLETE current
+      // list (existing deal-breakers plus whatever is new), not one field's
+      // worth of a single short answer.
+      const cleanList = v => (typeof v === 'string' ? v.trim().slice(0, 600) : '')
+      const payload = {}
+      if (clean(parsed && parsed.compFloor)) payload.compFloor = clean(parsed.compFloor)
+      if (clean(parsed && parsed.workReq)) payload.workReq = clean(parsed.workReq)
+      if (BENEFITS_WEIGHT_VALUES.includes(parsed && parsed.benefitsWeight)) payload.benefitsWeight = parsed.benefitsWeight
+      if (RISK_TOLERANCE_VALUES.includes(parsed && parsed.riskTolerance)) payload.riskTolerance = parsed.riskTolerance
+      if (cleanList(parsed && parsed.dealBreakers)) payload.dealBreakers = cleanList(parsed.dealBreakers)
+      if (Object.keys(payload).length) {
+        prioritiesB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
+      }
+    } catch { /* malformed — drop the line, no offer */ }
+  }
+  // Life Story capture: the model may end with a LIFESTORYCAPTURE: {json}
+  // line carrying a new life-shaping experience. Strip it and ship it on a
+  // response header; the client offers a one-tap add that appends a new
+  // paragraph rather than overwriting what is already there.
+  let lifeStoryB64 = null
+  const lifeStoryMatch = strippedText.match(/^\s*LIFESTORYCAPTURE:\s*(\{[\s\S]*?\})\s*$/im)
+  if (lifeStoryMatch) {
+    strippedText = strippedText.replace(lifeStoryMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(lifeStoryMatch[1])
+      const text = typeof (parsed && parsed.text) === 'string' ? parsed.text.trim().slice(0, 800) : ''
+      if (text) lifeStoryB64 = Buffer.from(JSON.stringify({ text })).toString('base64')
+    } catch { /* malformed — drop the line, no offer */ }
+  }
   // Assessment capture: the model may end with an ASSESSMENTCAPTURE: {json}
   // line carrying remembered assessment content. Strip it and ship it on a
   // response header; the client offers a one-tap add that appends to the
@@ -2080,6 +2155,8 @@ export default async function handler(req, res) {
   if (valuesB64) res.setHeader('X-Coach-Values', valuesB64)
   if (reputationB64) res.setHeader('X-Coach-Reputation', reputationB64)
   if (skillsB64) res.setHeader('X-Coach-Skills', skillsB64)
+  if (prioritiesB64) res.setHeader('X-Coach-Priorities', prioritiesB64)
+  if (lifeStoryB64) res.setHeader('X-Coach-Life-Story', lifeStoryB64)
   if (assessmentB64) res.setHeader('X-Coach-Assessment', assessmentB64)
   if (brandReworkB64) res.setHeader('X-Coach-Brand-Rework', brandReworkB64)
   if (sectionReworkB64) res.setHeader('X-Coach-Section-Rework', sectionReworkB64)
