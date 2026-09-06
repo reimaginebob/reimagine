@@ -40,7 +40,7 @@ check(flags.includes("[MILESTONE_PROMPT_FLAG]: { label: 'Coach milestone prompts
 const COACH = 'api/coach.js'
 const coach = fs.readFileSync(COACH, 'utf8')
 
-check(coach.includes("import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt } from './_lib/feature-flags.js'"),
+check(/import \{[^}]*hasMilestonePrompt[^}]*\} from '\.\/_lib\/feature-flags\.js'/.test(coach),
   `${COACH}: hasMilestonePrompt is not imported`)
 
 // The data gap this phase needed fixed: offerNegotiation (the generated

@@ -37,7 +37,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -540,6 +540,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const ocrHeader = res.headers.get('X-Coach-Op-Card-Rework') || null
         const occHeader = res.headers.get('X-Coach-Opportunity-Context') || null
         const vcHeader = res.headers.get('X-Coach-Values') || null
+        const repHeader = res.headers.get('X-Coach-Reputation') || null
+        const skillsHeader = res.headers.get('X-Coach-Skills') || null
         const assessHeader = res.headers.get('X-Coach-Assessment') || null
         const brHeader = res.headers.get('X-Coach-Brand-Rework') || null
         const secHeader = res.headers.get('X-Coach-Section-Rework') || null
@@ -702,6 +704,42 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             if (data && data.passions) parts.push(`Passions, Interests & Causes: ${data.passions}`)
             if (parts.length) {
               setMessages(m => [...m, { role: 'assistant', content: `Want me to save this to your Values, Passions & Causes screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, checkinKey: 'values-capture', quickReplies: [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Values, Passions & Causes.' }, { label: 'Not now', value: 'dismiss' }] }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Reputation capture: same shape as Values just above, for the
+        // Reputation screen's four fields.
+        if (reputationCaptureActive && repHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(repHeader), c => c.charCodeAt(0))))
+            const parts = []
+            if (data && data.memory) parts.push(`Praise you receive: ${data.memory}`)
+            if (data && data.emergency) parts.push(`Who calls you in an emergency: ${data.emergency}`)
+            if (data && data.twoWords) parts.push(`How people describe your superpower: ${data.twoWords}`)
+            if (data && data.other) parts.push(`Other reputation notes: ${data.other}`)
+            if (parts.length) {
+              setMessages(m => [...m, { role: 'assistant', content: `Want me to save this to your Reputation screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, checkinKey: 'reputation-capture', quickReplies: [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Reputation screen.' }, { label: 'Not now', value: 'dismiss' }] }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Skills capture: adds to whatever chips are already there per
+        // category -- never replaces, since resume/LinkedIn extraction may
+        // already hold real entries this conversation never mentioned.
+        if (skillsCaptureActive && skillsHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(skillsHeader), c => c.charCodeAt(0))))
+            const CAT_LABEL = { technical: 'Technical and tools', systems: 'Systems and platforms', certifications: 'Certifications', languages: 'Languages', methodologies: 'Methodologies and frameworks' }
+            const parts = Object.keys(CAT_LABEL).map(k => (data && Array.isArray(data[k]) && data[k].length) ? `${CAT_LABEL[k]}: ${data[k].join(', ')}` : null).filter(Boolean)
+            if (parts.length) {
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to add this to your Skills screen? It adds to whatever is already there, and you can edit it any time.\n\n${parts.join('\n')}`,
+                checkinKey: 'skills-capture',
+                quickReplies: [
+                  { label: 'Add it', value: JSON.stringify(data), followUp: 'Added to your Skills screen.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
             }
           } catch { /* malformed header — no offer */ }
         }

@@ -170,6 +170,23 @@ export function hasMilestonePrompt(user) {
   return flags.includes(MILESTONE_PROMPT_FLAG)
 }
 
+// PILOT -- Orientation field capture, 2026-09-06. Extends the same "settle it
+// in chat, tap to save" idea VALUES_CAPTURE_NOTE and ASSESSMENT_CAPTURE_NOTE
+// already ship UNGATED for, to two more onboarding fields: Reputation (what
+// people say about them) and Skills (hard skills, certifications, tools).
+// Values/Assessment predate CLAUDE.md's current "every new capability ships
+// behind a flag, Bob first, no exceptions" rule; this one does not get the
+// same exemption just because its closest siblings did. One flag for both
+// fields, not two -- same underlying idea, same risk profile, same surface
+// (an extra one-tap offer in a chat that already offers several).
+export const ORIENTATION_CAPTURE_FLAG = 'orientation_capture'
+
+export function hasOrientationCapture(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(ORIENTATION_CAPTURE_FLAG)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -186,4 +203,5 @@ export const GRANTABLE_FLAGS = {
   [COACH_NOTE_AGENCY_FLAG]: { label: 'Coach save-to-notes agency' },
   [SECTION_REWORK_FLAG]: { label: 'Coach section rework from chat' },
   [MILESTONE_PROMPT_FLAG]: { label: 'Coach milestone prompts' },
+  [ORIENTATION_CAPTURE_FLAG]: { label: 'Coach orientation field capture (Reputation, Skills)' },
 }

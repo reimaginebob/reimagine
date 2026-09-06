@@ -25,6 +25,19 @@ check(coach.includes('never for a vague self-description with no named instrumen
 check(coach.includes('appended to whatever is already in the field, never overwriting it'),
   `${COACH}: ASSESSMENT_CAPTURE_NOTE no longer tells the model the offer adds rather than replaces -- someone may already have real assessment content saved`)
 
+// assessType fix (2026-09-06): the capture wrote prose into pr.assess but
+// never set pr.assessType even when the model named the instrument, so the
+// screen showed "no assessment named" next to text that clearly named one.
+// ASSESSMENT_TYPES must be the Assessment screen's own dropdown values
+// verbatim (src/App.jsx:13529), since a validated value drops straight into
+// the <select> with no separate mapping step.
+check(coach.includes("const ASSESSMENT_TYPES = ['Affintus', 'CliftonStrengths', 'DiSC', 'Myers-Briggs (MBTI)', 'Hogan', 'Predictive Index', 'Enneagram', 'Other']"),
+  `${COACH}: ASSESSMENT_TYPES is missing or has drifted from the Assessment screen's own dropdown options`)
+check(coach.includes('"text":"CliftonStrengths (remembered, not full report): Strategic, Belief, Activator","assessType":"CliftonStrengths"'),
+  `${COACH}: ASSESSMENT_CAPTURE_NOTE's example trailer no longer shows the model the assessType field`)
+check(coach.includes('omit the key entirely rather than guessing when it does not clearly match one of these'),
+  `${COACH}: ASSESSMENT_CAPTURE_NOTE does not tell the model to omit assessType rather than force an unlisted instrument into the enum`)
+
 // Unflagged, like its direct siblings (Values, Pipeline, Interview Team,
 // Activity) -- this is a one-tap convenience on a field the person could
 // already edit directly themselves, not a new surface needing Bob's QC
@@ -36,6 +49,10 @@ check(coach.includes('clicking to it.${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_
 
 check(/const assessMatch = strippedText\.match\(\/\^\\s\*ASSESSMENTCAPTURE:/.test(coach),
   `${COACH}: the ASSESSMENTCAPTURE: trailer parser is missing`)
+check(coach.includes('const assessType = ASSESSMENT_TYPES.includes(parsed && parsed.assessType) ? parsed.assessType : \'\''),
+  `${COACH}: the assessType value is not validated against ASSESSMENT_TYPES before being shipped to the client -- an invented value could reach the dropdown`)
+check(coach.includes("assessmentB64 = Buffer.from(JSON.stringify({ text, assessType })).toString('base64')"),
+  `${COACH}: assessType is not included in the assessment-capture header payload`)
 check(coach.includes("res.setHeader('X-Coach-Assessment', assessmentB64)"),
   `${COACH}: the X-Coach-Assessment response header is no longer emitted`)
 
@@ -70,11 +87,13 @@ check(mountHits === 2,
 // there.
 const branchIdx = app.indexOf("checkinKey==='assessment-capture'")
 check(branchIdx !== -1, `${APP}: the checkinKey==='assessment-capture' branch is missing from handleEmploymentQuickReply`)
-const branchBlock = app.slice(branchIdx, branchIdx + 400)
+const branchBlock = app.slice(branchIdx, branchIdx + 550)
 check(branchBlock.includes('const existing=profile.assess'),
   `${APP}: the assessment-capture write no longer reads the existing profile.assess value before writing -- it would overwrite instead of append`)
 check(branchBlock.includes("pr('assess',(existing.trim()?existing.trim()+divider:divider.trimStart())+text)"),
   `${APP}: the assessment-capture write no longer appends with the same trim/divider shape as the screen's own "+ Add another assessment" button`)
+check(branchBlock.includes("if(data.assessType&&!profile.assessType)pr('assessType',data.assessType)"),
+  `${APP}: the assessment-capture write does not set assessType -- or does not guard against overriding a value the person already chose themselves`)
 
 if (failures) {
   console.error(`test-assessment-capture: ${failures} check(s) failed`)
