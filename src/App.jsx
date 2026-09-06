@@ -14609,7 +14609,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // explains why an empty result is not a failure and what to do next.
       const _knownCompany=resolveSearch(connSearch[_opRec&&_opRec.id],(_opRec&&_opRec.company)||'').company
       const _knownCount=_knownCompany?matchConnections(withManual(connNetwork?connNetwork.people:[],connManual),_knownCompany).length:0
-      const opRailDone=['clientRead','clientPlay','p5','p_res','p_cover','p11','companyRead','salaryRead','offerNegotiation'].filter(opCardDone).concat(_panelPopulated?['panel']:[]).concat((_opRec&&_opRec.recruiters&&_opRec.recruiters.builtAt)?['recruiters']:[]).concat(_knownCount>0?['knownContacts']:[])
+      const opRailDone=['clientRead','clientPlay','p5','p_res','p_cover','p11','companyRead','salaryRead','offerNegotiation'].filter(opCardDone).concat(_panelPopulated?['panel']:[]).concat((_opRec&&_opRec.recruiters&&_opRec.recruiters.builtAt)?['recruiters']:[]).concat(_knownCount>0?['knownContacts']:[]).concat(getOpSavedNotes(_opRec).length>0?['savednotes']:[])
       // Sequential 1-N numbering (2026-08-09): number every row in display order
       // so the rail reads as one clean top-down sequence. The earlier scheme left
       // the reference/input cards (Compensation, Interview Team, Offer) unnumbered,
@@ -14617,7 +14617,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // mid-list. num is computed by index so adding or removing a card renumbers
       // automatically.
       // The rail mirrors whichever card set is rendered below.
-      const opSections=isIndependent?[{id:'clientRead',label:'Where this stands'},{id:'clientPlay',label:'The full playbook'}].map((x,i)=>({...x,num:i+1})):[{id:'companyRead',label:'About This Company'},{id:'knownContacts',label:'Who You Know Here'},{id:'salaryRead',label:'Compensation'},{id:'p5',label:'Where you fit'},{id:'p_res',label:'Resume Refresh'},{id:'p_cover',label:'Cover Letter'},{id:'panel',label:'Interview Team'},{id:'p11',label:'Interview Prep'},{id:'offerNegotiation',label:'Offer & Negotiation'},{id:'recruiters',label:'Recruiters for This Role'}].map((s,i)=>({...s,num:i+1}))
+      const opSections=isIndependent?[{id:'clientRead',label:'Where this stands'},{id:'clientPlay',label:'The full playbook'},{id:'savednotes',label:'Notes'}].map((x,i)=>({...x,num:i+1})):[{id:'companyRead',label:'About This Company'},{id:'knownContacts',label:'Who You Know Here'},{id:'salaryRead',label:'Compensation'},{id:'p5',label:'Where you fit'},{id:'p_res',label:'Resume Refresh'},{id:'p_cover',label:'Cover Letter'},{id:'panel',label:'Interview Team'},{id:'p11',label:'Interview Prep'},{id:'offerNegotiation',label:'Offer & Negotiation'},{id:'recruiters',label:'Recruiters for This Role'},{id:'savednotes',label:'Notes'}].map((s,i)=>({...s,num:i+1}))
       // cards-only markDone criterion: legacy v1 (outputs.op truthy) OR any v2 card built
       if((outputs.op||_anyOpCardBuilt)&&!done.includes('op'))markDone('op')
       return <div>
