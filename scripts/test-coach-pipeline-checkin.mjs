@@ -44,6 +44,14 @@ check(coach.includes('"note":"something substantive they told you about this per
 check(/note: String\(\(p && p\.note\) \|\| ''\)\.slice\(0, 300\)/.test(coach),
   `${COACH}: the OPPORTUNITYUPDATE parser still drops the note field the bugfix was supposed to fix`)
 
+// Live-caught (2026-09-06): asked afterward "did that update automatically?",
+// Coach answered "no extra step needed on your end" -- false, and exactly
+// backwards from the one-tap-is-the-only-write design this whole mechanism
+// depends on. The person's own tap is what wrote it; the model must credit
+// that when asked, not describe the write as having happened on its own.
+check(coach.includes('Never say no extra step was needed or that it happened on its own'),
+  `${COACH}: OPPORTUNITY_UPDATE_CAPTURE_NOTE no longer corrects the model when asked how an update happened -- it could again describe a tap-gated write as fully automatic`)
+
 // One trailer, one gate: stage/move/meeting/people all land in the same
 // OPPORTUNITYUPDATE: line, gated the same way PIPELINE_CAPTURE_NOTE was.
 check(/const ouMatch = strippedText\.match\(\/\^\\s\*OPPORTUNITYUPDATE:/.test(coach),
