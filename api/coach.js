@@ -28,6 +28,7 @@ import { STEPS, nextSteps as computeNextSteps, computeSessionDelta } from '../sr
 import { describeSections } from '../src/playbook-sections.js'
 import { ACTIVITY_CATALOG, ASKABLE, activity as activityDef, isValidFact } from '../src/activity-catalog.js'
 import { LANE_LABELS, NAV_LABELS } from '../src/nav-labels.js'
+import { PURSUIT_STAGE_LABELS } from '../src/pursuit-stages.js'
 import { totalCompModel } from '../src/offer-valuation.js'
 import { COMP_KNOWLEDGE } from '../src/comp-knowledge.js'
 import { getSessionUser } from './_lib/session.js'
@@ -102,7 +103,7 @@ function isAllowedOrigin(rawOrigin) {
 // consumed by the client write path (src/App.jsx, learned_note) but never
 // actually threaded through the server's own extraction -- silently dropped
 // every time. Fixed below by including it in the validated payload.
-const OPPORTUNITY_UPDATE_CAPTURE_NOTE = '\n\nOPPORTUNITY UPDATE CAPTURE: each opportunity on My Pipeline can have its stage moved, a "Next move" (an action THEY take, in their own words, with a date), a "Next scheduled meeting" (a real booked conversation, no matter who arranged it), and an Interview Team (people they expect to meet, with role and any detail they have shared). When this person tells you anything that would change one or more of these -- often several in one breath ("just got moved to final round, meeting Sally again next Tuesday, and picked up a new interviewer named Marcus") -- end your reply with a final line exactly like OPPORTUNITYUPDATE: {"opportunity":"<the opportunity title from their saved work>","stage":"one of researching|applied|phone_screen|interviewing|final_round|offer|closed ONLY if they told you a new stage","move":"Call Teresa","date":"2026-09-14","meeting":"2026-09-14","people":[{"name":"Full Name","title":"their title if stated","role":"one of hiring_manager|skip_level|peer|cross_functional|recruiter_screen ONLY if they said how this person fits the loop","note":"something substantive they told you about this person"}]} including only the keys the conversation actually settled -- never invent a stage, a date, or a person they did not name. `date` applies only to `move`; `meeting` carries its own date directly, resolved the same way. All dates are YYYY-MM-DD resolved against TODAY\'S DATE above; "next Thursday", "the 14th" and "a week from Tuesday" all resolve to a real date, and you never invent one -- omit the key instead. First check the interview team roster already shown to you above for this opportunity: if a name they gave matches someone already listed, do not re-add them -- acknowledge you already have them logged, and only include them in `people` if there is something genuinely new (a role or detail you did not have before). A one-tap update should never wait on anything else, so emit the line the moment you have ANYTHING worth capturing, in the same reply as your normal response -- do not hold it back to ask more questions first. If your own previous reply already offered an update for this opportunity and this person is now adding to it rather than confirming, capture everything from before together with the new detail in one fresh line, not just the new piece alone. Removing or editing someone already on the Interview Team is not something you can capture this way -- if they ask for that, tell them plainly you cannot yet and point them to the Interview Team section itself. The app turns the line into a one-tap offer that already names exactly what it caught and asks what, if anything, is still missing -- so do not mention the line, do not ask them to type anything, and do not separately ask "should I update this" yourself; the offer already asks that. NEVER SAY YOU HAVE SAVED, ADDED, LOGGED, MOVED, OR UPDATED ANYTHING -- their tap is the only thing that writes, and claiming an action you cannot perform is worse than not offering at all. At most once per reply; otherwise omit it entirely.'
+const OPPORTUNITY_UPDATE_CAPTURE_NOTE = '\n\nOPPORTUNITY UPDATE CAPTURE: each opportunity on My Pipeline can have its stage moved, a "Next move" (an action THEY take, in their own words, with a date), a "Next scheduled meeting" (a real booked conversation, no matter who arranged it), and an Interview Team (people they expect to meet, with role and any detail they have shared). When this person tells you anything that would change one or more of these -- often several in one breath ("just got moved to final round, meeting Sally again next Tuesday, and picked up a new interviewer named Marcus") -- end your reply with a final line exactly like OPPORTUNITYUPDATE: {"opportunity":"<the opportunity title from their saved work>","stage":"one of researching|applied|phone_screen|interviewing|final_round|offer|closed ONLY if they told you a new stage","move":"Call Teresa","date":"2026-09-14","meeting":"2026-09-14","people":[{"name":"Full Name","title":"their title if stated","role":"one of hiring_manager|skip_level|peer|cross_functional|recruiter_screen ONLY if they said how this person fits the loop","note":"something substantive they told you about this person"}]} including only the keys the conversation actually settled -- never invent a stage, a date, or a person they did not name. `date` applies only to `move`; `meeting` carries its own date directly, resolved the same way. All dates are YYYY-MM-DD resolved against TODAY\'S DATE above; "next Thursday", "the 14th" and "a week from Tuesday" all resolve to a real date, and you never invent one -- omit the key instead. First check the interview team roster already shown to you above for this opportunity: if a name they gave matches someone already listed, do not re-add them -- acknowledge you already have them logged, and only include them in `people` if there is something genuinely new (a role or detail you did not have before). A one-tap update should never wait on anything else, so emit the line the moment you have ANYTHING worth capturing. But keep the REPLY that carries it short -- a plain, two-or-three-sentence acknowledgment of what you heard, nothing more. Do NOT give interview prep, coaching, or next-step advice in this same reply, even when the update obviously calls for it (a new interviewer, an interview now on the calendar) -- that conversation happens in your NEXT reply, right after they confirm the update, once it is actually on their card. Tapping through the tactical update should never cost them the coaching that follows it, and the two competing for their attention in one reply is what causes that. If your own previous reply already offered an update for this opportunity and this person is now adding to it rather than confirming, capture everything from before together with the new detail in one fresh line, not just the new piece alone. Removing or editing someone already on the Interview Team is not something you can capture this way -- if they ask for that, tell them plainly you cannot yet and point them to the Interview Team section itself. The app turns the line into a one-tap offer that already names exactly what it caught and asks what, if anything, is still missing -- so do not mention the line, do not ask them to type anything, and do not separately ask "should I update this" yourself; the offer already asks that. NEVER SAY YOU HAVE SAVED, ADDED, LOGGED, MOVED, OR UPDATED ANYTHING -- their tap is the only thing that writes, and claiming an action you cannot perform is worse than not offering at all. At most once per reply; otherwise omit it entirely.'
 
 const ACTIVITY_CAPTURE_NOTE = '\n\nACTIVITY CAPTURE: when this person tells you something about the human side of their search -- that they joined a group, went to Career Club Corner, have someone holding them accountable, wrote directly to a company, asked anyone for an introduction, spoke to a recruiter, or looked at free help near them -- OR tells you plainly that they have not or do not want to, end your reply with a final line exactly like ACTIVITY: {"activity":"accountability_partner","state":"done","detail":"Marta, they talk Fridays"} using ONLY these activity keys: ' + ACTIVITY_CATALOG.filter(a => a.evidence === 'asked').map(a => a.key).join(', ') + '. `state` is one of done (they have it), not_yet (they told you they have not) or declined (they told you they do not want it). `detail` is optional, short, and in their own words. Emit it ONLY for something they actually said in this conversation, never for something you suggested and they have not answered, and never to restate what you were already told above. The app turns that line into a one-tap offer and never shows it, so do not mention it and do not ask them to type anything. NEVER SAY YOU HAVE SAVED IT -- their tap is the only thing that writes, and claiming an action you cannot perform is worse than not offering. At most one per reply; otherwise omit it entirely.'
 const VALUES_CAPTURE_NOTE = '\n\nVALUES CAPTURE: this person\'s Values and Passions & Causes live on a screen in Reimagine called "Values, Passions & Causes", and you can offer to write them there. When a conversation has settled into a statement of their values or their passions and causes that they seem happy with — their words and their conclusions, not a list you proposed and they have not responded to — end your reply with a final line exactly like VALUESCAPTURE: {"values":"Independence; Creative problem solving; Belonging","passions":"Youth mentoring; Faith-based service"} carrying whichever of the two you have. Include a key ONLY for a field the conversation actually settled; omit the other entirely. Write each as a short semicolon-separated list in their own words, not a paragraph and not your paraphrase. If ANCHOR 1 shows a field already has content, only emit it when they have clearly landed somewhere new — the tap replaces what is there. The app turns that line into a one-tap save offer and never shows it, so do not mention the line, and do not tell them to copy anything or type it in themselves. Emit it at most once per reply, and only on a turn that genuinely settled something; otherwise omit it entirely.'
@@ -257,6 +258,25 @@ function buildOrientationCheckTurnText(step, text) {
   if (step === 'priorities') return buildDealBreakersCheckText(text)
   const label = ORIENTATION_CHECK_LABELS[step] || 'this'
   return buildReflectiveDepthCheckText(label, text)
+}
+// Post-capture coaching follow-up (2026-09-06). OPPORTUNITY_UPDATE_CAPTURE_NOTE's
+// own reply is deliberately short and purely tactical now -- an acknowledgment,
+// not coaching -- specifically so it does not compete with the coaching that
+// should follow once the tap actually lands the update. This is that next
+// turn: the client fires it, silent like SESSION_OPEN_TURN_TEXT above, the
+// moment the tap's write succeeds, carrying exactly what was just confirmed
+// (the same payload the one-tap offer itself showed) so the model coaches on
+// it without re-asking or re-describing what it already knows landed.
+function buildPostCaptureTurnText(data) {
+  const heard = []
+  if (data && data.stage) heard.push(`stage moved to ${PURSUIT_STAGE_LABELS[data.stage] || data.stage}`)
+  if (data && data.move) heard.push(`next move: "${data.move}"${data.date ? ` by ${data.date}` : ''}`)
+  if (data && data.meeting) heard.push(`a meeting scheduled for ${data.meeting}`)
+  if (data && Array.isArray(data.people) && data.people.length) {
+    heard.push(`added to the Interview Team: ${data.people.map(p => p && p.name).filter(Boolean).join(', ')}`)
+  }
+  const where = data && data.opportunity ? ` on ${data.opportunity}` : ''
+  return `[They just confirmed this update${where}, and it is now saved: ${heard.join('; ')}. Speak next as their coach, picking up specifically on what is ahead given this -- do not restate, re-describe, or re-confirm what was just captured, they already saw it and confirmed it themselves in the tap. Move straight into coaching: what to prepare, who they are walking into a room with, what would help most right now. Do not mention that this is an automated turn.]`
 }
 
 // MY PIPELINE — live status (Move 1, 2026-08-18). coach.js otherwise never sees
@@ -1255,7 +1275,7 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Not signed in' })
   if (user.suspended_at) return res.status(403).json({ error: 'account_suspended' })
 
-  const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck, returnSection } = req.body || {}
+  const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck, postCaptureUpdate, returnSection } = req.body || {}
   // orientationCheck: the client may open a turn with no typed message,
   // marked with {step, text} instead -- the reaction the coach speaks on
   // its own right after someone leaves a covered orientation step (see
@@ -1265,12 +1285,22 @@ export default async function handler(req, res) {
   const orientationCheckShapeOk = !!(orientationCheck && typeof orientationCheck === 'object'
     && Object.prototype.hasOwnProperty.call(ORIENTATION_CHECK_LABELS, orientationCheck.step)
     && typeof orientationCheck.text === 'string' && orientationCheck.text.trim())
+  // postCaptureUpdate: same silent-turn shape again, fired the moment a
+  // one-tap opportunity-update offer's write succeeds -- the coaching
+  // follow-up OPPORTUNITY_UPDATE_CAPTURE_NOTE's own (now deliberately short)
+  // reply defers to. Carries the same payload the tap itself showed, so
+  // buildPostCaptureTurnText can tell the model what just landed without a
+  // second DB round-trip. Authoritative re-gate on hasPipelineCapture below,
+  // same as every other client-asserted flag on this endpoint.
+  const postCaptureUpdateShapeOk = !!(postCaptureUpdate && typeof postCaptureUpdate === 'object'
+    && (postCaptureUpdate.stage || postCaptureUpdate.move || postCaptureUpdate.meeting
+      || (Array.isArray(postCaptureUpdate.people) && postCaptureUpdate.people.length)))
   // Session-open recap (Phase 1): the client may open a turn with no typed
   // message at all, marked sessionOpen instead — the returning-session
   // opener the coach speaks on its own. Provisionally let it through here;
   // featureFlags is not loaded yet, so the authoritative check (does this
   // account actually have the pilot?) happens below once it is.
-  if ((!rawMessage || typeof rawMessage !== 'string') && sessionOpen !== true && !orientationCheckShapeOk) {
+  if ((!rawMessage || typeof rawMessage !== 'string') && sessionOpen !== true && !orientationCheckShapeOk && !postCaptureUpdateShapeOk) {
     return res.status(400).json({ error: 'message required' })
   }
   // General-question mode (Career Club team only): answer a general or client
@@ -1372,14 +1402,24 @@ export default async function handler(req, res) {
   if (orientationCheckShapeOk && !orientationCheckRequested && (!rawMessage || typeof rawMessage !== 'string')) {
     return res.status(400).json({ error: 'message required' })
   }
+  // Post-capture coaching follow-up, authoritative half. Same shape again --
+  // opportunity-update capture is pilot-only, so this re-checks
+  // hasPipelineCapture rather than trusting that the client would only ever
+  // fire this after a real offer it was shown.
+  const postCaptureUpdateRequested = postCaptureUpdateShapeOk && !generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: user.email })
+  if (postCaptureUpdateShapeOk && !postCaptureUpdateRequested && (!rawMessage || typeof rawMessage !== 'string')) {
+    return res.status(400).json({ error: 'message required' })
+  }
   // The message the model actually sees this turn. A real typed message wins
   // when present; otherwise, for the one turn the client marked as a
-  // session's opener or an orientation quality check, a standing internal
-  // instruction — never shown to the person, same pattern as the "[The user
-  // is currently on step ...]" contextNote appended further down.
+  // session's opener, an orientation quality check, or a post-capture
+  // follow-up, a standing internal instruction — never shown to the person,
+  // same pattern as the "[The user is currently on step ...]" contextNote
+  // appended further down.
   const message = (typeof rawMessage === 'string' && rawMessage.trim())
     ? rawMessage
     : orientationCheckRequested ? buildOrientationCheckTurnText(orientationCheck.step, orientationCheck.text)
+    : postCaptureUpdateRequested ? buildPostCaptureTurnText(postCaptureUpdate)
     : (sessionOpenRequested ? SESSION_OPEN_TURN_TEXT : '')
   // Go Independent business-of-consulting grounding (2026-08-28). Six chapters,
   // roughly 30k tokens, for accounts on that track ONLY -- someone still job

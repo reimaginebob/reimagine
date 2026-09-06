@@ -54,7 +54,7 @@ check(coach.includes('${sessionOpenNote}'),
 const CHAT = 'src/components/Chat.jsx'
 const chat = fs.readFileSync(CHAT, 'utf8')
 
-check(/const send = async \(explicit, \{ silent = false \} = \{\}\) =>/.test(chat),
+check(/const send = async \(explicit, \{ silent = false, postCaptureUpdate = null \} = \{\}\) =>/.test(chat),
   `${CHAT}: send() lost its silent option -- the session-open trigger calls send(null, { silent: true })`)
 check(chat.includes('sessionOpen: true'),
   `${CHAT}: send() no longer sends sessionOpen: true on a silent turn`)
@@ -68,8 +68,8 @@ check(/silent && res\.status === 204/.test(chat),
 // unless the catch block is guarded. (2026-09-05, Gap 1: the catch block now
 // branches on AbortError first -- a user-initiated Stop -- before reaching
 // this !silent-gated fallback; see test-coach-stop-generating.mjs for that.)
-check(/\}\s*else if \(!silent\) \{\s*\/\//.test(chat),
-  `${CHAT}: the outer catch block's fallback message is not guarded on !silent -- a network error during a silent open would clobber a real message in the transcript`)
+check(/\}\s*else if \(!isSilentTurn\) \{\s*\/\//.test(chat),
+  `${CHAT}: the outer catch block's fallback message is not guarded on !isSilentTurn -- a network error during a silent open would clobber a real message in the transcript`)
 check(chat.includes('sessionOpenEligible = false'),
   `${CHAT}: Chat no longer accepts a sessionOpenEligible prop`)
 check(/if \(!sessionOpenEligible\) return/.test(chat),

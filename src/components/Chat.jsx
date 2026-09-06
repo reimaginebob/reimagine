@@ -387,6 +387,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       const handled = onQuickReply ? await onQuickReply(checkinKey, opt.value) : false
       if (handled && typeof handled === 'object' && handled.content) {
         setMessages(m => [...m, { role: 'assistant', ...handled }])
+        // Opportunity-update capture (2026-09-06): the tap just landed a real
+        // write (a stage, a move, a meeting, a new interviewer), and the reply
+        // that offered it was deliberately short and tactical -- coaching on
+        // what was just confirmed is a separate, following turn, triggered
+        // here now that the write has actually succeeded, not bundled into
+        // the offer itself. See buildPostCaptureTurnText in api/coach.js.
+        if (checkinKey === 'opportunity-update') {
+          let capturedData = null
+          try { capturedData = JSON.parse(opt.value) } catch { /* dismiss, or malformed -- no follow-up */ }
+          if (capturedData && sendRef.current) sendRef.current(null, { postCaptureUpdate: capturedData })
+        }
       }
       if (!handled) {
         await fetch('/api/pb-checkin', {
@@ -398,21 +409,26 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     } catch { /* the conversation already continued; the tap is best-effort */ }
   }
 
-  // `silent` (session-open recap, Phase 1): the app fires this itself, with
-  // no typed text and no user bubble — the coach speaks first with what
-  // changed since the account's last session. Everything below reduces to
-  // the same request/stream/log path a normal send takes; the two
-  // differences are what goes in the request body (sessionOpen instead of a
-  // message) and that nothing is pushed into the transcript until we know
-  // there is something to show (a 204 means there wasn't, and that renders
-  // nothing at all rather than a bubble that briefly appears and vanishes).
-  const send = async (explicit, { silent = false } = {}) => {
-    const text = silent ? '' : (typeof explicit === 'string' ? explicit : input).trim()
-    if (silent) { if (loading) return } else if (!text || loading) return
+  // `silent` (session-open recap, Phase 1) / `postCaptureUpdate` (2026-09-06,
+  // opportunity-update follow-up): the app fires either itself, with no
+  // typed text and no user bubble — the coach speaks first, either with
+  // what changed since the account's last session, or with the coaching
+  // that follows a just-confirmed opportunity update. Everything below
+  // reduces to the same request/stream/log path a normal send takes; the
+  // differences are what goes in the request body (sessionOpen, or
+  // postCaptureUpdate carrying exactly what the tap just confirmed, instead
+  // of a message) and that nothing is pushed into the transcript until we
+  // know there is something to show (a 204 on the sessionOpen path means
+  // there wasn't, and that renders nothing at all rather than a bubble that
+  // briefly appears and vanishes).
+  const send = async (explicit, { silent = false, postCaptureUpdate = null } = {}) => {
+    const isSilentTurn = silent || !!postCaptureUpdate
+    const text = isSilentTurn ? '' : (typeof explicit === 'string' ? explicit : input).trim()
+    if (isSilentTurn) { if (loading) return } else if (!text || loading) return
     const userMsg = { role: 'user', content: text }
     // (sendRef is refreshed just below so the seed effect can call the latest send.)
     const historyAtSend = messages
-    if (silent) {
+    if (isSilentTurn) {
       setLoading(true)
     } else {
       setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])
@@ -428,7 +444,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
-          ...(silent ? { sessionOpen: true } : { message: userMsg.content }),
+          ...(postCaptureUpdate ? { postCaptureUpdate } : (silent ? { sessionOpen: true } : { message: userMsg.content })),
           history: historyAtSend,
           currentStep,
           // Entry point for insight logging: the embedded variant is the My
@@ -437,7 +453,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           // General-question mode (Career Club team only; re-checked server-side).
           // Never sent on a silent open — the recap needs this account's real
           // profile, and general mode explicitly has none loaded.
-          general: silent ? false : generalMode,
+          general: isSilentTurn ? false : generalMode,
           // Which saved opportunity this conversation is pinned to, when the app
           // knows. The server otherwise infers it by scanning the person's own
           // words for the title or company (findInFocusRecord), which works for
@@ -461,15 +477,18 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         setLoading(false)
         return
       }
-      if (silent && !res.ok) {
+      if (isSilentTurn && !res.ok) {
         // A proactive opener nobody asked for; a failure here should not
         // greet the person with an error message they never triggered. A
         // normal send still shows its fallback below — this branch only
-        // covers the silent path.
+        // covers the silent paths (session-open recap, post-capture
+        // follow-up). The post-capture write itself already succeeded
+        // independently of this call, so there is nothing to roll back --
+        // only a bonus coaching turn that silently does not arrive.
         setLoading(false)
         return
       }
-      if (silent) setMessages(m => [...m, { role: 'assistant', content: '' }])
+      if (isSilentTurn) setMessages(m => [...m, { role: 'assistant', content: '' }])
       if (!res.ok || !res.body) {
         // When the model itself is unreachable the server sends one written
         // sentence explaining it (api/_lib/anthropic-error.js), so the coach
@@ -743,13 +762,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           if (last && last.role === 'assistant' && !last.content) return m.slice(0, -1)
           return m
         })
-      } else if (!silent) {
-        // A silent open never pushed a placeholder to overwrite here (it only
-        // does that once a real, non-204 response is in hand) -- so on a thrown
-        // error (network down, etc.) there is nothing of its own to fail into,
-        // and clobbering whatever the transcript's real last message happens to
-        // be would be worse than saying nothing. Fail exactly as silently as
-        // the 204/!res.ok branches above do.
+      } else if (!isSilentTurn) {
+        // A silent turn (session-open or post-capture) never pushed a
+        // placeholder to overwrite here (it only does that once a real,
+        // non-204 response is in hand) -- so on a thrown error (network down,
+        // etc.) there is nothing of its own to fail into, and clobbering
+        // whatever the transcript's real last message happens to be would be
+        // worse than saying nothing. Fail exactly as silently as the
+        // 204/!res.ok branches above do.
         setMessages(m => {
           const copy = [...m]
           copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach your coach just now. Try again in a moment.' }
