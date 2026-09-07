@@ -67,7 +67,11 @@ check(disclosureEffectBlock.includes('setSeenNotesCapabilityMention(true)'),
 // or it fires again after a reload/re-signin.
 const hydrationCount = (app.match(/if\(d\.seenNotesCapabilityMention\)setSeenNotesCapabilityMention\(true\);/g) || []).length
 check(hydrationCount === 2, `${APP}: expected seenNotesCapabilityMention hydration in both the localStorage and server-profile load paths, found ${hydrationCount}`)
-check(app.includes('seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenSupportAnnounce'),
+// Substring check against the blob neighborhood, not an exact-adjacency
+// string -- later additions insert their own fields between these names,
+// which would break a literal match anchored on today's exact ordering.
+const notesSaveBlobIdx = app.indexOf('const blob=JSON.stringify(')
+check(app.slice(notesSaveBlobIdx, notesSaveBlobIdx + 700).includes('seenNotesCapabilityMention'),
   `${APP}: seenNotesCapabilityMention is not threaded into the debounced save blob`)
 
 // The write branch: an explicit ask writes through the exact same path the

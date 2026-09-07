@@ -171,8 +171,16 @@ check(app.includes('const[seenCloseReasonMention,setSeenCloseReasonMention]=useS
 const hydrationHits = (app.match(/if\(d\.seenCloseReasonMention\)setSeenCloseReasonMention\(true\)/g) || []).length
 check(hydrationHits === 2,
   `${APP}: seenCloseReasonMention is not threaded through both hydration paths (localStorage + server sync), found ${hydrationHits}`)
-check(app.includes('seenNotesCapabilityMention,seenCloseReasonMention,seenSupportAnnounce'),
-  `${APP}: seenCloseReasonMention is not included in both the autosave blob and its effect's dependency array`)
+// Substring checks against the blob/deps neighborhood, not an exact-
+// adjacency string -- later additions insert their own fields between
+// these names, which would break a literal match anchored on today's
+// exact ordering.
+const crSaveBlobIdx = app.indexOf('const blob=JSON.stringify(')
+check(app.slice(crSaveBlobIdx, crSaveBlobIdx + 700).includes('seenCloseReasonMention'),
+  `${APP}: seenCloseReasonMention is missing from the autosave blob's JSON.stringify`)
+const crSaveDepsIdx = app.indexOf('saveRef.current=save')
+check(app.slice(crSaveDepsIdx, crSaveDepsIdx + 700).includes('seenCloseReasonMention'),
+  `${APP}: seenCloseReasonMention is missing from the autosave effect's dependency array`)
 check(app.includes('const closeReasonCapabilityMessage='),
   `${APP}: closeReasonCapabilityMessage is missing -- this needs its own disclosure text, distinct from Notes' "so you can find it again" framing`)
 check(app.includes("doesn't work out, I may ask if you have any read on why, even just a guess"),
