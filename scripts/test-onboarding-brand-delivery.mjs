@@ -46,7 +46,7 @@ const saveBlobIdx = app.indexOf('const blob=JSON.stringify(')
 check(app.slice(saveBlobIdx, saveBlobIdx + 700).includes('seenBrandDeliveryMoment'),
   `${APP}: seenBrandDeliveryMoment is missing from the autosave blob's JSON.stringify -- the dedupe would never actually persist`)
 const saveDepsIdx = app.indexOf('saveRef.current=save')
-check(app.slice(saveDepsIdx, saveDepsIdx + 500).includes('seenBrandDeliveryMoment'),
+check(app.slice(saveDepsIdx, saveDepsIdx + 800).includes('seenBrandDeliveryMoment'),
   `${APP}: seenBrandDeliveryMoment is missing from the autosave effect's dependency array`)
 
 // The delivery moment itself (2026-09-07, brand richness): no longer a

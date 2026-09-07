@@ -188,7 +188,7 @@ const hydrationHits = (app.match(/if\(d\.qualityCheckedFields&&typeof d\.quality
 check(hydrationHits === 2,
   `${APP}: expected qualityCheckedFields hydration in both the local pe_v4 path and the server profile/load path -- found ${hydrationHits}`)
 const saveBlobIdx = app.indexOf('const blob=JSON.stringify(')
-check(app.slice(saveBlobIdx, saveBlobIdx + 500).includes('qualityCheckedFields'),
+check(app.slice(saveBlobIdx, saveBlobIdx + 700).includes('qualityCheckedFields'),
   `${APP}: qualityCheckedFields is missing from the autosave blob's JSON.stringify -- the dedupe would never actually persist`)
 const saveDepsIdx = app.indexOf('saveRef.current=save')
 check(app.slice(saveDepsIdx, saveDepsIdx + 600).includes('qualityCheckedFields'),
