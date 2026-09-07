@@ -71,11 +71,13 @@ check(chat.includes('It adds to whatever is already there'),
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
 
-// Both <Chat> mount points must pass the prop, or the capture works in one
-// surface and silently not the other.
+// All three <Chat> mount points must pass the prop, or the capture works on
+// some surfaces and silently not others. Three as of 2026-09-07: the
+// embedded myCoach panel, the floating bubble, and the concierge
+// orientation-flow embedded panel.
 const mountHits = (app.match(/assessmentCaptureActive=\{!isDemo\}/g) || []).length
-check(mountHits === 2,
-  `${APP}: expected assessmentCaptureActive={!isDemo} passed at both <Chat> call sites -- found ${mountHits}`)
+check(mountHits === 3,
+  `${APP}: expected assessmentCaptureActive={!isDemo} passed at all three <Chat> call sites -- found ${mountHits}`)
 
 // The write path: mirrors the exact divider shape the "+ Add another
 // assessment" button and the file-upload path on that screen already use

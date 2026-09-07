@@ -146,9 +146,10 @@ check(app.includes("logPromptEngagement('employment_status','hub_arrival','shown
 check(app.includes("logPromptEngagement('search_intake','hub_arrival','shown')"),
   `${APP}: search-intake's hub_arrival effect does not log 'shown'`)
 
-// Both Chat mounts carry the three new props identically.
+// All three Chat mounts carry the three new props identically (2026-09-07:
+// embedded myCoach panel, floating bubble, concierge orientation panel).
 const mountHits = (app.match(/lifeEventsThinTriggerActive=\{hasOnboardingConcierge&&!isIndependent&&wc\(profile\.lifeEvents\)<THIN_MIN\.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP\} lifeEventsThinOfferMessage=\{hasOnboardingConcierge\?lifeEventsThinPromptMessage\('life-events-thin-lang'\):null\} onLifeEventsThinTopicClose=\{\(\)=>setLifeEventsThinTopicCloseCount\(c=>c\+1\)\}/g) || []).length
-check(mountHits === 2, `${APP}: expected the three life-events-thin props at both <Chat> mount sites (embedded + floating), found ${mountHits}`)
+check(mountHits === 3, `${APP}: expected the three life-events-thin props at all three <Chat> mount sites (embedded myCoach, floating, concierge orientation), found ${mountHits}`)
 
 const CHAT = 'src/components/Chat.jsx'
 const chat = fs.readFileSync(CHAT, 'utf8')

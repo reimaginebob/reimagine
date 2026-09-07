@@ -125,9 +125,12 @@ check(chat.includes("aria-label={thinking ? 'Coach is thinking. Open My Coach'")
   `${CHAT}: the closed bubble's aria-label no longer announces "Coach is thinking" for a screen reader when a check is in flight`)
 check(app.includes('thinking={coachThinkingCount>0}'),
   `${APP}: coachThinkingCount is not passed through as the thinking prop -- check both <Chat> call sites if this fails`)
+// Three mounts as of 2026-09-07 (myCoach embedded, the floating bubble, and
+// the concierge orientation-flow embedded panel) -- see
+// test-coach-embedded-orientation.mjs for the third mount's own coverage.
 const thinkingMountHits = (app.match(/thinking=\{coachThinkingCount>0\}/g) || []).length
-check(thinkingMountHits === 2,
-  `${APP}: expected thinking={coachThinkingCount>0} passed at both <Chat> call sites -- found ${thinkingMountHits}`)
+check(thinkingMountHits === 3,
+  `${APP}: expected thinking={coachThinkingCount>0} passed at all three <Chat> call sites -- found ${thinkingMountHits}`)
 
 if (failures) {
   console.error(`test-coach-banner: ${failures} check(s) failed`)
