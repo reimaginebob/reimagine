@@ -9205,9 +9205,18 @@ export default function PivotEngine(){
   },[step,signedInUser,isDemo,isTest,isIndependent,activePlaybooks])
   // Skills step: on first arrival with empty skills and at least one source
   // document (resume or LinkedIn paste), trigger a JSON-only extraction pass.
-  // Subsequent visits or pre-populated skills skip the call. The Re-extract
-  // button in the render clears pr.skills back to empty arrays, which makes
-  // this effect re-fire on the next render.
+  // Subsequent visits or pre-populated skills skip the call.
+  //
+  // The Re-extract button used to just clear pr.skills back to empty arrays
+  // on the (wrong) assumption that clearing the field this effect reads
+  // would make it re-fire -- effects only re-run when something in their OWN
+  // dependency array changes, and this one depended on [step] alone, which
+  // the button never touched. Clicking it wiped every skill and never called
+  // the model again: a promised "re-extract" that only ever deleted. Fixed
+  // by giving the button its own bump counter the effect actually depends
+  // on, the same pattern coachOpenTick/pbCheckinOpenReq use elsewhere in this
+  // file. Found in the 2026-09-07 full-orientation-codebase review.
+  const[skillsExtractReq,setSkillsExtractReq]=useState(0)
   useEffect(()=>{
     if(step!=='skills')return
     if(isDemo||isTest)return
@@ -9237,7 +9246,7 @@ export default function PivotEngine(){
         setLoading(false)
       }
     })()
-  },[step])
+  },[step,skillsExtractReq])
   // Escape closes the nav drawer, matching every other overlay in the app.
   useEffect(()=>{if(!drawerOpen)return;const onKey=e=>{if(e.key==='Escape')setDrawerOpen(false)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[drawerOpen])
   // Widening past the breakpoint with the drawer open would leave drawerOpen
@@ -14134,7 +14143,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </ul>
             <p style={{fontSize:15,color:C.gray,margin:'8px 0 0',fontStyle:'italic'}}>Removing from this list does not delete the file's text from the field below. Edit the text directly if you want to remove its content.</p>
           </div>}
-        </div>}<div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea ref={f==='other'?repOtherRef:null} style={{...S.ta,minHeight:f==='other'?90:62,flex:1}} value={profile.rep[f]} onChange={e=>rep(f,e.target.value)}/>{hasSpeech&&<SpeechBtn onResult={t=>rep(f,t)}/>}</div>{f==='other'&&<><div style={{...S.helperText,marginTop:8}}>Paste anything that gives Reimagine more signal: performance reviews, LinkedIn recommendations, 360 feedback, notes from former managers. A divider line between each source (for example, === LinkedIn recommendations === then the text, then === 2024 performance review === then the text) helps Reimagine attribute what came from where.</div><div style={{marginTop:10}}><Btn secondary small onClick={()=>{const cur=profile.rep.other||'';const div='\n\n=== Source ===\n\n';const next=cur+div;rep('other',next);setTimeout(()=>{if(repOtherRef.current){repOtherRef.current.focus();repOtherRef.current.setSelectionRange(next.length,next.length)}},50)}}>+ Add another source</Btn></div></>}</div>)}
+        </div>}<div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea ref={f==='other'?repOtherRef:null} style={{...S.ta,minHeight:f==='other'?90:62,flex:1}} value={profile.rep[f]} onChange={e=>rep(f,e.target.value)}/>{hasSpeech&&<SpeechBtn onResult={t=>rep(f,(profile.rep[f]||'')+t)}/>}</div>{f==='other'&&<><div style={{...S.helperText,marginTop:8}}>Paste anything that gives Reimagine more signal: performance reviews, LinkedIn recommendations, 360 feedback, notes from former managers. A divider line between each source (for example, === LinkedIn recommendations === then the text, then === 2024 performance review === then the text) helps Reimagine attribute what came from where.</div><div style={{marginTop:10}}><Btn secondary small onClick={()=>{const cur=profile.rep.other||'';const div='\n\n=== Source ===\n\n';const next=cur+div;rep('other',next);setTimeout(()=>{if(repOtherRef.current){repOtherRef.current.focus();repOtherRef.current.setSelectionRange(next.length,next.length)}},50)}}>+ Add another source</Btn></div></>}</div>)}
         <div style={S.helperText}>If you leave all blank, we'll generate a reputation hypothesis from your other data and ask you to validate it.</div>
       </div>
       {wc([profile.rep&&profile.rep.memory,profile.rep&&profile.rep.emergency,profile.rep&&profile.rep.twoWords,profile.rep&&profile.rep.other].filter(Boolean).join(' '))<THIN_MIN.rep&&<ThinNudge text="The more you add here, the more Reimagine can reflect how others actually see you, which is some of the strongest signal it has." mic="Prefer to talk? Tap a field's mic and say it out loud; it's often easier than typing."/>}
@@ -14251,7 +14260,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {key:'languages',label:'Languages',placeholder:'Spanish (fluent), Mandarin (conversational)'},
             {key:'methodologies',label:'Methodologies and frameworks',placeholder:'Agile, Lean, Design Thinking'}
           ].map(cat=><SkillCategory key={cat.key} label={cat.label} placeholder={cat.placeholder} items={(profile.skills&&profile.skills[cat.key])||[]} onChange={items=>pr('skills',{...(profile.skills||{technical:[],systems:[],certifications:[],languages:[],methodologies:[]}),[cat.key]:items})}/>)}
-          <button onClick={()=>pr('skills',{technical:[],systems:[],certifications:[],languages:[],methodologies:[]})} style={{background:'none',border:'none',color:C.gold,fontSize:15,cursor:'pointer',padding:'8px 0 0',textDecoration:'underline',fontFamily:'inherit'}}>Re-extract from my resume and LinkedIn</button>
+          <button onClick={()=>{pr('skills',{technical:[],systems:[],certifications:[],languages:[],methodologies:[]});setSkillsExtractReq(x=>x+1)}} style={{background:'none',border:'none',color:C.gold,fontSize:15,cursor:'pointer',padding:'8px 0 0',textDecoration:'underline',fontFamily:'inherit'}}>Re-extract from my resume and LinkedIn</button>
         </div>
         <div style={S.row}><Btn secondary onClick={()=>nav('life-events')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('skills','orientation-done')}>Continue <ChevronRight size={14}/></Btn></div>
       </>}
