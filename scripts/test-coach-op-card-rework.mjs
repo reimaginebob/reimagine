@@ -91,14 +91,23 @@ check((app.match(/opCardReworkCaptureActive=\{hasPipeline&&!isIndependent&&hasSe
 // generateOpBridgeStory rather than refineOpCard, which explicitly excludes it.
 const handlerIdx = app.indexOf("if(checkinKey==='op-card-rework'){")
 check(handlerIdx !== -1, `${APP}: the op-card-rework quick-reply handler is missing`)
-const handlerBlock = handlerIdx !== -1 ? app.slice(handlerIdx, handlerIdx + 1400) : ''
-check(handlerBlock.includes("activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName))"),
-  `${APP}: does not resolve the opportunity by title the same way the opportunity-update handler does`)
-check(handlerBlock.includes('const switchedView=currentSavedSlotIdRef.current!==targetRec.id') && handlerBlock.includes('if(switchedView)restoreFromSavedSlot(targetRec)'),
+const handlerBlock = handlerIdx !== -1 ? app.slice(handlerIdx, handlerIdx + 700) : ''
+// Title resolution (2026-09-07, same-name opportunity resolution fix): the
+// handler now resolves through the shared resolveOpportunityByName instead
+// of calling activePlaybooks.find directly. The actual write logic
+// (slot-switch, p6 dispatch, confirmation copy) moved into execOpCardRework
+// so a disambiguation tap can call the same code a unique-match tap does --
+// look there for what the write actually does.
+check(handlerBlock.includes('resolveOpportunityByName(activePlaybooks,data.opportunity)'),
+  `${APP}: does not resolve the opportunity by title the same way the other opportunity mechanisms do`)
+const execIdx = app.indexOf('const execOpCardRework=')
+check(execIdx !== -1, `${APP}: execOpCardRework is missing -- the op-card-rework write logic should live in its own function, shared with the disambiguation-tap path`)
+const execBlock = execIdx !== -1 ? app.slice(execIdx, execIdx + 900) : ''
+check(execBlock.includes('const switchedView=currentSavedSlotIdRef.current!==targetRec.id') && execBlock.includes('if(switchedView)restoreFromSavedSlot(targetRec)'),
   `${APP}: does not switch the current slot to the matched opportunity before writing -- refineOpCard/generateOpSection operate on currentSavedSlotIdRef, so a write while a different opportunity is open would silently land on the wrong card`)
-check(handlerBlock.includes("if(section==='p6')generateOpBridgeStory({refine:note})") && handlerBlock.includes('else refineOpCard(section,note)'),
+check(execBlock.includes("if(section==='p6')generateOpBridgeStory({refine:note})") && execBlock.includes('else refineOpCard(section,note)'),
   `${APP}: does not dispatch p6 through generateOpBridgeStory separately from refineOpCard, which explicitly declines to handle p6`)
-check(handlerBlock.includes("I've opened it so you can watch it rebuild"),
+check(execBlock.includes("I've opened it so you can watch it rebuild"),
   `${APP}: the confirmation does not say plainly that the view switched, when it did -- a silent screen change would read as a bug`)
 
 if (failures) {

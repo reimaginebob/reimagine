@@ -192,7 +192,12 @@ check(app.includes("doesn't work out, I may ask if you have any read on why, eve
 const branchIdx = app.indexOf("checkinKey==='close-reason'")
 check(branchIdx !== -1, `${APP}: the checkinKey==='close-reason' branch is missing from handleEmploymentQuickReply`)
 if (branchIdx !== -1) {
-  const branch = app.slice(branchIdx, branchIdx + 1100)
+  // The write itself lives in execCloseReason (2026-09-07, same-name
+  // opportunity resolution fix) -- extracted out of this branch so a
+  // disambiguation tap can call the same code a unique-match tap does.
+  const execIdx = app.indexOf('const execCloseReason=')
+  check(execIdx !== -1, `${APP}: execCloseReason is missing -- the close-reason write logic should live in its own function, shared with the disambiguation-tap path`)
+  const branch = execIdx !== -1 ? app.slice(execIdx, execIdx + 900) : ''
   check(branch.includes("await fetch('/api/pursuit-close-reason'"),
     `${APP}: the close-reason write does not call the dedicated endpoint`)
   check(branch.includes("method:'PUT'"),

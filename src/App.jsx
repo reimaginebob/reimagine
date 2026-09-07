@@ -4787,6 +4787,37 @@ const LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP=2
 const logPromptEngagement=(promptCode,triggerType,outcome)=>{
   try{fetch('/api/coach-prompt-engagement',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({promptCode,triggerType,outcome})}).catch(()=>{})}catch{}
 }
+// Same-name opportunity resolution (2026-09-07). Every chat mechanism that
+// resolves a spoken opportunity name against activePlaybooks shares this one
+// resolver instead of each calling .find (first substring match, silently)
+// on its own. 'ambiguous' is new -- previously indistinguishable from
+// 'unique', a duplicate title just picked whichever record happened to sort
+// first. See handleEmploymentQuickReply for how each of the seven call
+// sites uses this.
+function resolveOpportunityByName(activePlaybooks,oppName){
+  const name=String(oppName||'').trim().toLowerCase()
+  if(!name)return{status:'absent',matches:[]}
+  const matches=(activePlaybooks||[]).filter(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(name))
+  if(!matches.length)return{status:'absent',matches:[]}
+  if(matches.length===1)return{status:'unique',matches,match:matches[0]}
+  return{status:'ambiguous',matches}
+}
+// The one-tap offer shown when resolveOpportunityByName finds more than one
+// match. Each button carries the ORIGINAL mechanism's checkinKey and data
+// payload forward, plus the specific opportunity id that button means -- so
+// tapping one replays the exact action that was blocked, now against a known
+// id instead of a name, through the checkinKey==='opportunity-disambiguate'
+// branch below. 'Never mind' is a plain dismiss, same as every other offer.
+function buildDisambiguationOffer(originalCheckinKey,data,matches){
+  return{
+    content:`I found more than one opportunity matching that — ${matches.map(m=>m.title||'Untitled').join(', ')}. Which one did you mean?`,
+    checkinKey:'opportunity-disambiguate',
+    quickReplies:[
+      ...matches.map(m=>({label:m.title||'Untitled',value:JSON.stringify({originalCheckinKey,data,targetId:m.id})})),
+      {label:'Never mind',value:'dismiss'},
+    ],
+  }
+}
 // Calendar-day state for a pursuit's "My Next Step" date. The date input stores
 // midnight-UTC of the day the user picked, so the UTC date slice is exactly that
 // calendar day; we compare it against today's LOCAL calendar day. A step due
@@ -7547,6 +7578,128 @@ export default function PivotEngine(){
     if(!Object.keys(next).length)return
     try{fetch('/api/search-intake',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)}).then(r=>{if(r&&r.ok)for(const k of Object.keys(next))searchIntakeSavedRef.current[k]=next[k].trim()}).catch(()=>{})}catch{}
   }
+  // Same-name opportunity resolution (2026-09-07). Every chat mechanism below
+  // that resolves a spoken opportunity name used to call activePlaybooks.find
+  // directly -- first substring match wins, silently, with no signal that a
+  // second match even existed. Two opportunities that both contain "acme" in
+  // their titles meant a confident-sounding wrong answer, never an error.
+  // Each of the seven mechanisms now: (1) does its own "is there actually
+  // something to write" validation and dismiss handling as before, (2) calls
+  // resolveOpportunityByName once instead of .find, (3) on 'ambiguous',
+  // returns a one-tap disambiguation offer instead of guessing, (4) on
+  // 'unique' or 'absent' (most sites here fall back to whatever opportunity
+  // is currently on screen when a name didn't resolve to anything at all,
+  // exactly as before -- opportunity-archive is the one deliberate exception,
+  // since guessing which opportunity to ARCHIVE is worse than doing nothing),
+  // hands off to that mechanism's execX function to actually do the write.
+  // The execX functions are the exact same write logic each branch already
+  // had, split out so both the normal (unique-match) path AND a tap on a
+  // disambiguation option -- which already knows the exact targetId, no
+  // resolution needed -- can call the same code instead of duplicating it.
+  const execPursuitUpdate=(data,targetId)=>{
+    const move=data&&typeof data.move==='string'?data.move.trim():''
+    const meeting=data&&typeof data.meeting==='string'?data.meeting.trim():''
+    const patch={}
+    if(move)patch.next_move=move
+    if(move&&data.date)patch.next_step_at=new Date(`${data.date}T12:00:00Z`).toISOString()
+    if(meeting)patch.next_conversation_at=new Date(`${meeting}T12:00:00Z`).toISOString()
+    savePursuit(targetId,patch)
+    const savedRec=activePlaybooks.find(r=>r&&r.id===targetId)
+    const savedTitle=(savedRec&&savedRec.title)||'this opportunity'
+    const fmtDay=(iso)=>new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})
+    const landed=[]
+    if(move)landed.push(`next move is now “${move}”${data.date?`, by ${fmtDay(data.date)}`:''}`)
+    if(meeting)landed.push(`next scheduled meeting is ${fmtDay(meeting)}`)
+    return{content:`Saved. On ${savedTitle}, your ${landed.join(', and your ')}.`,
+      checkinKey:'pursuit-saved-open',
+      quickReplies:[{label:`Open ${savedTitle}`,value:targetId},{label:'Stay here',value:'dismiss'}]}
+  }
+  const execOpportunityUpdate=(data,targetId)=>{
+    const stage=data&&typeof data.stage==='string'&&PURSUIT_STAGES.some(s=>s.value===data.stage)?data.stage:''
+    const move=data&&typeof data.move==='string'?data.move.trim():''
+    const meeting=data&&typeof data.meeting==='string'?data.meeting.trim():''
+    const people=data&&Array.isArray(data.people)?data.people.filter(p=>p&&p.name):[]
+    const removePeople=data&&Array.isArray(data.removePeople)?data.removePeople.filter(n=>typeof n==='string'&&n.trim()):[]
+    const patch={}
+    if(stage){patch.stage=stage;if(stage==='closed')patch.closed_at=new Date().toISOString()}
+    if(move)patch.next_move=move
+    if(move&&data.date)patch.next_step_at=new Date(`${data.date}T12:00:00Z`).toISOString()
+    if(meeting)patch.next_conversation_at=new Date(`${meeting}T12:00:00Z`).toISOString()
+    if(Object.keys(patch).length)savePursuit(targetId,patch)
+    let removed=[]
+    if(people.length||removePeople.length){
+      updateOpPanel(targetId,p=>{
+        const keep=p.interviewers.filter(iv=>{
+          const hit=removePeople.some(n=>n.trim().toLowerCase()===String(iv.name||'').trim().toLowerCase())
+          if(hit)removed.push(iv.name)
+          return!hit
+        })
+        return{...p,interviewers:[...keep,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:(typeof pe.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===pe.role))?pe.role:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:String(pe.note||'')}))]}
+      })
+    }
+    const savedRec=activePlaybooks.find(r=>r&&r.id===targetId)
+    const savedTitle=(savedRec&&savedRec.title)||'this opportunity'
+    const fmtDay=(iso)=>new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})
+    const landed=[]
+    if(stage)landed.push(`stage is now ${PURSUIT_STAGE_LABELS[stage]||stage}`)
+    if(move)landed.push(`next move is now “${move}”${data.date?`, by ${fmtDay(data.date)}`:''}`)
+    if(meeting)landed.push(`next scheduled meeting is ${fmtDay(meeting)}`)
+    if(people.length)landed.push(`Interview Team now includes ${people.map(p=>p.name).join(', ')}`)
+    if(removed.length)landed.push(`Interview Team no longer includes ${removed.join(', ')}`)
+    if(!landed.length)return false
+    return{content:`Saved. On ${savedTitle}, your ${landed.join(', and your ')}.`,
+      checkinKey:'pursuit-saved-open',
+      quickReplies:[{label:`Open ${savedTitle}`,value:targetId},{label:'Stay here',value:'dismiss'}]}
+  }
+  const execOpCardRework=(data,targetId)=>{
+    const section=data&&typeof data.section==='string'&&['companyRead','p5','p6','p_res','p_cover','p11'].includes(data.section)?data.section:''
+    const note=data&&typeof data.note==='string'?data.note.trim():''
+    if(!section||!note)return false
+    const targetRec=activePlaybooks.find(r=>r&&r.id===targetId)
+    if(!targetRec)return false
+    const switchedView=currentSavedSlotIdRef.current!==targetRec.id
+    if(switchedView)restoreFromSavedSlot(targetRec)
+    if(section==='p6')generateOpBridgeStory({refine:note})
+    else refineOpCard(section,note)
+    const label=OP_CARD_LABELS[section]||section
+    return{content:switchedView?`Updating ${label} on ${targetRec.title||'this opportunity'} now — I've opened it so you can watch it rebuild.`:`Updating ${label} now.`,checkinKey:'op-card-rework-started'}
+  }
+  const execOpportunityContext=(data,targetId)=>{
+    const text=data&&typeof data.text==='string'?data.text.trim():''
+    if(!text)return false
+    updateOpPanel(targetId,p=>({...p,opportunity_context:(p.opportunity_context&&p.opportunity_context.trim()?p.opportunity_context.trim()+'\n\n':'')+text}))
+    return true
+  }
+  const execOpportunityArchive=(data,targetId)=>{
+    deleteFromSavedSet(targetId)
+    return true
+  }
+  const execCloseReason=async(data,targetId)=>{
+    const reasonCode=typeof data.reasonCode==='string'?data.reasonCode.trim():''
+    if(!reasonCode)return false
+    try{
+      const r=await fetch('/api/pursuit-close-reason',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({recordId:targetId,reasonCode,initiatedBy:data.initiatedBy||'',detail:data.detail||''})})
+      if(!r.ok)throw new Error(String(r.status))
+      return{content:'Saved.'}
+    }catch{
+      return{content:'That did not save, so I have not recorded it. Tell me again in a moment and I will try once more.'}
+    }
+  }
+  const execInterviewTeam=(data,targetId)=>{
+    const people=data&&Array.isArray(data.people)?data.people:[]
+    if(!people.length)return false
+    updateOpPanel(targetId,p=>({...p,interviewers:[...p.interviewers,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:(typeof pe.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===pe.role))?pe.role:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:String(pe.note||'')}))]}))
+    return true
+  }
+  const EXEC_BY_CHECKIN_KEY={
+    'pursuit-update':execPursuitUpdate,
+    'opportunity-update':execOpportunityUpdate,
+    'op-card-rework':execOpCardRework,
+    'opportunity-context':execOpportunityContext,
+    'opportunity-archive':execOpportunityArchive,
+    'close-reason':execCloseReason,
+    'interview-team':execInterviewTeam,
+  }
   // The handler Chat calls on a quick-reply tap. Returns true for the employment
   // key so Chat does NOT fall back to the pb-checkin log.
   const handleEmploymentQuickReply=async(checkinKey,value)=>{
@@ -7649,36 +7802,12 @@ export default function PivotEngine(){
       const move=data&&typeof data.move==='string'?data.move.trim():''
       const meeting=data&&typeof data.meeting==='string'?data.meeting.trim():''
       if(!move&&!meeting)return false
-      const oppName=String(data.opportunity||'').trim().toLowerCase()
-      const match=oppName?activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName)):null
+      const resolved=resolveOpportunityByName(activePlaybooks,data.opportunity)
+      if(resolved.status==='ambiguous')return buildDisambiguationOffer('pursuit-update',data,resolved.matches)
       const tgt=coachSaveTarget()
-      const targetId=(match&&match.id)||(tgt&&tgt.id)||null
+      const targetId=(resolved.match&&resolved.match.id)||(tgt&&tgt.id)||null
       if(!targetId)return false
-      // Send only the fields this offer actually carried. savePursuit patches, and
-      // the endpoint read-merge-writes, so an absent key is left alone — which is
-      // what stops "I'm calling Teresa" with no timing from clearing a deadline
-      // already on the card, and stops a meeting update from wiping a next move.
-      const patch={}
-      if(move)patch.next_move=move
-      if(move&&data.date)patch.next_step_at=new Date(`${data.date}T12:00:00Z`).toISOString()
-      if(meeting)patch.next_conversation_at=new Date(`${meeting}T12:00:00Z`).toISOString()
-      savePursuit(targetId,patch)
-      // Say what landed, and offer the way back. A save that ends in silence
-      // leaves the person sitting in the Coach with the card they just changed
-      // one screen away -- the "Back to..." link is at the TOP of the
-      // conversation, which is not where anyone is after a long exchange.
-      // Offered rather than automatic: they may well have more to say, and
-      // pulling them out of the conversation because they saved something is
-      // the product deciding for them.
-      const savedRec=activePlaybooks.find(r=>r&&r.id===targetId)
-      const savedTitle=(savedRec&&savedRec.title)||'this opportunity'
-      const fmtDay=(iso)=>new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})
-      const landed=[]
-      if(move)landed.push(`next move is now \u201c${move}\u201d${data.date?`, by ${fmtDay(data.date)}`:''}`)
-      if(meeting)landed.push(`next scheduled meeting is ${fmtDay(meeting)}`)
-      return{content:`Saved. On ${savedTitle}, your ${landed.join(', and your ')}.`,
-        checkinKey:'pursuit-saved-open',
-        quickReplies:[{label:`Open ${savedTitle}`,value:targetId},{label:'Stay here',value:'dismiss'}]}
+      return execPursuitUpdate(data,targetId)
     }
     // Take them to the opportunity they just updated, using the same navigation
     // the pipeline card itself uses so they land on the record they changed.
@@ -7709,52 +7838,12 @@ export default function PivotEngine(){
       const people=data&&Array.isArray(data.people)?data.people.filter(p=>p&&p.name):[]
       const removePeople=data&&Array.isArray(data.removePeople)?data.removePeople.filter(n=>typeof n==='string'&&n.trim()):[]
       if(!stage&&!move&&!meeting&&!people.length&&!removePeople.length)return false
-      const oppName=String(data.opportunity||'').trim().toLowerCase()
-      const match=oppName?activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName)):null
+      const resolved=resolveOpportunityByName(activePlaybooks,data.opportunity)
+      if(resolved.status==='ambiguous')return buildDisambiguationOffer('opportunity-update',data,resolved.matches)
       const tgt=coachSaveTarget()
-      const targetId=(match&&match.id)||(tgt&&tgt.id)||null
+      const targetId=(resolved.match&&resolved.match.id)||(tgt&&tgt.id)||null
       if(!targetId)return false
-      // Same read-merge-write contract as pursuit-update above: send only the
-      // fields this offer actually carried, so an absent key never clears a
-      // value already on the card.
-      const patch={}
-      if(stage){patch.stage=stage;if(stage==='closed')patch.closed_at=new Date().toISOString()}
-      if(move)patch.next_move=move
-      if(move&&data.date)patch.next_step_at=new Date(`${data.date}T12:00:00Z`).toISOString()
-      if(meeting)patch.next_conversation_at=new Date(`${meeting}T12:00:00Z`).toISOString()
-      if(Object.keys(patch).length)savePursuit(targetId,patch)
-      // Interview Team removal (2026-09-06): the model names people already
-      // on the roster; existence is checked here, against the real current
-      // list, not assumed -- a hallucinated or mismatched name is simply
-      // dropped from `removed` rather than silently doing nothing while
-      // claiming success. Add and remove apply in ONE updateOpPanel call so
-      // a name that is both being removed and re-added in the same trailer
-      // (a genuine edge case, not the normal path) resolves deterministically
-      // rather than racing two separate state updates.
-      let removed=[]
-      if(people.length||removePeople.length){
-        updateOpPanel(targetId,p=>{
-          const keep=p.interviewers.filter(iv=>{
-            const hit=removePeople.some(n=>n.trim().toLowerCase()===String(iv.name||'').trim().toLowerCase())
-            if(hit)removed.push(iv.name)
-            return!hit
-          })
-          return{...p,interviewers:[...keep,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:(typeof pe.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===pe.role))?pe.role:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:String(pe.note||'')}))]}
-        })
-      }
-      const savedRec=activePlaybooks.find(r=>r&&r.id===targetId)
-      const savedTitle=(savedRec&&savedRec.title)||'this opportunity'
-      const fmtDay=(iso)=>new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})
-      const landed=[]
-      if(stage)landed.push(`stage is now ${PURSUIT_STAGE_LABELS[stage]||stage}`)
-      if(move)landed.push(`next move is now “${move}”${data.date?`, by ${fmtDay(data.date)}`:''}`)
-      if(meeting)landed.push(`next scheduled meeting is ${fmtDay(meeting)}`)
-      if(people.length)landed.push(`Interview Team now includes ${people.map(p=>p.name).join(', ')}`)
-      if(removed.length)landed.push(`Interview Team no longer includes ${removed.join(', ')}`)
-      if(!landed.length)return false
-      return{content:`Saved. On ${savedTitle}, your ${landed.join(', and your ')}.`,
-        checkinKey:'pursuit-saved-open',
-        quickReplies:[{label:`Open ${savedTitle}`,value:targetId},{label:'Stay here',value:'dismiss'}]}
+      return execOpportunityUpdate(data,targetId)
     }
     // Op card rework (2026-09-06): Coach named a specific already-built op
     // card and a note that should change it. Resolve the opportunity by
@@ -7771,17 +7860,12 @@ export default function PivotEngine(){
       const section=data&&typeof data.section==='string'&&['companyRead','p5','p6','p_res','p_cover','p11'].includes(data.section)?data.section:''
       const note=data&&typeof data.note==='string'?data.note.trim():''
       if(!section||!note)return false
-      const oppName=String(data.opportunity||'').trim().toLowerCase()
-      const match=oppName?activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName)):null
+      const resolved=resolveOpportunityByName(activePlaybooks,data.opportunity)
+      if(resolved.status==='ambiguous')return buildDisambiguationOffer('op-card-rework',data,resolved.matches)
       const tgt=coachSaveTarget()
-      const targetRec=match||(tgt&&activePlaybooks.find(r=>r&&r.id===tgt.id))||null
+      const targetRec=resolved.match||(tgt&&activePlaybooks.find(r=>r&&r.id===tgt.id))||null
       if(!targetRec)return false
-      const switchedView=currentSavedSlotIdRef.current!==targetRec.id
-      if(switchedView)restoreFromSavedSlot(targetRec)
-      if(section==='p6')generateOpBridgeStory({refine:note})
-      else refineOpCard(section,note)
-      const label=OP_CARD_LABELS[section]||section
-      return{content:switchedView?`Updating ${label} on ${targetRec.title||'this opportunity'} now — I've opened it so you can watch it rebuild.`:`Updating ${label} now.`,checkinKey:'op-card-rework-started'}
+      return execOpCardRework(data,targetRec.id)
     }
     // Coach named interviewers the user mentioned; add them to the matching
     // opportunity's Interview Team (by title, or the open one).
@@ -7795,13 +7879,12 @@ export default function PivotEngine(){
       let data;try{data=JSON.parse(value)}catch{return false}
       const text=data&&typeof data.text==='string'?data.text.trim():''
       if(!text)return false
-      const oppName=String(data.opportunity||'').trim().toLowerCase()
-      const match=oppName?activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName)):null
+      const resolved=resolveOpportunityByName(activePlaybooks,data.opportunity)
+      if(resolved.status==='ambiguous')return buildDisambiguationOffer('opportunity-context',data,resolved.matches)
       const tgt=coachSaveTarget()
-      const targetId=(match&&match.id)||(tgt&&tgt.id)||null
+      const targetId=(resolved.match&&resolved.match.id)||(tgt&&tgt.id)||null
       if(!targetId)return false
-      updateOpPanel(targetId,p=>({...p,opportunity_context:(p.opportunity_context&&p.opportunity_context.trim()?p.opportunity_context.trim()+'\n\n':'')+text}))
-      return true
+      return execOpportunityContext(data,targetId)
     }
     // Opportunity archive (2026-09-06, deletion/retraction Tier 1). Routes
     // through deleteFromSavedSet -- the exact function the screen's own
@@ -7810,11 +7893,10 @@ export default function PivotEngine(){
     if(checkinKey==='opportunity-archive'){
       if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
-      const oppName=String(data.opportunity||'').trim().toLowerCase()
-      const match=oppName?activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName)):null
-      if(!match)return false
-      deleteFromSavedSet(match.id)
-      return true
+      const resolved=resolveOpportunityByName(activePlaybooks,data.opportunity)
+      if(resolved.status==='ambiguous')return buildDisambiguationOffer('opportunity-archive',data,resolved.matches)
+      if(!resolved.match)return false
+      return execOpportunityArchive(data,resolved.match.id)
     }
     // Life Events thinness prompt (2026-09-07), all three trigger variants.
     // Nothing to write here on 'accept' -- this tap is consent to continue,
@@ -7835,30 +7917,36 @@ export default function PivotEngine(){
       let data;try{data=JSON.parse(value)}catch{return false}
       const reasonCode=typeof data.reasonCode==='string'?data.reasonCode.trim():''
       if(!reasonCode)return false
-      const oppName=String(data.opportunity||'').trim().toLowerCase()
-      const match=oppName?activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName)):null
+      const resolved=resolveOpportunityByName(activePlaybooks,data.opportunity)
+      if(resolved.status==='ambiguous')return buildDisambiguationOffer('close-reason',data,resolved.matches)
       const tgt=coachSaveTarget()
-      const targetId=(match&&match.id)||(tgt&&tgt.id)||null
+      const targetId=(resolved.match&&resolved.match.id)||(tgt&&tgt.id)||null
       if(!targetId)return false
-      try{
-        const r=await fetch('/api/pursuit-close-reason',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({recordId:targetId,reasonCode,initiatedBy:data.initiatedBy||'',detail:data.detail||''})})
-        if(!r.ok)throw new Error(String(r.status))
-        return{content:'Saved.'}
-      }catch{
-        return{content:'That did not save, so I have not recorded it. Tell me again in a moment and I will try once more.'}
-      }
+      return await execCloseReason(data,targetId)
     }
     if(checkinKey==='interview-team'){
       let data;try{data=JSON.parse(value)}catch{return false}
       const people=data&&Array.isArray(data.people)?data.people:[]
       if(!people.length)return false
-      const oppName=String(data.opportunity||'').trim().toLowerCase()
-      const match=oppName?activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName)):null
+      const resolved=resolveOpportunityByName(activePlaybooks,data.opportunity)
+      if(resolved.status==='ambiguous')return buildDisambiguationOffer('interview-team',data,resolved.matches)
       const tgt=coachSaveTarget()
-      const targetId=(match&&match.id)||(tgt&&tgt.id)||null
+      const targetId=(resolved.match&&resolved.match.id)||(tgt&&tgt.id)||null
       if(!targetId)return false
-      updateOpPanel(targetId,p=>({...p,interviewers:[...p.interviewers,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:(typeof pe.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===pe.role))?pe.role:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:String(pe.note||'')}))]}))
-      return true
+      return execInterviewTeam(data,targetId)
+    }
+    // Opportunity disambiguation (2026-09-07): a tap here means one of the
+    // seven mechanisms above found more than one matching opportunity and
+    // asked which one. The button already carries the original mechanism's
+    // checkinKey, its full data payload, and the specific id that button
+    // means -- so this just replays that exact action through the matching
+    // execX function, with a known id instead of a name to resolve.
+    if(checkinKey==='opportunity-disambiguate'){
+      if(value==='dismiss')return true
+      let payload;try{payload=JSON.parse(value)}catch{return false}
+      const fn=EXEC_BY_CHECKIN_KEY[payload&&payload.originalCheckinKey]
+      if(!fn||!payload.targetId)return false
+      return await fn(payload.data,payload.targetId)
     }
     // Save-to-notes (2026-09-05): the person explicitly asked Coach to save a
     // reply, and the tap is what writes it -- the exact same write the manual
