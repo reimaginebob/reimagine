@@ -67,7 +67,7 @@ check(disclosureEffectBlock.includes('setSeenNotesCapabilityMention(true)'),
 // or it fires again after a reload/re-signin.
 const hydrationCount = (app.match(/if\(d\.seenNotesCapabilityMention\)setSeenNotesCapabilityMention\(true\);/g) || []).length
 check(hydrationCount === 2, `${APP}: expected seenNotesCapabilityMention hydration in both the localStorage and server-profile load paths, found ${hydrationCount}`)
-check(app.includes('seenSearchIntakePrompt,seenNotesCapabilityMention,seenSupportAnnounce'),
+check(app.includes('seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenSupportAnnounce'),
   `${APP}: seenNotesCapabilityMention is not threaded into the debounced save blob`)
 
 // The write branch: an explicit ask writes through the exact same path the

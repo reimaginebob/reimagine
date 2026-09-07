@@ -187,6 +187,24 @@ export function hasOrientationCapture(user) {
   return flags.includes(ORIENTATION_CAPTURE_FLAG)
 }
 
+// PILOT -- Close-reason capture, 2026-09-07. Coach may ask, once per
+// opportunity and only when the person describes it ending, whether they
+// have any read on why -- even a guess -- and log it as a bounded category
+// plus their own words. A separate flag from the other opportunity-data
+// captures on purpose: this is the first mechanism in the product
+// explicitly designed so its bounded category (never the free-text detail)
+// could be looked at in aggregate across every account on a later date --
+// a materially different privacy posture from anything else gated in this
+// file, and one Bob should QC on its own before any outside account sees
+// it, independent of whether pipeline capture generally is already open.
+export const CLOSE_REASON_CAPTURE_FLAG = 'close_reason_capture'
+
+export function hasCloseReasonCapture(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(CLOSE_REASON_CAPTURE_FLAG)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -204,4 +222,5 @@ export const GRANTABLE_FLAGS = {
   [SECTION_REWORK_FLAG]: { label: 'Coach section rework from chat' },
   [MILESTONE_PROMPT_FLAG]: { label: 'Coach milestone prompts' },
   [ORIENTATION_CAPTURE_FLAG]: { label: 'Coach orientation field capture (Reputation, Skills)' },
+  [CLOSE_REASON_CAPTURE_FLAG]: { label: 'Coach close-reason capture' },
 }

@@ -60,7 +60,7 @@ check(/profileBlock \+= buildAlreadyMentionedBlock\(inFocus\.id, milestoneMentio
 // -- both needed by the handler to read history in and write a new mention
 // back out, scoped to the SAME record the prompt was actually built for
 // (not re-derived, which could drift from what buildCoachRequest resolved).
-check(/export function buildCoachRequest\(\{[\s\S]{0,400}generalMode, milestoneMentions,\s*\}\) \{/.test(coach),
+check(/export function buildCoachRequest\(\{[\s\S]{0,400}generalMode, milestoneMentions,[\s\S]{0,60}\}\) \{/.test(coach),
   `${COACH}: buildCoachRequest does not accept milestoneMentions as a parameter`)
 check(coach.includes("return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId }"),
   `${COACH}: buildCoachRequest does not return inFocusRecordId`)
@@ -72,7 +72,7 @@ check(/let inFocusRecordId = null[\s\S]{0,600}inFocusRecordId = inFocus\.id/.tes
 // reply is sent.
 check(/hasMilestonePrompt\(\{ feature_flags: featureFlags, email: user\.email \}\)\) \{\s*try \{\s*milestoneMentions = await sql`SELECT record_id, milestone FROM coach_milestone_mentions WHERE user_id = \$\{user\.id\}`/.test(coach),
   `${COACH}: milestoneMentions is not read from coach_milestone_mentions, gated on hasMilestonePrompt`)
-check(/generalMode, milestoneMentions,\s*\}\)/.test(coach),
+check(/generalMode, milestoneMentions,[\s\S]{0,30}\}\)/.test(coach),
   `${COACH}: milestoneMentions is not passed into the buildCoachRequest call site`)
 check(/const mmMatch = strippedText\.match\(\/\^\\s\*MILESTONEMENTIONED:\\s\*\(\\w\+\)\\s\*\$\/im\)/.test(coach),
   `${COACH}: the MILESTONEMENTIONED trailer is not parsed`)
