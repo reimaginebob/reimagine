@@ -7397,6 +7397,26 @@ export default function PivotEngine(){
   // other Continue click (the overwhelming majority, since most steps have
   // nothing in flight) is completely unaffected.
   const[pendingAdvance,setPendingAdvance]=useState(null)
+  // Build My Personal Brand / "Build with what I have" used to call
+  // generateChain() in the SAME click as advance('orientation-done','p3'),
+  // racing the deferral above -- when Life Story's own background quality-
+  // check reaction (coachThinkingCount) was still in flight, advance() held
+  // the step change in pendingAdvance while generateChain() started
+  // regardless, so the multi-minute build ran while the screen still showed
+  // the static "Orientation complete" page: no spinner, no disabled button,
+  // nothing (case'orientation-done' never reads loading/generatingSection --
+  // only case'p3' does). Worse, if that generation actually failed during
+  // the deferred window, doAdvance's own setErr(null) wiped the failure the
+  // instant the deferred navigation finally landed, before the person ever
+  // reached p3's ErrBox. Caught in a code sweep, live QA 2026-09-07.
+  //
+  // Fixed by decoupling "the click happened" from "start generating": the
+  // buttons now only set this flag and call advance(); the effect below
+  // fires generateChain() once step has actually become 'p3', whether that
+  // took one render (nothing was in flight) or several (the advance was
+  // held). Errors from a genuine generation failure can no longer be wiped
+  // by a navigation that, at that point, already fully happened.
+  const[pendingBrandGenerate,setPendingBrandGenerate]=useState(false)
   // Employment status (consult 2026-08-13). The VALUE lives in a users column
   // (seeded from /api/me as signedInUser.employment_status), written by
   // /api/employment — never in the profile blob, whose whole-object autosave
@@ -8734,7 +8754,7 @@ export default function PivotEngine(){
     const whatComesNext=isIndependent
       ? 'Once it\'s built, we turn it into how you position yourself, which companies are worth pitching, and a plan for pricing your work while your client list grows.'
       : 'Once it\'s built, you get two ways to put it to work: a tailored playbook for one specific opportunity, or a map of directions if you\'re still deciding.'
-    const framingMsg={role:'assistant',banner:true,content:`Welcome — I'm glad you're here. I'll walk you through this: your resume, an assessment if you have one, your values, your priorities, a few reputation questions, and your story. That's what builds your Personal Brand, the through-line of who you are at work. It takes about half an hour, and it saves as you go, so there's no rush. ${whatComesNext} Let's start with your resume.`}
+    const framingMsg={role:'assistant',banner:true,content:`Welcome — I'm glad you're here. I'll walk you through this: where things stand for you right now, your resume, your LinkedIn, an assessment if you have one, your values, your priorities, a few reputation questions, and your story. That's what builds your Personal Brand, the through-line of who you are at work. It takes about half an hour, and it saves as you go, so there's no rush. ${whatComesNext} Let's start with where you are right now.`}
     // Two "hello" bubbles stacked (the generic intro, then this one) reads as
     // Coach not paying attention to itself. When the chat is still exactly
     // the untouched seed -- nothing sent, nothing else has happened yet --
@@ -9738,6 +9758,16 @@ export default function PivotEngine(){
     setPendingAdvance(null)
     doAdvance(from,to)
   },[coachThinkingCount,pendingAdvance])
+  // Fires generateChain() once the advance into p3 has actually landed --
+  // see pendingBrandGenerate's own comment above for why this used to race
+  // the deferral instead. Fires on the very next render when nothing was
+  // held (the overwhelming majority of clicks); waits for the pendingAdvance
+  // release effect above to land first when Coach was still reacting.
+  useEffect(()=>{
+    if(step!=='p3'||!pendingBrandGenerate)return
+    setPendingBrandGenerate(false)
+    generateChain()
+  },[step,pendingBrandGenerate])
   const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);setShowOfferCompare(false);if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
   // Scroll new output into view AFTER generation completes. Every generate
   // path already scrolls to 0,0 on click (so the loading panel is visible);
@@ -14234,7 +14264,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.gray,lineHeight:1.7,maxWidth:540,margin:'0 auto'}}>You've shared the foundation: where you are, what you've done, how you're wired, what matters to you, and what others say about you. That's the input. Everything that follows is the output: your story, your strategy, your next chapter. Take a breath. Then keep going.</p>
         <p style={{margin:'12px auto 0',fontSize:18,color:C.gray,fontStyle:'italic',maxWidth:540}}>Good stopping point. Phase 1 is where the analysis begins; come back to it with fresh eyes if you have been at this a while.</p>
       </div>
-      <div style={S.row}><Btn secondary onClick={()=>nav('skills')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{if(profileBare()){setBareInputModal(true)}else{advance('orientation-done','p3');generateChain()}}}>Build My Personal Brand <ChevronRight size={14}/></Btn></div>
+      <div style={S.row}><Btn secondary onClick={()=>nav('skills')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{if(profileBare()){setBareInputModal(true)}else{advance('orientation-done','p3');setPendingBrandGenerate(true)}}}>Build My Personal Brand <ChevronRight size={14}/></Btn></div>
       <div style={{display:'flex',alignItems:'center',gap:8,marginTop:14,fontSize:15,color:C.gray}}><Clock size={14} style={{flexShrink:0}}/>About 4 to 5 minutes (your resume analysis, your wiring, and the synthesis run end to end).</div>
     </div>
 
@@ -16540,7 +16570,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:16}}>The users who get the most from Reimagine bring their whole selves to it: their resume, an assessment, and the experiences and reputation that shaped who they are. The more of that you give it, the more your Personal Brand, and everything built from it, could only be about you.</p>
         <MicReminder text="The mic on each input makes it quick; tap and talk instead of typing."/>
         <div style={{display:'flex',gap:10,justifyContent:'flex-end',flexWrap:'wrap',marginTop:22}}>
-          <Btn secondary onClick={()=>{setBareInputModal(false);advance('orientation-done','p3');generateChain()}}>Build with what I have</Btn>
+          <Btn secondary onClick={()=>{setBareInputModal(false);advance('orientation-done','p3');setPendingBrandGenerate(true)}}>Build with what I have</Btn>
           <Btn onClick={()=>{setBareInputModal(false);nav('resume')}}>I'll add more</Btn>
         </div>
       </div>
