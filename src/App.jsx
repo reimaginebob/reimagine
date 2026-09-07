@@ -4718,7 +4718,7 @@ const BASE_DOC_TITLE=typeof document!=='undefined'?document.title:'Reimagine'
 // handleEmploymentQuickReply -> saveEmployment -> /api/employment.
 const EMPLOYMENT_QUICK_REPLIES=[
   {label:'Currently Employed',value:'employed',followUp:'Good to know — I\'ll keep that in mind as we work.'},
-  {label:'In Transition',value:'in_transition',followUp:'Thanks for telling me — that shapes how I\'ll coach you.'},
+  {label:'In Transition',value:'in_transition',followUp:'Thanks for telling me — that shapes how we work through this together.'},
   {label:'Role Ending Soon',value:'role_ending',followUp:'Got it — we\'ll treat this like a search on a clock when it matters.'},
 ]
 const employmentPromptMessage=(lead)=>({role:'assistant',content:(lead||'One quick thing so your coaching fits where you actually are — ')+'how would you describe your work situation right now?',checkinKey:'employment-status',quickReplies:EMPLOYMENT_QUICK_REPLIES})
