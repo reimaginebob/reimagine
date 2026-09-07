@@ -420,7 +420,6 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       const c = [...m]
       if (c[idx]) c[idx] = { ...c[idx], quickReplies: null }
       c.push({ role: 'user', content: opt.label })
-      if (opt.followUp) c.push({ role: 'assistant', content: opt.followUp })
       return c
     })
     // Persistence is best-effort and routed by App: an onQuickReply handler owns
@@ -433,6 +432,15 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     // away and no way back that is on screen -- the "Back to…" link lives at the
     // top of the conversation, which is exactly where they are not after a long
     // exchange. The completion moment is where the way back belongs.
+    //
+    // The confirmation bubble (opt.followUp) used to be pushed BEFORE awaiting
+    // onQuickReply, so a handler that returned false (target not found, JSON
+    // malformed, nothing new to add) had already shown "Saved."/"Updated."/
+    // "Archived." with no way to retract it -- a resolver miss read as data
+    // loss. Now it is pushed only once the write is confirmed to have actually
+    // landed (handled === true), and a genuine miss says so honestly instead of
+    // silently logging a pb-checkin row that would not even fit that table.
+    // Found in the 2026-09-07 full My Coach review.
     try {
       const handled = onQuickReply ? await onQuickReply(checkinKey, opt.value) : false
       if (handled && typeof handled === 'object' && handled.content) {
@@ -448,13 +456,20 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           try { capturedData = JSON.parse(opt.value) } catch { /* dismiss, or malformed -- no follow-up */ }
           if (capturedData && sendRef.current) sendRef.current(null, { postCaptureUpdate: capturedData })
         }
-      }
-      if (!handled) {
-        await fetch('/api/pb-checkin', {
+      } else if (handled === true) {
+        if (opt.followUp) setMessages(m => [...m, { role: 'assistant', content: opt.followUp }])
+      } else {
+        const r = await fetch('/api/pb-checkin', {
           method: 'POST', credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ checkin: checkinKey || 'personal-brand', answer: opt.value }),
         })
+        // 'dismiss' is not a logged pb-checkin answer (and, post-2026-09-07,
+        // every capture key returns true on its own dismiss branch before
+        // reaching here) -- a non-ok response there is expected, not a miss.
+        if (!r.ok && opt.value !== 'dismiss') {
+          setMessages(m => [...m, { role: 'assistant', content: "That didn't go through — nothing matched, so nothing changed." }])
+        }
       }
     } catch { /* the conversation already continued; the tap is best-effort */ }
   }
@@ -683,7 +698,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 content: `Here's what I heard${where}:\n\n${heard.join('\n')}\n\n${ask}`,
                 checkinKey: 'opportunity-update',
                 quickReplies: [
-                  { label: "That's everything — update it", value: JSON.stringify(data), followUp: 'Updated.' },
+                  { label: "That's everything — update it", value: JSON.stringify(data) },
                   { label: 'Not yet', value: 'dismiss' },
                 ],
               }])
@@ -779,7 +794,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 content: `Want me to log this as why ${opportunity} ended?\n\n${parts.join('\n')}`,
                 checkinKey: 'close-reason',
                 quickReplies: [
-                  { label: 'Save it', value: JSON.stringify(data), followUp: 'Saved.' },
+                  { label: 'Save it', value: JSON.stringify(data) },
                   { label: 'Not now', value: 'dismiss' },
                 ],
               }])
