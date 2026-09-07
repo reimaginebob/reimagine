@@ -65,9 +65,15 @@ if (branchIdx !== -1) {
   const branch = app.slice(branchIdx, branchIdx + 500)
   check(branch.includes("value==='dismiss'"),
     `${APP}: the opportunity-archive branch does not handle a decline ('Not now') as a no-op`)
-  check(branch.includes('if(!match)return false'),
+  check(branch.includes('if(!resolved.match)return false'),
     `${APP}: an opportunity title that does not resolve to a real record does not fail safely`)
-  check(branch.includes('deleteFromSavedSet(match.id)'),
+  // The write itself lives in execOpportunityArchive (2026-09-07, same-name
+  // opportunity resolution fix) -- extracted out of this branch so a
+  // disambiguation tap can call the same code a unique-match tap does.
+  const execIdx = app.indexOf('const execOpportunityArchive=')
+  check(execIdx !== -1, `${APP}: execOpportunityArchive is missing -- the opportunity-archive write logic should live in its own function, shared with the disambiguation-tap path`)
+  const execBlock = execIdx !== -1 ? app.slice(execIdx, execIdx + 200) : ''
+  check(execBlock.includes('deleteFromSavedSet(targetId)'),
     `${APP}: the opportunity-archive write does not route through deleteFromSavedSet -- the same reversible archive the screen's own "Remove from pipeline" button uses`)
 }
 

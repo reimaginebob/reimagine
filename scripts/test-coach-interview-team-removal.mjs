@@ -54,16 +54,23 @@ const app = fs.readFileSync(APP, 'utf8')
 const writeIdx = app.indexOf("if(checkinKey==='opportunity-update'){")
 check(writeIdx !== -1, `${APP}: the opportunity-update write path is missing`)
 if (writeIdx !== -1) {
-  const block = app.slice(writeIdx, writeIdx + 3800)
+  const block = app.slice(writeIdx, writeIdx + 900)
   check(block.includes("const removePeople=data&&Array.isArray(data.removePeople)?data.removePeople.filter(n=>typeof n==='string'&&n.trim()):[]"),
     `${APP}: the write path does not parse removePeople from the tapped payload`)
-  check(/const hit=removePeople\.some\(n=>n\.trim\(\)\.toLowerCase\(\)===String\(iv\.name\|\|''\)\.trim\(\)\.toLowerCase\(\)\)/.test(block),
+  // The actual removal logic lives in execOpportunityUpdate (2026-09-07,
+  // same-name opportunity resolution fix) -- extracted out of this branch so
+  // both a unique-match tap AND a disambiguation-tap can call the same write
+  // code.
+  const execIdx = app.indexOf('const execOpportunityUpdate=')
+  check(execIdx !== -1, `${APP}: execOpportunityUpdate is missing -- the opportunity-update write logic should live in its own function, shared with the disambiguation-tap path`)
+  const execBlock = execIdx !== -1 ? app.slice(execIdx, execIdx + 3200) : ''
+  check(/const hit=removePeople\.some\(n=>n\.trim\(\)\.toLowerCase\(\)===String\(iv\.name\|\|''\)\.trim\(\)\.toLowerCase\(\)\)/.test(execBlock),
     `${APP}: removal is not matched case-insensitively against each interviewer's REAL current name -- this is the actual existence check named people are validated against`)
-  check(block.includes('if(hit)removed.push(iv.name)'),
+  check(execBlock.includes('if(hit)removed.push(iv.name)'),
     `${APP}: removed names are not tracked separately from the roster filter, so the confirmation message could not report what actually changed`)
-  check(block.includes('Interview Team no longer includes'),
+  check(execBlock.includes('Interview Team no longer includes'),
     `${APP}: the confirmation message does not report a completed removal`)
-  check(block.includes('if(!landed.length)return false'),
+  check(execBlock.includes('if(!landed.length)return false'),
     `${APP}: a removal that matched nobody (all names hallucinated or already gone) does not fail safely -- it would show an empty confirmation claiming something happened`)
 }
 

@@ -139,7 +139,14 @@ check(app.includes("import { PURSUIT_STAGES, PURSUIT_STAGE_LABELS } from \"./pur
 
 const opportunityUpdateWriteIdx = app.indexOf("if(checkinKey==='opportunity-update'){")
 check(opportunityUpdateWriteIdx !== -1, `${APP}: the opportunity-update quick-reply write path is missing`)
-const opportunityUpdateWriteBlock = opportunityUpdateWriteIdx !== -1 ? app.slice(opportunityUpdateWriteIdx, opportunityUpdateWriteIdx + 3200) : ''
+// The actual write logic lives in execOpportunityUpdate (2026-09-07,
+// same-name opportunity resolution fix) -- extracted out of this branch so
+// both a unique-match tap AND a disambiguation-tap can call the same write
+// code. The checkinKey branch itself now only resolves the name and hands
+// off; this is where to look for what the write actually does.
+const execOpportunityUpdateIdx = app.indexOf('const execOpportunityUpdate=')
+check(execOpportunityUpdateIdx !== -1, `${APP}: execOpportunityUpdate is missing -- the opportunity-update write logic should live in its own function, shared with the disambiguation-tap path`)
+const opportunityUpdateWriteBlock = execOpportunityUpdateIdx !== -1 ? app.slice(execOpportunityUpdateIdx, execOpportunityUpdateIdx + 3200) : ''
 // The learned_note fix must survive the merge: threading the captured note
 // through as learned_note instead of hardcoding it empty.
 check(!opportunityUpdateWriteBlock.includes("learned_note:''"),

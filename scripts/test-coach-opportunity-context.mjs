@@ -62,14 +62,21 @@ check((app.match(/opportunityContextCaptureActive=\{hasPipeline&&!isIndependent&
   `${APP}: opportunityContextCaptureActive is not wired identically at both <Chat> mount sites`)
 
 // The write path: resolves by title (same precedent as opportunity-update and
-// interview-team), appends rather than overwrites, and -- unlike op-card-rework
-// -- needs no current-slot switch, since updateOpPanel takes an explicit id.
+// interview-team, via the shared resolveOpportunityByName -- 2026-09-07,
+// same-name opportunity resolution fix), appends rather than overwrites, and
+// -- unlike op-card-rework -- needs no current-slot switch, since
+// updateOpPanel takes an explicit id. The actual append lives in
+// execOpportunityContext so a disambiguation tap can call the same code a
+// unique-match tap does.
 const handlerIdx = app.indexOf("if(checkinKey==='opportunity-context'){")
 check(handlerIdx !== -1, `${APP}: the opportunity-context quick-reply handler is missing`)
 const handlerBlock = handlerIdx !== -1 ? app.slice(handlerIdx, handlerIdx + 700) : ''
-check(handlerBlock.includes("activePlaybooks.find(r=>r&&r.source==='door2'&&String(r.title||'').toLowerCase().includes(oppName))"),
+check(handlerBlock.includes('resolveOpportunityByName(activePlaybooks,data.opportunity)'),
   `${APP}: does not resolve the opportunity by title the same way the opportunity-update/interview-team handlers do`)
-check(handlerBlock.includes("updateOpPanel(targetId,p=>({...p,opportunity_context:(p.opportunity_context&&p.opportunity_context.trim()?p.opportunity_context.trim()+'\\n\\n':'')+text}))"),
+const execIdx = app.indexOf('const execOpportunityContext=')
+check(execIdx !== -1, `${APP}: execOpportunityContext is missing -- the opportunity-context write logic should live in its own function, shared with the disambiguation-tap path`)
+const execBlock = execIdx !== -1 ? app.slice(execIdx, execIdx + 400) : ''
+check(execBlock.includes("updateOpPanel(targetId,p=>({...p,opportunity_context:(p.opportunity_context&&p.opportunity_context.trim()?p.opportunity_context.trim()+'\\n\\n':'')+text}))"),
   `${APP}: the write does not append to opportunity_context, or risks overwriting existing content`)
 check(!handlerBlock.includes('restoreFromSavedSlot'),
   `${APP}: the opportunity-context handler switches the current slot -- unnecessary here since updateOpPanel writes by explicit id, unlike the op-card-rework dispatchers`)
