@@ -1295,9 +1295,25 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         boxShadow: '0 2px 10px rgba(0,0,0,0.06)', overflow: 'hidden',
         fontFamily: 'inherit',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '10px 18px 0' }}>
+        {/* Thinking indicator (2026-09-07, live QA follow-on): the closed-
+            bubble dot that signals a silent background reaction is in
+            flight (src/App.jsx's orientationCheck POSTs -- exactly what
+            fires heaviest during orientation) only ever renders in the
+            floating, closed-bubble branch below. The embedded panel is now
+            the sole surface for the whole orientation flow, so without this
+            it went dark for precisely the screens that generate the most
+            of those reactions -- a reply would just pop in unannounced,
+            undoing the reason the dot was built in the first place. */}
+        {thinking && <style>{"@keyframes pe-chat-thinking-dot{0%,100%{opacity:0.35}50%{opacity:1}}"}</style>}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px 0' }}>
+          {thinking ? (
+            <span role="status" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, color: '#8A9BB8' }}>
+              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: C.gold, animation: 'pe-chat-thinking-dot 1.1s ease-in-out infinite' }}/>
+              Coach is thinking
+            </span>
+          ) : <span/>}
           <button
-            onClick={() => setMessages([INTRO_MSG])}
+            onClick={() => { if (window.confirm('This clears your entire conversation with Coach, including everything it has noticed about you so far.\n\nThis cannot be undone.\n\nContinue?')) setMessages([INTRO_MSG]) }}
             style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
             aria-label="Clear conversation"
           >
