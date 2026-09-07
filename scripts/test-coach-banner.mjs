@@ -41,10 +41,15 @@ const chat = fs.readFileSync(CHAT, 'utf8')
 
 check(chat.includes('const [bannerMsg, setBannerMsg] = useState(null)'),
   `${CHAT}: bannerMsg state is missing`)
-check(chat.includes('const latest = [...added].reverse().find(m => m.banner)'),
-  `${CHAT}: the banner-detection effect no longer looks for banner-flagged messages`)
-check(chat.includes('if (len <= prevLen || open) return'),
-  `${CHAT}: the banner-detection effect lost its growth/open guard -- it would fire on every render or override an already-open panel`)
+// 2026-09-07 (live QA on a genuinely fresh signup): detection compares the
+// previous LAST message by reference, not array length. A length-only
+// comparison missed the framing effect's same-length REPLACE of the
+// untouched seed message (below), so the very first Coach narration never
+// rendered for a real new signup.
+check(chat.includes('const bannerPrevLastRef = useRef(null)'),
+  `${CHAT}: the banner-detection effect no longer tracks the previous last message -- reverting to a length-only comparison would miss the framing effect's same-length replace of the seed message`)
+check(chat.includes('if (open || !last || last === prevLast || !last.banner) return'),
+  `${CHAT}: the banner-detection effect lost its identity/open/flag guard`)
 // No auto-dismiss timer (2026-09-04, reported live): a fixed timeout could
 // hide the card before someone had actually read it, with no way to bring
 // it back short of opening the full panel and scrolling. The card now stays
@@ -90,6 +95,18 @@ check(app.includes('return[INTRO_MSG]'),
   `${APP}: chatMessages no longer seeds from the shared INTRO_MSG constant`)
 check(app.includes("setChatMessages(m=>(m.length===1&&m[0]&&m[0].role==='assistant'&&!m[0].banner&&m[0].content===INTRO_MSG.content)?[framingMsg]:[...m,framingMsg])"),
   `${APP}: the framing effect no longer replaces an untouched intro-only chat with the framing message -- it would append after INTRO_MSG again, stacking two "hello" bubbles on arrival`)
+
+// "See how this works" (2026-09-07): gated on hasOnboardingConcierge, not
+// removed outright. Coach's framing message says the same thing out loud
+// for a flagged account, so the static duplicate is redundant there -- but
+// the other 144 accounts have no Coach narration doing that job yet, and
+// would lose their only explanation of how the product works if this
+// disappeared for everyone.
+const seeHowIdx = app.indexOf("<span style={{fontSize:18,fontWeight:700,color:'#1A2540'}}>See how this works</span>")
+check(seeHowIdx !== -1, `${APP}: could not find the "See how this works" section`)
+const seeHowGateBlock = app.slice(Math.max(0, seeHowIdx - 500), seeHowIdx)
+check(seeHowGateBlock.includes('{!hasOnboardingConcierge&&<div'),
+  `${APP}: "See how this works" is not gated on !hasOnboardingConcierge -- it would either vanish for all 145 accounts (most of whom get no Coach narration to replace it) or keep showing redundantly for the pilot`)
 
 // "Coach is thinking" indicator (2026-09-04, reported live): a small dot on
 // the closed bubble, visible for as long as an orientation-check request is

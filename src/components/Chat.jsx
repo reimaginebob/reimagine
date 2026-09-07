@@ -249,16 +249,23 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // leaving it up: it now stays until the person dismisses it or opens the
   // panel, same as it always has for those two paths.
   const [bannerMsg, setBannerMsg] = useState(null)
-  const bannerPrevLenRef = useRef(0)
+  // Tracks the previous LAST message by reference, not array length
+  // (2026-09-07, live QA on a genuinely fresh signup): App.jsx's
+  // onboarding-framing effect REPLACES the untouched seed message with the
+  // framing message rather than appending, so the array stays exactly as
+  // long as before -- a length-only comparison never saw it as "new," and
+  // the very first thing Coach was supposed to say went dark for every
+  // real new signup. Every banner:true push, append or replace, ends up as
+  // the new last element, so comparing that one message's identity catches
+  // both cases the same way.
+  const bannerPrevLastRef = useRef(null)
   useEffect(() => {
     const len = messages ? messages.length : 0
-    const prevLen = bannerPrevLenRef.current
-    bannerPrevLenRef.current = len
-    if (len <= prevLen || open) return
-    const added = messages.slice(prevLen)
-    const latest = [...added].reverse().find(m => m.banner)
-    if (!latest) return
-    setBannerMsg(latest.content)
+    const last = len ? messages[len - 1] : null
+    const prevLast = bannerPrevLastRef.current
+    bannerPrevLastRef.current = last
+    if (open || !last || last === prevLast || !last.banner) return
+    setBannerMsg(last.content)
   }, [messages, open])
   useEffect(() => {
     if (!open) return

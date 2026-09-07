@@ -33,7 +33,7 @@ check(chat.includes('const isCollapsedBanner = (m.banner || m.intro) && i < mess
 // effect and the greeting should not pop up as a card on every mount.
 check(chat.includes("export const INTRO_MSG = { role: 'assistant', intro: true, content:"),
   `${CHAT}: INTRO_MSG lost its intro:true flag -- it would no longer collapse once superseded`)
-check(chat.includes('const latest = [...added].reverse().find(m => m.banner)'),
+check(chat.includes('if (open || !last || last === prevLast || !last.banner) return'),
   `${CHAT}: the closed-bubble preview-card effect should still key on banner:true only, not intro -- the greeting should never pop up as a card`)
 
 // Nothing is destroyed: nothing removes an entry from `messages` to collapse
