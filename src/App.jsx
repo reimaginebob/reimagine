@@ -7818,6 +7818,7 @@ export default function PivotEngine(){
     // My Search stage capture. Needs the record id of the open opportunity; if
     // none is open, do nothing rather than write to the wrong record.
     if(checkinKey==='pursuit-stage'){
+      if(value==='dismiss')return true
       const tgt=coachSaveTarget()
       if(!tgt||!tgt.id)return false
       const patch={stage:value}
@@ -7934,6 +7935,7 @@ export default function PivotEngine(){
     // since updateOpPanel takes an explicit id, unlike the op-card-rework
     // dispatchers above.
     if(checkinKey==='opportunity-context'){
+      if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
       const text=data&&typeof data.text==='string'?data.text.trim():''
       if(!text)return false
@@ -7988,6 +7990,7 @@ export default function PivotEngine(){
       return await execCloseReason(data,targetId)
     }
     if(checkinKey==='interview-team'){
+      if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
       const people=data&&Array.isArray(data.people)?data.people:[]
       if(!people.length)return false
@@ -8027,6 +8030,7 @@ export default function PivotEngine(){
     // is on (usually myCoach or the bubble), so the Personal Brand staleness flag
     // would never set. Values feed Personal Brand, so set it directly here.
     if(checkinKey==='values-capture'){
+      if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
       if(!data||(!data.values&&!data.passions))return false
       if(data.values)pr('values',data.values)
@@ -8040,6 +8044,7 @@ export default function PivotEngine(){
     // RAW SIGNALS the same way Values does, so a post-build edit sets the
     // same staleness nudge.
     if(checkinKey==='reputation-capture'){
+      if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
       if(!data||!(data.memory||data.emergency||data.twoWords||data.other))return false
       if(data.memory)rep('memory',data.memory)
@@ -8056,6 +8061,7 @@ export default function PivotEngine(){
     // onChange uses, plus a case-insensitive de-dup so a skill already
     // listed is never added twice.
     if(checkinKey==='skills-capture'){
+      if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
       const cats=['technical','systems','certifications','languages','methodologies']
       const base=profile.skills||{technical:[],systems:[],certifications:[],languages:[],methodologies:[]}
@@ -8103,6 +8109,7 @@ export default function PivotEngine(){
     // from the server (same contract as Values), so it also writes directly
     // here rather than appending a second time client-side.
     if(checkinKey==='priorities-capture'){
+      if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
       if(!data||!(data.compFloor||data.workReq||data.benefitsWeight||data.riskTolerance||data.dealBreakers))return false
       if(data.compFloor)pr('compFloor',data.compFloor)
@@ -8116,6 +8123,7 @@ export default function PivotEngine(){
     // the screen's own mic button, which appends dictated speech directly
     // onto profile.lifeEvents rather than replacing it.
     if(checkinKey==='life-story-capture'){
+      if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
       const text=data&&typeof data.text==='string'?data.text.trim():''
       if(!text)return false
@@ -8133,6 +8141,7 @@ export default function PivotEngine(){
     // but only when it is currently unset -- never overrides a choice the
     // person already made themselves.
     if(checkinKey==='assessment-capture'){
+      if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
       const text=data&&typeof data.text==='string'?data.text.trim():''
       if(!text)return false
