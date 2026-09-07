@@ -4744,6 +4744,49 @@ const notesCapabilityMessage=()=>({role:'assistant',content:"By the way — anyt
 // could be looked at in aggregate later, and that gets its own explicit,
 // one-time say-so rather than riding on Notes' framing.
 const closeReasonCapabilityMessage=()=>({role:'assistant',content:"One more thing — when an opportunity doesn't work out, I may ask if you have any read on why, even just a guess. A pattern across a few of these can sharpen how we position you going forward, and skipping the question is always fine.",checkinKey:'close-reason-capability-mention'})
+// Life Events thinness prompt (2026-09-07). Three firing mechanisms feed the
+// same message shape and checkinKey family below: hub_arrival (mirrors the
+// employment/search-intake prompts' own dashboard-arrival effect),
+// topic_close_tap and topic_close_language (the two zero-prompt-cost
+// signals from the Cowork consult -- no new model judgment; see the
+// useEffect below and Chat.jsx's CLOSING_LANGUAGE_RE). A distinct checkinKey
+// per trigger, not one shared key with a separate trigger param, so
+// coach-prompt-engagement logging can read trigger_type straight off the
+// checkinKey with nothing extra to carry between fire time and tap time --
+// see PROMPT_ENGAGEMENT_META_BY_CHECKIN just below.
+const LIFE_EVENTS_THIN_CHECKIN_KEYS=['life-events-thin-hub','life-events-thin-tap','life-events-thin-lang']
+const lifeEventsThinPromptMessage=(checkinKey)=>({role:'assistant',content:"One thing that tends to sharpen everything else — is there a story from outside work that shaped how you approach it? Even a sentence helps, and there's no wrong answer here.",checkinKey,quickReplies:[{label:'Sure, let\'s add one',value:'accept',followUp:'Good — tell me about it here, or add it directly on Life Story whenever works for you.'},{label:'Not now',value:'dismiss'}]})
+// Bounded checkinKey -> {code, trigger} lookup for coach-prompt-engagement
+// logging (src/coach-prompt-codes.js carries the canonical PROMPT_CODES/
+// TRIGGER_TYPES lists the server validates against). Only prompts worth
+// measuring for accept/decline patterns are listed here -- capture/save
+// offers like values-capture ask "should this be SAVED" (content already
+// given), a different question from "will you ANSWER this," so they are
+// deliberately left out. search-intake is also left out on purpose: its own
+// decline-able moment (the "Keep it" / "Not now" offer) is a save decision
+// on an answer already given, not a decline to answer -- see the comment
+// on the search-intake hub_arrival effect for where its shown/accepted
+// events are actually logged instead.
+const PROMPT_ENGAGEMENT_META_BY_CHECKIN={
+  'employment-status':{code:'employment_status',trigger:'hub_arrival'},
+  'opportunity-archive':{code:'opportunity_archive',trigger:'model_detected'},
+  'life-events-thin-hub':{code:'life_events_thin',trigger:'hub_arrival'},
+  'life-events-thin-tap':{code:'life_events_thin',trigger:'topic_close_tap'},
+  'life-events-thin-lang':{code:'life_events_thin',trigger:'topic_close_language'},
+}
+// Topic-close triggers (tap + language) are repeatable by design, unlike the
+// one-shot hub_arrival prompts above -- nothing about the underlying
+// question changes between firings, so without a ceiling they could ask
+// again every time a topic closes, indefinitely, for an account that keeps
+// declining. Capped combined across both signals; hub_arrival is separate
+// and already one-shot via seenLifeEventsThinHub below.
+const LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP=2
+// Fire-and-forget product telemetry -- see api/coach-prompt-engagement.js.
+// Never awaited, never lets a failure touch the UI: a dropped row
+// undercounts by one, nothing more.
+const logPromptEngagement=(promptCode,triggerType,outcome)=>{
+  try{fetch('/api/coach-prompt-engagement',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({promptCode,triggerType,outcome})}).catch(()=>{})}catch{}
+}
 // Calendar-day state for a pursuit's "My Next Step" date. The date input stores
 // midnight-UTC of the day the user picked, so the UTC date slice is exactly that
 // calendar day; we compare it against today's LOCAL calendar day. A step due
@@ -7324,6 +7367,14 @@ export default function PivotEngine(){
   const notesCapabilityFiredRef=useRef(false)
   const[seenCloseReasonMention,setSeenCloseReasonMention]=useState(false)
   const closeReasonMentionFiredRef=useRef(false)
+  // Life Events thinness prompt (2026-09-07). seenLifeEventsThinHub is the
+  // one-shot guard for the hub_arrival variant, exactly like
+  // seenEmploymentPrompt above. The topic-close variants (tap + language)
+  // are repeatable by design, so they get a counter instead of a boolean,
+  // persisted the same way, capped at LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP.
+  const[seenLifeEventsThinHub,setSeenLifeEventsThinHub]=useState(false)
+  const lifeEventsThinHubFiredRef=useRef(false)
+  const[lifeEventsThinTopicCloseCount,setLifeEventsThinTopicCloseCount]=useState(0)
   // Proactive pipeline check-in (2026-09-05, brief: "let Coach ask what it
   // doesn't know when something moves on your pipeline"). Ref-guarded like its
   // siblings above, but capped via sessionStorage rather than a profile-blob
@@ -7499,6 +7550,26 @@ export default function PivotEngine(){
   // The handler Chat calls on a quick-reply tap. Returns true for the employment
   // key so Chat does NOT fall back to the pb-checkin log.
   const handleEmploymentQuickReply=async(checkinKey,value)=>{
+    // Prompt-engagement logging (2026-09-07): one generic dispatch point for
+    // every tap this handler resolves, rather than editing each branch below
+    // individually. Correctly logs 'accepted' for employment-status even
+    // though it has no decline button (value is always a real status there,
+    // never 'dismiss'), and 'declined' wherever an explicit "Not now" exists.
+    const engMeta=PROMPT_ENGAGEMENT_META_BY_CHECKIN[checkinKey]
+    if(engMeta)logPromptEngagement(engMeta.code,engMeta.trigger,value==='dismiss'?'declined':'accepted')
+    // Topic-close trigger, signal 1 (tap-confirm): the reciprocity moment
+    // from the Cowork research consult -- fires right after any OTHER
+    // accepted tap-confirm resolves, keying off an event that already fires
+    // client-side rather than new model judgment. Never fires off its own
+    // life-events-thin taps (that would be a self-triggering loop), never
+    // stacks with one already pending, respects the topic-close fire cap
+    // independent of the hub_arrival variant's own one-shot flag above, and
+    // only while the field is still actually thin.
+    if(hasOnboardingConcierge&&value!=='dismiss'&&!LIFE_EVENTS_THIN_CHECKIN_KEYS.includes(checkinKey)&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP&&!chatMessages.some(mm=>mm&&LIFE_EVENTS_THIN_CHECKIN_KEYS.includes(mm.checkinKey)&&Array.isArray(mm.quickReplies)&&mm.quickReplies.length)){
+      setLifeEventsThinTopicCloseCount(c=>c+1)
+      logPromptEngagement('life_events_thin','topic_close_tap','shown')
+      setChatMessages(m=>[...m,lifeEventsThinPromptMessage('life-events-thin-tap')])
+    }
     if(checkinKey==='employment-status'){
       await saveEmployment(value)
       // A save-and-stop here was a dead end: the acknowledgment landed and the
@@ -7745,6 +7816,13 @@ export default function PivotEngine(){
       deleteFromSavedSet(match.id)
       return true
     }
+    // Life Events thinness prompt (2026-09-07), all three trigger variants.
+    // Nothing to write here on 'accept' -- this tap is consent to continue,
+    // not content; the actual life story, if and when it comes, is captured
+    // the normal way through LIFE_STORY_CAPTURE_NOTE (api/coach.js) once the
+    // person actually writes it. The engagement log entry above (accepted/
+    // declined) is the only durable effect of this branch.
+    if(LIFE_EVENTS_THIN_CHECKIN_KEYS.includes(checkinKey))return true
     // Close reason (2026-09-07). Writes to a dedicated table, not the
     // profile-state blob, so this awaits a real round trip and reports
     // failure explicitly -- same discipline as the activity-facts write
@@ -8459,7 +8537,7 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
   // Hydrate the saved playbooks set from its own localStorage key on mount.
   // Demo mode skips persistence; test mode wipes the key so test sessions
   // start clean (mirrors the pe_v4 gating one line up).
@@ -8480,7 +8558,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
@@ -8803,6 +8881,7 @@ export default function PivotEngine(){
     if(step==='twoDoors'&&(pbCheckinFiredRef.current||(!seenPbCheckin&&outputs&&outputs.p3)))return
     employmentPromptFiredRef.current=true
     setSeenEmploymentPrompt(true)
+    logPromptEngagement('employment_status','hub_arrival','shown')
     setChatMessages(m=>[...m,employmentPromptMessage()])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest])
@@ -8826,11 +8905,42 @@ export default function PivotEngine(){
     if(step==='twoDoors'&&(pbCheckinFiredRef.current||(!seenPbCheckin&&outputs&&outputs.p3)))return
     searchIntakePromptFiredRef.current=true
     setSeenSearchIntakePrompt(true)
+    // 'shown' only -- see PROMPT_ENGAGEMENT_META_BY_CHECKIN's comment for why
+    // search_intake has no logged 'declined': its real accept event is the
+    // model's own judgment that a reply was substantive (X-Coach-Search-
+    // Intake / siHeader in Chat.jsx, logged there), not a tap on this opener.
+    logPromptEngagement('search_intake','hub_arrival','shown')
     // The guard above means both fields are empty here, so this always starts at
     // the first question; the answer to it chains to the second.
     setChatMessages(m=>[...m,searchIntakeOpener()])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,searchGoingWell,searchFocus,seenSearchIntakePrompt,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest])
+  // Life Events thinness prompt, hub_arrival variant (2026-09-07). Mirrors
+  // the employment/search-intake prompts' own dashboard-arrival effect
+  // exactly, including their yield order (employment, then search-intake,
+  // then Personal Brand check-in, then the Notes/close-reason disclosures)
+  // so life-events-thin -- the newest and lowest-priority of this group --
+  // never shares a visit with any of them. One-shot via
+  // seenLifeEventsThinHub, the same guarantee every other hub_arrival prompt
+  // in this file gets; independent of the topic-close fire cap below, which
+  // only governs the two repeatable triggers.
+  useEffect(()=>{
+    if(isDemo||isTest)return
+    if(isIndependent)return
+    if(!hasOnboardingConcierge)return
+    const onPromptSurface=step==='twoDoors'||step==='mylib'||step==='myCoach'
+    if((!onPromptSurface&&!coachOpenTick)||!signedInUser)return
+    if(wc(profile.lifeEvents)>=THIN_MIN.life||seenLifeEventsThinHub||lifeEventsThinHubFiredRef.current)return
+    if(employmentPromptFiredRef.current||(!employmentStatus&&!seenEmploymentPrompt))return
+    if(searchIntakePromptFiredRef.current||(!searchGoingWell&&!searchFocus&&!seenSearchIntakePrompt))return
+    if(step==='twoDoors'&&(pbCheckinFiredRef.current||(!seenPbCheckin&&outputs&&outputs.p3)))return
+    if(notesCapabilityFiredRef.current||closeReasonMentionFiredRef.current)return
+    lifeEventsThinHubFiredRef.current=true
+    setSeenLifeEventsThinHub(true)
+    logPromptEngagement('life_events_thin','hub_arrival','shown')
+    setChatMessages(m=>[...m,lifeEventsThinPromptMessage('life-events-thin-hub')])
+    setPbCheckinOpenReq(x=>x+1)
+  },[step,signedInUser,hasOnboardingConcierge,profile.lifeEvents,seenLifeEventsThinHub,employmentStatus,seenEmploymentPrompt,searchGoingWell,searchFocus,seenSearchIntakePrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest])
   // Save-to-notes disclosure (2026-09-05, brief: "let Coach save to notes on
   // request, not on its own judgment"). Fires once ever, the first time Coach
   // opens with a specific opportunity already in focus -- coachOpenTick only
@@ -8958,7 +9068,7 @@ export default function PivotEngine(){
       // lives only in the saved_playbooks table (per-record dual-write above), so a
       // whole-profile save can never touch a playbook again. The server merge shim
       // stays as belt-and-suspenders for any old cached client still sending it.
-      const blob=JSON.stringify({step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields})
+      const blob=JSON.stringify({step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields})
       localStorage.setItem('pe_v4',blob)
       // The localStorage write above is unconditional; only the server PUT is
       // gated. Holding the PUT until /api/profile/load has settled is what stops
@@ -8981,7 +9091,7 @@ export default function PivotEngine(){
       setSaveStatus('saved')
       setSaveError(null)
     }catch{setSaveStatus('error');setSaveError('device_full')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields,signedInUser,serverLoadDone,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields,signedInUser,serverLoadDone,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
@@ -14550,7 +14660,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
         {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
     </div>
     // Job Search Resources (docs/networking-groups-brief.md). Its own
     // destination, reachable from the first screen, needing no direction and no
@@ -16423,7 +16533,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
         state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
+    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>

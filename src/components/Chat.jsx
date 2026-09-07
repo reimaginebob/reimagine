@@ -27,6 +27,23 @@ const EMPLOYMENT_MENTION_RE = /\b(i['’]?m|i am|currently|presently)\s+(employe
 // is the primary edit path; this is the belt-and-suspenders.
 const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|on-?site)\b[^.?!]{0,40}\b(scheduled|booked|set up|coming up|next week|tomorrow|monday|tuesday|wednesday|thursday|friday|moved|pushed|rescheduled|happened|went|done|finished)\b|\b(got|received|have|got an)\s+(an?\s+)?(offer|rejection)\b|\b(they|it|this)\s+(passed|rejected|declined|ghosted)\b|\b(withdrew|pulled out|turned (it|them) down|accepted (the|their) offer)\b|\b(date|meeting|conversation|call)\s+(moved|changed|got pushed|rescheduled|slipped)\b/i
 
+// Closing-language, topic-close trigger signal 2 (2026-09-07 Cowork consult:
+// "measuring accept/decline patterns on profile-gap prompts"). Same
+// belt-and-suspenders shape as the two regexes above: conservative on
+// purpose, gates only WHETHER a low-stakes, dismissible offer appears, never
+// asserts anything or feeds a model call. Paired at the call site with the
+// message being shorter than Coach's own preceding reply -- a short,
+// satisfied-sounding reply right after a longer answer is the actual
+// "topic just wrapped" signal, not the phrase alone.
+const CLOSING_LANGUAGE_RE = /\b(thanks|thank you|thx|got it|that helps|that('|’)s? helpful|makes sense|perfect|great,? thanks|sounds good|good to know|appreciate it|cool,? thanks)\b/i
+// Fire-and-forget product telemetry -- see api/coach-prompt-engagement.js.
+// Mirrors App.jsx's own logPromptEngagement exactly; kept local rather than
+// threaded through as a prop since Chat already fetches its own endpoints
+// directly (e.g. /api/pb-checkin in tapQuickReply below).
+const logPromptEngagement = (promptCode, triggerType, outcome) => {
+  try { fetch('/api/coach-prompt-engagement', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ promptCode, triggerType, outcome }) }).catch(() => {}) } catch {}
+}
+
 // My Coach. PROSE-ONLY on feature references (2026-06-11): the coach names a
 // feature in prose ("you'll find this in Career Paths") and never renders a
 // clickable navigation button. Render-true labels come from COACH_NAV_MAP in the
@@ -38,7 +55,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -328,6 +345,12 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   }
   // Same cap for the My Search pursuit-status save-offer.
   const pursuitOfferedRef = useRef(false)
+  // Topic-close trigger, signal 2 (closing language): once per Chat mount,
+  // same session-local cap the two offers above use, on top of the
+  // persisted cross-session fire cap (lifeEventsThinTriggerActive already
+  // reflects that) -- stops the same session from re-showing this the
+  // moment it is dismissed once.
+  const lifeEventsThinLangFiredRef = useRef(false)
 
   useEffect(() => {
     const len = messages ? messages.length : 0
@@ -598,6 +621,22 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           pursuitOfferedRef.current = true
           setMessages(m => [...m, pursuitOfferMessage])
         }
+        // Topic-close trigger, signal 2 (closing language, 2026-09-07 Cowork
+        // consult). lifeEventsThinTriggerActive already reflects the thin-
+        // field check, hasOnboardingConcierge, and the persisted cross-
+        // session fire cap (all computed in App.jsx, which owns that
+        // state) -- this only adds the session-local guard, the "already
+        // pending" check, and the actual regex + length comparison. The
+        // preceding Coach reply is the last assistant message already in
+        // `messages` before this turn's reply was appended above.
+        const lifeEventsThinPending = (messages || []).some(mm => mm && ['life-events-thin-hub', 'life-events-thin-tap', 'life-events-thin-lang'].includes(mm.checkinKey) && Array.isArray(mm.quickReplies) && mm.quickReplies.length)
+        const priorCoachReply = [...(messages || [])].reverse().find(mm => mm && mm.role === 'assistant' && typeof mm.content === 'string')
+        if (lifeEventsThinTriggerActive && lifeEventsThinOfferMessage && !lifeEventsThinLangFiredRef.current && !lifeEventsThinPending && priorCoachReply && userMsg.content.length < priorCoachReply.content.length && CLOSING_LANGUAGE_RE.test(userMsg.content)) {
+          lifeEventsThinLangFiredRef.current = true
+          logPromptEngagement('life_events_thin', 'topic_close_language', 'shown')
+          setMessages(m => [...m, lifeEventsThinOfferMessage])
+          if (onLifeEventsThinTopicClose) onLifeEventsThinTopicClose()
+        }
         // Opportunity update capture: the server extracted any combination of a
         // stage move, a next move (+ date), a scheduled meeting, and new
         // Interview Team members onto X-Coach-Opportunity-Update -- one merged
@@ -701,6 +740,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(oaHeader), c => c.charCodeAt(0))))
             const opportunity = data && typeof data.opportunity === 'string' ? data.opportunity.trim() : ''
             if (opportunity) {
+              logPromptEngagement('opportunity_archive', 'model_detected', 'shown')
               setMessages(m => [...m, {
                 role: 'assistant',
                 content: `Want me to take ${opportunity} off your active pipeline? It moves to Archived, not gone — you can restore it any time in the next 90 days.`,
@@ -972,6 +1012,13 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             const label = data && data.goingWell ? "What's going well" : 'What you\'d like to improve'
             const body = data && (data.goingWell || data.focus)
             if (body) {
+              // 'accepted' logged here, not on the Keep-it/Not-now tap below:
+              // reaching this point IS the answer to the actual question
+              // (search_intake's solicitation), and its own decline-able
+              // moment further down is a separate "save this or not" choice
+              // on content already given -- see PROMPT_ENGAGEMENT_META_BY_
+              // CHECKIN's comment in App.jsx for why that one is not logged.
+              logPromptEngagement('search_intake', 'hub_arrival', 'accepted')
               setMessages(m => [...m, { role: 'assistant', content: `Want me to keep this on your profile? I'd read it as background on where things stand, not as a fixed picture, and it lives on your Your Current Situation screen if you want to change it.\n\n${label}: ${body}`, checkinKey: 'search-intake', quickReplies: [{ label: 'Keep it', value: JSON.stringify(data), followUp: 'Kept.' }, { label: 'Not now', value: 'dismiss' }] }])
             }
           } catch { /* malformed header — no offer */ }

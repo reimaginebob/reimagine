@@ -50,7 +50,7 @@ const hydrationHits = (app.match(/if\(d\.seenOrientationRoute\)setSeenOrientatio
 check(hydrationHits === 2,
   `${APP}: expected seenOrientationRoute hydration in both the local pe_v4 path and the server profile/load path -- found ${hydrationHits}`)
 const saveBlobIdx = app.indexOf('const blob=JSON.stringify(')
-check(app.slice(saveBlobIdx, saveBlobIdx + 450).includes('seenOrientationRoute'),
+check(app.slice(saveBlobIdx, saveBlobIdx + 700).includes('seenOrientationRoute'),
   `${APP}: seenOrientationRoute is missing from the autosave blob's JSON.stringify -- the dedupe would never actually persist`)
 const saveDepsIdx = app.indexOf('saveRef.current=save')
 check(app.slice(saveDepsIdx, saveDepsIdx + 550).includes('seenOrientationRoute'),

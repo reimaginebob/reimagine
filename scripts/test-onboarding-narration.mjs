@@ -58,7 +58,7 @@ check(hydrationHits === 2,
 // regex: later slices append their own dedupe fields after this one, which
 // would break a regex anchored on this field being last.
 const saveBlobIdx = app.indexOf('const blob=JSON.stringify(')
-check(app.slice(saveBlobIdx, saveBlobIdx + 400).includes('narratedOrientationSteps'),
+check(app.slice(saveBlobIdx, saveBlobIdx + 700).includes('narratedOrientationSteps'),
   `${APP}: narratedOrientationSteps is missing from the autosave blob's JSON.stringify -- the dedupe would never actually persist`)
 const saveDepsIdx = app.indexOf('saveRef.current=save')
 check(app.slice(saveDepsIdx, saveDepsIdx + 500).includes('narratedOrientationSteps'),
