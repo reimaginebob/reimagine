@@ -7684,19 +7684,25 @@ export default function PivotEngine(){
     if(move&&data.date)patch.next_step_at=new Date(`${data.date}T12:00:00Z`).toISOString()
     if(meeting)patch.next_conversation_at=new Date(`${meeting}T12:00:00Z`).toISOString()
     if(Object.keys(patch).length)savePursuit(targetId,patch)
-    let removed=[]
+    const savedRec=activePlaybooks.find(r=>r&&r.id===targetId)
+    const savedTitle=(savedRec&&savedRec.title)||'this opportunity'
+    // Compute `removed` synchronously against the record already in hand, not
+    // inside updateOpPanel's updater below: that updater runs inside a
+    // setSavedPlaybooks(prev=>...) callback, deferred past this function's own
+    // synchronous return -- so `removed`, read immediately after calling
+    // updateOpPanel, was always still empty. "Interview Team no longer
+    // includes X" could never render, and a removal-only payload made
+    // `landed` empty, incorrectly returning false even though the removal
+    // itself was queued correctly. Found in the 2026-09-07 My Coach review.
+    const removeKeys=removePeople.map(n=>n.trim().toLowerCase())
+    const currentInterviewers=getOpPanel(savedRec).interviewers
+    const removed=removeKeys.length?currentInterviewers.filter(iv=>removeKeys.includes(String(iv.name||'').trim().toLowerCase())).map(iv=>iv.name):[]
     if(people.length||removePeople.length){
       updateOpPanel(targetId,p=>{
-        const keep=p.interviewers.filter(iv=>{
-          const hit=removePeople.some(n=>n.trim().toLowerCase()===String(iv.name||'').trim().toLowerCase())
-          if(hit)removed.push(iv.name)
-          return!hit
-        })
+        const keep=p.interviewers.filter(iv=>!removeKeys.includes(String(iv.name||'').trim().toLowerCase()))
         return{...p,interviewers:[...keep,...people.map(pe=>({id:newInterviewerId(),name:String(pe.name||''),role_in_loop:(typeof pe.role==='string'&&ROLE_IN_LOOP_OPTIONS.some(o=>o.value===pe.role))?pe.role:'',title:String(pe.title||''),function:'',linkedin_url:'',learned_note:String(pe.note||'')}))]}
       })
     }
-    const savedRec=activePlaybooks.find(r=>r&&r.id===targetId)
-    const savedTitle=(savedRec&&savedRec.title)||'this opportunity'
     const fmtDay=(iso)=>new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})
     const landed=[]
     if(stage)landed.push(`stage is now ${PURSUIT_STAGE_LABELS[stage]||stage}`)

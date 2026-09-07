@@ -64,10 +64,19 @@ if (writeIdx !== -1) {
   const execIdx = app.indexOf('const execOpportunityUpdate=')
   check(execIdx !== -1, `${APP}: execOpportunityUpdate is missing -- the opportunity-update write logic should live in its own function, shared with the disambiguation-tap path`)
   const execBlock = execIdx !== -1 ? app.slice(execIdx, execIdx + 3200) : ''
-  check(/const hit=removePeople\.some\(n=>n\.trim\(\)\.toLowerCase\(\)===String\(iv\.name\|\|''\)\.trim\(\)\.toLowerCase\(\)\)/.test(execBlock),
+  // 2026-09-07 My Coach review fix: `removed` used to be computed INSIDE the
+  // updateOpPanel updater (a setState callback, deferred past this
+  // function's own synchronous return), so it was always empty by the time
+  // the confirmation message read it. Now computed synchronously against
+  // the current record via getOpPanel(savedRec), sharing one lowercase
+  // removeKeys set with the updater's own filter.
+  check(execBlock.includes('const removeKeys=removePeople.map(n=>n.trim().toLowerCase())'),
     `${APP}: removal is not matched case-insensitively against each interviewer's REAL current name -- this is the actual existence check named people are validated against`)
-  check(execBlock.includes('if(hit)removed.push(iv.name)'),
-    `${APP}: removed names are not tracked separately from the roster filter, so the confirmation message could not report what actually changed`)
+  check(execBlock.includes('const currentInterviewers=getOpPanel(savedRec).interviewers') &&
+    execBlock.includes('const removed=removeKeys.length?currentInterviewers.filter(iv=>removeKeys.includes(String(iv.name||\'\').trim().toLowerCase())).map(iv=>iv.name):[]'),
+    `${APP}: removed names are not computed synchronously against the current record before updateOpPanel runs -- this is the exact race that made the confirmation message always report nothing changed`)
+  check(execBlock.includes('!removeKeys.includes(String(iv.name||\'\').trim().toLowerCase())'),
+    `${APP}: the updateOpPanel updater no longer filters interviewers using the same removeKeys used to compute \`removed\``)
   check(execBlock.includes('Interview Team no longer includes'),
     `${APP}: the confirmation message does not report a completed removal`)
   check(execBlock.includes('if(!landed.length)return false'),
