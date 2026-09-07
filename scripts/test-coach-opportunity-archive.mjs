@@ -32,7 +32,7 @@ check(coach.includes('NEVER SAY YOU HAVE REMOVED OR ARCHIVED IT'),
 
 check(coach.includes("const opportunityArchiveNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? OPPORTUNITY_ARCHIVE_CAPTURE_NOTE : ''"),
   `${COACH}: opportunityArchiveNote is not gated on hasPipelineCapture, the same flag as its opportunity-data siblings`)
-check(coach.includes('${opportunityUpdateNote}${opportunityContextNote}${opportunityArchiveNote}${opCardReworkNote}'),
+check(coach.includes('${opportunityUpdateNote}${opportunityContextNote}${opportunityArchiveNote}${closeReasonNote}${opCardReworkNote}'),
   `${COACH}: opportunityArchiveNote is not spliced into the profile-slice template alongside its siblings`)
 
 check(/const oaMatch = strippedText\.match\(\/\^\\s\*OPPORTUNITYARCHIVE:/.test(coach),

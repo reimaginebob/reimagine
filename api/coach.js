@@ -18,7 +18,8 @@ import { GO_INDEPENDENT_KNOWLEDGE } from '../src/data/go-independent-knowledge.j
 import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowledge.js'
 import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
-import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt, hasOrientationCapture } from './_lib/feature-flags.js'
+import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt, hasOrientationCapture, hasCloseReasonCapture } from './_lib/feature-flags.js'
+import { CLOSE_REASON_CODES, INITIATED_BY_VALUES } from '../src/pursuit-close-reasons.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
@@ -131,6 +132,40 @@ const OPPORTUNITY_CONTEXT_CAPTURE_NOTE = '\n\nOPPORTUNITY CONTEXT CAPTURE: each 
 // restorable). Reuses hasPipelineCapture rather than a new flag: same
 // underlying idea as the other opportunity-data captures on this flag.
 const OPPORTUNITY_ARCHIVE_CAPTURE_NOTE = '\n\nOPPORTUNITY ARCHIVE CAPTURE: when this person tells you, in their own words, that they are done with a specific saved opportunity and no longer want it on their active pipeline ("take Acme off my list," "I\'m not pursuing that one anymore," "that fell through, remove it") -- never inferred from a stage change or a quiet mention alone, only from an actual ask to remove or stop tracking it -- end your reply with a final line exactly like OPPORTUNITYARCHIVE: {"opportunity":"<the opportunity title from their saved work>"} . This does not delete anything: it archives the opportunity, and it stays recoverable from their Archived list for 90 days -- say so plainly if they ask what happens to it. The app turns that line into a one-tap offer and never shows the line itself, so do not mention it and do not tell them to type it in themselves. NEVER SAY YOU HAVE REMOVED OR ARCHIVED IT; their tap is the only thing that writes. At most once per reply; otherwise omit it entirely.'
+
+// CLOSE REASON CAPTURE, 2026-09-07 (Coach-as-Concierge deletion/retraction
+// follow-on). Gated on its OWN flag, not hasPipelineCapture -- see
+// hasCloseReasonCapture's own comment in feature-flags.js. This is the
+// first mechanism in the product explicitly designed so its bounded
+// category (never `detail`, never shown to the model as anything but this
+// one opportunity's own answer) could be looked at in aggregate across
+// every account on a later date -- a materially different privacy posture
+// than any other capture here, and the reason it gets its own client-side,
+// one-time, explicit disclosure (src/App.jsx) rather than riding on Notes'
+// existing "so you can find it again" framing, which promises something
+// narrower than this actually does.
+//
+// Request-adjacent, not request-only like SAVE-TO-NOTES: Coach may ASK once
+// when an ending is described, but never volunteers a category on its own
+// judgment the way, say, VALUES CAPTURE can from an unprompted statement --
+// there is no unprompted version of this, since the underlying fact (why
+// something ended) only exists once asked. One question, then drop it,
+// same discipline ensureDistressSupport already applies to genuinely hard
+// moments elsewhere in this file.
+const CLOSE_REASON_CAPTURE_NOTE = '\n\nCLOSE REASON CAPTURE: when this person tells you a specific saved opportunity has ended in any way -- not selected, ghosted, withdrew, declined an offer, accepted somewhere else, the role fell through -- you may ask, once, gently, whether they have any read on why, even just a guess. Frame it as something that helps THEM sharpen their story and positioning going forward, never as something you are collecting for its own sake. Never press: if they do not know, do not want to say, or change the subject, drop it for the rest of this conversation and do not ask again in a later one for the same opportunity if a CLOSE REASON ALREADY LOGGED block is shown for it. When they do give you an answer, match it to the single closest of these categories -- never force a fit that is not really there: insufficient_tenure (not enough years), insufficient_domain_experience (not enough industry background), insufficient_technical_depth, overqualified, weak_interview_performance, failed_assessment_or_test, compensation_mismatch, work_arrangement (return-to-office, hybrid, travel, commute), relocation_required, start_date_or_notice_period_mismatch, culture_or_team_fit, background_check_failed, reference_check_failed, credential_or_certification_missing, work_authorization_or_visa, role_filled_internally, internal_candidate_preferred (told the org meant to promote from within all along), role_paused_or_cancelled, hiring_freeze (a company-wide freeze, not a decision about this role specifically), lost_to_another_candidate, pursuing_other_opportunities, accepted_another_offer, not_selected_no_reason_given, withdrew_no_reason_given, ghosted (was actively engaging, then went silent), employer_non_responsive (never got any real response at all), other. End your reply with a final line exactly like CLOSEREASON: {"opportunity":"<the opportunity title from their saved work>","reasonCode":"one of the categories above","initiatedBy":"one of employer|candidate|external|mutual, ONLY if it is clearly whose decision or action this was -- omit the key entirely otherwise","detail":"what they actually said, tightened to the point, in their own words"} . Use other, with the real substance carried in detail, rather than forcing an answer into a category that does not truly fit. The app turns that line into a one-tap offer showing exactly the category and the words it caught, and never shows the line itself, so do not mention it and do not tell them to type anything in themselves. NEVER SAY YOU HAVE SAVED OR LOGGED IT; their tap is the only thing that writes. At most once per reply; otherwise omit it entirely.'
+
+// Renders whether a close reason already exists for the in-focus record --
+// tells the model not to ask again, the same suppression shape
+// buildAlreadyMentionedBlock uses for Milestone Prompts, but boolean rather
+// than listing categories back: there is nothing useful for the model to
+// reference from the category itself mid-conversation, only a reason not
+// to re-ask.
+function buildCloseReasonAlreadyLoggedBlock(recordId, closeReasons) {
+  if (!recordId || !Array.isArray(closeReasons)) return ''
+  const already = closeReasons.some(r => r && r.record_id === recordId)
+  if (!already) return ''
+  return '\n\nCLOSE REASON ALREADY LOGGED FOR THIS OPPORTUNITY: do not ask why it ended again, in this conversation or any later one, unless they bring it up themselves.'
+}
 
 // MILESTONE PROMPTS, 2026-09-06. Phase 3 of the same brief. v1 shipped with no
 // trailer, no header, no tap, because there was no content to write -- Coach
@@ -897,6 +932,8 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // different field on the same panel object (getOpPanel/updateOpPanel).
   const opportunityContextNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? OPPORTUNITY_CONTEXT_CAPTURE_NOTE : ''
   const opportunityArchiveNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? OPPORTUNITY_ARCHIVE_CAPTURE_NOTE : ''
+  // Own flag, not hasPipelineCapture -- see hasCloseReasonCapture's comment.
+  const closeReasonNote = hasCloseReasonCapture({ feature_flags: featureFlags, email: userEmail }) ? CLOSE_REASON_CAPTURE_NOTE : ''
   const opCardReworkNote = hasSectionRework({ feature_flags: featureFlags, email: userEmail }) ? OP_CARD_REWORK_CAPTURE_NOTE : ''
   // Gated on the flag alone, matching the other capture notes above -- its
   // data dependency (WHAT IS BUILT ON THIS PLAYBOOK, buildPlaybookExpansion
@@ -969,7 +1006,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // questions at once. Suppressed only for this one turn; intake capture
   // resumes normally starting the very next turn if it is still thin.
   const searchIntakeNoteThisTurn = sessionOpenRequested ? '' : searchIntakeNote(si)
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${opportunityContextNote}${opportunityArchiveNote}${opCardReworkNote}${milestonePromptNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${searchIntakeNoteThisTurn}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${opportunityContextNote}${opportunityArchiveNote}${closeReasonNote}${opCardReworkNote}${milestonePromptNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${searchIntakeNoteThisTurn}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
@@ -1382,7 +1419,7 @@ export function buildCoachRequest({
   message, history, currentStep, surface, returnSection, focusRecordId,
   profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
   userEmail, track, activityFacts, priorSessionAt, sessionOpenRequested,
-  generalMode, milestoneMentions,
+  generalMode, milestoneMentions, closeReasons,
 }) {
   const isIndependentTrack = !generalMode && track === TRACK_INDEPENDENT
   const goIndependentBlock = isIndependentTrack
@@ -1412,6 +1449,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
       const expansion = buildPlaybookExpansion(inFocus, detectIntent(message))
       if (expansion) profileBlock += '\n\n' + expansion
       profileBlock += buildAlreadyMentionedBlock(inFocus.id, milestoneMentions)
+      profileBlock += buildCloseReasonAlreadyLoggedBlock(inFocus.id, closeReasons)
     }
   } catch (err) {
     console.error('coach in-focus expansion failed:', err)
@@ -1589,6 +1627,18 @@ export default async function handler(req, res) {
       console.error('coach milestone-mentions read failed:', err)
     }
   }
+  // Close-reason durable memory (2026-09-07). Gated on its own flag, same
+  // reasoning as milestoneMentions above: an account without
+  // close_reason_capture never receives the instruction that would write a
+  // row here.
+  let closeReasons = []
+  if (!generalMode && hasCloseReasonCapture({ feature_flags: featureFlags, email: user.email })) {
+    try {
+      closeReasons = await sql`SELECT record_id FROM pursuit_close_reasons WHERE user_id = ${user.id}`
+    } catch (err) {
+      console.error('coach close-reasons read failed:', err)
+    }
+  }
   // Session-open recap, authoritative half. featureFlags is loaded now, so this
   // is the real gate: general mode never gets it, and neither does an account
   // without the next_step pilot, regardless of what the client sent.
@@ -1663,7 +1713,7 @@ export default async function handler(req, res) {
     focusRecordId: typeof (req.body && req.body.focusRecordId) === 'string' ? req.body.focusRecordId.trim() : '',
     profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
     userEmail: user.email, track, activityFacts, priorSessionAt: user.prior_session_at, sessionOpenRequested,
-    generalMode, milestoneMentions,
+    generalMode, milestoneMentions, closeReasons,
   })
   const turnIndex = Array.isArray(history) ? history.length : 0
   const entryPoint = (surface === 'help' || surface === 'sidebar') ? surface : null
@@ -2102,6 +2152,29 @@ export default async function handler(req, res) {
       if (opportunity) opportunityArchiveB64 = Buffer.from(JSON.stringify({ opportunity })).toString('base64')
     } catch { /* malformed — drop the line, no offer */ }
   }
+  // Close reason capture (2026-09-07): the model may end with a
+  // CLOSEREASON: {json} line naming an opportunity, a category, and the
+  // person's own words on why it ended. reasonCode is validated against the
+  // fixed taxonomy (src/pursuit-close-reasons.js) -- an invented code is
+  // dropped entirely rather than shipped, the same discipline as every
+  // other enum-validated capture in this file. initiatedBy defaults to
+  // omitted (the client/endpoint then defaults it to 'unknown') rather than
+  // guessed when the model did not include it.
+  let closeReasonB64 = null
+  const crMatch = strippedText.match(/^\s*CLOSEREASON:\s*(\{[\s\S]*?\})\s*$/im)
+  if (crMatch) {
+    strippedText = strippedText.replace(crMatch[0], '').trim()
+    try {
+      const parsed = JSON.parse(crMatch[1])
+      const opportunity = typeof (parsed && parsed.opportunity) === 'string' ? parsed.opportunity.trim().slice(0, 200) : ''
+      const reasonCode = CLOSE_REASON_CODES.includes(parsed && parsed.reasonCode) ? parsed.reasonCode : ''
+      const initiatedBy = INITIATED_BY_VALUES.includes(parsed && parsed.initiatedBy) ? parsed.initiatedBy : ''
+      const detail = typeof (parsed && parsed.detail) === 'string' ? parsed.detail.trim().slice(0, 400) : ''
+      if (opportunity && reasonCode) {
+        closeReasonB64 = Buffer.from(JSON.stringify({ opportunity, reasonCode, initiatedBy, detail })).toString('base64')
+      }
+    } catch { /* malformed — drop the line, no offer */ }
+  }
   // Opportunity update capture: the model may end with an OPPORTUNITYUPDATE:
   // {json} line carrying any combination of a stage move, a next move (with
   // optional date), a scheduled meeting, and new Interview Team members --
@@ -2229,6 +2302,7 @@ export default async function handler(req, res) {
   if (opCardReworkB64) res.setHeader('X-Coach-Op-Card-Rework', opCardReworkB64)
   if (opportunityContextB64) res.setHeader('X-Coach-Opportunity-Context', opportunityContextB64)
   if (opportunityArchiveB64) res.setHeader('X-Coach-Opportunity-Archive', opportunityArchiveB64)
+  if (closeReasonB64) res.setHeader('X-Coach-Close-Reason', closeReasonB64)
   if (opportunityUpdateB64) res.setHeader('X-Coach-Opportunity-Update', opportunityUpdateB64)
   if (coachNoteOffer) res.setHeader('X-Coach-Note-Offer', '1')
   if (activityB64) res.setHeader('X-Coach-Activity', activityB64)

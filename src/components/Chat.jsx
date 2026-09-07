@@ -5,6 +5,7 @@ import { useIsMobile } from '../use-is-mobile.js'
 import { detectVoiceViolations } from '../voice-patterns.js'
 import { PURSUIT_STAGE_LABELS } from '../pursuit-stages.js'
 import { OP_COUNTED_SECTIONS } from '../playbook-sections.js'
+import { CLOSE_REASON_LABEL } from '../pursuit-close-reasons.js'
 
 // intro: true opts this one message into the same collapse-to-strip
 // treatment as banner:true narration (see isCollapsedBanner below) without
@@ -37,7 +38,7 @@ const STAGE_MENTION_RE = /\b(interview|phone screen|screening call|final round|o
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -540,6 +541,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const ocrHeader = res.headers.get('X-Coach-Op-Card-Rework') || null
         const occHeader = res.headers.get('X-Coach-Opportunity-Context') || null
         const oaHeader = res.headers.get('X-Coach-Opportunity-Archive') || null
+        const crHeader = res.headers.get('X-Coach-Close-Reason') || null
         const vcHeader = res.headers.get('X-Coach-Values') || null
         const repHeader = res.headers.get('X-Coach-Reputation') || null
         const skillsHeader = res.headers.get('X-Coach-Skills') || null
@@ -705,6 +707,32 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 checkinKey: 'opportunity-archive',
                 quickReplies: [
                   { label: `Archive ${opportunity}`, value: JSON.stringify(data), followUp: 'Archived.' },
+                  { label: 'Not now', value: 'dismiss' },
+                ],
+              }])
+            }
+          } catch { /* malformed header — no offer */ }
+        }
+        // Close reason (2026-09-07): shows the exact category and their own
+        // words before the tap, same as every other capture offer -- the
+        // category alone is what a later cross-account view could ever look
+        // at, and that promise only holds if the person sees precisely what
+        // gets filed under it.
+        if (closeReasonCaptureActive && crHeader) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(crHeader), c => c.charCodeAt(0))))
+            const opportunity = data && typeof data.opportunity === 'string' ? data.opportunity.trim() : ''
+            const label = CLOSE_REASON_LABEL[data && data.reasonCode] || ''
+            const detail = data && typeof data.detail === 'string' ? data.detail.trim() : ''
+            if (opportunity && label) {
+              const parts = [`Category: ${label}`]
+              if (detail) parts.push(`In your words: ${detail}`)
+              setMessages(m => [...m, {
+                role: 'assistant',
+                content: `Want me to log this as why ${opportunity} ended?\n\n${parts.join('\n')}`,
+                checkinKey: 'close-reason',
+                quickReplies: [
+                  { label: 'Save it', value: JSON.stringify(data), followUp: 'Saved.' },
                   { label: 'Not now', value: 'dismiss' },
                 ],
               }])
