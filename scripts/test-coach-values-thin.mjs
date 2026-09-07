@@ -18,7 +18,7 @@ const app = fs.readFileSync(APP, 'utf8')
 // The floor itself, and that it is combined across Values + Passions --
 // matching the precedent Reputation and the orientation quality check
 // already set for a multi-field combined check, not two separate floors.
-check(app.includes('const THIN_MIN={resume:60,assess:25,life:12,rep:12,values:12}'),
+check(app.includes('const THIN_MIN={resume:60,assess:25,life:12,rep:12,values:12,priorities:12}'),
   `${APP}: THIN_MIN is missing the values floor, or an existing floor drifted`)
 
 // The on-screen nudge: combined word count, same ThinNudge component every
