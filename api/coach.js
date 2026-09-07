@@ -1882,49 +1882,12 @@ export default async function handler(req, res) {
   // append-only client cannot un-render text already shown.
   let cleaned = applyOutputStrippers(raw)
 
-  // Regenerate-on-violation retry (the brief's deferred-optional item), BOUNDED to
-  // flagged responses. The deterministic strippers catch the common/egregious
-  // comparative-standing and sincerity forms, but the model invents new
-  // grammatical variants run-to-run (whack-a-mole). If a flag survives the
-  // strippers, revise ONCE with a corrective, re-strip, and keep whichever is
-  // cleaner. Typical (unflagged) replies skip this entirely, so only flagged
-  // responses pay one extra generation on this already-buffered surface.
-  const flags = detectResidualVoice(cleaned)
-  // Full HARD_PATTERNS set (src/voice-patterns.js) alongside the five
-  // hand-picked categories above. detectResidualVoice was built as a
-  // workaround for the .mjs cross-directory import failure (see its own
-  // comment in src/text-strippers.js); the 2026-09-05 rename to .js clears
-  // that, so this closes the gap that let "Here's the real shape of it" /
-  // "the arc" reach a live reply -- neither is in detectResidualVoice's
-  // five categories. Additive, not a replacement: detectResidualVoice keeps
-  // its deliberately looser coverage on its five categories.
-  const hardViolations = detectVoiceViolations(cleaned, { scope: 'runtime' })
-  if (flags.comparative || flags.sincerity || flags.theMove || flags.sitWith || flags.citedStat || hardViolations.length) {
-    const wants = []
-    if (flags.comparative) wants.push('do not compare me to "most people", or to "most"/"many"/"every"/"all"/"any" of a group (candidates, leaders, professionals, hiring managers, recruiters), or to anyone else — drop the comparison and state what is true about me directly')
-    if (flags.sincerity) wants.push('do not announce your own honesty ("frankly", "candidly", "the honest answer", "to be honest", "being straight with you") — just say the thing')
-    if (flags.theMove) wants.push('do not say "X is the move", "here\'s the play", "the key is to", or "what you want to do is" — just state the action, or "a good next step is to…"')
-    if (flags.sitWith) wants.push('do not use coaching-therapy register ("sit with"/"sitting with", "lean into", "hold space for", "be present with") — say "think about" or "give it some thought"')
-    if (flags.citedStat) wants.push('do not cite a statistic, percentage, or figure with a source you cannot defend ("a study found 70%", "according to LinkedIn…") — speak qualitatively or point me to where real data lives')
-    // Same corrective style callClaudeWithVoiceGate uses in src/App.jsx: name
-    // the actual matched text, not a generic reminder, so the fix targets
-    // exactly what fired. Capped at 3 so a reply with many small hits does
-    // not produce an unreadable rewrite instruction.
-    for (const v of hardViolations.slice(0, 3)) wants.push(`do not write "${String(v.match).replace(/"/g, '\\"').slice(0, 160)}" or anything shaped like it (${v.note})`)
-    const corrective = `Rewrite your previous reply for me. Keep all of the substance, the warmth, and roughly the same length, but ${wants.join('; and ')}.`
-    try {
-      const raw2 = await generate([...messages, { role: 'assistant', content: raw }, { role: 'user', content: corrective }])
-      const cleaned2 = applyOutputStrippers(raw2)
-      const flags2 = detectResidualVoice(cleaned2)
-      const hardViolations2 = detectVoiceViolations(cleaned2, { scope: 'runtime' })
-      const score = (f, hv) => (f.comparative ? 1 : 0) + (f.sincerity ? 1 : 0) + (f.theMove ? 1 : 0) + (f.sitWith ? 1 : 0) + (f.citedStat ? 1 : 0) + hv.length
-      const useRetry = score(flags2, hardViolations2) < score(flags, hardViolations)
-      console.log('coach voice-retry', { user_id: user.id, before: { ...flags, hard: hardViolations.map(v => v.name) }, after: { ...flags2, hard: hardViolations2.map(v => v.name) }, used: useRetry ? 'retry' : 'original' })
-      if (useRetry) cleaned = cleaned2
-    } catch (err) {
-      console.error('coach voice-retry failed (keeping original):', err)
-    }
-  }
+  // Shared by the extraction block above and the voice-retry block below:
+  // strips any line that starts with a known trailer name, whatever shape
+  // follows it. Used to clean a voice-retry's regenerated text of stray
+  // trailer syntax without ever re-parsing it as a new capture -- captures
+  // are locked in once, before any retry runs. See My Coach review finding #2.3.
+  const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
 
   // Self-check verdict (silent, for unmet-need logging). The model runs a hidden
   // self-check and emits a SELFCHECK trailer naming the matched feature (or
@@ -2330,6 +2293,68 @@ export default async function handler(req, res) {
   // Distress safety-net: guarantees a human-pointer on genuine-distress inputs.
   // Runs here (not in applyOutputStrippers) because the triggers live in the
   // user's message.
+
+  // Regenerate-on-violation retry (the brief's deferred-optional item), BOUNDED to
+  // flagged responses. The deterministic strippers catch the common/egregious
+  // comparative-standing and sincerity forms, but the model invents new
+  // grammatical variants run-to-run (whack-a-mole). If a flag survives the
+  // strippers, revise ONCE with a corrective, re-strip, and keep whichever is
+  // cleaner. Typical (unflagged) replies skip this entirely, so only flagged
+  // responses pay one extra generation on this already-buffered surface.
+  //
+  // Runs AFTER trailer extraction (moved 2026-09-07, My Coach review finding
+  // #2.3): voice-checking `cleaned` (which still carried every trailer line)
+  // meant a rewrite that happened to drop or mangle a capture scored BETTER
+  // on voice compliance -- fewer characters to trip a pattern on -- and could
+  // silently win, deleting the capture with no log line. It also meant a
+  // captured phrase inside a trailer's own JSON (e.g. a quoted note
+  // containing "most people") could trigger a rewrite of a reply that was
+  // otherwise fine. Extraction now runs first, so every capture is already
+  // locked in from `cleaned` by the time this block runs -- the voice retry
+  // can only ever change the visible PROSE (`strippedText`), never which
+  // captures shipped.
+  const flags = detectResidualVoice(strippedText)
+  // Full HARD_PATTERNS set (src/voice-patterns.js) alongside the five
+  // hand-picked categories above. detectResidualVoice was built as a
+  // workaround for the .mjs cross-directory import failure (see its own
+  // comment in src/text-strippers.js); the 2026-09-05 rename to .js clears
+  // that, so this closes the gap that let "Here's the real shape of it" /
+  // "the arc" reach a live reply -- neither is in detectResidualVoice's
+  // five categories. Additive, not a replacement: detectResidualVoice keeps
+  // its deliberately looser coverage on its five categories.
+  const hardViolations = detectVoiceViolations(strippedText, { scope: 'runtime' })
+  if (flags.comparative || flags.sincerity || flags.theMove || flags.sitWith || flags.citedStat || hardViolations.length) {
+    const wants = []
+    if (flags.comparative) wants.push('do not compare me to "most people", or to "most"/"many"/"every"/"all"/"any" of a group (candidates, leaders, professionals, hiring managers, recruiters), or to anyone else — drop the comparison and state what is true about me directly')
+    if (flags.sincerity) wants.push('do not announce your own honesty ("frankly", "candidly", "the honest answer", "to be honest", "being straight with you") — just say the thing')
+    if (flags.theMove) wants.push('do not say "X is the move", "here\'s the play", "the key is to", or "what you want to do is" — just state the action, or "a good next step is to…"')
+    if (flags.sitWith) wants.push('do not use coaching-therapy register ("sit with"/"sitting with", "lean into", "hold space for", "be present with") — say "think about" or "give it some thought"')
+    if (flags.citedStat) wants.push('do not cite a statistic, percentage, or figure with a source you cannot defend ("a study found 70%", "according to LinkedIn…") — speak qualitatively or point me to where real data lives')
+    // Same corrective style callClaudeWithVoiceGate uses in src/App.jsx: name
+    // the actual matched text, not a generic reminder, so the fix targets
+    // exactly what fired. Capped at 3 so a reply with many small hits does
+    // not produce an unreadable rewrite instruction.
+    for (const v of hardViolations.slice(0, 3)) wants.push(`do not write "${String(v.match).replace(/"/g, '\\"').slice(0, 160)}" or anything shaped like it (${v.note})`)
+    const corrective = `Rewrite your previous reply for me. Keep all of the substance, the warmth, and roughly the same length, but ${wants.join('; and ')}.`
+    try {
+      const raw2 = await generate([...messages, { role: 'assistant', content: raw }, { role: 'user', content: corrective }])
+      // Defensive sweep: the corrective never asks for a trailer, but strip any
+      // trailer-shaped line the rewrite reproduces anyway. Every capture was
+      // already locked in above, before this block ever ran, so nothing here
+      // is ever re-parsed as a capture -- this only keeps stray trailer syntax
+      // out of the visible prose.
+      const cleaned2 = applyOutputStrippers(raw2).replace(TRAILER_NAME_SWEEP, '').trim()
+      const flags2 = detectResidualVoice(cleaned2)
+      const hardViolations2 = detectVoiceViolations(cleaned2, { scope: 'runtime' })
+      const score = (f, hv) => (f.comparative ? 1 : 0) + (f.sincerity ? 1 : 0) + (f.theMove ? 1 : 0) + (f.sitWith ? 1 : 0) + (f.citedStat ? 1 : 0) + hv.length
+      const useRetry = score(flags2, hardViolations2) < score(flags, hardViolations)
+      console.log('coach voice-retry', { user_id: user.id, before: { ...flags, hard: hardViolations.map(v => v.name) }, after: { ...flags2, hard: hardViolations2.map(v => v.name) }, used: useRetry ? 'retry' : 'original', captures_locked_before_retry: true })
+      if (useRetry) strippedText = cleaned2
+    } catch (err) {
+      console.error('coach voice-retry failed (keeping original):', err)
+    }
+  }
+
   const visibleText = ensureDistressSupport(message, strippedText)
 
   // Persist the turn BEFORE writing the body so the row id can ride back on a
