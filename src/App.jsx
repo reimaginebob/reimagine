@@ -4756,6 +4756,16 @@ const closeReasonCapabilityMessage=()=>({role:'assistant',content:"One more thin
 // see PROMPT_ENGAGEMENT_META_BY_CHECKIN just below.
 const LIFE_EVENTS_THIN_CHECKIN_KEYS=['life-events-thin-hub','life-events-thin-tap','life-events-thin-lang']
 const lifeEventsThinPromptMessage=(checkinKey)=>({role:'assistant',content:"One thing that tends to sharpen everything else — is there a story from outside work that shaped how you approach it? Even a sentence helps, and there's no wrong answer here.",checkinKey,quickReplies:[{label:'Sure, let\'s add one',value:'accept',followUp:'Good — tell me about it here, or add it directly on Life Story whenever works for you.'},{label:'Not now',value:'dismiss'}]})
+// Values thinness prompt (2026-09-07). Deliberately lighter than Life
+// Events' three-trigger build: hub_arrival only, no topic-close signals.
+// Brand richness (shipped just before this) already gives Values a
+// post-synthesis backstop as part of its differentiation-axis read, so the
+// full repeatable-trigger treatment Life Events needed (it had no such
+// backstop when it was built) is not warranted here -- this only needs to
+// catch it once, early, before synthesis, not chase it across a
+// conversation. See PROMPT_ENGAGEMENT_META_BY_CHECKIN below for the single
+// checkinKey this uses.
+const valuesThinPromptMessage=()=>({role:'assistant',content:"One more thing that tends to sharpen everything else — is there a value you actually live by, not just one that sounds good? Even a word or two helps, and there's no wrong answer here.",checkinKey:'values-thin-hub',quickReplies:[{label:'Sure, let\'s add one',value:'accept',followUp:'Good — tell me about it here, or add it directly on Values, Passions & Causes whenever works for you.'},{label:'Not now',value:'dismiss'}]})
 // Bounded checkinKey -> {code, trigger} lookup for coach-prompt-engagement
 // logging (src/coach-prompt-codes.js carries the canonical PROMPT_CODES/
 // TRIGGER_TYPES lists the server validates against). Only prompts worth
@@ -4773,6 +4783,7 @@ const PROMPT_ENGAGEMENT_META_BY_CHECKIN={
   'life-events-thin-hub':{code:'life_events_thin',trigger:'hub_arrival'},
   'life-events-thin-tap':{code:'life_events_thin',trigger:'topic_close_tap'},
   'life-events-thin-lang':{code:'life_events_thin',trigger:'topic_close_language'},
+  'values-thin-hub':{code:'values_thin',trigger:'hub_arrival'},
 }
 // Topic-close triggers (tap + language) are repeatable by design, unlike the
 // one-shot hub_arrival prompts above -- nothing about the underlying
@@ -5986,7 +5997,7 @@ function CoachingCallout({children}){return <div style={{background:`${C.gold}10
 // the four rep subfields combined; resume counts the resume plus the
 // what-changed delta.
 const wc=(s)=>(String(s||'').trim().match(/\S+/g)||[]).length
-const THIN_MIN={resume:60,assess:25,life:12,rep:12}
+const THIN_MIN={resume:60,assess:25,life:12,rep:12,values:12}
 // Reminds the user they can speak instead of type, to lower the effort of
 // sharing MORE. Only renders when speech capture is available.
 function MicReminder({text}){return hasSpeech?<div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:15,color:'#7A6212',lineHeight:1.5}}><Mic size={15} style={{flexShrink:0}}/><span>{text}</span></div>:null}
@@ -7406,6 +7417,11 @@ export default function PivotEngine(){
   const[seenLifeEventsThinHub,setSeenLifeEventsThinHub]=useState(false)
   const lifeEventsThinHubFiredRef=useRef(false)
   const[lifeEventsThinTopicCloseCount,setLifeEventsThinTopicCloseCount]=useState(0)
+  // Values thinness prompt (2026-09-07). One-shot hub_arrival only -- see
+  // valuesThinPromptMessage above for why this is deliberately lighter than
+  // Life Events' three-trigger build.
+  const[seenValuesThinHub,setSeenValuesThinHub]=useState(false)
+  const valuesThinHubFiredRef=useRef(false)
   // Proactive pipeline check-in (2026-09-05, brief: "let Coach ask what it
   // doesn't know when something moves on your pipeline"). Ref-guarded like its
   // siblings above, but capped via sessionStorage rather than a profile-blob
@@ -7905,6 +7921,11 @@ export default function PivotEngine(){
     // person actually writes it. The engagement log entry above (accepted/
     // declined) is the only durable effect of this branch.
     if(LIFE_EVENTS_THIN_CHECKIN_KEYS.includes(checkinKey))return true
+    // Values thinness prompt (2026-09-07). Same as life-events-thin above --
+    // nothing to write here on 'accept', it is consent to continue, not
+    // content; the actual value(s) get captured the normal way through
+    // VALUES_CAPTURE_NOTE once they actually say it.
+    if(checkinKey==='values-thin-hub')return true
     // Close reason (2026-09-07). Writes to a dedicated table, not the
     // profile-state blob, so this awaits a real round trip and reports
     // failure explicitly -- same discipline as the activity-facts write
@@ -8625,7 +8646,7 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenValuesThinHub)setSeenValuesThinHub(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
   // Hydrate the saved playbooks set from its own localStorage key on mount.
   // Demo mode skips persistence; test mode wipes the key so test sessions
   // start clean (mirrors the pe_v4 gating one line up).
@@ -8646,7 +8667,7 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenValuesThinHub)setSeenValuesThinHub(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
@@ -9052,6 +9073,32 @@ export default function PivotEngine(){
     setChatMessages(m=>[...m,lifeEventsThinPromptMessage('life-events-thin-hub')])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,hasOnboardingConcierge,profile.lifeEvents,seenLifeEventsThinHub,employmentStatus,seenEmploymentPrompt,searchGoingWell,searchFocus,seenSearchIntakePrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest])
+  // Values thinness prompt, hub_arrival only (2026-09-07). Deliberately
+  // lighter than Life Events above -- no topic-close signals, since brand
+  // richness (shipped just before this) already gives Values a
+  // post-synthesis backstop as part of its differentiation-axis read, which
+  // Life Events did not have when its own three-trigger build shipped. Same
+  // yield order as every other hub_arrival prompt, plus a yield to
+  // life-events-thin specifically, since that is the next-newest and still
+  // takes priority over this one.
+  useEffect(()=>{
+    if(isDemo||isTest)return
+    if(isIndependent)return
+    if(!hasOnboardingConcierge)return
+    const onPromptSurface=step==='twoDoors'||step==='mylib'||step==='myCoach'
+    if((!onPromptSurface&&!coachOpenTick)||!signedInUser)return
+    if(wc([profile.values,profile.passions].filter(Boolean).join(' '))>=THIN_MIN.values||seenValuesThinHub||valuesThinHubFiredRef.current)return
+    if(employmentPromptFiredRef.current||(!employmentStatus&&!seenEmploymentPrompt))return
+    if(searchIntakePromptFiredRef.current||(!searchGoingWell&&!searchFocus&&!seenSearchIntakePrompt))return
+    if(step==='twoDoors'&&(pbCheckinFiredRef.current||(!seenPbCheckin&&outputs&&outputs.p3)))return
+    if(notesCapabilityFiredRef.current||closeReasonMentionFiredRef.current)return
+    if(lifeEventsThinHubFiredRef.current||(wc(profile.lifeEvents)<THIN_MIN.life&&!seenLifeEventsThinHub))return
+    valuesThinHubFiredRef.current=true
+    setSeenValuesThinHub(true)
+    logPromptEngagement('values_thin','hub_arrival','shown')
+    setChatMessages(m=>[...m,valuesThinPromptMessage()])
+    setPbCheckinOpenReq(x=>x+1)
+  },[step,signedInUser,hasOnboardingConcierge,profile.values,profile.passions,seenValuesThinHub,employmentStatus,seenEmploymentPrompt,searchGoingWell,searchFocus,seenSearchIntakePrompt,seenPbCheckin,outputs,profile.lifeEvents,seenLifeEventsThinHub,coachOpenTick,isDemo,isTest])
   // Save-to-notes disclosure (2026-09-05, brief: "let Coach save to notes on
   // request, not on its own judgment"). Fires once ever, the first time Coach
   // opens with a specific opportunity already in focus -- coachOpenTick only
@@ -9179,7 +9226,7 @@ export default function PivotEngine(){
       // lives only in the saved_playbooks table (per-record dual-write above), so a
       // whole-profile save can never touch a playbook again. The server merge shim
       // stays as belt-and-suspenders for any old cached client still sending it.
-      const blob=JSON.stringify({step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields})
+      const blob=JSON.stringify({step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields})
       localStorage.setItem('pe_v4',blob)
       // The localStorage write above is unconditional; only the server PUT is
       // gated. Holding the PUT until /api/profile/load has settled is what stops
@@ -9202,7 +9249,7 @@ export default function PivotEngine(){
       setSaveStatus('saved')
       setSaveError(null)
     }catch{setSaveStatus('error');setSaveError('device_full')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields,signedInUser,serverLoadDone,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields,signedInUser,serverLoadDone,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
@@ -13969,6 +14016,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={S.field}><label style={S.label}>Passions, Interests & Causes (3-5)</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>What do you read about for fun, volunteer your time for, or could talk about for 30 minutes with zero preparation? Include hobbies, industries that fascinate you, communities you belong to, and causes close to your heart.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.passions} onChange={e=>pr('passions',e.target.value)} placeholder="e.g. Youth mentoring, Formula 1, Fintech, Sustainability, Veterans' employment, Youth sports, Faith-based service, Addiction recovery, Women in leadership, Gaming, Geopolitics…"/>{hasSpeech&&<SpeechBtn onResult={t=>pr('passions',t)}/>}</div></div>
         <div style={{fontSize:15,color:C.grayL,lineHeight:1.5,marginTop:4,fontWeight:600}}>What you share here stays private to your account.</div>
       </div>
+      {wc([profile.values,profile.passions].filter(Boolean).join(' '))<THIN_MIN.values&&<ThinNudge text="The more specific these are, the more Reimagine can find where the rest of you connects to your work, not just what's on your resume." mic="Prefer to talk? Tap a field's mic and say it out loud; it's often easier than typing."/>}
       {err&&<ErrBox msg={err}/>}
       {coachNudge(ASK_COACH_ORIENT.values,'Not sure what to put here? Ask your coach',{margin:'0 0 16px'})}
       <div style={S.row}><Btn secondary onClick={()=>nav('assessment')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.values&&profile.passions?advance('values','priorities'):setErr('Please fill in both fields.')}>Continue <ChevronRight size={14}/></Btn></div>

@@ -60,7 +60,7 @@ const hydrationHits = (app.match(/if\(d\.seenOnboardingFraming\)setSeenOnboardin
 check(hydrationHits === 2,
   `${APP}: expected seenOnboardingFraming hydration in both the local pe_v4 path and the server profile/load path -- found ${hydrationHits}`)
 const saveBlobIdx = app.indexOf('const blob=JSON.stringify(')
-const saveBlobLine = app.slice(saveBlobIdx, saveBlobIdx + 400)
+const saveBlobLine = app.slice(saveBlobIdx, saveBlobIdx + 700)
 check(saveBlobLine.includes('seenOnboardingFraming'),
   `${APP}: seenOnboardingFraming is missing from the autosave blob's JSON.stringify -- the flag would never actually persist`)
 const saveDepsIdx = app.indexOf('saveRef.current=save')
