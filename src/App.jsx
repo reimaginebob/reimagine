@@ -13789,7 +13789,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </>}
       </div>
 
-      <div style={{...S.card,marginBottom:24}}>
+      {/* Coach-as-Concierge (onboarding_concierge, 2026-09-07): for a flagged
+          account, Coach's opening framing message now says this same thing
+          out loud the moment they arrive -- see the framing effect above --
+          so this static, click-to-expand duplicate of it is redundant for
+          exactly that audience. Gated on hasOnboardingConcierge specifically
+          (not removed outright): the other 144 accounts have no Coach
+          narration doing this job yet, and would be left with strictly less
+          explanation on this screen if it disappeared for everyone. Drop the
+          gate once Coach narration reaches GA. */}
+      {!hasOnboardingConcierge&&<div style={{...S.card,marginBottom:24}}>
         <button onClick={()=>setWelcomeMoreOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:8,width:'100%',background:'transparent',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
           {welcomeMoreOpen?<ChevronUp size={16} color={C.goldL}/>:<ChevronDown size={16} color={C.goldL}/>}
           <span style={{fontSize:18,fontWeight:700,color:'#1A2540'}}>See how this works</span>
@@ -13808,7 +13817,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{fontSize:17,color:'#2D3748',lineHeight:1.7}}>{d}</div>
           </div>)}
         </div>}
-      </div>
+      </div>}
     </div>
 
     case'location':return <div>
