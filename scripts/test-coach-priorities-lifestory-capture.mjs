@@ -57,7 +57,7 @@ check(coach.includes("const prioritiesCaptureNote = orientationCaptureOn ? PRIOR
   `${COACH}: prioritiesCaptureNote is not gated on orientationCaptureOn`)
 check(coach.includes("const lifeStoryCaptureNote = orientationCaptureOn ? LIFE_STORY_CAPTURE_NOTE : ''"),
   `${COACH}: lifeStoryCaptureNote is not gated on orientationCaptureOn`)
-check(coach.includes('${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}`'),
+check(coach.includes('${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${ORIENTATION_LISTENING_NOTE}`'),
   `${COACH}: prioritiesCaptureNote/lifeStoryCaptureNote are not appended in the empty-profile template`)
 check(/\$\{reputationCaptureNote\}\$\{skillsCaptureNote\}\$\{prioritiesCaptureNote\}\$\{lifeStoryCaptureNote\}\$\{searchIntakeNoteThisTurn\}/.test(coach),
   `${COACH}: prioritiesCaptureNote/lifeStoryCaptureNote are not appended in the main profile-slice template`)

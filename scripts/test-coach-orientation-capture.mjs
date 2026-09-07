@@ -63,7 +63,7 @@ check(coach.includes("const reputationCaptureNote = orientationCaptureOn ? REPUT
   `${COACH}: reputationCaptureNote is not gated on orientationCaptureOn`)
 check(coach.includes("const skillsCaptureNote = orientationCaptureOn ? SKILLS_CAPTURE_NOTE : ''"),
   `${COACH}: skillsCaptureNote is not gated on orientationCaptureOn`)
-check(coach.includes('${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}`'),
+check(coach.includes('${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${ORIENTATION_LISTENING_NOTE}`'),
   `${COACH}: reputationCaptureNote/skillsCaptureNote are not appended in the empty-profile template`)
 check(/\$\{VALUES_CAPTURE_NOTE\}\$\{ASSESSMENT_CAPTURE_NOTE\}\$\{reputationCaptureNote\}\$\{skillsCaptureNote\}\$\{prioritiesCaptureNote\}\$\{lifeStoryCaptureNote\}\$\{searchIntakeNoteThisTurn\}/.test(coach),
   `${COACH}: reputationCaptureNote/skillsCaptureNote are not appended in the main profile-slice template`)

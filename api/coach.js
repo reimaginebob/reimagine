@@ -779,6 +779,22 @@ function searchIntakeNote(si) {
   return `\n\nSEARCH INTAKE (open): two things are worth knowing about this person's own read on their search — what is going well in it right now, and what they would like to improve. ${missing}\n\nWhen they answer one of these, respond to what they actually said FIRST and properly: reflect the substance back, say what it tells you, and where you can see one, offer a concrete idea that builds on it. Someone who says networking is finally working should hear what that is worth and one way to press the advantage; someone who says applications go quiet should get a real read on where that usually breaks and what to try. Give it the weight you would give any other thing they told you. Only after that reply stands on its own do you move to the other question, in the same message, as a natural next beat rather than a form field.\n\nWhen — and only when — their answer carries something real, end your reply with a final line exactly like SEARCHINTAKE: {"goingWell":"their answer in their own words"} or SEARCHINTAKE: {"focus":"their answer in their own words"}. One key only, for the question they just answered. Keep their words, lightly tidied into a sentence or two; never your paraphrase and never your advice. Emit nothing at all for a shrug, a deflection, a change of subject, an "I don't know", or a reply too thin to be worth carrying — an empty field is better than a noisy one, and you will get another chance later in the conversation. The app turns that line into a one-tap offer and never shows it, so do not mention it, and never ask them to type anything anywhere.`
 }
 
+// ORIENTATION LISTENING MODE, 2026-09-07. Caught live: mid-orientation, asked
+// something close to "which of these am I weak in for interviews," Coach gave
+// a brief redirect ("once your brand is built, we can dig into that") and
+// then, in the same reply, pivoted straight to an unrelated Life Story
+// question -- technically drawing on a real capture note (LIFE_STORY_CAPTURE_
+// NOTE above), but landing as Coach not actually listening to what was just
+// raised. With six capture notes riding in the prompt at once, all framed
+// around opportunistically gathering whatever is missing, and nothing telling
+// Coach to hold back, the model filled that vacuum on its own initiative.
+// This is the counterweight: reflect and stay with what a person raises
+// before redirecting, capturing, or moving on to something else. Scoped to
+// orientation only (gated on !brandStepDone, same flag as preBrandNote right
+// below) -- post-brand, Coach is expected to actively coach and advise, which
+// is a different job than this one governs.
+const ORIENTATION_LISTENING_NOTE = '\n\nORIENTATION LISTENING MODE: when this person shares something real — a struggle, a frustration, how something is going for them — reflect it back and stay with it before you redirect, caveat, or pivot to anything else, including one of the capture notes elsewhere in this prompt. Resist the pull to solve it, defer it to "once your brand is built," or steer toward whatever is still missing from their profile. One open question that builds on what they actually said is worth more here than a capture offer or a redirect. If nothing calls for a follow-up, a brief, genuine acknowledgment is enough — you do not owe them a next question every turn. This does not cancel any capture note elsewhere in this prompt — still offer to save something that clearly fits — it governs what comes FIRST in your reply: their words get heard on their own terms before anything else happens in the same breath.'
+
 function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, independent = false, activityFacts = [], priorSessionAt = null, sessionOpenRequested = false) {
   // Orientation field capture (2026-09-06), gated -- unlike VALUES_CAPTURE_NOTE
   // and ASSESSMENT_CAPTURE_NOTE just below, which shipped before CLAUDE.md's
@@ -794,7 +810,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
     // Orientation phase list. Carry the same navigation gate as the main path below
     // (keyed there on `done`): none of Career Paths, Add an Opportunity, Income Now
     // or the Focus Playbook sections is on this person's screen yet.
-    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}`
+    return `THIS USER'S REIMAGINE PROFILE:\nThe user has not built a profile yet. You do not know their background. Say plainly what you do not know, ask only what you need, and answer lightly rather than assuming details about them.\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${ORIENTATION_LISTENING_NOTE}`
   }
   const pr = state.profile && typeof state.profile === 'object' ? state.profile : {}
   const outs = state.outputs && typeof state.outputs === 'object' ? state.outputs : {}
@@ -937,6 +953,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   const preBrandNote = brandStepDone
     ? ''
     : '\n\nNAVIGATION STATE: this person has not finished the Personal Brand step, so their sidebar shows only Orientation and Personal Brand. Career Paths, Add an Opportunity, Income Now, and every section of the Focus Playbook are not on their screen and not reachable by any click yet. When one of those is the right feature, name it and say plainly that it opens up once their Personal Brand is built, then point them at Personal Brand as the next step. Never describe any of them as somewhere they can go right now, and never walk them through clicking to it.'
+  const orientationListeningNote = brandStepDone ? '' : ORIENTATION_LISTENING_NOTE
 
   // My Pipeline went GA on 2026-08-30. What the feature IS now lives in
   // FEATURE_MAP -> COACH_NAV_MAP and in the user guide chapter, both of which
@@ -1049,7 +1066,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // what is going well "in it right now") does not even make sense before a
   // search exists to have a read on.
   const searchIntakeNoteThisTurn = (sessionOpenRequested || !brandStepDone) ? '' : searchIntakeNote(si)
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${opportunityContextNote}${opportunityArchiveNote}${closeReasonNote}${opCardReworkNote}${milestonePromptNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${searchIntakeNoteThisTurn}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${orientationListeningNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${opportunityContextNote}${opportunityArchiveNote}${closeReasonNote}${opCardReworkNote}${milestonePromptNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${searchIntakeNoteThisTurn}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
