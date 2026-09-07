@@ -14,6 +14,7 @@ export const PROMPT_CODES = [
   'search_intake',
   'opportunity_archive',
   'life_events_thin',
+  'brand_richness',
 ]
 
 // The MECHANISM that caused one particular firing of a prompt_code.
