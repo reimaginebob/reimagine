@@ -44,9 +44,11 @@ check(/const handleCoachVoiceViolation=\(violations\)=>\{/.test(app),
   `${APP}: handleCoachVoiceViolation is not defined`)
 check(/logVoiceEvent\(\{step:'coach-chat',attempt:1,recovered:false,violations\}\)/.test(app),
   `${APP}: handleCoachVoiceViolation does not route into the existing logVoiceEvent telemetry pipe`)
+// Three mounts as of 2026-09-07: the myCoach embedded panel, the floating
+// bubble, and the concierge orientation-flow embedded panel.
 const chatMountHits = (app.match(/onVoiceViolation=\{handleCoachVoiceViolation\}/g) || []).length
-check(chatMountHits === 2,
-  `${APP}: expected onVoiceViolation={handleCoachVoiceViolation} at both <Chat> mount sites (embedded My Coach panel + floating bubble), found ${chatMountHits}`)
+check(chatMountHits === 3,
+  `${APP}: expected onVoiceViolation={handleCoachVoiceViolation} at all three <Chat> mount sites (embedded My Coach panel, floating bubble, concierge orientation panel), found ${chatMountHits}`)
 
 if (failures) {
   console.error(`test-coach-voice-gate-wiring: ${failures} check(s) failed`)

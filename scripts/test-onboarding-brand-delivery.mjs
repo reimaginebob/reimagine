@@ -100,12 +100,14 @@ check(chat.includes("checkinKey: 'brand-rework'") && chat.includes("label: 'Yes,
 check(chat.includes('Want me to rework it with that?'),
   `${CHAT}: the brand-rework offer no longer shows the note back before acting on it -- every sibling capture shows exactly what it is about to do before the tap`)
 
-// Both <Chat> mount points must pass the prop, or the capture works in one
-// surface (the floating bubble) and silently not the other (the embedded
-// myCoach panel) -- the same discipline the pipeline-capture brief used.
+// All three <Chat> mount points must pass the prop, or the capture works on
+// some surfaces and silently not others -- the same discipline the
+// pipeline-capture brief used. Three as of 2026-09-07: the embedded myCoach
+// panel, the floating bubble, and the concierge orientation-flow embedded
+// panel (which is what actually renders on p3 for a flagged account now).
 const chatMountHits = (app.match(/brandReworkCaptureActive=\{hasOnboardingConcierge&&step==='p3'\}/g) || []).length
-check(chatMountHits === 2,
-  `${APP}: expected brandReworkCaptureActive passed at both <Chat> call sites -- found ${chatMountHits}`)
+check(chatMountHits === 3,
+  `${APP}: expected brandReworkCaptureActive passed at all three <Chat> call sites -- found ${chatMountHits}`)
 
 // The write path: MUST route through submitCorrection (Track 6 conflict
 // detection) with a proceed callback that mirrors the REAL p3 "Does this

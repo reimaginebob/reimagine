@@ -91,12 +91,14 @@ check(chat.includes("checkinKey: 'life-story-capture'") && chat.includes("It add
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
 
+// Three mounts as of 2026-09-07 (myCoach embedded, the floating bubble, and
+// the concierge orientation-flow embedded panel).
 const prioritiesMountHits = (app.match(/prioritiesCaptureActive=\{!isDemo&&hasOrientationCapture\}/g) || []).length
-check(prioritiesMountHits === 2,
-  `${APP}: expected prioritiesCaptureActive={!isDemo&&hasOrientationCapture} at both <Chat> mount sites, found ${prioritiesMountHits}`)
+check(prioritiesMountHits === 3,
+  `${APP}: expected prioritiesCaptureActive={!isDemo&&hasOrientationCapture} at all three <Chat> mount sites, found ${prioritiesMountHits}`)
 const lifeStoryMountHits = (app.match(/lifeStoryCaptureActive=\{!isDemo&&hasOrientationCapture\}/g) || []).length
-check(lifeStoryMountHits === 2,
-  `${APP}: expected lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} at both <Chat> mount sites, found ${lifeStoryMountHits}`)
+check(lifeStoryMountHits === 3,
+  `${APP}: expected lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} at all three <Chat> mount sites, found ${lifeStoryMountHits}`)
 
 const prioritiesBranchIdx = app.indexOf("checkinKey==='priorities-capture'")
 check(prioritiesBranchIdx !== -1, `${APP}: the checkinKey==='priorities-capture' branch is missing from handleEmploymentQuickReply`)

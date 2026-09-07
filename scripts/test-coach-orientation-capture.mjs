@@ -97,12 +97,14 @@ const app = fs.readFileSync(APP, 'utf8')
 
 check(/const hasOrientationCapture=/.test(app),
   `${APP}: hasOrientationCapture client-side flag mirror is missing`)
+// Three mounts as of 2026-09-07 (myCoach embedded, the floating bubble, and
+// the concierge orientation-flow embedded panel).
 const reputationMountHits = (app.match(/reputationCaptureActive=\{!isDemo&&hasOrientationCapture\}/g) || []).length
-check(reputationMountHits === 2,
-  `${APP}: expected reputationCaptureActive={!isDemo&&hasOrientationCapture} at both <Chat> mount sites, found ${reputationMountHits}`)
+check(reputationMountHits === 3,
+  `${APP}: expected reputationCaptureActive={!isDemo&&hasOrientationCapture} at all three <Chat> mount sites, found ${reputationMountHits}`)
 const skillsMountHits = (app.match(/skillsCaptureActive=\{!isDemo&&hasOrientationCapture\}/g) || []).length
-check(skillsMountHits === 2,
-  `${APP}: expected skillsCaptureActive={!isDemo&&hasOrientationCapture} at both <Chat> mount sites, found ${skillsMountHits}`)
+check(skillsMountHits === 3,
+  `${APP}: expected skillsCaptureActive={!isDemo&&hasOrientationCapture} at all three <Chat> mount sites, found ${skillsMountHits}`)
 
 const repBranchIdx = app.indexOf("checkinKey==='reputation-capture'")
 check(repBranchIdx !== -1, `${APP}: the checkinKey==='reputation-capture' branch is missing from handleEmploymentQuickReply`)

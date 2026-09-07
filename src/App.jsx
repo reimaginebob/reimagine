@@ -4722,6 +4722,17 @@ const EMPLOYMENT_QUICK_REPLIES=[
   {label:'Role Ending Soon',value:'role_ending',followUp:'Got it — we\'ll treat this like a search on a clock when it matters.'},
 ]
 const employmentPromptMessage=(lead)=>({role:'assistant',content:(lead||'One quick thing so your coaching fits where you actually are — ')+'how would you describe your work situation right now?',checkinKey:'employment-status',quickReplies:EMPLOYMENT_QUICK_REPLIES})
+// Coach-as-Concierge, embedded-by-default panel (2026-09-07, live QA
+// follow-on): every step id that counts as "orientation" for the purpose of
+// giving Coach the right-hand column instead of a small floating card.
+// Covers both tracks (the independent-consultant track adds
+// orientation-intro/fit; both otherwise share the same field sequence) plus
+// p3 -- the Personal Brand delivery moment is the single biggest reason to
+// have Coach visibly present, not a reason to exclude it. Stops at
+// orientation-done/p3: twoDoors is the first PUT IT TO WORK screen, where
+// product-normal floating-panel usage (pipeline capture, maximize, opening
+// Coach on demand) starts and the two-column treatment would be out of place.
+const CONCIERGE_ORIENTATION_STEPS=['welcome','orientation-intro','location','resume','resume-builder','linkedin','assessment','values','priorities','reputation','fit','life-events','skills','orientation-done','p3']
 // Search intake, existing users (consult 2026-08-20). This message only OPENS the
 // exchange. The answer goes to the coach like any other message: it responds to
 // the substance first, then moves to the second question, and only offers to keep
@@ -8597,6 +8608,15 @@ export default function PivotEngine(){
   // the old isSmallPortrait check, which existed only to raise the "rotate your
   // phone" advisory — the limitation it described is what this work removes.
   const isMobile=useIsMobile()
+  // Embedded-by-default panel (2026-09-07, live QA follow-on): the small
+  // floating card/bubble was built for narration that points at a specific
+  // field on screen, and reads as inconspicuous for the concierge's actual
+  // job of escorting someone through the whole walkthrough. For a flagged
+  // account on an orientation step, Coach gets the right-hand column
+  // instead -- no click needed, never collapsing back to a card. Excludes
+  // mobile: a fixed side column has nowhere to go below MOBILE_BREAKPOINT,
+  // where Coach is a bottom sheet by design.
+  const conciergeEmbedded=hasOnboardingConcierge&&!isMobile&&!isDemo&&!isTest&&!!signedInUser&&CONCIERGE_ORIENTATION_STEPS.includes(step)
   const[drawerOpen,setDrawerOpen]=useState(false)
   const closeDrawer=()=>setDrawerOpen(false)
   // The old-format Personal Brand notice used to live here. It keyed off
@@ -16693,6 +16713,29 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </div>
           </div>}
         </div>
+        {/* Concierge embedded panel (2026-09-07, live QA follow-on): the
+            right-hand column, present for the whole orientation flow rather
+            than a click-to-open card. A sibling of the scrolling content
+            column, not nested inside it, so its own bounded height (set
+            inside the embedded Chat variant) is independent of how long the
+            screen next to it runs. This one has no open/closed state of its
+            own, same as the existing myCoach embedded mount, so every
+            floating-only prop (open/setOpen/maximized/openRequest/onOpen/
+            showPulse/bottomOffset) is dropped. Deliberately NARROWER than
+            either sibling mount: pipeline/opportunity capture (notes,
+            close-reason, archive, pursuit, section rework, op-card rework)
+            all depend on a pipeline that cannot exist yet during
+            orientation -- coachSaveTarget() is always null here -- so they
+            are omitted rather than wired to props that would just evaluate
+            false the whole time. Keeps only what actually fires on these
+            steps: the nine orientation-field captures, the employment and
+            Life Events thin prompts, and the p3 brand-rework bridge.
+            sectionReworkTarget is also omitted -- it is scoped to the six
+            Focus Playbook sections (p6/p_res/p9/income/p7/p8), none of
+            which is reachable from an orientation step. */}
+        {conciergeEmbedded&&<div data-print="hide" style={{width:'min(38vw,460px)',minWidth:340,flexShrink:0,padding:'40px 56px 28px 24px'}}>
+          <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
+        </div>}
       </div>
     </div>
     {/* The floating bubble and the My Coach sidebar view (the embedded Chat in
@@ -16700,8 +16743,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         'myCoach' step, so the same transcript rendered in both surfaces at once.
         Suppress the bubble on that step: the embedded panel is the single surface
         there, the bubble is the single surface everywhere else, and the shared
-        state keeps it one continuous conversation across both doors. */}
-    {signedInUser&&step!=='myCoach'&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
+        state keeps it one continuous conversation across both doors. The
+        concierge embedded panel above (2026-09-07) is the same exclusion for
+        the same reason -- suppressed here too, or the floating bubble would
+        mount right alongside it, showing the same conversation twice. */}
+    {signedInUser&&step!=='myCoach'&&!conciergeEmbedded&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>
