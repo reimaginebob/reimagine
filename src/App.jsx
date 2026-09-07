@@ -11017,7 +11017,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         const profileExtra=feedLinkedin?{linkedin:text,linkedinFile:file.name}:{}
         const builderFileFields=feedLinkedin?{linkedinFile:file.name,linkedinRaw:text}:{resumeSourceFile:file.name}
         return{...p,loc:nextLoc,...profileExtra,builder:{...builder,source,...builderFileFields,summarySeed:summary||builder.summarySeed||'',
-          header:{...hdr,name:name||hdr.name||'',email:email||hdr.email||'',phone:phone||hdr.phone||'',linkedin:linkedinUrl||hdr.linkedin||p.linkedin||''},
+          // linkedinUrl/hdr.linkedin only -- NEVER p.linkedin. That field is the
+          // pasted LinkedIn PROFILE TEXT (About section, recommendations, whatever
+          // the person dropped on the separate LinkedIn orientation screen), not a
+          // URL. Falling back to it here used to dump that entire text blob into
+          // the resume's one-line contact field, corrupting both the on-screen
+          // draft and the downloaded Word doc's contact line. Found in the
+          // 2026-09-07 full-orientation-codebase review.
+          header:{...hdr,name:name||hdr.name||'',email:email||hdr.email||'',phone:phone||hdr.phone||'',linkedin:linkedinUrl||hdr.linkedin||''},
           education:education.length?education:(builder.education||[]),skills:skills.length?skills:(builder.skills||[]),
           employers:emps.length?emps:[emptyEmployer()],phase:emps.length?'drafting':'skeleton'}}
       })
@@ -11273,7 +11280,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
       {b.source==='scratch'&&<div style={{...S.card,marginTop:18}}><div style={S.field}><label style={S.label}>Anything you want to add about your work? <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label><textarea style={{...S.ta,minHeight:110}} value={b.scratchNotes||''} onChange={ev=>setBuilder(cur=>({...cur,scratchNotes:ev.target.value}))} placeholder="A few lines about what you did, any wins or numbers. We'll turn it into a first draft you can edit. You can also add more once it's on the page."/></div></div>}
       {err&&<ErrBox msg={err}/>}
-      <div style={S.row}>{back('onramp')}<Btn disabled={builderBuilding==='baseline'} onClick={()=>{const ok=employers.some(e=>(e.company||'').trim()&&(e.titles||[]).some(t=>(t.title||'').trim()));if(!ok){setErr('Add at least one company and title to continue.');return}setErr(null);setPhase('drafting')}}><Sparkles size={14}/>Create my resume</Btn></div>
+      <div style={S.row}>{back('onramp')}<Btn disabled={builderBuilding==='baseline'} onClick={()=>{const ok=employers.some(e=>(e.company||'').trim()&&(e.titles||[]).some(t=>(t.title||'').trim()));if(!ok){setErr('Add at least one company and title to continue.');return}
+        // profile.resume already holding text with no baselineResume yet means it
+        // came from a direct paste/upload on the Resume screen, not from this
+        // builder -- the first baseline generation below silently overwrites it
+        // with nothing to warn the person that their earlier resume is about to
+        // be replaced. Every generation AFTER the first (Regenerate) is already
+        // covered by its own confirm above. Found in the 2026-09-07
+        // full-orientation-codebase review.
+        if(profile.resume&&!profile.baselineResume&&!window.confirm('You already have resume text saved from before. Building your resume here will replace it with the draft you create in this builder.\n\nContinue?'))return
+        setErr(null);setPhase('drafting')}}><Sparkles size={14}/>Create my resume</Btn></div>
     </div>}
 
     if(phase==='drafting')return <div>
@@ -11359,7 +11375,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
 
       <div style={{fontWeight:700,color:'#1A2540',margin:'22px 0 8px',fontSize:20}}>Preview</div>
       <BuiltResumeView record={bl}>
-        <Btn secondary disabled={!!builderBuilding} onClick={()=>genBuilderBaseline()}><RotateCcw size={12}/>Regenerate</Btn>
+        <Btn secondary disabled={!!builderBuilding} onClick={()=>{if(window.confirm('Regenerating replaces everything in your current draft, including any edits you\'ve made here, with a fresh version built from your original entries.\n\nThis cannot be undone.\n\nContinue?'))genBuilderBaseline()}}><RotateCcw size={12}/>Regenerate</Btn>
         <Btn secondary onClick={()=>advance('resume-builder','linkedin')}>Continue <ChevronRight size={14}/></Btn>
       </BuiltResumeView>
     </div>}
@@ -13956,10 +13972,37 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{...S.card,marginBottom:14,border:`1.5px solid ${C.gold}`,display:'flex',flexDirection:'column'}}>
         <div style={{fontWeight:700,fontSize:18,color:'#1A2540',marginBottom:3}}>Have a resume? Use it.</div>
         <p style={{fontSize:15,color:C.gray,margin:'0 0 14px',lineHeight:1.55}}>Even if it's a little dated or missing your latest role. Reimagine reads it for patterns, scope, and trajectory, not polish. You don't need to fix it first.</p>
-        <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}}}/>
+        <FileUpload label="Upload Resume" hint="PDF, Word (.docx), or text file" fileName={profile.resumeFile} onFile={async f=>{
+          // A built draft's Download (Word) links read straight from
+          // profile.baselineResume, which this upload never touches -- so once the
+          // text in profile.resume changes underneath it, those links keep
+          // serving the old content with nothing showing they've gone stale.
+          // Retire the draft and its links on the same click that supersedes them
+          // instead of leaving them orphaned. Found in the 2026-09-07
+          // full-orientation-codebase review.
+          if(profile.baselineResume){
+            if(!window.confirm('You have a built resume draft saved. Uploading a new file here will retire that draft and its Download (Word) links, since they would no longer match this new file.\n\nContinue?'))return
+            setProfile(p=>({...p,baselineResume:null}))
+          }
+          pr('resumeFile',f.name);setFileLoading(true);try{const t=await extractText(f);pr('resume',t);setErr(null)}catch(e){setErr(e.message)}finally{setFileLoading(false)}
+        }}/>
         {fileLoading&&<Loading msg="Reading your file…"/>}
-        {!(showPasteResume||(profile.resume&&!profile.resumeFile))&&<button type="button" onClick={()=>setShowPasteResume(true)} style={{alignSelf:'flex-start',background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:'10px 0 0',fontSize:15}}>Or paste it instead</button>}
-        {(showPasteResume||(profile.resume&&!profile.resumeFile))&&<div style={{...S.field,marginTop:14,marginBottom:0}}><label style={S.label}>Paste resume text</label><textarea style={{...S.ta,minHeight:160}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} placeholder="Paste your resume text here…"/></div>}
+        {!(showPasteResume||(profile.resume&&!profile.resumeFile))&&<button type="button" onClick={()=>{
+          if(profile.baselineResume){
+            if(!window.confirm('You have a built resume draft saved. Editing the text directly here will retire that draft and its Download (Word) links, since they would no longer match what you type below.\n\nContinue?'))return
+            setProfile(p=>({...p,baselineResume:null}))
+          }
+          setShowPasteResume(true)
+        }} style={{alignSelf:'flex-start',background:'none',border:'none',color:C.gold,fontWeight:600,cursor:'pointer',padding:'10px 0 0',fontSize:15}}>Or paste it instead</button>}
+        {(showPasteResume||(profile.resume&&!profile.resumeFile))&&<div style={{...S.field,marginTop:14,marginBottom:0}}><label style={S.label}>Paste resume text</label><textarea style={{...S.ta,minHeight:160}} value={profile.resume} onChange={e=>pr('resume',e.target.value)} onBlur={()=>{
+          // Safety net for the confirm above: if this box was already open from
+          // an earlier visit (its open/closed state persists across steps) and a
+          // draft got built in the meantime, an edit here bypasses that confirm
+          // entirely. Retiring the draft once its text has actually diverged --
+          // checked here, on blur, rather than every keystroke -- still stops the
+          // stale Download (Word) links from lingering, even on that path.
+          if(profile.baselineResume&&profile.resume!==renderResumeText(profile.baselineResume))setProfile(p=>({...p,baselineResume:null}))
+        }} placeholder="Paste your resume text here…"/></div>}
         {profile.resume&&<div style={{fontSize:15,color:C.ok,marginTop:10}}><Check size={11} style={{display:'inline',marginRight:4}}/>{profile.resume.length.toLocaleString()} characters loaded</div>}
         {profile.resume&&<div style={{borderTop:`1px solid ${C.border}`,marginTop:16,paddingTop:16}}>
           <label style={S.label}>Anything changed since this resume? <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>optional</span></label>
@@ -13971,7 +14014,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <MicReminder text="Prefer to talk? Tap the mic and say what's new."/>
         </div>}
       </div>
-      <button type="button" onClick={()=>{if(!(profile.builder&&profile.builder.phase)){setBuilder({phase:'intro',source:'',header:{name:'',email:'',phone:'',linkedin:profile.linkedin||''},employers:[],skills:[],education:[],certs:'',extras:'',proudest:''})}nav('resume-builder')}} style={{width:'100%',textAlign:'left',background:'#FCFAF3',border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 18px',cursor:'pointer',display:'flex',alignItems:'center',gap:14,fontFamily:'inherit'}}>
+      <button type="button" onClick={()=>{if(!(profile.builder&&profile.builder.phase)){setBuilder({phase:'intro',source:'',header:{name:'',email:'',phone:'',linkedin:''},employers:[],skills:[],education:[],certs:'',extras:'',proudest:''})}nav('resume-builder')}} style={{width:'100%',textAlign:'left',background:'#FCFAF3',border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 18px',cursor:'pointer',display:'flex',alignItems:'center',gap:14,fontFamily:'inherit'}}>
         <div style={{flex:1}}>
           <div style={{fontWeight:600,fontSize:15,color:'#1A2540'}}>{profile.builder&&profile.builder.phase?'Continue building my resume':'No resume, or want to start fresh from your LinkedIn?'}</div>
           <div style={{fontSize:15,color:C.gray,lineHeight:1.5}}>{profile.builder&&profile.builder.phase?'Pick up where you left off. Your entries are saved.':"Start from an old resume, your LinkedIn, or a blank page. We'll walk you through it and turn your answers into a draft you can edit."}</div>
