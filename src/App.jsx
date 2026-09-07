@@ -5512,6 +5512,17 @@ const normalizeWork = (p) => {
   if (!Array.isArray(next.corrections)) {
     next = { ...next, corrections: [] }
   }
+  // Same defensive guard, same reason: the Reputation screen reads
+  // profile.rep[f] unguarded (memory/emergency/twoWords/other), so a
+  // persisted profile_state missing `rep` entirely -- a legacy schema, a
+  // partial seed, an externally-written row -- would crash that screen on
+  // arrival instead of just rendering blank fields. Found in the
+  // 2026-09-07 full-orientation-codebase review (lower confidence, not
+  // reproduced live, but the same class of gap loc/corrections above were
+  // already guarding against).
+  if (!next.rep || typeof next.rep !== 'object') {
+    next = { ...next, rep: { memory: '', emergency: '', twoWords: '', other: '' } }
+  }
   return next
 }
 
@@ -6008,7 +6019,7 @@ function CoachingCallout({children}){return <div style={{background:`${C.gold}10
 // the four rep subfields combined; resume counts the resume plus the
 // what-changed delta.
 const wc=(s)=>(String(s||'').trim().match(/\S+/g)||[]).length
-const THIN_MIN={resume:60,assess:25,life:12,rep:12,values:12}
+const THIN_MIN={resume:60,assess:25,life:12,rep:12,values:12,priorities:12}
 // Reminds the user they can speak instead of type, to lower the effort of
 // sharing MORE. Only renders when speech capture is available.
 function MicReminder({text}){return hasSpeech?<div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,fontSize:15,color:'#7A6212',lineHeight:1.5}}><Mic size={15} style={{flexShrink:0}}/><span>{text}</span></div>:null}
@@ -6208,7 +6219,7 @@ function SkillCategory({label,placeholder,items,onChange}){
       {items.map((s,i)=>(
         <span key={i} style={{display:'inline-flex',alignItems:'center',gap:6,background:'#F5F0E8',border:`1px solid ${C.border}`,borderRadius:14,padding:'4px 10px 4px 12px',fontSize:16,color:'#1A2540'}}>
           {s}
-          <button onClick={()=>onChange(items.filter((_,j)=>j!==i))} style={{background:'none',border:'none',cursor:'pointer',fontSize:15,color:C.gray,padding:0,marginLeft:2,lineHeight:1,fontFamily:'inherit'}} aria-label={`Remove ${s}`}>×</button>
+          <button onClick={()=>onChange(items.filter((_,j)=>j!==i))} style={{background:'none',border:'none',cursor:'pointer',fontSize:16,color:C.gray,padding:0,marginLeft:2,lineHeight:1,fontFamily:'inherit'}} aria-label={`Remove ${s}`}>×</button>
         </span>
       ))}
     </div>
@@ -11359,7 +11370,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {skillGroups.length===0&&<CoachingCallout>No skills yet. Suggest some below.</CoachingCallout>}
         {skillGroups.map((g,gi)=><div key={gi} style={{marginBottom:12}}>
           {g.category&&<div style={{fontWeight:600,color:'#1A2540',marginBottom:6,fontSize:15}}>{g.category}</div>}
-          <div style={{display:'flex',flexWrap:'wrap',gap:8,alignItems:'center'}}>{g.items.map((it,ii)=><span key={ii} style={{display:'inline-flex',alignItems:'center',gap:6,background:`${C.gold}18`,border:`1px solid ${C.gold}40`,borderRadius:16,padding:'5px 10px',fontSize:15,color:'#1A2540'}}>{typeof it==='string'?it:(it&&it.skill)}<button type="button" onClick={()=>removeSkill(gi,ii)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',fontSize:15,lineHeight:1}}>×</button></span>)}
+          <div style={{display:'flex',flexWrap:'wrap',gap:8,alignItems:'center'}}>{g.items.map((it,ii)=><span key={ii} style={{display:'inline-flex',alignItems:'center',gap:6,background:`${C.gold}18`,border:`1px solid ${C.gold}40`,borderRadius:16,padding:'5px 10px',fontSize:15,color:'#1A2540'}}>{typeof it==='string'?it:(it&&it.skill)}<button type="button" onClick={()=>removeSkill(gi,ii)} style={{background:'none',border:'none',color:C.gray,cursor:'pointer',fontSize:16,lineHeight:1}}>×</button></span>)}
             <input style={{...iS,width:170,padding:'5px 10px'}} value={skillDraft} onChange={ev=>setSkillDraft(ev.target.value)} onKeyDown={ev=>{if(ev.key==='Enter'){ev.preventDefault();addSkillTo(gi,skillDraft)}}} placeholder="Add a skill"/>
           </div>
         </div>)}
@@ -13800,7 +13811,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
         <div style={{display:'flex',flexDirection:'column',gap:8,alignItems:'flex-end',flexShrink:0}}>
           <Btn onClick={()=>{try{const r=localStorage.getItem('pe_v4');if(r){const d=JSON.parse(r);if(d.step&&d.step!=='welcome'){setStep(d.step)}else if(d.done&&d.done.length>0){setStep(d.done[d.done.length-1])}}}catch{}}} style={{background:C.gold}}>Continue Where I Left Off <ChevronRight size={14}/></Btn>
-          {signedInUser&&<button onClick={deleteAccount} style={{background:'transparent',color:'#CBD5E0',border:'none',padding:'4px 0',fontSize:15,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Or start fresh (delete everything and begin again)</button>}
+          {signedInUser&&<button onClick={deleteAccount} style={{background:'transparent',color:'#CBD5E0',border:'none',padding:'4px 0',fontSize:16,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Or start fresh (delete everything and begin again)</button>}
         </div>
       </div>}
       <div style={{display:'flex',justifyContent:'flex-start',alignItems:'flex-start',marginBottom:16}}>
@@ -14090,7 +14101,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <ul style={{margin:0,padding:0,listStyle:'none'}}>
               {assessFiles.map((name,i)=><li key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 0'}}>
                 <span>{name}</span>
-                <button type="button" onClick={()=>setAssessFiles(prev=>prev.filter((_,j)=>j!==i))} style={{background:'transparent',border:'none',color:C.gray,cursor:'pointer',fontSize:15,padding:'2px 6px',fontFamily:'inherit'}} aria-label={`Remove ${name} from list`}>remove from list</button>
+                <button type="button" onClick={()=>setAssessFiles(prev=>prev.filter((_,j)=>j!==i))} style={{background:'transparent',border:'none',color:C.gray,cursor:'pointer',fontSize:16,padding:'2px 6px',fontFamily:'inherit'}} aria-label={`Remove ${name} from list`}>remove from list</button>
               </li>)}
             </ul>
             <p style={{fontSize:15,color:C.gray,margin:'8px 0 0',fontStyle:'italic'}}>Removing from this list does not delete the file's text from the field below. Edit the text directly if you want to remove its content.</p>
@@ -14144,6 +14155,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={S.field}><label style={S.label}>Stability or upside?</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>Which way do you lean when a role trades security for potential? A smaller or earlier-stage company often means more agility, a faster path to bigger scope, and more visible impact. A larger, established one often means steadier ground — more robust benefits, a recognized name, more predictability.</div>{segToggle('riskTolerance',['Stability','Balanced','Upside'])}</div>
         <div style={{...S.field,marginBottom:0}}><label style={S.label}>Hard deal-breakers</label><div style={{fontSize:16,color:C.gray,marginBottom:7,lineHeight:1.6}}>Anything you won't consider: an industry, an ownership structure (PE-owned, public, early-stage), a company size. Leave blank if none.</div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={profile.dealBreakers||''} onChange={e=>pr('dealBreakers',e.target.value)} placeholder="e.g. No defense or tobacco. Not a pre-Series-A startup. Nothing under 50 people."/>{hasSpeech&&<SpeechBtn onResult={t=>pr('dealBreakers',(profile.dealBreakers||'')+t)}/>}</div></div>
       </div>
+      {wc([profile.compFloor,profile.workReq,profile.dealBreakers].filter(Boolean).join(' '))<THIN_MIN.priorities&&<ThinNudge text="The clearer these are, the more precisely Reimagine can judge whether an opportunity is actually worth pursuing, not just whether it looks good on paper."/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('values')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('priorities','reputation')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
 
@@ -14181,7 +14193,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <ul style={{margin:0,padding:0,listStyle:'none'}}>
               {repFiles.map((name,i)=><li key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 0'}}>
                 <span>{name}</span>
-                <button type="button" onClick={()=>setRepFiles(prev=>prev.filter((_,j)=>j!==i))} style={{background:'transparent',border:'none',color:C.gray,cursor:'pointer',fontSize:15,padding:'2px 6px',fontFamily:'inherit'}} aria-label={`Remove ${name} from list`}>remove from list</button>
+                <button type="button" onClick={()=>setRepFiles(prev=>prev.filter((_,j)=>j!==i))} style={{background:'transparent',border:'none',color:C.gray,cursor:'pointer',fontSize:16,padding:'2px 6px',fontFamily:'inherit'}} aria-label={`Remove ${name} from list`}>remove from list</button>
               </li>)}
             </ul>
             <p style={{fontSize:15,color:C.gray,margin:'8px 0 0',fontStyle:'italic'}}>Removing from this list does not delete the file's text from the field below. Edit the text directly if you want to remove its content.</p>
@@ -14313,7 +14325,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{background:`linear-gradient(135deg,${C.panel} 0%,${C.card} 100%)`,border:`1px solid ${C.gold}35`,borderRadius:16,padding:'36px',textAlign:'center',marginBottom:22}}>
         <div style={{fontSize:15,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:C.goldL,marginBottom:8}}>Phase 0 Complete</div>
         <h1 style={{...S.title,fontSize:30,textAlign:'center',marginBottom:14}}>Orientation complete.</h1>
-        <p style={{fontSize:18,color:C.gray,lineHeight:1.7,maxWidth:540,margin:'0 auto'}}>You've shared the foundation: where you are, what you've done, how you're wired, what matters to you, and what others say about you. That's the input. Everything that follows is the output: your story, your strategy, your next chapter. Take a breath. Then keep going.</p>
+        <p style={{fontSize:18,color:C.gray,lineHeight:1.7,maxWidth:540,margin:'0 auto'}}>You've shared the foundation: where you are, what you've done, how you're wired, what matters to you, and what others say about you. Everything that follows takes that and builds your story, your strategy, your next chapter. Take a breath. Then keep going.</p>
         <p style={{margin:'12px auto 0',fontSize:18,color:C.gray,fontStyle:'italic',maxWidth:540}}>Good stopping point. Phase 1 is where the analysis begins; come back to it with fresh eyes if you have been at this a while.</p>
       </div>
       <div style={S.row}><Btn secondary onClick={()=>nav('skills')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>{if(profileBare()){setBareInputModal(true)}else{advance('orientation-done','p3');setPendingBrandGenerate(true)}}}>Build My Personal Brand <ChevronRight size={14}/></Btn></div>
@@ -16619,7 +16631,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     {bareInputModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
       <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:560,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Want to make your results even better?</h2>
-        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:16}}>The users who get the most from Reimagine bring their whole selves to it: their resume, an assessment, and the experiences and reputation that shaped who they are. The more of that you give it, the more your Personal Brand, and everything built from it, could only be about you.</p>
+        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:16}}>Reimagine works best with your whole self: your resume, an assessment, and the experiences and reputation that shaped who you are. The more you add, the more your Personal Brand, and everything built from it, reads as unmistakably yours.</p>
         <MicReminder text="The mic on each input makes it quick; tap and talk instead of typing."/>
         <div style={{display:'flex',gap:10,justifyContent:'flex-end',flexWrap:'wrap',marginTop:22}}>
           <Btn secondary onClick={()=>{setBareInputModal(false);advance('orientation-done','p3');setPendingBrandGenerate(true)}}>Build with what I have</Btn>
@@ -16726,7 +16738,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {typeof prog==='number'&&<div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>}
           </>}
           {!isDemo&&<button onClick={()=>setFeedbackOpen(true)} style={{background:'transparent',color:C.gold,border:'none',padding:'6px 10px',fontSize:17,fontWeight:700,cursor:'pointer',fontFamily:'inherit',marginLeft:8,display:'inline-flex',alignItems:'center',gap:6}}><MessageSquare size={16}/>Share feedback</button>}
-          {!isDemo&&signedInUser&&<button onClick={deleteAccount} title="Delete your profile and start over from scratch" style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:15,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Start Fresh</button>}
+          {!isDemo&&signedInUser&&<button onClick={deleteAccount} title="Delete your profile and start over from scratch" style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:16,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Start Fresh</button>}
           {!isDemo&&signedInUser&&<button onClick={signOut} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:15,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign out</button>}
           {!isDemo&&!signedInUser&&<button onClick={()=>{setSignedUp(false);setMagicLinkSentTo(null)}} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:15,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign in</button>}
         </div>
