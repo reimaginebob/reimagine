@@ -49,17 +49,23 @@ const saveDepsIdx = app.indexOf('saveRef.current=save')
 check(app.slice(saveDepsIdx, saveDepsIdx + 500).includes('seenBrandDeliveryMoment'),
   `${APP}: seenBrandDeliveryMoment is missing from the autosave effect's dependency array`)
 
-// The delivery message itself must offer a real chat-reply path AND still
-// name the "Does this feel right?" box -- both are real affordances after
-// the brand-rework bridge below, and the message should not pick one over
-// the other.
-const deliveryMsgIdx = app.indexOf('Your story just came together above')
-check(deliveryMsgIdx !== -1, `${APP}: could not find the Personal Brand delivery message`)
-const deliveryMsgBlock = app.slice(deliveryMsgIdx, deliveryMsgIdx + 300)
-check(deliveryMsgBlock.includes('tell me right here and I will rework it'),
-  `${APP}: the brand-delivery message no longer invites a chat reply as a real way to fix the brand`)
-check(deliveryMsgBlock.includes('Does this feel right?'),
-  `${APP}: the brand-delivery message no longer names the "Does this feel right?" box`)
+// The delivery moment itself (2026-09-07, brand richness): no longer a
+// static line. This effect's job is just opening the panel and satisfying
+// the pbCheckin/seenBrandDeliveryMoment flags above; the actual words come
+// from the brand-richness orientation check, which fires moments later off
+// its own dedupe (see test-coach-brand-richness.mjs for that mechanism).
+// What this file still verifies: the static line is gone from THIS effect
+// specifically (not lingering dead code) and the panel-open call survived
+// the edit.
+const brandDeliveryFullBlock = app.slice(brandDeliveryIdx, brandDeliveryIdx + 900)
+check(!brandDeliveryFullBlock.includes('Your story just came together above'),
+  `${APP}: the brand-delivery effect still pushes the old static line -- it should defer to the brand-richness orientation check instead`)
+check(brandDeliveryFullBlock.includes('setPbCheckinOpenReq(x=>x+1)'),
+  `${APP}: the brand-delivery effect no longer opens the coach panel on the big reveal`)
+// The invitation to reply here or use "Does this feel right?" moved into
+// the brand-richness prompt itself, so it is still said, just as part of a
+// real reaction instead of a fixed line -- verified in
+// test-coach-brand-richness.mjs, not here.
 
 // Brand rework bridge (2026-09-04): a chat reply during the p3 delivery
 // moment can act on the brand directly, not just redirect to the DTFR box.

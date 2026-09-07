@@ -8752,6 +8752,15 @@ export default function PivotEngine(){
     // the identical specificity contrast ("companies that need better
     // marketing" vs. a named stage, sector, and trigger).
     {step:'fit',done:done.includes('fit'),combined:[profile.fitNeed,profile.fitBuyer].filter(Boolean).join(' ').trim(),text:`The Need: ${profile.fitNeed||''}\nThe Buyer: ${profile.fitBuyer||''}`},
+    // Brand richness (2026-09-07). Not tied to a screen the way the others
+    // are -- tied to the built brand itself, so combined is the brand text
+    // (outputs.p3), not a profile field. Keyed this way, a REBUILD after
+    // someone acts on a suggestion produces a new p3 string, which is a new
+    // combined value, which fires this again automatically -- the "loop" is
+    // just this same dedupe re-triggering, not a separate mechanism.
+    // qualityCheckedFields already holding a prior value for this step is
+    // what tells the prompt this is a return visit, not a first look.
+    {step:'brand-richness',done:!!(outputs&&outputs.p3),combined:(outputs&&outputs.p3?outputs.p3:'').trim(),text:`${qualityCheckedFields['brand-richness']?'[This is a return visit -- they already acted on an earlier suggestion, and this is a fresh look at what they have now.]\n\n':''}Personal Brand:\n${(outputs&&outputs.p3)||''}\n\nRaw material this was built from:\nResume: ${profile.resume||''}\nAssessment: ${profile.assess||''}\nSkills: ${formatSkills(profile.skills)}\nValues: ${profile.values||''}\nPassions, Interests & Causes: ${profile.passions||''}\nThe Memory: ${(profile.rep&&profile.rep.memory)||''}\nThe Emergency Call: ${(profile.rep&&profile.rep.emergency)||''}\nThe Two Words: ${(profile.rep&&profile.rep.twoWords)||''}\nAdditional Feedback: ${(profile.rep&&profile.rep.other)||''}\nLife Story: ${profile.lifeEvents||''}`},
   ]
   const orientationCheckPending=orientationCheckFields.some(f=>f.done&&f.combined&&qualityCheckedFields[f.step]!==f.combined)
   // Coach-as-Concierge onboarding narration, second piece: a short line from
@@ -8816,7 +8825,12 @@ export default function PivotEngine(){
     setSeenBrandDeliveryMoment(true)
     pbCheckinFiredRef.current=true
     setSeenPbCheckin(true)
-    setChatMessages(m=>[...m,{role:'assistant',content:'Your story just came together above. Take a look, and tell me how it reads. If anything is off, tell me right here and I will rework it, or use "Does this feel right?" right below if you would rather do it there.'}])
+    // The actual words come from the brand-richness orientation check below
+    // (2026-09-07) -- a real judged read of the finished brand, not this
+    // static line. This effect's job is just opening the panel on the big
+    // reveal and satisfying the flags above so nothing else claims the slot;
+    // brand-richness's own dedupe (orientationCheckFields, keyed on the
+    // built brand + raw material) fires the reaction moments later.
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,hasOnboardingConcierge,outputs,loading,seenBrandDeliveryMoment,isDemo,isTest])
   // Personal Brand check-in. The first time a signed-in user reaches Put it to
@@ -8919,6 +8933,15 @@ export default function PivotEngine(){
           }
           const raw=await res.text()
           const reply=raw&&raw.trim()
+          // Brand-richness engagement logging (2026-09-07): 'shown' the
+          // first time this fires for an account, 'accepted' on a return
+          // fire -- a rebuild only happens because they told Coach
+          // something new, so the re-fire itself is the accept signal,
+          // no separate tap to track. No explicit 'declined': same as
+          // employment-status, there is no decline button here, so a
+          // shown-with-no-later-accepted is what a decline looks like in
+          // the data, derived rather than written.
+          if(stepId==='brand-richness'&&reply)logPromptEngagement('brand_richness','hub_arrival',qualityCheckedFields[stepId]?'accepted':'shown')
           setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}))
           if(reply){
             // banner:true (2026-09-04, alongside the Continue-defer above):

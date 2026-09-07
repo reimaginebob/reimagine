@@ -376,6 +376,9 @@ const ORIENTATION_CHECK_LABELS = {
   // no new framing needed; buildOrientationCheckTurnText's default branch
   // already covers any step not given its own builder below.
   fit: 'Where You Think You Fit',
+  // Routes to its own builder below, same reason resume/linkedin/assessment
+  // do -- this label is never actually read.
+  'brand-richness': 'Personal Brand',
 }
 function clip(text) {
   return text.length > 4000 ? text.slice(0, 4000) + '…' : text
@@ -428,12 +431,39 @@ function buildSituationCheckText(text) {
 function buildDealBreakersCheckText(text) {
   return `[They just told us their priorities at Orientation. Here is exactly what they wrote for hard deal-breakers:\n\n${clip(text)}\n\nSome deal-breakers are plainly practical (an industry, a company stage, a location). Some carry something more personal underneath (a caregiving responsibility, a health situation, something from a past job they do not want to repeat). Read which kind this is and acknowledge it plainly and briefly, calibrated to that — a practical one gets a practical acknowledgment of how it narrows the search; a personal one gets a genuine, unpressured acknowledgment that it registered, without probing for details they have not offered. Always say something; never a generic "got it" or "noted", and never manufacture significance that is not there.\n\nKeep it to one or two sentences. Open with this directly, in your own voice — this is the first thing they see after this screen. Do not mention that this is an automated check.]`
 }
+// Brand richness (2026-09-07, encouragement/challenge consult + Bob's
+// relevance x differentiation framework). Replaces the old static "take a
+// look, tell me how it reads" delivery line -- this is a real judged read of
+// the finished brand, not just an invitation to react to it. Two axes, not
+// a presence checklist: RELEVANCE (does it read as capable of the job --
+// resume specifics, assessment, skills, real evidence behind any "where
+// this transfers" claim) and DIFFERENTIATION (does it read as distinctly
+// this person, not a qualified stranger -- values, reputation, life story,
+// passions coming through as real material). A relevance-strong,
+// differentiation-thin brand is the "gasoline" case: competent,
+// interchangeable. Differentiated without relevance is memorable but never
+// earns the room. Judge which axis is thinner in THIS brand and pull from
+// there. Mirrors buildReflectiveDepthCheckText's own discipline: if it is
+// genuinely strong, say so plainly and stop -- never manufacture a gap. When
+// one axis is thinner, the voice is compliment-first, one thing (two at
+// most, per the same "ONE thread only" rule the reflective-depth check
+// already uses), framed as an open invitation ("if you'd like..."), never a
+// correction -- grounded in CLAUDE.md's Positive Framing clarification. Six
+// of the nine orientation fields (values, passions, reputation, skills,
+// priorities, life story) already capture straight from chat; resume,
+// LinkedIn, and Where You Think You Fit do not yet, so a suggestion
+// touching one of those three says so honestly and points to the screen
+// rather than implying it can be told to Coach directly.
+function buildBrandRichnessCheckText(text) {
+  return `[Their Personal Brand just came together. Here is the brand itself, followed by the raw material it was built from -- if it says this is a return visit, they already acted on an earlier suggestion and this is a fresh look at what they have now:\n\n${clip(text)}\n\nRead it against two things, not a checklist of whether every section got touched: RELEVANCE (does this read as someone who can actually do the job -- backed by resume specifics, assessment, skills, real evidence behind any "where this transfers" claim) and DIFFERENTIATION (does this read as distinctly them, not a qualified stranger -- values, reputation, life story, passions coming through as real material, not trait words with nothing behind them). A brand can be strong on relevance and thin on differentiation (reads competent and interchangeable, like gasoline -- gets the job done, could be from anywhere) or the reverse (personal and memorable but never actually earns the room). Judge honestly which axis is thinner here, using only what is actually in the raw material below it, and never invent a gap that is not there.\n\nIf it is genuinely strong on both: say so plainly and specifically -- name the actual relevant thing and the actual differentiating thing that make it work together, and stop there. Do not manufacture a suggestion where none is warranted.\n\nIf one axis is thinner: open with a specific, genuine compliment naming what is actually working in the brand already -- never generic praise. Then, in the same warm register, offer one thing, two at most, that would make it richer, framed as something the two of you could add together if they want to, never as something missing or wrong with what is there now. Use the shape "if you'd like, one thing that would make this even richer would be..." -- their choice, always. Pull the suggestion from whichever axis is thinner, and from something concrete you can see is genuinely underused in the raw material, never a generic "add more to X."\n\nValues, passions, reputation, skills, priorities, and life story can all be added right here in conversation -- if the suggestion touches one of those, invite them to just tell you. If what would help most is on the Resume or LinkedIn side, or in Where You Think You Fit, say so honestly and point to the actual screen -- do not imply it can be added by just telling you, when it cannot yet.\n\nClose by naming both ways they can act on any of this: telling you right here and you will rework the brand directly, or using the "Does this feel right?" box on the screen if they would rather do it there. Say this plainly, not as a menu of options.\n\nKeep it to a few sentences, never a list. Open with this directly, in your own voice -- this is the first thing they see after their brand comes together. Do not mention that this is an automated check.]`
+}
 function buildOrientationCheckTurnText(step, text) {
   if (step === 'resume') return buildResumeReactionText(text)
   if (step === 'linkedin') return buildLinkedInReactionText(text)
   if (step === 'assessment') return buildAssessmentReactionText(text)
   if (step === 'location') return buildSituationCheckText(text)
   if (step === 'priorities') return buildDealBreakersCheckText(text)
+  if (step === 'brand-richness') return buildBrandRichnessCheckText(text)
   const label = ORIENTATION_CHECK_LABELS[step] || 'this'
   return buildReflectiveDepthCheckText(label, text)
 }
