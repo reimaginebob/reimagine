@@ -1035,7 +1035,20 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // intake's separate ask in the same reply would hand the person two open
   // questions at once. Suppressed only for this one turn; intake capture
   // resumes normally starting the very next turn if it is still thin.
-  const searchIntakeNoteThisTurn = sessionOpenRequested ? '' : searchIntakeNote(si)
+  //
+  // Gated on brandStepDone (2026-09-07, live QA): search intake was designed
+  // and is proactively triggered client-side ONLY for a returning,
+  // post-orientation user (src/App.jsx gates the hub-arrival prompt on
+  // onPromptSurface = twoDoors/mylib/myCoach), but this model instruction had
+  // no equivalent gate -- it rode in the prompt for anyone missing
+  // goingWell/focus, orientation-in-progress or not. Caught live: a person
+  // mid-orientation said something in an unrelated free-text reply that the
+  // model read as fitting "what is going well," and volunteered a save offer
+  // for it -- landing as a second, unrelated bubble stacked right behind a
+  // reply about something else entirely. Search intake's own premise (asking
+  // what is going well "in it right now") does not even make sense before a
+  // search exists to have a read on.
+  const searchIntakeNoteThisTurn = (sessionOpenRequested || !brandStepDone) ? '' : searchIntakeNote(si)
   return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${opportunityContextNote}${opportunityArchiveNote}${closeReasonNote}${opCardReworkNote}${milestonePromptNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${searchIntakeNoteThisTurn}`
 }
 

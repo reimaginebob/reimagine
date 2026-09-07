@@ -47,9 +47,12 @@ check(!coach.includes('lay out the real options with why each one'),
   `${COACH}: the old unprompted status-recap language is still present alongside the new agency opener`)
 
 // The stacked-questions fix: search-intake's own ask must be suppressed on
-// exactly the session-open turn, and resume otherwise.
-check(/const searchIntakeNoteThisTurn = sessionOpenRequested \? '' : searchIntakeNote\(si\)/.test(coach),
-  `${COACH}: searchIntakeNote is no longer suppressed on the session-open turn -- a thin-signal session would get two open questions stacked in one reply`)
+// exactly the session-open turn, and resume otherwise -- and (2026-09-07,
+// live QA) also suppressed for anyone still mid-orientation, since the
+// feature was designed and proactively triggered client-side only for a
+// returning, post-orientation user.
+check(/const searchIntakeNoteThisTurn = \(sessionOpenRequested \|\| !brandStepDone\) \? '' : searchIntakeNote\(si\)/.test(coach),
+  `${COACH}: searchIntakeNote is no longer suppressed on the session-open turn and pre-orientation -- either a thin-signal session gets two open questions stacked in one reply, or someone mid-orientation gets an unprompted, out-of-place search-intake save offer`)
 check(coach.includes('${searchIntakeNoteThisTurn}') && !coach.includes('${searchIntakeNote(si)}'),
   `${COACH}: the profile-slice return statement does not use the turn-aware searchIntakeNoteThisTurn in place of the unconditional call`)
 
