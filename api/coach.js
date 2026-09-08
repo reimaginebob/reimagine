@@ -383,6 +383,71 @@ const ORIENTATION_CHECK_LABELS = {
 function clip(text) {
   return text.length > 4000 ? text.slice(0, 4000) + '…' : text
 }
+
+// Shared by trailer extraction and the voice-retry block: strips any line
+// that starts with a known capture-trailer name, whatever shape follows it.
+// Used to clean a voice-retry's regenerated text of stray trailer syntax
+// without ever re-parsing it as a new capture -- captures are locked in
+// once, before any retry runs. See the My Coach review, finding #2.3.
+const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
+
+// Finds and strips a `NAME: {...}` capture trailer, tolerating shapes the
+// original per-trailer regex (`^\s*NAME:\s*(\{[\s\S]*?\})\s*$`) could not
+// match: a markdown-bold name (`**NAME:**`), the JSON wrapped in a code
+// fence, or trailing prose left on the same line after the closing brace. A
+// lazy regex has no way to find where the JSON object actually ends except
+// "right before end of line," which is exactly what those three shapes
+// break. A balanced-brace scan (string-literal aware, so a brace inside a
+// quoted JSON value never miscounts) finds the true end regardless. When
+// the name is found but no valid JSON follows -- a genuinely mangled
+// trailer, not just an unusual wrapper -- this still sweeps through the end
+// of that line, so a malformed trailer never sits in the reply as visible
+// machine junk (previously true only for ACTIVITY's own bespoke sweep).
+// Interim hardening ahead of the tool-use migration that replaces free-text
+// trailers outright; see the My Coach review, finding #2.2. Exported (not
+// module-private) so it can be exercised directly by a behavioral test
+// rather than only checked for as a string in the source, per finding #5.1.
+export function extractTrailer(text, name) {
+  const nameRe = new RegExp(`^[ \\t]*(?:\`\`\`[ \\t]*\\n[ \\t]*)?\\*{0,2}[ \\t]*${name}[ \\t]*\\*{0,2}[ \\t]*:[ \\t]*\\*{0,2}`, 'im')
+  const m = nameRe.exec(text)
+  if (!m) return { text, raw: null }
+  const sweepLine = () => {
+    const nl = text.indexOf('\n', m.index)
+    const lineEnd = nl === -1 ? text.length : nl
+    return { text: (text.slice(0, m.index) + text.slice(lineEnd)).replace(/\n{3,}/g, '\n\n'), raw: null }
+  }
+  let i = m.index + m[0].length
+  while (i < text.length && /[ \t]/.test(text[i])) i++
+  if (text.startsWith('```', i)) {
+    const nl = text.indexOf('\n', i)
+    i = nl === -1 ? text.length : nl + 1
+  }
+  while (i < text.length && /\s/.test(text[i])) i++
+  if (text[i] !== '{') return sweepLine()
+  const start = i
+  let depth = 0, inStr = false, esc = false
+  for (; i < text.length; i++) {
+    const c = text[i]
+    if (inStr) {
+      if (esc) esc = false
+      else if (c === '\\') esc = true
+      else if (c === '"') inStr = false
+    } else if (c === '"') inStr = true
+    else if (c === '{') depth++
+    else if (c === '}') { depth--; if (depth === 0) { i++; break } }
+  }
+  if (depth !== 0) return sweepLine()
+  const raw = text.slice(start, i)
+  let end = i
+  while (end < text.length && /[ \t]/.test(text[end])) end++
+  {
+    let j = end
+    if (text[j] === '\n') j++
+    while (j < text.length && /[ \t]/.test(text[j])) j++
+    if (text.startsWith('```', j)) end = j + 3
+  }
+  return { text: (text.slice(0, m.index) + text.slice(end)).replace(/\n{3,}/g, '\n\n'), raw }
+}
 // The three reflective "who they are" fields: judged on whether the answer
 // differentiates this person or could describe almost anyone -- see the
 // header comment above for why this is a real per-answer call rather than a
@@ -1882,13 +1947,6 @@ export default async function handler(req, res) {
   // append-only client cannot un-render text already shown.
   let cleaned = applyOutputStrippers(raw)
 
-  // Shared by the extraction block above and the voice-retry block below:
-  // strips any line that starts with a known trailer name, whatever shape
-  // follows it. Used to clean a voice-retry's regenerated text of stray
-  // trailer syntax without ever re-parsing it as a new capture -- captures
-  // are locked in once, before any retry runs. See My Coach review finding #2.3.
-  const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
-
   // Self-check verdict (silent, for unmet-need logging). The model runs a hidden
   // self-check and emits a SELFCHECK trailer naming the matched feature (or
   // "none"). PROSE-ONLY (2026-06-11, Bob's call): the coach names the feature in
@@ -1921,25 +1979,22 @@ export default async function handler(req, res) {
   // than shipped: a row nothing reads looks exactly like a successful save.
   // Non-flagged accounts never receive the instruction, so this no-ops for them.
   let activityB64 = null
-  const acMatch = strippedText.match(/^\s*ACTIVITY:\s*(\{[\s\S]*?\})\s*$/im)
-  if (acMatch) {
-    strippedText = strippedText.replace(acMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(acMatch[1])
-      const key = typeof parsed.activity === 'string' ? parsed.activity.trim() : ''
-      const st = typeof parsed.state === 'string' ? parsed.state.trim() : ''
-      if (isValidFact(key, st, 'said')) {
-        const def = activityDef(key)
-        const detail = typeof parsed.detail === 'string' ? parsed.detail.trim().slice(0, 300) : ''
-        activityB64 = Buffer.from(JSON.stringify({ activity: key, state: st, detail, label: def ? def.label : key })).toString('base64')
-      }
-    } catch { /* malformed -- drop the line, no offer */ }
+  {
+    const { text: t, raw: acRaw } = extractTrailer(strippedText, 'ACTIVITY')
+    strippedText = t.trim()
+    if (acRaw) {
+      try {
+        const parsed = JSON.parse(acRaw)
+        const key = typeof parsed.activity === 'string' ? parsed.activity.trim() : ''
+        const st = typeof parsed.state === 'string' ? parsed.state.trim() : ''
+        if (isValidFact(key, st, 'said')) {
+          const def = activityDef(key)
+          const detail = typeof parsed.detail === 'string' ? parsed.detail.trim().slice(0, 300) : ''
+          activityB64 = Buffer.from(JSON.stringify({ activity: key, state: st, detail, label: def ? def.label : key })).toString('base64')
+        }
+      } catch { /* malformed -- drop the line, no offer */ }
+    }
   }
-  // A trailer the model mangled (an unclosed brace, a stray newline) matches
-  // nothing above, so it would be left sitting in the reply as machine junk in
-  // the middle of someone's coaching. Remove any ACTIVITY: line whatever its
-  // shape: the offer is already decided, and nothing downstream wants it.
-  strippedText = strippedText.replace(/^\s*ACTIVITY:.*$/gim, '').trim()
   // Save-to-notes capture: the model may end with COACHNOTE: save when the
   // person explicitly asked for this reply (or what was just covered) to be
   // kept. No payload needed -- the content to save is this reply's own
@@ -1955,61 +2010,67 @@ export default async function handler(req, res) {
   // and ship it on a response header; the client offers a one-tap save that
   // writes through the same setter the screen's own textareas use.
   let valuesB64 = null
-  const vcMatch = strippedText.match(/^\s*VALUESCAPTURE:\s*(\{[\s\S]*?\})\s*$/im)
-  if (vcMatch) {
-    strippedText = strippedText.replace(vcMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(vcMatch[1])
-      const clean = v => (typeof v === 'string' ? v.trim().slice(0, 600) : '')
-      const payload = {}
-      if (clean(parsed && parsed.values)) payload.values = clean(parsed.values)
-      if (clean(parsed && parsed.passions)) payload.passions = clean(parsed.passions)
-      if (payload.values || payload.passions) {
-        valuesB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
-      }
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: vcRaw } = extractTrailer(strippedText, 'VALUESCAPTURE')
+    strippedText = t.trim()
+    if (vcRaw) {
+      try {
+        const parsed = JSON.parse(vcRaw)
+        const clean = v => (typeof v === 'string' ? v.trim().slice(0, 600) : '')
+        const payload = {}
+        if (clean(parsed && parsed.values)) payload.values = clean(parsed.values)
+        if (clean(parsed && parsed.passions)) payload.passions = clean(parsed.passions)
+        if (payload.values || payload.passions) {
+          valuesB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
+        }
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Reputation capture: same shape as Values capture just above, for the
   // Reputation screen's four fields. Strip it and ship it on a response
   // header; the client offers a one-tap save that replaces the field(s), the
   // same setter the screen's own inputs use.
   let reputationB64 = null
-  const repMatch = strippedText.match(/^\s*REPUTATIONCAPTURE:\s*(\{[\s\S]*?\})\s*$/im)
-  if (repMatch) {
-    strippedText = strippedText.replace(repMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(repMatch[1])
-      const clean = v => (typeof v === 'string' ? v.trim().slice(0, 400) : '')
-      const payload = {}
-      if (clean(parsed && parsed.memory)) payload.memory = clean(parsed.memory)
-      if (clean(parsed && parsed.emergency)) payload.emergency = clean(parsed.emergency)
-      if (clean(parsed && parsed.twoWords)) payload.twoWords = clean(parsed.twoWords)
-      if (clean(parsed && parsed.other)) payload.other = clean(parsed.other)
-      if (Object.keys(payload).length) {
-        reputationB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
-      }
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: repRaw } = extractTrailer(strippedText, 'REPUTATIONCAPTURE')
+    strippedText = t.trim()
+    if (repRaw) {
+      try {
+        const parsed = JSON.parse(repRaw)
+        const clean = v => (typeof v === 'string' ? v.trim().slice(0, 400) : '')
+        const payload = {}
+        if (clean(parsed && parsed.memory)) payload.memory = clean(parsed.memory)
+        if (clean(parsed && parsed.emergency)) payload.emergency = clean(parsed.emergency)
+        if (clean(parsed && parsed.twoWords)) payload.twoWords = clean(parsed.twoWords)
+        if (clean(parsed && parsed.other)) payload.other = clean(parsed.other)
+        if (Object.keys(payload).length) {
+          reputationB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
+        }
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Skills capture: the model may end with a SKILLSCAPTURE: {json} line
   // naming new skills for one or more of the five categories. Strip it and
   // ship it on a response header; the client offers a one-tap add that
   // appends into each category's chip list rather than replacing it.
   let skillsB64 = null
-  const skillsMatch = strippedText.match(/^\s*SKILLSCAPTURE:\s*(\{[\s\S]*?\})\s*$/im)
-  if (skillsMatch) {
-    strippedText = strippedText.replace(skillsMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(skillsMatch[1])
-      const cleanList = v => Array.isArray(v) ? v.filter(s => typeof s === 'string' && s.trim()).map(s => s.trim().slice(0, 80)).slice(0, 10) : []
-      const payload = {}
-      for (const cat of ['technical', 'systems', 'certifications', 'languages', 'methodologies']) {
-        const items = cleanList(parsed && parsed[cat])
-        if (items.length) payload[cat] = items
-      }
-      if (Object.keys(payload).length) {
-        skillsB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
-      }
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: skillsRaw } = extractTrailer(strippedText, 'SKILLSCAPTURE')
+    strippedText = t.trim()
+    if (skillsRaw) {
+      try {
+        const parsed = JSON.parse(skillsRaw)
+        const cleanList = v => Array.isArray(v) ? v.filter(s => typeof s === 'string' && s.trim()).map(s => s.trim().slice(0, 80)).slice(0, 10) : []
+        const payload = {}
+        for (const cat of ['technical', 'systems', 'certifications', 'languages', 'methodologies']) {
+          const items = cleanList(parsed && parsed[cat])
+          if (items.length) payload[cat] = items
+        }
+        if (Object.keys(payload).length) {
+          skillsB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
+        }
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Skills removal (2026-09-06, deletion/retraction Tier 1): a genuinely
   // separate trailer from SKILLSCAPTURE above, not a reuse of it -- Skills
@@ -2019,21 +2080,23 @@ export default async function handler(req, res) {
   // name the exact item(s) to take out, filtered client-side against the
   // real current list rather than trusting the model's own recall of it.
   let skillsRemoveB64 = null
-  const skillsRemoveMatch = strippedText.match(/^\s*SKILLSREMOVE:\s*(\{[\s\S]*?\})\s*$/im)
-  if (skillsRemoveMatch) {
-    strippedText = strippedText.replace(skillsRemoveMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(skillsRemoveMatch[1])
-      const cleanList = v => Array.isArray(v) ? v.filter(s => typeof s === 'string' && s.trim()).map(s => s.trim().slice(0, 80)).slice(0, 10) : []
-      const payload = {}
-      for (const cat of ['technical', 'systems', 'certifications', 'languages', 'methodologies']) {
-        const items = cleanList(parsed && parsed[cat])
-        if (items.length) payload[cat] = items
-      }
-      if (Object.keys(payload).length) {
-        skillsRemoveB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
-      }
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: skillsRemoveRaw } = extractTrailer(strippedText, 'SKILLSREMOVE')
+    strippedText = t.trim()
+    if (skillsRemoveRaw) {
+      try {
+        const parsed = JSON.parse(skillsRemoveRaw)
+        const cleanList = v => Array.isArray(v) ? v.filter(s => typeof s === 'string' && s.trim()).map(s => s.trim().slice(0, 80)).slice(0, 10) : []
+        const payload = {}
+        for (const cat of ['technical', 'systems', 'certifications', 'languages', 'methodologies']) {
+          const items = cleanList(parsed && parsed[cat])
+          if (items.length) payload[cat] = items
+        }
+        if (Object.keys(payload).length) {
+          skillsRemoveB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
+        }
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Priorities capture: the model may end with a PRIORITIESCAPTURE: {json}
   // line carrying one or more Priorities & Non-Negotiables fields. Strip it
@@ -2042,55 +2105,61 @@ export default async function handler(req, res) {
   // as the assessType fix), and compFloor/workReq/dealBreakers are length-
   // capped free text.
   let prioritiesB64 = null
-  const prioritiesMatch = strippedText.match(/^\s*PRIORITIESCAPTURE:\s*(\{[\s\S]*?\})\s*$/im)
-  if (prioritiesMatch) {
-    strippedText = strippedText.replace(prioritiesMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(prioritiesMatch[1])
-      const clean = v => (typeof v === 'string' ? v.trim().slice(0, 300) : '')
-      // Its own, larger cap: like Values, this carries the COMPLETE current
-      // list (existing deal-breakers plus whatever is new), not one field's
-      // worth of a single short answer.
-      const cleanList = v => (typeof v === 'string' ? v.trim().slice(0, 600) : '')
-      const payload = {}
-      if (clean(parsed && parsed.compFloor)) payload.compFloor = clean(parsed.compFloor)
-      if (clean(parsed && parsed.workReq)) payload.workReq = clean(parsed.workReq)
-      if (BENEFITS_WEIGHT_VALUES.includes(parsed && parsed.benefitsWeight)) payload.benefitsWeight = parsed.benefitsWeight
-      if (RISK_TOLERANCE_VALUES.includes(parsed && parsed.riskTolerance)) payload.riskTolerance = parsed.riskTolerance
-      if (cleanList(parsed && parsed.dealBreakers)) payload.dealBreakers = cleanList(parsed.dealBreakers)
-      if (Object.keys(payload).length) {
-        prioritiesB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
-      }
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: prioritiesRaw } = extractTrailer(strippedText, 'PRIORITIESCAPTURE')
+    strippedText = t.trim()
+    if (prioritiesRaw) {
+      try {
+        const parsed = JSON.parse(prioritiesRaw)
+        const clean = v => (typeof v === 'string' ? v.trim().slice(0, 300) : '')
+        // Its own, larger cap: like Values, this carries the COMPLETE current
+        // list (existing deal-breakers plus whatever is new), not one field's
+        // worth of a single short answer.
+        const cleanList = v => (typeof v === 'string' ? v.trim().slice(0, 600) : '')
+        const payload = {}
+        if (clean(parsed && parsed.compFloor)) payload.compFloor = clean(parsed.compFloor)
+        if (clean(parsed && parsed.workReq)) payload.workReq = clean(parsed.workReq)
+        if (BENEFITS_WEIGHT_VALUES.includes(parsed && parsed.benefitsWeight)) payload.benefitsWeight = parsed.benefitsWeight
+        if (RISK_TOLERANCE_VALUES.includes(parsed && parsed.riskTolerance)) payload.riskTolerance = parsed.riskTolerance
+        if (cleanList(parsed && parsed.dealBreakers)) payload.dealBreakers = cleanList(parsed.dealBreakers)
+        if (Object.keys(payload).length) {
+          prioritiesB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
+        }
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Life Story capture: the model may end with a LIFESTORYCAPTURE: {json}
   // line carrying a new life-shaping experience. Strip it and ship it on a
   // response header; the client offers a one-tap add that appends a new
   // paragraph rather than overwriting what is already there.
   let lifeStoryB64 = null
-  const lifeStoryMatch = strippedText.match(/^\s*LIFESTORYCAPTURE:\s*(\{[\s\S]*?\})\s*$/im)
-  if (lifeStoryMatch) {
-    strippedText = strippedText.replace(lifeStoryMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(lifeStoryMatch[1])
-      const text = typeof (parsed && parsed.text) === 'string' ? parsed.text.trim().slice(0, 800) : ''
-      if (text) lifeStoryB64 = Buffer.from(JSON.stringify({ text })).toString('base64')
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: lifeStoryRaw } = extractTrailer(strippedText, 'LIFESTORYCAPTURE')
+    strippedText = t.trim()
+    if (lifeStoryRaw) {
+      try {
+        const parsed = JSON.parse(lifeStoryRaw)
+        const text = typeof (parsed && parsed.text) === 'string' ? parsed.text.trim().slice(0, 800) : ''
+        if (text) lifeStoryB64 = Buffer.from(JSON.stringify({ text })).toString('base64')
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Assessment capture: the model may end with an ASSESSMENTCAPTURE: {json}
   // line carrying remembered assessment content. Strip it and ship it on a
   // response header; the client offers a one-tap add that appends to the
   // assessment field rather than overwriting it.
   let assessmentB64 = null
-  const assessMatch = strippedText.match(/^\s*ASSESSMENTCAPTURE:\s*(\{[\s\S]*?\})\s*$/im)
-  if (assessMatch) {
-    strippedText = strippedText.replace(assessMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(assessMatch[1])
-      const text = typeof (parsed && parsed.text) === 'string' ? parsed.text.trim().slice(0, 2000) : ''
-      const assessType = ASSESSMENT_TYPES.includes(parsed && parsed.assessType) ? parsed.assessType : ''
-      if (text) assessmentB64 = Buffer.from(JSON.stringify({ text, assessType })).toString('base64')
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: assessRaw } = extractTrailer(strippedText, 'ASSESSMENTCAPTURE')
+    strippedText = t.trim()
+    if (assessRaw) {
+      try {
+        const parsed = JSON.parse(assessRaw)
+        const text = typeof (parsed && parsed.text) === 'string' ? parsed.text.trim().slice(0, 2000) : ''
+        const assessType = ASSESSMENT_TYPES.includes(parsed && parsed.assessType) ? parsed.assessType : ''
+        if (text) assessmentB64 = Buffer.from(JSON.stringify({ text, assessType })).toString('base64')
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Brand rework capture: the model may end with a BRANDREWORK: {json} line
   // carrying a correction to the Personal Brand it judged as real (not just a
@@ -2098,14 +2167,16 @@ export default async function handler(req, res) {
   // one-tap rework through the exact path the "Does this feel right?" box
   // uses, so this gets the same conflict check a typed correction gets.
   let brandReworkB64 = null
-  const brMatch = strippedText.match(/^\s*BRANDREWORK:\s*(\{[\s\S]*?\})\s*$/im)
-  if (brMatch) {
-    strippedText = strippedText.replace(brMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(brMatch[1])
-      const note = typeof (parsed && parsed.note) === 'string' ? parsed.note.trim().slice(0, 600) : ''
-      if (note) brandReworkB64 = Buffer.from(JSON.stringify({ note })).toString('base64')
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: brRaw } = extractTrailer(strippedText, 'BRANDREWORK')
+    strippedText = t.trim()
+    if (brRaw) {
+      try {
+        const parsed = JSON.parse(brRaw)
+        const note = typeof (parsed && parsed.note) === 'string' ? parsed.note.trim().slice(0, 600) : ''
+        if (note) brandReworkB64 = Buffer.from(JSON.stringify({ note })).toString('base64')
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Section rework capture: the model may end with a SECTIONREWORK: {json}
   // line carrying a correction to one of the four single-target Focus
@@ -2114,14 +2185,16 @@ export default async function handler(req, res) {
   // here, so a mis-worded or omitted section field from the model can never
   // point the client's write at the wrong section.
   let sectionReworkB64 = null
-  const secMatch = strippedText.match(/^\s*SECTIONREWORK:\s*(\{[\s\S]*?\})\s*$/im)
-  if (secMatch && sectionReworkLabel) {
-    strippedText = strippedText.replace(secMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(secMatch[1])
-      const note = typeof (parsed && parsed.note) === 'string' ? parsed.note.trim().slice(0, 600) : ''
-      if (note) sectionReworkB64 = Buffer.from(JSON.stringify({ note, section: returnSection })).toString('base64')
-    } catch { /* malformed — drop the line, no offer */ }
+  if (sectionReworkLabel) {
+    const { text: t, raw: secRaw } = extractTrailer(strippedText, 'SECTIONREWORK')
+    strippedText = t.trim()
+    if (secRaw) {
+      try {
+        const parsed = JSON.parse(secRaw)
+        const note = typeof (parsed && parsed.note) === 'string' ? parsed.note.trim().slice(0, 600) : ''
+        if (note) sectionReworkB64 = Buffer.from(JSON.stringify({ note, section: returnSection })).toString('base64')
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Op card rework capture: the model may end with an OPCARDREWORK: {json}
   // line naming an opportunity, a specific already-built card, and a note.
@@ -2130,17 +2203,19 @@ export default async function handler(req, res) {
   // validated against a fixed enum so a malformed value can never point the
   // client's write at an arbitrary key.
   let opCardReworkB64 = null
-  const ocrMatch = strippedText.match(/^\s*OPCARDREWORK:\s*(\{[\s\S]*?\})\s*$/im)
-  if (ocrMatch) {
-    strippedText = strippedText.replace(ocrMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(ocrMatch[1])
-      const section = typeof (parsed && parsed.section) === 'string' ? parsed.section : ''
-      const note = typeof (parsed && parsed.note) === 'string' ? parsed.note.trim().slice(0, 600) : ''
-      const opportunity = typeof (parsed && parsed.opportunity) === 'string' ? parsed.opportunity.trim().slice(0, 200) : ''
-      const validSection = ['companyRead', 'p5', 'p6', 'p_res', 'p_cover', 'p11'].includes(section)
-      if (validSection && note) opCardReworkB64 = Buffer.from(JSON.stringify({ section, note, opportunity })).toString('base64')
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: ocrRaw } = extractTrailer(strippedText, 'OPCARDREWORK')
+    strippedText = t.trim()
+    if (ocrRaw) {
+      try {
+        const parsed = JSON.parse(ocrRaw)
+        const section = typeof (parsed && parsed.section) === 'string' ? parsed.section : ''
+        const note = typeof (parsed && parsed.note) === 'string' ? parsed.note.trim().slice(0, 600) : ''
+        const opportunity = typeof (parsed && parsed.opportunity) === 'string' ? parsed.opportunity.trim().slice(0, 200) : ''
+        const validSection = ['companyRead', 'p5', 'p6', 'p_res', 'p_cover', 'p11'].includes(section)
+        if (validSection && note) opCardReworkB64 = Buffer.from(JSON.stringify({ section, note, opportunity })).toString('base64')
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Opportunity context capture: the model may end with an OPPORTUNITYCONTEXT:
   // {json} line naming an opportunity and durable context to append to its
@@ -2149,15 +2224,17 @@ export default async function handler(req, res) {
   // field, not one of several, so there is nothing for a malformed value to
   // misdirect.
   let opportunityContextB64 = null
-  const occMatch = strippedText.match(/^\s*OPPORTUNITYCONTEXT:\s*(\{[\s\S]*?\})\s*$/im)
-  if (occMatch) {
-    strippedText = strippedText.replace(occMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(occMatch[1])
-      const text = typeof (parsed && parsed.text) === 'string' ? parsed.text.trim().slice(0, 800) : ''
-      const opportunity = typeof (parsed && parsed.opportunity) === 'string' ? parsed.opportunity.trim().slice(0, 200) : ''
-      if (text) opportunityContextB64 = Buffer.from(JSON.stringify({ text, opportunity })).toString('base64')
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: occRaw } = extractTrailer(strippedText, 'OPPORTUNITYCONTEXT')
+    strippedText = t.trim()
+    if (occRaw) {
+      try {
+        const parsed = JSON.parse(occRaw)
+        const text = typeof (parsed && parsed.text) === 'string' ? parsed.text.trim().slice(0, 800) : ''
+        const opportunity = typeof (parsed && parsed.opportunity) === 'string' ? parsed.opportunity.trim().slice(0, 200) : ''
+        if (text) opportunityContextB64 = Buffer.from(JSON.stringify({ text, opportunity })).toString('base64')
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Opportunity archive capture (2026-09-06): the model may end with an
   // OPPORTUNITYARCHIVE: {json} line naming an opportunity the person is
@@ -2166,14 +2243,16 @@ export default async function handler(req, res) {
   // through the same archive (deleteFromSavedSet) the screen's own "Remove
   // from pipeline" button uses -- reversible, 90-day hold, not a delete.
   let opportunityArchiveB64 = null
-  const oaMatch = strippedText.match(/^\s*OPPORTUNITYARCHIVE:\s*(\{[\s\S]*?\})\s*$/im)
-  if (oaMatch) {
-    strippedText = strippedText.replace(oaMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(oaMatch[1])
-      const opportunity = typeof (parsed && parsed.opportunity) === 'string' ? parsed.opportunity.trim().slice(0, 200) : ''
-      if (opportunity) opportunityArchiveB64 = Buffer.from(JSON.stringify({ opportunity })).toString('base64')
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: oaRaw } = extractTrailer(strippedText, 'OPPORTUNITYARCHIVE')
+    strippedText = t.trim()
+    if (oaRaw) {
+      try {
+        const parsed = JSON.parse(oaRaw)
+        const opportunity = typeof (parsed && parsed.opportunity) === 'string' ? parsed.opportunity.trim().slice(0, 200) : ''
+        if (opportunity) opportunityArchiveB64 = Buffer.from(JSON.stringify({ opportunity })).toString('base64')
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Close reason capture (2026-09-07): the model may end with a
   // CLOSEREASON: {json} line naming an opportunity, a category, and the
@@ -2184,19 +2263,21 @@ export default async function handler(req, res) {
   // omitted (the client/endpoint then defaults it to 'unknown') rather than
   // guessed when the model did not include it.
   let closeReasonB64 = null
-  const crMatch = strippedText.match(/^\s*CLOSEREASON:\s*(\{[\s\S]*?\})\s*$/im)
-  if (crMatch) {
-    strippedText = strippedText.replace(crMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(crMatch[1])
-      const opportunity = typeof (parsed && parsed.opportunity) === 'string' ? parsed.opportunity.trim().slice(0, 200) : ''
-      const reasonCode = CLOSE_REASON_CODES.includes(parsed && parsed.reasonCode) ? parsed.reasonCode : ''
-      const initiatedBy = INITIATED_BY_VALUES.includes(parsed && parsed.initiatedBy) ? parsed.initiatedBy : ''
-      const detail = typeof (parsed && parsed.detail) === 'string' ? parsed.detail.trim().slice(0, 400) : ''
-      if (opportunity && reasonCode) {
-        closeReasonB64 = Buffer.from(JSON.stringify({ opportunity, reasonCode, initiatedBy, detail })).toString('base64')
-      }
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: crRaw } = extractTrailer(strippedText, 'CLOSEREASON')
+    strippedText = t.trim()
+    if (crRaw) {
+      try {
+        const parsed = JSON.parse(crRaw)
+        const opportunity = typeof (parsed && parsed.opportunity) === 'string' ? parsed.opportunity.trim().slice(0, 200) : ''
+        const reasonCode = CLOSE_REASON_CODES.includes(parsed && parsed.reasonCode) ? parsed.reasonCode : ''
+        const initiatedBy = INITIATED_BY_VALUES.includes(parsed && parsed.initiatedBy) ? parsed.initiatedBy : ''
+        const detail = typeof (parsed && parsed.detail) === 'string' ? parsed.detail.trim().slice(0, 400) : ''
+        if (opportunity && reasonCode) {
+          closeReasonB64 = Buffer.from(JSON.stringify({ opportunity, reasonCode, initiatedBy, detail })).toString('base64')
+        }
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Opportunity update capture: the model may end with an OPPORTUNITYUPDATE:
   // {json} line carrying any combination of a stage move, a next move (with
@@ -2217,56 +2298,58 @@ export default async function handler(req, res) {
   // its wording and loses only its deadline, while a meeting with no usable date
   // is nothing at all.
   let opportunityUpdateB64 = null
-  const ouMatch = strippedText.match(/^\s*OPPORTUNITYUPDATE:\s*(\{[\s\S]*?\})\s*$/im)
-  if (ouMatch) {
-    strippedText = strippedText.replace(ouMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(ouMatch[1])
-      const VALID_PURSUIT_STAGES = new Set(['researching', 'applied', 'phone_screen', 'interviewing', 'final_round', 'offer', 'closed'])
-      const VALID_IV_ROLES = new Set(['hiring_manager', 'skip_level', 'peer', 'cross_functional', 'recruiter_screen'])
-      // Midday UTC so a calendar date cannot slip a day either way.
-      const cleanDate = (v) => {
-        const raw = typeof v === 'string' ? v.trim() : ''
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return ''
-        const d = new Date(`${raw}T12:00:00Z`)
-        const days = (d.getTime() - Date.now()) / 86400000
-        return (!Number.isNaN(d.getTime()) && days > -400 && days < 1900) ? raw : ''
-      }
-      const stage = (parsed && VALID_PURSUIT_STAGES.has(parsed.stage)) ? parsed.stage : ''
-      const move = typeof (parsed && parsed.move) === 'string' ? parsed.move.trim().slice(0, 200) : ''
-      const date = cleanDate(parsed && parsed.date)
-      const meeting = cleanDate(parsed && parsed.meeting)
-      const people = (parsed && Array.isArray(parsed.people) ? parsed.people : [])
-        .map(p => ({
-          name: String((p && p.name) || '').slice(0, 200),
-          title: String((p && p.title) || '').slice(0, 200),
-          role: (p && VALID_IV_ROLES.has(p.role)) ? p.role : '',
-          note: String((p && p.note) || '').slice(0, 300),
-        }))
-        .filter(p => p.name)
-        .slice(0, 12)
-      // Interview Team removal (2026-09-06): names to take off the roster,
-      // not objects -- there is nothing to add, only someone already listed
-      // to identify. Existence against the real roster is checked client-
-      // side at write time (App.jsx), the same place opportunity/person
-      // resolution already happens for every field in this trailer -- this
-      // is length/shape sanitizing only, not a claim the name is real.
-      const removePeople = (parsed && Array.isArray(parsed.removePeople) ? parsed.removePeople : [])
-        .filter(n => typeof n === 'string' && n.trim())
-        .map(n => n.trim().slice(0, 200))
-        .slice(0, 12)
-      if (stage || move || meeting || people.length || removePeople.length) {
-        opportunityUpdateB64 = Buffer.from(JSON.stringify({
-          opportunity: String((parsed && parsed.opportunity) || '').slice(0, 200),
-          stage,
-          move,
-          date: move ? date : '',
-          meeting,
-          people,
-          removePeople,
-        })).toString('base64')
-      }
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: ouRaw } = extractTrailer(strippedText, 'OPPORTUNITYUPDATE')
+    strippedText = t.trim()
+    if (ouRaw) {
+      try {
+        const parsed = JSON.parse(ouRaw)
+        const VALID_PURSUIT_STAGES = new Set(['researching', 'applied', 'phone_screen', 'interviewing', 'final_round', 'offer', 'closed'])
+        const VALID_IV_ROLES = new Set(['hiring_manager', 'skip_level', 'peer', 'cross_functional', 'recruiter_screen'])
+        // Midday UTC so a calendar date cannot slip a day either way.
+        const cleanDate = (v) => {
+          const raw = typeof v === 'string' ? v.trim() : ''
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return ''
+          const d = new Date(`${raw}T12:00:00Z`)
+          const days = (d.getTime() - Date.now()) / 86400000
+          return (!Number.isNaN(d.getTime()) && days > -400 && days < 1900) ? raw : ''
+        }
+        const stage = (parsed && VALID_PURSUIT_STAGES.has(parsed.stage)) ? parsed.stage : ''
+        const move = typeof (parsed && parsed.move) === 'string' ? parsed.move.trim().slice(0, 200) : ''
+        const date = cleanDate(parsed && parsed.date)
+        const meeting = cleanDate(parsed && parsed.meeting)
+        const people = (parsed && Array.isArray(parsed.people) ? parsed.people : [])
+          .map(p => ({
+            name: String((p && p.name) || '').slice(0, 200),
+            title: String((p && p.title) || '').slice(0, 200),
+            role: (p && VALID_IV_ROLES.has(p.role)) ? p.role : '',
+            note: String((p && p.note) || '').slice(0, 300),
+          }))
+          .filter(p => p.name)
+          .slice(0, 12)
+        // Interview Team removal (2026-09-06): names to take off the roster,
+        // not objects -- there is nothing to add, only someone already listed
+        // to identify. Existence against the real roster is checked client-
+        // side at write time (App.jsx), the same place opportunity/person
+        // resolution already happens for every field in this trailer -- this
+        // is length/shape sanitizing only, not a claim the name is real.
+        const removePeople = (parsed && Array.isArray(parsed.removePeople) ? parsed.removePeople : [])
+          .filter(n => typeof n === 'string' && n.trim())
+          .map(n => n.trim().slice(0, 200))
+          .slice(0, 12)
+        if (stage || move || meeting || people.length || removePeople.length) {
+          opportunityUpdateB64 = Buffer.from(JSON.stringify({
+            opportunity: String((parsed && parsed.opportunity) || '').slice(0, 200),
+            stage,
+            move,
+            date: move ? date : '',
+            meeting,
+            people,
+            removePeople,
+          })).toString('base64')
+        }
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Search intake: the model may end with a SEARCHINTAKE: {json} line when the
   // person has just given a real answer to one of the two intake questions. Strip
@@ -2274,21 +2357,23 @@ export default async function handler(req, res) {
   // means the answer was not worth carrying, which is the intended outcome far
   // more often than not — a thin field is better than a noisy one.
   let searchIntakeB64 = null
-  const siMatch = strippedText.match(/^\s*SEARCHINTAKE:\s*(\{[\s\S]*?\})\s*$/im)
-  if (siMatch) {
-    strippedText = strippedText.replace(siMatch[0], '').trim()
-    try {
-      const parsed = JSON.parse(siMatch[1])
-      const clean = v => (typeof v === 'string' ? v.trim().slice(0, 2000) : '')
-      const payload = {}
-      // One key only. goingWell wins if the model emits both, so the offer always
-      // shows exactly the one field the tap will write.
-      if (clean(parsed && parsed.goingWell)) payload.goingWell = clean(parsed.goingWell)
-      else if (clean(parsed && parsed.focus)) payload.focus = clean(parsed.focus)
-      if (payload.goingWell || payload.focus) {
-        searchIntakeB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
-      }
-    } catch { /* malformed — drop the line, no offer */ }
+  {
+    const { text: t, raw: siRaw } = extractTrailer(strippedText, 'SEARCHINTAKE')
+    strippedText = t.trim()
+    if (siRaw) {
+      try {
+        const parsed = JSON.parse(siRaw)
+        const clean = v => (typeof v === 'string' ? v.trim().slice(0, 2000) : '')
+        const payload = {}
+        // One key only. goingWell wins if the model emits both, so the offer always
+        // shows exactly the one field the tap will write.
+        if (clean(parsed && parsed.goingWell)) payload.goingWell = clean(parsed.goingWell)
+        else if (clean(parsed && parsed.focus)) payload.focus = clean(parsed.focus)
+        if (payload.goingWell || payload.focus) {
+          searchIntakeB64 = Buffer.from(JSON.stringify(payload)).toString('base64')
+        }
+      } catch { /* malformed — drop the line, no offer */ }
+    }
   }
   // Distress safety-net: guarantees a human-pointer on genuine-distress inputs.
   // Runs here (not in applyOutputStrippers) because the triggers live in the

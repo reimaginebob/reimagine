@@ -54,7 +54,7 @@ check(coach.includes('Never say no extra step was needed or that it happened on 
 
 // One trailer, one gate: stage/move/meeting/people all land in the same
 // OPPORTUNITYUPDATE: line, gated the same way PIPELINE_CAPTURE_NOTE was.
-check(/const ouMatch = strippedText\.match\(\/\^\\s\*OPPORTUNITYUPDATE:/.test(coach),
+check(coach.includes("extractTrailer(strippedText, 'OPPORTUNITYUPDATE')"),
   `${COACH}: the merged OPPORTUNITYUPDATE: trailer parser is missing`)
 check(!coach.includes('INTERVIEWTEAM_RE') && !/strippedText0?\.match\(\/\^\\s\*INTERVIEWTEAM:/.test(coach),
   `${COACH}: the old INTERVIEWTEAM: trailer parser is still present alongside the merged one`)

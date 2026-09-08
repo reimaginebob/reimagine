@@ -40,7 +40,7 @@ check(coach.includes('If they explicitly ask you to take a skill off the list ("
   `${COACH}: SKILLS_CAPTURE_NOTE does not describe the SKILLSREMOVE trailer`)
 check(coach.includes('Never emit both SKILLSCAPTURE and SKILLSREMOVE in the same reply.'),
   `${COACH}: SKILLS_CAPTURE_NOTE does not forbid emitting both trailers in one reply`)
-check(/const skillsRemoveMatch = strippedText\.match\(\/\^\\s\*SKILLSREMOVE:/.test(coach),
+check(coach.includes("extractTrailer(strippedText, 'SKILLSREMOVE')"),
   `${COACH}: the SKILLSREMOVE trailer parser is missing`)
 check(coach.includes("res.setHeader('X-Coach-Skills-Remove', skillsRemoveB64)"),
   `${COACH}: the X-Coach-Skills-Remove response header is not emitted`)

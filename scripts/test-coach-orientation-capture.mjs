@@ -69,9 +69,9 @@ check(/\$\{VALUES_CAPTURE_NOTE\}\$\{ASSESSMENT_CAPTURE_NOTE\}\$\{reputationCaptu
   `${COACH}: reputationCaptureNote/skillsCaptureNote are not appended in the main profile-slice template`)
 
 // Trailer parsing: validated and capped, same discipline as every sibling.
-check(/const repMatch = strippedText\.match\(\/\^\\s\*REPUTATIONCAPTURE:/.test(coach),
+check(coach.includes("extractTrailer(strippedText, 'REPUTATIONCAPTURE')"),
   `${COACH}: the REPUTATIONCAPTURE trailer parser is missing`)
-check(/const skillsMatch = strippedText\.match\(\/\^\\s\*SKILLSCAPTURE:/.test(coach),
+check(coach.includes("extractTrailer(strippedText, 'SKILLSCAPTURE')"),
   `${COACH}: the SKILLSCAPTURE trailer parser is missing`)
 check(coach.includes("for (const cat of ['technical', 'systems', 'certifications', 'languages', 'methodologies']) {"),
   `${COACH}: the SKILLSCAPTURE parser does not validate against the fixed five-category enum`)

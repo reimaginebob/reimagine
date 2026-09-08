@@ -35,7 +35,7 @@ check(coach.includes("const opportunityArchiveNote = hasPipelineCapture({ featur
 check(coach.includes('${opportunityUpdateNote}${opportunityContextNote}${opportunityArchiveNote}${closeReasonNote}${opCardReworkNote}'),
   `${COACH}: opportunityArchiveNote is not spliced into the profile-slice template alongside its siblings`)
 
-check(/const oaMatch = strippedText\.match\(\/\^\\s\*OPPORTUNITYARCHIVE:/.test(coach),
+check(coach.includes("extractTrailer(strippedText, 'OPPORTUNITYARCHIVE')"),
   `${COACH}: the OPPORTUNITYARCHIVE trailer parser is missing`)
 check(coach.includes("res.setHeader('X-Coach-Opportunity-Archive', opportunityArchiveB64)"),
   `${COACH}: the X-Coach-Opportunity-Archive response header is not emitted`)

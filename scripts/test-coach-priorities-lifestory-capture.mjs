@@ -63,13 +63,13 @@ check(/\$\{reputationCaptureNote\}\$\{skillsCaptureNote\}\$\{prioritiesCaptureNo
   `${COACH}: prioritiesCaptureNote/lifeStoryCaptureNote are not appended in the main profile-slice template`)
 
 // Trailer parsing: validated and capped.
-check(/const prioritiesMatch = strippedText\.match\(\/\^\\s\*PRIORITIESCAPTURE:/.test(coach),
+check(coach.includes("extractTrailer(strippedText, 'PRIORITIESCAPTURE')"),
   `${COACH}: the PRIORITIESCAPTURE trailer parser is missing`)
 check(coach.includes('BENEFITS_WEIGHT_VALUES.includes(parsed && parsed.benefitsWeight)'),
   `${COACH}: benefitsWeight is not validated against BENEFITS_WEIGHT_VALUES before being shipped to the client`)
 check(coach.includes('RISK_TOLERANCE_VALUES.includes(parsed && parsed.riskTolerance)'),
   `${COACH}: riskTolerance is not validated against RISK_TOLERANCE_VALUES before being shipped to the client`)
-check(/const lifeStoryMatch = strippedText\.match\(\/\^\\s\*LIFESTORYCAPTURE:/.test(coach),
+check(coach.includes("extractTrailer(strippedText, 'LIFESTORYCAPTURE')"),
   `${COACH}: the LIFESTORYCAPTURE trailer parser is missing`)
 check(coach.includes("res.setHeader('X-Coach-Priorities', prioritiesB64)"),
   `${COACH}: the X-Coach-Priorities response header is not emitted`)

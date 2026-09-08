@@ -47,7 +47,7 @@ check(coach.includes('${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}'),
 check(coach.includes('clicking to it.${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}'),
   `${COACH}: ASSESSMENT_CAPTURE_NOTE is not appended in the no-profile-yet template as well -- someone on Assessment before Personal Brand exists would get no instruction at all`)
 
-check(/const assessMatch = strippedText\.match\(\/\^\\s\*ASSESSMENTCAPTURE:/.test(coach),
+check(coach.includes("extractTrailer(strippedText, 'ASSESSMENTCAPTURE')"),
   `${COACH}: the ASSESSMENTCAPTURE: trailer parser is missing`)
 check(coach.includes('const assessType = ASSESSMENT_TYPES.includes(parsed && parsed.assessType) ? parsed.assessType : \'\''),
   `${COACH}: the assessType value is not validated against ASSESSMENT_TYPES before being shipped to the client -- an invented value could reach the dropdown`)

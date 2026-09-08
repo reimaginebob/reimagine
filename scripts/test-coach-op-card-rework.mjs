@@ -49,8 +49,8 @@ check(!!profileTemplateMatch && profileTemplateMatch[0].includes('${opCardRework
 // SECTIONREWORK, which trusts server-side context instead), validates
 // against the fixed six-card enum, caps note length, never trusts an
 // unvalidated section through to the client.
-check(/const ocrMatch = strippedText\.match\(\/\^\\s\*OPCARDREWORK:\\s\*/.test(coach),
-  `${COACH}: the OPCARDREWORK trailer regex is missing`)
+check(coach.includes("extractTrailer(strippedText, 'OPCARDREWORK')"),
+  `${COACH}: the OPCARDREWORK trailer parser is missing`)
 check(coach.includes("['companyRead', 'p5', 'p6', 'p_res', 'p_cover', 'p11'].includes(section)"),
   `${COACH}: the op-card-rework parser does not validate section against the fixed enum`)
 check(/if \(validSection && note\) opCardReworkB64 = Buffer\.from/.test(coach),

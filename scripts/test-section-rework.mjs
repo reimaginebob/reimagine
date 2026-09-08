@@ -40,7 +40,7 @@ check(/if \(sectionReworkLabel && _hasText\(_poutputs\[returnSection\]\) && hasS
   `${COACH}: the section-rework note is no longer gated on a resolved label, the section actually having built content, and hasSectionRework -- it would leak to an unbuilt section or a non-flagged account`)
 check(/profileBlock \+= sectionReworkCaptureNote\(sectionReworkLabel\)/.test(coach),
   `${COACH}: the gated section-rework note is no longer appended to profileBlock -- the instruction would never reach the model`)
-check(/const secMatch = strippedText\.match\(\/\^\\s\*SECTIONREWORK:/.test(coach),
+check(coach.includes("extractTrailer(strippedText, 'SECTIONREWORK')"),
   `${COACH}: the SECTIONREWORK trailer parser is missing`)
 check(/JSON\.stringify\(\{ note, section: returnSection \}\)/.test(coach),
   `${COACH}: the section-rework header payload no longer embeds the section server-side from returnSection -- trusting a section named by the model instead would let a malformed reply target the wrong section`)

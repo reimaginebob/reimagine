@@ -34,8 +34,8 @@ const profileTemplateMatch = coach.match(/return `THIS USER'S REIMAGINE PROFILE[
 check(!!profileTemplateMatch && profileTemplateMatch[0].includes('${opportunityContextNote}'),
   `${COACH}: opportunityContextNote is not spliced into the profile block template`)
 
-check(/const occMatch = strippedText\.match\(\/\^\\s\*OPPORTUNITYCONTEXT:\\s\*/.test(coach),
-  `${COACH}: the OPPORTUNITYCONTEXT trailer regex is missing`)
+check(coach.includes("extractTrailer(strippedText, 'OPPORTUNITYCONTEXT')"),
+  `${COACH}: the OPPORTUNITYCONTEXT trailer parser is missing`)
 check(/if \(text\) opportunityContextB64 = Buffer\.from/.test(coach),
   `${COACH}: opportunityContextB64 is not built only when text is present`)
 check(coach.includes("res.setHeader('X-Coach-Opportunity-Context', opportunityContextB64)"),
