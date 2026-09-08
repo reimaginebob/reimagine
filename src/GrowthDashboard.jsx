@@ -76,17 +76,16 @@ const SOURCE_LABELS = {
   other: "Something else", "(not asked)": "Predates the question",
 }
 
-export default function GrowthDashboard({ token, refreshKey = 0 }) {
+export default function GrowthDashboard({ refreshKey = 0 }) {
   const [payload, setPayload] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [liveAsOf, setLiveAsOf] = useState(null)
 
-  const fetchData = useCallback(async (tok) => {
-    if (!tok) return
+  const fetchData = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const res = await fetch("/api/admin/growth", { headers: { Authorization: `Bearer ${tok}` } })
+      const res = await fetch("/api/admin/growth", { credentials: "include" })
       if (res.status === 200) {
         setPayload(await res.json())
         setLiveAsOf(new Date().toUTCString())
@@ -100,11 +99,11 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
     }
   }, [])
 
-  useEffect(() => { fetchData(token) }, [token, refreshKey, fetchData])
+  useEffect(() => { fetchData() }, [refreshKey, fetchData])
 
   if (loading && !payload) return <div style={S.muted}>Loading growth…</div>
   if (error && !payload) return (
-    <div style={S.errorBanner}><span>{error}</span><button onClick={() => fetchData(token)} style={S.retryBtn}>Retry</button></div>
+    <div style={S.errorBanner}><span>{error}</span><button onClick={() => fetchData()} style={S.retryBtn}>Retry</button></div>
   )
   if (!payload) return null
 
@@ -168,7 +167,7 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
         <div style={S.muted}>
           {liveAsOf ? <>Live as of <strong style={{ color: NAVY }}>{liveAsOf}</strong></> : "Loading…"}
         </div>
-        <button onClick={() => fetchData(token)} disabled={loading} style={S.refreshBtn}>{loading ? "…" : "Refresh"}</button>
+        <button onClick={() => fetchData()} disabled={loading} style={S.refreshBtn}>{loading ? "…" : "Refresh"}</button>
       </div>
 
       <div style={S.callout}>
@@ -359,7 +358,7 @@ export default function GrowthDashboard({ token, refreshKey = 0 }) {
             steepest fall on that chart is a list of real people, and this is
             the list. */}
         <Panel title="Signed up and stopped" wide>
-          <DormantAccounts token={token} refreshKey={refreshKey} />
+          <DormantAccounts refreshKey={refreshKey} />
         </Panel>
 
         {/* Progression depth */}

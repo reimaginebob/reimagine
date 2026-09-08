@@ -23,15 +23,24 @@
 // cannot be used in the one situation it exists for. GET is how you find a
 // client_id if you need the narrow form.
 //
-// Auth: Bearer ADMIN_TOKEN, header only (the shape api/admin/suspend-user.js
-// uses). No ?t= query fallback here: unlike the read-only dashboards, this
-// endpoint destroys credentials, and a token in a query string lands in access
-// logs and browser history.
+// Auth: Bearer ADMIN_TOKEN, header only. Deliberately NOT migrated to session
+// + ADMIN_LOGIN_EMAILS along with every browser-facing admin endpoint
+// (finding #2.8, 2026-09-08 prelaunch audit): this endpoint has no dashboard
+// button and no browser UI at all -- per the file's own history, it exists
+// for a maintainer acting on an inbound support email, curled by hand -- so
+// it was never exposed to the vulnerability the audit named (a shared secret
+// sitting in the admin dashboard's own localStorage, reachable by any XSS in
+// the React app). The comparison is now constant-time (it previously used a
+// plain `===`), which is the one part of the finding that did still apply.
+// No ?t= query fallback here: unlike the read-only dashboards, this endpoint
+// destroys credentials, and a token in a query string lands in access logs
+// and browser history.
 //
 // Not added to scripts/smoke-preview.mjs: it needs an admin token, and preview
 // readiness must not depend on one.
 
 import { sql } from '../_lib/db.js'
+import { constantTimeEqual } from '../_lib/timing-safe.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -47,7 +56,7 @@ export default async function handler(req, res) {
     console.error('oauth/revoke: ADMIN_TOKEN not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  if ((req.headers.authorization || '') !== `Bearer ${expected}`) {
+  if (!constantTimeEqual(req.headers.authorization || '', `Bearer ${expected}`)) {
     return res.status(403).json({ error: 'Forbidden' })
   }
 

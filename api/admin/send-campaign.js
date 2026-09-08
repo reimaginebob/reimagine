@@ -4,9 +4,10 @@
 //   POST /api/admin/send-campaign
 //   { "campaign": "dropout-ask", "dryRun": true, "limit": 25 }
 //
-// Auth: ADMIN_TOKEN only. The analyst token cannot reach this and must never be
-// able to — it is a read credential, and this is the one endpoint in the
-// codebase whose mistakes land in a stranger's inbox and cannot be taken back.
+// Auth: signed-in session + ADMIN_LOGIN_EMAILS only (api/_lib/admin-auth.js).
+// Analyst access cannot reach this and must never be able to — it is a read
+// credential, and this is the one endpoint in the codebase whose mistakes
+// land in a stranger's inbox and cannot be taken back.
 //
 // ---------------------------------------------------------------------------
 // SAFETY, which is most of what this file is
@@ -44,7 +45,7 @@
 // touching the Corner newsletter.
 
 import { sql } from '../_lib/db.js'
-import { checkAdminAuth, adminTokenMissing } from '../_lib/admin-auth.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 import { getCampaign, CAMPAIGN_FROM, CAMPAIGN_REPLY_TO, CAMPAIGN_TOPIC_ID } from '../../src/campaign-templates.js'
 
 const DEFAULT_LIMIT = 25
@@ -92,12 +93,12 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  if (adminTokenMissing()) {
-    console.error('admin/send-campaign: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/send-campaign: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
   // allowAnalyst is absent on purpose. Do not add it.
-  if (checkAdminAuth(req) !== 'admin') return res.status(403).json({ error: 'Forbidden' })
+  if ((await checkAdminAuth(req, res)) !== 'admin') return res.status(403).json({ error: 'Forbidden' })
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {

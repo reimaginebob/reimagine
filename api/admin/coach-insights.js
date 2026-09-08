@@ -1,10 +1,10 @@
 // Admin read endpoint for the My Coach question-insight dashboard.
 //
-// Auth mirrors api/admin/analytics.js exactly: ADMIN_TOKEN, accepted as either
-// Authorization: Bearer <token> OR ?t=<token> (browser convenience); missing env
-// -> 500, neither credential -> 403. Same CORS block so a same-origin browser
-// page (src/CoachInsights.jsx) can read it. Internal/test users — ADMIN_EMAILS
-// plus anyone @career.club — are excluded from every aggregate by default so the
+// Auth mirrors api/admin/analytics.js exactly: signed-in session +
+// ADMIN_LOGIN_EMAILS (api/_lib/admin-auth.js); missing env -> 500, no
+// session or wrong account -> 403. No CORS block -- same-origin only
+// (src/CoachInsights.jsx). Internal/test users — ADMIN_EMAILS plus anyone
+// @career.club — are excluded from every aggregate by default so the
 // dashboard reflects real external usage; ?includeInternal=1 shows everyone.
 //
 // PRIVACY: user_id and email NEVER leave the server (email is used only in a WHERE
@@ -25,6 +25,7 @@
 
 import { sql } from '../_lib/db.js'
 import { TAXONOMY_VERSION, CATEGORIES, ATTRIBUTE_KEYS } from '../_lib/coach-taxonomy.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
 const DEFAULT_DAYS = 14
 const MAX_DAYS = 90
@@ -45,25 +46,13 @@ function tally(rows, key) {
 }
 
 export default async function handler(req, res) {
-  // CORS — same posture as analytics.js: wildcard origin is safe because the
-  // ADMIN_TOKEN gate below is unchanged and a wildcard cannot ride credentialed
-  // (cookie) requests, so no ambient authority is exposed.
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
-  if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  const expected = process.env.ADMIN_TOKEN
-  if (!expected) {
-    console.error('admin/coach-insights: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/coach-insights: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  const auth = req.headers.authorization || ''
-  const headerOk = auth === `Bearer ${expected}`
-  const queryToken = (req.query && typeof req.query.t === 'string') ? req.query.t : ''
-  const queryOk = queryToken !== '' && queryToken === expected.trim()
-  if (!headerOk && !queryOk) return res.status(403).json({ error: 'Forbidden' })
+  if (!(await checkAdminAuth(req, res))) return res.status(403).json({ error: 'Forbidden' })
 
   // Window (?days=, capped) and attribute filters (?topic=, ?stage=, ...),
   // validated against the taxonomy so nothing untrusted reaches SQL.

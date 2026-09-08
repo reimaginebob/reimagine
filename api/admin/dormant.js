@@ -2,8 +2,8 @@
 // with likely duplicate accounts flagged. Backs the "Signed up and stopped"
 // panel on the Growth tab.
 //
-// Auth: Bearer ADMIN_TOKEN, same token as the other admin endpoints.
-// Method: GET only.
+// Auth: signed-in session + ADMIN_LOGIN_EMAILS/ANALYST_LOGIN_EMAILS
+// (api/_lib/admin-auth.js). Method: GET only.
 //
 // Separate from api/admin/growth.js on purpose. Growth is aggregates only;
 // this returns email addresses, so it is its own endpoint with its own name
@@ -30,7 +30,7 @@
 
 import { sql } from '../_lib/db.js'
 import { normalizeEmail } from '../_lib/normalize-email.js'
-import { checkAdminAuth, adminTokenMissing } from '../_lib/admin-auth.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
 function parseAdminEmails(envValue) {
   if (typeof envValue !== 'string') return []
@@ -48,19 +48,15 @@ function nameKey(first, last) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
-  if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  if (adminTokenMissing()) {
-    console.error('admin/dormant: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/dormant: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  // Read-only. Returns email addresses, so it is deliberately one of only three
-  // routes an analyst token opens.
-  if (!checkAdminAuth(req, { allowAnalyst: true })) {
+  // Read-only. Returns email addresses, so it is deliberately one of the
+  // routes analyst access opens.
+  if (!(await checkAdminAuth(req, res, { allowAnalyst: true }))) {
     return res.status(403).json({ error: 'Forbidden' })
   }
 

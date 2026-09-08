@@ -3,9 +3,8 @@
 // tokens, survey_responses) plus the analytics_events table populated by
 // api/admin/analytics-drain.js.
 //
-// Auth: Bearer token via ADMIN_TOKEN env var. Mirrors the CRON_SECRET pattern
-// in api/survey/daily-digest.js verbatim with the env-var swap. Strict
-// equality check; mismatch returns 403. Missing env var returns 500.
+// Auth: signed-in session + ADMIN_LOGIN_EMAILS (api/_lib/admin-auth.js).
+// Missing env var returns 500; no session or wrong account returns 403.
 //
 // Method: GET only.
 //
@@ -30,6 +29,7 @@
 //   backfills. Drop the proxies in a follow-up after ~2 weeks of bake.
 
 import { sql } from '../_lib/db.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
 // Focus Playbook section IDs. Mirrors FOCUS_GROUPS in src/App.jsx (line
 // ~3007). p10 is retired (single-line stub redirecting to p11 per
@@ -624,43 +624,22 @@ async function loadDetail(userId) {
 }
 
 export default async function handler(req, res) {
-  // CORS: the Reimagine Daily Cowork desktop artifact calls this endpoint
-  // cross-origin from a browser context. Set the headers before any auth or
-  // method check so they ride on every response path (204 preflight, 200,
-  // 403, 405, 500). '*' is safe here: the ADMIN_TOKEN bearer gate below is
-  // unchanged, and a wildcard origin cannot be combined with credentialed
-  // (cookie) requests, so this exposes no ambient authority: an unauthorized
-  // caller still gets 403, just with the CORS headers attached.
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end()
-  }
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const expected = process.env.ADMIN_TOKEN
-  if (!expected) {
-    console.error('admin/analytics: ADMIN_TOKEN not configured')
+  // Session cookie + ADMIN_LOGIN_EMAILS (finding #2.8, 2026-09-08 prelaunch
+  // audit), replacing the ADMIN_TOKEN bearer/query-param model. No CORS
+  // block: this is a same-origin call from src/AdminDashboard.jsx, and a
+  // cross-origin caller could never present this browser's session cookie
+  // anyway. The prior CORS comment's rationale (a cross-origin Cowork
+  // desktop artifact) predates AdminDashboard.jsx, which replaced that
+  // artifact for exactly this reason -- see AdminDashboard.jsx's own header.
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/analytics: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  // Two accepted credentials, either suffices:
-  //  (1) Authorization: Bearer <token> header - unchanged; the path curl,
-  //      scheduled tasks, and backward-compat callers use.
-  //  (2) ?t=<token> query param - added for browser callers that cannot send
-  //      an Authorization header without triggering a CORS preflight (a
-  //      query-param GET is a "simple request"). Compared against the trimmed
-  //      env value so a stray newline in ADMIN_TOKEN cannot break it.
-  // Tradeoff: query-string tokens can surface in access logs / browser history
-  // / referrers, so the header remains the preferred path; the query param is
-  // a convenience for the browser artifact only. Neither match -> 403 (as before).
-  const auth = req.headers.authorization || ''
-  const headerOk = auth === `Bearer ${expected}`
-  const queryToken = (req.query && typeof req.query.t === 'string') ? req.query.t : ''
-  const queryOk = queryToken !== '' && queryToken === expected.trim()
-  if (!headerOk && !queryOk) {
+  if (!(await checkAdminAuth(req, res))) {
     return res.status(403).json({ error: 'Forbidden' })
   }
 

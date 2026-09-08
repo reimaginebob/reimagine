@@ -17,10 +17,19 @@
 // source = 'observed' so the difference is visible. At a daily cadence, against
 // a question measured in weeks, that is close enough.
 //
-// Auth: CRON_SECRET as a Bearer token (Vercel cron sends it), or ADMIN_TOKEN so
-// it can be triggered by hand. Mirrors the pattern in the other cron endpoints.
+// Auth: CRON_SECRET as a Bearer token (Vercel cron sends it), or ADMIN_TOKEN
+// so it can be triggered by hand. Mirrors the pattern in the other cron
+// endpoints. ADMIN_TOKEN deliberately was NOT migrated to session +
+// ADMIN_LOGIN_EMAILS (finding #2.8, 2026-09-08 prelaunch audit) along with
+// every browser-facing admin endpoint: this is an unattended ops trigger
+// with no dashboard button and no browser surface to leak a token from, so
+// the vulnerability the audit named (a shared secret sitting in the admin
+// dashboard's own localStorage) never applied to it. The one thing that did
+// still apply -- comparing it with a non-constant-time `===` -- is fixed
+// below.
 
 import { sql } from '../_lib/db.js'
+import { constantTimeEqual } from '../_lib/timing-safe.js'
 
 const FOCUS_STEP_IDS = ['p5', 'p6', 'p7', 'p8', 'p9', 'p11', 'p_res']
 
@@ -28,8 +37,8 @@ export default async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET
   const adminToken = process.env.ADMIN_TOKEN
   const auth = req.headers.authorization || ''
-  const ok = (cronSecret && auth === `Bearer ${cronSecret}`) ||
-             (adminToken && auth === `Bearer ${adminToken}`)
+  const ok = (!!cronSecret && constantTimeEqual(auth, `Bearer ${cronSecret}`)) ||
+             (!!adminToken && constantTimeEqual(auth, `Bearer ${adminToken}`))
   if (!ok) return res.status(403).json({ error: 'Forbidden' })
 
   try {

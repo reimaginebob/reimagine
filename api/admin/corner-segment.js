@@ -4,7 +4,8 @@
 //   POST /api/admin/corner-segment
 //   { "dryRun": true, "limit": 200 }
 //
-// Auth: ADMIN_TOKEN only. It writes to the live contact list.
+// Auth: signed-in session + ADMIN_LOGIN_EMAILS (api/_lib/admin-auth.js).
+// Admin-only -- it writes to the live contact list.
 //
 // Why this exists: the Corner campaign is "try Reimagine", and sending it to
 // somebody who already uses Reimagine is the single most obvious way to look
@@ -26,7 +27,7 @@
 // per run and the response reports what is left.
 
 import { sql } from '../_lib/db.js'
-import { checkAdminAuth, adminTokenMissing } from '../_lib/admin-auth.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 import { normalizeEmail } from '../_lib/normalize-email.js'
 
 // Resend segment ids. Not secrets — account configuration.
@@ -71,12 +72,12 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  if (adminTokenMissing()) {
-    console.error('admin/corner-segment: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/corner-segment: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
   // Read credentials must never reach a route that mutates the contact list.
-  if (checkAdminAuth(req) !== 'admin') return res.status(403).json({ error: 'Forbidden' })
+  if ((await checkAdminAuth(req, res)) !== 'admin') return res.status(403).json({ error: 'Forbidden' })
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {

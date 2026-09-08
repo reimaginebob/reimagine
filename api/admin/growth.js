@@ -2,7 +2,8 @@
 // /admin/dashboard. The set an investor asks for, computed from the tables we
 // already have.
 //
-// Auth: Bearer ADMIN_TOKEN, same token as the other admin endpoints.
+// Auth: signed-in session + ADMIN_LOGIN_EMAILS/ANALYST_LOGIN_EMAILS
+// (api/_lib/admin-auth.js).
 // Method: GET only. No range parameter -- every view here is either all-time,
 // cohort-relative, or fixed to a named window, and a filter pill over cohort
 // curves would mean nothing.
@@ -26,7 +27,7 @@
 // reconstructed from timestamped rows that carry a user_id.
 
 import { sql } from '../_lib/db.js'
-import { checkAdminAuth, adminTokenMissing } from '../_lib/admin-auth.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
 // The seven Focus Playbook sections, in sidebar order. Mirrors FOCUS_STEP_IDS
 // in api/admin/analytics.js; p10 is retired and `income` is a separate bonus
@@ -792,18 +793,14 @@ async function loadPayload(adminEmails) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
-  if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  if (adminTokenMissing()) {
-    console.error('admin/growth: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/growth: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  // Read-only aggregates; an analyst token is enough.
-  if (!checkAdminAuth(req, { allowAnalyst: true })) {
+  // Read-only aggregates; analyst access is enough.
+  if (!(await checkAdminAuth(req, res, { allowAnalyst: true }))) {
     return res.status(403).json({ error: 'Forbidden' })
   }
 
