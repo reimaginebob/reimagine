@@ -113,18 +113,17 @@ async function loadAggregate(rangeInterval, adminEmails) {
            WHERE ((profile_state->'done') ? 'op'
                    OR NULLIF(TRIM(profile_state->'outputs'->>'op'), '') IS NOT NULL)
              AND LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS op_started_users,
-        (SELECT COALESCE(SUM(
-           (SELECT COUNT(*)::int FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks','[]'::jsonb)) AS pb
-            WHERE pb->>'source' = 'door1'
-              AND (pb->>'createdAt')::timestamptz >= NOW() - (${rangeInterval})::interval)
-        ), 0)::int FROM users
-           WHERE LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS focus_playbooks_built,
-        (SELECT COALESCE(SUM(
-           (SELECT COUNT(*)::int FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks','[]'::jsonb)) AS pb
-            WHERE pb->>'source' = 'door2'
-              AND (pb->>'createdAt')::timestamptz >= NOW() - (${rangeInterval})::interval)
-        ), 0)::int FROM users
-           WHERE LOWER(email) <> ALL(${adminEmails}::text[]))                                             AS op_playbooks_built
+        -- Reads saved_playbooks directly (finding #2.7): the JSONB blob copy
+        -- stopped updating after Phase 3 of the savedPlaybooks migration.
+        -- No archived_at filter, matching the blob query's own behavior.
+        (SELECT COUNT(*)::int FROM saved_playbooks sp JOIN users u2 ON u2.id = sp.user_id
+           WHERE sp.source = 'door1'
+             AND sp.created_at >= NOW() - (${rangeInterval})::interval
+             AND LOWER(u2.email) <> ALL(${adminEmails}::text[]))                                          AS focus_playbooks_built,
+        (SELECT COUNT(*)::int FROM saved_playbooks sp JOIN users u2 ON u2.id = sp.user_id
+           WHERE sp.source = 'door2'
+             AND sp.created_at >= NOW() - (${rangeInterval})::interval
+             AND LOWER(u2.email) <> ALL(${adminEmails}::text[]))                                          AS op_playbooks_built
     `,
     sql`
       SELECT COUNT(*)::int AS session_count
@@ -286,36 +285,39 @@ async function loadAggregate(rangeInterval, adminEmails) {
       FROM users
       WHERE LOWER(email) <> ALL(${adminEmails}::text[])
     `,
-    // Panel 1b: per-playbook drill-in. CROSS JOIN LATERAL unrolls each user's
-    // savedPlaybooks array into one row per playbook. sections_built is
-    // door1 = length of the `done` array; door2 = count of non-empty section
-    // entries, handling both the {content,builtAt} object shape and the plain-
-    // string p6 shape (post-PR #154 reshape) via the second OR clause. The
-    // range filter keeps playbooks created in the window even for users created
-    // outside it. LIMIT 500 is conservative; bump if volume needs it.
+    // Panel 1b: per-playbook drill-in. JOINs saved_playbooks directly
+    // (finding #2.7) instead of unrolling the JSONB blob's savedPlaybooks
+    // array, which stopped updating after Phase 3 of that migration.
+    // sections_built is door1 = length of the `done` array; door2 = count of
+    // non-empty section entries, handling both the {content,builtAt} object
+    // shape and the plain-string p6 shape (post-PR #154 reshape) via the
+    // second OR clause. The range filter keeps playbooks created in the
+    // window even for users created outside it. LIMIT 500 is conservative;
+    // bump if volume needs it. No archived_at filter, matching the blob
+    // query's own (never-filtered) behavior.
     sql`
       SELECT
         u.email,
-        pb.value->>'title' AS title,
-        pb.value->>'lane' AS lane,
-        pb.value->>'source' AS source,
-        (pb.value->>'schemaVersion')::int AS schema_version,
-        pb.value->>'createdAt' AS created_at,
-        pb.value->>'updatedAt' AS updated_at,
+        sp.data->>'title' AS title,
+        sp.data->>'lane' AS lane,
+        sp.source AS source,
+        (sp.data->>'schemaVersion')::int AS schema_version,
+        sp.created_at AS created_at,
+        sp.data->>'updatedAt' AS updated_at,
         CASE
-          WHEN pb.value->>'source' = 'door1' THEN COALESCE(jsonb_array_length(pb.value->'done'), 0)
-          WHEN pb.value->>'source' = 'door2' THEN (
-            SELECT COUNT(*)::int FROM jsonb_each(COALESCE(pb.value->'sections', '{}'::jsonb)) AS s
+          WHEN sp.source = 'door1' THEN COALESCE(jsonb_array_length(sp.data->'done'), 0)
+          WHEN sp.source = 'door2' THEN (
+            SELECT COUNT(*)::int FROM jsonb_each(COALESCE(sp.data->'sections', '{}'::jsonb)) AS s
             WHERE (s.value->>'content' IS NOT NULL AND s.value->>'content' <> '')
                OR (jsonb_typeof(s.value) = 'string' AND s.value::text <> '""')
           )
           ELSE 0
         END AS sections_built
       FROM users u
-      CROSS JOIN LATERAL jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) AS pb
+      JOIN saved_playbooks sp ON sp.user_id = u.id
       WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
-        AND (u.created_at >= NOW() - (${rangeInterval})::interval OR (pb.value->>'createdAt')::timestamptz >= NOW() - (${rangeInterval})::interval)
-      ORDER BY (pb.value->>'createdAt') DESC NULLS LAST
+        AND (u.created_at >= NOW() - (${rangeInterval})::interval OR sp.created_at >= NOW() - (${rangeInterval})::interval)
+      ORDER BY sp.created_at DESC NULLS LAST
       LIMIT 500
     `,
     // Panel 1c: employment status crossed with door usage. Reuses Panel 1's

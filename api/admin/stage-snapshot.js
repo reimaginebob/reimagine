@@ -83,34 +83,39 @@ export default async function handler(req, res) {
       ON CONFLICT (user_id, stage) DO NOTHING
       RETURNING id`)
 
+    // Both stage gates below read saved_playbooks directly (finding #2.7):
+    // the JSONB blob copy stopped updating after Phase 3 of the
+    // savedPlaybooks migration, so an account whose only door1/door2
+    // playbook was created after its blob went stale was invisible to this
+    // gate. Because of ON CONFLICT DO NOTHING, a (user_id, stage) row once
+    // written is never revisited -- this only affects accounts not yet
+    // recorded at the stage, so the first run after deploy will insert a
+    // batch of previously-missed rows for existing accounts. No archived_at
+    // filter, matching the blob query's own (never-filtered) behavior.
     run('opportunity', await sql`
       INSERT INTO user_stage_events (user_id, stage, entered_at, source)
       SELECT u.id, 'opportunity',
-             COALESCE((SELECT MIN(NULLIF(pb->>'createdAt', '')::timestamptz)
-                         FROM jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) pb
-                        WHERE pb->>'source' = 'door2'), NOW()),
+             COALESCE((SELECT MIN(sp.created_at) FROM saved_playbooks sp
+                        WHERE sp.user_id = u.id AND sp.source = 'door2'), NOW()),
              'observed'
       FROM users u
       WHERE (u.profile_state->'done') ? 'op'
          OR NULLIF(TRIM(u.profile_state->'outputs'->>'op'), '') IS NOT NULL
-         OR EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) pb
-                     WHERE pb->>'source' = 'door2')
+         OR EXISTS (SELECT 1 FROM saved_playbooks sp WHERE sp.user_id = u.id AND sp.source = 'door2')
       ON CONFLICT (user_id, stage) DO NOTHING
       RETURNING id`)
 
     run('career_paths', await sql`
       INSERT INTO user_stage_events (user_id, stage, entered_at, source)
       SELECT u.id, 'career_paths',
-             COALESCE((SELECT MIN(NULLIF(pb->>'createdAt', '')::timestamptz)
-                         FROM jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) pb
-                        WHERE pb->>'source' = 'door1'), NOW()),
+             COALESCE((SELECT MIN(sp.created_at) FROM saved_playbooks sp
+                        WHERE sp.user_id = u.id AND sp.source = 'door1'), NOW()),
              'observed'
       FROM users u
       WHERE (u.profile_state->'done') ? 'laneSelect'
          OR NULLIF(TRIM(u.profile_state->'outputs'->>'p4'), '') IS NOT NULL
          OR NULLIF(TRIM(u.profile_state->'outputs'->>'p5'), '') IS NOT NULL
-         OR EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) pb
-                     WHERE pb->>'source' = 'door1')
+         OR EXISTS (SELECT 1 FROM saved_playbooks sp WHERE sp.user_id = u.id AND sp.source = 'door1')
       ON CONFLICT (user_id, stage) DO NOTHING
       RETURNING id`)
 
