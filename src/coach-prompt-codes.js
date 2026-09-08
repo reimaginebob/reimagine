@@ -17,6 +17,11 @@ export const PROMPT_CODES = [
   'brand_richness',
   'values_thin',
   'ptw_arrival',
+  'career_paths_arrival',
+  'choice_lane',
+  'choice_role',
+  'delivery_p5',
+  'delivery_p6',
 ]
 
 // The MECHANISM that caused one particular firing of a prompt_code.
