@@ -15532,7 +15532,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             // manual single-card Build/Rebuild never shows the banner.
             const _opAutoSeq=_pendingAutoBuildRef.current===currentSavedSlotIdRef.current
             const _renderSection=(key,content)=>{
-              if(key==='p_res'){const j=parseResumeJSON(content);if(j)return <ResumeRefreshView resumeJson={j} isDemo={isDemo} copy={copy} copied={copied} independent={isIndependent}/>}
+              if(key==='p_res'){
+                const j=parseResumeJSON(content)
+                if(j)return <ResumeRefreshView resumeJson={j} isDemo={isDemo} copy={copy} copied={copied} independent={isIndependent}/>
+                // Same fallback as the Focus Playbook's p_res branch (renderBody
+                // above): parseResumeJSON returning null here means the model's
+                // JSON came back incomplete or malformed, and this path
+                // (Opportunity Playbook) had no message for that case -- it fell
+                // through to the generic <MD text={content}/> below and rendered
+                // the raw, broken JSON as plain text with zero explanation.
+                return <><div style={S.note}>The download didn't come together cleanly on this try. This happens once in a while. Regenerate this section and it usually lands right the second time.</div><div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:16,lineHeight:1.65,color:C.cream,margin:0}}>{content}</pre></div></>
+              }
               if(key==='p11')return renderInterviewPrep(content,isDemo?undefined:regenerateOpP11Question,regeneratingP11QuestionIdx,p11QuestionErrors,isDemo?undefined:(seatName,seatQs)=>openCoachWith(`I want to practice my answers for my interview with ${seatName} for ${_rec.title||'this role'}.`+((Array.isArray(seatQs)&&seatQs.length)?` The questions Reimagine expects from ${seatName} are:\n${seatQs.map(q=>`- ${q}`).join('\n')}\n\nAsk me which one I want to start with, then let me answer it out loud and give me feedback.`:''),false,'p11'))
               return <div style={S.out}><MD text={content}/></div>
             }
