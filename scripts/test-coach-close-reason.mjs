@@ -175,7 +175,7 @@ check(hydrationHits === 2,
 // adjacency string -- later additions insert their own fields between
 // these names, which would break a literal match anchored on today's
 // exact ordering.
-const crSaveBlobIdx = app.indexOf('const blob=JSON.stringify(')
+const crSaveBlobIdx = app.indexOf('const stateForSave={')
 check(app.slice(crSaveBlobIdx, crSaveBlobIdx + 700).includes('seenCloseReasonMention'),
   `${APP}: seenCloseReasonMention is missing from the autosave blob's JSON.stringify`)
 const crSaveDepsIdx = app.indexOf('saveRef.current=save')

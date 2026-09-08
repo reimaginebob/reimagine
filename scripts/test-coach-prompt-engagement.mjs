@@ -117,7 +117,7 @@ const hubHydrationHits = (app.match(/if\(d\.seenLifeEventsThinHub\)setSeenLifeEv
 check(hubHydrationHits === 2, `${APP}: expected seenLifeEventsThinHub hydration in both the local pe_v4 path and the server profile/load path, found ${hubHydrationHits}`)
 const countHydrationHits = (app.match(/if\(Number\.isFinite\(d\.lifeEventsThinTopicCloseCount\)\)setLifeEventsThinTopicCloseCount\(Number\(d\.lifeEventsThinTopicCloseCount\)\)/g) || []).length
 check(countHydrationHits === 2, `${APP}: expected lifeEventsThinTopicCloseCount hydration in both hydration paths, found ${countHydrationHits}`)
-const saveBlobIdx = app.indexOf('const blob=JSON.stringify(')
+const saveBlobIdx = app.indexOf('const stateForSave={')
 const saveBlobBlock = app.slice(saveBlobIdx, saveBlobIdx + 700)
 check(saveBlobBlock.includes('seenLifeEventsThinHub') && saveBlobBlock.includes('lifeEventsThinTopicCloseCount'),
   `${APP}: seenLifeEventsThinHub/lifeEventsThinTopicCloseCount are missing from the autosave blob's JSON.stringify -- neither would actually persist`)

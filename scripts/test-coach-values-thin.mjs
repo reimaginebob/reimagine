@@ -56,7 +56,7 @@ check(app.includes('const[seenValuesThinHub,setSeenValuesThinHub]=useState(false
   `${APP}: seenValuesThinHub useState declaration is missing`)
 const hydrationHits = (app.match(/if\(d\.seenValuesThinHub\)setSeenValuesThinHub\(true\)/g) || []).length
 check(hydrationHits === 2, `${APP}: expected seenValuesThinHub hydration in both hydration paths, found ${hydrationHits}`)
-const saveBlobIdx = app.indexOf('const blob=JSON.stringify(')
+const saveBlobIdx = app.indexOf('const stateForSave={')
 check(app.slice(saveBlobIdx, saveBlobIdx + 900).includes('seenValuesThinHub'),
   `${APP}: seenValuesThinHub is missing from the autosave blob's JSON.stringify`)
 const saveDepsIdx = app.indexOf('saveRef.current=save')

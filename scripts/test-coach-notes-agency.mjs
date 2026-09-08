@@ -70,7 +70,7 @@ check(hydrationCount === 2, `${APP}: expected seenNotesCapabilityMention hydrati
 // Substring check against the blob neighborhood, not an exact-adjacency
 // string -- later additions insert their own fields between these names,
 // which would break a literal match anchored on today's exact ordering.
-const notesSaveBlobIdx = app.indexOf('const blob=JSON.stringify(')
+const notesSaveBlobIdx = app.indexOf('const stateForSave={')
 check(app.slice(notesSaveBlobIdx, notesSaveBlobIdx + 700).includes('seenNotesCapabilityMention'),
   `${APP}: seenNotesCapabilityMention is not threaded into the debounced save blob`)
 
