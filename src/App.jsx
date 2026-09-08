@@ -9154,6 +9154,19 @@ export default function PivotEngine(){
     // Yield to the Personal Brand check-in only where it actually fires (twoDoors),
     // so the two never share a visit; on other surfaces there is nothing to collide with.
     if(step==='twoDoors'&&(pbCheckinFiredRef.current||(!seenPbCheckin&&outputs&&outputs.p3)))return
+    // Yield to the session-open recap / pipeline check-in opener the same
+    // way: both fire on the very same My Coach arrival this effect also
+    // targets (myCoach step, or the floating bubble opening via
+    // coachOpenTick), and pushing a second, unrelated question behind
+    // Coach's own opening line read as talking over itself. My Coach
+    // review, finding #4.7. Whichever of the three opener mechanisms claims
+    // the welcome-back slot first wins the session; this one simply gets no
+    // slot to claim this session and tries again next session instead --
+    // employmentStatus stays unset, so nothing about this account's
+    // eligibility to be asked is lost, only deferred.
+    let sessionOpenerFired=false
+    try{sessionOpenerFired=sessionStorage.getItem('reimagine_session_recap_fired')==='1'||sessionStorage.getItem('reimagine_pipeline_checkin_fired')==='1'}catch{}
+    if(sessionOpenerFired)return
     employmentPromptFiredRef.current=true
     setSeenEmploymentPrompt(true)
     logPromptEngagement('employment_status','hub_arrival','shown')
