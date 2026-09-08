@@ -467,6 +467,21 @@ export function sanitizeHistoryForModel(history) {
   return (Array.isArray(history) ? history : []).filter(m => m && !m.intro && !m.banner && !m.checkinKey && !m.synthetic)
 }
 
+// Which kind of turn this is, for the chat_messages.turn_kind column: a
+// session-open, orientation-check, or post-capture turn stores an internal
+// instruction as `message`, not something the person asked, and the insight
+// dashboard / nightly classifier need to tell those apart from a real
+// question. My Coach review, finding #3.1. Mirrors the exact precedence the
+// `message` value itself is built with: a real typed message always wins,
+// even on a turn that also carries one of the other three shapes.
+export function computeTurnKind(rawMessage, { orientationCheckRequested, postCaptureUpdateRequested, sessionOpenRequested }) {
+  if (typeof rawMessage === 'string' && rawMessage.trim()) return 'user'
+  if (orientationCheckRequested) return 'orientation_check'
+  if (postCaptureUpdateRequested) return 'post_capture'
+  if (sessionOpenRequested) return 'session_open'
+  return 'user'
+}
+
 // The three reflective "who they are" fields: judged on whether the answer
 // differentiates this person or could describe almost anyone -- see the
 // header comment above for why this is a real per-answer call rather than a
@@ -1831,6 +1846,7 @@ export default async function handler(req, res) {
     : orientationCheckRequested ? buildOrientationCheckTurnText(orientationCheck.step, orientationCheck.text)
     : postCaptureUpdateRequested ? buildPostCaptureTurnText(postCaptureUpdate)
     : (sessionOpenRequested ? SESSION_OPEN_TURN_TEXT : '')
+  const turnKind = computeTurnKind(rawMessage, { orientationCheckRequested, postCaptureUpdateRequested, sessionOpenRequested })
   // Go Independent business-of-consulting grounding (2026-08-28). Six chapters,
   // roughly 30k tokens, for accounts on that track ONLY -- someone still job
   // searching should never have Coach reaching into 401(k)-loan risk or B2B
@@ -2473,8 +2489,8 @@ export default async function handler(req, res) {
   let rowId = null
   try {
     const rows = await sql`
-      INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to, lane, turn_index, has_resume, has_personal_brand, entry_point)
-      VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${null}, ${lane}, ${turnIndex}, ${hasResume}, ${hasPersonalBrand}, ${entryPoint})
+      INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to, lane, turn_index, has_resume, has_personal_brand, entry_point, turn_kind, feature_flags_snapshot)
+      VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${null}, ${lane}, ${turnIndex}, ${hasResume}, ${hasPersonalBrand}, ${entryPoint}, ${turnKind}, ${JSON.stringify(featureFlags)}::jsonb)
       RETURNING id
     `
     rowId = rows && rows[0] && rows[0].id

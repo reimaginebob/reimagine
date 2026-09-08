@@ -130,6 +130,12 @@ export default async function handler(req, res) {
           ON t.message_id = c.id AND t.taxonomy_version = ${TAXONOMY_VERSION}
         WHERE t.message_id IS NULL
           AND c.message IS NOT NULL
+          -- Silent turns (session-open, orientation-check, post-capture) store an
+          -- internal instruction, not a question -- classifying it would feed the
+          -- taxonomy text that was never asked by the person. My Coach review
+          -- finding #3.1. NULL is a row written before turn_kind existed, treated
+          -- as 'user' (no backfill; see the migration's own comment).
+          AND (c.turn_kind IS NULL OR c.turn_kind = 'user')
         ORDER BY c.created_at DESC
         LIMIT ${CHUNK}
       `

@@ -15,6 +15,13 @@
 // breakdown, answer-quality counts) are always on. Requires the selfcheck columns
 // (2026-06-10), the insight columns/table (2026-06-12), and the rating columns
 // (2026-06-12 coach-reply-ratings) to be live.
+//
+// Every query below excludes turn_kind values other than 'user' (NULL --
+// rows written before 2026-09-08 -- treated as 'user', no backfill): a
+// session-open, orientation-check, or post-capture turn stores an internal
+// instruction as `message`, not something the person asked, and counting it
+// here was silently skewing the coaching-vs-navigation read. My Coach
+// review, finding #3.1.
 
 import { sql } from '../_lib/db.js'
 import { TAXONOMY_VERSION, CATEGORIES, ATTRIBUTE_KEYS } from '../_lib/coach-taxonomy.js'
@@ -112,6 +119,7 @@ export default async function handler(req, res) {
       FROM chat_messages c
       LEFT JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
+        AND (c.turn_kind IS NULL OR c.turn_kind = 'user')
         AND (${hasFilter} = false OR t.attributes @> ${filterJson}::jsonb)
         AND (${includeInternal} OR NOT EXISTS (
           SELECT 1 FROM users u WHERE u.id = c.user_id
@@ -137,6 +145,7 @@ export default async function handler(req, res) {
       FROM chat_messages c
       JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
+        AND (c.turn_kind IS NULL OR c.turn_kind = 'user')
         AND (${hasFilter} = false OR t.attributes @> ${filterJson}::jsonb)
         AND (${includeInternal} OR NOT EXISTS (
           SELECT 1 FROM users u WHERE u.id = c.user_id
@@ -155,6 +164,7 @@ export default async function handler(req, res) {
       FROM chat_messages c
       LEFT JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
+        AND (c.turn_kind IS NULL OR c.turn_kind = 'user')
         AND c.selfcheck_verdict = 'matched' AND c.selfcheck_feature IS NOT NULL
         AND (${hasFilter} = false OR t.attributes @> ${filterJson}::jsonb)
         AND (${includeInternal} OR NOT EXISTS (
@@ -177,6 +187,7 @@ export default async function handler(req, res) {
       FROM chat_messages c
       JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
+        AND (c.turn_kind IS NULL OR c.turn_kind = 'user')
         AND c.rating = -1
         AND (${hasFilter} = false OR t.attributes @> ${filterJson}::jsonb)
         AND (${includeInternal} OR NOT EXISTS (
@@ -208,6 +219,7 @@ export default async function handler(req, res) {
         FROM chat_messages c
         LEFT JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
         WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
+        AND (c.turn_kind IS NULL OR c.turn_kind = 'user')
           AND c.rating IS NOT NULL
           AND (${hasFilter} = false OR t.attributes @> ${filterJson}::jsonb)
           AND (${includeInternal} OR NOT EXISTS (
@@ -233,6 +245,7 @@ export default async function handler(req, res) {
       FROM chat_messages c
       LEFT JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
+        AND (c.turn_kind IS NULL OR c.turn_kind = 'user')
         AND c.selfcheck_verdict = 'none'
         AND (${hasFilter} = false OR t.attributes @> ${filterJson}::jsonb)
         AND (${includeInternal} OR NOT EXISTS (

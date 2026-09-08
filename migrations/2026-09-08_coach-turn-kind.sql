@@ -1,0 +1,25 @@
+-- Marks non-user ("silent") Coach turns so the insight dashboard and the
+-- nightly classifier can exclude them. Session-open, orientation-check, and
+-- post-capture turns store an internal instruction as chat_messages.message
+-- with no marker distinguishing them from a real typed question -- the
+-- insight dashboard's coaching-vs-navigation read (api/admin/coach-insights.js)
+-- and the classifier's "USER QUESTION" prompt (api/admin/classify-coach.js)
+-- were both computed over rows that are not questions. My Coach review,
+-- finding #3.1.
+--
+-- No backfill: existing rows keep turn_kind NULL, treated as 'user' by every
+-- reader (same precedent as coach_message_tags -- "no classified backfill
+-- here"). Reconstructing history would mean re-deriving turn_kind from each
+-- of the three internal-instruction builders' text shapes, one of which
+-- (buildOrientationCheckTurnText, api/coach.js) branches into six different
+-- builders with no single shared literal prefix to match against reliably --
+-- a backfill script of its own, not a column add. Going forward is the fix
+-- that matters; the historical pollution this finding describes is left as
+-- read, not retroactively cleaned.
+--
+-- feature_flags_snapshot lets a reported turn be replayed against exactly
+-- the flags the account had at write-time, rather than whatever flags the
+-- account has now (flags change; a bug report from last week may already be
+-- unreproducible against today's flags). Per the review's own recommendation.
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS turn_kind text; -- 'user' | 'session_open' | 'orientation_check' | 'post_capture'; NULL on rows written before this migration, treated as 'user'
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS feature_flags_snapshot jsonb; -- the account's feature_flags array at write-time, null before this migration
