@@ -23,6 +23,7 @@ import { sendAccountHoldEmail, sendActivityAlertEmail } from './_lib/email.js'
 import { costFromUsage } from './_lib/usage-cost.js'
 import { classifyAnthropicError, operatorLine, operatorSubject, operatorImpactLine, systemErrorPayload, SYSTEM_ERROR_STATUS } from './_lib/anthropic-error.js'
 import { alertOnce } from './_lib/ops-alerts.js'
+import { isAllowedOrigin } from './_lib/allowed-hosts.js'
 
 // Real-time generation cap (rogue-activity safeguard). Matches the watchdog's
 // per-user generation threshold; a signed-in account that has already generated
@@ -393,27 +394,6 @@ Non-negotiable floor:
 - Ground everything you write in the materials provided. Do not invent specifics (names, numbers, employers, credentials, diagnoses) that the inputs do not support.
 
 Within that floor, follow the instructions in the user message exactly.`
-
-const ALLOWED_HOSTS = new Set([
-  'reimagine2-two.vercel.app',
-  'reimagine.career.club',
-  'localhost:5173',
-  'localhost:3000'
-])
-
-function isAllowedOrigin(rawOrigin) {
-  if (!rawOrigin) return false
-  try {
-    const u = new URL(rawOrigin)
-    const hostWithPort = u.port ? `${u.hostname}:${u.port}` : u.hostname
-    if (ALLOWED_HOSTS.has(u.hostname) || ALLOWED_HOSTS.has(hostWithPort)) return true
-    // Allow Vercel preview deploys for this project
-    if (u.hostname.endsWith('.vercel.app') && u.hostname.includes('reimagine')) return true
-    return false
-  } catch {
-    return false
-  }
-}
 
 // Claude Sonnet 5, migrated from Sonnet 4.5 on 2026-08-28.
 //
