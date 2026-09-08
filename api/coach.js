@@ -1138,15 +1138,24 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // Pilot: only a flagged account is told it may propose a stage move, next
   // move, meeting, or interview-team addition. A non-flagged account never
   // receives the instruction, so the parser below simply never fires for them.
-  const opportunityUpdateNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? OPPORTUNITY_UPDATE_CAPTURE_NOTE : ''
+  // Also excludes independent-track accounts (My Coach review, finding
+  // #2.6c): these five notes are all My Pipeline concepts -- stage, meetings,
+  // interview panels, close reasons -- which have no equivalent on the Go
+  // Independent track, so the client's mount props already gate every one of
+  // them on `!isIndependent` (src/App.jsx). Without the same exclusion here,
+  // a flagged independent-track account had the model told it could make
+  // these offers, the model would emit the trailer believing it succeeded,
+  // and the client would silently discard it -- the model never learns the
+  // offer went nowhere.
+  const opportunityUpdateNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) && !independent ? OPPORTUNITY_UPDATE_CAPTURE_NOTE : ''
   // Reuses hasPipelineCapture rather than a new flag: this is the same
   // "opportunity data" idea opportunity-update capture already covers, just a
   // different field on the same panel object (getOpPanel/updateOpPanel).
-  const opportunityContextNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? OPPORTUNITY_CONTEXT_CAPTURE_NOTE : ''
-  const opportunityArchiveNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? OPPORTUNITY_ARCHIVE_CAPTURE_NOTE : ''
+  const opportunityContextNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) && !independent ? OPPORTUNITY_CONTEXT_CAPTURE_NOTE : ''
+  const opportunityArchiveNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) && !independent ? OPPORTUNITY_ARCHIVE_CAPTURE_NOTE : ''
   // Own flag, not hasPipelineCapture -- see hasCloseReasonCapture's comment.
-  const closeReasonNote = hasCloseReasonCapture({ feature_flags: featureFlags, email: userEmail }) ? CLOSE_REASON_CAPTURE_NOTE : ''
-  const opCardReworkNote = hasSectionRework({ feature_flags: featureFlags, email: userEmail }) ? OP_CARD_REWORK_CAPTURE_NOTE : ''
+  const closeReasonNote = hasCloseReasonCapture({ feature_flags: featureFlags, email: userEmail }) && !independent ? CLOSE_REASON_CAPTURE_NOTE : ''
+  const opCardReworkNote = hasSectionRework({ feature_flags: featureFlags, email: userEmail }) && !independent ? OP_CARD_REWORK_CAPTURE_NOTE : ''
   // Gated on the flag alone, matching the other capture notes above -- its
   // data dependency (WHAT IS BUILT ON THIS PLAYBOOK, buildPlaybookExpansion
   // below) comes from the in-focus record, not from sightOn's Next-Step-

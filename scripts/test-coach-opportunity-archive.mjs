@@ -30,8 +30,8 @@ check(coach.includes('This does not delete anything: it archives the opportunity
 check(coach.includes('NEVER SAY YOU HAVE REMOVED OR ARCHIVED IT'),
   `${COACH}: OPPORTUNITY_ARCHIVE_CAPTURE_NOTE does not forbid claiming the action before the tap`)
 
-check(coach.includes("const opportunityArchiveNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) ? OPPORTUNITY_ARCHIVE_CAPTURE_NOTE : ''"),
-  `${COACH}: opportunityArchiveNote is not gated on hasPipelineCapture, the same flag as its opportunity-data siblings`)
+check(coach.includes("const opportunityArchiveNote = hasPipelineCapture({ feature_flags: featureFlags, email: userEmail }) && !independent ? OPPORTUNITY_ARCHIVE_CAPTURE_NOTE : ''"),
+  `${COACH}: opportunityArchiveNote is not gated on hasPipelineCapture && !independent, the same gate as its opportunity-data siblings`)
 check(coach.includes('${opportunityUpdateNote}${opportunityContextNote}${opportunityArchiveNote}${closeReasonNote}${opCardReworkNote}'),
   `${COACH}: opportunityArchiveNote is not spliced into the profile-slice template alongside its siblings`)
 

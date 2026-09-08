@@ -36,11 +36,13 @@ check(coach.includes('NEVER SAY YOU HAVE UPDATED, REWORKED, OR CHANGED ANYTHING'
 check(coach.includes('Only propose a card that is already built'),
   `${COACH}: the capture note does not restrict itself to already-built cards`)
 
-// Gating: reuses hasSectionRework, no independent-track or sightOn exclusion
-// server-side (matching OPPORTUNITY_UPDATE_CAPTURE_NOTE's own precedent --
-// the independent-track exclusion lives client-side).
-check(/const opCardReworkNote = hasSectionRework\(\{ feature_flags: featureFlags, email: userEmail \}\) \? OP_CARD_REWORK_CAPTURE_NOTE : ''/.test(coach),
-  `${COACH}: opCardReworkNote is not gated on hasSectionRework the same way opportunityUpdateNote is gated on hasPipelineCapture`)
+// Gating: reuses hasSectionRework, plus the same independent-track exclusion
+// as the other four My Pipeline notes (My Coach review, finding #2.6c --
+// the client already required !isIndependent at the mount props, so a
+// flagged independent-track account previously had the model emit an
+// OPCARDREWORK offer the client silently discarded).
+check(/const opCardReworkNote = hasSectionRework\(\{ feature_flags: featureFlags, email: userEmail \}\) && !independent \? OP_CARD_REWORK_CAPTURE_NOTE : ''/.test(coach),
+  `${COACH}: opCardReworkNote is not gated on hasSectionRework && !independent the same way the other My Pipeline notes are`)
 const profileTemplateMatch = coach.match(/return `THIS USER'S REIMAGINE PROFILE[\s\S]*?`\n\}/)
 check(!!profileTemplateMatch && profileTemplateMatch[0].includes('${opCardReworkNote}'),
   `${COACH}: opCardReworkNote is not spliced into the profile block template`)
