@@ -99,9 +99,11 @@ export default async function handler(req, res) {
                  THEN u.profile_state->'outputs' ELSE '{}'::jsonb END) AS e(k, v)
           WHERE NULLIF(TRIM(e.v), '') IS NOT NULL)::int AS outputs,
         NULLIF(TRIM(u.profile_state->'outputs'->>'p3'), '') IS NOT NULL AS has_brand,
-        COALESCE(jsonb_array_length(
-          CASE WHEN jsonb_typeof(u.profile_state->'savedPlaybooks') = 'array'
-               THEN u.profile_state->'savedPlaybooks' ELSE '[]'::jsonb END), 0)::int AS playbooks,
+        -- Reads saved_playbooks directly (finding #2.7): the JSONB blob copy
+        -- stopped updating after Phase 3 of the savedPlaybooks migration.
+        -- No archived_at filter, matching the blob query's own (never-
+        -- filtered) behavior.
+        (SELECT COUNT(*)::int FROM saved_playbooks sp WHERE sp.user_id = u.id) AS playbooks,
         -- Orientation material the person typed or pasted in. Each field
         -- counted once; rep is four sub-fields and counts as one.
         (

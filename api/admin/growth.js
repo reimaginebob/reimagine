@@ -147,15 +147,16 @@ async function loadPayload(adminEmails) {
             NULLIF(TRIM(profile_state->'profile'->>'lifeEvents'), '') IS NOT NULL
           ) AS gave_inputs,
           NULLIF(TRIM(profile_state->'outputs'->>'p3'), '') IS NOT NULL AS personal_brand,
+          -- Reads saved_playbooks directly (finding #2.7); the blob copy
+          -- stopped updating after Phase 3 of that migration. No archived_at
+          -- filter, matching the blob query's own (never-filtered) behavior.
           ((profile_state->'done') ? 'op'
             OR NULLIF(TRIM(profile_state->'outputs'->>'op'), '') IS NOT NULL
-            OR EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks', '[]'::jsonb)) pb
-                        WHERE pb->>'source' = 'door2')) AS opportunity,
+            OR EXISTS (SELECT 1 FROM saved_playbooks sp WHERE sp.user_id = users.id AND sp.source = 'door2')) AS opportunity,
           ((profile_state->'done') ? 'laneSelect'
             OR NULLIF(TRIM(profile_state->'outputs'->>'p4'), '') IS NOT NULL
             OR NULLIF(TRIM(profile_state->'outputs'->>'p5'), '') IS NOT NULL
-            OR EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks', '[]'::jsonb)) pb
-                        WHERE pb->>'source' = 'door1')) AS career_paths,
+            OR EXISTS (SELECT 1 FROM saved_playbooks sp WHERE sp.user_id = users.id AND sp.source = 'door1')) AS career_paths,
           (profile_state->'done' ?& ${FOCUS_STEP_IDS}::text[]) AS focus_complete
         FROM users
         WHERE LOWER(email) <> ALL(${adminEmails}::text[])
@@ -185,11 +186,11 @@ async function loadPayload(adminEmails) {
     // averaged across everyone they would just restate the adoption rate.
     sql`
       WITH pb AS (
+        -- Reads saved_playbooks directly (finding #2.7); no archived_at
+        -- filter, matching the blob query's own (never-filtered) behavior.
         SELECT
-          (SELECT COUNT(*) FROM jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) x
-            WHERE x->>'source' = 'door1')::int AS focus_pb,
-          (SELECT COUNT(*) FROM jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) x
-            WHERE x->>'source' = 'door2')::int AS op_pb
+          (SELECT COUNT(*) FROM saved_playbooks sp WHERE sp.user_id = u.id AND sp.source = 'door1')::int AS focus_pb,
+          (SELECT COUNT(*) FROM saved_playbooks sp WHERE sp.user_id = u.id AND sp.source = 'door2')::int AS op_pb
         FROM users u
         WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
       )
@@ -207,19 +208,21 @@ async function loadPayload(adminEmails) {
     // The strategic question: does an immediate win through Add an Opportunity
     // earn the right to introduce the Focus Playbook later?
     //
-    // Ordering needs timestamps, and savedPlaybooks is the only place that
-    // carries one per playbook, so this covers accounts whose playbooks were
-    // saved server-side. The covered population ships with the result rather
-    // than being implied.
+    // Ordering needs timestamps, and saved_playbooks is where those live
+    // (finding #2.7: reads the table directly now, rather than the
+    // savedPlaybooks JSONB blob, which stopped updating after Phase 3 of
+    // that migration and undercounted accounts whose only playbook postdated
+    // their blob going stale). The covered population ships with the result
+    // rather than being implied.
     sql`
       WITH pbs AS (
         SELECT u.id, u.created_at AS signed_up,
-               pb->>'source'                        AS source,
-               NULLIF(pb->>'createdAt', '')::timestamptz AS at
+               sp.source AS source,
+               sp.created_at AS at
         FROM users u
-        CROSS JOIN LATERAL jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) pb
+        JOIN saved_playbooks sp ON sp.user_id = u.id
         WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
-          AND pb->>'source' IN ('door1', 'door2')
+          AND sp.source IN ('door1', 'door2')
       ),
       timed AS (SELECT * FROM pbs WHERE at IS NOT NULL),
       first_pb AS (
@@ -248,15 +251,16 @@ async function loadPayload(adminEmails) {
     // opportunities crosses to Career Paths more often than someone who ran
     // one, repeated value is buying the education. If it is flat, they are
     // using Reimagine to apply for jobs and the Focus story has not landed.
+    // Reads saved_playbooks directly (finding #2.7); see the 1c comment above.
     sql`
       WITH pbs AS (
         SELECT u.id,
-               pb->>'source'                             AS source,
-               NULLIF(pb->>'createdAt', '')::timestamptz AS at
+               sp.source AS source,
+               sp.created_at AS at
         FROM users u
-        CROSS JOIN LATERAL jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) pb
+        JOIN saved_playbooks sp ON sp.user_id = u.id
         WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
-          AND pb->>'source' IN ('door1', 'door2')
+          AND sp.source IN ('door1', 'door2')
       ),
       timed AS (SELECT * FROM pbs WHERE at IS NOT NULL),
       first_pb AS (
@@ -319,11 +323,12 @@ async function loadPayload(adminEmails) {
           -- Same activation definition as the headline: a first playbook
           -- through EITHER door. A cohort table on a different definition from
           -- the number above it is exactly the drift this page exists to avoid.
+          -- Reads saved_playbooks directly (finding #2.7); no archived_at
+          -- filter, matching the blob query's own (never-filtered) behavior.
           ((profile_state->'done') ? 'op'
             OR NULLIF(TRIM(profile_state->'outputs'->>'op'), '') IS NOT NULL
             OR NULLIF(TRIM(profile_state->'outputs'->>'p5'), '') IS NOT NULL
-            OR EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(profile_state->'savedPlaybooks', '[]'::jsonb)) pb
-                        WHERE pb->>'source' IN ('door1', 'door2'))) AS activated,
+            OR EXISTS (SELECT 1 FROM saved_playbooks sp WHERE sp.user_id = users.id AND sp.source IN ('door1', 'door2'))) AS activated,
           (profile_state->'done' ?& ${FOCUS_STEP_IDS}::text[]) AS focus_complete
         FROM users
         WHERE LOWER(email) <> ALL(${adminEmails}::text[])
@@ -368,19 +373,20 @@ async function loadPayload(adminEmails) {
       ORDER BY 1, 2`,
 
     // --- 4. Time from signup to first saved playbook ----------------------
-    // Either door, matching the activation definition. Only savedPlaybooks
-    // carries a per-playbook timestamp, so this covers accounts whose
-    // playbooks were saved server-side; the population size ships with it so
-    // the median is read against the right denominator. The per-door split
-    // lives in the doors query above.
+    // Either door, matching the activation definition. saved_playbooks
+    // carries a per-playbook timestamp (finding #2.7: reads the table
+    // directly, not the JSONB blob's savedPlaybooks array, which stopped
+    // updating after Phase 3 of that migration); the population size ships
+    // with it so the median is read against the right denominator. The
+    // per-door split lives in the doors query above.
     sql`
       WITH firsts AS (
         SELECT u.id, u.created_at,
-               MIN(NULLIF(pb->>'createdAt', '')::timestamptz) AS first_pb
+               MIN(sp.created_at) AS first_pb
         FROM users u
-        CROSS JOIN LATERAL jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) pb
+        JOIN saved_playbooks sp ON sp.user_id = u.id
         WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
-          AND pb->>'source' IN ('door1', 'door2')
+          AND sp.source IN ('door1', 'door2')
         GROUP BY u.id, u.created_at
       )
       SELECT

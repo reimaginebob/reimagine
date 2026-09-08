@@ -16,8 +16,10 @@
 // Emails the operator (ADMIN_EMAILS) when an
 // account — or the whole app — creates an abnormal number of playbooks in the
 // last hour. Detection only: it never blocks anyone. This is Phase 1, built
-// entirely on data we already keep (each saved playbook carries a createdAt in
-// users.profile_state->'savedPlaybooks'); no new table.
+// entirely on data we already keep (each saved playbook carries a created_at
+// in the saved_playbooks table -- finding #2.7, 2026-09-08 prelaunch audit:
+// this used to read users.profile_state->'savedPlaybooks' instead, which
+// stopped being written by the client after Phase 3 of that migration).
 //
 // Phase 2 (a generation-events counter) extends this file to also catch
 // generation/GTM-volume spikes and to enable optional auto-throttling; see the
@@ -115,12 +117,19 @@ export default async function handler(req, res) {
   const summary = {}
 
   // --- Playbook-creation spikes (Phase 1; always on) ---
+  // Reads saved_playbooks directly (finding #2.7, 2026-09-08 prelaunch audit):
+  // profile_state->'savedPlaybooks' stopped being written by the client after
+  // Phase 3 of the savedPlaybooks migration, so this threshold went blind
+  // account by account as each one's blob copy went stale. No archived_at
+  // filter, matching the blob query's own behavior (it never excluded
+  // archived playbooks either) -- a created-then-archived-within-the-hour
+  // playbook still counts toward the spike.
   try {
     const perUser = await sql`
       SELECT u.email AS email, COUNT(*)::int AS n
       FROM users u
-      CROSS JOIN LATERAL jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) AS pb
-      WHERE (pb->>'createdAt')::timestamptz >= NOW() - INTERVAL '1 hour'
+      JOIN saved_playbooks sp ON sp.user_id = u.id
+      WHERE sp.created_at >= NOW() - INTERVAL '1 hour'
         AND lower(u.email) NOT LIKE '%@career.club'
       GROUP BY u.email
       HAVING COUNT(*) >= ${PER_USER_PLAYBOOKS_HR}
@@ -128,9 +137,8 @@ export default async function handler(req, res) {
     `
     const totalRows = await sql`
       SELECT COUNT(*)::int AS total
-      FROM users u
-      CROSS JOIN LATERAL jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) AS pb
-      WHERE (pb->>'createdAt')::timestamptz >= NOW() - INTERVAL '1 hour'
+      FROM saved_playbooks sp
+      WHERE sp.created_at >= NOW() - INTERVAL '1 hour'
     `
     const totalPlaybooks = (totalRows[0] && totalRows[0].total) || 0
     summary.playbooks = { totalLastHour: totalPlaybooks, offenders: perUser.length }

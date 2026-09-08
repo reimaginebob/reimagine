@@ -84,15 +84,15 @@ export default async function handler(req, res) {
             NULLIF(TRIM(u.profile_state->'profile'->>'lifeEvents'), '') IS NOT NULL
           ) AS gave_inputs,
           NULLIF(TRIM(u.profile_state->'outputs'->>'p3'), '') IS NOT NULL AS personal_brand,
+          -- Reads saved_playbooks directly (finding #2.7); no archived_at
+          -- filter, matching the blob query's own (never-filtered) behavior.
           ((u.profile_state->'done') ? 'op'
             OR NULLIF(TRIM(u.profile_state->'outputs'->>'op'), '') IS NOT NULL
-            OR EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) pb
-                        WHERE pb->>'source' = 'door2')) AS opportunity,
+            OR EXISTS (SELECT 1 FROM saved_playbooks sp WHERE sp.user_id = u.id AND sp.source = 'door2')) AS opportunity,
           ((u.profile_state->'done') ? 'laneSelect'
             OR NULLIF(TRIM(u.profile_state->'outputs'->>'p4'), '') IS NOT NULL
             OR NULLIF(TRIM(u.profile_state->'outputs'->>'p5'), '') IS NOT NULL
-            OR EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(u.profile_state->'savedPlaybooks', '[]'::jsonb)) pb
-                        WHERE pb->>'source' = 'door1')) AS career_paths,
+            OR EXISTS (SELECT 1 FROM saved_playbooks sp WHERE sp.user_id = u.id AND sp.source = 'door1')) AS career_paths,
           (u.profile_state->'done' ?& ARRAY['p5','p6','p7','p8','p9','p11','p_res']) AS focus_complete,
           (u.suspended_at IS NOT NULL) AS suspended
         FROM users u
