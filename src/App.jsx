@@ -4863,8 +4863,14 @@ function pursuitStepDueState(nextStepAtIso){
   return 'upcoming'
 }
 const PURSUIT_OUTCOME_LABELS={accepted:'Accepted',declined:'Declined',not_selected:'Not selected',withdrew:'Withdrew',no_response:'No response'}
-const PURSUIT_STAGE_QUICK_REPLIES=PURSUIT_STAGES.map(s=>({label:s.label,value:s.value,followUp:s.value==='closed'?'Saved — I\'ve marked it closed on My Pipeline.':s.value==='interviewing'?'Saved — it\'ll show up first if a conversation is coming.':'Saved to My Pipeline.'}))
-const pursuitOfferMessage=(title)=>({role:'assistant',content:`Sounds like something moved on ${title||'this opportunity'} — where does it stand now? I\'ll save it to My Pipeline so it carries across every session.`,checkinKey:'pursuit-stage',quickReplies:PURSUIT_STAGE_QUICK_REPLIES})
+// targetId travels IN the value (the way opportunity-update's payload
+// already does), not resolved again from coachSaveTarget() at tap time --
+// the offer names coachSaveTarget().title at render time, but a person can
+// open a different opportunity before tapping, and coachSaveTarget() at tap
+// time would then resolve to THAT one instead, writing the stage to the
+// wrong record. My Coach review, finding #4.5.
+const pursuitStageQuickReplies=(targetId)=>PURSUIT_STAGES.map(s=>({label:s.label,value:JSON.stringify({stage:s.value,targetId}),followUp:s.value==='closed'?'Saved — I\'ve marked it closed on My Pipeline.':s.value==='interviewing'?'Saved — it\'ll show up first if a conversation is coming.':'Saved to My Pipeline.'}))
+const pursuitOfferMessage=(title,targetId)=>({role:'assistant',content:`Sounds like something moved on ${title||'this opportunity'} — where does it stand now? I\'ll save it to My Pipeline so it carries across every session.`,checkinKey:'pursuit-stage',quickReplies:pursuitStageQuickReplies(targetId)})
 // Proactive pipeline check-in (2026-09-05, brief: "let Coach ask what it
 // doesn't know when something moves on your pipeline"). Opens the exchange
 // only -- the answer goes to the coach like any other message, and Coach's
@@ -7832,15 +7838,21 @@ export default function PivotEngine(){
       }catch{/* malformed payload — the conversation already continued */}
       return true
     }
-    // My Search stage capture. Needs the record id of the open opportunity; if
-    // none is open, do nothing rather than write to the wrong record.
+    // My Search stage capture. Writes to the targetId the offer itself
+    // carried (My Coach review, finding #4.5) -- re-resolving via
+    // coachSaveTarget() here would write to whatever opportunity is open
+    // NOW, which is not necessarily the one the offer was actually about if
+    // the person opened a different one between the offer and the tap.
     if(checkinKey==='pursuit-stage'){
       if(value==='dismiss')return true
-      const tgt=coachSaveTarget()
-      if(!tgt||!tgt.id)return false
-      const patch={stage:value}
-      if(value==='closed')patch.closed_at=new Date().toISOString()
-      savePursuit(tgt.id,patch)
+      let payload=null
+      try{payload=JSON.parse(value)}catch{return false}
+      const targetId=payload&&payload.targetId
+      const stageVal=payload&&payload.stage
+      if(!targetId||!stageVal)return false
+      const patch={stage:stageVal}
+      if(stageVal==='closed')patch.closed_at=new Date().toISOString()
+      savePursuit(targetId,patch)
       return true
     }
     // Coach proposed a pipeline update the person stated — a next move, a
@@ -9858,7 +9870,23 @@ export default function PivotEngine(){
     setPendingBrandGenerate(false)
     generateChain()
   },[step,pendingBrandGenerate])
-  const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);setShowOfferCompare(false);if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
+  // Clears currentSavedSlotIdRef when leaving an opportunity's context for
+  // somewhere that is not 'op' or 'myCoach' (My Coach review, finding #4.5).
+  // Gated on the ref's CURRENT source, not a step allowlist: door1 (Career
+  // Paths role slots) shares this same ref across many role-building
+  // screens (p3, laneSelect, p4, focus, income), and every one of its own
+  // read sites already filters on source==='door1', so a stale
+  // door1-pointing ref is harmless and untouched by this. coachSaveTarget()
+  // (below) filters source==='door2' the same way, but nothing previously
+  // invalidated a door2 id once the person left 'op' for something
+  // unrelated -- the floating bubble and the My Coach panel (both read
+  // coachSaveTarget()) kept treating an opportunity left minutes ago as
+  // still in focus: focusRecordId stayed pinned to it, pursuitCaptureActive
+  // and notesCaptureActive stayed true, and pursuit-stage/close-reason/
+  // opportunity-update/opportunity-context/coach-note-save all fell back to
+  // writing to that stale record when the model's own title did not
+  // resolve.
+  const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);setShowOfferCompare(false);const _navSlot=savedPlaybooks.find(x=>x&&x.id===currentSavedSlotIdRef.current);if(_navSlot&&_navSlot.source==='door2'&&to!=='op'&&to!=='myCoach')currentSavedSlotIdRef.current=null;if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
   // Scroll new output into view AFTER generation completes. Every generate
   // path already scrolls to 0,0 on click (so the loading panel is visible);
   // none scroll after the API returns, leaving the user wherever they
@@ -15012,7 +15040,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
         {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
       </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
+      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
     </div>
     // Job Search Resources (docs/networking-groups-brief.md). Its own
     // destination, reachable from the first screen, needing no direction and no
@@ -16911,7 +16939,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         concierge embedded panel above (2026-09-07) is the same exclusion for
         the same reason -- suppressed here too, or the floating bubble would
         mount right alongside it, showing the same conversation twice. */}
-    {signedInUser&&step!=='myCoach'&&!conciergeEmbedded&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
+    {signedInUser&&step!=='myCoach'&&!conciergeEmbedded&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>
