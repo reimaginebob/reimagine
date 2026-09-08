@@ -724,6 +724,17 @@ export default async function handler(req, res) {
     anthropicBody.max_tokens = stepFloor
   }
 
+  // Steps whose entire response is meant to be one JSON object (2026-09-08,
+  // same-day follow-up to the Resume Refresh truncation fix). Deliberately
+  // narrower than "every structured prompt": p3/p3_analysis emit prose with a
+  // JSON tail appended, parsed end-of-output by personal-brand-tail.mjs, not
+  // by scanning the whole response -- that file's own comment says a
+  // first-brace-to-last-brace scan is unsafe there because the prose above
+  // the tail can contain stray braces. p_res/p11/p8 carry no such prose
+  // prefix, so the same scan parseResumeJSON already uses is safe to reuse
+  // generically here.
+  const JSON_ONLY_STEPS = new Set(['p_res', 'p11', 'p8'])
+
   const callUpstream = (body) => fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -810,11 +821,30 @@ export default async function handler(req, res) {
     // Retried here rather than in the browser so every surface is covered,
     // including clients still running a cached bundle. Both legs are billed, so
     // the usage is summed the way a continued turn is.
+    //
+    // The same starvation can also land short of empty: enough of the ceiling
+    // survives for some text, but not enough for the JSON object that text is
+    // supposed to be, and thinking ate the difference either way. For the
+    // whole-response JSON steps (JSON_ONLY_STEPS) that partial text is just as
+    // unusable as no text, so it gets the same low-effort retry rather than
+    // reaching the caller as a truncated object to parse around.
     const hasText = (d) => Array.isArray(d && d.content) && d.content.some(b => b && b.type === 'text' && String(b.text || '').trim())
-    if (data.stop_reason === 'max_tokens' && !hasText(data) &&
+    const extractText = (d) => (d && Array.isArray(d.content) ? d.content : []).filter(b => b && b.type === 'text').map(b => String(b.text || '')).join('')
+    function looksLikeJson(text) {
+      const s = (text || '').trim()
+      const fence = s.match(/^```(?:json)?\s*([\s\S]*?)```\s*$/)
+      const body = fence ? fence[1].trim() : s
+      const first = body.indexOf('{')
+      const last = body.lastIndexOf('}')
+      if (first === -1 || last === -1 || last < first) return false
+      try { JSON.parse(body.slice(first, last + 1)); return true } catch { return false }
+    }
+    const isJsonStep = JSON_ONLY_STEPS.has(typeof reqBody.step === 'string' ? reqBody.step.trim() : '')
+    const brokenJson = isJsonStep && hasText(data) && !looksLikeJson(extractText(data))
+    if (data.stop_reason === 'max_tokens' && (!hasText(data) || brokenJson) &&
         !(anthropicBody.output_config && anthropicBody.output_config.effort === 'low') &&
         (Date.now() - startedAt) < EMPTY_RETRY_DEADLINE_MS) {
-      console.log(JSON.stringify({ evt: 'claude_empty_retry', step: reqBody.step, maxTokens: anthropicBody.max_tokens, effort: anthropicBody.output_config && anthropicBody.output_config.effort }))
+      console.log(JSON.stringify({ evt: brokenJson ? 'claude_json_retry' : 'claude_empty_retry', step: reqBody.step, maxTokens: anthropicBody.max_tokens, effort: anthropicBody.output_config && anthropicBody.output_config.effort }))
       const retryRes = await callUpstream({ ...anthropicBody, output_config: { effort: 'low' } })
       const retryData = await retryRes.json().catch(() => null)
       if (retryRes.ok && retryData && Array.isArray(retryData.content)) {
@@ -822,7 +852,7 @@ export default async function handler(req, res) {
         response = retryRes
         data = retryData
       }
-      console.log(JSON.stringify({ evt: 'claude_empty_retry_result', step: reqBody.step, recovered: hasText(data) }))
+      console.log(JSON.stringify({ evt: brokenJson ? 'claude_json_retry_result' : 'claude_empty_retry_result', step: reqBody.step, recovered: brokenJson ? looksLikeJson(extractText(data)) : hasText(data) }))
     }
     // A generation that hit its ceiling is worth saying out loud either way: with
     // no text it is the failure above, and with text it is a truncated answer
