@@ -79,7 +79,7 @@ check(chat.includes('‹ Collapse'),
 // content match, or the fix would only ever apply to brand-new sessions.
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
-check(app.includes("return p.map(m=>(m&&m.role==='assistant'&&m.content===INTRO_MSG.content&&!m.intro)?{...m,intro:true}:m)"),
+check(app.includes("return(e&&e.role==='assistant'&&e.content===INTRO_MSG.content&&!e.intro)?{...e,intro:true}:e})"),
   `${APP}: chatMessages hydration no longer backfills intro:true onto a previously-persisted INTRO_MSG -- an existing account's stale local history would never collapse`)
 
 if (failures) {
