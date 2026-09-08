@@ -476,6 +476,25 @@ export function sanitizeHistoryForModel(history) {
   return (Array.isArray(history) ? history : []).filter(m => m && !m.intro && !m.banner && !m.checkinKey && !m.synthetic)
 }
 
+// Prelaunch audit, finding #2.2: a Coach message had no length limit at all.
+// Measured in bytes (not characters), since a multi-byte-heavy paste could be
+// well within a character-count cap while still being a multi-megabyte
+// payload. 8000 bytes is roughly 1300+ words -- generous for anything a
+// person would plausibly type or dictate in one turn, small next to the
+// abuse case (a scripted caller pasting megabytes to run the cost up).
+// Exported as a pure function so the byte-cap logic can be tested directly.
+export const MAX_MESSAGE_BYTES = 8000
+export function messageExceedsByteCap(message) {
+  return typeof message === 'string' && Buffer.byteLength(message, 'utf8') > MAX_MESSAGE_BYTES
+}
+
+// Prelaunch audit, finding #2.2: My Coach had no turns-per-hour cap of its
+// own (the shared generation cap in api/claude.js explicitly excludes
+// kind='coach' rows). See the handler's own comment at the call site for why
+// this is a 429 throttle, not the generation cap's auto-suspend treatment,
+// and why 60 is an unmeasured starting point.
+export const COACH_TURN_CAP_HR = 60
+
 // Which kind of turn this is, for the chat_messages.turn_kind column: a
 // session-open, orientation-check, or post-capture turn stores an internal
 // instruction as `message`, not something the person asked, and the insight
@@ -1783,6 +1802,38 @@ export default async function handler(req, res) {
   if ((!rawMessage || typeof rawMessage !== 'string') && sessionOpen !== true && !orientationCheckShapeOk && !postCaptureUpdateShapeOk) {
     return res.status(400).json({ error: 'message required' })
   }
+
+  // Prelaunch audit, finding #2.2: My Coach had no rate limit of its own.
+  // api/claude.js's shared hourly generation cap explicitly excludes
+  // kind='coach' rows -- an active back-and-forth is the expected usage
+  // pattern here, not a handful of button-click generations, so counting
+  // Coach turns toward that cap would auto-pause a talkative user -- and the
+  // activity watchdog excludes them the same way. Message length was
+  // unbounded too. Both checks run here, before the profile read, so an
+  // abusive turn never gets that far.
+  if (messageExceedsByteCap(rawMessage)) {
+    return res.status(400).json({ error: 'message too long' })
+  }
+  // 60/hour is a generous, unmeasured starting point (no production Coach
+  // data exists yet to tune it against, per the audit's own Section 9), not
+  // a suspension: a talkative but genuine session is roughly one turn a
+  // minute, which this comfortably covers, while still bounding a scripted
+  // loop. A 429 asking the person to slow down, not the generation cap's
+  // auto-suspend-the-account treatment -- Coach is meant to be leaned on
+  // continuously, and locking someone out of their own coach for using it as
+  // intended would be the wrong failure mode. Fails OPEN on a counting
+  // hiccup, matching the generation cap's own precedent. @career.club exempt
+  // so internal testing can't self-lock.
+  if (!/@career\.club$/i.test(user.email || '')) {
+    try {
+      const turnCapRows = await sql`SELECT COUNT(*)::int AS n FROM generation_events WHERE user_id = ${user.id} AND kind = 'coach' AND created_at >= NOW() - INTERVAL '1 hour'`
+      const turnCount = (turnCapRows[0] && turnCapRows[0].n) || 0
+      if (turnCount >= COACH_TURN_CAP_HR) {
+        return res.status(429).json({ error: 'rate_limited', message: 'You have reached the hourly limit for My Coach messages. Try again in a few minutes.' })
+      }
+    } catch (e) { console.error('coach turn-cap check skipped:', e && e.message) }
+  }
+
   // General-question mode (Career Club team only): answer a general or client
   // career question without loading this account's job-search profile. Gated on
   // the @career.club email server-side so the client flag alone cannot enable it.
