@@ -7159,13 +7159,28 @@ export default function PivotEngine(){
   const[localHydrationDone,setLocalHydrationDone]=useState(false)
   const[serverLoadDone,setServerLoadDone]=useState(false)
   // Ref mirror of serverLoadDone, written in the same .finally that sets the
-  // state. The autosave reads the REF at fire time rather than the state via
-  // closure, so a PUT already sitting on the 800ms timer re-checks the current
-  // value instead of the value captured when it was scheduled. The state stays
-  // in the effect's dependency list so that flipping it also reschedules a save
-  // — otherwise the first post-hydration save would be dropped and the profile
-  // would not reach the server until the user's next edit.
+  // state. Feeds the one-shot landing decision below, which needs to know the
+  // load has SETTLED (success or failure) so a dead /api/me can never wedge
+  // routing. The autosave PUT gate below reads serverLoadOk/serverLoadOkRef
+  // instead (finding #2.5, 2026-09-08 prelaunch audit) -- settling on failure
+  // is correct for routing but was the exact bug for autosave, which must not
+  // unlock on an unsuccessful load. See src/autosave-gate.js.
   const serverLoadDoneRef=useRef(false)
+  // Distinct from serverLoadDone above: set true ONLY when /api/profile/load
+  // actually returns 2xx this session, never merely because the chain settled.
+  // The autosave effect gates its PUT on this (finding #2.5) so a device whose
+  // load failed keeps holding its edits in localStorage rather than risking an
+  // unverified overwrite of newer server state. Same ref/state-mirror shape as
+  // serverLoadDoneRef above and for the same reason (fire-time reads plus a
+  // dependency-list flip to reschedule the first post-load save).
+  const[serverLoadOk,setServerLoadOk]=useState(false)
+  const serverLoadOkRef=useRef(false)
+  // Last profile_updated_at this device has actually seen from the server —
+  // set on load success and again after every successful save. Sent back with
+  // each autosave PUT so api/profile/save.js can refuse to overwrite a copy
+  // that is newer than anything this device has laid eyes on (finding #2.5:
+  // two tabs, two devices, or a slow load racing a fast one).
+  const profileUpdatedAtRef=useRef(null)
   // Per-question regen state for Interview Prep (PR-B 2026-05-30). Shared
   // across Focus and op surfaces because renderInterviewPrep is the single
   // shared renderer and only one section mounts at a time. Focus and op wire
@@ -8815,14 +8830,14 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>r.ok?r.json():null)}return null}).then(serverProfile=>{if(!serverProfile)return;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenValuesThinHub)setSeenValuesThinHub(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>{if(r.ok)serverLoadOkRef.current=true;return r.ok?r.json():null})}return null}).then(serverProfile=>{if(!serverProfile)return;profileUpdatedAtRef.current=serverProfile.updatedAt||null;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenValuesThinHub)setSeenValuesThinHub(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(d.seenOnboardingFraming)setSeenOnboardingFraming(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)setSeenOrientationRoute(true);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
 // before any profile work, so the branch only contaminated new accounts
 // with prior-account data from the same browser. See brief
 // 2026-06-04_localstorage-account-scoping.md.
-}).catch(()=>{}).finally(()=>{serverLoadDoneRef.current=true;setServerLoadDone(true)})},[])
+}).catch(()=>{}).finally(()=>{serverLoadDoneRef.current=true;setServerLoadDone(true);setServerLoadOk(serverLoadOkRef.current)})},[])
   // Privacy: drop the NULL-guard (2026-06-24 conversation-review material update) so
   // grandfathered users who never accepted a version also see the notice before
   // content review applies to them. Terms keeps the NULL-guard (terms unchanged, so
@@ -9413,22 +9428,28 @@ export default function PivotEngine(){
       // lives only in the saved_playbooks table (per-record dual-write above), so a
       // whole-profile save can never touch a playbook again. The server merge shim
       // stays as belt-and-suspenders for any old cached client still sending it.
-      const blob=JSON.stringify({step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields})
+      const stateForSave={step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields}
+      const blob=JSON.stringify(stateForSave)
       localStorage.setItem('pe_v4',blob)
       // The localStorage write above is unconditional; only the server PUT is
-      // gated. Holding the PUT until /api/profile/load has settled is what stops
-      // a just-signed-in device from replacing newer server state (and wiping
-      // savedPlaybooks, which only the server load populates) with what it
-      // happened to have in localStorage. See src/autosave-gate.js.
+      // gated. Holding the PUT until /api/profile/load has actually SUCCEEDED
+      // (not merely settled -- a failed load must not unlock it, finding #2.5)
+      // is what stops a just-signed-in device from replacing newer server
+      // state (and wiping savedPlaybooks, which only the server load
+      // populates) with what it happened to have in localStorage.
+      // profile_updated_at rides along so the server can reject a save from a
+      // device whose last known copy is older than what is already stored.
+      // See src/autosave-gate.js.
       if(signedInUser){
-        if(!canPushProfile({signedIn:true,serverLoadDone:serverLoadDoneRef.current,deleting:deletingRef.current})){setSaveStatus('idle');return}
+        if(!canPushProfile({signedIn:true,serverLoadOk:serverLoadOkRef.current,deleting:deletingRef.current})){setSaveStatus('idle');return}
         // Each failure gets its own reason so the notice can say something the
         // user can act on. 'paused' is deliberately silent here: the account-hold
         // modal already owns that screen and a second notice behind it is noise.
         let reason=null
         try{
-          const r=await fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:blob})
-          if(!r.ok)reason=r.status===413?'too_large':r.status===403?'paused':r.status===401?'signed_out':'server'
+          const r=await fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({...stateForSave,profile_updated_at:profileUpdatedAtRef.current})})
+          if(r.ok){const saved=await r.json().catch(()=>null);if(saved&&saved.updatedAt)profileUpdatedAtRef.current=saved.updatedAt}
+          else reason=r.status===409?'stale':r.status===413?'too_large':r.status===403?'paused':r.status===401?'signed_out':'server'
         }catch{reason='offline'}
         if(reason){setSaveStatus('error');setSaveError(reason);return}
       }
@@ -9436,7 +9457,7 @@ export default function PivotEngine(){
       setSaveStatus('saved')
       setSaveError(null)
     }catch{setSaveStatus('error');setSaveError('device_full')}
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields,signedInUser,serverLoadDone,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,seenOrientationRoute,qualityCheckedFields,signedInUser,serverLoadOk,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
@@ -17037,11 +17058,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         :saveError==='offline'?'We cannot reach the server right now. Your work is still on this device. It will save on its own when the connection comes back.'
         :saveError==='signed_out'?'You have been signed out, so changes are staying on this device only. Sign in again to save them to your account.'
         :saveError==='device_full'?'This browser has run out of storage for the app. Download a copy of your work, then clear some space.'
+        :saveError==='stale'?'Newer changes were saved to this account from another tab or device. Your edits here have not been saved. Reload the page to see the latest version, then make your changes again.'
         :'The server would not accept the last save. Your work is still on this device. Download a copy so nothing is at risk while we look into it.'
       }</div>
       <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
         <Btn small onClick={exportProfile}>Download a copy</Btn>
-        {saveError!=='signed_out'&&<Btn small secondary onClick={()=>{if(saveRef.current)saveRef.current()}}>Try again</Btn>}
+        {saveError!=='signed_out'&&saveError!=='stale'&&<Btn small secondary onClick={()=>{if(saveRef.current)saveRef.current()}}>Try again</Btn>}
+        {saveError==='stale'&&<Btn small secondary onClick={()=>window.location.reload()}>Reload</Btn>}
       </div>
     </div>}
     {toast&&<div data-print="hide" role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'#1A2540',color:'#FFFFFF',padding:'12px 22px',borderRadius:8,fontSize:16,fontWeight:500,boxShadow:'0 4px 16px rgba(0,0,0,0.18)',zIndex:1200}}>{toast}</div>}

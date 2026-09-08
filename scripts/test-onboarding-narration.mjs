@@ -57,7 +57,7 @@ check(hydrationHits === 2,
 // Substring checks against the blob/deps neighborhood, not an exact-suffix
 // regex: later slices append their own dedupe fields after this one, which
 // would break a regex anchored on this field being last.
-const saveBlobIdx = app.indexOf('const blob=JSON.stringify(')
+const saveBlobIdx = app.indexOf('const stateForSave={')
 check(app.slice(saveBlobIdx, saveBlobIdx + 700).includes('narratedOrientationSteps'),
   `${APP}: narratedOrientationSteps is missing from the autosave blob's JSON.stringify -- the dedupe would never actually persist`)
 const saveDepsIdx = app.indexOf('saveRef.current=save')

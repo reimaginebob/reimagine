@@ -42,7 +42,7 @@ check(pbCheckinBlock.includes('if(seenPbCheckin||pbCheckinFiredRef.current)retur
 const hydrationHits = (app.match(/if\(d\.seenBrandDeliveryMoment\)setSeenBrandDeliveryMoment\(true\)/g) || []).length
 check(hydrationHits === 2,
   `${APP}: expected seenBrandDeliveryMoment hydration in both the local pe_v4 path and the server profile/load path -- found ${hydrationHits}`)
-const saveBlobIdx = app.indexOf('const blob=JSON.stringify(')
+const saveBlobIdx = app.indexOf('const stateForSave={')
 check(app.slice(saveBlobIdx, saveBlobIdx + 700).includes('seenBrandDeliveryMoment'),
   `${APP}: seenBrandDeliveryMoment is missing from the autosave blob's JSON.stringify -- the dedupe would never actually persist`)
 const saveDepsIdx = app.indexOf('saveRef.current=save')

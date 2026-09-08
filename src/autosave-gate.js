@@ -24,21 +24,36 @@
 // Playbook the user has. Silent, and on the second device rather than the one
 // doing the damage.
 //
-// The fix is to hold the PUT until the load has settled. serverLoadDone is set
-// in the chain's .finally, so it settles on failure too and a dead /api/me can
-// never wedge saving permanently.
+// SUCCEED, NOT MERELY SETTLE (finding #2.5, 2026-09-08 prelaunch audit). An
+// earlier version of this gate keyed on App.jsx's serverLoadDone, which its
+// .finally sets on BOTH success and failure so the one-shot LANDING decision
+// elsewhere in App.jsx is never stuck waiting on a dead network. Reused here,
+// that same forgiveness was the bug: a laptop with weeks-old local state,
+// signing in during a Neon hiccup, sailed through this gate the instant the
+// FAILED load settled and overwrote whatever newer work existed on the
+// server. This gate now keys on serverLoadOk, which App.jsx sets ONLY when
+// /api/profile/load actually returns 2xx. A load that fails or never settles
+// leaves autosave holding the device's edits in localStorage for the rest of
+// the session rather than risking an unverified overwrite — losing a save is
+// recoverable, a silent overwrite is not.
+//
+// This gate alone does not cover every stale-write path (two tabs racing after
+// BOTH have loaded successfully, for instance) — that half of finding #2.5 is
+// the profile_updated_at precondition api/profile/save.js checks server-side.
 
 /**
  * @param {object}  s
- * @param {boolean} s.signedIn       a signed-in user is present (server sync is on)
- * @param {boolean} s.serverLoadDone the /api/me -> /api/profile/load chain has settled
- * @param {boolean} s.deleting       a Start Fresh account delete is in flight
+ * @param {boolean} s.signedIn      a signed-in user is present (server sync is on)
+ * @param {boolean} s.serverLoadOk  /api/profile/load has actually SUCCEEDED this
+ *                                  session (not merely settled — a failed or
+ *                                  still-pending load must not unlock the PUT)
+ * @param {boolean} s.deleting      a Start Fresh account delete is in flight
  * @returns {boolean} true when the autosave may PUT to /api/profile/save
  */
-export function canPushProfile({ signedIn, serverLoadDone, deleting }) {
+export function canPushProfile({ signedIn, serverLoadOk, deleting }) {
   if (deleting) return false
   if (!signedIn) return false
-  return serverLoadDone === true
+  return serverLoadOk === true
 }
 
 /**
@@ -46,9 +61,9 @@ export function canPushProfile({ signedIn, serverLoadDone, deleting }) {
  * readability; 'ok' means the push is allowed.
  * @returns {'ok'|'deleting'|'anonymous'|'awaiting-server-load'}
  */
-export function pushProfileVerdict({ signedIn, serverLoadDone, deleting }) {
+export function pushProfileVerdict({ signedIn, serverLoadOk, deleting }) {
   if (deleting) return 'deleting'
   if (!signedIn) return 'anonymous'
-  if (serverLoadDone !== true) return 'awaiting-server-load'
+  if (serverLoadOk !== true) return 'awaiting-server-load'
   return 'ok'
 }
