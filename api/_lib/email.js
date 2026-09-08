@@ -3,8 +3,22 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 const EMAIL_FROM = process.env.EMAIL_FROM
 
+// Prelaunch audit, finding #2.3: firstName is interpolated straight into an
+// HTML email body from a field the sender fully controls at signup
+// (api/auth/request-link.js only checked it for non-empty). Escaped here at
+// the one point every HTML-email function in this file builds its greeting,
+// rather than trusting every call site to have sanitized it first. Same
+// escaping sendActivityAlertEmail already does for its own text below.
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 export async function sendMagicLinkEmail(email, link, firstName) {
+  // Two greetings, not one shared string: the plain-text body must show the
+  // name as typed (over-escaping there would turn a real "&" into a literal
+  // "&amp;" on screen), while the HTML body needs it escaped.
   const greeting = firstName ? `Hi ${firstName},` : 'Hi,'
+  const htmlGreeting = firstName ? `Hi ${escapeHtml(firstName)},` : 'Hi,'
   const subject = 'Sign in to Reimagine'
   const textBody = `${greeting}
 
@@ -17,7 +31,7 @@ The link expires in 15 minutes. If you did not request this, you can ignore this
 Career Club
 `
   const htmlBody = `<!DOCTYPE html><html><body style="font-family: Georgia, serif; color: #1A2540; line-height: 1.6; max-width: 560px; margin: 0 auto; padding: 32px 16px;">
-<p>${greeting}</p>
+<p>${htmlGreeting}</p>
 <p>Click the button below to sign in to Reimagine.</p>
 <p style="margin: 32px 0;">
 <a href="${link}" style="display: inline-block; background: #C8924A; color: #FFFFFF; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600;">Sign in to Reimagine</a>
@@ -121,7 +135,9 @@ ${htmlLines}
 // summary: plain-language description of what changed (hardcoded per bump).
 // docs: { privacy: boolean, terms: boolean } which agreement(s) changed.
 export async function sendLegalUpdateEmail(email, summary, docs, firstName) {
+  // Two greetings, not one shared string -- see sendMagicLinkEmail above.
   const greeting = firstName ? `Hi ${firstName},` : 'Hi,'
+  const htmlGreeting = firstName ? `Hi ${escapeHtml(firstName)},` : 'Hi,'
   const which =
     docs.privacy && docs.terms
       ? 'Privacy Agreement and Terms of Service'
@@ -159,7 +175,7 @@ Career Club
     )
 
   const htmlBody = `<!DOCTYPE html><html><body style="font-family: Georgia, serif; color: #1A2540; line-height: 1.6; max-width: 560px; margin: 0 auto; padding: 32px 16px;">
-<p>${greeting}</p>
+<p>${htmlGreeting}</p>
 <p>We've updated our ${which}.</p>
 <p>${summary}</p>
 ${linkButtons.join('\n')}

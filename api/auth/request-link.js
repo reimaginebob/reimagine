@@ -3,6 +3,8 @@ import { generateToken, hashToken } from '../_lib/session.js'
 import { sendMagicLinkEmail } from '../_lib/email.js'
 import { isSignupSource } from '../../src/signup-sources.js'
 import { isTrack } from '../../src/tracks.js'
+import { isAllowedHost } from '../_lib/allowed-hosts.js'
+import { getClientIp, checkIpRateLimit, logIpEvent } from '../_lib/auth-rate-limit.js'
 
 const TOKEN_EXPIRY_MINUTES = 15
 // Rate limits keyed by email. Both windows must clear for a request to pass.
@@ -11,11 +13,29 @@ const TOKEN_EXPIRY_MINUTES = 15
 // Resend's per-account ceilings.
 const RATE_LIMIT_15MIN = 5
 const RATE_LIMIT_1HOUR = 20
+// Per-IP, alongside the email-keyed limits above (finding #2.3): the email
+// limit alone does nothing against one caller working through a list of
+// many different target addresses. Higher than the email limit on purpose --
+// one IP can legitimately represent several people (a household, an office),
+// and the email limit is still doing the tighter per-recipient work.
+const IP_RATE_LIMIT_WINDOW_MIN = 15
+const IP_RATE_LIMIT_MAX = 15
+// firstName/lastName are checked for non-empty below but had no upper
+// bound (finding #2.3). 100 chars is generous for a real name and matches
+// the existing signupSourceDetail precedent in this file.
+const MAX_NAME_CHARS = 100
 
 function getRequestOrigin(req) {
   const proto = req.headers['x-forwarded-proto'] || 'https'
   const host = req.headers['x-forwarded-host'] || req.headers.host
-  return `${proto}://${host}`
+  // Prelaunch audit, finding #2.3: x-forwarded-host (and, on a raw request
+  // without Vercel in front, the Host header itself) is caller-supplied.
+  // Vercel's edge probably normalizes it, but "probably" is exactly what the
+  // audit flagged as unverified -- pin it to the same allowlist api/claude.js
+  // already trusts for its origin check, and fall back to the production
+  // host rather than build a magic link against an attacker-chosen domain.
+  const safeHost = isAllowedHost(host) ? host : 'reimagine.career.club'
+  return `${proto}://${safeHost}`
 }
 
 function formatHHMMUtc(date) {
@@ -25,17 +45,30 @@ function formatHHMMUtc(date) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
+  // Per-IP limit (finding #2.3), independent of which recipient email the
+  // caller sends -- see the constants above. Logged and checked before any
+  // other work, same "gate first" shape as the email-keyed limit below.
+  const clientIp = getClientIp(req)
+  const ipCheck = await checkIpRateLimit('request-link', clientIp, { windowMinutes: IP_RATE_LIMIT_WINDOW_MIN, limit: IP_RATE_LIMIT_MAX })
+  if (ipCheck.limited) {
+    return res.status(429).json({ error: 'Too many sign-in requests from this network. Try again shortly.', retryAt: ipCheck.retryAt.toISOString() })
+  }
+  await logIpEvent('request-link', clientIp)
+
   const { email, firstName, lastName, privacyAccepted, privacyVersion, termsAccepted, termsVersion,
     signupSource, signupSourceDetail, track } = req.body || {}
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     return res.status(400).json({ error: 'Invalid email' })
   }
   const normalizedEmail = email.trim().toLowerCase()
+  // Capped, not just presence-checked (finding #2.3) -- see MAX_NAME_CHARS.
+  const cappedFirstName = typeof firstName === 'string' ? firstName.trim().slice(0, MAX_NAME_CHARS) : firstName
+  const cappedLastName = typeof lastName === 'string' ? lastName.trim().slice(0, MAX_NAME_CHARS) : lastName
 
   const existing = await sql`SELECT 1 FROM users WHERE email = ${normalizedEmail} LIMIT 1`
   const isNewAccount = existing.length === 0
   if (isNewAccount) {
-    if (!firstName || typeof firstName !== 'string' || !firstName.trim()) {
+    if (!cappedFirstName || typeof cappedFirstName !== 'string' || !cappedFirstName.trim()) {
       return res.status(400).json({ error: 'First name required for new account' })
     }
     // Legal acceptance gate (defense in depth; the signup form already blocks
@@ -118,11 +151,10 @@ export default async function handler(req, res) {
   const tokenHash = hashToken(rawToken)
   const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_MINUTES * 60 * 1000)
   const userAgent = req.headers['user-agent'] || ''
-  const ipAddress = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || ''
 
   await sql`
     INSERT INTO magic_link_tokens (token_hash, email, first_name, last_name, expires_at, user_agent, ip_address, privacy_accepted_at, privacy_version, terms_accepted_at, terms_version, signup_source, signup_source_detail, track)
-    VALUES (${tokenHash}, ${normalizedEmail}, ${firstName || null}, ${lastName || null}, ${expiresAt.toISOString()}, ${userAgent}, ${ipAddress}, ${tokenPrivacyAt}, ${tokenPrivacyVersion}, ${tokenTermsAt}, ${tokenTermsVersion}, ${tokenSource}, ${tokenSourceDetail}, ${tokenTrack})
+    VALUES (${tokenHash}, ${normalizedEmail}, ${cappedFirstName || null}, ${cappedLastName || null}, ${expiresAt.toISOString()}, ${userAgent}, ${clientIp}, ${tokenPrivacyAt}, ${tokenPrivacyVersion}, ${tokenTermsAt}, ${tokenTermsVersion}, ${tokenSource}, ${tokenSourceDetail}, ${tokenTrack})
   `
 
   // Build the verify URL from the request origin so preview deploys
@@ -133,7 +165,7 @@ export default async function handler(req, res) {
   const link = `${baseUrl}/auth/verify?token=${rawToken}`
 
   try {
-    await sendMagicLinkEmail(normalizedEmail, link, firstName)
+    await sendMagicLinkEmail(normalizedEmail, link, cappedFirstName)
   } catch (err) {
     console.error('Resend send failure', err)
     return res.status(500).json({ error: 'Could not send email' })
