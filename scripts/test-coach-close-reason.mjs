@@ -133,7 +133,7 @@ check(/closeReasons = await sql`SELECT record_id FROM pursuit_close_reasons WHER
 check(/generalMode, milestoneMentions, closeReasons,\s*\}\)/.test(coach),
   `${COACH}: closeReasons is not passed into the buildCoachRequest call site`)
 
-check(/const crMatch = strippedText\.match\(\/\^\\s\*CLOSEREASON:/.test(coach),
+check(coach.includes("extractTrailer(strippedText, 'CLOSEREASON')"),
   `${COACH}: the CLOSEREASON trailer parser is missing`)
 check(coach.includes('CLOSE_REASON_CODES.includes(parsed && parsed.reasonCode) ? parsed.reasonCode'),
   `${COACH}: a parsed reasonCode is not validated against CLOSE_REASON_CODES before being shipped to the client`)

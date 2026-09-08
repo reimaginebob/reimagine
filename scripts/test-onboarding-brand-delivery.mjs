@@ -83,7 +83,7 @@ check(/if \(currentStep === 'p3' && hasPersonalBrand && hasOnboardingConcierge\(
   `${COACH}: the brand-rework note is no longer gated on currentStep==='p3' && hasPersonalBrand && hasOnboardingConcierge -- it would leak to other steps, accounts without a built brand, or non-flagged accounts`)
 check(coach.includes('profileBlock += BRAND_REWORK_CAPTURE_NOTE'),
   `${COACH}: the gated brand-rework note is no longer appended to profileBlock -- the instruction would never reach the model`)
-check(/const brMatch = strippedText\.match\(\/\^\\s\*BRANDREWORK:/.test(coach),
+check(coach.includes("extractTrailer(strippedText, 'BRANDREWORK')"),
   `${COACH}: the BRANDREWORK: trailer parser is missing`)
 check(coach.includes("res.setHeader('X-Coach-Brand-Rework', brandReworkB64)"),
   `${COACH}: the X-Coach-Brand-Rework response header is no longer emitted`)

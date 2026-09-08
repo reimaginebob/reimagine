@@ -35,7 +35,7 @@ check(coach.includes("const removePeople = (parsed && Array.isArray(parsed.remov
   `${COACH}: removePeople is not parsed from the OPPORTUNITYUPDATE trailer`)
 check(coach.includes('if (stage || move || meeting || people.length || removePeople.length) {'),
   `${COACH}: removePeople alone (with no other field) does not trigger the header payload -- a pure removal request would produce no offer`)
-check(coach.includes('removePeople,\n        })).toString(\'base64\')'),
+check(coach.includes('removePeople,\n          })).toString(\'base64\')'),
   `${COACH}: removePeople is not included in the response header payload`)
 
 const CHAT = 'src/components/Chat.jsx'
