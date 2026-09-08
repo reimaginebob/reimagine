@@ -1502,7 +1502,7 @@ function opLaneValue(rec){const l=rec&&rec.opLane;if(l&&typeof l==='object'&&(l.
 const OP_LANE_INFER_PROMPT=(jd,profileSummary,quickTakeaway)=>`Determine which of the user's three career lanes best fits a specific opportunity FOR THIS USER. Output JSON only, no preamble.\n\nThe lanes:\n- FAMILIAR GROUND (FG): continues the user's trajectory. Same function, similar industry and altitude. The user can step in and add value from day one.\n- INDUSTRY INSIDER (II): translates the user's expertise across an industry or sector shift. Function carries; context changes. The user brings credibility and an outside perspective.\n- WORK THAT MATTERS (WTM): a deliberate pivot toward something the user cares about more, away from prior trajectory. Hiring requires explaining motivation, learning velocity, and transferable capability beyond resume fit.\n\nTHIS OPPORTUNITY (job description):\n${jd}\n\nTHE USER'S FOUNDATION:\n${profileSummary}\n\nWHAT WE HAVE ALREADY SAID ABOUT ROLE-FIT:\n${quickTakeaway}\n\nReturn exactly this JSON shape:\n{"value":"FG or II or WTM","confidence":"high or medium or low","reasoning":"2 to 4 sentences. Reference at least one specific JD fact and at least one specific user-profile fact. Plain language."}\n\nRules: choose exactly one lane, no between-lanes answers. Confidence is high only when the signal is unambiguous; medium is the common case. Generic reasoning is wrong.`
 async function inferLaneForOpportunity(jd,profileSummary,quickTakeaway){
   try{
-    const raw=await callClaude(OP_LANE_INFER_PROMPT((jd||'').slice(0,8000),(profileSummary||'').slice(0,4000),(quickTakeaway||'').slice(0,2000)),{maxTokens:1200,effort:'low'})
+    const raw=await callClaude(OP_LANE_INFER_PROMPT((jd||'').slice(0,8000),(profileSummary||'').slice(0,4000),(quickTakeaway||'').slice(0,2000)),{maxTokens:1200,effort:'low',step:'lane-infer'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<0||b<=a)return null
     let obj;try{obj=JSON.parse(raw.slice(a,b+1))}catch(e){return null}
@@ -1543,7 +1543,7 @@ async function inferJdMetadata(jd){
   // An empty generation is the same class as a parse failure for this job — the
   // model gave us nothing to read — so it lands on empty like the rest. A real
   // outage still propagates, which is the whole point of the call sitting here.
-  const raw=await callClaude(INFER_JD_METADATA_PROMPT(text),{maxTokens:1000,effort:'low'}).catch(e=>{if(e&&e.emptyOutput)return '';throw e})
+  const raw=await callClaude(INFER_JD_METADATA_PROMPT(text),{maxTokens:1000,effort:'low',step:'jd-metadata'}).catch(e=>{if(e&&e.emptyOutput)return '';throw e})
   try{
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<0||b<=a)return empty
@@ -1722,7 +1722,7 @@ async function inferIndustry(ctx){
   try{
     const jd=((ctx&&ctx.jd)||'').slice(0,6000)
     if(!jd.trim())return 'default'
-    const raw=await callClaude(INFER_INDUSTRY_PROMPT(jd),{maxTokens:1200,effort:'low'})
+    const raw=await callClaude(INFER_INDUSTRY_PROMPT(jd),{maxTokens:1200,effort:'low',step:'industry-infer'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<0||b<=a)return 'default'
     let obj;try{obj=JSON.parse(raw.slice(a,b+1))}catch(e){return 'default'}
@@ -1822,7 +1822,7 @@ If no currently open matching role exists, return match_count 0 and an empty mat
 // zero-match result on any failure so the sweep never blocks a card.
 async function findOpeningMatches(company,role,laneLabel){
   try{
-    const raw=await callClaude(OPENINGS_MATCH_PROMPT(company,role,laneLabel),{webSearch:true,maxTokens:2500,effort:'low'})
+    const raw=await callClaude(OPENINGS_MATCH_PROMPT(company,role,laneLabel),{webSearch:true,maxTokens:2500,effort:'low',step:'openings-match'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<=a)return{count:0,matches:[]}
     const obj=JSON.parse(raw.slice(a,b+1))
@@ -1914,7 +1914,7 @@ function recruiterLeaderConfirmed(m){
 }
 async function findRecruiterMatches(criteria){
   try{
-    const raw=await callClaude(RECRUITERS_DISCOVERY_PROMPT(criteria),{webSearch:true,maxTokens:6000,effort:'low'})
+    const raw=await callClaude(RECRUITERS_DISCOVERY_PROMPT(criteria),{webSearch:true,maxTokens:6000,effort:'low',step:'recruiters-discovery'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<=a)return{matches:[]}
     const obj=JSON.parse(raw.slice(a,b+1))
@@ -2494,7 +2494,7 @@ Output JSON only, no preamble:
 // gate before accepting the name.
 async function findRecruiterLeader(firm,practice,c){
   try{
-    const raw=await callClaude(RECRUITER_LEADER_LOOKUP_PROMPT(firm,practice,c),{webSearch:true,maxTokens:2000,effort:'low'})
+    const raw=await callClaude(RECRUITER_LEADER_LOOKUP_PROMPT(firm,practice,c),{webSearch:true,maxTokens:2000,effort:'low',step:'recruiters-leader-lookup'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<=a)return null
     const o=JSON.parse(raw.slice(a,b+1))
@@ -2518,7 +2518,7 @@ Output JSON only, no preamble:
 {"contact":"<name or empty>","contactTitle":"<current title or empty>","contactLinkedIn":"<profile URL if found, else empty>","source":"LinkedIn | Company site"}`
 async function findGtmContact(company,role,laneLabel){
   try{
-    const raw=await callClaude(GTM_CONTACT_LOOKUP_PROMPT(company,role,laneLabel),{webSearch:true,maxTokens:2000,effort:'low'})
+    const raw=await callClaude(GTM_CONTACT_LOOKUP_PROMPT(company,role,laneLabel),{webSearch:true,maxTokens:2000,effort:'low',step:'gtm-contact-lookup'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
     if(a<0||b<=a)return null
     const o=JSON.parse(raw.slice(a,b+1))
@@ -9381,7 +9381,7 @@ export default function PivotEngine(){
     setLoading(true);setLoadMsg('Reading your resume and LinkedIn for your skills…')
     ;(async()=>{
       try{
-        const raw=await callClaude(P.skillsExtract(profile),{maxTokens:2000})
+        const raw=await callClaude(P.skillsExtract(profile),{maxTokens:2000,step:'skillsExtract'})
         const cleaned=raw.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim()
         const parsed=JSON.parse(cleaned)
         const normalized={
@@ -10335,7 +10335,7 @@ export default function PivotEngine(){
       let parsedQuestion=null,refusal=''
       for(let attempt=1;attempt<=3;attempt++){
         const prompt=correctionsBlock(profile.corrections)+P.p11_question_regen(pc,outputs,chosen,profile.lifeEvents,questionIdx,currentQuestion,otherQuestionTexts,correctionText||'','')+(refusal?`\n\n${refusal}`:'')
-        const rawr=await callClaude(prompt,{maxTokens:6000})
+        const rawr=await callClaude(prompt,{maxTokens:6000,step:'p11-question-regen'})
         const q=parseP11QuestionJSON(rawr,currentQuestion.type)
         if(!q){refusal='The previous attempt did not return valid JSON for the requested question (id, question, type matching the original, star_breakdown with non-empty S/T/A/R sub-fields). Return only the JSON object.';continue}
         const vio=detectVoiceViolations(extractP11QuestionStrings(q),{includeSoft:false})
@@ -11201,7 +11201,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         builderErr(key,fallbackMsg)
         return
       }
-      const raw=await callClaude(promptFn(text),{maxTokens:4000})
+      const raw=await callClaude(promptFn(text),{maxTokens:4000,step:`builder-${source}-parse`})
       if(reqId!==builderReqRef.current)return
       const parsed=parseJsonObject(raw)
       // Tolerate both the nested {header:{...}} shape and a flat object.
@@ -11348,7 +11348,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const key='areas-'+ri;setBuilderBuilding(key);builderErr(key,null)
     const reqId=++builderReqRef.current
     try{
-      const raw=await callClaude(P.AREAS(draftRoleTitle(ri),'',draftRole(ri).context||''),{maxTokens:600})
+      const raw=await callClaude(P.AREAS(draftRoleTitle(ri),'',draftRole(ri).context||''),{maxTokens:600,step:'builder-areas'})
       if(reqId!==builderReqRef.current)return
       const areas=String(raw||'').split('\n').map(s=>s.replace(/^[-*•\d.\)\s]+/,'').trim()).filter(Boolean).slice(0,10)
       setDraftAreas(m=>({...m,[ri]:areas}))
@@ -11394,7 +11394,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const key='skills';setBuilderBuilding(key);builderErr(key,null)
     const reqId=++builderReqRef.current
     try{
-      const raw=await callClaude(P.SKILLS(draftRoleTitle(0),'',allBullets.join('\n')),{maxTokens:2000})
+      const raw=await callClaude(P.SKILLS(draftRoleTitle(0),'',allBullets.join('\n')),{maxTokens:2000,step:'builder-skills'})
       if(reqId!==builderReqRef.current)return
       const arr=parseJsonArray(raw)||[]
       const groups=arr.map(g=>({category:(g&&g.category)||'',items:((g&&g.items)||[]).map(it=>(typeof it==='string'?it:((it&&it.skill)||'')).trim()).filter(Boolean)})).filter(g=>g.items.length)
@@ -12308,7 +12308,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     try{
       const text=typeof fileOrText==='string'?fileOrText:await extractText(fileOrText)
       if(!text||!text.trim()||text.trim().length<40){setOfferParseError('We couldn\'t read enough text from that. Try pasting the offer text directly.');return}
-      const raw=await callClaude(OFFER_PARSE_PROMPT(text),{maxTokens:1200})
+      const raw=await callClaude(OFFER_PARSE_PROMPT(text),{maxTokens:1200,step:'offer-parse'})
       const offer=parseOfferJSON(raw)
       if(!offer){setOfferParseError('We couldn\'t parse that into offer terms. Try pasting the key details directly.');return}
       if(currentSavedSlotIdRef.current!==slotId)return
@@ -13176,7 +13176,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       let parsedQuestion=null,refusal=''
       for(let attempt=1;attempt<=3;attempt++){
         const prompt=correctionsBlock(profile.corrections)+P.p11_question_regen(pc,outputs,chosen,profile.lifeEvents,questionIdx,currentQuestion,otherQuestionTexts,correctionText||'',jd)+(refusal?`\n\n${refusal}`:'')
-        const rawr=await callClaude(prompt,{maxTokens:6000})
+        const rawr=await callClaude(prompt,{maxTokens:6000,step:'op-p11-question-regen'})
         const q=parseP11QuestionJSON(rawr,currentQuestion.type)
         if(!q){refusal='The previous attempt did not return valid JSON for the requested question (id, question, type matching the original, star_breakdown with non-empty S/T/A/R sub-fields). Return only the JSON object.';continue}
         const vio=detectVoiceViolations(extractP11QuestionStrings(q),{includeSoft:false})
