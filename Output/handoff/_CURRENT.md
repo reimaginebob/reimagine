@@ -4,7 +4,7 @@
 
 Both Cowork and Code work from this file. Briefs go stale the moment they are written; this one is meant to be edited in place. If you make a decision, close a question, or get blocked, edit the relevant line and stamp the date. Do not add a new section to record that an old section is wrong — fix the old section.
 
-Last updated: **2026-08-23** (Code — segment cap found, send architecture reopened; #495/#496 from the parallel session folded in)
+Last updated: **2026-09-08** (Code — prelaunch audit batch shipped, pointer added below; the rest of this file is unchanged and still reflects the 23 Aug lifecycle-email/economics thread)
 
 ---
 
@@ -174,6 +174,7 @@ Answers land in `feedback_event` as source `survey-dropout` and appear on the Fe
 | This file | `Output/handoff/_CURRENT.md` |
 | Lifecycle email brief | `Output/handoff/2026-08-22_lifecycle-email-brief.md` |
 | Economics handoff | `Output/handoff/2026-08-22_economics-what-shipped.md` |
+| Prelaunch audit batch handoff (2026-09-08, separate thread) | `Output/handoff/2026-09-08_prelaunch-audit-batch-what-shipped.md` — 9 launch-blocking security/reliability findings + 3 Coach/web-search cost levers, 13 PRs, all merged to `main` |
 | Stage classification | `api/admin/dormant.js` |
 | Funnel, cohorts, crossover, movement | `api/admin/growth.js`, `src/GrowthDashboard.jsx` |
 | Stage movement log | `migrations/2026-08-27_user-stage-events.sql`, `api/admin/stage-snapshot.js` |
