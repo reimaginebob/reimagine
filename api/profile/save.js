@@ -65,13 +65,25 @@ async function handler(req, res) {
   // (req.user.id is already known to exist -- requireAuth confirmed the
   // session against it), so a zero-row result is read as "stale, rejected"
   // rather than probed further.
+  //
+  // Both sides truncated to milliseconds (same-day fix, live QA pass): the
+  // neon serverless driver parses timestamptz into a JS Date, which only
+  // holds millisecond precision, so the value a client ever echoes back as
+  // its "last known" profile_updated_at has already lost whatever
+  // microsecond remainder NOW() wrote. Comparing that against the
+  // full-precision stored value made this reject almost every save --
+  // stored's nonzero microseconds made it compare greater than the
+  // client's necessarily-rounded copy, even with nothing else touching the
+  // row. Truncating both sides to the precision a client can actually
+  // round-trip keeps the guard (still rejects a genuinely older client)
+  // without rejecting a client for a precision it was never given.
   let rows
   try {
     rows = await sql`
       UPDATE users
       SET profile_state = ${profile}::jsonb, profile_updated_at = NOW()
       WHERE id = ${req.user.id}
-        AND (profile_updated_at IS NULL OR ${incomingUpdatedAt}::timestamptz IS NULL OR profile_updated_at <= ${incomingUpdatedAt}::timestamptz)
+        AND (profile_updated_at IS NULL OR ${incomingUpdatedAt}::timestamptz IS NULL OR date_trunc('milliseconds', profile_updated_at) <= date_trunc('milliseconds', ${incomingUpdatedAt}::timestamptz))
       RETURNING profile_updated_at
     `
   } catch (err) {
