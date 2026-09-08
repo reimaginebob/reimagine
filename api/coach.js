@@ -1688,7 +1688,7 @@ export function buildCoachRequest({
   message, history, currentStep, surface, returnSection, focusRecordId,
   profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
   userEmail, track, activityFacts, priorSessionAt, sessionOpenRequested,
-  generalMode, milestoneMentions, closeReasons, tzOffsetMinutes,
+  generalMode, milestoneMentions, closeReasons, turnKind, tzOffsetMinutes,
 }) {
   const isIndependentTrack = !generalMode && track === TRACK_INDEPENDENT
   // Go Independent and the pilot-knowledge blocks used to be two separate
@@ -1789,12 +1789,34 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   // change. 2 to 4 cache_control markers depending on which optional
   // blocks are present -- see test-coach-cache-blocks.mjs for the 4-marker
   // ceiling the Claude API enforces.
-  const system = [
-    { type: 'text', text: buildSystemPromptStable(), cache_control: { type: 'ephemeral' } },
-    { type: 'text', text: buildGuideBlock(currentStep), cache_control: { type: 'ephemeral' } },
-    ...(knowledgeBlock ? [{ type: 'text', text: knowledgeBlock, cache_control: { type: 'ephemeral' } }] : []),
-    { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
-  ]
+  //
+  // Silent turns -- session-open, orientation-check, post-capture -- are an
+  // exception (cost lever 6.3.2, 2026-09-08 prelaunch audit). `message` for
+  // these is a standing internal instruction the client fired with no
+  // person typing anything, not an open-ended coaching question, so they
+  // need the persona/voice rules (SYSTEM_PROMPT_HEAD) and the profile to
+  // react appropriately, but not the step-specific guide slice or the book
+  // -- neither is what a reaction to "here's what changed since your last
+  // session" or a capture confirmation draws on. Trimmed to SYSTEM_PROMPT_HEAD
+  // alone (skipping SYSTEM_PROMPT_TAIL/MYOW_CONTENT and the whole guide
+  // slice) plus the same optional knowledge block and profileBlock a normal
+  // turn gets. This also means these turns -- often the very first turn of
+  // a session, with nothing yet warm in any per-user cache -- never pay to
+  // write the ~260KB stable block or a guide slice just to say something
+  // short and scripted.
+  const isSilentTurn = turnKind && turnKind !== 'user'
+  const system = isSilentTurn
+    ? [
+        { type: 'text', text: SYSTEM_PROMPT_HEAD, cache_control: { type: 'ephemeral' } },
+        ...(knowledgeBlock ? [{ type: 'text', text: knowledgeBlock, cache_control: { type: 'ephemeral' } }] : []),
+        { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
+      ]
+    : [
+        { type: 'text', text: buildSystemPromptStable(), cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: buildGuideBlock(currentStep), cache_control: { type: 'ephemeral' } },
+        ...(knowledgeBlock ? [{ type: 'text', text: knowledgeBlock, cache_control: { type: 'ephemeral' } }] : []),
+        { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
+      ]
 
   return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId }
 }
@@ -2047,16 +2069,25 @@ export default async function handler(req, res) {
     focusRecordId: typeof (req.body && req.body.focusRecordId) === 'string' ? req.body.focusRecordId.trim() : '',
     profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
     userEmail: user.email, track, activityFacts, priorSessionAt: user.prior_session_at, sessionOpenRequested,
-    generalMode, milestoneMentions, closeReasons,
+    generalMode, milestoneMentions, closeReasons, turnKind,
     tzOffsetMinutes: typeof (req.body && req.body.tzOffsetMinutes) === 'number' ? req.body.tzOffsetMinutes : 0,
   })
+  // Silent turns get effort: 'low' alongside the trimmed system array above
+  // (cost lever 6.3.2) -- they're following a standing scripted instruction,
+  // not reasoning open-endedly over the person's whole situation, so the
+  // low-end strictness that's the wrong trade for a real coaching question
+  // (see the 'medium' note on output_config below) is exactly the right fit
+  // here. Computed once and reused by the voice-retry's own generate() call
+  // further down so a retry never silently changes effort mid-turn.
+  const effort = turnKind === 'user' ? 'medium' : 'low'
   const turnIndex = Array.isArray(history) ? history.length : 0
   const entryPoint = (surface === 'help' || surface === 'sidebar') ? surface : null
 
-  // One bounded generation call. The stable block (persona + voice + NAVIGATE +
-  // guide + book) is the cached prefix; the per-user profile slice is a second,
-  // uncached system block. Reused by the voice-retry below (same cached prefix,
-  // so the retry is a cache hit on the big blocks).
+  // One bounded generation call. buildCoachRequest already chose the system
+  // array's shape (the full stable block + guide slice for a real question,
+  // or the trimmed persona-only block for a silent turn -- cost lever
+  // 6.3.2). Reused by the voice-retry below (same `system`, so the retry is
+  // a cache hit on whichever blocks this turn actually sent).
   // Token usage across every upstream call this turn makes (the voice retry
   // below is a second billed call). Summed here, logged once at the end as a
   // single generation_events row -- the Coach is a real line on the cost side
@@ -2066,12 +2097,10 @@ export default async function handler(req, res) {
   // Claude Sonnet 5 (2026-08-28). Coach sends no temperature, so the sampling
   // breaking change does not touch it. Two things do: omitting `thinking` now
   // runs adaptive rather than none, and thinking shares max_tokens with the
-  // reply. effort 'low' keeps a chat surface responsive -- Sonnet 5 at low is
-  // still ahead of where 4.5 ran with no thinking at all -- and max_tokens
-  // doubles so a long profile-rich answer has room alongside it. The 2000 that
-  // replaced 1200 was measured against replies with no thinking in the budget.
+  // reply -- max_tokens doubled to 8000 (below) so a long profile-rich answer
+  // has room alongside it.
   const COACH_MODEL = 'claude-sonnet-5'
-  async function generate(msgs) {
+  async function generate(msgs, generationEffort) {
     const up = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -2093,20 +2122,27 @@ export default async function handler(req, res) {
         // when the reply was the whole budget no longer does. This is a ceiling,
         // not a target -- short answers cost exactly what they did before.
         max_tokens: 8000,
-        // 'medium' rather than 'low': this model respects effort strictly at the
-        // low end and scopes its work to exactly what was asked, which is the
-        // wrong trade for a coach reasoning over someone's whole profile.
-        output_config: { effort: 'medium' },
+        // 'medium' for a real coaching question: this model respects effort
+        // strictly at the low end and scopes its work to exactly what was
+        // asked, which is the wrong trade for a coach reasoning over someone's
+        // whole profile. 'low' for the three silent turn kinds (session-open,
+        // orientation-check, post-capture -- cost lever 6.3.2), which are
+        // following a standing scripted instruction rather than reasoning
+        // open-endedly, so the same low-end strictness is the right fit
+        // instead of a waste. Chosen once by the caller (the `effort` const
+        // above) and passed through so the voice-retry call below can't drift
+        // from what the primary call used.
+        output_config: { effort: generationEffort },
         // profileBlock (the last entry in `system`, built by buildCoachRequest)
-        // gets its own breakpoint (the last of the up-to-4 available -- see
-        // the ordering comment above `const system = [` in buildCoachRequest)
-        // because it changes on its own schedule -- once a day for the date
-        // line prepended above, and whenever pipeline/activity data actually
-        // changes -- which is slower than "every turn" but faster than the
-        // blocks ahead of it: buildSystemPromptStable()'s output is stable
-        // across every step and every turn, and buildGuideBlock()'s output
-        // only varies with currentStep (2026-09-06, step-aware guide gating;
-        // split into its own breakpoint 2026-09-08, cost lever 6.3.1).
+        // gets its own breakpoint -- the last of the up to 4 for a real
+        // question, or the last of the up to 3 for a trimmed silent turn
+        // (see the ordering comment above `const system = [` in
+        // buildCoachRequest) -- because it changes on its own schedule --
+        // once a day for the date line prepended above, and whenever
+        // pipeline/activity data actually changes -- which is slower than
+        // "every turn" but faster than the blocks ahead of it: a real
+        // question's stable block and guide slice, or a silent turn's
+        // persona-only block, are all more stable than the profile is.
         // Without a marker here profileBlock was rebuilt and resent in full
         // on every single turn of every conversation, uncached, even though
         // turn 2 of a conversation almost always carries the identical
@@ -2137,7 +2173,7 @@ export default async function handler(req, res) {
 
   let raw
   try {
-    raw = await generate(messages)
+    raw = await generate(messages, effort)
   } catch (err) {
     // Same treatment as the generation proxy: classify, log the real reason,
     // page the operator once per window when a human has to act, and give the
@@ -2636,7 +2672,7 @@ export default async function handler(req, res) {
     for (const v of hardViolations.slice(0, 3)) wants.push(`do not write "${String(v.match).replace(/"/g, '\\"').slice(0, 160)}" or anything shaped like it (${v.note})`)
     const corrective = `Rewrite your previous reply for me. Keep all of the substance, the warmth, and roughly the same length, but ${wants.join('; and ')}.`
     try {
-      const raw2 = await generate([...messages, { role: 'assistant', content: raw }, { role: 'user', content: corrective }])
+      const raw2 = await generate([...messages, { role: 'assistant', content: raw }, { role: 'user', content: corrective }], effort)
       // Defensive sweep: the corrective never asks for a trailer, but strip any
       // trailer-shaped line the rewrite reproduces anyway. Every capture was
       // already locked in above, before this block ever ran, so nothing here
