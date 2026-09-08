@@ -81,6 +81,14 @@ async function logGeneration(user, step, model, usage) {
 // The pager is deliberately coarse: one key per failure class per hour. During
 // an outage every generation in the app fails, and an email per failure would
 // bury the one that mattered.
+//
+// Prelaunch audit, finding #2.1: a malformed request (kind 'request', e.g. a
+// junk `effort` value) pages the operator, and that used to be reachable by
+// an anonymous caller sending garbage on purpose. The session requirement
+// added to the handler below runs before any Anthropic call is attempted, so
+// an anonymous 400 can no longer happen at all -- every request that reaches
+// this function now came from a real session. No separate anonymous/kind
+// carve-out is needed here; the fix is upstream of this function entirely.
 async function reportUpstreamFailure(surface, status, body) {
   const c = classifyAnthropicError(status, body)
   console.error('anthropic upstream failure', { surface, kind: c.kind, status: c.status, detail: c.detail })
@@ -452,6 +460,64 @@ function sumUsage(a, b) {
   return out
 }
 
+// Legacy-format request body -> validated {messages, tools?, output_config?}
+// for the Anthropic request, or null if the shape is not one the real client
+// (or a well-formed caller matching it) could have produced. Prelaunch audit,
+// finding #2.1: this replaces a `...reqBody` spread that let a caller control
+// `messages`, `tools`, `output_config`, and `max_tokens` directly. Exported so
+// the validation -- the one piece of real logic in this file -- can be tested
+// directly rather than only grepped for.
+//
+// Content shape matches exactly what src/App.jsx's callClaude sends: a single
+// user turn, content either a plain string or 1-2 `{type:'text', text, ...}`
+// blocks (the profileBlock pattern: a cached block followed by the prompt).
+// A non-empty `tools` array is treated as a boolean "wants web search" signal
+// ONLY -- the caller's own array contents are discarded and replaced with the
+// one tool definition this endpoint has ever supported. `effort` is accepted
+// either nested (`output_config.effort`, what the real client sends) or bare
+// (`effort`, accepted for parity with the simplified format above), validated
+// against the enum Anthropic actually accepts.
+export function buildLegacyMessagesAndTools(reqBody) {
+  const messages = reqBody && reqBody.messages
+  if (!Array.isArray(messages) || messages.length !== 1) return null
+  const m = messages[0]
+  if (!m || typeof m !== 'object' || m.role !== 'user') return null
+
+  const MAX_BLOCK_CHARS = 400000
+  const content = m.content
+  let sanitizedContent
+  if (typeof content === 'string') {
+    if (!content || content.length > MAX_BLOCK_CHARS) return null
+    sanitizedContent = content
+  } else if (Array.isArray(content) && content.length >= 1 && content.length <= 2) {
+    const blocks = []
+    for (const b of content) {
+      if (!b || typeof b !== 'object' || b.type !== 'text' || typeof b.text !== 'string' || !b.text || b.text.length > MAX_BLOCK_CHARS) return null
+      const block = { type: 'text', text: b.text }
+      if (b.cache_control && typeof b.cache_control === 'object' && typeof b.cache_control.type === 'string') {
+        block.cache_control = { type: b.cache_control.type }
+      }
+      blocks.push(block)
+    }
+    sanitizedContent = blocks
+  } else {
+    return null
+  }
+
+  const out = { messages: [{ role: 'user', content: sanitizedContent }] }
+
+  if (Array.isArray(reqBody.tools) && reqBody.tools.length > 0) {
+    out.tools = [{ type: 'web_search_20250305', name: 'web_search' }]
+  }
+
+  const rawEffort = (reqBody.output_config && typeof reqBody.output_config === 'object' && reqBody.output_config.effort) || reqBody.effort
+  if (typeof rawEffort === 'string' && ['low', 'medium', 'high'].includes(rawEffort)) {
+    out.output_config = { effort: rawEffort }
+  }
+
+  return out
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -463,12 +529,39 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Forbidden' })
   }
 
-  // Identify the caller once (best-effort — this endpoint also serves signed-out
-  // early-orientation generations, which have no session). Used to (1) reject a
-  // paused account before spending an Anthropic call, and (2) attribute the
-  // generation-events log. Never throws.
+  // Identify the caller once. Never throws -- a DB hiccup or a malformed
+  // cookie is treated as "no session" below, same as a genuinely missing one.
   let sessionUser = null
   try { sessionUser = await getSessionUser(req, res) } catch { /* no/failed session */ }
+
+  const reqBody = req.body || {}
+
+  // Prelaunch audit, finding #2.1: this endpoint had no session requirement
+  // at all -- an anonymous, uncapped Anthropic proxy with web search, callable
+  // directly with curl (the origin check only inspects a header, which any
+  // non-browser caller controls). The comment this replaced described that as
+  // covering "signed-out early-orientation generations," but pre-flight
+  // discovery (2026-09-08) found no such thing by product design: the client
+  // requires sign-up before any orientation screen renders at all (src/App.jsx
+  // gates the entire step-rendering function behind `signedUp`, and its own
+  // comment says so explicitly). The one call site that could actually reach
+  // this endpoint with no session (P.skillsExtract, fired by a useEffect keyed
+  // only on `step`, with no signedInUser check) is a client bug -- a stale or
+  // hand-edited localStorage `step` can fire it before/without a real session
+  // -- not a designed anonymous flow. Closing the gate here is what actually
+  // fixes it; the client bug is a separate, narrower follow-up left for its
+  // own PR (this fix does not depend on it: a call that still fires
+  // client-side now gets a 401 instead of a free anonymous generation).
+  //
+  // EARLY_ORIENTATION_STEPS exists so a genuine pre-signup generation can be
+  // added deliberately and reviewably in the future; it is empty today
+  // because no current step qualifies.
+  const EARLY_ORIENTATION_STEPS = new Set([])
+  const reqStep = typeof reqBody.step === 'string' ? reqBody.step.trim() : ''
+  if (!sessionUser && !EARLY_ORIENTATION_STEPS.has(reqStep)) {
+    return res.status(401).json({ error: 'Not authenticated' })
+  }
+
   if (sessionUser && sessionUser.suspended_at) {
     return res.status(403).json({ error: 'account_suspended' })
   }
@@ -496,7 +589,6 @@ export default async function handler(req, res) {
     } catch (e) { console.error('generation-cap check skipped:', e && e.message) }
   }
 
-  const reqBody = req.body || {}
   const sysText = reqBody.voiceMode === 'prose' ? SYS_PROSE
     : reqBody.voiceMode === 'prose-lite' ? SYS_PROSE_NOGUIDE
     : reqBody.voiceMode === 'safety-only' ? SYS_SAFETY_ONLY
@@ -526,44 +618,33 @@ export default async function handler(req, res) {
       ...(reqBody.webSearch ? { tools: [{ type: 'web_search_20250305', name: 'web_search' }] } : {})
     }
   } else if (Array.isArray(reqBody.messages)) {
-    // Legacy format: client sent the full Anthropic body.
-    // Force model and system prompt server-side; clamp max_tokens.
+    // Legacy format: the real client's ONLY format (src/App.jsx's callClaude
+    // always sends this shape; the `prompt` branch above is dead code from the
+    // client's own perspective, kept for any other caller still using it).
+    // Prelaunch audit, finding #2.1: this used to spread the caller's entire
+    // body (`...reqBody`) into the Anthropic request, so a caller controlled
+    // `messages`, `tools`, `output_config`, and `max_tokens` directly, and
+    // Reimagine-internal fields (voiceMode/step/effort/temperature) had to be
+    // stripped back out afterward because they leaked in through the spread.
+    // Rebuilt from named, validated fields instead -- see
+    // buildLegacyMessagesAndTools -- so nothing the caller sends reaches
+    // Anthropic except a message shape the real client actually produces, and
+    // a boolean "wants web search" signal never a caller-supplied tool
+    // definition. With no spread, none of those internal fields can leak in,
+    // so the strip-them-back-out block this replaced is gone too.
+    const built = buildLegacyMessagesAndTools(reqBody)
+    if (!built) {
+      return res.status(400).json({ error: 'Invalid request format' })
+    }
     anthropicBody = {
-      ...reqBody,
       model: MODEL,
       max_tokens: clampTokens(reqBody.max_tokens),
-      system: [{ type: 'text', text: sysText, cache_control: { type: 'ephemeral' } }, dateBlock]
+      system: [{ type: 'text', text: sysText, cache_control: { type: 'ephemeral' } }, dateBlock],
+      ...built
     }
   } else {
     return res.status(400).json({ error: 'Invalid request format' })
   }
-
-  // Sampling parameters are a 400 on Claude Sonnet 5. The legacy branch spreads
-  // the caller's whole body, so a cached older bundle still sending temperature
-  // would fail every generation until it refreshed. Strip them here rather than
-  // trusting the client to have updated.
-  delete anthropicBody.temperature
-  delete anthropicBody.top_p
-  delete anthropicBody.top_k
-
-  // voiceMode is a Reimagine-internal request field, read above to select
-  // SYS_BASE vs SYS_PROSE. It must NOT be forwarded to the Anthropic API: the
-  // legacy branch spreads ...reqBody, and Anthropic rejects unknown body fields
-  // with a 400 ("voiceMode: Extra inputs are not permitted").
-  delete anthropicBody.voiceMode
-  // step is a Reimagine-internal field (per-surface telemetry tag, read below).
-  // Same as voiceMode: the legacy branch spreads ...reqBody, so it must be
-  // removed or Anthropic 400s ("step: Extra inputs are not permitted").
-  delete anthropicBody.step
-  // `effort` is a Reimagine-internal field too. The simplified branch reads it
-  // and builds output_config from it; the legacy branch spreads the whole body,
-  // so it reached Anthropic as an unknown field and 400'd the request -- which
-  // this endpoint then reports to the user as "Reimagine is temporarily unable
-  // to generate," and pages the operator for. Honour it the way the other
-  // branch does rather than dropping it, so a caller that asks for an effort
-  // gets one instead of a system error.
-  if (reqBody.effort && !anthropicBody.output_config) anthropicBody.output_config = { effort: reqBody.effort }
-  delete anthropicBody.effort
 
   // Claude Sonnet 5 defaults `effort` to `high` when a request does not set it,
   // and on a demanding prose prompt that is not a nuance -- it is the difference
