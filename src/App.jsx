@@ -11664,7 +11664,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // rather than waiting on a full playbook for every name they log. The
       // full playbook gets Interview Prep's ceiling because it is the same
       // shape of job -- one long structured answer.
-      const opts={...(key==='p11'||key==='clientPlay'?{maxTokens:16000}:key==='clientRead'?{maxTokens:6000,effort:'low'}:{maxTokens:5000}),profileBlock:buildUserProfileBlock(pc,opOuts),step:key}
+      //
+      // p_res joins that same ceiling (2026-09-08, caught live during QA on a
+      // real opportunity): production logs showed a p_res call's thinking
+      // alone almost entirely consuming the prior, much lower ceiling before
+      // the model reached the actual resume JSON, which then cut off right
+      // after the opening keys. Same failure class p11 already hit, same fix.
+      const opts={...(key==='p11'||key==='clientPlay'||key==='p_res'?{maxTokens:16000}:key==='clientRead'?{maxTokens:6000,effort:'low'}:{maxTokens:5000}),profileBlock:buildUserProfileBlock(pc,opOuts),step:key}
       const r=await callClaudeWithVoiceGate(fn,opts,{step:key,onEvent:logVoiceEvent})
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
       setSavedPlaybooks(prev=>prev.map(rec=>{
