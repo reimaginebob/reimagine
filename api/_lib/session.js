@@ -45,9 +45,16 @@ export function getSessionToken(req) {
 export async function createSession(userId, userAgent, ipAddress) {
   const token = generateToken()
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000)
+  // Prelaunch audit, finding #2.4: the `sessions` table stored the raw token
+  // as its primary key -- a DB read of any kind (backup, Neon console, a
+  // future SQL injection, a log line) yielded a working cookie for every
+  // signed-in user. Store only the hash, matching magic_link_tokens.token_hash
+  // and the OAuth bearer-token hash (api/_lib/oauth.js) already in the repo.
+  // The raw token still goes in the cookie -- it never needs to be readable
+  // from the DB again, only re-hashed and compared on the next request.
   await sql`
     INSERT INTO sessions (token, user_id, expires_at, user_agent, ip_address)
-    VALUES (${token}, ${userId}, ${expiresAt.toISOString()}, ${userAgent}, ${ipAddress})
+    VALUES (${hashToken(token)}, ${userId}, ${expiresAt.toISOString()}, ${userAgent}, ${ipAddress})
   `
   return { token, expiresAt }
 }
@@ -55,6 +62,7 @@ export async function createSession(userId, userAgent, ipAddress) {
 export async function getSessionUser(req, res = null) {
   const token = getSessionToken(req)
   if (!token) return null
+  const tokenHash = hashToken(token)
   const rows = await sql`
     SELECT u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login_at,
            u.prior_session_at,
@@ -64,7 +72,7 @@ export async function getSessionUser(req, res = null) {
            u.search_focus, u.search_focus_updated_at
     FROM sessions s
     JOIN users u ON u.id = s.user_id
-    WHERE s.token = ${token} AND s.expires_at > NOW()
+    WHERE s.token = ${tokenHash} AND s.expires_at > NOW()
     LIMIT 1
   `
   if (rows.length === 0) return null
@@ -74,7 +82,7 @@ export async function getSessionUser(req, res = null) {
     UPDATE sessions
     SET last_used_at = NOW(),
         expires_at = ${newExpiresAt.toISOString()}
-    WHERE token = ${token}
+    WHERE token = ${tokenHash}
   `
 
   if (res) {
@@ -86,7 +94,7 @@ export async function getSessionUser(req, res = null) {
 }
 
 export async function deleteSession(token) {
-  await sql`DELETE FROM sessions WHERE token = ${token}`
+  await sql`DELETE FROM sessions WHERE token = ${hashToken(token)}`
 }
 
 export function requireAuth(handler) {
