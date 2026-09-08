@@ -3,9 +3,11 @@
 // point-in-time restore -- a whole-database operation, not a per-user undo.
 // This PR adds a nightly snapshot table (migrations/2026-09-08_profile-
 // state-snapshots.sql) written by a new cron endpoint
-// (api/admin/profile-snapshot.js), and documents in CLAUDE.md that the
-// Neon PITR window itself could not be confirmed from this sandbox (no
-// Neon console/API access here) rather than guessing a number.
+// (api/admin/profile-snapshot.js). The Neon PITR window itself could not
+// be confirmed from this sandbox (no Neon console/API access here), so it
+// was documented in CLAUDE.md as unconfirmed rather than guessed; Bob
+// confirmed it directly the same day (7 days) and CLAUDE.md was updated
+// with the real number.
 //
 // SOURCE-PRESENCE throughout: the migration is schema (nothing to execute
 // without a live Postgres connection -- same constraint as every other
@@ -77,25 +79,30 @@ if (snapshotCron) {
     `${VERCEL_JSON}: profile-snapshot and stage-snapshot are scheduled at the exact same time -- stagger them so they don't compete for DB connections on every account`)
 }
 
-// --- CLAUDE.md: the PITR gap is documented, not guessed ----------------
+// --- CLAUDE.md: the PITR window is documented, not guessed --------------
+//
+// 2026-09-08: Bob confirmed the number directly (7 days) after checking the
+// Neon console, so this no longer guards an "unconfirmed" placeholder --
+// it guards that the real, confirmed number stayed written down rather
+// than reverting to a guess or going missing again.
 
 const CLAUDE_MD = 'CLAUDE.md'
 const claudeMd = fs.readFileSync(CLAUDE_MD, 'utf8')
 
 check(claudeMd.includes('finding #2.6'),
-  `${CLAUDE_MD}: the new backup/recovery bullet no longer references finding #2.6`)
+  `${CLAUDE_MD}: the backup/recovery bullet no longer references finding #2.6`)
 check(/Neon.{0,40}PITR|PITR.{0,40}window/i.test(claudeMd),
-  `${CLAUDE_MD}: the Neon PITR window is not mentioned -- this bullet exists specifically to surface that gap`)
-check(claudeMd.includes('Deliberately not guessed here'),
-  `${CLAUDE_MD}: must say the PITR window was deliberately not guessed, per the project's own "do not invent values" rule -- a filled-in number here would be exactly that`)
+  `${CLAUDE_MD}: the Neon PITR window is not mentioned -- this bullet exists specifically to document that number`)
+check(/PITR\)[\s\S]{0,80}is \*\*7 days\*\*/.test(claudeMd),
+  `${CLAUDE_MD}: the confirmed PITR window (7 days) is missing or no longer stated plainly -- do not let this silently revert to a placeholder`)
 check(claudeMd.includes('profile_state_snapshots'),
-  `${CLAUDE_MD}: the new snapshot table must be named as the actual per-user restore fallback`)
+  `${CLAUDE_MD}: the snapshot table must be named as the actual per-user restore fallback`)
 check(claudeMd.includes('api/admin/profile-snapshot.js'),
-  `${CLAUDE_MD}: the new cron endpoint must be named so a future reader can find the code that writes the table`)
+  `${CLAUDE_MD}: the cron endpoint must be named so a future reader can find the code that writes the table`)
 
 if (failures) {
   console.error(`test-profile-snapshot: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-profile-snapshot: OK (the nightly profile_state_snapshots table, its cron endpoint\'s auth and INSERT...SELECT shape, the vercel.json cron registration, and the CLAUDE.md documentation of the unconfirmed Neon PITR window are all in place)')
+  console.log('test-profile-snapshot: OK (the nightly profile_state_snapshots table, its cron endpoint\'s auth and INSERT...SELECT shape, the vercel.json cron registration, and the CLAUDE.md documentation of the confirmed 7-day Neon PITR window are all in place)')
 }
