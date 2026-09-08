@@ -160,9 +160,11 @@ const app = fs.readFileSync(APP, 'utf8')
 
 check(/const hasCloseReasonCapture=/.test(app),
   `${APP}: hasCloseReasonCapture client-side flag mirror is missing`)
+// 3, not 2, since Phase 1b (2026-09-08) gave the concierge embedded mount
+// the same capture props the other two mounts already carried.
 const mountHits = (app.match(/closeReasonCaptureActive=\{hasPipeline&&!isIndependent&&hasCloseReasonCapture\}/g) || []).length
-check(mountHits === 2,
-  `${APP}: expected closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} at both <Chat> mount sites, found ${mountHits}`)
+check(mountHits === 3,
+  `${APP}: expected closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} at all 3 <Chat> mount sites, found ${mountHits}`)
 
 // One-time disclosure: state+ref pair, both hydration paths, autosave blob
 // + dep array, and a distinct message from Notes' own disclosure.

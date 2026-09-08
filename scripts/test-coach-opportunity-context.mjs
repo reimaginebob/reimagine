@@ -58,8 +58,10 @@ check(chat.includes("It adds to whatever's already there"),
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
 
-check((app.match(/opportunityContextCaptureActive=\{hasPipeline&&!isIndependent&&hasPipelineCapture\}/g) || []).length === 2,
-  `${APP}: opportunityContextCaptureActive is not wired identically at both <Chat> mount sites`)
+// 3, not 2, since Phase 1b (2026-09-08) gave the concierge embedded mount
+// the same capture props the other two mounts already carried.
+check((app.match(/opportunityContextCaptureActive=\{hasPipeline&&!isIndependent&&hasPipelineCapture\}/g) || []).length === 3,
+  `${APP}: opportunityContextCaptureActive is not wired identically at all 3 <Chat> mount sites`)
 
 // The write path: resolves by title (same precedent as opportunity-update and
 // interview-team, via the shared resolveOpportunityByName -- 2026-09-07,

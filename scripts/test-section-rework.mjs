@@ -66,9 +66,11 @@ check(/const hasSectionRework=/.test(app),
   `${APP}: hasSectionRework client-side flag mirror is missing`)
 check(/const sectionReworkTarget=hasSectionRework&&coachReturn&&coachReturn\.step==='focus'&&\['p6','p_res','p9','income','p7','p8'\]\.includes\(coachReturn\.section\)\?coachReturn\.section:null/.test(app),
   `${APP}: sectionReworkTarget is not derived from coachReturn, scoped to the six known sections, and gated on hasSectionRework`)
+// 3, not 2, since Phase 1b (2026-09-08) gave the concierge embedded mount
+// the same capture props the other two mounts already carried.
 const mountHits = (app.match(/sectionReworkTarget=\{sectionReworkTarget\}/g) || []).length
-check(mountHits === 2,
-  `${APP}: expected sectionReworkTarget={sectionReworkTarget} at both <Chat> mount sites, found ${mountHits}`)
+check(mountHits === 3,
+  `${APP}: expected sectionReworkTarget={sectionReworkTarget} at all 3 <Chat> mount sites, found ${mountHits}`)
 const branchIdx = app.indexOf("checkinKey==='section-rework'")
 check(branchIdx !== -1, `${APP}: the checkinKey==='section-rework' branch is missing from handleEmploymentQuickReply`)
 if (branchIdx !== -1) {

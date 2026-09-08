@@ -84,8 +84,10 @@ check(writeBlock.includes('saveCoachNoteToOpportunity(value)'),
 
 // Prop wiring: both Chat mounts must pass notesCaptureActive, gated on the
 // flag AND an opportunity actually being open.
+// 3, not 2, since Phase 1b (2026-09-08) gave the concierge embedded mount
+// the same capture props the other two mounts already carried.
 const notesCaptureActiveCount = (app.match(/notesCaptureActive=\{hasCoachNoteAgency&&!!coachSaveTarget\(\)\}/g) || []).length
-check(notesCaptureActiveCount === 2, `${APP}: expected notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} on both <Chat> mounts (floating + embedded), found ${notesCaptureActiveCount}`)
+check(notesCaptureActiveCount === 3, `${APP}: expected notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} on all 3 <Chat> mounts, found ${notesCaptureActiveCount}`)
 
 const CHAT = 'src/components/Chat.jsx'
 const chat = fs.readFileSync(CHAT, 'utf8')

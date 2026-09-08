@@ -7568,6 +7568,13 @@ export default function PivotEngine(){
   // client fires the check-ins that narrate onboarding. A separate flag from
   // hasNextStep so the two rollouts can be toggled independently.
   const hasOnboardingConcierge=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('onboarding_concierge'))
+  // PILOT — Coach presence, 2026-09-08. Mirrors hasCoachPresence in
+  // api/_lib/feature-flags.js; gates the widened embedded panel (Phase 1b of
+  // the Coach-as-Concierge redesign). A separate flag from
+  // hasOnboardingConcierge on purpose -- that one still gates the onboarding
+  // steps' own narration and framing, unrelated to whether the panel itself
+  // reaches screens past onboarding.
+  const hasCoachPresence=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('coach_presence'))
   // PILOT — Pipeline board, 2026-09-05. Mirrors hasPipelineBoard in
   // api/_lib/feature-flags.js; the server decides who may use the underlying
   // writes, this only decides whether the client renders the summary board.
@@ -8705,6 +8712,16 @@ export default function PivotEngine(){
   // open when the person left.
   const[coachOpen,setCoachOpen]=useState(false)
   const[coachMaximized,setCoachMaximized]=useState(false)
+  // Presence state for the EMBEDDED panel only (Phase 1b, Coach-as-Concierge).
+  // The floating panel's own open/maximized above already behaves the way the
+  // design's "open" vs "minimized" wants (closed bubble = minimized, open =
+  // open, maximized is already just a size preference within open) -- nothing
+  // needed there. The embedded panel had no such affordance at all before this
+  // (it was rendered at full size or not rendered), so this is new, not a re-skin.
+  // Two values only: 'open' | 'minimized'. No 'quiet' -- nothing can set it
+  // yet (that ships in Phase 2 alongside the Moments engine it would gate),
+  // so it is deliberately absent rather than a dead state nothing can reach.
+  const[coachPresence,setCoachPresence]=useState('open')
   // Arriving at the dedicated My Coach step counts as opening the coach, so the
   // floating panel that remounts on the way back out is already open rather
   // than collapsed -- otherwise someone who reached My Coach straight from the
@@ -8779,7 +8796,15 @@ export default function PivotEngine(){
   // instead -- no click needed, never collapsing back to a card. Excludes
   // mobile: a fixed side column has nowhere to go below MOBILE_BREAKPOINT,
   // where Coach is a bottom sheet by design.
-  const conciergeEmbedded=hasOnboardingConcierge&&!isMobile&&!isDemo&&!isTest&&!!signedInUser&&CONCIERGE_ORIENTATION_STEPS.includes(step)
+  // Phase 1b (Coach presence): flagged accounts get the embedded panel on
+  // every desktop screen after Welcome, not just onboarding -- Welcome itself
+  // and myCoach (the dedicated full-page view) keep their own treatment. A
+  // non-flagged account (hasCoachPresence false) falls through to exactly
+  // today's onboarding-only behavior, unchanged. hasOnboardingConcierge is
+  // deliberately NOT a prerequisite in the widened branch: presence (where
+  // the panel renders) and onboarding narration (what it says while there)
+  // are orthogonal, each gated and QC'd on its own flag.
+  const conciergeEmbedded=!isMobile&&!isDemo&&!isTest&&!!signedInUser&&(hasCoachPresence?(step!=='welcome'&&step!=='myCoach'):(hasOnboardingConcierge&&CONCIERGE_ORIENTATION_STEPS.includes(step)))
   const[drawerOpen,setDrawerOpen]=useState(false)
   const closeDrawer=()=>setDrawerOpen(false)
   // The old-format Personal Brand notice used to live here. It keyed off
@@ -17066,28 +17091,27 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             </div>
           </div>}
         </div>
-        {/* Concierge embedded panel (2026-09-07, live QA follow-on): the
-            right-hand column, present for the whole orientation flow rather
-            than a click-to-open card. A sibling of the scrolling content
-            column, not nested inside it, so its own bounded height (set
-            inside the embedded Chat variant) is independent of how long the
-            screen next to it runs. This one has no open/closed state of its
-            own, same as the existing myCoach embedded mount, so every
-            floating-only prop (open/setOpen/maximized/openRequest/onOpen/
-            showPulse/bottomOffset) is dropped. Deliberately NARROWER than
-            either sibling mount: pipeline/opportunity capture (notes,
-            close-reason, archive, pursuit, section rework, op-card rework)
-            all depend on a pipeline that cannot exist yet during
-            orientation -- coachSaveTarget() is always null here -- so they
-            are omitted rather than wired to props that would just evaluate
-            false the whole time. Keeps only what actually fires on these
-            steps: the nine orientation-field captures, the employment and
-            Life Events thin prompts, and the p3 brand-rework bridge.
-            sectionReworkTarget is also omitted -- it is scoped to the six
-            Focus Playbook sections (p6/p_res/p9/income/p7/p8), none of
-            which is reachable from an orientation step. */}
+        {/* Concierge embedded panel (2026-09-07, widened Phase 1b 2026-09-08):
+            the right-hand column, present on every desktop screen after
+            Welcome for a flagged account (coach_presence), onboarding-only
+            for everyone else. A sibling of the scrolling content column, not
+            nested inside it, so its own bounded height (set inside the
+            embedded Chat variant) is independent of how long the screen next
+            to it runs. Still drops the floating-only layout props
+            (open/setOpen/maximized/openRequest/onOpen/showPulse/bottomOffset
+            -- the bubble pulse animation and floating position have no
+            embedded equivalent), but now carries the SAME capture props the
+            floating mount does (pipeline/opportunity capture, notes,
+            section rework, session-open). Those used to be omitted here on
+            the reasoning that coachSaveTarget() is always null during
+            orientation -- true then, false now that this panel also covers
+            an Opportunity Playbook or My Pipeline, where omitting them would
+            have silently dropped working Coach capabilities the moment the
+            floating mount (which had them) stopped rendering underneath it.
+            presence/setPresence (new) replace the floating mount's
+            open/maximized for this variant's own minimize affordance. */}
         {conciergeEmbedded&&<div data-print="hide" style={{width:'min(38vw,460px)',minWidth:340,flexShrink:0,padding:'40px 56px 28px 24px'}}>
-          <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} situation={computeSituation()} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
+          <Chat embedded currentStep={step} C={C} presence={coachPresence} setPresence={setCoachPresence} messages={chatMessages} setMessages={setChatMessages} situation={computeSituation()} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation}/>
         </div>}
       </div>
     </div>

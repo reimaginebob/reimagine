@@ -103,10 +103,16 @@ check(chat.includes("opportunityUpdateCaptureActive = false"),
 // currently open produced no offer at all, even when the model correctly
 // emitted the trailer and the header carried real data -- exactly what
 // happened live on a real Deloitte conversation the day this shipped.
+// 3, not 2, since Phase 1b (Coach-as-Concierge presence, 2026-09-08) gave
+// the concierge embedded mount the same pipeline/opportunity capture props
+// the other two mounts already carried -- it used to omit them on the
+// reasoning that it only ever rendered during onboarding, where none of
+// them could fire; that reasoning no longer holds now that the same mount
+// also covers Put It to Work / Career Paths / My Pipeline.
 for (const app of ['src/App.jsx']) {
   const src = fs.readFileSync(app, 'utf8')
   const propOccurrences = (src.match(/opportunityUpdateCaptureActive=\{[^}]*\}/g) || [])
-  check(propOccurrences.length === 2, `${app}: expected opportunityUpdateCaptureActive on both <Chat> mounts, found ${propOccurrences.length}`)
+  check(propOccurrences.length === 3, `${app}: expected opportunityUpdateCaptureActive on all 3 <Chat> mounts, found ${propOccurrences.length}`)
   for (const occ of propOccurrences) {
     check(!occ.includes('coachSaveTarget'),
       `${app}: ${occ} still requires coachSaveTarget() -- this narrows the merged mechanism to only fire inside a focused opportunity, a real regression from interview-team capture's old (broader) title-match-only gating`)
