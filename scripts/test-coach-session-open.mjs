@@ -40,7 +40,7 @@ check(/res\.status\(204\)\.end\(\)/.test(coach),
 // check both the extraction boundary and the inner call site.
 check(/priorSessionAt:\s*user\.prior_session_at,\s*sessionOpenRequested,/.test(coach),
   `${COACH}: buildCoachRequest is no longer called with priorSessionAt: user.prior_session_at and sessionOpenRequested`)
-check(/buildCoachProfileSlice\([^)]*priorSessionAt,\s*sessionOpenRequested\)/.test(coach),
+check(/buildCoachProfileSlice\([^)]*priorSessionAt,\s*sessionOpenRequested[,)]/.test(coach),
   `${COACH}: the buildCoachProfileSlice call site no longer threads priorSessionAt / sessionOpenRequested`)
 
 // The note itself must be gated on BOTH the pilot flag and this specific

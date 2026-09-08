@@ -655,6 +655,21 @@ function _panelCount(rec) {
   return ivs.filter(iv => iv && typeof iv === 'object' && typeof iv.name === 'string' && iv.name.trim()).length
 }
 
+// Client-local calendar date, not the server's UTC date (My Coach review,
+// finding #3.6). A person in the US evening was told "due today" had become
+// "overdue by 1 day" because every date computation here anchored to UTC,
+// which is already tomorrow for anyone west of Greenwich once evening hits.
+// tzOffsetMinutes is the client's own Date.prototype.getTimezoneOffset()
+// value (minutes to ADD to local time to reach UTC, so local = UTC - offset),
+// sent with every /api/coach request; clamped to the real-world range
+// (UTC-12 to UTC+14) and defaulted to 0 (UTC) if missing or malformed, so an
+// old cached client or an unexpected caller degrades to today's prior
+// behavior rather than producing a garbage date.
+function localTodayStr(tzOffsetMinutes) {
+  const offset = typeof tzOffsetMinutes === 'number' && Number.isFinite(tzOffsetMinutes) && Math.abs(tzOffsetMinutes) <= 840 ? tzOffsetMinutes : 0
+  return new Date(Date.now() - offset * 60000).toISOString().slice(0, 10)
+}
+
 function buildPursuitStatusBlock(state, pursuitRows, opts = {}) {
   // `detailed` is the Your Next Step pilot's build map (see buildSectionMap).
   // Off, every byte of this block is what it was before the pilot existed.
@@ -667,7 +682,7 @@ function buildPursuitStatusBlock(state, pursuitRows, opts = {}) {
   if (!saved.length) return ''
   const byId = new Map(pursuitRows.map(r => [r.record_id, r]))
   const DAY = 86400000
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = localTodayStr(opts.tzOffsetMinutes)
   const todayMs = Date.parse(todayStr)
   // Whole-day difference by calendar date; positive = in the past.
   // iso may be an ISO string (from the profile_state blob, e.g. createdAt) OR a
@@ -810,12 +825,12 @@ function buildPursuitStatusBlock(state, pursuitRows, opts = {}) {
 // is what this gives -- BY NAME, never as a count. Three of ten may be exactly
 // right for a path, and a fraction here would be a completeness score on work
 // that has no required length.
-function buildFocusPlaybookBlock(state, independent) {
+function buildFocusPlaybookBlock(state, independent, tzOffsetMinutes) {
   const saved = Array.isArray(state && state.savedPlaybooks) ? state.savedPlaybooks : []
   const focus = saved.filter(r => r && r.source !== 'door2' && !r.archivedAt)
   if (!focus.length) return ''
   const DAY = 86400000
-  const today = Date.parse(new Date().toISOString().slice(0, 10))
+  const today = Date.parse(localTodayStr(tzOffsetMinutes))
   const daysAgo = (v) => { if (!v) return null; let iso = ''; try { iso = new Date(v).toISOString().slice(0, 10) } catch { return null } const t = Date.parse(iso); return Number.isNaN(t) ? null : Math.round((today - t) / DAY) }
   const lines = []
   for (const rec of focus.slice(0, 12)) {
@@ -945,7 +960,7 @@ function searchIntakeNote(si) {
 // is a different job than this one governs.
 const ORIENTATION_LISTENING_NOTE = '\n\nORIENTATION LISTENING MODE: when this person shares something real — a struggle, a frustration, how something is going for them — reflect it back and stay with it before you redirect, caveat, or pivot to anything else, including one of the capture notes elsewhere in this prompt. Resist the pull to solve it, defer it to "once your brand is built," or steer toward whatever is still missing from their profile. One open question that builds on what they actually said is worth more here than a capture offer or a redirect. If nothing calls for a follow-up, a brief, genuine acknowledgment is enough — you do not owe them a next question every turn. This does not cancel any capture note elsewhere in this prompt — still offer to save something that clearly fits — it governs what comes FIRST in your reply: their words get heard on their own terms before anything else happens in the same breath.'
 
-function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, independent = false, activityFacts = [], priorSessionAt = null, sessionOpenRequested = false) {
+function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, independent = false, activityFacts = [], priorSessionAt = null, sessionOpenRequested = false, tzOffsetMinutes = 0) {
   // Orientation field capture (2026-09-06), gated -- unlike VALUES_CAPTURE_NOTE
   // and ASSESSMENT_CAPTURE_NOTE just below, which shipped before CLAUDE.md's
   // current flag-everything rule existed. Computed once here so both the
@@ -1116,8 +1131,8 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // the rest of Your Next Step: they change what the coach says on every turn,
   // and that is the change Bob quality-controls before 145 accounts see it.
   const sightOn = hasNextStep({ feature_flags: featureFlags, email: userEmail })
-  const myStatusData = buildPursuitStatusBlock(state, pursuitRows, { detailed: sightOn, independent })
-  const focusData = sightOn ? buildFocusPlaybookBlock(state, independent) : ''
+  const myStatusData = buildPursuitStatusBlock(state, pursuitRows, { detailed: sightOn, independent, tzOffsetMinutes })
+  const focusData = sightOn ? buildFocusPlaybookBlock(state, independent, tzOffsetMinutes) : ''
   const activityData = sightOn ? buildActivityBlock(activityFacts) : ''
   const activityNote = sightOn ? ACTIVITY_CAPTURE_NOTE : ''
   // Pilot: only a flagged account is told it may propose a stage move, next
@@ -1629,7 +1644,7 @@ export function buildCoachRequest({
   message, history, currentStep, surface, returnSection, focusRecordId,
   profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
   userEmail, track, activityFacts, priorSessionAt, sessionOpenRequested,
-  generalMode, milestoneMentions, closeReasons,
+  generalMode, milestoneMentions, closeReasons, tzOffsetMinutes,
 }) {
   const isIndependentTrack = !generalMode && track === TRACK_INDEPENDENT
   const goIndependentBlock = isIndependentTrack
@@ -1645,9 +1660,14 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   if (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: userEmail })) pilotKnowledge.push(PIPELINE_CAPTURE_KNOWLEDGE)
   if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: userEmail })) pilotKnowledge.push(NEXT_STEP_KNOWLEDGE)
   const pilotKnowledgeBlock = pilotKnowledge.length ? pilotKnowledge.join('\n\n') : null
-  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, isIndependentTrack, activityFacts, priorSessionAt, sessionOpenRequested)
-  const nowLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
-  profileBlock = `TODAY'S DATE: ${nowLabel} (UTC). Use this as the reference point for anything time-related — whether a date is in the past or still upcoming, how long something has been sitting, how overdue a step is. Where the pipeline status below already gives a computed figure ("due in 6 days", "OVERDUE by 12 days", "in pipeline 74 days"), that figure is authoritative: trust it over any date math you do yourself, and if a step's free-text wording names a different date, do not treat that typed date as the deadline. Never assert an elapsed time you cannot derive from the dates you were actually given. If anything in the data looks inconsistent, reconcile it silently and state the corrected fact plainly — never narrate your own correction to the person ("wait, let me correct that", "the system is showing...", thinking out loud). Just tell them the accurate picture.\n\n${profileBlock}`
+  let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, isIndependentTrack, activityFacts, priorSessionAt, sessionOpenRequested, tzOffsetMinutes)
+  // The person's own local calendar date (My Coach review, finding #3.6), not
+  // the server's UTC date -- labeling this "(UTC)" while every pipeline date
+  // below is computed the same way was itself part of the bug: an evening
+  // user in the US saw "due today" read as "overdue by 1 day" because the
+  // reference date and the pipeline math both silently meant Greenwich time.
+  const nowLabel = new Date(localTodayStr(tzOffsetMinutes) + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+  profileBlock = `TODAY'S DATE: ${nowLabel}. Use this as the reference point for anything time-related — whether a date is in the past or still upcoming, how long something has been sitting, how overdue a step is. Where the pipeline status below already gives a computed figure ("due in 6 days", "OVERDUE by 12 days", "in pipeline 74 days"), that figure is authoritative: trust it over any date math you do yourself, and if a step's free-text wording names a different date, do not treat that typed date as the deadline. Never assert an elapsed time you cannot derive from the dates you were actually given. If anything in the data looks inconsistent, reconcile it silently and state the corrected fact plainly — never narrate your own correction to the person ("wait, let me correct that", "the system is showing...", thinking out loud). Just tell them the accurate picture.\n\n${profileBlock}`
   let inFocusRecordId = null
   if (!generalMode) try {
     const activeSaved = Array.isArray(profileState && profileState.savedPlaybooks) ? profileState.savedPlaybooks.filter(r => r && !r.archivedAt) : []
@@ -1930,6 +1950,7 @@ export default async function handler(req, res) {
     profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
     userEmail: user.email, track, activityFacts, priorSessionAt: user.prior_session_at, sessionOpenRequested,
     generalMode, milestoneMentions, closeReasons,
+    tzOffsetMinutes: typeof (req.body && req.body.tzOffsetMinutes) === 'number' ? req.body.tzOffsetMinutes : 0,
   })
   const turnIndex = Array.isArray(history) ? history.length : 0
   const entryPoint = (surface === 'help' || surface === 'sidebar') ? surface : null

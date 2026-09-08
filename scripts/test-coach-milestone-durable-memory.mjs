@@ -72,7 +72,7 @@ check(/let inFocusRecordId = null[\s\S]{0,600}inFocusRecordId = inFocus\.id/.tes
 // reply is sent.
 check(/hasMilestonePrompt\(\{ feature_flags: featureFlags, email: user\.email \}\)\) \{\s*try \{\s*milestoneMentions = await sql`SELECT record_id, milestone FROM coach_milestone_mentions WHERE user_id = \$\{user\.id\}`/.test(coach),
   `${COACH}: milestoneMentions is not read from coach_milestone_mentions, gated on hasMilestonePrompt`)
-check(/generalMode, milestoneMentions,[\s\S]{0,30}\}\)/.test(coach),
+check(/generalMode, milestoneMentions,[\s\S]{0,200}\}\)/.test(coach),
   `${COACH}: milestoneMentions is not passed into the buildCoachRequest call site`)
 check(/const mmMatch = strippedText\.match\(\/\^\\s\*MILESTONEMENTIONED:\\s\*\(\\w\+\)\\s\*\$\/im\)/.test(coach),
   `${COACH}: the MILESTONEMENTIONED trailer is not parsed`)

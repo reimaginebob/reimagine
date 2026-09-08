@@ -538,6 +538,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           ...(postCaptureUpdate ? { postCaptureUpdate } : (silent ? { sessionOpen: true } : { message: userMsg.content })),
           history: historyAtSend,
           currentStep,
+          // The person's own local timezone offset (My Coach review, finding
+          // #3.6): the server anchored every date computation to UTC and
+          // labeled it as such, so an evening user in the US was told "due
+          // today" had become "overdue by 1 day". getTimezoneOffset() is
+          // minutes to ADD to local time to reach UTC (e.g. +240 for US
+          // Eastern in summer), which the server uses to compute this
+          // person's actual local calendar date instead of the server's own.
+          tzOffsetMinutes: new Date().getTimezoneOffset(),
           // Entry point for insight logging: the embedded variant is the My
           // Coach sidebar; the floating variant is the help bubble.
           surface: embedded ? 'sidebar' : 'help',
@@ -637,12 +645,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             return copy
           })
         }
-        // Coach's live replies stream straight into the visible UI, so a
-        // silent pre-display retry (matching generation's callClaudeWithVoiceGate)
-        // is not possible without buffering the whole reply and losing the
-        // live-typing effect. This checks the completed reply after it has
-        // already rendered and reports hard violations for detection and
-        // telemetry rather than correcting the displayed text.
+        // Docs correction (My Coach review, finding #3.7): this used to say
+        // Coach's replies stream live and so cannot go through a silent
+        // pre-display retry the way generation's callClaudeWithVoiceGate does.
+        // That was wrong -- api/coach.js buffers the entire reply server-side
+        // and runs its own silent regenerate-on-violation retry BEFORE ever
+        // writing a byte to this response, so what reads to the client as a
+        // live stream is really the complete, already-retried text arriving
+        // in one write. The check below re-examines that same final text on
+        // the client and reports hard violations for detection and telemetry
+        // (visibility into whatever the server's own retry did not catch),
+        // not correction -- the server already had its one shot at that.
         const voiceViolations = detectVoiceViolations(fullText, { scope: 'runtime' }).filter(v => v.severity === 'hard')
         if (voiceViolations.length && onVoiceViolation) onVoiceViolation(voiceViolations)
         // One-time in-conversation offer to persist a stated employment status.
