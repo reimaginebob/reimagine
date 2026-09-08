@@ -127,9 +127,22 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // Stop generating (accessibility/UX audit, 2026-09-05, Gap 1): holds the
   // AbortController for whichever request is currently in flight, so the
   // Send button can double as Stop while loading. Only one send() can run at
-  // a time (the guard at the top of send() below returns early if loading is
-  // already true), so a single ref is enough -- no collection needed.
+  // a time (the guard at the top of send() below), so a single ref is
+  // enough -- no collection needed.
   const abortRef = useRef(null)
+  // send()'s own concurrency guard, synchronous unlike `loading` (My Coach
+  // review, finding #4.7): the seed effect and the session-open effect can
+  // both call sendRef.current(...) in the SAME commit -- e.g. arriving at My
+  // Coach with an auto-send seed on the very first visit of a new session,
+  // which is also eligible for the session-open recap. Both closures read
+  // `loading` as it was at the START of that render, before either call's
+  // setLoading(true) has actually taken effect (state updates do not apply
+  // until the next render), so the plain `loading` check let both calls
+  // through, producing two concurrent requests that both eventually try to
+  // overwrite the same last message. Set the instant send() actually
+  // commits to firing, and cleared in send()'s own finally, this is visible
+  // synchronously to whichever call runs second, in the same tick.
+  const sendLockRef = useRef(false)
   // Handle to the mic button so send() can stop an in-progress recording the
   // moment the person hits Send -- pressing Send means "I'm done talking,"
   // and leaving the mic listening after that reads as the app not noticing.
@@ -497,7 +510,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   const send = async (explicit, { silent = false, postCaptureUpdate = null } = {}) => {
     const isSilentTurn = silent || !!postCaptureUpdate
     const text = isSilentTurn ? '' : (typeof explicit === 'string' ? explicit : input).trim()
-    if (isSilentTurn) { if (loading) return } else if (!text || loading) return
+    if (isSilentTurn) { if (loading || sendLockRef.current) return } else if (!text || loading || sendLockRef.current) return
+    sendLockRef.current = true
     const userMsg = { role: 'user', content: text }
     // (sendRef is refreshed just below so the seed effect can call the latest send.)
     const historyAtSend = messages
@@ -1088,6 +1102,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     } finally {
       abortRef.current = null
       setLoading(false)
+      sendLockRef.current = false
     }
   }
   sendRef.current = send
