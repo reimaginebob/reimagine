@@ -60,7 +60,7 @@ check(chat.includes('...(postCaptureUpdate ? { postCaptureUpdate } : (silent ? {
 // never on dismiss or on an unrelated checkinKey.
 const tapIdx = chat.indexOf("if (handled && typeof handled === 'object' && handled.content) {")
 check(tapIdx !== -1, `${CHAT}: the quick-reply success branch in tapQuickReply is missing`)
-const tapBlock = tapIdx !== -1 ? chat.slice(tapIdx, tapIdx + 900) : ''
+const tapBlock = tapIdx !== -1 ? chat.slice(tapIdx, tapIdx + 1200) : ''
 check(tapBlock.includes("checkinKey === 'opportunity-update'"),
   `${CHAT}: tapQuickReply does not scope the post-capture follow-up to the opportunity-update checkinKey`)
 check(tapBlock.includes('JSON.parse(opt.value)') && tapBlock.includes('sendRef.current(null, { postCaptureUpdate: capturedData })'),

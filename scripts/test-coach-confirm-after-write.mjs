@@ -22,10 +22,10 @@ const app = fs.readFileSync(APP, 'utf8')
 // gated on handled===true, after the await.
 const tapIdx = chat.indexOf('const tapQuickReply = async (idx, opt, checkinKey) => {')
 check(tapIdx !== -1, `${CHAT}: could not find tapQuickReply`)
-const tapBlock = tapIdx !== -1 ? chat.slice(tapIdx, tapIdx + 4000) : ''
+const tapBlock = tapIdx !== -1 ? chat.slice(tapIdx, tapIdx + 4400) : ''
 check(!tapBlock.slice(0, tapBlock.indexOf('await onQuickReply')).includes("if (opt.followUp) c.push"),
   `${CHAT}: opt.followUp is still pushed before onQuickReply is awaited -- this is the exact false-confirmation bug being fixed`)
-check(tapBlock.includes('} else if (handled === true) {') && tapBlock.includes('if (opt.followUp) setMessages(m => [...m, { role: \'assistant\', content: opt.followUp }])'),
+check(tapBlock.includes('} else if (handled === true) {') && tapBlock.includes('if (opt.followUp) setMessages(m => [...m, { role: \'assistant\', content: opt.followUp, synthetic: true }])'),
   `${CHAT}: followUp is no longer shown only when handled === true (a plain successful write with nothing more to say)`)
 check(tapBlock.includes("nothing matched, so nothing changed"),
   `${CHAT}: a genuine resolver miss (handled === false) no longer says so honestly instead of silently logging to pb-checkin`)

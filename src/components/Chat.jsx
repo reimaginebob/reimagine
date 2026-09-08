@@ -419,7 +419,11 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     setMessages(m => {
       const c = [...m]
       if (c[idx]) c[idx] = { ...c[idx], quickReplies: null }
-      c.push({ role: 'user', content: opt.label })
+      // synthetic: true (My Coach review finding #2.4) -- this is the button
+      // label, not something the person actually typed. The server strips
+      // synthetic turns before building the model's history so a tap never
+      // reads back as the person having said it.
+      c.push({ role: 'user', content: opt.label, synthetic: true })
       return c
     })
     // Persistence is best-effort and routed by App: an onQuickReply handler owns
@@ -444,7 +448,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     try {
       const handled = onQuickReply ? await onQuickReply(checkinKey, opt.value) : false
       if (handled && typeof handled === 'object' && handled.content) {
-        setMessages(m => [...m, { role: 'assistant', ...handled }])
+        setMessages(m => [...m, { role: 'assistant', ...handled, synthetic: true }])
         // Opportunity-update capture (2026-09-06): the tap just landed a real
         // write (a stage, a move, a meeting, a new interviewer), and the reply
         // that offered it was deliberately short and tactical -- coaching on
@@ -457,7 +461,11 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           if (capturedData && sendRef.current) sendRef.current(null, { postCaptureUpdate: capturedData })
         }
       } else if (handled === true) {
-        if (opt.followUp) setMessages(m => [...m, { role: 'assistant', content: opt.followUp }])
+        // synthetic: true (My Coach review finding #2.4) -- an
+        // action-confirmation string ("Saved.", "Archived.") the app wrote,
+        // not the model. This is the exact class of turn that used to teach
+        // the model it had already done what it is told never to claim.
+        if (opt.followUp) setMessages(m => [...m, { role: 'assistant', content: opt.followUp, synthetic: true }])
       } else {
         const r = await fetch('/api/pb-checkin', {
           method: 'POST', credentials: 'include',
@@ -468,7 +476,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // every capture key returns true on its own dismiss branch before
         // reaching here) -- a non-ok response there is expected, not a miss.
         if (!r.ok && opt.value !== 'dismiss') {
-          setMessages(m => [...m, { role: 'assistant', content: "That didn't go through — nothing matched, so nothing changed." }])
+          setMessages(m => [...m, { role: 'assistant', content: "That didn't go through — nothing matched, so nothing changed.", synthetic: true }])
         }
       }
     } catch { /* the conversation already continued; the tap is best-effort */ }
@@ -574,7 +582,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           : systemMsg || 'Sorry, something went wrong. Try again in a moment.'
         setMessages(m => {
           const copy = [...m]
-          copy[copy.length - 1] = { role: 'assistant', content: fallback }
+          // synthetic: true (My Coach review finding #2.4) -- a client-side
+          // error message, never something the model said.
+          copy[copy.length - 1] = { role: 'assistant', content: fallback, synthetic: true }
           return copy
         })
       } else {
@@ -1069,7 +1079,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // 204/!res.ok branches above do.
         setMessages(m => {
           const copy = [...m]
-          copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach your coach just now. Try again in a moment.' }
+          // synthetic: true (My Coach review finding #2.4) -- see the 503/401
+          // fallback above; same reasoning.
+          copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach your coach just now. Try again in a moment.', synthetic: true }
           return copy
         })
       }
