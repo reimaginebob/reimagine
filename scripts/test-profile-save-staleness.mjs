@@ -45,8 +45,14 @@ const save = fs.readFileSync(SAVE, 'utf8')
 check(save.includes('const { profile_updated_at: rawIncomingUpdatedAt, ...rawProfile } = rawBody'),
   `${SAVE}: profile_updated_at is no longer pulled out of the incoming body before it becomes profile_state`)
 
-const whereIdx = save.indexOf('AND (profile_updated_at IS NULL OR ${incomingUpdatedAt}::timestamptz IS NULL OR profile_updated_at <= ${incomingUpdatedAt}::timestamptz)')
-check(whereIdx !== -1, `${SAVE}: the staleness precondition's WHERE clause is missing or has drifted`)
+// Same-day fix (live QA pass, 2026-09-08): both sides must be truncated to
+// millisecond precision. The neon serverless driver parses timestamptz into
+// a JS Date (millisecond precision only), so a client can never echo back
+// the microseconds NOW() actually wrote -- comparing full precision on one
+// side and a necessarily-rounded value on the other rejected nearly every
+// real save as "stale" with nothing else touching the row.
+const whereIdx = save.indexOf('AND (profile_updated_at IS NULL OR ${incomingUpdatedAt}::timestamptz IS NULL OR date_trunc(\'milliseconds\', profile_updated_at) <= date_trunc(\'milliseconds\', ${incomingUpdatedAt}::timestamptz))')
+check(whereIdx !== -1, `${SAVE}: the staleness precondition's WHERE clause is missing, has drifted, or no longer truncates both sides to millisecond precision (which reintroduces the false-positive 409)`)
 
 const updateIdx = save.indexOf('SET profile_state = ${profile}::jsonb, profile_updated_at = NOW()')
 check(updateIdx !== -1 && whereIdx !== -1 && updateIdx < whereIdx,
