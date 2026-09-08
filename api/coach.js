@@ -18,7 +18,7 @@ import { GO_INDEPENDENT_KNOWLEDGE } from '../src/data/go-independent-knowledge.j
 import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowledge.js'
 import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
-import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt, hasOrientationCapture, hasCloseReasonCapture } from './_lib/feature-flags.js'
+import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt, hasOrientationCapture, hasCloseReasonCapture, hasCoachSituation } from './_lib/feature-flags.js'
 import { CLOSE_REASON_CODES, INITIATED_BY_VALUES } from '../src/pursuit-close-reasons.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
@@ -1685,7 +1685,7 @@ export const config = { maxDuration: 120 }
 // the inline block it replaced. Also returns hasPersonalBrand, hasResume,
 // and lane, which chat_messages logging in the handler needs downstream.
 export function buildCoachRequest({
-  message, history, currentStep, surface, returnSection, focusRecordId,
+  message, history, currentStep, surface, returnSection, focusRecordId, situation,
   profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
   userEmail, track, activityFacts, priorSessionAt, sessionOpenRequested,
   generalMode, milestoneMentions, closeReasons, turnKind, tzOffsetMinutes,
@@ -1721,10 +1721,21 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   // reference date and the pipeline math both silently meant Greenwich time.
   const nowLabel = new Date(localTodayStr(tzOffsetMinutes) + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
   profileBlock = `TODAY'S DATE: ${nowLabel}. Use this as the reference point for anything time-related — whether a date is in the past or still upcoming, how long something has been sitting, how overdue a step is. Where the pipeline status below already gives a computed figure ("due in 6 days", "OVERDUE by 12 days", "in pipeline 74 days"), that figure is authoritative: trust it over any date math you do yourself, and if a step's free-text wording names a different date, do not treat that typed date as the deadline. Never assert an elapsed time you cannot derive from the dates you were actually given. If anything in the data looks inconsistent, reconcile it silently and state the corrected fact plainly — never narrate your own correction to the person ("wait, let me correct that", "the system is showing...", thinking out loud). Just tell them the accurate picture.\n\n${profileBlock}`
+  // Situation (Coach-as-Concierge Phase 1a): situationRecordId is tried BEFORE
+  // focusRecordId below -- it is the one signal computed fresh on every screen
+  // including Career Paths, where focusRecordId (coachSaveTarget(), door2-only)
+  // is always empty. focusRecordId and the title-match scan both stay as
+  // fallbacks, so a non-flagged account or an old cached client bundle
+  // mid-deploy degrades to exactly today's behavior. The client's
+  // situation.record.title/lane/company are never trusted for anything --
+  // only the id is used, to look the record up below, same as focusRecordId.
+  const situationRecordId = hasCoachSituation({ feature_flags: featureFlags, email: userEmail }) && situation && situation.record && typeof situation.record.id === 'string'
+    ? situation.record.id.trim() : ''
+  const situationSection = situation && typeof situation.section === 'string' ? situation.section.trim().slice(0, 60) : ''
   let inFocusRecordId = null
   if (!generalMode) try {
     const activeSaved = Array.isArray(profileState && profileState.savedPlaybooks) ? profileState.savedPlaybooks.filter(r => r && !r.archivedAt) : []
-    const pinnedId = typeof focusRecordId === 'string' ? focusRecordId.trim() : ''
+    const pinnedId = situationRecordId || (typeof focusRecordId === 'string' ? focusRecordId.trim() : '')
     const pinned = pinnedId ? activeSaved.find(r => r && r.id === pinnedId) : null
     const inFocus = pinned || findInFocusRecord(activeSaved, message, history)
     if (inFocus) {
@@ -1755,7 +1766,13 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
     profileBlock += sectionReworkCaptureNote(sectionReworkLabel)
   }
 
-  const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".]` : ''
+  // Section in view (Phase 1a): the one piece of Situation not already covered
+  // by contextNote (screen) or buildPlaybookExpansion (record, built/not-built
+  // -- both already render themselves correctly once inFocus resolves above).
+  // Without this, "what do you think of this" typed while scrolled to a
+  // specific section had nothing telling the model which one "this" is.
+  const sectionNote = situationSection ? ` They are currently looking at the "${situationSection}" section.` : ''
+  const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".${sectionNote}]` : ''
 
   // 50, not 10 (2026-09-06): matches the client's own persistence cap
   // (App.jsx localStorage.setItem('reimagine_chat_history', ...chatMessages.slice(-50)))
@@ -2067,6 +2084,7 @@ export default async function handler(req, res) {
   const { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId } = buildCoachRequest({
     message, history, currentStep, surface, returnSection,
     focusRecordId: typeof (req.body && req.body.focusRecordId) === 'string' ? req.body.focusRecordId.trim() : '',
+    situation: req.body && req.body.situation && typeof req.body.situation === 'object' ? req.body.situation : null,
     profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
     userEmail: user.email, track, activityFacts, priorSessionAt: user.prior_session_at, sessionOpenRequested,
     generalMode, milestoneMentions, closeReasons, turnKind,
