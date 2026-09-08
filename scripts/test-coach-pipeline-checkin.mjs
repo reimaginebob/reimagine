@@ -60,7 +60,7 @@ check(!coach.includes('INTERVIEWTEAM_RE') && !/strippedText0?\.match\(\/\^\\s\*I
   `${COACH}: the old INTERVIEWTEAM: trailer parser is still present alongside the merged one`)
 check(!/strippedText\.match\(\/\^\\s\*PIPELINE:/.test(coach),
   `${COACH}: the old PIPELINE: trailer parser is still present alongside the merged one`)
-check(/const opportunityUpdateNote = hasPipelineCapture\(\{ feature_flags: featureFlags, email: userEmail \}\) \? OPPORTUNITY_UPDATE_CAPTURE_NOTE : ''/.test(coach),
+check(/const opportunityUpdateNote = hasPipelineCapture\(\{ feature_flags: featureFlags, email: userEmail \}\)[\s\S]{0,20}\? OPPORTUNITY_UPDATE_CAPTURE_NOTE : ''/.test(coach),
   `${COACH}: OPPORTUNITY_UPDATE_CAPTURE_NOTE is not gated on hasPipelineCapture`)
 check(coach.includes("res.setHeader('X-Coach-Opportunity-Update', opportunityUpdateB64)"),
   `${COACH}: the merged X-Coach-Opportunity-Update response header is missing`)

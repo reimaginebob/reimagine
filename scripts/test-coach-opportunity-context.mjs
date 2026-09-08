@@ -28,8 +28,8 @@ check(coach.includes('NEVER SAY YOU HAVE ADDED OR SAVED IT'),
 check(coach.includes('appended to whatever is already in that field, never overwriting it'),
   `${COACH}: the capture note does not state the append-not-overwrite contract`)
 
-check(/const opportunityContextNote = hasPipelineCapture\(\{ feature_flags: featureFlags, email: userEmail \}\) \? OPPORTUNITY_CONTEXT_CAPTURE_NOTE : ''/.test(coach),
-  `${COACH}: opportunityContextNote is not gated on hasPipelineCapture, the same flag opportunityUpdateNote already uses for this same panel object`)
+check(/const opportunityContextNote = hasPipelineCapture\(\{ feature_flags: featureFlags, email: userEmail \}\) && !independent \? OPPORTUNITY_CONTEXT_CAPTURE_NOTE : ''/.test(coach),
+  `${COACH}: opportunityContextNote is not gated on hasPipelineCapture && !independent, the same gate opportunityUpdateNote already uses for this same panel object`)
 const profileTemplateMatch = coach.match(/return `THIS USER'S REIMAGINE PROFILE[\s\S]*?`\n\}/)
 check(!!profileTemplateMatch && profileTemplateMatch[0].includes('${opportunityContextNote}'),
   `${COACH}: opportunityContextNote is not spliced into the profile block template`)

@@ -121,8 +121,8 @@ check(/profileBlock \+= buildCloseReasonAlreadyLoggedBlock\(inFocus\.id, closeRe
 check(coach.includes("CLOSE REASON ALREADY LOGGED FOR THIS OPPORTUNITY"),
   `${COACH}: the suppression text is missing or has drifted`)
 
-check(coach.includes("const closeReasonNote = hasCloseReasonCapture({ feature_flags: featureFlags, email: userEmail }) ? CLOSE_REASON_CAPTURE_NOTE : ''"),
-  `${COACH}: closeReasonNote is not gated on hasCloseReasonCapture (its own flag, not hasPipelineCapture)`)
+check(coach.includes("const closeReasonNote = hasCloseReasonCapture({ feature_flags: featureFlags, email: userEmail }) && !independent ? CLOSE_REASON_CAPTURE_NOTE : ''"),
+  `${COACH}: closeReasonNote is not gated on hasCloseReasonCapture && !independent (its own flag, not hasPipelineCapture, plus the same independent-track exclusion as its My Pipeline siblings)`)
 check(coach.includes('${opportunityArchiveNote}${closeReasonNote}${opCardReworkNote}'),
   `${COACH}: closeReasonNote is not spliced into the profile-slice template`)
 
