@@ -364,7 +364,15 @@ async function callClaude(prompt, opts={}) {
   // this number as the protection against it.
   const MIN_OUTPUT_TOKENS = 6000
   const effectiveMaxTokens = Math.max(maxTokens, MIN_OUTPUT_TOKENS)
-  const tools=webSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined
+  // max_uses (cost lever 6.3.3, 2026-09-08 prelaunch audit): api/claude.js's
+  // buildLegacyMessagesAndTools treats this array's CONTENTS as inert -- a
+  // non-empty `tools` array is only a boolean "wants web search" signal, and
+  // the server discards it and substitutes its own step-aware max_uses
+  // (STEP_MAX_SEARCH_USES in api/claude.js). Set here anyway so no
+  // web_search declaration in the source is missing a bound, matching what
+  // actually reaches Anthropic in spirit even though this literal value
+  // never does.
+  const tools=webSearch?[{type:"web_search_20250305",name:"web_search",max_uses:4}]:undefined
   // When a profileBlock is supplied, send the user message as two content blocks:
   // the canonical profile (cache_control ephemeral = the cached prefix shared
   // across migrated surfaces) followed by the prompt-specific instructions.
@@ -2020,26 +2028,86 @@ Output JSON only, no preamble:
   {"name":"<organization>","kind":"career network|job-search group|professional body|public workforce|library program|faith-based network|local meetup|online community|gated peer group|outplacement","howYouTakePart":"<e.g. 'Meets weekly in person, and virtually for those out of the area'>","cost":"free|dues|invite-only|ticketed|unknown","costNote":"<what it actually costs, plainly, or empty>","forPeopleInTransition":true or false,"fitsProfession":true or false,"whyThisFits":"<one plain sentence>","url":"<their own page>","eventsUrl":"<their own events or programs page, or empty>","sourceUrl":"<the page that establishes what you are claiming, or empty if it is the same as url>","confidence":"high|medium|low"}
 ]}
 Return at most ${loc.limit||8}. The cap is a ceiling, never a target.`
-// One candidate, one cheap check. Confirms the organization is still running and
-// finds its own events page. This is what catches the merged-chapter case: given
-// charlotte.ascm.org, the right answer is the surviving body, not a live-looking
-// page for a chapter that no longer exists.
-const JOB_RESOURCE_LIVENESS_PROMPT=(r,loc)=>`Check whether ONE organization is still running, and find its own events page. Search the web.
+// Batched: ALL candidates checked in one search-enabled call instead of one
+// call per organization (cost lever 6.3.3, 2026-09-08 prelaunch audit --
+// Networking Groups and Job Search Resources each verified every org with
+// its own call, so one click was 8 to 11 upstream requests). Chunked at
+// RESOURCE_VERIFY_CHUNK rather than one call for the whole list, so a
+// single slow or oversized response can't stall the pass or blow the
+// per-turn search budget (STEP_MAX_SEARCH_USES in api/claude.js sizes
+// 'resources-verify'/'groups-verify' max_uses against this chunk size).
+// Still catches the merged-chapter case: given charlotte.ascm.org, the
+// right answer is the surviving body, not a live-looking page for a
+// chapter that no longer exists.
+const RESOURCE_VERIFY_CHUNK=6
+const JOB_RESOURCE_LIVENESS_BATCH_PROMPT=(rows,loc)=>`Check whether EACH of these organizations is still running, and find each one's own events page. Search the web separately for each one -- do not assume one organization's status from another's.
 
-ORGANIZATION: ${r.name}
-THEIR PAGE: ${r.url||r.eventsUrl||'(none)'}
 AREA: ${[loc.city,loc.region].filter(Boolean).join(', ')||'(none given)'}
 
-Answer three things:
+ORGANIZATIONS, in this exact order -- your "results" array must answer them in the same order:
+${rows.map((r,i)=>`${i+1}. ${r.name} -- ${r.url||r.eventsUrl||'(no page given)'}`).join('\n')}
+
+For each one, answer three things:
 1. Is it still operating? Look for a current programs page, a current staff or officer listing, or recent posts. If the organization merged into another body or moved to a different domain, say so and give the SURVIVING organization's name and URL — a page for a group that no longer exists is worse than no answer.
 2. Its own events or programs page, if it has one.
 3. What it costs to take part, plainly.
 
 NEVER STATE A DATE in any field. A recurring cadence ("meets weekly", "third Tuesday") is fine.
 
-Output JSON only:
-{"alive":true or false or null,"supersededBy":{"name":"","url":""} or null,"eventsUrl":"<or empty>","cost":"free|dues|invite-only|ticketed|unknown","costNote":"<or empty>","howYouTakePart":"<or empty>","note":"<one short sentence, or empty>"}
+Output JSON only, exactly ${rows.length} entries in "results", in the order given above:
+{"results":[
+  {"alive":true or false or null,"supersededBy":{"name":"","url":""} or null,"eventsUrl":"<or empty>","cost":"free|dues|invite-only|ticketed|unknown","costNote":"<or empty>","howYouTakePart":"<or empty>","note":"<one short sentence, or empty>"}
+]}
 Use null for alive when the sources do not settle it either way.`
+// The per-row merge one verification result applies to its candidate row.
+// Identical between Job Search Resources and Networking Groups except one
+// preserved difference: resources scrubs an asserted date out of
+// whyThisFits when a row gets replaced by its surviving organization;
+// groups never carried that scrub. Kept as found rather than unified as a
+// side effect of batching -- this PR changes the call shape, not the
+// per-row behavior either caller already had.
+function mergeLivenessResult(r,v,scrubWhyThisFits){
+  if(!v||typeof v!=='object')return r
+  const sup=v.supersededBy&&typeof v.supersededBy==='object'&&String(v.supersededBy.name||'').trim()?v.supersededBy:null
+  const next={...r}
+  if(sup){
+    next.name=String(sup.name).slice(0,140)
+    next.url=/^https?:\/\//i.test(sup.url||'')?sup.url:r.url
+    next.eventsUrl=''
+    if(scrubWhyThisFits)next.whyThisFits=stripAssertedDate(next.whyThisFits)
+  }
+  if(/^https?:\/\//i.test(v.eventsUrl||''))next.eventsUrl=v.eventsUrl
+  if(['free','dues','invite-only','ticketed'].includes(v.cost))next.cost=v.cost
+  if(String(v.costNote||'').trim())next.costNote=stripAssertedDate(String(v.costNote).slice(0,160))
+  if(String(v.howYouTakePart||'').trim())next.howYouTakePart=stripAssertedDate(String(v.howYouTakePart).slice(0,160))
+  if(v.alive===false)next.confidence='low'
+  else if(v.alive===true&&next.confidence!=='high')next.confidence='medium'
+  return next
+}
+// Verifies every row in chunks of RESOURCE_VERIFY_CHUNK, one batched call
+// per chunk instead of one call per row -- replaces the old warmThenAll(rows,
+// oneCallPerRow) pattern with warmThenAll(chunks, oneCallPerChunk), same
+// warm-then-fan-out cache economics, fewer upstream calls. Liveness is
+// allowed to fail quietly per chunk: a chunk that could not be re-checked
+// keeps what discovery said and its own confidence for every row in it,
+// rather than those rows disappearing -- losing real results to a flaky
+// second call is the worse bug.
+async function verifyResourceRows(rows,loc,step,scrubWhyThisFits){
+  if(rows.length===0)return rows
+  const chunks=[]
+  for(let i=0;i<rows.length;i+=RESOURCE_VERIFY_CHUNK)chunks.push(rows.slice(i,i+RESOURCE_VERIFY_CHUNK))
+  const chunkResults=await warmThenAll(chunks,async chunk=>{
+    try{
+      const raw=await callClaude(JOB_RESOURCE_LIVENESS_BATCH_PROMPT(chunk,loc),{webSearch:true,maxTokens:4000,effort:'low',step:step})
+      const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
+      if(a<0||b<=a)return chunk
+      const obj=JSON.parse(raw.slice(a,b+1))
+      const results=Array.isArray(obj.results)?obj.results:[]
+      return chunk.map((r,i)=>mergeLivenessResult(r,results[i],scrubWhyThisFits))
+    }catch(e){return chunk}
+  })
+  return chunkResults.flat()
+}
 // warmThenAll — run the first call alone, then fan out the rest.
 //
 // Every call to /api/claude re-sends a large standing system prefix behind a
@@ -2077,34 +2145,7 @@ async function findJobResources(loc){
     discovered=Array.isArray(obj.resources)?obj.resources:[]
   }catch(e){return{rows:[],uncited:[]}}
   const{rows,uncited}=splitResources(discovered)
-  // Liveness runs per row and is allowed to fail quietly: a row we could not
-  // re-check keeps what discovery said and its own confidence, rather than
-  // disappearing. Losing a real group to a flaky second call is the worse bug.
-  const checked=await warmThenAll(rows,async r=>{
-    try{
-      const raw=await callClaude(JOB_RESOURCE_LIVENESS_PROMPT(r,loc),{webSearch:true,maxTokens:1200,effort:'low',step:'resources-verify'})
-      const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
-      if(a<0||b<=a)return r
-      const v=JSON.parse(raw.slice(a,b+1))
-      // A superseded organization is REPLACED by the one that survived it, which
-      // is the whole point of this pass.
-      const sup=v.supersededBy&&typeof v.supersededBy==='object'&&String(v.supersededBy.name||'').trim()?v.supersededBy:null
-      const next={...r}
-      if(sup){
-        next.name=String(sup.name).slice(0,140)
-        next.url=/^https?:\/\//i.test(sup.url||'')?sup.url:r.url
-        next.eventsUrl=''
-        next.whyThisFits=stripAssertedDate(next.whyThisFits)
-      }
-      if(/^https?:\/\//i.test(v.eventsUrl||''))next.eventsUrl=v.eventsUrl
-      if(['free','dues','invite-only','ticketed','unknown'].includes(v.cost)&&v.cost!=='unknown')next.cost=v.cost
-      if(String(v.costNote||'').trim())next.costNote=stripAssertedDate(String(v.costNote).slice(0,160))
-      if(String(v.howYouTakePart||'').trim())next.howYouTakePart=stripAssertedDate(String(v.howYouTakePart).slice(0,160))
-      if(v.alive===false)next.confidence='low'
-      else if(v.alive===true&&next.confidence!=='high')next.confidence='medium'
-      return next
-    }catch(e){return r}
-  })
+  const checked=await verifyResourceRows(rows,loc,'resources-verify',true)
   return{rows:rankResources(checked),uncited}
 }
 
@@ -2203,28 +2244,7 @@ async function findPathGroups(criteria){
   ])
   const{rows,uncited}=splitResources([...placed,...unplaced])
   if(rows.length===0)return{rows:[],uncited}
-  const checked=await warmThenAll(rows,async r=>{
-    try{
-      const raw=await callClaude(JOB_RESOURCE_LIVENESS_PROMPT(r,{city:criteria.geo||'',region:''}),{webSearch:true,maxTokens:1200,effort:'low',step:'groups-verify'})
-      const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
-      if(a<0||b<=a)return r
-      const v=JSON.parse(raw.slice(a,b+1))
-      const sup=v.supersededBy&&typeof v.supersededBy==='object'&&String(v.supersededBy.name||'').trim()?v.supersededBy:null
-      const next={...r}
-      if(sup){
-        next.name=String(sup.name).slice(0,140)
-        next.url=/^https?:\/\//i.test(sup.url||'')?sup.url:r.url
-        next.eventsUrl=''
-      }
-      if(/^https?:\/\//i.test(v.eventsUrl||''))next.eventsUrl=v.eventsUrl
-      if(['free','dues','invite-only','ticketed'].includes(v.cost))next.cost=v.cost
-      if(String(v.costNote||'').trim())next.costNote=stripAssertedDate(String(v.costNote).slice(0,160))
-      if(String(v.howYouTakePart||'').trim())next.howYouTakePart=stripAssertedDate(String(v.howYouTakePart).slice(0,160))
-      if(v.alive===false)next.confidence='low'
-      else if(v.alive===true&&next.confidence!=='high')next.confidence='medium'
-      return next
-    }catch(e){return r}
-  })
+  const checked=await verifyResourceRows(rows,{city:criteria.geo||'',region:''},'groups-verify',false)
   return{rows:rankResources(checked),uncited}
 }
 

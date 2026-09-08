@@ -471,6 +471,38 @@ function sumUsage(a, b) {
   return out
 }
 
+// Web-search bound per step (cost lever 6.3.3, 2026-09-08 prelaunch audit):
+// the web_search tool had no `max_uses` anywhere, so a single turn could run
+// an unbounded number of searches. Values are evidence-based, not guessed --
+// matched against every `webSearch:true` call site in src/App.jsx and its
+// step tag:
+//   - Single-fact lookups (one contact, one interviewer, one leader name,
+//     one opening) need at most a couple of searches: 2.
+//   - The two verification steps (src/App.jsx's findJobResources/
+//     findPathGroups) were rewritten in this same PR to batch up to
+//     RESOURCE_VERIFY_CHUNK (6) organizations into one call instead of one
+//     call per organization -- that batch can legitimately need a search per
+//     organization, so its ceiling scales with the chunk size rather than
+//     staying at the single-lookup floor: 12.
+//   - Genuine multi-source research (a company read, Go-to-Market, a salary
+//     read, a discovery pass across several candidates) needs more room to
+//     actually verify what it claims: 6 to 8.
+// A step not listed here (an older client, a step added later and not yet
+// tuned) falls back to DEFAULT_MAX_SEARCH_USES rather than going unbounded.
+const STEP_MAX_SEARCH_USES = {
+  'recruiters-leader-lookup': 2, 'gtm-contact-lookup': 2,
+  'panel-interviewer-read': 2, 'openings-match': 2,
+  'resources-verify': 12, 'groups-verify': 12,
+  p7: 8, 'gtm-company-read': 8, 'op-company-read': 8,
+  'op-salary-read': 6, salaryRead: 6, 'income-buyer-read': 6,
+  'recruiters-discovery': 6, 'resources-search': 6, 'groups-search': 6,
+}
+const DEFAULT_MAX_SEARCH_USES = 4
+export function maxSearchUsesFor(step) {
+  const s = typeof step === 'string' ? step.trim() : ''
+  return STEP_MAX_SEARCH_USES[s] || DEFAULT_MAX_SEARCH_USES
+}
+
 // Legacy-format request body -> validated {messages, tools?, output_config?}
 // for the Anthropic request, or null if the shape is not one the real client
 // (or a well-formed caller matching it) could have produced. Prelaunch audit,
@@ -518,7 +550,7 @@ export function buildLegacyMessagesAndTools(reqBody) {
   const out = { messages: [{ role: 'user', content: sanitizedContent }] }
 
   if (Array.isArray(reqBody.tools) && reqBody.tools.length > 0) {
-    out.tools = [{ type: 'web_search_20250305', name: 'web_search' }]
+    out.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: maxSearchUsesFor(reqBody.step) }]
   }
 
   const rawEffort = (reqBody.output_config && typeof reqBody.output_config === 'object' && reqBody.output_config.effort) || reqBody.effort
@@ -626,7 +658,7 @@ export default async function handler(req, res) {
       system: [{ type: 'text', text: sysText, cache_control: { type: 'ephemeral' } }, dateBlock],
       messages: [{ role: 'user', content: reqBody.prompt }],
       ...(reqBody.effort ? { output_config: { effort: reqBody.effort } } : {}),
-      ...(reqBody.webSearch ? { tools: [{ type: 'web_search_20250305', name: 'web_search' }] } : {})
+      ...(reqBody.webSearch ? { tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: maxSearchUsesFor(reqBody.step) }] } : {})
     }
   } else if (Array.isArray(reqBody.messages)) {
     // Legacy format: the real client's ONLY format (src/App.jsx's callClaude
