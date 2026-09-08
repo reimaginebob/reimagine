@@ -58,6 +58,21 @@ const GENERATION_CAP_HR = 240
 // Token counts and cost ride along on the same row (Economics tab). They are
 // priced at write time by costFromUsage; a response with no usage object logs a
 // zero-cost row rather than dropping the generation from the count.
+//
+// Finding #2.9 (2026-09-08 prelaunch audit): a broken INSERT here used to fail
+// completely silently -- no log, no alert -- which would quietly disable the
+// hourly generation cap, the abuse watchdog, and the budget alerts together,
+// since all three read this table. A single serverless-instance blip is not
+// worth paging anyone about (this function already tolerates that), so the
+// alert fires only once consecutive failures cross a small threshold, using
+// the same alertOnce dedupe + cooldown api/claude.js already uses for
+// upstream failures -- one email, not one per request, and it re-arms if the
+// outage is still live 6 hours later. The counter is per-instance (resets on
+// cold start), which is fine: alertOnce's own DB-backed dedupe key is what
+// actually prevents alert spam across instances.
+let consecutiveLogFailures = 0
+const LOG_FAILURE_ALERT_THRESHOLD = 5
+
 async function logGeneration(user, step, model, usage) {
   try {
     const userId = (user && user.id) ? user.id : null
@@ -68,7 +83,23 @@ async function logGeneration(user, step, model, usage) {
         (user_id, kind, model, input_tokens, output_tokens, cache_write_tokens, cache_read_tokens, web_searches, cost_usd)
       VALUES
         (${userId}, ${kind}, ${c.model}, ${c.inputTokens}, ${c.outputTokens}, ${c.cacheWriteTokens}, ${c.cacheReadTokens}, ${c.webSearches}, ${c.costUsd})`
-  } catch { /* never surfaces to the caller */ }
+    consecutiveLogFailures = 0
+  } catch (err) {
+    consecutiveLogFailures++
+    if (consecutiveLogFailures >= LOG_FAILURE_ALERT_THRESHOLD) {
+      try {
+        await alertOnce('generation-log:insert-failing',
+          'Reimagine: generation_events logging is failing repeatedly',
+          [
+            `logGeneration has failed ${consecutiveLogFailures} times in a row on this instance (most recent error: ${(err && err.message) || String(err)}).`,
+            `This silently disables the hourly generation cap, the abuse watchdog, and the budget alerts -- they all read from this table.`,
+          ],
+          { cooldownHours: 6 }
+        )
+      } catch { /* alerting must never surface to the caller either */ }
+    }
+    /* never surfaces to the caller */
+  }
 }
 
 // Upstream failure handling (2026-08-15 incident). Anthropic's error text is
