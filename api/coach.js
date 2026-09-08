@@ -448,6 +448,25 @@ export function extractTrailer(text, name) {
   }
   return { text: (text.slice(0, m.index) + text.slice(end)).replace(/\n{3,}/g, '\n\n'), raw }
 }
+
+// Strips client-synthesized messages out of the conversation history before
+// it becomes part of the model's own context: offer-bubble questions
+// (checkinKey), onboarding/narration lines (banner), the static greeting
+// (intro), and optimistic action-confirmation text ("Saved.", "Archived.",
+// a resolver's own "Got it.") tagged synthetic at each push site in
+// Chat.jsx. None of these are something the model itself said. Feeding them
+// back as assistant turns taught the model a transcript in which it had
+// already done the thing SYSTEM_PROMPT_STABLE tells it to "NEVER SAY YOU
+// HAVE SAVED, ADDED, LOGGED, MOVED, OR UPDATED" -- the model then follows
+// what it can see itself having said over an instruction its own history
+// contradicts. My Coach review, finding #2.4. Callers that need the raw,
+// unfiltered history (e.g. findInFocusRecord's scan for opportunity-name
+// mentions, including button-label taps) should read `history` directly --
+// that pinning is unaffected by what the model itself is shown.
+export function sanitizeHistoryForModel(history) {
+  return (Array.isArray(history) ? history : []).filter(m => m && !m.intro && !m.banner && !m.checkinKey && !m.synthetic)
+}
+
 // The three reflective "who they are" fields: judged on whether the answer
 // differentiates this person or could describe almost anyone -- see the
 // header comment above for why this is a real per-answer call rather than a
@@ -1611,8 +1630,13 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
   // opportunity context, values), read fresh from the profile every turn
   // regardless of window size; no fixed history window, however large, is a
   // substitute for that.
+  // Sanitized before slicing, not after (finding #2.4; see sanitizeHistoryForModel
+  // above). findInFocusRecord above still scans the raw, unfiltered `history`
+  // (including button-label taps) for opportunity mentions -- that pinning
+  // is unaffected by what the model itself is shown.
+  const conversationalHistory = sanitizeHistoryForModel(history)
   const messages = [
-    ...history.slice(-50).map(m => ({ role: m.role, content: m.content })),
+    ...conversationalHistory.slice(-50).map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: message + contextNote },
   ]
 
