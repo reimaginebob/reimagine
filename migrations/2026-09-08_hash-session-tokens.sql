@@ -1,0 +1,17 @@
+-- Prelaunch audit, finding #2.4: sessions.token was stored as plaintext,
+-- the primary key for every session row. A DB read of any kind (backup,
+-- Neon console, a future SQL injection, a log line) yielded a working
+-- cookie for every signed-in user. api/_lib/session.js now hashes the
+-- token before every INSERT/SELECT/UPDATE/DELETE against this column
+-- (same sha256-hex shape magic_link_tokens.token_hash and the OAuth
+-- bearer-token hash already use) -- this migration converts existing rows
+-- in place so already-signed-in browsers, whose cookies still hold the
+-- raw token, keep working: the app hashes the cookie value on the next
+-- request and finds the row this UPDATE already rewrote to match.
+--
+-- Idempotent: only rows whose token is not already a 64-hex-char sha256
+-- digest are rehashed, so a re-run after the app code is already hashing
+-- lookups is a no-op. The original tokens are base64url (43 chars for the
+-- app's 32-byte generateToken()), so there is no realistic collision with
+-- the 64-hex-char check.
+UPDATE sessions SET token = encode(digest(token, 'sha256'), 'hex') WHERE token !~ '^[0-9a-f]{64}$';
