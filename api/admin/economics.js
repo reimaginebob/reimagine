@@ -9,7 +9,8 @@
 // derive -- the price and the fixed cost (economics_inputs) and who is actually
 // a paying customer (users.paying_since).
 //
-// Auth: Bearer ADMIN_TOKEN, same token as api/admin/analytics.js.
+// Auth: signed-in session + ADMIN_LOGIN_EMAILS, same as api/admin/analytics.js
+// (api/_lib/admin-auth.js).
 //
 // Method: GET for the payload. POST for the two operator writes:
 //   { action: 'billing', email, paying_since }   -- mark or clear a customer
@@ -22,6 +23,7 @@
 
 import { sql } from '../_lib/db.js'
 import { loadBudgetStatus } from '../_lib/budget.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
 // Background jobs: rows written by the daily classifier crons rather than by
 // anyone using the product. They log a NULL user_id like a signed-out
@@ -580,18 +582,13 @@ async function loadPayload() {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const expected = process.env.ADMIN_TOKEN
-  if (!expected) {
-    console.error('admin/economics: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/economics: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  if ((req.headers.authorization || '') !== `Bearer ${expected}`) {
+  if ((await checkAdminAuth(req, res)) !== 'admin') {
     return res.status(403).json({ error: 'Forbidden' })
   }
 

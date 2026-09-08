@@ -1,10 +1,12 @@
 // Same-origin admin dashboard for My Coach question insights, served at
 // /admin/coach-insights. Sibling to AdminDashboard.jsx; same auth model.
 //
-// Auth: an ADMIN_TOKEN (the same one AdminDashboard uses). On first load the
-// token can arrive via ?t=<token> (then stripped from the URL) or from
-// localStorage; it is sent as Authorization: Bearer to /api/admin/coach-insights
-// and never left in the URL. If no valid token is present, a token form is shown.
+// Auth (finding #2.8, 2026-09-08 prelaunch audit): the signed-in session
+// cookie, checked server-side against ADMIN_LOGIN_EMAILS
+// (api/_lib/admin-auth.js). The fetch below rides `credentials: 'include'`;
+// there is no token of any kind on this page any more. Replaces a static
+// ADMIN_TOKEN this page used to keep in its own localStorage (shared with
+// AdminDashboard.jsx) and accept via a `?t=` query param.
 //
 // Reads /api/admin/coach-insights (aggregates over non-PII; the only raw text is
 // the unmet-need question list). Self-contained inline styles in the app's
@@ -25,7 +27,6 @@ const GRAYL = "#6B7685"
 const ERRC = "#C0432F"
 const BARBG = "#EFEAdf"
 
-const TOKEN_KEY = "reimagine-admin-token"
 const WINDOWS = [7, 14, 30]
 // Attribute keys shown as filterable distributions (topic/register/stage are the
 // brief's required three; the rest follow). The server validates filters against
@@ -36,56 +37,36 @@ const MIX_LABEL = {
   need_type: "Need type", tone: "Tone", specificity: "Specificity", framework: "Framework",
 }
 
-function readInitialToken() {
-  let urlToken = null
-  try {
-    const params = new URLSearchParams(window.location.search)
-    const t = params.get("t")
-    if (t) {
-      urlToken = t
-      params.delete("t")
-      const qs = params.toString()
-      window.history.replaceState({}, "", window.location.pathname + (qs ? "?" + qs : "") + window.location.hash)
-    }
-  } catch {}
-  if (urlToken) return urlToken
-  try { return localStorage.getItem(TOKEN_KEY) || null } catch { return null }
-}
-
 function fmtDate(s) {
   if (!s) return ""
   try { return new Date(s).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) } catch { return String(s) }
 }
 
 export default function CoachInsights() {
-  const [token, setToken] = useState(() => readInitialToken())
   const [authed, setAuthed] = useState(false)
+  // True once the first auth probe has resolved (success or failure), so the
+  // "not authorized" screen never flashes before the fetch has even had a
+  // chance to check the session cookie.
+  const [checkedAuth, setCheckedAuth] = useState(false)
   const [payload, setPayload] = useState(null)
   const [days, setDays] = useState(14)
   const [filter, setFilter] = useState({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [authError, setAuthError] = useState(null)
-  const [tokenInput, setTokenInput] = useState("")
 
-  const fetchData = useCallback(async (tok, d, flt, { fromForm = false } = {}) => {
-    if (!tok) { setAuthed(false); return }
-    setLoading(true); setError(null); setAuthError(null)
+  const fetchData = useCallback(async (d, flt) => {
+    setLoading(true); setError(null)
     const qs = new URLSearchParams({ days: String(d) })
     for (const [k, v] of Object.entries(flt || {})) qs.set(k, v)
     try {
       const res = await fetch(`/api/admin/coach-insights?${qs.toString()}`, {
-        headers: { Authorization: `Bearer ${tok}` },
+        credentials: "include",
       })
       if (res.status === 200) {
         setPayload(await res.json())
         setAuthed(true)
-        setToken(tok)
-        try { localStorage.setItem(TOKEN_KEY, tok) } catch {}
-      } else if (res.status === 403) {
+      } else if (res.status === 401 || res.status === 403) {
         setAuthed(false); setPayload(null)
-        try { localStorage.removeItem(TOKEN_KEY) } catch {}
-        if (fromForm) setAuthError("Invalid token. Try again.")
       } else {
         setError(`Request failed (HTTP ${res.status}).`)
       }
@@ -93,35 +74,37 @@ export default function CoachInsights() {
       setError("Network error reaching the insights endpoint.")
     } finally {
       setLoading(false)
+      setCheckedAuth(true)
     }
   }, [])
 
-  useEffect(() => { if (token) fetchData(token, days, filter) }, [])
+  useEffect(() => { fetchData(days, filter) }, [])
 
-  const pickDays = (d) => { setDays(d); if (token) fetchData(token, d, filter) }
-  const refresh = () => { if (token) fetchData(token, days, filter) }
+  const pickDays = (d) => { setDays(d); fetchData(d, filter) }
+  const refresh = () => { fetchData(days, filter) }
   const toggleFilter = (k, v) => {
     const next = { ...filter }
     if (next[k] === v) delete next[k]; else next[k] = v
     setFilter(next)
-    if (token) fetchData(token, days, next)
+    fetchData(days, next)
   }
-  const clearFilters = () => { setFilter({}); if (token) fetchData(token, days, {}) }
-  const submitToken = (e) => { e.preventDefault(); const t = tokenInput.trim(); if (t) fetchData(t, days, filter, { fromForm: true }) }
-  const signOut = () => { try { localStorage.removeItem(TOKEN_KEY) } catch {}; setToken(null); setAuthed(false); setPayload(null); setTokenInput("") }
+  const clearFilters = () => { setFilter({}); fetchData(days, {}) }
+  // Clears the session cookie account-wide -- the same sign-out as the rest
+  // of Reimagine, not a separate admin-only concept.
+  const signOut = async () => {
+    try { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }) } catch {}
+    setAuthed(false); setPayload(null)
+  }
 
-  // ---- Token-entry form ----
+  // ---- Not authorized (unauthenticated, or signed in without admin access) ----
+  if (!checkedAuth) return null
   if (!authed) {
     return (
       <div style={S.page}>
         <div style={S.authWrap}>
           <h1 style={S.authTitle}>My Coach insights</h1>
-          <p style={S.authSub}>Admin only. Enter your access token to continue.</p>
-          <form onSubmit={submitToken} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <input type="password" value={tokenInput} onChange={(e) => setTokenInput(e.target.value)} placeholder="ADMIN_TOKEN" autoFocus style={S.input} />
-            <button type="submit" disabled={loading || !tokenInput.trim()} style={S.primaryBtn}>{loading ? "Checking…" : "Open insights"}</button>
-          </form>
-          {authError && <div style={S.authErr}>{authError}</div>}
+          <p style={S.authSub}>Admin only. Sign in to Reimagine with an admin account, then reload this page.</p>
+          <a href="/" style={{ ...S.primaryBtn, display: "block", textAlign: "center", textDecoration: "none", boxSizing: "border-box" }}>Go to sign in</a>
           {error && <div style={S.authErr}>{error}</div>}
         </div>
       </div>

@@ -14,27 +14,23 @@
 // generated under that framing. Moving an account is a decision, so it gets a
 // button rather than a URL anyone can send.
 //
-// Auth: Bearer ADMIN_TOKEN (same token as the analytics dashboard, which calls
-// this). GET lists everyone currently on a track; POST { email, track } where
-// track is a code from src/tracks.js, or null / '' to return the account to the
-// standard product.
+// Auth: signed-in session + ADMIN_LOGIN_EMAILS (api/_lib/admin-auth.js), same
+// as the analytics dashboard, which calls this. GET lists everyone currently
+// on a track; POST { email, track } where track is a code from
+// src/tracks.js, or null / '' to return the account to the standard product.
 
 import { sql } from '../_lib/db.js'
 import { isTrack } from '../../src/tracks.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const expected = process.env.ADMIN_TOKEN
-  if (!expected) {
-    console.error('admin/track-access: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/track-access: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  if ((req.headers.authorization || '') !== `Bearer ${expected}`) {
+  if ((await checkAdminAuth(req, res)) !== 'admin') {
     return res.status(403).json({ error: 'Forbidden' })
   }
 

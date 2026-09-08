@@ -9,7 +9,8 @@
 //
 // Built to serve both rather than twice, per Cowork's call on 2026-08-22.
 //
-// Auth: Bearer ADMIN_TOKEN. Method: GET only.
+// Auth: signed-in session + ADMIN_LOGIN_EMAILS/ANALYST_LOGIN_EMAILS
+// (api/_lib/admin-auth.js). Method: GET only.
 //
 // PRIVACY: email and stage only. No name, no profile content, no generated
 // output, nothing from a coach conversation. This endpoint exists to answer
@@ -17,7 +18,7 @@
 // profile content, that is a different endpoint with a different name.
 
 import { sql } from '../_lib/db.js'
-import { checkAdminAuth, adminTokenMissing } from '../_lib/admin-auth.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
 // A day-count, not a stage. Someone can be both "opportunity" and recently
 // active, and a campaign wants to segment on the first while suppressing on
@@ -44,19 +45,15 @@ function parseAdminEmails(envValue) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
-  if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  if (adminTokenMissing()) {
-    console.error('admin/user-stages: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/user-stages: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  // Read-only, so an analyst token is enough. This is the endpoint the
+  // Read-only, so analyst access is enough. This is the endpoint the
   // lifecycle-email work runs on.
-  const level = checkAdminAuth(req, { allowAnalyst: true })
+  const level = await checkAdminAuth(req, res, { allowAnalyst: true })
   if (!level) return res.status(403).json({ error: 'Forbidden' })
 
   // Internal accounts are excluded by default so a caller does not have to

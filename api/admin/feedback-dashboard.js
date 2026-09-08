@@ -2,9 +2,9 @@
 // tab). Returns the six views as pre-aggregated JSON, all derived from a single
 // read of feedback_event so every total reconciles to the table.
 //
-// Auth mirrors api/admin/coach-insights.js: ADMIN_TOKEN as Authorization: Bearer
-// <token> OR ?t=<token>; missing env -> 500, neither credential -> 403. CORS
-// block so the same-origin admin page can read it.
+// Auth mirrors api/admin/coach-insights.js: signed-in session +
+// ADMIN_LOGIN_EMAILS (api/_lib/admin-auth.js); missing env -> 500, no session
+// or wrong account -> 403. No CORS block -- same-origin only.
 //
 // PRIVACY: body, email, and user_id are NEVER read into the response. Only
 // non-identifying fields ride to the client: source, surface, lane, sentiment,
@@ -15,6 +15,7 @@ import {
   SOURCE_CODES, SOURCE_LABELS, SURFACE_CODES, SURFACE_LABELS,
   CONCERN_CODES, CONCERN_LABELS, SENTIMENT_CODES,
 } from '../../src/feedback-taxonomy.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
 const RECURRING_MIN = 5 // a concern is "recurring" at >= this many events
 
@@ -55,22 +56,13 @@ function themeLabel(code) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
-  if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  const expected = process.env.ADMIN_TOKEN
-  if (!expected) {
-    console.error('admin/feedback-dashboard: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/feedback-dashboard: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  const auth = req.headers.authorization || ''
-  const headerOk = auth === `Bearer ${expected}`
-  const queryToken = (req.query && typeof req.query.t === 'string') ? req.query.t : ''
-  const queryOk = queryToken !== '' && queryToken === expected.trim()
-  if (!headerOk && !queryOk) return res.status(403).json({ error: 'Forbidden' })
+  if (!(await checkAdminAuth(req, res))) return res.status(403).json({ error: 'Forbidden' })
 
   const rawRange = (req.query && typeof req.query.range === 'string') ? req.query.range : 'all'
   const range = ['24h', '7d', '30d', 'all'].includes(rawRange) ? rawRange : 'all'

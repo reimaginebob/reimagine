@@ -2,11 +2,13 @@
 // existing user, by email. In the test-user phase everyone invited is already a
 // registered user, so this is a direct row update — no signup timing to track.
 //
-// Auth: Bearer ADMIN_TOKEN (same token as the analytics dashboard, which calls
-// this). GET lists current testers; POST { email, action: 'grant'|'revoke' }.
+// Auth: signed-in session + ADMIN_LOGIN_EMAILS (api/_lib/admin-auth.js), same
+// as the analytics dashboard. GET lists current testers; POST { email,
+// action: 'grant'|'revoke' }.
 
 import { sql } from '../_lib/db.js'
 import { CONNECTOR_BETA_FLAG, GRANTABLE_FLAGS } from '../_lib/feature-flags.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
 // Named in api/_lib/feature-flags.js. The default is unchanged from when this
 // endpoint served one pilot, so an older caller that sends no `flag` still
@@ -23,18 +25,13 @@ function resolveFlag(raw) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const expected = process.env.ADMIN_TOKEN
-  if (!expected) {
-    console.error('admin/pipeline-access: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/pipeline-access: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  if ((req.headers.authorization || '') !== `Bearer ${expected}`) {
+  if ((await checkAdminAuth(req, res)) !== 'admin') {
     return res.status(403).json({ error: 'Forbidden' })
   }
 

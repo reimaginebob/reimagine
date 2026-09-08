@@ -8,8 +8,9 @@
 //                            entirely: either they did not know it was next, or
 //                            they were getting what they needed elsewhere
 //
-// Auth: ADMIN_TOKEN, or ANALYST_TOKEN (read-only). No profile content, no
-// generated text, no coach message bodies — step tags and counts only.
+// Auth: signed-in session + ADMIN_LOGIN_EMAILS, or ANALYST_LOGIN_EMAILS
+// (read-only). No profile content, no generated text, no coach message
+// bodies — step tags and counts only.
 //
 // Method: GET.
 //   ?emails=a@b.com,c@d.com   restrict to specific accounts (comma-separated)
@@ -31,20 +32,16 @@
 // true if the table is ever pruned or rebuilt.
 
 import { sql } from '../_lib/db.js'
-import { checkAdminAuth, adminTokenMissing } from '../_lib/admin-auth.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
-  if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  if (adminTokenMissing()) {
-    console.error('admin/generation-attempts: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/generation-attempts: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  if (!checkAdminAuth(req, { allowAnalyst: true })) {
+  if (!(await checkAdminAuth(req, res, { allowAnalyst: true }))) {
     return res.status(403).json({ error: 'Forbidden' })
   }
 

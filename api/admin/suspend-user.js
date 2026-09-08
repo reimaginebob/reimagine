@@ -3,25 +3,21 @@
 // and the coach/claude endpoints (they reject when users.suspended_at is set).
 // This endpoint just flips the flag.
 //
-// Auth: Bearer ADMIN_TOKEN (same token as the analytics dashboard, which is what
-// calls this). POST only. Body: { email: string, action: 'pause' | 'unpause',
-// reason?: string }. Idempotent.
+// Auth: signed-in session + ADMIN_LOGIN_EMAILS (api/_lib/admin-auth.js), same
+// as the analytics dashboard, which is what calls this. POST only. Body:
+// { email: string, action: 'pause' | 'unpause', reason?: string }. Idempotent.
 
 import { sql } from '../_lib/db.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const expected = process.env.ADMIN_TOKEN
-  if (!expected) {
-    console.error('admin/suspend-user: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/suspend-user: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  if ((req.headers.authorization || '') !== `Bearer ${expected}`) {
+  if ((await checkAdminAuth(req, res)) !== 'admin') {
     return res.status(403).json({ error: 'Forbidden' })
   }
 

@@ -29,7 +29,7 @@ const SENT_ORDER = ["positive", "negative", "neutral", "mixed"]
 // on screen always say which window they cover.
 const RANGE_LABELS = { "24h": "the last 24 hours", "7d": "the last 7 days", "30d": "the last 30 days", all: "all time" }
 
-export default function FeedbackDashboard({ token, range = "all", refreshKey = 0 }) {
+export default function FeedbackDashboard({ range = "all", refreshKey = 0 }) {
   const [payload, setPayload] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -37,11 +37,10 @@ export default function FeedbackDashboard({ token, range = "all", refreshKey = 0
   const [filterTheme, setFilterTheme] = useState("")
   const [filterChannel, setFilterChannel] = useState("")
 
-  const fetchData = useCallback(async (tok, rng) => {
-    if (!tok) return
+  const fetchData = useCallback(async (rng) => {
     setLoading(true); setError(null)
     try {
-      const res = await fetch(`/api/admin/feedback-dashboard?range=${encodeURIComponent(rng || "all")}`, { headers: { Authorization: `Bearer ${tok}` } })
+      const res = await fetch(`/api/admin/feedback-dashboard?range=${encodeURIComponent(rng || "all")}`, { credentials: "include" })
       if (res.status === 200) {
         setPayload(await res.json())
         setLiveAsOf(new Date().toUTCString())
@@ -57,11 +56,11 @@ export default function FeedbackDashboard({ token, range = "all", refreshKey = 0
 
   // Refetches when the shared range pills change, and when the header Refresh
   // button bumps refreshKey.
-  useEffect(() => { fetchData(token, range) }, [token, range, refreshKey, fetchData])
+  useEffect(() => { fetchData(range) }, [range, refreshKey, fetchData])
 
   if (loading && !payload) return <div style={S.muted}>Loading feedback…</div>
   if (error && !payload) return (
-    <div style={S.errorBanner}><span>{error}</span><button onClick={() => fetchData(token, range)} style={S.retryBtn}>Retry</button></div>
+    <div style={S.errorBanner}><span>{error}</span><button onClick={() => fetchData(range)} style={S.retryBtn}>Retry</button></div>
   )
   if (!payload) return null
 
@@ -83,7 +82,7 @@ export default function FeedbackDashboard({ token, range = "all", refreshKey = 0
         {liveAsOf
           ? <>Feedback over <strong style={{ color: NAVY }}>{RANGE_LABELS[payload.range] || RANGE_LABELS[range] || "all time"}</strong>, live as of <strong style={{ color: NAVY }}>{liveAsOf}</strong></>
           : "Loading…"}
-        <button onClick={() => fetchData(token, range)} disabled={loading} style={S.miniRefresh}>{loading ? "…" : "Refresh"}</button>
+        <button onClick={() => fetchData(range)} disabled={loading} style={S.miniRefresh}>{loading ? "…" : "Refresh"}</button>
       </div>
 
       {/* KPI ROW */}

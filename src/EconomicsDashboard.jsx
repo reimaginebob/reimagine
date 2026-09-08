@@ -65,7 +65,7 @@ const UNIT_STAGE_LABELS = {
 // Most engaged first, so the row a paying customer resembles is at the top.
 const UNIT_STAGE_ORDER = ['focus_complete', 'both_doors', 'career_paths', 'opportunity', 'personal_brand_no_door', 'earlier']
 
-export default function EconomicsDashboard({ token }) {
+export default function EconomicsDashboard() {
   const [payload, setPayload] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -86,11 +86,10 @@ export default function EconomicsDashboard({ token }) {
   const [inBusy, setInBusy] = useState(false)
   const [inMsg, setInMsg] = useState("")
 
-  const fetchData = useCallback(async (tok) => {
-    if (!tok) return
+  const fetchData = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const res = await fetch("/api/admin/economics", { headers: { Authorization: `Bearer ${tok}` } })
+      const res = await fetch("/api/admin/economics", { credentials: "include" })
       if (res.status === 200) {
         setPayload(await res.json())
         setLiveAsOf(new Date().toUTCString())
@@ -104,12 +103,13 @@ export default function EconomicsDashboard({ token }) {
     }
   }, [])
 
-  useEffect(() => { fetchData(token) }, [token, fetchData])
+  useEffect(() => { fetchData() }, [fetchData])
 
   const post = async (body) => {
     const res = await fetch("/api/admin/economics", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     })
     const data = await res.json().catch(() => ({}))
@@ -127,7 +127,7 @@ export default function EconomicsDashboard({ token }) {
         ? `${r.data.email} is a paying customer from ${r.data.paying_since}.`
         : `Cleared the billing date on ${r.data.email}.`)
       setBillEmail(""); setBillDate("")
-      fetchData(token)
+      fetchData()
     } catch { setBillMsg("Network error. Try again.") }
     finally { setBillBusy(false) }
   }
@@ -145,14 +145,14 @@ export default function EconomicsDashboard({ token }) {
       if (!r.ok) { setInMsg(r.data.error || `Failed (HTTP ${r.status})`); return }
       setInMsg(`Saved, effective ${r.data.effective_date}.`)
       setShowInputs(false)
-      fetchData(token)
+      fetchData()
     } catch { setInMsg("Network error. Try again.") }
     finally { setInBusy(false) }
   }
 
   if (loading && !payload) return <div style={S.muted}>Loading economics…</div>
   if (error && !payload) return (
-    <div style={S.errorBanner}><span>{error}</span><button onClick={() => fetchData(token)} style={S.retryBtn}>Retry</button></div>
+    <div style={S.errorBanner}><span>{error}</span><button onClick={() => fetchData()} style={S.retryBtn}>Retry</button></div>
   )
   if (!payload) return null
 
@@ -188,7 +188,7 @@ export default function EconomicsDashboard({ token }) {
             setInDate(new Date().toISOString().slice(0, 10))
             setInNote("")
           }} style={S.smallBtn}>{showInputs ? "Cancel" : "Change assumptions"}</button>
-          <button onClick={() => fetchData(token)} disabled={loading} style={S.refreshBtn}>{loading ? "…" : "Refresh"}</button>
+          <button onClick={() => fetchData()} disabled={loading} style={S.refreshBtn}>{loading ? "…" : "Refresh"}</button>
         </div>
       </div>
 

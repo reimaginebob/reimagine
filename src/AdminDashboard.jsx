@@ -1,11 +1,16 @@
 // Same-origin admin analytics dashboard, served at /admin/dashboard.
 // Replaces the cross-origin Cowork artifact (which hit CORS/CSP walls).
 //
-// Auth: a valid ADMIN_TOKEN. On first load the token can arrive via ?t=<token>
-// (then stripped from the URL) or from localStorage. The page itself ships no
-// secret; the token is entered by the admin, kept in localStorage, and sent as
-// an Authorization: Bearer header to /api/admin/analytics (same origin, so no
-// CORS preflight). If no valid token is present, a token-entry form is shown.
+// Auth (finding #2.8, 2026-09-08 prelaunch audit): the signed-in session
+// cookie, checked server-side against ADMIN_LOGIN_EMAILS
+// (api/_lib/admin-auth.js). The page carries no credential of its own --
+// every fetch below rides `credentials: 'include'` and lets the browser
+// attach the same HttpOnly cookie the rest of Reimagine uses. There is no
+// token-entry form: an account either is on the allowlist or it isn't, and
+// the only way to sign in is the normal Reimagine sign-in flow. This
+// replaces a static ADMIN_TOKEN the page used to keep in its own
+// localStorage (reachable by any XSS anywhere in the React app) and accept
+// via a `?t=` query param.
 //
 // Style: self-contained inline styles in the app's cream / navy / amber
 // palette, Georgia for the title. No new dependencies; no Tailwind (the app
@@ -25,7 +30,6 @@ const GRAYL = "#6B7685"
 const OK = "#4A9E72"
 const ERR = "#C0432F"
 
-const TOKEN_KEY = "reimagine-admin-token"
 const RANGE_KEY = "reimagine-admin-range"
 const RANGES = ["24h", "7d", "30d", "all"]
 // Employment status (panel_1c). Display labels + a stable row order; the API
@@ -44,34 +48,17 @@ function readInitialRange() {
   return "7d"
 }
 
-// Capture ?t=<token> on first load: prefer it over any stored token, persist
-// it, then strip it from the URL so it does not linger in history / the bar.
-function readInitialToken() {
-  let urlToken = null
-  try {
-    const params = new URLSearchParams(window.location.search)
-    const t = params.get("t")
-    if (t) {
-      urlToken = t
-      params.delete("t")
-      const qs = params.toString()
-      window.history.replaceState({}, "", window.location.pathname + (qs ? "?" + qs : "") + window.location.hash)
-    }
-  } catch {}
-  if (urlToken) return urlToken
-  try { return localStorage.getItem(TOKEN_KEY) || null } catch { return null }
-}
-
 export default function AdminDashboard() {
-  const [token, setToken] = useState(() => readInitialToken())
   const [authed, setAuthed] = useState(false)
+  // True once the first auth probe has resolved (success or failure), so the
+  // "not authorized" screen never flashes before the fetch has even had a
+  // chance to check the session cookie.
+  const [checkedAuth, setCheckedAuth] = useState(false)
   const [payload, setPayload] = useState(null)
   const [range, setRange] = useState(() => readInitialRange())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)       // non-auth fetch error (500 / network)
-  const [authError, setAuthError] = useState(null) // invalid-token message for the form
   const [liveAsOf, setLiveAsOf] = useState(null)
-  const [tokenInput, setTokenInput] = useState("")
   const [expandedUser, setExpandedUser] = useState(null) // email of the expanded power-user row
   // Account pause/unpause control (rogue-activity safeguard).
   const [suspendEmail, setSuspendEmail] = useState("")
@@ -85,7 +72,8 @@ export default function AdminDashboard() {
     try {
       const res = await fetch("/api/admin/suspend-user", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, action }),
       })
       const data = await res.json().catch(() => ({}))
@@ -110,9 +98,9 @@ export default function AdminDashboard() {
   const [pipelineBusy, setPipelineBusy] = useState(false)
   const [pipelineMsg, setPipelineMsg] = useState("")
   const [testers, setTesters] = useState([])
-  const fetchTesters = useCallback(async (tok, flag) => {
+  const fetchTesters = useCallback(async (flag) => {
     try {
-      const res = await fetch(`/api/admin/pipeline-access?flag=${encodeURIComponent(flag)}`, { headers: { Authorization: `Bearer ${tok}` } })
+      const res = await fetch(`/api/admin/pipeline-access?flag=${encodeURIComponent(flag)}`, { credentials: "include" })
       if (res.ok) {
         const d = await res.json()
         setTesters(Array.isArray(d.testers) ? d.testers : [])
@@ -127,7 +115,8 @@ export default function AdminDashboard() {
     try {
       const res = await fetch("/api/admin/pipeline-access", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, action, flag: pipelineFlag }),
       })
       const data = await res.json().catch(() => ({}))
@@ -135,7 +124,7 @@ export default function AdminDashboard() {
       const what = (flagOptions[data.flag] && flagOptions[data.flag].label) || data.flag || pipelineFlag
       setPipelineMsg(data.enabled ? `Granted ${what} to ${data.email}.` : `Revoked ${what} from ${data.email}.`)
       setPipelineEmail("")
-      fetchTesters(token, pipelineFlag)
+      fetchTesters(pipelineFlag)
     } catch { setPipelineMsg("Network error. Try again.") }
     finally { setPipelineBusy(false) }
   }
@@ -146,9 +135,9 @@ export default function AdminDashboard() {
   const [trackBusy, setTrackBusy] = useState(false)
   const [trackMsg, setTrackMsg] = useState("")
   const [trackMembers, setTrackMembers] = useState([])
-  const fetchTrackMembers = useCallback(async (tok) => {
+  const fetchTrackMembers = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/track-access", { headers: { Authorization: `Bearer ${tok}` } })
+      const res = await fetch("/api/admin/track-access", { credentials: "include" })
       if (res.ok) { const d = await res.json(); setTrackMembers(Array.isArray(d.members) ? d.members : []) }
     } catch { /* leave the list as-is */ }
   }, [])
@@ -159,7 +148,8 @@ export default function AdminDashboard() {
     try {
       const res = await fetch("/api/admin/track-access", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, track }),
       })
       const data = await res.json().catch(() => ({}))
@@ -168,7 +158,7 @@ export default function AdminDashboard() {
         ? `${data.email} is now on Go Independent. They'll see it on their next page load.`
         : `${data.email} is back on the standard product.`)
       setTrackEmail("")
-      fetchTrackMembers(token)
+      fetchTrackMembers()
     } catch { setTrackMsg("Network error. Try again.") }
     finally { setTrackBusy(false) }
   }
@@ -178,26 +168,21 @@ export default function AdminDashboard() {
   const [refreshKey, setRefreshKey] = useState(0)
 
   // Single call doubles as the auth probe and the data fetch: a 200 means the
-  // token is valid AND we have data; a 403 means the token is wrong.
-  const fetchData = useCallback(async (tok, rng, { fromForm = false } = {}) => {
-    if (!tok) { setAuthed(false); return }
-    setLoading(true); setError(null); setAuthError(null)
+  // session is an admin AND we have data; a 401/403 means it isn't.
+  const fetchData = useCallback(async (rng) => {
+    setLoading(true); setError(null)
     try {
       const res = await fetch(`/api/admin/analytics?range=${encodeURIComponent(rng)}`, {
-        headers: { Authorization: `Bearer ${tok}` },
+        credentials: "include",
       })
       if (res.status === 200) {
         const json = await res.json()
         setPayload(json)
         setAuthed(true)
-        setToken(tok)
-        try { localStorage.setItem(TOKEN_KEY, tok) } catch {}
         setLiveAsOf(new Date().toUTCString())
-      } else if (res.status === 403) {
+      } else if (res.status === 401 || res.status === 403) {
         setAuthed(false)
         setPayload(null)
-        try { localStorage.removeItem(TOKEN_KEY) } catch {}
-        if (fromForm) setAuthError("Invalid token. Try again.")
       } else {
         setError(`Request failed (HTTP ${res.status}).`)
       }
@@ -205,24 +190,26 @@ export default function AdminDashboard() {
       setError("Network error reaching the analytics endpoint.")
     } finally {
       setLoading(false)
+      setCheckedAuth(true)
     }
   }, [])
 
-  // On mount, if a token is present, attempt the fetch. Intentionally runs
-  // once; range/token changes are driven explicitly via pickRange/refresh.
-  useEffect(() => { if (token) fetchData(token, range) }, [])
-  useEffect(() => { if (authed && token) fetchTesters(token, pipelineFlag) }, [authed, token, pipelineFlag, fetchTesters])
-  useEffect(() => { if (authed && token) fetchTrackMembers(token) }, [authed, token, fetchTrackMembers])
+  // On mount, always attempt the fetch -- the browser attaches the session
+  // cookie automatically if one exists. Intentionally runs once; range
+  // changes are driven explicitly via pickRange/refresh.
+  useEffect(() => { fetchData(range) }, [])
+  useEffect(() => { if (authed) fetchTesters(pipelineFlag) }, [authed, pipelineFlag, fetchTesters])
+  useEffect(() => { if (authed) fetchTrackMembers() }, [authed, fetchTrackMembers])
 
   const pickRange = (r) => {
     setRange(r)
     try { localStorage.setItem(RANGE_KEY, r) } catch {}
-    if (token) fetchData(token, r)
+    fetchData(r)
   }
   // Refresh drives both tabs: the analytics fetch lives here, and the bumped
   // key is what the Feedback tab's effect watches (it owns its own fetch).
   const refresh = () => {
-    if (token) fetchData(token, range)
+    fetchData(range)
     setRefreshKey((k) => k + 1)
   }
   // Per-row Unpause on the Paused-accounts panel: lift the hold, then refresh so
@@ -232,44 +219,31 @@ export default function AdminDashboard() {
     try {
       const res = await fetch("/api/admin/suspend-user", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, action: "unpause" }),
       })
       if (res.ok) refresh()
     } catch { /* leave the row; the operator can retry */ }
     finally { setRowBusy("") }
   }
-  const submitToken = (e) => {
-    e.preventDefault()
-    const t = tokenInput.trim()
-    if (t) fetchData(t, range, { fromForm: true })
-  }
-  const signOut = () => {
-    try { localStorage.removeItem(TOKEN_KEY) } catch {}
-    setToken(null); setAuthed(false); setPayload(null); setTokenInput("")
+  // Clears the session cookie account-wide (this is the same sign-out as the
+  // rest of Reimagine, not a separate admin-only concept -- there is no
+  // longer a separate admin credential to clear).
+  const signOut = async () => {
+    try { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }) } catch {}
+    setAuthed(false); setPayload(null)
   }
 
-  // ---- Token-entry form (unauthenticated) ----
+  // ---- Not authorized (unauthenticated, or signed in without admin access) ----
+  if (!checkedAuth) return null
   if (!authed) {
     return (
       <div style={S.page}>
         <div style={S.authWrap}>
           <h1 style={S.authTitle}>Reimagine Daily</h1>
-          <p style={S.authSub}>Admin analytics. Enter your access token to continue.</p>
-          <form onSubmit={submitToken} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <input
-              type="password"
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="ADMIN_TOKEN"
-              autoFocus
-              style={S.input}
-            />
-            <button type="submit" disabled={loading || !tokenInput.trim()} style={S.primaryBtn}>
-              {loading ? "Checking…" : "Open dashboard"}
-            </button>
-          </form>
-          {authError && <div style={S.authErr}>{authError}</div>}
+          <p style={S.authSub}>Admin analytics. Sign in to Reimagine with an admin account, then reload this page.</p>
+          <a href="/" style={{ ...S.primaryBtn, display: "block", textAlign: "center", textDecoration: "none", boxSizing: "border-box" }}>Go to sign in</a>
           {error && <div style={S.authErr}>{error}</div>}
         </div>
       </div>
@@ -353,9 +327,9 @@ export default function AdminDashboard() {
           <button onClick={() => setTab("economics")} style={tab === "economics" ? S.tabActive : S.tab}>Economics</button>
         </div>
 
-        {tab === "feedback" && <FeedbackDashboard token={token} range={range} refreshKey={refreshKey} />}
-        {tab === "growth" && <GrowthDashboard token={token} refreshKey={refreshKey} />}
-        {tab === "economics" && <EconomicsDashboard token={token} />}
+        {tab === "feedback" && <FeedbackDashboard range={range} refreshKey={refreshKey} />}
+        {tab === "growth" && <GrowthDashboard refreshKey={refreshKey} />}
+        {tab === "economics" && <EconomicsDashboard />}
 
         {tab === "analytics" && <>
         {error && (

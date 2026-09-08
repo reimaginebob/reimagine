@@ -1,46 +1,65 @@
-// Two levels of admin credential.
+// Admin dashboard auth (finding #2.8, 2026-09-08 prelaunch audit): session
+// cookie plus an email allowlist, replacing a single static ADMIN_TOKEN that
+// the dashboard kept in its own localStorage (reachable by any XSS anywhere
+// in the React app, since it shares an origin with the product) and accepted
+// via a `?t=` query param besides the Authorization header. Comparisons were
+// plain `===`.
 //
-// ADMIN_TOKEN is a master key: it unlocks every admin endpoint, including the
-// ones that change state — suspending an account, granting beta access,
-// recording who is paying. It should stay with Bob.
+// Cookies here are HttpOnly (unreachable from JS -- no XSS surface) and
+// forging a session means guessing a 32-byte random token against a hashed
+// DB lookup, not a short static string against an app-level compare. That
+// removes the bearer-secret whose timing profile mattered; there is no
+// longer a secret being compared here for `===` to leak. (Two narrow
+// exceptions survive with the OLD static-token model, because they are
+// unattended/curl-only ops paths with no browser surface to steal a token
+// from: api/admin/stage-snapshot.js's manual-trigger escape hatch and
+// api/oauth/revoke.js. Both now compare with the constant-time helper in
+// api/_lib/timing-safe.js.)
 //
-// ANALYST_TOKEN is read-only. It exists so a collaborator can pull the data
-// this workstream needs without being handed the ability to suspend a user's
-// account. It is accepted only where a route explicitly opts in, and only on
-// GET; no write path in this codebase should ever call this with
-// allowAnalyst: true.
+// Two levels, same shape as the token model: 'admin' can do anything
+// (suspend an account, grant a flag, send a campaign); 'analyst' is
+// read-only, limited to routes that opt in with allowAnalyst.
 //
-// Least privilege on purpose: the analyst token opens the three endpoints that
-// serve the lifecycle-email work (user stages, growth, dormant accounts,
-// generation attempts) and nothing else. Economics is financial, analytics carries playbook titles, the
-// suspend and pipeline routes write — those stay master-key only. Widening this
-// later is one flag on one route; narrowing it after a token has been shared is
-// a rotation.
+// ADMIN_LOGIN_EMAILS / ANALYST_LOGIN_EMAILS are new env vars, deliberately
+// NOT reusing the existing ADMIN_EMAILS var -- that name already means
+// something else (an analytics-exclusion + ops-alert-recipient list, read in
+// eight other places); reusing it here would mean granting dashboard access
+// to an address also changes who gets excluded from Bob's own analytics.
 //
-// Returns 'admin' | 'analyst' | null. Callers translate null into a 403 rather
-// than this helper doing it, so each route keeps its own error shape.
+// Returns 'admin' | 'analyst' | null. Callers translate null into a 403
+// rather than this helper doing it, so each route keeps its own error shape.
 
-export function checkAdminAuth(req, { allowAnalyst = false } = {}) {
-  const auth = req.headers.authorization || ''
-  if (!auth.startsWith('Bearer ')) return null
+import { getSessionUser } from './session.js'
 
-  const admin = process.env.ADMIN_TOKEN
-  if (admin && auth === `Bearer ${admin}`) return 'admin'
+function parseEmailList(raw) {
+  return new Set(
+    (raw || '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean)
+  )
+}
 
-  // An analyst token is only ever a read credential. The method check is
-  // belt-and-braces alongside allowAnalyst: a route that later grows a POST
-  // handler cannot silently start accepting it.
-  if (allowAnalyst && req.method === 'GET') {
-    const analyst = process.env.ANALYST_TOKEN
-    if (analyst && auth === `Bearer ${analyst}`) return 'analyst'
+export async function checkAdminAuth(req, res, { allowAnalyst = false } = {}) {
+  const user = await getSessionUser(req, res)
+  if (!user || user.suspended_at) return null
+
+  const email = (user.email || '').trim().toLowerCase()
+  if (!email) return null
+
+  if (parseEmailList(process.env.ADMIN_LOGIN_EMAILS).has(email)) return 'admin'
+
+  if (allowAnalyst && parseEmailList(process.env.ANALYST_LOGIN_EMAILS).has(email)) {
+    return 'analyst'
   }
 
   return null
 }
 
-// True when ADMIN_TOKEN is absent, which is a server misconfiguration rather
-// than a failed credential and should be a 500, not a 403. ANALYST_TOKEN being
-// unset is not an error — it just means nobody has been issued one.
-export function adminTokenMissing() {
-  return !process.env.ADMIN_TOKEN
+// True when ADMIN_LOGIN_EMAILS is unset/empty, a server misconfiguration
+// (nobody could ever pass the allowlist) rather than a failed credential --
+// should be a 500, not a 403. ANALYST_LOGIN_EMAILS being unset is not an
+// error; it just means nobody has been granted analyst access.
+export function adminLoginEmailsMissing() {
+  return parseEmailList(process.env.ADMIN_LOGIN_EMAILS).size === 0
 }

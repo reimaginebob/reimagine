@@ -37,7 +37,7 @@ const DUP_KIND_LABELS = { case: "same address, different case", address: "same i
 const fmtDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "—")
 const fmtInt = (n) => (Number.isFinite(Number(n)) ? Math.round(Number(n)).toLocaleString("en-US") : "—")
 
-export default function DormantAccounts({ token, refreshKey = 0 }) {
+export default function DormantAccounts({ refreshKey = 0 }) {
   const [payload, setPayload] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -46,11 +46,10 @@ export default function DormantAccounts({ token, refreshKey = 0 }) {
   const [copied, setCopied] = useState("")
   const [showDupes, setShowDupes] = useState(false)
 
-  const fetchData = useCallback(async (tok) => {
-    if (!tok) return
+  const fetchData = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const res = await fetch("/api/admin/dormant", { headers: { Authorization: `Bearer ${tok}` } })
+      const res = await fetch("/api/admin/dormant", { credentials: "include" })
       if (res.status === 200) setPayload(await res.json())
       else setError(`Request failed (HTTP ${res.status}).`)
     } catch {
@@ -60,11 +59,11 @@ export default function DormantAccounts({ token, refreshKey = 0 }) {
     }
   }, [])
 
-  useEffect(() => { fetchData(token) }, [token, refreshKey, fetchData])
+  useEffect(() => { fetchData() }, [refreshKey, fetchData])
 
   if (loading && !payload) return <div style={S.muted}>Loading accounts…</div>
   if (error && !payload) return (
-    <div style={S.errorBanner}><span>{error}</span><button onClick={() => fetchData(token)} style={S.retryBtn}>Retry</button></div>
+    <div style={S.errorBanner}><span>{error}</span><button onClick={() => fetchData()} style={S.retryBtn}>Retry</button></div>
   )
   if (!payload) return null
 
