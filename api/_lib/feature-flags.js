@@ -205,6 +205,22 @@ export function hasCloseReasonCapture(user) {
   return flags.includes(CLOSE_REASON_CAPTURE_FLAG)
 }
 
+// PILOT -- Coach situational grounding, 2026-09-08. Phase 1a of the
+// Coach-as-Concierge redesign (Output/handoff/2026-09-08_coach-concierge-
+// phase-1a-situation.md). Gates whether the server trusts the client's
+// Situation object (which screen, which record on EITHER door, what is
+// built) ahead of the existing focusRecordId param and the title-match
+// scan. A non-flagged account falls through to exactly today's behavior --
+// this flag adds a second way to know where someone is, it does not remove
+// the old one, so there is nothing to revert if it needs to pause.
+export const COACH_SITUATION_FLAG = 'coach_situation'
+
+export function hasCoachSituation(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(COACH_SITUATION_FLAG)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -223,4 +239,5 @@ export const GRANTABLE_FLAGS = {
   [MILESTONE_PROMPT_FLAG]: { label: 'Coach milestone prompts' },
   [ORIENTATION_CAPTURE_FLAG]: { label: 'Coach orientation field capture (Reputation, Skills)' },
   [CLOSE_REASON_CAPTURE_FLAG]: { label: 'Coach close-reason capture' },
+  [COACH_SITUATION_FLAG]: { label: 'Coach situational grounding' },
 }

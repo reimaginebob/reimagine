@@ -55,7 +55,7 @@ const logPromptEngagement = (promptCode, triggerType, outcome) => {
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, situation = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -561,6 +561,12 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           // what they are doing next. Sent as a hint only: the server re-checks
           // that the id belongs to this account's saved work before using it.
           focusRecordId: (coachSaveTarget && coachSaveTarget.id) || undefined,
+          // Situation (Coach-as-Concierge Phase 1a): sent unconditionally --
+          // whether the server trusts it over focusRecordId/findInFocusRecord
+          // is gated server-side on hasCoachSituation, not decided here. A
+          // non-flagged account's turn costs nothing extra to speak of; the
+          // server just ignores the field.
+          situation,
           // Which single-target Focus section (if any) this conversation
           // started from, via that section's own "Ask My Coach about this"
           // button -- the only signal that safely disambiguates a correction
