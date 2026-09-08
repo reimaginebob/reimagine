@@ -102,17 +102,39 @@ check(handlerBlock.includes('resolveOpportunityByName(activePlaybooks,data.oppor
   `${APP}: does not resolve the opportunity by title the same way the other opportunity mechanisms do`)
 const execIdx = app.indexOf('const execOpCardRework=')
 check(execIdx !== -1, `${APP}: execOpCardRework is missing -- the op-card-rework write logic should live in its own function, shared with the disambiguation-tap path`)
-const execBlock = execIdx !== -1 ? app.slice(execIdx, execIdx + 900) : ''
-check(execBlock.includes('const switchedView=currentSavedSlotIdRef.current!==targetRec.id') && execBlock.includes('if(switchedView)restoreFromSavedSlot(targetRec)'),
+const execBlock = execIdx !== -1 ? app.slice(execIdx, execIdx + 1400) : ''
+check(execBlock.includes('const switchedView=currentSavedSlotIdRef.current!==targetRec.id') && execBlock.includes('restoreFromSavedSlot(targetRec)'),
   `${APP}: does not switch the current slot to the matched opportunity before writing -- refineOpCard/generateOpSection operate on currentSavedSlotIdRef, so a write while a different opportunity is open would silently land on the wrong card`)
 check(execBlock.includes("if(section==='p6')generateOpBridgeStory({refine:note})") && execBlock.includes('else refineOpCard(section,note)'),
   `${APP}: does not dispatch p6 through generateOpBridgeStory separately from refineOpCard, which explicitly declines to handle p6`)
 check(execBlock.includes("I've opened it so you can watch it rebuild"),
   `${APP}: the confirmation does not say plainly that the view switched, when it did -- a silent screen change would read as a bug`)
 
+// My Coach review, finding #4.4: restoreFromSavedSlot's setOutputs/
+// setChosen/setStep are async state updates, so calling
+// refineOpCard/generateOpBridgeStory synchronously right after it (the
+// original shape) read the PREVIOUS opportunity's outputs/chosen from a
+// now-stale closure, rebuilding the card against the wrong opportunity's
+// data. The rework is now queued and only actually dispatched once the
+// switch has landed in a real render.
+check(execBlock.includes('_pendingOpCardReworkRef.current={slotId:targetRec.id,section,note}'),
+  `${APP}: a slot-switching rework no longer queues itself instead of firing synchronously against a stale closure -- this is the exact bug in finding #4.4`)
+check(!/if\(switchedView\)restoreFromSavedSlot\(targetRec\)\s*\n\s*if\(section==='p6'\)generateOpBridgeStory/.test(app),
+  `${APP}: refineOpCard/generateOpBridgeStory appear to run synchronously right after restoreFromSavedSlot again -- this is finding #4.4's stale-closure bug`)
+const pendingEffectIdx = app.indexOf('const pending=_pendingOpCardReworkRef.current')
+check(pendingEffectIdx !== -1, `${APP}: the deferred op-card-rework effect is missing`)
+const pendingEffectBlock = pendingEffectIdx !== -1 ? app.slice(pendingEffectIdx, pendingEffectIdx + 350) : ''
+check(pendingEffectBlock.includes('currentSavedSlotIdRef.current!==pending.slotId'),
+  `${APP}: the deferred op-card-rework effect no longer guards against a second, newer switch superseding this one`)
+check(pendingEffectBlock.includes("if(pending.section==='p6')generateOpBridgeStory({refine:pending.note})") && pendingEffectBlock.includes('else refineOpCard(pending.section,pending.note)'),
+  `${APP}: the deferred op-card-rework effect no longer dispatches p6 through generateOpBridgeStory separately from refineOpCard`)
+const pendingEffectDepsIdx = app.indexOf('},[step,outputs,chosen])', pendingEffectIdx)
+check(pendingEffectDepsIdx !== -1 && pendingEffectDepsIdx - pendingEffectIdx < 400,
+  `${APP}: the deferred op-card-rework effect is not keyed on [step,outputs,chosen] -- outputs always gets a fresh reference from restoreFromSavedSlot, which is what guarantees this effect re-runs on the render where the switch actually lands`)
+
 if (failures) {
   console.error(`test-coach-op-card-rework: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-op-card-rework: OK (capture note broader than section rework and unanchored, gated on hasSectionRework, trailer validates its own section enum, Chat.jsx labels via OP_COUNTED_SECTIONS, quick-reply handler resolves by title and switches the current slot before writing)')
+  console.log('test-coach-op-card-rework: OK (capture note broader than section rework and unanchored, gated on hasSectionRework, trailer validates its own section enum, Chat.jsx labels via OP_COUNTED_SECTIONS, quick-reply handler resolves by title and switches the current slot before writing, a slot-switching rework is queued and deferred to the render where the switch actually lands instead of firing against a stale closure)')
 }

@@ -7732,6 +7732,10 @@ export default function PivotEngine(){
       checkinKey:'pursuit-saved-open',
       quickReplies:[{label:`Open ${savedTitle}`,value:targetId},{label:'Stay here',value:'dismiss'}]}
   }
+  // Holds a rework queued behind a slot switch until the switch has actually
+  // landed -- see the effect right below execOpCardRework for why. My Coach
+  // review, finding #4.4.
+  const _pendingOpCardReworkRef=useRef(null)
   const execOpCardRework=(data,targetId)=>{
     const section=data&&typeof data.section==='string'&&['companyRead','p5','p6','p_res','p_cover','p11'].includes(data.section)?data.section:''
     const note=data&&typeof data.note==='string'?data.note.trim():''
@@ -7739,12 +7743,37 @@ export default function PivotEngine(){
     const targetRec=activePlaybooks.find(r=>r&&r.id===targetId)
     if(!targetRec)return false
     const switchedView=currentSavedSlotIdRef.current!==targetRec.id
-    if(switchedView)restoreFromSavedSlot(targetRec)
-    if(section==='p6')generateOpBridgeStory({refine:note})
-    else refineOpCard(section,note)
+    if(switchedView){
+      // restoreFromSavedSlot's setOutputs/setChosen/setStep are all async
+      // state updates -- calling refineOpCard/generateOpBridgeStory right
+      // here, synchronously, would read the PREVIOUS opportunity's
+      // outputs/chosen from this render's now-stale closure, rebuilding the
+      // card against the wrong opportunity's data. Queued instead, and run
+      // by the effect below once the switch has actually landed in a real
+      // render.
+      restoreFromSavedSlot(targetRec)
+      _pendingOpCardReworkRef.current={slotId:targetRec.id,section,note}
+    }else{
+      if(section==='p6')generateOpBridgeStory({refine:note})
+      else refineOpCard(section,note)
+    }
     const label=OP_CARD_LABELS[section]||section
     return{content:switchedView?`Updating ${label} on ${targetRec.title||'this opportunity'} now — I've opened it so you can watch it rebuild.`:`Updating ${label} now.`,checkinKey:'op-card-rework-started'}
   }
+  // Fires a rework queued by execOpCardRework above once the slot switch it
+  // triggered has actually landed: outputs (and chosen) always get a fresh
+  // object/value from restoreFromSavedSlot, so this effect is guaranteed to
+  // re-run on exactly the render where they finally reflect the new
+  // opportunity, not the render that queued the switch. The
+  // currentSavedSlotIdRef check guards against a second, newer switch
+  // superseding this one before this render lands.
+  useEffect(()=>{
+    const pending=_pendingOpCardReworkRef.current
+    if(!pending||currentSavedSlotIdRef.current!==pending.slotId)return
+    _pendingOpCardReworkRef.current=null
+    if(pending.section==='p6')generateOpBridgeStory({refine:pending.note})
+    else refineOpCard(pending.section,pending.note)
+  },[step,outputs,chosen])
   const execOpportunityContext=(data,targetId)=>{
     const text=data&&typeof data.text==='string'?data.text.trim():''
     if(!text)return false
