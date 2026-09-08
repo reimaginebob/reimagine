@@ -17,7 +17,12 @@ const coach = fs.readFileSync(COACH, 'utf8')
 check(/import\s*\{\s*detectVoiceViolations\s*\}\s*from\s*'\.\.\/src\/voice-patterns\.js'/.test(coach),
   `${COACH}: detectVoiceViolations is not imported from ../src/voice-patterns.js`)
 
-check(/const hardViolations = detectVoiceViolations\(cleaned, \{ scope: 'runtime' \}\)/.test(coach),
+// 2026-09-07 (My Coach review, finding #2.3): moved to run AFTER trailer
+// extraction, on strippedText (the prose with every trailer already
+// stripped), not the pre-extraction `cleaned` -- voice-checking `cleaned`
+// used to let a captured phrase inside a trailer's own JSON trigger a
+// rewrite of a reply that was otherwise fine.
+check(/const hardViolations = detectVoiceViolations\(strippedText, \{ scope: 'runtime' \}\)/.test(coach),
   `${COACH}: hardViolations is not computed from the completed, stripped reply before the retry trigger`)
 
 check(/flags\.citedStat \|\| hardViolations\.length\)/.test(coach),
@@ -37,7 +42,7 @@ check(/useRetry = score\(flags2, hardViolations2\) < score\(flags, hardViolation
 
 // Additive, not a replacement: detectResidualVoice's own five-category check
 // must still run unchanged alongside the new one.
-check(/const flags = detectResidualVoice\(cleaned\)/.test(coach),
+check(/const flags = detectResidualVoice\(strippedText\)/.test(coach),
   `${COACH}: detectResidualVoice's existing five-category check was removed rather than kept alongside the new one`)
 
 if (failures) {
