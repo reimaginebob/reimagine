@@ -76,7 +76,10 @@ const situationMountCount = (app.match(/situation=\{computeSituation\(\)\}/g) ||
 check(situationMountCount === 3, `${APP}: expected all 3 <Chat> mounts to carry situation={computeSituation()}, found ${situationMountCount}`)
 check(app.includes("new IntersectionObserver(entries=>{"), `${APP}: the visibleSection IntersectionObserver tracker is missing`)
 
-check(chat.includes('coachSaveTarget = null, situation = null, onSaveNote,'), `${CHAT}: situation prop is missing from Chat's destructure`)
+// presence/setPresence (Phase 1b) now sit between situation and onSaveNote
+// in the destructure -- checking situation's own presence, not exact
+// adjacency to a neighbor that had no reason to stay adjacent.
+check(chat.includes('coachSaveTarget = null, situation = null,'), `${CHAT}: situation prop is missing from Chat's destructure`)
 check(chat.includes('          situation,'), `${CHAT}: situation is missing from the /api/coach request body`)
 
 check(coach.includes("hasCoachSituation } from './_lib/feature-flags.js'"), `${COACH}: hasCoachSituation import is missing`)

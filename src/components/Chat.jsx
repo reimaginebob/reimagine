@@ -55,7 +55,7 @@ const logPromptEngagement = (promptCode, triggerType, outcome) => {
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, situation = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, situation = null, presence = 'open', setPresence = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -1339,6 +1339,33 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
 
   // Embedded variant: full-width panel inside the content column (the My Coach
   // sidebar view). No fixed positioning, no bubble, no close button.
+  if (embedded && setPresence && presence === 'minimized') {
+    // Collapsed strip (Phase 1b, Coach-as-Concierge): the embedded panel's
+    // own minimized state -- new in this phase, since before this the
+    // embedded variant had no minimize affordance at all (full size or not
+    // rendered). Deliberately lightweight: a tab at the panel's edge, not a
+    // second layout to maintain. Tapping it is the only way back to 'open'.
+    const lastMsg = messages && messages.length ? messages[messages.length - 1] : null
+    const preview = lastMsg && typeof lastMsg.content === 'string' ? lastMsg.content.trim().slice(0, 60) : ''
+    return (
+      <button
+        data-print="hide"
+        onClick={() => setPresence('open')}
+        aria-label="Open My Coach"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+          background: '#fff', border: '1px solid #E2E5EA', borderRadius: 14,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.06)', padding: '14px 18px',
+          fontFamily: 'inherit', fontSize: 15, color: '#4A5568', cursor: 'pointer', textAlign: 'left',
+        }}
+      >
+        <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: C.gold, flexShrink: 0 }}/>
+        <span style={{ fontWeight: 600, color: '#1A2540', flexShrink: 0 }}>My Coach</span>
+        {preview && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#8A9BB8' }}>{preview}</span>}
+      </button>
+    )
+  }
+
   if (embedded) {
     return (
       <div ref={panelRef} data-print="hide" style={{
@@ -1373,13 +1400,24 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               Coach is thinking
             </span>
           ) : <span/>}
-          <button
-            onClick={() => { if (window.confirm('This clears your entire conversation with Coach, including everything it has noticed about you so far.\n\nThis cannot be undone.\n\nContinue?')) setMessages([INTRO_MSG]) }}
-            style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
-            aria-label="Clear conversation"
-          >
-            Clear
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {setPresence && (
+              <button
+                onClick={() => setPresence('minimized')}
+                style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
+                aria-label="Minimize My Coach"
+              >
+                Minimize
+              </button>
+            )}
+            <button
+              onClick={() => { if (window.confirm('This clears your entire conversation with Coach, including everything it has noticed about you so far.\n\nThis cannot be undone.\n\nContinue?')) setMessages([INTRO_MSG]) }}
+              style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
+              aria-label="Clear conversation"
+            >
+              Clear
+            </button>
+          </div>
         </div>
         {transcript}
         {inputRow}

@@ -79,9 +79,16 @@ check(chat.includes("sessionStorage.getItem('reimagine_session_recap_fired')") &
 
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
+// 3, not 2, since Phase 1b (Coach-as-Concierge presence, 2026-09-08): the
+// concierge embedded mount used to deliberately omit this (and every other
+// pipeline/session prop) on the reasoning that it only ever rendered during
+// onboarding, where none of them could fire. That reasoning no longer holds
+// now that the same mount also covers Put It to Work / Career Paths / My
+// Pipeline, so it carries the same props the other two mounts (floating,
+// and the dedicated My Coach page's own embedded view) already did.
 const sessionOpenPropCount = (app.match(/sessionOpenEligible=\{hasNextStep\}/g) || []).length
-check(sessionOpenPropCount === 2,
-  `${APP}: expected sessionOpenEligible={hasNextStep} on both <Chat> mounts (floating + embedded), found ${sessionOpenPropCount}`)
+check(sessionOpenPropCount === 3,
+  `${APP}: expected sessionOpenEligible={hasNextStep} on all 3 <Chat> mounts (floating, dedicated My Coach embedded, and the widened concierge embedded), found ${sessionOpenPropCount}`)
 
 if (failures) {
   console.error(`test-coach-session-open: ${failures} check(s) failed`)

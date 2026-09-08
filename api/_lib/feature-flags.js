@@ -221,6 +221,22 @@ export function hasCoachSituation(user) {
   return flags.includes(COACH_SITUATION_FLAG)
 }
 
+// PILOT -- Coach presence, 2026-09-08. Phase 1b of the Coach-as-Concierge
+// redesign (Output/handoff/2026-09-08_coach-concierge-phase-1b-presence.md).
+// Gates the widened embedded panel: today it renders only across the
+// onboarding steps (CONCIERGE_ORIENTATION_STEPS); flagged, it renders on
+// every desktop screen after Welcome. A separate flag from
+// COACH_SITUATION_FLAG on purpose -- one is server-side grounding, this one
+// is a real layout change, and Bob QCs each independently before either
+// reaches an outside account.
+export const COACH_PRESENCE_FLAG = 'coach_presence'
+
+export function hasCoachPresence(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(COACH_PRESENCE_FLAG)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -240,4 +256,5 @@ export const GRANTABLE_FLAGS = {
   [ORIENTATION_CAPTURE_FLAG]: { label: 'Coach orientation field capture (Reputation, Skills)' },
   [CLOSE_REASON_CAPTURE_FLAG]: { label: 'Coach close-reason capture' },
   [COACH_SITUATION_FLAG]: { label: 'Coach situational grounding' },
+  [COACH_PRESENCE_FLAG]: { label: 'Coach presence (embedded panel beyond onboarding)' },
 }

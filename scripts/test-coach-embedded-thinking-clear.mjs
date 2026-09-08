@@ -24,7 +24,10 @@ const chat = fs.readFileSync(CHAT, 'utf8')
 
 const embeddedIdx = chat.indexOf('if (embedded) {')
 check(embeddedIdx !== -1, `${CHAT}: the embedded branch is missing`)
-const embeddedBlock = embeddedIdx !== -1 ? chat.slice(embeddedIdx, embeddedIdx + 2900) : ''
+// 3300, not 2900: Phase 1b (Coach-as-Concierge presence, 2026-09-08) added a
+// Minimize button to this same header row, ahead of Clear -- legitimate new
+// content in the window this check already reads, not creep to paper over.
+const embeddedBlock = embeddedIdx !== -1 ? chat.slice(embeddedIdx, embeddedIdx + 3300) : ''
 
 // Thinking indicator: its own keyframe injection (the closed-bubble branch's
 // copy is unreachable from here) and a visible dot + status text gated on

@@ -55,9 +55,11 @@ check(chat.includes('It moves to Archived, not gone — you can restore it any t
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
 
+// 3, not 2, since Phase 1b (2026-09-08) gave the concierge embedded mount
+// the same capture props the other two mounts already carried.
 const mountHits = (app.match(/opportunityArchiveCaptureActive=\{hasPipeline&&!isIndependent&&hasPipelineCapture\}/g) || []).length
-check(mountHits === 2,
-  `${APP}: expected opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} at both <Chat> mount sites, found ${mountHits}`)
+check(mountHits === 3,
+  `${APP}: expected opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} at all 3 <Chat> mount sites, found ${mountHits}`)
 
 const branchIdx = app.indexOf("checkinKey==='opportunity-archive'")
 check(branchIdx !== -1, `${APP}: the checkinKey==='opportunity-archive' branch is missing from handleEmploymentQuickReply`)
