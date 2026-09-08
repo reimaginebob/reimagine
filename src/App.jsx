@@ -8118,6 +8118,12 @@ export default function PivotEngine(){
     // the exact per-category merge the Skills screen's own SkillCategory
     // onChange uses, plus a case-insensitive de-dup so a skill already
     // listed is never added twice.
+    // Personal Brand staleness (My Coach review, finding #4.8): pr('skills',...)
+    // feeds p3analysis's VALIDATED HARD SKILLS block the same way values and
+    // reputation do, but this tap fires from whatever step the person is on
+    // (usually myCoach or the bubble), so pr()'s own markInputEdited() never
+    // sets pbNeedsUpdate -- same reasoning as values-capture/reputation-capture
+    // above, set it directly here.
     if(checkinKey==='skills-capture'){
       if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
@@ -8135,13 +8141,15 @@ export default function PivotEngine(){
       }
       if(!changed)return false
       pr('skills',next)
+      if(!isDemo&&outputs.p3&&!pbNeedsUpdate)setPbNeedsUpdate(true)
       return true
     }
     // Skills removal (2026-09-06, deletion/retraction Tier 1). Case-
     // insensitive exact-match filter against the REAL current list -- this
     // is the actual existence check named items are validated against; a
     // name that does not match anything already there removes nothing
-    // rather than erroring or claiming success.
+    // rather than erroring or claiming success. Same staleness gap and fix
+    // as skills-capture above -- it writes the same pr('skills',...) field.
     if(checkinKey==='skills-remove'){
       if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
@@ -8158,6 +8166,7 @@ export default function PivotEngine(){
       }
       if(!changed)return false
       pr('skills',next)
+      if(!isDemo&&outputs.p3&&!pbNeedsUpdate)setPbNeedsUpdate(true)
       return true
     }
     // Priorities capture (2026-09-06). Writes through pr() directly for each
@@ -8166,6 +8175,11 @@ export default function PivotEngine(){
     // twoWords); dealBreakers already arrives as the complete merged list
     // from the server (same contract as Values), so it also writes directly
     // here rather than appending a second time client-side.
+    // Deliberately does NOT set pbNeedsUpdate (My Coach review, finding #4.8
+    // named this as a gap; verified against p3analysis and it is not): these
+    // fields feed the Live Opportunity Playbook's compensation read once an
+    // offer is in hand, not Personal Brand. Flagging a brand rebuild here
+    // would nudge the person to redo a document these fields never touch.
     if(checkinKey==='priorities-capture'){
       if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
@@ -8179,7 +8193,11 @@ export default function PivotEngine(){
     }
     // Life Story capture (2026-09-06). Appends a new paragraph -- mirrors
     // the screen's own mic button, which appends dictated speech directly
-    // onto profile.lifeEvents rather than replacing it.
+    // onto profile.lifeEvents rather than replacing it. Sets pbNeedsUpdate
+    // directly for the same reason values-capture/skills-capture do (My
+    // Coach review, finding #4.8): pr.lifeEvents feeds p3analysis's
+    // LIFE-SHAPING EXPERIENCES block, and this tap does not fire from an
+    // INPUT_EDIT_STEPS screen, so pr()'s own markInputEdited() never sets it.
     if(checkinKey==='life-story-capture'){
       if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
@@ -8187,6 +8205,7 @@ export default function PivotEngine(){
       if(!text)return false
       const existing=profile.lifeEvents||''
       pr('lifeEvents',existing.trim()?existing.trim()+'\n\n'+text:text)
+      if(!isDemo&&outputs.p3&&!pbNeedsUpdate)setPbNeedsUpdate(true)
       return true
     }
     // Coach captured remembered assessment content the person named in
@@ -8197,7 +8216,9 @@ export default function PivotEngine(){
     // use, so this reads as one more entry in the same list, not a
     // different mechanism. assessType (2026-09-06) sets the dropdown too,
     // but only when it is currently unset -- never overrides a choice the
-    // person already made themselves.
+    // person already made themselves. Sets pbNeedsUpdate directly for the
+    // same reason as Life Story above -- pr.assess is the RAW ASSESSMENT
+    // block p3analysis reads verbatim (My Coach review, finding #4.8).
     if(checkinKey==='assessment-capture'){
       if(value==='dismiss')return true
       let data;try{data=JSON.parse(value)}catch{return false}
@@ -8207,6 +8228,7 @@ export default function PivotEngine(){
       const divider='\n\n=== From My Coach ===\n\n'
       pr('assess',(existing.trim()?existing.trim()+divider:divider.trimStart())+text)
       if(data.assessType&&!profile.assessType)pr('assessType',data.assessType)
+      if(!isDemo&&outputs.p3&&!pbNeedsUpdate)setPbNeedsUpdate(true)
       return true
     }
     // Coach judged a chat reply as a real correction to the Personal Brand
