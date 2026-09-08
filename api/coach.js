@@ -1131,8 +1131,9 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   //
   // Lives in this block, which is the second and UNCACHED system block. The nav
   // map sits in buildSystemPromptStable()'s output under cache_control ephemeral
-  // alongside the user guide and the full book; making that vary per user state would fork the
-  // expensive cached prefix.
+  // alongside the full book (the user guide moved to its own breakpoint, see
+  // buildGuideBlock(), 2026-09-08 cache reorder); making this vary per user
+  // state would fork the expensive cached prefix.
   const brandStepDone = Array.isArray(state.done) && state.done.includes('p3')
   const preBrandNote = brandStepDone
     ? ''
@@ -1445,15 +1446,19 @@ function buildPlaybookExpansion(record, intent) {
   return parts.join('\n\n')
 }
 
-// Stable across users and turns -> belongs in the cached prefix. Covers the
-// coach's dual mandate (coach the search AND answer product-help questions),
-// the voice rules carried verbatim from the help bot, the posture rules, the
-// NAVIGATE contract, and the two grounding corpora (user guide + the book).
-// Split at the USER GUIDE boundary so buildSystemPromptStable() can splice
-// in resolveGuideBlock(currentStep) between them -- see that function's own
-// comment above. Everything else in this prompt (persona, posture rules,
-// COMP_KNOWLEDGE, COACH_NAV_MAP, the book) is unaffected by currentStep and
-// stays exactly as it was as one static prefix/suffix pair.
+// Stable across users, turns, AND currentStep -> its own cache breakpoint
+// (cost lever 6.3.1, 2026-09-08 prelaunch audit). Covers the coach's dual
+// mandate (coach the search AND answer product-help questions), the voice
+// rules carried verbatim from the help bot, the posture rules, the NAVIGATE
+// contract, COMP_KNOWLEDGE, COACH_NAV_MAP, and the book (MYOW_CONTENT).
+// Until 2026-09-08 the step-specific guide slice was spliced in BETWEEN this
+// and the book inside one shared cached block, so every currentStep change
+// forced a full rewrite of this whole ~260KB prefix plus the book just to
+// pick up a guide slice that is usually a fraction of that size. The guide
+// slice now gets its own breakpoint (GUIDE_BLOCK_HEAD + resolveGuideBlock(),
+// see buildGuideBlock() below) so a step change only ever rewrites the
+// smaller, step-varying block -- this one stays cached across every step,
+// every turn, for the life of the TTL.
 const SYSTEM_PROMPT_HEAD = `You are My Coach, the career coach inside Reimagine, a career-strategy tool by Career Club. Reimagine is built on Bob Goodwin's book Making Your Own Weather, whose full text is included below.
 
 Your job has two doors that open onto one engine. You coach the person through their real job-search questions — strategy, positioning, interviews, outreach, momentum, morale — grounded in the book and in what Reimagine already knows about them. And you answer "how do I use this feature" product questions about Reimagine itself, from the user guide below. Treat both as your job; the user should never feel handed off between a coach and a help bot.
@@ -1629,9 +1634,6 @@ Presentation — lighter touch, prose only. When something fits, name it in pros
 Log your verdict. End every reply with one line, on its own line, after everything else. This line is for the product, not the person — the system removes it before the reply is shown. Write it EXACTLY in this plain form, with nothing wrapping it — no XML or HTML tags, no markdown, no quotes, no extra words:
 SELFCHECK: <feature-slug> when a feature genuinely matched, or SELFCHECK: none when nothing fit.
 Never write it as <selfcheck>…</selfcheck> or any tagged form — just the bare line beginning with SELFCHECK:. Use only the slugs shown in the feature map above (the [slug: …] on each feature).
-
-USER GUIDE BELOW. This is the source of truth for how Reimagine works:
-
 `
 
 const SYSTEM_PROMPT_TAIL = `
@@ -1640,8 +1642,22 @@ MAKING YOUR OWN WEATHER — FULL TEXT BELOW. This is the methodology behind your
 
 ${MYOW_CONTENT}`
 
-function buildSystemPromptStable(currentStep) {
-  return SYSTEM_PROMPT_HEAD + resolveGuideBlock(currentStep) + SYSTEM_PROMPT_TAIL
+function buildSystemPromptStable() {
+  return SYSTEM_PROMPT_HEAD + SYSTEM_PROMPT_TAIL
+}
+
+// The step-specific guide slice's own cache breakpoint (cost lever 6.3.1).
+// Carries the same "USER GUIDE BELOW" framing line SYSTEM_PROMPT_HEAD used
+// to end on when the guide slice was spliced inline between it and the
+// book -- moved here so the sentence still immediately precedes the guide
+// content it describes, just from its own block instead of the tail of the
+// stable one.
+const GUIDE_BLOCK_HEAD = `USER GUIDE BELOW. This is the source of truth for how Reimagine works:
+
+`
+
+function buildGuideBlock(currentStep) {
+  return GUIDE_BLOCK_HEAD + resolveGuideBlock(currentStep)
 }
 
 // Replaces the per-user profile slice when general-question mode is on. Tells the
@@ -1675,19 +1691,28 @@ export function buildCoachRequest({
   generalMode, milestoneMentions, closeReasons, tzOffsetMinutes,
 }) {
   const isIndependentTrack = !generalMode && track === TRACK_INDEPENDENT
-  const goIndependentBlock = isIndependentTrack
-    ? `THIS PERSON IS BUILDING A PRACTICE, NOT LOOKING FOR A JOB. They are on the Go Independent track: they have already left, or decided to leave, and they are standing up a consulting or fractional-executive practice. Do not coach them through a job search, do not reach for interview framing, and do not offer features that only make sense to someone applying for roles. When they ask about handling pushback on a rate, that is a sales conversation with a buyer, not interview prep.
+  // Go Independent and the pilot-knowledge blocks used to be two separate
+  // cache_control entries. Merged into one (cost lever 6.3.1, 2026-09-08
+  // prelaunch audit) to free a breakpoint for the guide slice's own entry
+  // below -- the Claude API caps a request at 4 breakpoints total, and a
+  // pilot user on the Go Independent track could hit both of these at once,
+  // so keeping them separate would blow the cap the day the guide slice
+  // needed the room. Order preserved (Go Independent's framing first, then
+  // pipeline-capture, then next-step) since none of these reference each
+  // other and reordering them has no effect on what the model can act on.
+  const knowledgeParts = []
+  if (isIndependentTrack) {
+    knowledgeParts.push(`THIS PERSON IS BUILDING A PRACTICE, NOT LOOKING FOR A JOB. They are on the Go Independent track: they have already left, or decided to leave, and they are standing up a consulting or fractional-executive practice. Do not coach them through a job search, do not reach for interview framing, and do not offer features that only make sense to someone applying for roles. When they ask about handling pushback on a rate, that is a sales conversation with a buyer, not interview prep.
 
 The reference material below is yours to reason from on the mechanics of running that practice: pricing, pipeline, scope and contracts, the fractional model and the business behind it, selling expertise, and the personal side of going independent. Use it the way you use the rest of what you know -- draw on it when it fits what they are actually asking, in your own voice, and never recite it or name it as a document. Where a chapter states something as fact, you can state it as fact. Where it says a judgment depends on the specific person, that is a conversation to have with them, not an answer to hand down.
 
 On money, tax, entity structure, insurance, and retirement accounts specifically: these chapters give you the terrain and the real tradeoffs, and that is what to share. You are not their accountant, financial planner, or attorney, and a decision that turns on their actual numbers belongs with one.
 
-${GO_INDEPENDENT_KNOWLEDGE}`
-    : null
-  const pilotKnowledge = []
-  if (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: userEmail })) pilotKnowledge.push(PIPELINE_CAPTURE_KNOWLEDGE)
-  if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: userEmail })) pilotKnowledge.push(NEXT_STEP_KNOWLEDGE)
-  const pilotKnowledgeBlock = pilotKnowledge.length ? pilotKnowledge.join('\n\n') : null
+${GO_INDEPENDENT_KNOWLEDGE}`)
+  }
+  if (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(PIPELINE_CAPTURE_KNOWLEDGE)
+  if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(NEXT_STEP_KNOWLEDGE)
+  const knowledgeBlock = knowledgeParts.length ? knowledgeParts.join('\n\n---\n\n') : null
   let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, isIndependentTrack, activityFacts, priorSessionAt, sessionOpenRequested, tzOffsetMinutes)
   // The person's own local calendar date (My Coach review, finding #3.6), not
   // the server's UTC date -- labeling this "(UTC)" while every pipeline date
@@ -1754,10 +1779,20 @@ ${GO_INDEPENDENT_KNOWLEDGE}`
     { role: 'user', content: message + contextNote },
   ]
 
+  // Order (cost lever 6.3.1, 2026-09-08 prelaunch audit): the fully stable
+  // block first (HEAD + book -- same for every user, every turn, every
+  // step), then the step-varying guide slice, then the merged optional
+  // knowledge block, then profileBlock last (changes most often). Each
+  // entry only needs to be rewritten from its own breakpoint forward, so
+  // ordering from least-volatile to most-volatile keeps as much of the
+  // prefix warm as possible when something upstream of profileBlock does
+  // change. 2 to 4 cache_control markers depending on which optional
+  // blocks are present -- see test-coach-cache-blocks.mjs for the 4-marker
+  // ceiling the Claude API enforces.
   const system = [
-    { type: 'text', text: buildSystemPromptStable(currentStep), cache_control: { type: 'ephemeral' } },
-    ...(goIndependentBlock ? [{ type: 'text', text: goIndependentBlock, cache_control: { type: 'ephemeral' } }] : []),
-    ...(pilotKnowledgeBlock ? [{ type: 'text', text: pilotKnowledgeBlock, cache_control: { type: 'ephemeral' } }] : []),
+    { type: 'text', text: buildSystemPromptStable(), cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: buildGuideBlock(currentStep), cache_control: { type: 'ephemeral' } },
+    ...(knowledgeBlock ? [{ type: 'text', text: knowledgeBlock, cache_control: { type: 'ephemeral' } }] : []),
     { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
   ]
 
@@ -1983,12 +2018,15 @@ export default async function handler(req, res) {
   // searching should never have Coach reaching into 401(k)-loan risk or B2B
   // sales methodology to answer them.
   //
-  // Sent as its OWN cached system block AFTER the shared one, rather than as a
-  // per-user append or a forked stable prefix. Caching is a sequential prefix
-  // match with up to four breakpoints and this file used one, so a second block
-  // gets its own cache entry while the big shared block keeps the single entry
-  // it already shares with every standard-track user. No fork, and no second
-  // copy of the book or the nav map to keep in sync.
+  // Sent as its own cache_control entry (merged with the pilot-knowledge
+  // blocks, see the knowledgeParts comment in buildCoachRequest, cost lever
+  // 6.3.1) AFTER the two always-present stable blocks, rather than as a
+  // per-user append or a forked stable prefix. Caching is a sequential
+  // prefix match with up to four breakpoints; keeping this as its own entry
+  // means the two blocks ahead of it (buildSystemPromptStable()'s output and
+  // the guide slice) keep the single cache entries they already share with
+  // every standard-track user. No fork, and no second copy of the book or
+  // the nav map to keep in sync.
   //
   // Economics at this model's rates, for ~30k tokens: appending it uncached
   // costs full input price on EVERY turn; cached it is a 1.25x write on the
@@ -2060,17 +2098,21 @@ export default async function handler(req, res) {
         // wrong trade for a coach reasoning over someone's whole profile.
         output_config: { effort: 'medium' },
         // profileBlock (the last entry in `system`, built by buildCoachRequest)
-        // gets its own breakpoint (the 4th and last available) because it changes
-        // on its own schedule -- once a day for the date line prepended above,
-        // and whenever pipeline/activity data actually changes -- which is
-        // slower than "every turn" but faster than buildSystemPromptStable()'s
-        // output, which only varies with currentStep (2026-09-06, step-aware guide
-        // gating) and is otherwise stable. Without a marker here it was rebuilt and resent in
-        // full on every single turn of every conversation, uncached, even though
-        // turn 2 of a conversation almost always carries the identical profile
-        // turn 1 did. Caching is a prefix match: this marker only ever needs a
-        // fresh write when profileBlock itself changed, and the three breakpoints
-        // ahead of it stay valid reads regardless.
+        // gets its own breakpoint (the last of the up-to-4 available -- see
+        // the ordering comment above `const system = [` in buildCoachRequest)
+        // because it changes on its own schedule -- once a day for the date
+        // line prepended above, and whenever pipeline/activity data actually
+        // changes -- which is slower than "every turn" but faster than the
+        // blocks ahead of it: buildSystemPromptStable()'s output is stable
+        // across every step and every turn, and buildGuideBlock()'s output
+        // only varies with currentStep (2026-09-06, step-aware guide gating;
+        // split into its own breakpoint 2026-09-08, cost lever 6.3.1).
+        // Without a marker here profileBlock was rebuilt and resent in full
+        // on every single turn of every conversation, uncached, even though
+        // turn 2 of a conversation almost always carries the identical
+        // profile turn 1 did. Caching is a prefix match: this marker only
+        // ever needs a fresh write when profileBlock itself changed, and the
+        // breakpoints ahead of it stay valid reads regardless.
         system,
         messages: msgs,
       }),

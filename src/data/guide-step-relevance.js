@@ -94,10 +94,11 @@ export const CHAPTER_STEPS = {
   // career.club front door, this chapter does not describe what you are
   // seeing" -- its own opening line). `positioning` is that track's own
   // step id (NAV_LABELS: "Go Independent's equivalent of Put It to Work").
-  // Unrelated to GO_INDEPENDENT_KNOWLEDGE/goIndependentBlock in
-  // api/coach.js, which is the separate, already-gated business-of-
-  // consulting content for that same track -- this is just the guide's own
-  // explainer chapter about the track existing.
+  // Unrelated to GO_INDEPENDENT_KNOWLEDGE in api/coach.js (folded into
+  // knowledgeParts/knowledgeBlock there), which is the separate,
+  // already-gated business-of-consulting content for that same track --
+  // this is just the guide's own explainer chapter about the track
+  // existing.
   'go-independent.md': ['positioning'],
   'put-it-to-work.md': ROUTING_STEPS,
   'career-paths.md': ROUTING_STEPS,
