@@ -43,11 +43,21 @@
 //      three knowledge sources if someone "merges" by deleting rather than
 //      joining.
 //
+// 2026-09-08 (cost lever 6.3.2, prelaunch audit): three silent turn kinds --
+// session-open, orientation-check, post-capture -- fire on a standing
+// scripted instruction, not a real question, so they don't need the guide
+// slice or the book. `system` is now built by a ternary on `isSilentTurn`:
+// the silent branch sends only SYSTEM_PROMPT_HEAD (persona) + the optional
+// knowledge block + profileBlock (up to 3 breakpoints); the normal branch
+// is unchanged (up to 4). Both branches are checked separately below since
+// they're alternatives, never both present in one request -- a 4-breakpoint
+// cap check across their COMBINED text would be meaningless.
+//
 // The array itself lives in buildCoachRequest (extracted 2026-09-05 so a live
 // eval script could call the real prompt assembly directly), not inline in
 // the fetch call -- generate() now just passes the `system` it returns
-// through. Anchored on the `const system = [` declaration rather than the
-// fetch call for that reason.
+// through. Anchored on the `const isSilentTurn = turnKind` declaration
+// rather than the fetch call for that reason.
 import fs from 'node:fs'
 
 const FILE = 'api/coach.js'
@@ -83,39 +93,83 @@ check(/const knowledgeBlock = knowledgeParts\.length \? knowledgeParts\.join\(/.
 check(!/\bgoIndependentBlock\b/.test(src) && !/\bpilotKnowledgeBlock\b/.test(src),
   `${FILE}: the old separate goIndependentBlock/pilotKnowledgeBlock variables are back -- they were merged into knowledgeBlock specifically to free a breakpoint for the guide slice`)
 
-const sysIdx = src.indexOf('const system = [')
-check(sysIdx !== -1, `${FILE}: could not find "const system = [" in buildCoachRequest`)
+const ternaryIdx = src.indexOf('const isSilentTurn = turnKind')
+check(ternaryIdx !== -1, `${FILE}: could not find "const isSilentTurn = turnKind" in buildCoachRequest`)
 
-const sysEnd = src.indexOf('\n  ]', sysIdx)
-check(sysEnd !== -1, `${FILE}: could not find the end of the system array`)
+const silentStart = src.indexOf('? [', ternaryIdx)
+const normalStart = src.indexOf('\n    : [', ternaryIdx)
+const ternaryEnd = src.indexOf('\n\n  return { system, messages', ternaryIdx)
+check(silentStart !== -1 && normalStart !== -1 && ternaryEnd !== -1 && silentStart < normalStart && normalStart < ternaryEnd,
+  `${FILE}: could not locate both branches of the isSilentTurn ternary building \`system\` in buildCoachRequest`)
 
-if (sysIdx !== -1 && sysEnd !== -1) {
-  const systemArray = src.slice(sysIdx, sysEnd)
+if (silentStart !== -1 && normalStart !== -1 && ternaryEnd !== -1 && silentStart < normalStart && normalStart < ternaryEnd) {
+  const silentBranch = src.slice(silentStart, normalStart)
+  const normalBranch = src.slice(normalStart, ternaryEnd)
 
-  check(/buildSystemPromptStable\(\),\s*cache_control:\s*\{\s*type:\s*'ephemeral'\s*\}/.test(systemArray),
-    `${FILE}: buildSystemPromptStable() has no cache_control marker, or is no longer called with zero arguments, in the system array`)
-  check(/buildGuideBlock\(currentStep\),\s*cache_control:\s*\{\s*type:\s*'ephemeral'\s*\}/.test(systemArray),
-    `${FILE}: buildGuideBlock(currentStep) has no cache_control marker in the system array -- the guide slice needs its own breakpoint, separate from the stable block`)
-  check(/knowledgeBlock,\s*cache_control:\s*\{\s*type:\s*'ephemeral'\s*\}/.test(systemArray),
-    `${FILE}: the merged knowledgeBlock has no cache_control marker in the system array`)
-  check(/profileBlock,\s*cache_control:\s*\{\s*type:\s*'ephemeral'\s*\}/.test(systemArray),
-    `${FILE}: profileBlock has no cache_control marker -- it will be rebuilt and resent uncached on every turn again`)
+  // Silent branch (session-open, orientation-check, post-capture, cost lever
+  // 6.3.2): persona only, no book, no guide slice.
+  check(/SYSTEM_PROMPT_HEAD,\s*cache_control:\s*\{\s*type:\s*'ephemeral'\s*\}/.test(silentBranch),
+    `${FILE}: the silent-turn branch of \`system\` has no cache_control marker on SYSTEM_PROMPT_HEAD -- silent turns still need the persona/voice rules, just not the guide or the book`)
+  check(!/buildSystemPromptStable\(\)/.test(silentBranch),
+    `${FILE}: the silent-turn branch calls buildSystemPromptStable() -- that pulls in the book (MYOW_CONTENT) too, which is exactly what silent turns are meant to skip`)
+  check(!/buildGuideBlock\(/.test(silentBranch),
+    `${FILE}: the silent-turn branch calls buildGuideBlock() -- silent turns don't need the step-specific guide slice, that's the whole point of trimming them`)
+  check(/knowledgeBlock,\s*cache_control:\s*\{\s*type:\s*'ephemeral'\s*\}/.test(silentBranch),
+    `${FILE}: the silent-turn branch's optional knowledgeBlock has no cache_control marker`)
+  check(/profileBlock,\s*cache_control:\s*\{\s*type:\s*'ephemeral'\s*\}/.test(silentBranch),
+    `${FILE}: the silent-turn branch's profileBlock has no cache_control marker`)
+  {
+    const headIdx = silentBranch.indexOf('SYSTEM_PROMPT_HEAD')
+    const knowledgeIdx = silentBranch.indexOf('knowledgeBlock')
+    const profileIdx = silentBranch.indexOf('profileBlock')
+    check(headIdx !== -1 && knowledgeIdx !== -1 && profileIdx !== -1 && headIdx < knowledgeIdx && knowledgeIdx < profileIdx,
+      `${FILE}: the silent-turn branch's block order is no longer SYSTEM_PROMPT_HEAD, knowledge-block, profileBlock`)
+  }
+  const silentMarkerCount = (silentBranch.match(/cache_control:\s*\{/g) || []).length
+  check(silentMarkerCount <= 4 && silentMarkerCount >= 1,
+    `${FILE}: ${silentMarkerCount} cache_control markers in the silent-turn branch -- expected 1 to 3 (persona, optional knowledge, profile), and never more than the Claude API's 4-breakpoint cap`)
+
+  // Normal branch (a real question): unchanged from cost lever 6.3.1 --
+  // stable block, guide slice, optional knowledge block, profileBlock.
+  check(/buildSystemPromptStable\(\),\s*cache_control:\s*\{\s*type:\s*'ephemeral'\s*\}/.test(normalBranch),
+    `${FILE}: buildSystemPromptStable() has no cache_control marker, or is no longer called with zero arguments, in the normal-turn branch`)
+  check(/buildGuideBlock\(currentStep\),\s*cache_control:\s*\{\s*type:\s*'ephemeral'\s*\}/.test(normalBranch),
+    `${FILE}: buildGuideBlock(currentStep) has no cache_control marker in the normal-turn branch -- the guide slice needs its own breakpoint, separate from the stable block`)
+  check(/knowledgeBlock,\s*cache_control:\s*\{\s*type:\s*'ephemeral'\s*\}/.test(normalBranch),
+    `${FILE}: the normal-turn branch's optional knowledgeBlock has no cache_control marker`)
+  check(/profileBlock,\s*cache_control:\s*\{\s*type:\s*'ephemeral'\s*\}/.test(normalBranch),
+    `${FILE}: profileBlock has no cache_control marker in the normal-turn branch -- it will be rebuilt and resent uncached on every turn again`)
 
   // Order matters for cache economics: least-volatile first so a change to a
   // later block never invalidates an earlier one's cache entry.
-  const stableIdx = systemArray.indexOf('buildSystemPromptStable()')
-  const guideIdx = systemArray.indexOf('buildGuideBlock(currentStep)')
-  const knowledgeIdx = systemArray.indexOf('knowledgeBlock')
-  const profileIdx = systemArray.indexOf('profileBlock')
+  const stableIdx = normalBranch.indexOf('buildSystemPromptStable()')
+  const guideIdx = normalBranch.indexOf('buildGuideBlock(currentStep)')
+  const knowledgeIdx = normalBranch.indexOf('knowledgeBlock')
+  const profileIdx = normalBranch.indexOf('profileBlock')
   check(stableIdx !== -1 && guideIdx !== -1 && knowledgeIdx !== -1 && profileIdx !== -1 &&
     stableIdx < guideIdx && guideIdx < knowledgeIdx && knowledgeIdx < profileIdx,
-    `${FILE}: the system array's block order is no longer stable-block, guide-slice, knowledge-block, profileBlock -- this order is what keeps the least-volatile content cached longest`)
+    `${FILE}: the normal-turn branch's block order is no longer stable-block, guide-slice, knowledge-block, profileBlock -- this order is what keeps the least-volatile content cached longest`)
 
-  const markerCount = (systemArray.match(/cache_control:\s*\{/g) || []).length
-  check(markerCount <= 4,
-    `${FILE}: ${markerCount} cache_control markers in the system array -- the Claude API allows at most 4 per request`)
-  check(markerCount >= 1, `${FILE}: no cache_control markers found at all -- did the array get rewritten?`)
+  const normalMarkerCount = (normalBranch.match(/cache_control:\s*\{/g) || []).length
+  check(normalMarkerCount <= 4,
+    `${FILE}: ${normalMarkerCount} cache_control markers in the normal-turn branch -- the Claude API allows at most 4 per request`)
+  check(normalMarkerCount >= 1, `${FILE}: no cache_control markers found at all in the normal-turn branch -- did the array get rewritten?`)
 }
+
+// --- turnKind threaded into buildCoachRequest, and effort chosen from it --
+
+check(/turnKind,\s*\n\s*tzOffsetMinutes:/.test(src) || /generalMode, milestoneMentions, closeReasons, turnKind,/.test(src),
+  `${FILE}: the handler no longer passes turnKind into buildCoachRequest -- the silent-turn trim can't know which branch to take without it`)
+check(/const effort = turnKind === 'user' \? 'medium' : 'low'/.test(src),
+  `${FILE}: the effort-by-turnKind decision is missing or no longer chooses 'medium' for a real question and 'low' for a silent turn`)
+check(/async function generate\(msgs, generationEffort\)/.test(src),
+  `${FILE}: generate() no longer takes an effort parameter -- output_config would fall back to a hardcoded value again`)
+check(/output_config:\s*\{\s*effort:\s*generationEffort\s*\}/.test(src),
+  `${FILE}: generate()'s output_config no longer forwards the caller-chosen effort`)
+check((src.match(/generate\(messages, effort\)/g) || []).length === 1,
+  `${FILE}: the primary generate() call no longer passes effort (or appears more/less than once)`)
+check(/generate\(\[\.\.\.messages, \{ role: 'assistant', content: raw \}, \{ role: 'user', content: corrective \}\], effort\)/.test(src),
+  `${FILE}: the voice-retry's generate() call no longer passes the same effort as the primary call -- a retry could otherwise silently change effort mid-turn`)
 
 // A marker on profileBlock only pays off if profileBlock's own bytes are
 // actually stable between two otherwise-identical requests. Two of its inputs
@@ -137,4 +191,4 @@ if (failures) {
   console.error(`test-coach-cache-blocks: FAIL (${failures})`)
   process.exit(1)
 }
-console.log('test-coach-cache-blocks: OK (stable block and guide slice are separate breakpoints in the right order, Go Independent/pilot knowledge merged into one block, profileBlock cached last, markers within the 4-breakpoint limit, both feeder queries ordered)')
+console.log('test-coach-cache-blocks: OK (normal turns keep the stable block + guide slice + optional knowledge + profileBlock in order within the 4-breakpoint limit, silent turns trim to persona + optional knowledge + profileBlock at effort low, both feeder queries ordered)')
