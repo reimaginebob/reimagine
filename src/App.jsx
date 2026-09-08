@@ -10034,11 +10034,14 @@ export default function PivotEngine(){
       fetch(CORRECTIONS_LOG_URL,{method:'POST',body:JSON.stringify(payload)}).catch(()=>{})
     }catch{}
   }
-  // Coach's live chat replies stream straight into the visible UI (Chat.jsx),
-  // so they cannot go through callClaudeWithVoiceGate's silent pre-display
-  // retry the way generated sections do. This logs hard violations Chat.jsx
-  // detects post-stream to the same voice-event pipe, for visibility rather
-  // than correction.
+  // Docs correction (My Coach review, finding #3.7): Coach chat replies do
+  // not skip callClaudeWithVoiceGate's silent pre-display retry because they
+  // stream live and cannot be buffered -- api/coach.js runs its own
+  // equivalent regenerate-on-violation retry, buffered server-side, before
+  // ever writing a byte to the client. This logs whatever hard violations
+  // survive that retry and still reach Chat.jsx's post-stream check, to the
+  // same voice-event pipe, for visibility into what got through rather than
+  // correction -- the server already had its one shot at that.
   const handleCoachVoiceViolation=(violations)=>{
     logVoiceEvent({step:'coach-chat',attempt:1,recovered:false,violations})
   }

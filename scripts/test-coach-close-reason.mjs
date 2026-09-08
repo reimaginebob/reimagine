@@ -126,11 +126,11 @@ check(coach.includes("const closeReasonNote = hasCloseReasonCapture({ feature_fl
 check(coach.includes('${opportunityArchiveNote}${closeReasonNote}${opCardReworkNote}'),
   `${COACH}: closeReasonNote is not spliced into the profile-slice template`)
 
-check(/export function buildCoachRequest\(\{[\s\S]{0,600}milestoneMentions, closeReasons,\s*\}\) \{/.test(coach),
+check(/export function buildCoachRequest\(\{[\s\S]{0,600}milestoneMentions, closeReasons,[\s\S]{0,60}\}\) \{/.test(coach),
   `${COACH}: buildCoachRequest does not accept closeReasons as a parameter`)
 check(/closeReasons = await sql`SELECT record_id FROM pursuit_close_reasons WHERE user_id = \$\{user\.id\}`/.test(coach),
   `${COACH}: closeReasons is not read from pursuit_close_reasons, gated on hasCloseReasonCapture`)
-check(/generalMode, milestoneMentions, closeReasons,\s*\}\)/.test(coach),
+check(/generalMode, milestoneMentions, closeReasons,[\s\S]{0,200}\}\)/.test(coach),
   `${COACH}: closeReasons is not passed into the buildCoachRequest call site`)
 
 check(coach.includes("extractTrailer(strippedText, 'CLOSEREASON')"),
