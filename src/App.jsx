@@ -8629,7 +8629,15 @@ export default function PivotEngine(){
   // the My Next Steps date only; a passed meeting simply reads as "last met" (see
   // the coach status block). The earlier auto-clear was removed: it silently
   // erased data and made a still-active opportunity look empty.
-  const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p.map(m=>(m&&m.role==='assistant'&&m.content===INTRO_MSG.content&&!m.intro)?{...m,intro:true}:m)}}catch{}return[INTRO_MSG]})
+  // Pending offers expire on reload (My Coach review, finding #4.6): a
+  // quick-reply bubble surviving into a new session is, by definition, from
+  // a PREVIOUS one -- tapping it would write whatever the offer captured
+  // days ago (a stale values-capture, an old pursuit-stage), not anything
+  // reflecting where things actually stand now. Stripped on hydration
+  // rather than at write time, so the text of the bubble itself (and
+  // anything already answered) survives untouched -- only the still-live
+  // buttons do not.
+  const[chatMessages,setChatMessages]=useState(()=>{try{const r=localStorage.getItem('reimagine_chat_history');if(r){const p=JSON.parse(r);if(Array.isArray(p)&&p.length>0)return p.map(m=>{const e=(m&&m.quickReplies)?{...m,quickReplies:null}:m;return(e&&e.role==='assistant'&&e.content===INTRO_MSG.content&&!e.intro)?{...e,intro:true}:e})}}catch{}return[INTRO_MSG]})
   // Coach open/maximized state (2026-09-06): lifted here, mirroring chatMessages
   // above, so the floating panel's own presence and size survive a round trip
   // through the dedicated My Coach step. That step's embedded view fully

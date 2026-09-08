@@ -491,6 +491,48 @@ export function computeTurnKind(rawMessage, { orientationCheckRequested, postCap
   return 'user'
 }
 
+// Priority order, highest first, for arbitrateOffers below. Per the My
+// Coach review's own recommendation ("pipeline update > close reason >
+// archive > rework > profile fields > activity > intake"), with the
+// protocols it did not explicitly name slotted into the nearest matching
+// tier: opportunityContext and the notes offer are both "a durable fact
+// about the currently open opportunity," so they sit with pipeline update;
+// the three rework variants (brand/section/op-card) share one tier since
+// the brief did not rank them against each other.
+export const OFFER_ARBITRATION_ORDER = [
+  'opportunityUpdateB64', 'opportunityContextB64', 'coachNoteOffer',
+  'closeReasonB64',
+  'opportunityArchiveB64',
+  'brandReworkB64', 'sectionReworkB64', 'opCardReworkB64',
+  'valuesB64', 'reputationB64', 'skillsB64', 'skillsRemoveB64', 'prioritiesB64', 'lifeStoryB64', 'assessmentB64',
+  'activityB64',
+  'searchIntakeB64',
+]
+
+// Keeps only the highest-priority truthy value in `vars` (by key, per
+// `priorityOrder`) and clears every other listed key -- at most one
+// capture offer ships per turn. A single turn that settled several fields
+// at once (Values AND a Life Story detail AND a new skill, say) used to
+// stack one quick-reply bubble per header behind the same reply; nothing
+// is lost by dropping the rest, since the model's own reply text already
+// reflects whatever it settled, and a dropped field's own capture note
+// fires again on a later turn if it is still unresolved. My Coach review,
+// finding #4.6. Pure (returns a new object, never mutates `vars`), so it
+// can be exercised directly by a behavioral test rather than only checked
+// for as a string in the source, per finding #5.1. coachNoteOffer is the
+// one boolean-shaped offer here (everything else is a base64 string or
+// null); cleared to `false` rather than `null` so its type never changes.
+export function arbitrateOffers(vars, priorityOrder) {
+  const out = { ...vars }
+  let kept = false
+  for (const key of priorityOrder) {
+    if (!out[key]) continue
+    if (kept) out[key] = (typeof out[key] === 'boolean') ? false : null
+    else kept = true
+  }
+  return out
+}
+
 // The three reflective "who they are" fields: judged on whether the answer
 // differentiates this person or could describe almost anyone -- see the
 // header comment above for why this is a real per-answer call rather than a
@@ -2507,6 +2549,17 @@ export default async function handler(req, res) {
   } catch (logErr) {
     console.error('coach chat_messages insert failed:', logErr)
   }
+
+  // One offer per turn, arbitrated (My Coach review, finding #4.6): a
+  // single turn that settled several fields at once (say, Values AND a
+  // Life Story detail AND a new skill) used to stack one quick-reply
+  // bubble per header behind the same reply. Only the highest-priority
+  // offer actually present ships; the rest are dropped for this turn --
+  // nothing is lost, since the model's own reply text already reflects
+  // whatever it settled, and a dropped field's capture note fires again on
+  // a later turn if it is still unresolved.
+  ;({ valuesB64, reputationB64, skillsB64, skillsRemoveB64, prioritiesB64, lifeStoryB64, assessmentB64, brandReworkB64, sectionReworkB64, opCardReworkB64, opportunityContextB64, opportunityArchiveB64, closeReasonB64, opportunityUpdateB64, coachNoteOffer, activityB64, searchIntakeB64 } =
+    arbitrateOffers({ valuesB64, reputationB64, skillsB64, skillsRemoveB64, prioritiesB64, lifeStoryB64, assessmentB64, brandReworkB64, sectionReworkB64, opCardReworkB64, opportunityContextB64, opportunityArchiveB64, closeReasonB64, opportunityUpdateB64, coachNoteOffer, activityB64, searchIntakeB64 }, OFFER_ARBITRATION_ORDER))
 
   if (rowId) res.setHeader('X-Coach-Message-Id', String(rowId))
   if (valuesB64) res.setHeader('X-Coach-Values', valuesB64)
