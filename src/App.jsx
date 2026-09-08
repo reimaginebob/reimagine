@@ -7383,6 +7383,17 @@ export default function PivotEngine(){
   // fire before the response lands and the dedupe map updates.
   const[qualityCheckedFields,setQualityCheckedFields]=useState({})
   const orientationCheckFiredRef=useRef({})
+  // Guards the one-time catch-up sweep further down (after hydrationStable
+  // is declared) that fires a check for any of the 8 screen-tied
+  // orientationCheckFields that were already `done` but never got a
+  // reaction -- a transient failure on a prior visit, or an account that
+  // completed a step before this feature existed. Runs once per mount
+  // rather than on every render: the field's ONGOING trigger now lives in
+  // doAdvance, keyed to the moment the person actually leaves that field's
+  // own screen, specifically so a Coach-driven write to the same field
+  // later in the session does not also re-fire it (My Coach review,
+  // finding #3.4).
+  const orientationCheckCaughtUpRef=useRef(false)
   // Reported live: this network call can take several seconds, and the
   // person is often already on the next screen by the time it lands, so the
   // reaction arrives with no warning it was ever coming. A count, not a
@@ -8981,77 +8992,94 @@ export default function PivotEngine(){
   // does not line up -- can surface when one actually exists); Location and
   // Priorities get an orient/acknowledge framing; Values/Reputation/Life
   // Story/Fit get a judged-for-specificity one. See orientationCheckFields
-  // above (shared with the narration effect) for the field shapes. Runs
-  // independent checks off that same array; each is keyed on `done`
-  // containing the step AND the submitted text differing from the last text
-  // actually checked for it, so editing an answer and leaving again re-asks
-  // but revisiting unchanged does not. This is the one onboarding piece
-  // that is a real network call rather than an instant local push, so it
-  // fetches directly rather than going through Chat's scripted-check-in
-  // helpers, and fails silently (leaving the field unchecked so the
-  // account's next visit with the same content tries again) rather than
-  // surfacing an error the person never asked for.
-  useEffect(()=>{
+  // above (shared with the narration effect) for the field shapes.
+  //
+  // fireOrientationCheck runs the network call for ONE already-resolved
+  // field. It used to be inlined in a single effect that iterated all 9
+  // fields on every render where any of a dozen-odd profile deps changed --
+  // which meant accepting a values/reputation/life-story/assessment capture
+  // offer mid-conversation changed that field, which re-ran the effect,
+  // which fired a brand-new, unrequested check-and-reply turn stacked
+  // behind whatever Coach had just said (My Coach review, finding #3.4).
+  // The 8 screen-tied fields below now fire from doAdvance instead, at the
+  // exact moment the person leaves that field's own screen -- a Coach-driven
+  // write to the same field, made while they are elsewhere in the app,
+  // no longer touches this at all. brand-richness keeps its own effect
+  // just below, since it is tied to a Personal Brand rebuild, not a screen
+  // transition, and SHOULD keep re-firing whenever outputs.p3 changes
+  // regardless of what step the person is on.
+  const fireOrientationCheck=(f)=>{
     if(isDemo||isTest)return
     if(!signedInUser||!hasOnboardingConcierge)return
-    for(const f of orientationCheckFields){
-      if(!f.done||!f.combined)continue
-      if(qualityCheckedFields[f.step]===f.combined)continue
-      if(orientationCheckFiredRef.current[f.step]===f.combined)continue
-      orientationCheckFiredRef.current={...orientationCheckFiredRef.current,[f.step]:f.combined}
-      const stepId=f.step,combinedText=f.combined,sendText=f.text
-      ;(async()=>{
-        setCoachThinkingCount(c=>c+1)
-        try{
-          const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({orientationCheck:{step:stepId,text:sendText},history:chatMessages.slice(-10),currentStep:stepId,surface:'sidebar'})})
-          if(res.status===204){setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}));return}
-          if(!res.ok){
-            // Release the fired-guard on failure -- leaving it set (as this
-            // used to) blocked every retry for the rest of THIS session, not
-            // just this attempt: qualityCheckedFields staying unset only
-            // lets a future visit try again if orientationCheckFiredRef also
-            // forgets the attempt. Without this, one transient failure (a
-            // 500, a blip) silently and permanently skipped the field until
-            // a full page reload, which is what turned "the model call
-            // failed once" into "this field never got a reaction at all."
-            const{[stepId]:_dropped,...rest}=orientationCheckFiredRef.current
-            orientationCheckFiredRef.current=rest
-            return
-          }
-          const raw=await res.text()
-          const reply=raw&&raw.trim()
-          // Brand-richness engagement logging (2026-09-07): 'shown' the
-          // first time this fires for an account, 'accepted' on a return
-          // fire -- a rebuild only happens because they told Coach
-          // something new, so the re-fire itself is the accept signal,
-          // no separate tap to track. No explicit 'declined': same as
-          // employment-status, there is no decline button here, so a
-          // shown-with-no-later-accepted is what a decline looks like in
-          // the data, derived rather than written.
-          if(stepId==='brand-richness'&&reply)logPromptEngagement('brand_richness','hub_arrival',qualityCheckedFields[stepId]?'accepted':'shown')
-          setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}))
-          if(reply){
-            // banner:true (2026-09-04, alongside the Continue-defer above):
-            // this used to force the full panel open, which meant a
-            // reaction that landed after the person had already moved on
-            // yanked the panel over whatever screen they were now reading.
-            // With Continue now held until this resolves, forcing the
-            // panel open is no longer buying anything -- the small
-            // dismissing card is enough, same treatment the per-step
-            // narration already gets.
-            setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply}])
-          }
-        }catch{
-          // Same release as the !res.ok branch above -- a network failure
-          // must not permanently block retries within this session either.
+    if(!f||!f.combined)return
+    if(qualityCheckedFields[f.step]===f.combined)return
+    if(orientationCheckFiredRef.current[f.step]===f.combined)return
+    orientationCheckFiredRef.current={...orientationCheckFiredRef.current,[f.step]:f.combined}
+    const stepId=f.step,combinedText=f.combined,sendText=f.text
+    ;(async()=>{
+      setCoachThinkingCount(c=>c+1)
+      try{
+        // Flush the debounced profile autosave before the server reads
+        // profile_state for ANCHOR 1. Without this, the reaction turn for
+        // (say) the Values screen typically arrived with "VALUES: not
+        // provided" in the profile block while the check text handed to
+        // the model carried the just-typed values themselves -- the model,
+        // seeing ANCHOR 1 empty, was then free to offer to "save" values
+        // that were already saved. My Coach review, finding #3.3.
+        if(saveRef.current)await saveRef.current()
+        const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({orientationCheck:{step:stepId,text:sendText},history:chatMessages.slice(-10),currentStep:stepId,surface:'sidebar'})})
+        if(res.status===204){setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}));return}
+        if(!res.ok){
+          // Release the fired-guard on failure -- leaving it set (as this
+          // used to) blocked every retry for the rest of THIS session, not
+          // just this attempt: qualityCheckedFields staying unset only
+          // lets a future visit try again if orientationCheckFiredRef also
+          // forgets the attempt. Without this, one transient failure (a
+          // 500, a blip) silently and permanently skipped the field until
+          // a full page reload, which is what turned "the model call
+          // failed once" into "this field never got a reaction at all."
           const{[stepId]:_dropped,...rest}=orientationCheckFiredRef.current
           orientationCheckFiredRef.current=rest
-        }finally{
-          setCoachThinkingCount(c=>c-1)
+          return
         }
-      })()
-    }
-  },[step,signedInUser,hasOnboardingConcierge,done,profile.resume,profile.linkedin,profile.assess,profile.values,profile.passions,profile.rep,profile.lifeEvents,profile.dealBreakers,profile.fitNeed,profile.fitBuyer,employmentStatus,searchGoingWell,searchFocus,qualityCheckedFields,isDemo,isTest])
+        const raw=await res.text()
+        const reply=raw&&raw.trim()
+        // Brand-richness engagement logging (2026-09-07): 'shown' the
+        // first time this fires for an account, 'accepted' on a return
+        // fire -- a rebuild only happens because they told Coach
+        // something new, so the re-fire itself is the accept signal,
+        // no separate tap to track. No explicit 'declined': same as
+        // employment-status, there is no decline button here, so a
+        // shown-with-no-later-accepted is what a decline looks like in
+        // the data, derived rather than written.
+        if(stepId==='brand-richness'&&reply)logPromptEngagement('brand_richness','hub_arrival',qualityCheckedFields[stepId]?'accepted':'shown')
+        setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}))
+        if(reply){
+          // banner:true (2026-09-04, alongside the Continue-defer above):
+          // this used to force the full panel open, which meant a
+          // reaction that landed after the person had already moved on
+          // yanked the panel over whatever screen they were now reading.
+          // With Continue now held until this resolves, forcing the
+          // panel open is no longer buying anything -- the small
+          // dismissing card is enough, same treatment the per-step
+          // narration already gets.
+          setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply}])
+        }
+      }catch{
+        // Same release as the !res.ok branch above -- a network failure
+        // must not permanently block retries within this session either.
+        const{[stepId]:_dropped,...rest}=orientationCheckFiredRef.current
+        orientationCheckFiredRef.current=rest
+      }finally{
+        setCoachThinkingCount(c=>c-1)
+      }
+    })()
+  }
+  // Brand-richness only: fires on a Personal Brand rebuild (a new outputs.p3
+  // string), independent of whatever step the person is currently on.
+  useEffect(()=>{
+    fireOrientationCheck(orientationCheckFields.find(f=>f.step==='brand-richness'))
+  },[outputs,signedInUser,hasOnboardingConcierge,qualityCheckedFields,isDemo,isTest])
   // One-tap employment prompt (consult 2026-08-13). Fires once for a signed-in
   // user with no employment value, on the dashboard surface (a between-tasks
   // pause, same intent as the Personal Brand check-in). Dedupes on
@@ -9408,6 +9436,27 @@ export default function PivotEngine(){
   // backup in v1; Neon sync is the durable fix and is deferred to V2).
   const isReturningExplorer=done.includes('p3')&&(activePlaybooks.length>0||exploredRoleTitles.length>0)
   const hydrationStable=localHydrationDone&&serverLoadDone
+  // One-time catch-up for the 8 screen-tied orientationCheckFields (not
+  // brand-richness, which has its own effect above): a field can be `done`
+  // with no reaction on record if a prior attempt failed silently (see
+  // fireOrientationCheck's own !res.ok/catch handling) or the account
+  // completed that step before this feature existed. Gated on
+  // hydrationStable, not just signedInUser, so this reads the account's
+  // actual profile/done/qualityCheckedFields rather than the pre-load
+  // empty state. orientationCheckCaughtUpRef keeps this to once per mount;
+  // it deliberately does NOT live in the render-driven effect above,
+  // because that render-driven sensitivity to every field's live value was
+  // exactly what let a Coach-driven capture re-trigger a check mid-session
+  // (My Coach review, finding #3.4).
+  useEffect(()=>{
+    if(isDemo||isTest)return
+    if(!signedInUser||!hasOnboardingConcierge||!hydrationStable)return
+    if(orientationCheckCaughtUpRef.current)return
+    orientationCheckCaughtUpRef.current=true
+    for(const f of orientationCheckFields){
+      if(f.step!=='brand-richness')fireOrientationCheck(f)
+    }
+  },[signedInUser,hasOnboardingConcierge,hydrationStable,isDemo,isTest])
   // Who the My Pipeline move actually displaced: someone holding an Opportunity
   // Playbook they built BEFORE it, who had that work listed on one screen and
   // came back to find it on another. Gated on tableHydrateDone as well as
@@ -9777,7 +9826,13 @@ export default function PivotEngine(){
   // On leaving a changed input surface (returning user), nudge to update the
   // Personal Brand. Skips when heading to p3 (they are going there to update).
   const maybeInputStaleNudge=(from,to)=>{if(!isDemo&&INPUT_EDIT_STEPS.has(from)&&inputEditedRef.current&&to!=='p3'&&outputs.p3){inputEditedRef.current=false;setInputStaleModal({from})}}
-  const doAdvance=(from,to)=>{maybeInputStaleNudge(from,to);markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}
+  // fireOrientationCheck(from) here (not on brand-richness, which stays on
+  // its own outputs.p3-driven effect above): this is the moment the person
+  // actually leaves that field's own screen, exactly the trigger the My
+  // Coach review's finding #3.4 recommends in place of the old render-driven
+  // effect that also fired on an unrelated Coach-driven write to the same
+  // field mid-conversation.
+  const doAdvance=(from,to)=>{maybeInputStaleNudge(from,to);markDone(from);fireOrientationCheck(orientationCheckFields.find(f=>f.step===from));setStep(to);setErr(null);window.scrollTo(0,0)}
   // Defers to doAdvance immediately unless Coach is still reacting to
   // something (coachThinkingCount>0), in which case the click is held
   // rather than dropped -- see pendingAdvance above and the release effect

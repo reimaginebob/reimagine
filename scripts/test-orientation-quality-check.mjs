@@ -122,8 +122,8 @@ check(app.includes("combined:(profile.dealBreakers||'').trim()"),
 // re-fires if either changes independently after an initial pass.
 check(app.includes("combined:[employmentStatus,searchGoingWell,searchFocus].filter(Boolean).join(' ').trim()"),
   `${APP}: the location check no longer combines employment status and search intake for its dedupe key`)
-check(/if\(qualityCheckedFields\[f\.step\]===f\.combined\)continue/.test(app),
-  `${APP}: the quality-check effect lost its content-based dedupe -- it would either never re-ask after an edit, or ask every render`)
+check(/if\(qualityCheckedFields\[f\.step\]===f\.combined\)return/.test(app),
+  `${APP}: fireOrientationCheck lost its content-based dedupe -- it would either never re-ask after an edit, or ask every render`)
 
 // The ordering fix (narration holds off until a real reaction is no longer
 // owed) MUST be a plain, synchronous, render-time computation, not a
@@ -181,7 +181,7 @@ check(app.includes('const[coachThinkingCount,setCoachThinkingCount]=useState(0)'
   `${APP}: coachThinkingCount state is missing`)
 check(app.includes('setCoachThinkingCount(c=>c+1)'),
   `${APP}: the quality-check fetch no longer increments coachThinkingCount before firing`)
-check(app.includes('}finally{\n          setCoachThinkingCount(c=>c-1)\n        }'),
+check(app.includes('}finally{\n        setCoachThinkingCount(c=>c-1)\n      }'),
   `${APP}: coachThinkingCount is no longer released in a finally block -- it would get stuck "thinking" forever on whichever exit path lost the decrement`)
 // Dedupe threading: both hydration paths and the autosave blob.
 const hydrationHits = (app.match(/if\(d\.qualityCheckedFields&&typeof d\.qualityCheckedFields==='object'\)setQualityCheckedFields\(d\.qualityCheckedFields\)/g) || []).length
@@ -204,9 +204,52 @@ check(!app.slice(saveBlobIdx, saveBlobIdx + 500).includes('coachThinkingCount'),
 check(!app.slice(saveDepsIdx, saveDepsIdx + 600).includes('coachThinkingCount'),
   `${APP}: coachThinkingCount is in the autosave effect's dependency array -- it is transient in-flight state and must not persist across a reload`)
 
+// My Coach review, finding #3.3: the check effect fired on the same render
+// that added a step to `done`, ahead of the profile blob's own 800ms
+// autosave debounce, so the server's ANCHOR 1 (profile_state) was typically
+// stale by the time the reaction turn ran. Flushing the debounced save
+// before the fetch keeps ANCHOR 1 current.
+const fireCheckIdx = app.indexOf('const fireOrientationCheck=(f)=>{')
+check(fireCheckIdx !== -1, `${APP}: fireOrientationCheck is missing`)
+const fireCheckBlock = fireCheckIdx !== -1 ? app.slice(fireCheckIdx, fireCheckIdx + 1600) : ''
+check(fireCheckBlock.indexOf('if(saveRef.current)await saveRef.current()') !== -1
+  && fireCheckBlock.indexOf('if(saveRef.current)await saveRef.current()') < fireCheckBlock.indexOf("fetch('/api/coach'"),
+  `${APP}: fireOrientationCheck no longer flushes the debounced autosave before the fetch -- ANCHOR 1 can arrive stale`)
+
+// My Coach review, finding #3.4: the old single effect re-fired on ANY
+// change to a listed profile field, including a Coach-driven write made
+// mid-conversation while the person was nowhere near that field's own
+// screen -- one tap produced two unrequested turns. The 8 screen-tied
+// fields must now fire from doAdvance (the moment the person actually
+// leaves that field's own screen), not from a render-driven effect keyed
+// on live profile values.
+check(app.includes('fireOrientationCheck(orientationCheckFields.find(f=>f.step===from));setStep(to)'),
+  `${APP}: doAdvance no longer fires the per-step orientation check at the moment the person leaves that step`)
+check(!/profile\.values,profile\.passions,profile\.rep,profile\.lifeEvents,profile\.dealBreakers/.test(app),
+  `${APP}: a render-driven effect keyed on live profile field values is back -- this is exactly what let a Coach-driven write re-trigger a check mid-session`)
+
+// brand-richness is not tied to a screen -- it is tied to a Personal Brand
+// rebuild -- so it keeps its own effect, independent of doAdvance, gated on
+// outputs (not the 8 fields' deps) so an unrelated field write elsewhere
+// cannot touch it and a genuine rebuild still refires it.
+check(/useEffect\(\(\)=>\{\s*fireOrientationCheck\(orientationCheckFields\.find\(f=>f\.step==='brand-richness'\)\)\s*\},\[outputs,signedInUser,hasOnboardingConcierge,qualityCheckedFields,isDemo,isTest\]\)/.test(app),
+  `${APP}: brand-richness no longer has its own outputs-driven effect, separate from the 8 screen-tied fields`)
+
+// One-time catch-up sweep: a field already `done` with no reaction on
+// record (a prior transient failure, or an account that completed a step
+// before this feature existed) still needs to be checked once, but on
+// mount/hydration -- not on every render a profile field happens to change,
+// which was the render-driven behavior finding #3.4 removes.
+check(app.includes('const orientationCheckCaughtUpRef=useRef(false)'),
+  `${APP}: orientationCheckCaughtUpRef is missing -- the catch-up sweep would re-run on every qualifying render instead of once`)
+const catchUpIdx = app.indexOf('if(orientationCheckCaughtUpRef.current)return')
+check(catchUpIdx !== -1, `${APP}: the catch-up sweep no longer guards on orientationCheckCaughtUpRef`)
+check(app.slice(Math.max(0, catchUpIdx - 400), catchUpIdx).includes('hydrationStable'),
+  `${APP}: the catch-up sweep no longer gates on hydrationStable -- it could sweep against pre-load empty profile/done state`)
+
 if (failures) {
   console.error(`test-orientation-quality-check: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-orientation-quality-check: OK (server gate re-checked, judgment instructions ask for substance not length, resume/linkedin/assessment get a genuine reaction instead of a canned acknowledgment, client trigger covers all nine fields with content-based dedupe, threaded through both hydration paths and the autosave blob)')
+  console.log('test-orientation-quality-check: OK (server gate re-checked, judgment instructions ask for substance not length, resume/linkedin/assessment get a genuine reaction instead of a canned acknowledgment, client trigger covers all nine fields with content-based dedupe, threaded through both hydration paths and the autosave blob, the 8 screen-tied fields fire from doAdvance rather than a render-driven effect, the debounced autosave is flushed before the fetch, brand-richness keeps its own outputs-driven effect, and a one-time hydration-gated sweep catches up any field left unchecked from a prior visit)')
 }

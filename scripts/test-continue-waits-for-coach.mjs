@@ -22,7 +22,7 @@ const app = fs.readFileSync(APP, 'utf8')
 
 check(app.includes('const[pendingAdvance,setPendingAdvance]=useState(null)'),
   `${APP}: pendingAdvance state is missing`)
-check(app.includes('const doAdvance=(from,to)=>{maybeInputStaleNudge(from,to);markDone(from);setStep(to);setErr(null);window.scrollTo(0,0)}'),
+check(app.includes('const doAdvance=(from,to)=>{maybeInputStaleNudge(from,to);markDone(from);fireOrientationCheck(orientationCheckFields.find(f=>f.step===from));setStep(to);setErr(null);window.scrollTo(0,0)}'),
   `${APP}: doAdvance (the actual navigation, factored out of advance) is missing or changed shape`)
 
 // advance() itself: immediate for the common case (nothing in flight),
