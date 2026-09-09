@@ -398,7 +398,19 @@ function clip(text, limit = 4000) {
 // Used to clean a voice-retry's regenerated text of stray trailer syntax
 // without ever re-parsing it as a new capture -- captures are locked in
 // once, before any retry runs. See the My Coach review, finding #2.3.
-const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
+// MOOD (2026-09-09 production fix): the sweep is a hand-maintained name list,
+// not derived from the actual set of trailers the model can emit, and MOOD
+// was added later (engine guardrails, rule 2) without updating this list. It
+// is parsed and stripped from the ORIGINAL reply before this block ever
+// runs (parseMood, above) -- mood itself, and the X-Coach-Mood header/hold it
+// sets, come from that first pass and were never wrong. But a discouragement
+// reply that also trips the voice-gate retry gets a freshly regenerated
+// reply (`raw2`) which the model, still under the same system-prompt
+// instruction, ends with its own new MOOD: low line -- and this sweep is
+// the ONLY place that text is ever cleaned, since it replaces `strippedText`
+// outright rather than being re-run through parseMood. Missing MOOD here
+// let that line ship to the client as the last line of the visible reply.
+const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MOOD|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
 
 // Finds and strips a `NAME: {...}` capture trailer, tolerating shapes the
 // original per-trailer regex (`^\s*NAME:\s*(\{[\s\S]*?\})\s*$`) could not
