@@ -97,7 +97,7 @@ Your Personal Brand names what is settled about your fit and what is open. Settl
 
 **Sarah Chen.** The fictional executive used in Reimagine's demo mode. A VP of Talent Acquisition in healthcare with 15 years of experience.
 
-**Save Playbook as PDF.** The button in the playbook footer that assembles every generated section for the current role into one printable document. Useful for sharing with a coach or mentor, reading on a device where you are not signed in, or keeping an annotated reference alongside your offline notes.
+**Save Playbook as PDF.** The button next to a playbook's title that assembles every generated section for the current role into one printable document. Useful for sharing with a coach or mentor, reading on a device where you are not signed in, or keeping an annotated reference alongside your offline notes.
 
 **STAR (Situation, Thinking, Action, Result).** The interview story framework Reimagine uses inside Interview Prep, where each story sits next to the question it best answers. The T stands for *Thinking*, not Tasks, because the most important part of any interview story is how you thought through the problem.
 

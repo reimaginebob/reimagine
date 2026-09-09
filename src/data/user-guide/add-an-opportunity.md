@@ -115,7 +115,7 @@ Remove any note with the Remove button on it.
 
 ## Save as PDF
 
-Save as PDF builds a polished single-document version you can keep, share, or come back to. The persistent gold footer button appears as soon as one card is built, and an inline cue appears at the bottom once the generated sections are all done. The output is a clean, paged PDF with each section on its own page.
+Save as PDF builds a polished single-document version you can keep, share, or come back to. The **Save this playbook as PDF** button appears next to the title as soon as one card is built, and an inline cue appears at the bottom once the generated sections are all done. The output is a clean, paged PDF with each section on its own page.
 
 ---
 

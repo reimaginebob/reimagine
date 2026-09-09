@@ -56,7 +56,7 @@ const logPromptEngagement = (promptCode, triggerType, outcome) => {
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -1474,7 +1474,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         {showPulse && !bannerMsg && <style>{"@keyframes pe-chat-pulse-scale{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}@keyframes pe-chat-pulse-fade{0%,100%{opacity:0.7}50%{opacity:1}}"}</style>}
         {thinking && <style>{"@keyframes pe-chat-thinking-dot{0%,100%{opacity:0.35}50%{opacity:1}}"}</style>}
         <div data-print="hide" style={{
-          position: 'fixed', bottom: 24 + bottomOffset, right: 24, zIndex: 1000,
+          position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
           display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10,
         }}>
           {bannerMsg && (
@@ -1571,13 +1571,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       // buttons) it was answering questions about. The sheet is anchored to the
       // bottom edge with only its top corners rounded, so a strip of the page
       // stays visible above it and the reader keeps their place.
-      //
-      // It sits ABOVE the playbook action bar rather than over it (bottom is
-      // bottomOffset, not 0), so Save as PDF stays reachable while it is open,
-      // and its height reserves that same offset plus a 56px strip of page.
-      position: 'fixed', left: 0, right: 0, bottom: bottomOffset, zIndex: 1000,
+      position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1000,
       width: '100%', maxWidth: '100%',
-      height: `min(78dvh, calc(100dvh - ${56 + bottomOffset}px))`,
+      height: `min(78dvh, calc(100dvh - 56px))`,
       background: '#fff',
       borderTop: '1px solid #E2E5EA',
       borderRadius: '16px 16px 0 0',
@@ -1585,7 +1581,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       display: 'flex', flexDirection: 'column',
       fontFamily: 'inherit',
     } : {
-      position: 'fixed', bottom: 24 + bottomOffset, right: 24, zIndex: 1000,
+      position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
       // Sized for reading, but pulled back from PR #358's half-screen footprint
       // (2026-08-09, min(50vw, 760px)) to min(44vw, 620px): the panel floats over
       // the Focus content column it is answering questions about, so a narrower
@@ -1605,14 +1601,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       minWidth: 'min(480px, calc(100vw - 24px))',
       maxWidth: isMaximized ? 'calc(100vw - 300px)' : 'calc(100vw - 24px)',
       // maxHeight has to reserve the bottom anchor too, not just the 24px gap at
-      // each end. The panel is bottom-anchored at 24 + bottomOffset and grows
-      // upward, so with bottomOffset at 72 (any playbook surface, src/App.jsx
-      // renders showPlaybookFooter ? 72 : 0) the top edge lands at 14vh - 96px
-      // and goes negative on any viewport under roughly 686px. On a 1366x768
-      // laptop that put the header, and the only close button, above the top of
-      // the window. That is the "the X is hidden" report from 2026-08-06.
+      // the top. The panel is bottom-anchored at 24 and grows upward.
       height: isMaximized ? 'min(94dvh, 1400px)' : 'min(86dvh, 900px)',
-      maxHeight: `calc(100dvh - ${(isMaximized ? 16 : 48) + bottomOffset}px)`,
+      maxHeight: `calc(100dvh - ${isMaximized ? 16 : 48}px)`,
       transition: 'width 0.16s ease, height 0.16s ease, max-width 0.16s ease',
       background: '#fff',
       border: '1px solid #E2E5EA', borderRadius: 14,
