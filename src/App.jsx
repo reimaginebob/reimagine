@@ -10254,7 +10254,15 @@ export default function PivotEngine(){
     if(el&&el.scrollIntoView){el.scrollIntoView({block:'start',behavior:'smooth'});return}
     if(tries>1)scrollToStory(id,tries-1)
   })}
-  const scrollToOutput=(key)=>{requestAnimationFrame(()=>{const el=document.getElementById(`section-${key}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
+  // visibleSectionRef (declared below) is set here synchronously on every
+  // click-driven jump -- the click is authoritative the instant it happens,
+  // never waiting on the IntersectionObserver's async callback to settle
+  // once the smooth-scroll animation catches up. Fixes the SITUATION
+  // section-in-view bug (Bob's production test, 2026-09-09): "Where am I?"
+  // typed right after a click could still catch the observer mid-scroll on
+  // whatever section it was passing over, or a stale value left over from
+  // before navigating away and back (the effect below never cleared it).
+  const scrollToOutput=(key)=>{visibleSectionRef.current=key;requestAnimationFrame(()=>{const el=document.getElementById(`section-${key}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
   const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);window.scrollTo(0,0)}}
   const demoPrev=()=>{if(demoIdx>0){const prev=demoIdx-1;setDemoIdx(prev);setStep(DEMO_TOUR[prev].step);window.scrollTo(0,0)}}
   // Telemetry identity: a returning magic-link user is restored straight to
@@ -11243,7 +11251,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // here duplicates that.
   const visibleSectionRef=useRef(null)
   useEffect(()=>{
-    if(step!=='focus'&&step!=='op')return
+    // Cleared on leaving the Focus/Opportunity Playbook -- otherwise a value
+    // left over from this visit (or set by scrollToOutput for an unrelated
+    // screen) survives navigating away and could report a section that has
+    // nothing to do with where the person actually is once they come back.
+    if(step!=='focus'&&step!=='op'){visibleSectionRef.current=null;return}
     const els=document.querySelectorAll('[id^="section-"]')
     if(!els.length)return
     const observer=new IntersectionObserver(entries=>{
