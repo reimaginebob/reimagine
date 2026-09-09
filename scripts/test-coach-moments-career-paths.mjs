@@ -33,8 +33,12 @@ const codes = fs.readFileSync(CODES, 'utf8')
 check(moments.includes("key: 'career-paths-arrival'"), `${MOMENTS}: the career-paths-arrival entry is missing`)
 check(moments.includes("screen: 'laneSelect'"), `${MOMENTS}: career-paths-arrival is not scoped to the laneSelect screen`)
 check(!moments.includes("key: 'career-paths-arrival',\n    family: 'choice'"), `${MOMENTS}: career-paths-arrival should not be tagged as the choice family`)
-check(moments.includes('This is where we look at directions beyond the one you already have in hand'),
-  `${MOMENTS}: career-paths-arrival's message text has drifted from the confirmed copy`)
+// Rewritten 2026-09-09 by the voice review (Output/handoff/2026-09-09_coach-
+// voice-review.md, Section 2) -- confirmed the laneSelect screen's own
+// LANE_CARDS already carry a tagline + blurb per lane, so this copy
+// deliberately does not restate them.
+check(moments.includes('Career Paths shows you three kinds of roles you could go after, each one built from a different part of your background.'),
+  `${MOMENTS}: career-paths-arrival's message text has drifted from the confirmed copy (updated 2026-09-09 by the voice review)`)
 
 // --- The 2 Choice + 9 Delivery generated entries ---
 const DELIVERY_SECTIONS = ['p5', 'p6', 'p9', 'salaryRead', 'p11', 'p_res', 'p8', 'p7', 'income']
@@ -121,9 +125,13 @@ check(coach.includes("if (key.startsWith('delivery-')) return buildFocusDelivery
   `${COACH}: buildMomentTurnText no longer dispatches every delivery- key through the shared template using the client-supplied sectionLabel -- a per-key NAV_LABELS lookup here would miss the independent track`)
 // Delivery's template follows the Brand richness precedent: a genuine
 // strength, at most one invitation-framed suggestion, positive framing
-// throughout -- never a bare correction.
-check(coach.includes('framed as an invitation ("if you\'d like...") never a correction'),
-  `${COACH}: buildFocusDeliveryReactionText no longer frames its suggestion as an invitation -- this is the positive-framing rule the design's Delivery family and Brand richness's own template both depend on`)
+// throughout -- never a bare correction. Wording tightened 2026-09-09 by
+// the voice review (Section 5) to the same "If you want, we could add..."
+// offer shape Brand richness and Choice now use; "never a correction" is
+// achieved structurally by the "if nothing would make it better, say it is
+// good as it is and stop" branch rather than a stated caveat.
+check(coach.includes('as an offer: "If you want, we could add..."') && coach.includes('If nothing would make it better, say it is good as it is and stop'),
+  `${COACH}: buildFocusDeliveryReactionText no longer frames its suggestion as an invitation-shaped offer with a genuine-stop branch -- this is the positive-framing rule the design's Delivery family and Brand richness's own template both depend on`)
 
 // --- No new plumbing needed for effort/isSilentTurn -- both already treat
 // any non-'user' turnKind identically, confirmed during Phase 2's own

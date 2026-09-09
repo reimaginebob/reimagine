@@ -26,9 +26,14 @@ check(moments.includes('dismissible: true'), `${MOMENTS}: ptw-arrival is not mar
 check(moments.includes("promptCode: 'ptw_arrival'"), `${MOMENTS}: ptw-arrival's promptCode is missing or has drifted`)
 check(moments.includes("eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p3)"),
   `${MOMENTS}: ptw-arrival's eligibility (flagged account + a built Personal Brand) has drifted`)
-check(moments.includes("Is anything already moving — an application in, a referral, an interview on the calendar? If so, let\\'s work that first. If not, we\\'ll pick a direction and build from your brand."),
-  `${MOMENTS}: ptw-arrival's message text does not match Bob's confirmed copy (design Section 12)`)
-check(moments.includes("label: 'Something\\'s moving', value: 'in_motion'") && moments.includes("label: 'Starting from scratch', value: 'fresh'"),
+// Rewritten 2026-09-09 by the voice review (Output/handoff/2026-09-09_coach-
+// voice-review.md, Section 1) -- the original wording ("anything already
+// moving," "pick a direction," "build from your brand") was exactly the
+// product-internal shorthand the review flagged. Design doc Section 12
+// decision 4 updated to match.
+check(moments.includes("Are you working on any job opportunities right now, like an application you\\'ve sent, someone who offered to refer you, or an interview coming up? If so, let\\'s start with that one. If not, we\\'ll look at the kinds of roles that fit you and build from there."),
+  `${MOMENTS}: ptw-arrival's message text does not match Bob's confirmed copy (design Section 12, updated 2026-09-09 by the voice review)`)
+check(moments.includes("label: 'Yes, I have one', value: 'in_motion'") && moments.includes("label: 'Not yet', value: 'fresh'"),
   `${MOMENTS}: ptw-arrival's quick replies have drifted from the confirmed labels/values`)
 check(/onTap:\s*\(value,\s*ctx\)\s*=>\s*\{\s*if\s*\(value === 'in_motion'\)\s*\{\s*ctx\.markDone\('twoDoors'\);\s*ctx\.addNewOpportunity\(\)\s*\}\s*else if\s*\(value === 'fresh'\)\s*\{\s*ctx\.advance\('twoDoors', 'laneSelect'\)\s*\}\s*return true\s*\}/.test(moments),
   `${MOMENTS}: ptw-arrival's onTap no longer routes to exactly the same two actions the twoDoors screen's own door buttons perform`)
@@ -80,7 +85,10 @@ check(evalBlock.includes("setCoachMoments(m=>({...m,[entry.key]:{...m[entry.key]
   `${APP}: firing a moment does not record it in coachMoments under its sub-key -- it would fire again on the next render`)
 check(evalBlock.includes('if(entry.generated){') && evalBlock.includes('fireMoment(entry,ctx)'),
   `${APP}: a generated entry does not dispatch through fireMoment`)
-check(evalBlock.includes("entry.dismissible?[...entry.quickReplies,{label:'I\\'m good for now',value:'moment-quiet-session'},{label:'Not on this screen',value:'moment-quiet-screen'}]:entry.quickReplies"),
+// 'Not on this screen' -> 'Stay quiet on this screen' 2026-09-09 by the
+// voice review (Section 8): the old label read as a location description,
+// not an instruction the user is giving Coach.
+check(evalBlock.includes("entry.dismissible?[...entry.quickReplies,{label:'I\\'m good for now',value:'moment-quiet-session'},{label:'Stay quiet on this screen',value:'moment-quiet-screen'}]:entry.quickReplies"),
   `${APP}: a dismissible static entry's message does not append the two dismissal quick replies`)
 check(evalBlock.includes('checkinKey:`moment:${entry.key}`'),
   `${APP}: the fired message's checkinKey is not the generic moment:<key> shape the tap handler expects`)

@@ -31,8 +31,11 @@ check(coach.includes('never ask twice in different words in the same reply'),
 
 // The agency question -- name a focus, or ask for a suggestion -- is the
 // actual point of this brief. Losing it silently reverts to the old
-// Coach-decides-unprompted behavior.
-check(coach.includes('whether there is something specific they would like to work on today'),
+// Coach-decides-unprompted behavior. Wording tightened 2026-09-09 by the
+// voice review (Output/handoff/2026-09-09_coach-voice-review.md, Section 7)
+// -- "would like to" -> "want to", the metaphor ("handing them the wheel")
+// dropped from the instruction around it.
+check(coach.includes('whether there is something specific they want to work on today'),
   `${COACH}: sessionOpenNote lost the agency question (work on something specific, or ask Coach to suggest)`)
 check(coach.includes('follow it completely rather than steering back to your own read'),
   `${COACH}: sessionOpenNote no longer instructs Coach to follow the person's own stated focus rather than overriding it`)

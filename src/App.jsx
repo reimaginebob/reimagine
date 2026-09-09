@@ -9119,7 +9119,7 @@ export default function PivotEngine(){
         const reply=raw&&raw.trim()
         if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
         if(reply){
-          const quickReplies=entry.dismissible?[{label:'I\'m good for now',value:'moment-quiet-session'},{label:'Not on this screen',value:'moment-quiet-screen'}]:[]
+          const quickReplies=entry.dismissible?[{label:'I\'m good for now',value:'moment-quiet-session'},{label:'Stay quiet on this screen',value:'moment-quiet-screen'}]:[]
           setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies}])
           if(entry.significance==='open')setCoachPresence('open')
         }
@@ -9180,7 +9180,7 @@ export default function PivotEngine(){
     if(entry.generated){
       fireMoment(entry,ctx)
     }else{
-      const quickReplies=entry.dismissible?[...entry.quickReplies,{label:'I\'m good for now',value:'moment-quiet-session'},{label:'Not on this screen',value:'moment-quiet-screen'}]:entry.quickReplies
+      const quickReplies=entry.dismissible?[...entry.quickReplies,{label:'I\'m good for now',value:'moment-quiet-session'},{label:'Stay quiet on this screen',value:'moment-quiet-screen'}]:entry.quickReplies
       setChatMessages(m=>[...m,{role:'assistant',content:entry.message,checkinKey:`moment:${entry.key}`,quickReplies}])
       if(entry.significance==='open')setCoachPresence('open')
       if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')

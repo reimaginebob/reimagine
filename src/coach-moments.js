@@ -45,10 +45,10 @@ export const MOMENT_CATALOG = [
     priority: 1,
     promptCode: 'ptw_arrival',
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p3),
-    message: 'Is anything already moving — an application in, a referral, an interview on the calendar? If so, let\'s work that first. If not, we\'ll pick a direction and build from your brand.',
+    message: 'Are you working on any job opportunities right now, like an application you\'ve sent, someone who offered to refer you, or an interview coming up? If so, let\'s start with that one. If not, we\'ll look at the kinds of roles that fit you and build from there.',
     quickReplies: [
-      { label: 'Something\'s moving', value: 'in_motion', followUp: 'Good — let\'s build a playbook around it. Taking you to Add an Opportunity.' },
-      { label: 'Starting from scratch', value: 'fresh', followUp: 'Good — let\'s find your direction. Taking you to Career Paths.' },
+      { label: 'Yes, I have one', value: 'in_motion', followUp: 'Good. Add it on the next screen and I\'ll build your plan for that job. Taking you to Add an Opportunity.' },
+      { label: 'Not yet', value: 'fresh', followUp: 'No problem. Let\'s look at the kinds of roles that fit you. Taking you to Career Paths.' },
     ],
     // ctx here is the same shape the evaluator builds -- only what App.jsx
     // functions this entry needs to call. Returning true tells the generic
@@ -69,7 +69,7 @@ export const MOMENT_CATALOG = [
     priority: 1,
     promptCode: 'career_paths_arrival',
     eligible: (ctx) => !!ctx.hasOnboardingConcierge,
-    message: 'This is where we look at directions beyond the one you already have in hand — three lanes, each reading your background a different way. Pick one and I\'ll show you real role options that fit it.',
+    message: 'Career Paths shows you three kinds of roles you could go after, each one built from a different part of your background. Pick the one you want to look at and I\'ll show you real job titles that fit it. From there we can build a plan for any of them.',
     quickReplies: [],
   },
   {
