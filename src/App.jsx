@@ -9216,14 +9216,31 @@ export default function PivotEngine(){
   // dedupe still means firing once here costs nothing but one message, and
   // this is a starting point meant to be tuned from real fire/dismiss data,
   // not a guess to get exactly right on the first try.
+  //
+  // Reading is not stalling (CLAUDE.md sec. 8 principle's corollary): a
+  // scroll, wheel, or touch gesture resets the clock the same way navigating
+  // or a build starting already does above. Someone reading what is already
+  // on the page is not the same as having walked away from it -- the
+  // nothing-built guard is what keeps Stall meaningful, not the idle timer
+  // firing on a person who is still there, just reading.
   useEffect(()=>{
     if(stallTimerRef.current){clearTimeout(stallTimerRef.current);stallTimerRef.current=null}
     setStallIdleReached(false)
     if(step!=='focus'||!chosen||generatingSection)return
     const nothingBuiltYet=focusOrderFor(isIndependent).every(s=>!done.includes(s.id))
     if(!nothingBuiltYet)return
-    stallTimerRef.current=setTimeout(()=>setStallIdleReached(true),90000)
-    return()=>{if(stallTimerRef.current)clearTimeout(stallTimerRef.current)}
+    const arm=()=>{stallTimerRef.current=setTimeout(()=>setStallIdleReached(true),90000)}
+    arm()
+    const onActivity=()=>{if(stallTimerRef.current)clearTimeout(stallTimerRef.current);arm()}
+    window.addEventListener('scroll',onActivity,{passive:true})
+    window.addEventListener('wheel',onActivity,{passive:true})
+    window.addEventListener('touchmove',onActivity,{passive:true})
+    return()=>{
+      if(stallTimerRef.current)clearTimeout(stallTimerRef.current)
+      window.removeEventListener('scroll',onActivity)
+      window.removeEventListener('wheel',onActivity)
+      window.removeEventListener('touchmove',onActivity)
+    }
   },[step,chosen,selectedLane,isIndependent,generatingSection,done])
   // Coach-as-Concierge Phase 2a/2b: the Moments evaluator. One effect for
   // the whole catalog (src/coach-moments.js), not one per moment -- see
@@ -10254,15 +10271,17 @@ export default function PivotEngine(){
     if(el&&el.scrollIntoView){el.scrollIntoView({block:'start',behavior:'smooth'});return}
     if(tries>1)scrollToStory(id,tries-1)
   })}
-  // visibleSectionRef (declared below) is set here synchronously on every
-  // click-driven jump -- the click is authoritative the instant it happens,
-  // never waiting on the IntersectionObserver's async callback to settle
-  // once the smooth-scroll animation catches up. Fixes the SITUATION
-  // section-in-view bug (Bob's production test, 2026-09-09): "Where am I?"
-  // typed right after a click could still catch the observer mid-scroll on
-  // whatever section it was passing over, or a stale value left over from
-  // before navigating away and back (the effect below never cleared it).
-  const scrollToOutput=(key)=>{visibleSectionRef.current=key;requestAnimationFrame(()=>{const el=document.getElementById(`section-${key}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
+  // activeSectionRef (declared below) is set here synchronously on every
+  // click-driven or app-driven jump -- the app's own action is authoritative
+  // the instant it happens, never waiting on the IntersectionObserver's async
+  // callback to settle once the smooth-scroll animation catches up. This is
+  // the load-bearing half of the principle in CLAUDE.md sec. 8 ("Situation is
+  // a projection of app state"): what the app just chose to show is known
+  // the moment it chooses it, not inferred later from where the DOM settles.
+  // sectionLockRef locks the observer out (see the effect below) until a
+  // genuine user-initiated scroll releases it, so an unrelated section that
+  // happens to be more visible right after the jump can never overwrite this.
+  const scrollToOutput=(key)=>{activeSectionRef.current=key;sectionLockRef.current=true;scrollSettledRef.current=false;requestAnimationFrame(()=>{const el=document.getElementById(`section-${key}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
   const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);window.scrollTo(0,0)}}
   const demoPrev=()=>{if(demoIdx>0){const prev=demoIdx-1;setDemoIdx(prev);setStep(DEMO_TOUR[prev].step);window.scrollTo(0,0)}}
   // Telemetry identity: a returning magic-link user is restored straight to
@@ -11249,27 +11268,115 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // not-built itself from this record's own data (buildPlaybookExpansion
   // already does this once a record is correctly pinned) -- nothing computed
   // here duplicates that.
-  const visibleSectionRef=useRef(null)
+  // activeSectionRef is the ONLY source of truth for "which section is the
+  // person looking at" (CLAUDE.md sec. 8): written by an app action the
+  // instant it happens (scrollToOutput, a build starting and snapping the
+  // view to it), read live at Coach send time via computeSituation. The
+  // IntersectionObserver below is a fallback for free scrolling ONLY, and
+  // sectionLockRef keeps it from overwriting an app-driven jump until an
+  // actual user scroll gesture proves the person has moved on from it.
+  //
+  // Bob's production test on c0b6f0a: clicking a short/unbuilt section (its
+  // heading scrolled to the top, but the NEXT section's heading was also
+  // fully visible) had the observer report the next section instead --
+  // because the old observer watched the <h2> HEADING, a few dozen pixels
+  // tall, not the section's actual container, and picked whichever heading
+  // had the higher intersection ratio with no regard for which one the app
+  // had just scrolled to. Two changes close it: the id that anchors
+  // scrollToOutput and this observer now lives on the section's own
+  // container (moved off the heading in the JSX below), and the observer
+  // itself no longer picks by ratio alone -- it prefers whichever container
+  // actually spans the reading line just below the sticky chrome, falling
+  // back to highest ratio only when nothing spans it.
+  const activeSectionRef=useRef(null)
+  const sectionLockRef=useRef(false)
+  const scrollSettledRef=useRef(true)
   useEffect(()=>{
     // Cleared on leaving the Focus/Opportunity Playbook -- otherwise a value
     // left over from this visit (or set by scrollToOutput for an unrelated
     // screen) survives navigating away and could report a section that has
     // nothing to do with where the person actually is once they come back.
-    if(step!=='focus'&&step!=='op'){visibleSectionRef.current=null;return}
+    if(step!=='focus'&&step!=='op'){activeSectionRef.current=null;sectionLockRef.current=false;scrollSettledRef.current=true;return}
     const els=document.querySelectorAll('[id^="section-"]')
     if(!els.length)return
+    const ratios=new Map()
+    // How much of the viewport's top is occluded by fixed/sticky chrome right
+    // now, measured fresh on every pick rather than assumed -- a hardcoded
+    // number drifts the moment the header changes. Any current or future
+    // sticky top-of-page element (the breadcrumb header today; a future
+    // sticky "Next" bar would join it the same way) carries data-sticky-
+    // region so it counts here without this file needing to know its shape.
+    // MAX, not sum: several such elements pinned at the top occlude down to
+    // whichever of their bottom edges sits lowest, whether they are stacked
+    // or overlapping.
+    const stickyStackHeight=()=>{
+      const regions=document.querySelectorAll('[data-sticky-region]')
+      let h=0
+      regions.forEach(el=>{const b=el.getBoundingClientRect().bottom;if(b>h)h=b})
+      return h
+    }
+    const pick=()=>{
+      const readingLine=stickyStackHeight()
+      let spanning=null
+      for(const el of els){
+        const r=el.getBoundingClientRect()
+        if(r.top<=readingLine&&r.bottom>=readingLine){spanning=el;break}
+      }
+      const target=spanning||[...ratios.entries()].sort((a,b)=>b[1]-a[1]).map(([id])=>document.getElementById(`section-${id}`)).find(Boolean)
+      if(target)activeSectionRef.current=target.id.replace(/^section-/,'')
+    }
     const observer=new IntersectionObserver(entries=>{
-      const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)
-      if(visible.length)visibleSectionRef.current=visible[0].target.id.replace(/^section-/,'')
+      entries.forEach(e=>ratios.set(e.target.id.replace(/^section-/,''),e.isIntersecting?e.intersectionRatio:0))
+      if(sectionLockRef.current)return
+      pick()
     },{threshold:[0.3,0.6]})
     els.forEach(el=>observer.observe(el))
-    return()=>observer.disconnect()
+    // Release the lock only on proof the person is scrolling on their own --
+    // never on a bare timer. wheel/touchmove/keyboard scroll keys are
+    // unambiguous the instant they fire (a programmatic scrollIntoView never
+    // dispatches them). A plain `scroll` event is ambiguous on its own -- the
+    // smooth-scroll scrollToOutput just started produces a stream of them
+    // too -- so those only count once scrollSettledRef says that animation
+    // has actually finished; the native `scrollend` event sets it, with a
+    // debounced-quiet fallback for browsers that do not support scrollend yet.
+    const isEditable=()=>{const a=document.activeElement;return a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable)}
+    const release=()=>{sectionLockRef.current=false}
+    const onWheel=()=>release()
+    const onTouchMove=()=>release()
+    const onKeyDown=e=>{if(isEditable())return;if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key))release()}
+    let scrollSettleTimer=null
+    const onScroll=()=>{
+      if(scrollSettledRef.current&&sectionLockRef.current)release()
+      if(!('onscrollend'in window)){
+        // Debounced-quiet fallback: no further scroll ticks for 150ms reads
+        // as the animation having stopped, the same signal scrollend gives
+        // natively. Recomputed on every tick, never fires on its own without
+        // a scroll event having happened at all.
+        if(scrollSettleTimer)clearTimeout(scrollSettleTimer)
+        scrollSettleTimer=setTimeout(()=>{scrollSettledRef.current=true},150)
+      }
+    }
+    const onScrollEnd=()=>{scrollSettledRef.current=true}
+    window.addEventListener('wheel',onWheel,{passive:true})
+    window.addEventListener('touchmove',onTouchMove,{passive:true})
+    window.addEventListener('keydown',onKeyDown)
+    window.addEventListener('scroll',onScroll,{passive:true})
+    if('onscrollend'in window)window.addEventListener('scrollend',onScrollEnd)
+    return()=>{
+      observer.disconnect()
+      window.removeEventListener('wheel',onWheel)
+      window.removeEventListener('touchmove',onTouchMove)
+      window.removeEventListener('keydown',onKeyDown)
+      window.removeEventListener('scroll',onScroll)
+      if('onscrollend'in window)window.removeEventListener('scrollend',onScrollEnd)
+      if(scrollSettleTimer)clearTimeout(scrollSettleTimer)
+    }
   },[step,outputs])
   const computeSituation=()=>{
     const slotId=currentSavedSlotIdRef.current
     const rec=slotId?savedPlaybooks.find(x=>x&&x.id===slotId):null
     const record=rec?{id:rec.id,source:rec.source,title:rec.title||(rec.source==='door2'?'this opportunity':'this direction'),lane:rec.lane||null,company:rec.company||null}:null
-    return{screen:step,record,section:visibleSectionRef.current||null}
+    return{screen:step,record,section:activeSectionRef.current||null}
   }
   const saveCoachNoteToOpportunity=(text,personName)=>{
     const t=(typeof text==='string'?text:'').trim();if(!t)return ''
@@ -11368,8 +11475,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // before this, an Update could look like nothing happened because the spinner
   // sat above or below the user's scroll position. Inlined (not scrollToOutput)
   // so the effect's only dep is the build-state, not a per-render function.
-  useEffect(()=>{const k=opSectionBuilding;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})},[opSectionBuilding])
-  useEffect(()=>{const k=generatingSection;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})},[generatingSection])
+  //
+  // The app snapping the view here is exactly as authoritative as a click, so
+  // activeSectionRef is set the same way scrollToOutput sets it -- but ONLY
+  // once the target element is confirmed to exist: opSectionBuilding can be
+  // 'p6' while viewing an Opportunity Playbook, where the Bridge Story has no
+  // container of its own (it is the closing beat of the merged "Where You
+  // Fit" card, section-p5) -- nothing to scroll to and nothing to claim.
+  useEffect(()=>{const k=opSectionBuilding;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView){activeSectionRef.current=k;sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView({block:'start',behavior:'smooth'})}})},[opSectionBuilding])
+  useEffect(()=>{const k=generatingSection;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView){activeSectionRef.current=k;sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView({block:'start',behavior:'smooth'})}})},[generatingSection])
   // Record id the in-flight op build belongs to. Scopes the spinner/busy reads so a
   // record switched to mid-build does not show the building record's spinner. Set/cleared
   // alongside opSectionBuilding; the guards and the Build-button disabled stay global.
@@ -12001,7 +12115,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // that window (via _opAutoBuildPending) could sit below the fold while the
   // page is still pinned to the top from the step change. Gated on a queued
   // auto-build so background backfill inference (no pending build) never scrolls.
-  useEffect(()=>{if(!opLaneInferring||!_pendingAutoBuildRef.current)return;requestAnimationFrame(()=>{const el=document.getElementById('section-companyRead');if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})},[opLaneInferring])
+  useEffect(()=>{if(!opLaneInferring||!_pendingAutoBuildRef.current)return;requestAnimationFrame(()=>{const el=document.getElementById('section-companyRead');if(el&&el.scrollIntoView){activeSectionRef.current='companyRead';sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView({block:'start',behavior:'smooth'})}})},[opLaneInferring])
   // Compact foundation summary for the lane inference call: the synthesized
   // Personal Brand when present, plus the raw values / passions / reputation.
   const buildOpProfileSummary=()=>{
@@ -15173,8 +15287,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {/* Breadcrumb header. Replaces the standalone "Back to My Playbooks"
             button from PR #48. Sticky at top so navigation stays visible as
             the user scrolls through sections. Saved pill on the right
-            renders only when the playbook is committed to the dashboard. */}
-        {isReturningExplorer&&<div style={{position:'sticky',top:0,zIndex:50,background:C.bg,padding:'10px 0',marginBottom:14,borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap'}}>
+            renders only when the playbook is committed to the dashboard.
+            data-sticky-region: the section-in-view fallback (below) measures
+            this element's actual on-screen height at runtime rather than
+            assuming a fixed number, so it stays correct if this header's
+            content changes and picks up any future sticky top-of-page
+            element the same way, just by carrying the same attribute. */}
+        {isReturningExplorer&&<div data-sticky-region style={{position:'sticky',top:0,zIndex:50,background:C.bg,padding:'10px 0',marginBottom:14,borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap'}}>
           <div style={{display:'inline-flex',alignItems:'center',gap:8,fontSize:15,minWidth:0,flex:1}}>
             <button onClick={()=>nav('mylib')} style={{background:'transparent',border:'none',padding:0,color:C.gold,fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textDecoration:'none'}}>{NAV_LABELS.mylib}</button>
             <ChevronRight size={14} color={C.gray}/>
@@ -15272,8 +15391,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             const nextSec=curIdx>=0?FOCUS_ORDER.slice(curIdx+1).find(s=>!done.includes(s.id)):null
             const nextNum=nextSec?sectionNums[nextSec.id]:null
             const allBuiltAfter=curIdx>=0&&curIdx<FOCUS_ORDER.length-1&&FOCUS_ORDER.slice(curIdx+1).every(s=>done.includes(s.id))
-            return <section key={id} style={{marginTop:32}}>
-              <h2 id={`section-${id}`} style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',scrollMarginTop:80}}>
+            return <section key={id} id={`section-${id}`} style={{marginTop:32,scrollMarginTop:80}}>
+              <h2 style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                 <span>{num?num+'. ':''}{sec.label}</span>
                 {isDoneSec&&<span data-print="hide" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:15,fontWeight:600,color:C.ok,background:`${C.ok}18`,padding:'3px 10px',borderRadius:999}}><Check size={12} color={C.ok} strokeWidth={2.5}/>Built</span>}
               </h2>
@@ -15359,8 +15478,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   recruiter places people INTO the role; this is the profession
                   itself, and it is where someone goes when no recruiter has a
                   search open. Same direction, same criteria shape. */}
-              <section style={{marginTop:32}}>
-                <h2 id="section-groups" style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8,scrollMarginTop:80}}>{NAV_LABELS.groups}</h2>
+              <section id="section-groups" style={{marginTop:32,scrollMarginTop:80}}>
+                <h2 style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8}}>{NAV_LABELS.groups}</h2>
                 <GroupsCard
                   data={pathGroupsFor('door1')}
                   busy={pathGroupsBusy}
@@ -15370,8 +15489,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   onEditCriteria={(criteria)=>buildPathGroups({criteriaOverride:criteria})}
                 />
               </section>
-              <section style={{marginTop:32}}>
-                <h2 id="section-recruiters" style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8,scrollMarginTop:80}}>Recruiters for This Path</h2>
+              <section id="section-recruiters" style={{marginTop:32,scrollMarginTop:80}}>
+                <h2 style={{fontFamily:'Georgia,serif',fontSize:25,fontWeight:700,color:'#1A2540',margin:'0 0 12px',borderBottom:`2px solid ${C.gold}`,paddingBottom:8}}>Recruiters for This Path</h2>
                 <RecruitersCard
                   data={(savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')||{}).recruiters}
                   busy={recruitersBuilding}
@@ -15600,8 +15719,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={S.row}><Btn onClick={()=>nav(hubStep)}>{isIndependent?'Write your one line':'Go to Career Paths'} <ChevronRight size={14}/></Btn></div>
       </div>
       const isGen=generatingSection==='income'
-      return <div>
-        <h1 id="section-income" style={{...S.title,scrollMarginTop:80}}>{isIndependent?'Price, Package & Launch':'Income Now'}</h1>
+      return <div id="section-income" style={{scrollMarginTop:80}}>
+        <h1 style={S.title}>{isIndependent?'Price, Package & Launch':'Income Now'}</h1>
         <p style={S.sub}>{isIndependent?'What you sell, what it costs, and what to do next.':'A bonus section, available anytime you have a direction picked.'}</p>
         {!isIndependent&&<div style={{...S.note,background:'#7AB87A12',border:'1px solid #7AB87A30',color:'#2D6A2D'}}>A job search takes time. Income flowing while you search means you choose from strength, not pressure.</div>}
         {incomeTargetFields()}
