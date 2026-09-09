@@ -6,7 +6,7 @@
 // there. That is the exact failure NAV_LABELS was created to stop, so it gets a
 // gate rather than a comment.
 import fs from 'fs'
-import { OP_COUNTED_SECTIONS, focusSections, focusExtraSections, describeSections, sectionState, recordIsIndependent } from '../src/playbook-sections.js'
+import { OP_COUNTED_SECTIONS, focusSections, focusExtraSections, describeSections, sectionState, recordIsIndependent, focusOrderSections, focusSectionPosition, opSectionPosition } from '../src/playbook-sections.js'
 
 const app = fs.readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf-8')
 let pass = 0, fail = 0
@@ -148,6 +148,34 @@ t('a record with no standard-only section follows the session track', recordIsIn
 t('and uses the independent label', describeSections(practiceRec, { independent: true }).built.includes('Your One-Sheet'))
 t('a standard session is never reinterpreted as independent', recordIsIndependent(practiceRec, false) === false)
 t('a standard session keeps standard labels', describeSections(practiceRec, { independent: false }).built.includes('Resume Refresh'))
+
+// --- the Coach's SECTION IN VIEW note (api/coach.js, 2026-09-09 fix) needs
+// the on-screen NUMBERED sequence, not the narrower counted set above --
+// FOCUS_ORDER_KEYS/FOCUS_ORDER_KEYS_INDEPENDENT mirror focusOrderFor in
+// App.jsx by hand (that function is not importable across the api/src
+// boundary), so this is the same drift guard as the OP_COUNTED_KEYS check
+// above, for the list this fix introduced.
+const orderM = app.match(/const focusOrderFor = \(independent\) => independent \? \[([\s\S]*?)\] : \[([\s\S]*?)\]\n/)
+t('focusOrderFor found in App.jsx', !!orderM)
+if (orderM) {
+  const idsFrom = (block) => [...block.matchAll(/\{id:'([^']+)'/g)].map(m => m[1])
+  const appIndependentOrder = idsFrom(orderM[1])
+  const appStandardOrder = idsFrom(orderM[2])
+  t('focusOrderSections(true) ids match focusOrderFor\'s independent order exactly', JSON.stringify(focusOrderSections(true).map(s => s.key)) === JSON.stringify(appIndependentOrder))
+  t('focusOrderSections(false) ids match focusOrderFor\'s standard order exactly', JSON.stringify(focusOrderSections(false).map(s => s.key)) === JSON.stringify(appStandardOrder))
+  t('the standard Focus Playbook order has exactly eleven sections (Bob\'s "click each of the eleven sections")', appStandardOrder.length === 11)
+}
+
+// --- focusSectionPosition / opSectionPosition: pure ordinal-lookup logic ---
+t('p5 (The Role) is section 1 of 11 on the standard Focus Playbook', JSON.stringify(focusSectionPosition('p5', false)) === JSON.stringify({ label: 'The Role', index: 1, total: 11 }))
+t('p6 (Your Bridge Story) is section 2 of 11', JSON.stringify(focusSectionPosition('p6', false)) === JSON.stringify({ label: 'Your Bridge Story', index: 2, total: 11 }))
+t('income is the last of 11 on the standard track', focusSectionPosition('income', false).index === 11)
+t('on the independent track p6 is Your Pitch, section 1 of 6', JSON.stringify(focusSectionPosition('p6', true)) === JSON.stringify({ label: 'Your Pitch', index: 1, total: 6 }))
+t('an id not in the Focus Playbook sequence resolves to null, not a guess', focusSectionPosition('p_cover', false) === null)
+t('a totally unknown id resolves to null', focusSectionPosition('not-a-real-section', false) === null)
+t('opSectionPosition resolves an Opportunity Playbook section by its own order', JSON.stringify(opSectionPosition('p_cover')) === JSON.stringify({ label: 'Cover Letter', index: 5, total: 6 }))
+t('an offer-only section is not in the numbered Opportunity Playbook sequence', opSectionPosition('salaryRead') === null)
+t('a Focus-only id is not in the Opportunity Playbook sequence', opSectionPosition('p9') === null)
 
 console.log(`test-playbook-sections: ${fail ? 'FAILED' : 'OK'} (${pass} cases passed${fail ? `, ${fail} FAILED` : ''})`)
 process.exit(fail ? 1 : 0)

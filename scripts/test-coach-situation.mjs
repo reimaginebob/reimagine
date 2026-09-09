@@ -70,17 +70,32 @@ check(app.includes("const record=rec?{id:rec.id,source:rec.source,title:rec.titl
   `${APP}: computeSituation's record mapping has drifted from the door-agnostic shape`)
 check(app.includes('const rec=slotId?savedPlaybooks.find(x=>x&&x.id===slotId):null'),
   `${APP}: computeSituation's lookup must NOT filter on source (unlike coachSaveTarget's find) -- that would silently reintroduce the Career Paths pinning gap this fix closes. (source==='door2' appearing elsewhere in the function, in the title-fallback label, is expected and fine.)`)
-check(app.includes("situation={computeSituation()}"),
-  `${APP}: at least one <Chat> mount is missing the situation prop`)
-const situationMountCount = (app.match(/situation=\{computeSituation\(\)\}/g) || []).length
-check(situationMountCount === 3, `${APP}: expected all 3 <Chat> mounts to carry situation={computeSituation()}, found ${situationMountCount}`)
+// Fix (2026-09-09, Bob's production report on 0cf129c): a <Chat
+// situation={computeSituation()}> mount evaluates computeSituation at App's
+// OWN render time, producing a plain snapshot object App only refreshes on
+// its next render -- but visibleSectionRef (what section.section reads) is a
+// ref, updated by clicks/scrolling with no re-render at all, so the prop
+// could carry the section from one exchange earlier. Passing the FUNCTION
+// itself (getSituation={computeSituation}) and having Chat call it at the
+// instant its own fetch body is built reads the ref live, every time.
+check(!app.includes("situation={computeSituation()}"),
+  `${APP}: a <Chat> mount still evaluates computeSituation() at render time -- this is the exact staleness bug the 2026-09-09 fix closed`)
+check(app.includes("getSituation={computeSituation}"),
+  `${APP}: at least one <Chat> mount is missing the getSituation prop`)
+const situationMountCount = (app.match(/getSituation=\{computeSituation\}/g) || []).length
+check(situationMountCount === 3, `${APP}: expected all 3 <Chat> mounts to carry getSituation={computeSituation}, found ${situationMountCount}`)
 check(app.includes("new IntersectionObserver(entries=>{"), `${APP}: the visibleSection IntersectionObserver tracker is missing`)
 
-// presence/setPresence (Phase 1b) now sit between situation and onSaveNote
-// in the destructure -- checking situation's own presence, not exact
-// adjacency to a neighbor that had no reason to stay adjacent.
-check(chat.includes('coachSaveTarget = null, situation = null,'), `${CHAT}: situation prop is missing from Chat's destructure`)
-check(chat.includes('          situation,'), `${CHAT}: situation is missing from the /api/coach request body`)
+// presence/setPresence (Phase 1b) now sit between getSituation and
+// onSaveNote in the destructure -- checking getSituation's own presence, not
+// exact adjacency to a neighbor that had no reason to stay adjacent.
+check(chat.includes('coachSaveTarget = null, getSituation = null,'), `${CHAT}: getSituation prop is missing from Chat's destructure`)
+check(chat.includes("situation: typeof getSituation === 'function' ? getSituation() : null,"),
+  `${CHAT}: send()'s fetch body must call getSituation() inline, at send time, not read a stored/stale value`)
+// The old prop shorthand is fully gone, not left alongside the new call --
+// a stray bare `situation,` would silently resurrect the staleness bug by
+// sending the (now-undefined) prop instead of the getter's live read.
+check(!chat.includes('\n          situation,\n'), `${CHAT}: the old bare "situation," request-body shorthand survives somewhere -- it must be fully replaced, not left alongside the fix`)
 
 check(coach.includes("hasCoachSituation } from './_lib/feature-flags.js'"), `${COACH}: hasCoachSituation import is missing`)
 check(coach.includes('const situationRecordId = hasCoachSituation({ feature_flags: featureFlags, email: userEmail }) && situation && situation.record && typeof situation.record.id === \'string\''),
@@ -91,8 +106,22 @@ check(coach.includes("const pinnedId = situationRecordId || (typeof focusRecordI
   `${COACH}: pinnedId no longer tries situationRecordId first -- this is the actual fix, not a detail`)
 check(coach.includes('situation: req.body && req.body.situation && typeof req.body.situation === \'object\' ? req.body.situation : null,'),
   `${COACH}: the /api/coach handler is not passing situation from the request body into buildCoachRequest`)
-check(coach.includes('They are currently looking at the "${situationSection}" section.'),
-  `${COACH}: the section-in-view context line is missing`)
+// Fix (2026-09-09): the section-in-view note used to render the raw section
+// id verbatim ("p6") -- meaningless to the model and, per Bob's production
+// report, exactly the kind of internal id that leaked straight into a live
+// reply. It now resolves the user-facing label and the section's position in
+// the numbered sequence the person actually scrolls through, and phrases it
+// as authoritative over anything said earlier in the conversation.
+check(!coach.includes('They are currently looking at the "${situationSection}" section.'),
+  `${COACH}: the section-in-view note still renders the raw section id -- this is the exact leak Bob's production report caught`)
+check(coach.includes("focusSectionPosition, opSectionPosition } from '../src/playbook-sections.js'"),
+  `${COACH}: focusSectionPosition/opSectionPosition are not imported from playbook-sections.js`)
+check(coach.includes("currentStep === 'op' ? opSectionPosition(situationSection) : currentStep === 'focus' ? focusSectionPosition(situationSection, isIndependentTrack) : null"),
+  `${COACH}: situationSectionPos must resolve via the Opportunity or Focus Playbook's own ordered section list depending on which screen the person is on, not guess`)
+check(coach.includes('SECTION IN VIEW: ${situationSectionPos.label} (section ${situationSectionPos.index} of ${situationSectionPos.total} in this ${currentStep'),
+  `${COACH}: the section-in-view note is not rendering the resolved label with its ordinal position`)
+check(coach.includes('overrides anything earlier in the conversation about which section they were looking at'),
+  `${COACH}: the section-in-view note must phrase itself as authoritative over a stale earlier mention`)
 
 check(flags.includes("export const COACH_SITUATION_FLAG = 'coach_situation'"), `${FLAGS}: COACH_SITUATION_FLAG is missing`)
 check(flags.includes('export function hasCoachSituation(user) {'), `${FLAGS}: hasCoachSituation is missing`)
