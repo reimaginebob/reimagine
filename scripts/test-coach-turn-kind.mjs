@@ -38,8 +38,17 @@ check(computeTurnKind(null, { orientationCheckRequested: true, postCaptureUpdate
   'orientationCheckRequested should win over postCaptureUpdateRequested')
 check(computeTurnKind(undefined, { postCaptureUpdateRequested: true }) === 'post_capture',
   'postCaptureUpdateRequested with no typed message should be post_capture')
-check(computeTurnKind('', { postCaptureUpdateRequested: true, sessionOpenRequested: true }) === 'post_capture',
-  'postCaptureUpdateRequested should win over sessionOpenRequested')
+check(computeTurnKind('', { postCaptureUpdateRequested: true, momentRequested: true, sessionOpenRequested: true }) === 'post_capture',
+  'postCaptureUpdateRequested should win over momentRequested and sessionOpenRequested')
+// momentRequested (Phase 2b): a Choice/Delivery reaction on Career Paths,
+// same precedence slot as the other silent-turn shapes -- after
+// orientation-check/post-capture, before session-open.
+check(computeTurnKind('', { momentRequested: true }) === 'moment',
+  'momentRequested with no typed message should be moment')
+check(computeTurnKind(null, { orientationCheckRequested: true, momentRequested: true }) === 'orientation_check',
+  'orientationCheckRequested should win over momentRequested')
+check(computeTurnKind('', { momentRequested: true, sessionOpenRequested: true }) === 'moment',
+  'momentRequested should win over sessionOpenRequested')
 check(computeTurnKind('', { sessionOpenRequested: true }) === 'session_open',
   'sessionOpenRequested alone with no typed message should be session_open')
 
@@ -56,11 +65,12 @@ check(computeTurnKind('', {}) === 'user',
 
 // The handler wires turnKind (and the account's feature_flags snapshot) into
 // the same INSERT that writes message/reply, and computeTurnKind is called
-// with the same three flags the message ternary itself reads.
+// with the same flags the message ternary itself reads (momentRequested
+// added Phase 2b, alongside the original three).
 const COACH = 'api/coach.js'
 const coach = fs.readFileSync(COACH, 'utf8')
-check(coach.includes('const turnKind = computeTurnKind(rawMessage, { orientationCheckRequested, postCaptureUpdateRequested, sessionOpenRequested })'),
-  `${COACH}: turnKind is no longer computed via computeTurnKind with the same three flags`)
+check(coach.includes('const turnKind = computeTurnKind(rawMessage, { orientationCheckRequested, postCaptureUpdateRequested, momentRequested, sessionOpenRequested })'),
+  `${COACH}: turnKind is no longer computed via computeTurnKind with the same flags the message ternary reads`)
 check(coach.includes('turn_kind, feature_flags_snapshot') && coach.includes('${turnKind}, ${JSON.stringify(featureFlags)}::jsonb'),
   `${COACH}: the chat_messages INSERT no longer carries turn_kind and a feature_flags snapshot`)
 

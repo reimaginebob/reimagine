@@ -7414,6 +7414,7 @@ export default function PivotEngine(){
   const seenOrientationRouteRef=useRef(false) // legacy dedupe read on hydration only; see the Moments evaluator's ptw-arrival guard below. Retired, not migrated: nothing writes this after hydration.
   const[coachMoments,setCoachMoments]=useState({})
   const momentFiredRef=useRef(new Set())
+  const momentFetchingRef=useRef({}) // Phase 2b: in-flight guard for generated (model-reaction) moments, keyed the same way as coachMoments' sub-keys -- see fireMoment below.
   const[quietUntilReload,setQuietUntilReload]=useState(false)
   const[quietScreens,setQuietScreens]=useState({})
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04):
@@ -9097,16 +9098,58 @@ export default function PivotEngine(){
     setChatMessages(m=>[...m,{role:'assistant',content:'Before you dive in, does your Personal Brand capture who you are and what you bring?',checkinKey:'personal-brand',quickReplies:[{label:'Yes',value:'yes',followUp:yesFollow},{label:'Mostly',value:'mostly',followUp:lukewarmFollow},{label:'Not quite',value:'not_quite',followUp:lukewarmFollow}]}])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,hasOnboardingConcierge,seenPbCheckin,outputs,isDemo,isTest])
-  // Coach-as-Concierge Phase 2a: the Moments evaluator. One effect for the
-  // whole catalog (src/coach-moments.js), not one per moment -- see that
-  // file's header comment. Each entry owns its own eligibility and copy;
-  // this effect only owns dedupe (coachMoments), the two dismissal states,
-  // and firing. ptw-arrival is the only entry today.
+  // Coach-as-Concierge Phase 2b: fires a model-generated moment. Modeled
+  // directly on fireOrientationCheck below -- an App.jsx effect POSTing a
+  // silent turn and pushing the plain-text reply into chat -- rather than a
+  // new mechanism. Unlike a static catalog entry (pushed synchronously by
+  // the evaluator), a generated entry's chat message, presence bump, and
+  // engagement log all happen here, once the reply actually arrives.
+  const fireMoment=(entry,ctx)=>{
+    const subKey=entry.dedupeKey?entry.dedupeKey(ctx):'_'
+    const trackKey=`${entry.key}:${subKey}`
+    if(momentFetchingRef.current[trackKey])return
+    momentFetchingRef.current={...momentFetchingRef.current,[trackKey]:true}
+    ;(async()=>{
+      setCoachThinkingCount(c=>c+1)
+      try{
+        if(saveRef.current)await saveRef.current()
+        const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({moment:{key:entry.key,...entry.momentContext(ctx)},history:chatMessages.slice(-10),currentStep:step,situation:computeSituation(),surface:'sidebar'})})
+        if(!res.ok)return
+        const raw=await res.text()
+        const reply=raw&&raw.trim()
+        if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
+        if(reply){
+          const quickReplies=entry.dismissible?[{label:'I\'m good for now',value:'moment-quiet-session'},{label:'Not on this screen',value:'moment-quiet-screen'}]:[]
+          setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies}])
+          if(entry.significance==='open')setCoachPresence('open')
+        }
+      }catch{
+        // Release the in-flight guard on failure so a transient error does
+        // not permanently block this moment for the rest of the session --
+        // same reasoning as fireOrientationCheck's own catch block. The
+        // dedupe write in the evaluator already happened optimistically, so
+        // this moment will not be retried automatically; a future rebuild
+        // (Delivery) or a fresh identity (Choice) still fires normally.
+        const{[trackKey]:_dropped,...rest}=momentFetchingRef.current
+        momentFetchingRef.current=rest
+      }finally{
+        setCoachThinkingCount(c=>c-1)
+      }
+    })()
+  }
+  // Coach-as-Concierge Phase 2a/2b: the Moments evaluator. One effect for
+  // the whole catalog (src/coach-moments.js), not one per moment -- see
+  // that file's header comment. Each entry owns its own eligibility and
+  // copy; this effect owns dedupe (coachMoments), priority arbitration
+  // across simultaneously-eligible entries, the two dismissal states, and
+  // firing (directly for a static entry, via fireMoment for a generated
+  // one).
   useEffect(()=>{
     if(isDemo||isTest)return
     if(!signedInUser)return
     if(quietUntilReload||quietScreens[step])return
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,markDone,addNewOpportunity,advance}
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,laneLabelFor,markDone,addNewOpportunity,advance}
+    const candidates=[]
     for(const entry of MOMENT_CATALOG){
       if(entry.screen!==step)continue
       // Legacy guard, ptw-arrival only: an account that already answered
@@ -9114,18 +9157,36 @@ export default function PivotEngine(){
       // must not see it fire again just because coachMoments starts empty
       // for them.
       if(entry.key==='ptw-arrival'&&seenOrientationRouteRef.current)continue
-      if(coachMoments[entry.key]||momentFiredRef.current.has(entry.key))continue
+      const subKey=entry.dedupeKey?entry.dedupeKey(ctx):'_'
+      const dedupeValue=entry.dedupeValue?entry.dedupeValue(ctx):'fired'
+      // A Phase 2a record (coachMoments[key] === {firedAt}) predates
+      // per-sub-key dedupe entirely -- read as "fired, sub-key '_'" so an
+      // account that already saw ptw-arrival under the old flat shape is
+      // not treated as never-fired now that every OTHER entry uses the
+      // nested shape.
+      const legacyFired=subKey==='_'&&coachMoments[entry.key]&&coachMoments[entry.key].firedAt&&!coachMoments[entry.key]['_']
+      const stored=coachMoments[entry.key]&&coachMoments[entry.key][subKey]
+      if(legacyFired||(stored&&stored.value===dedupeValue))continue
+      if(momentFiredRef.current.has(`${entry.key}:${subKey}`))continue
       if(!entry.eligible(ctx))continue
-      momentFiredRef.current.add(entry.key)
-      setCoachMoments(m=>({...m,[entry.key]:{firedAt:new Date().toISOString()}}))
+      candidates.push({entry,subKey,dedupeValue})
+    }
+    candidates.sort((a,b)=>(b.entry.priority||0)-(a.entry.priority||0))
+    const picked=candidates[0]
+    if(!picked)return
+    const{entry,subKey,dedupeValue}=picked
+    momentFiredRef.current.add(`${entry.key}:${subKey}`)
+    setCoachMoments(m=>({...m,[entry.key]:{...m[entry.key],[subKey]:{value:dedupeValue,firedAt:new Date().toISOString()}}}))
+    if(entry.generated){
+      fireMoment(entry,ctx)
+    }else{
       const quickReplies=entry.dismissible?[...entry.quickReplies,{label:'I\'m good for now',value:'moment-quiet-session'},{label:'Not on this screen',value:'moment-quiet-screen'}]:entry.quickReplies
       setChatMessages(m=>[...m,{role:'assistant',content:entry.message,checkinKey:`moment:${entry.key}`,quickReplies}])
       if(entry.significance==='open')setCoachPresence('open')
       if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
-      setPbCheckinOpenReq(x=>x+1)
-      break
     }
-  },[step,signedInUser,hasOnboardingConcierge,outputs,coachMoments,quietUntilReload,quietScreens,isDemo,isTest])
+    setPbCheckinOpenReq(x=>x+1)
+  },[step,signedInUser,hasOnboardingConcierge,outputs,selectedLane,chosen,coachMoments,quietUntilReload,quietScreens,isDemo,isTest])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04,
   // extended 2026-09-04 to cover Resume/LinkedIn/Assessment): the moment
   // someone leaves a covered step with new content, Coach reads it and

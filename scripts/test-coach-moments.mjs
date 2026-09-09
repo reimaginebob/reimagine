@@ -53,25 +53,53 @@ check(app.includes('const[quietScreens,setQuietScreens]=useState({})'), `${APP}:
 // --- The evaluator effect ---
 const evalIdx = app.indexOf('for(const entry of MOMENT_CATALOG){')
 check(evalIdx !== -1, `${APP}: the Moments evaluator loop is missing`)
-const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 400, evalIdx + 1300) : ''
+// Window widened Phase 2b (2026-09-08): the candidates-array + priority-sort
+// restructure (needed once more than one entry can be eligible at once)
+// pushed the static-branch checks further from evalIdx than 2a's straight-
+// line loop did.
+const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 400, evalIdx + 2300) : ''
 check(evalBlock.includes('if(quietUntilReload||quietScreens[step])return'),
   `${APP}: the evaluator does not respect the two quiet states before considering any entry`)
 check(evalBlock.includes("if(entry.key==='ptw-arrival'&&seenOrientationRouteRef.current)continue"),
   `${APP}: the evaluator is missing the legacy seenOrientationRouteRef guard -- an account that already answered this under the old mechanism would see it fire again`)
-check(evalBlock.includes('if(coachMoments[entry.key]||momentFiredRef.current.has(entry.key))continue'),
-  `${APP}: the evaluator's dedupe check (persisted store + same-session fired guard) is missing or has drifted`)
+// Dedupe generalized Phase 2b: a sub-key + comparable value per entry
+// (defaulting to '_' / 'fired', i.e. ptw-arrival's original once-ever
+// shape) instead of one boolean slot per catalog row, plus a legacy read
+// for a Phase 2a-shaped {firedAt} record.
+check(evalBlock.includes("const legacyFired=subKey==='_'&&coachMoments[entry.key]&&coachMoments[entry.key].firedAt&&!coachMoments[entry.key]['_']"),
+  `${APP}: the evaluator is missing the Phase 2a legacy-shape dedupe read -- an account with a flat {firedAt} record (from before Phase 2b) would be treated as never-fired`)
+check(evalBlock.includes('const stored=coachMoments[entry.key]&&coachMoments[entry.key][subKey]') && evalBlock.includes('if(legacyFired||(stored&&stored.value===dedupeValue))continue'),
+  `${APP}: the evaluator's generalized dedupe check (sub-key + comparable value, plus the legacy-shape read) is missing or has drifted`)
+check(evalBlock.includes('if(momentFiredRef.current.has(`${entry.key}:${subKey}`))continue'),
+  `${APP}: the evaluator's same-session fired guard is missing or no longer keyed by entry+sub-key`)
 check(evalBlock.includes('if(!entry.eligible(ctx))continue'),
   `${APP}: the evaluator does not defer to each entry's own eligibility function`)
-check(evalBlock.includes("setCoachMoments(m=>({...m,[entry.key]:{firedAt:new Date().toISOString()}}))"),
-  `${APP}: firing a moment does not record it in coachMoments -- it would fire again on the next render`)
+check(evalBlock.includes('candidates.sort((a,b)=>(b.entry.priority||0)-(a.entry.priority||0))'),
+  `${APP}: the evaluator does not arbitrate multiple simultaneously-eligible entries by priority`)
+check(evalBlock.includes("setCoachMoments(m=>({...m,[entry.key]:{...m[entry.key],[subKey]:{value:dedupeValue,firedAt:new Date().toISOString()}}}))"),
+  `${APP}: firing a moment does not record it in coachMoments under its sub-key -- it would fire again on the next render`)
+check(evalBlock.includes('if(entry.generated){') && evalBlock.includes('fireMoment(entry,ctx)'),
+  `${APP}: a generated entry does not dispatch through fireMoment`)
 check(evalBlock.includes("entry.dismissible?[...entry.quickReplies,{label:'I\\'m good for now',value:'moment-quiet-session'},{label:'Not on this screen',value:'moment-quiet-screen'}]:entry.quickReplies"),
-  `${APP}: a dismissible entry's message does not append the two dismissal quick replies`)
+  `${APP}: a dismissible static entry's message does not append the two dismissal quick replies`)
 check(evalBlock.includes('checkinKey:`moment:${entry.key}`'),
   `${APP}: the fired message's checkinKey is not the generic moment:<key> shape the tap handler expects`)
 check(evalBlock.includes("if(entry.significance==='open')setCoachPresence('open')"),
-  `${APP}: a significant moment does not open the panel from minimized (Phase 1b's coachPresence)`)
+  `${APP}: a significant static entry does not open the panel from minimized (Phase 1b's coachPresence)`)
 check(evalBlock.includes("if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')"),
-  `${APP}: the evaluator does not log a 'shown' engagement event when a moment fires, unlike every other one-shot arrival prompt`)
+  `${APP}: the evaluator does not log a 'shown' engagement event when a static moment fires, unlike every other one-shot arrival prompt`)
+
+// --- fireMoment (Phase 2b): the model-generated-reaction sibling of
+// fireOrientationCheck, same POST-and-push shape. ---
+const fireMomentIdx = app.indexOf('const fireMoment=(entry,ctx)=>{')
+check(fireMomentIdx !== -1, `${APP}: fireMoment is missing`)
+const fireMomentBlock = fireMomentIdx !== -1 ? app.slice(fireMomentIdx, fireMomentIdx + 1600) : ''
+check(app.includes('const momentFetchingRef=useRef({})'), `${APP}: momentFetchingRef state is missing`)
+check(fireMomentBlock.includes('if(momentFetchingRef.current[trackKey])return'), `${APP}: fireMoment is missing its in-flight guard`)
+check(fireMomentBlock.includes("body:JSON.stringify({moment:{key:entry.key,...entry.momentContext(ctx)},history:chatMessages.slice(-10),currentStep:step,situation:computeSituation(),surface:'sidebar'})"),
+  `${APP}: fireMoment's /api/coach request body has drifted -- moment.key + momentContext, history, currentStep, situation, and surface are all expected`)
+check(fireMomentBlock.includes("setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies}])"),
+  `${APP}: fireMoment does not push the model's reply into chat with the generic moment:<key> checkinKey`)
 
 // --- The generic tap handler ---
 const tapIdx = app.indexOf("checkinKey.startsWith('moment:')")

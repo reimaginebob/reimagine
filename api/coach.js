@@ -502,10 +502,11 @@ export const COACH_TURN_CAP_HR = 60
 // question. My Coach review, finding #3.1. Mirrors the exact precedence the
 // `message` value itself is built with: a real typed message always wins,
 // even on a turn that also carries one of the other three shapes.
-export function computeTurnKind(rawMessage, { orientationCheckRequested, postCaptureUpdateRequested, sessionOpenRequested }) {
+export function computeTurnKind(rawMessage, { orientationCheckRequested, postCaptureUpdateRequested, momentRequested, sessionOpenRequested }) {
   if (typeof rawMessage === 'string' && rawMessage.trim()) return 'user'
   if (orientationCheckRequested) return 'orientation_check'
   if (postCaptureUpdateRequested) return 'post_capture'
+  if (momentRequested) return 'moment'
   if (sessionOpenRequested) return 'session_open'
   return 'user'
 }
@@ -635,6 +636,43 @@ function buildOrientationCheckTurnText(step, text) {
   if (step === 'brand-richness') return buildBrandRichnessCheckText(text)
   const label = ORIENTATION_CHECK_LABELS[step] || 'this'
   return buildReflectiveDepthCheckText(label, text)
+}
+// Coach-as-Concierge Phase 2b: the Moments catalog's Choice and Delivery
+// entries on Career Paths (src/coach-moments.js) -- the first entries whose
+// reaction needs the model rather than static copy. Same dispatch shape as
+// buildOrientationCheckTurnText just above: a bounded key names which
+// entry fired, each key maps to one prompt template. No new context
+// plumbing needed -- Situation (Phase 1a) already pins the in-view record
+// and section on every turn, which feeds buildPlaybookExpansion's
+// built/not-built rendering and the "[The user is currently looking at...]"
+// context line below, so these templates only need to say what just
+// happened, not re-embed what's already on the table.
+const MOMENT_KEYS = ['choice-lane', 'choice-role', 'delivery-p5', 'delivery-p6']
+// Per-key required-field check, same reasoning as orientationCheckShapeOk's
+// text requirement above: each reaction template needs specific fields
+// present as non-empty strings before it is safe to build (an absent
+// `text` would otherwise reach clip() as undefined and throw).
+function momentPayloadOk(key, m) {
+  if (key === 'choice-lane') return typeof m.laneLabel === 'string' && !!m.laneLabel.trim()
+  if (key === 'choice-role') return typeof m.roleTitle === 'string' && !!m.roleTitle.trim() && typeof m.laneLabel === 'string' && !!m.laneLabel.trim()
+  if (key === 'delivery-p5' || key === 'delivery-p6') return typeof m.text === 'string' && !!m.text.trim()
+  return false
+}
+function buildChoiceLaneReactionText(laneLabel) {
+  return `[They just chose ${laneLabel} as a direction to explore on Career Paths. Reflect the choice against their Personal Brand in one line -- what picking this lane says about where they're pointed, using something real from their brand rather than restating the lane's own description. Then name in one sentence what building the first role option's Where You Fit will tell them. Two sentences total, no more. Open with this directly, in your own voice. Do not mention that this is an automated check.]`
+}
+function buildChoiceRoleReactionText(roleTitle, laneLabel) {
+  return `[They just picked "${roleTitle}" (${laneLabel}) as the specific role to build a playbook around. Reflect the choice against their Personal Brand in one line -- something real that connects this specific role to who they are, not a restatement of the title. Then name in one sentence what building Where You Fit will tell them about this specific role. Two sentences total, no more. Open with this directly, in your own voice. Do not mention that this is an automated check.]`
+}
+function buildFocusDeliveryReactionText(sectionLabel, text) {
+  return `[They just built ${sectionLabel} for this role. Here is what was built:\n\n${clip(text)}\n\nGive a short, genuine read: one specific strength actually in what they built, and at most one thing that would make it richer, framed as an invitation ("if you'd like...") never a correction. If it is already strong on both counts, say so plainly and specifically and stop there -- do not manufacture a suggestion where none is warranted. Keep it to a few sentences, never a list. Open with this directly, in your own voice -- this is the first thing they see after it was built. Do not mention that this is an automated check.]`
+}
+function buildMomentTurnText(key, ctx) {
+  if (key === 'choice-lane') return buildChoiceLaneReactionText(ctx.laneLabel)
+  if (key === 'choice-role') return buildChoiceRoleReactionText(ctx.roleTitle, ctx.laneLabel)
+  if (key === 'delivery-p5') return buildFocusDeliveryReactionText(NAV_LABELS.p5, ctx.text)
+  if (key === 'delivery-p6') return buildFocusDeliveryReactionText(NAV_LABELS.p6, ctx.text)
+  return ''
 }
 // Post-capture coaching follow-up (2026-09-06). OPPORTUNITY_UPDATE_CAPTURE_NOTE's
 // own reply is deliberately short and purely tactical now -- an acknowledgment,
@@ -1848,7 +1886,7 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Not signed in' })
   if (user.suspended_at) return res.status(403).json({ error: 'account_suspended' })
 
-  const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck, postCaptureUpdate, returnSection } = req.body || {}
+  const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck, postCaptureUpdate, returnSection, moment } = req.body || {}
   // orientationCheck: the client may open a turn with no typed message,
   // marked with {step, text} instead -- the reaction the coach speaks on
   // its own right after someone leaves a covered orientation step (see
@@ -1868,12 +1906,23 @@ export default async function handler(req, res) {
   const postCaptureUpdateShapeOk = !!(postCaptureUpdate && typeof postCaptureUpdate === 'object'
     && (postCaptureUpdate.stage || postCaptureUpdate.move || postCaptureUpdate.meeting
       || (Array.isArray(postCaptureUpdate.people) && postCaptureUpdate.people.length)))
+  // moment: same silent-turn shape again, fired by the client's Moments
+  // evaluator (src/coach-moments.js, src/App.jsx's fireMoment) for a
+  // catalog entry whose reaction needs the model rather than static copy --
+  // Choice and Delivery on Career Paths, as of Phase 2b. `key` names which
+  // catalog entry fired; MOMENT_KEYS is the bounded set this endpoint
+  // recognizes, same reasoning as ORIENTATION_CHECK_LABELS above (an
+  // unrecognized or malformed key falls through as shape-not-ok, same as a
+  // typed message with nothing else, rather than reaching the model with an
+  // empty instruction). Authoritative re-gate on hasOnboardingConcierge
+  // below, same as every other client-asserted flag on this endpoint.
+  const momentShapeOk = !!(moment && typeof moment === 'object' && typeof moment.key === 'string' && MOMENT_KEYS.includes(moment.key) && momentPayloadOk(moment.key, moment))
   // Session-open recap (Phase 1): the client may open a turn with no typed
   // message at all, marked sessionOpen instead — the returning-session
   // opener the coach speaks on its own. Provisionally let it through here;
   // featureFlags is not loaded yet, so the authoritative check (does this
   // account actually have the pilot?) happens below once it is.
-  if ((!rawMessage || typeof rawMessage !== 'string') && sessionOpen !== true && !orientationCheckShapeOk && !postCaptureUpdateShapeOk) {
+  if ((!rawMessage || typeof rawMessage !== 'string') && sessionOpen !== true && !orientationCheckShapeOk && !postCaptureUpdateShapeOk && !momentShapeOk) {
     return res.status(400).json({ error: 'message required' })
   }
 
@@ -2040,18 +2089,27 @@ export default async function handler(req, res) {
   if (postCaptureUpdateShapeOk && !postCaptureUpdateRequested && (!rawMessage || typeof rawMessage !== 'string')) {
     return res.status(400).json({ error: 'message required' })
   }
+  // Moment reaction, authoritative half. Same shape as orientationCheckRequested
+  // above -- reuses hasOnboardingConcierge rather than a new flag, since this
+  // is still the same internal-only pilot every other Coach-as-Concierge
+  // piece ships behind.
+  const momentRequested = momentShapeOk && !generalMode && hasOnboardingConcierge({ feature_flags: featureFlags, email: user.email })
+  if (momentShapeOk && !momentRequested && (!rawMessage || typeof rawMessage !== 'string')) {
+    return res.status(400).json({ error: 'message required' })
+  }
   // The message the model actually sees this turn. A real typed message wins
   // when present; otherwise, for the one turn the client marked as a
-  // session's opener, an orientation quality check, or a post-capture
-  // follow-up, a standing internal instruction — never shown to the person,
-  // same pattern as the "[The user is currently on step ...]" contextNote
-  // appended further down.
+  // session's opener, an orientation quality check, a post-capture
+  // follow-up, or a moment reaction, a standing internal instruction —
+  // never shown to the person, same pattern as the "[The user is currently
+  // on step ...]" contextNote appended further down.
   const message = (typeof rawMessage === 'string' && rawMessage.trim())
     ? rawMessage
     : orientationCheckRequested ? buildOrientationCheckTurnText(orientationCheck.step, orientationCheck.text)
     : postCaptureUpdateRequested ? buildPostCaptureTurnText(postCaptureUpdate)
+    : momentRequested ? buildMomentTurnText(moment.key, moment)
     : (sessionOpenRequested ? SESSION_OPEN_TURN_TEXT : '')
-  const turnKind = computeTurnKind(rawMessage, { orientationCheckRequested, postCaptureUpdateRequested, sessionOpenRequested })
+  const turnKind = computeTurnKind(rawMessage, { orientationCheckRequested, postCaptureUpdateRequested, momentRequested, sessionOpenRequested })
   // Go Independent business-of-consulting grounding (2026-08-28). Six chapters,
   // roughly 30k tokens, for accounts on that track ONLY -- someone still job
   // searching should never have Coach reaching into 401(k)-loan risk or B2B
