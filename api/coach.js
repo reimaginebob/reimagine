@@ -26,7 +26,7 @@ import { applyOutputStrippers, ensureDistressSupport, matchesDistressTrigger, de
 import { detectVoiceViolations } from '../src/voice-patterns.js'
 import { parseSelfcheck, parseMood } from '../src/coach-routing.js'
 import { STEPS, nextSteps as computeNextSteps, computeSessionDelta } from '../src/step-position.js'
-import { describeSections } from '../src/playbook-sections.js'
+import { describeSections, focusSectionPosition, opSectionPosition } from '../src/playbook-sections.js'
 import { ACTIVITY_CATALOG, ASKABLE, activity as activityDef, isValidFact } from '../src/activity-catalog.js'
 import { LANE_LABELS, NAV_LABELS } from '../src/nav-labels.js'
 import { PURSUIT_STAGE_LABELS } from '../src/pursuit-stages.js'
@@ -1850,7 +1850,26 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   // -- both already render themselves correctly once inFocus resolves above).
   // Without this, "what do you think of this" typed while scrolled to a
   // specific section had nothing telling the model which one "this" is.
-  const sectionNote = situationSection ? ` They are currently looking at the "${situationSection}" section.` : ''
+  //
+  // Renders the user-facing label and its position in the numbered sequence
+  // the person actually scrolls and clicks through -- never the raw section
+  // id ("p6"), which the model has no way to translate and which leaked into
+  // a live reply as-is before this. Phrased as authoritative and overriding,
+  // since this is the one piece of Situation that changes turn to turn and a
+  // stale earlier mention of a different section should not win against it
+  // (Bob's production test, 2026-09-09: two live cases of Coach reporting a
+  // section other than the one actually in view).
+  //
+  // Session-level track (isIndependentTrack), not the specific record's own
+  // track (recordIsIndependent) -- a label mismatch here is a one-turn
+  // phrasing hint, not data written back, and the record itself is not
+  // available this far outside the try block above that resolved inFocus.
+  const situationSectionPos = situationSection
+    ? (currentStep === 'op' ? opSectionPosition(situationSection) : currentStep === 'focus' ? focusSectionPosition(situationSection, isIndependentTrack) : null)
+    : null
+  const sectionNote = situationSectionPos
+    ? ` SECTION IN VIEW: ${situationSectionPos.label} (section ${situationSectionPos.index} of ${situationSectionPos.total} in this ${currentStep === 'op' ? 'Opportunity' : 'Focus'} Playbook). This is the section on screen now and overrides anything earlier in the conversation about which section they were looking at.`
+    : ''
   const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".${sectionNote}]` : ''
   situationBlockChars += contextNote.length
   // Sampled 1-in-20 (rule 4): a number on file for the per-turn cost of

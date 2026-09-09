@@ -76,6 +76,45 @@ export function focusExtraSections(independent = false) {
   return FOCUS_EXTRA_KEYS.map(key => ({ key, label: labelFor(key, independent) }))
 }
 
+// The Focus Playbook's own on-screen numbered sequence -- mirrors focusOrderFor
+// in src/App.jsx exactly (same ids, same order; App.jsx's own `load` preview
+// strings are UI-only and have no server-side use). NOT the same as FOCUS_KEYS
+// above: that is the narrower "counts toward built/not-built" set (no
+// Compensation Read, no Networking Groups/Recruiters). This is the full
+// sequence someone actually scrolls and clicks through, which the Coach's
+// SECTION IN VIEW note (api/coach.js) numbers a clicked section against
+// ("section 2 of 11"). Keep this in sync with focusOrderFor by hand -- there
+// is no shared source between the client bundle and this cross-boundary file.
+const FOCUS_ORDER_KEYS = ['p5', 'p6', 'p9', 'salaryRead', 'p11', 'p_res', 'p8', 'p7', 'groups', 'recruiters', 'income']
+const FOCUS_ORDER_KEYS_INDEPENDENT = ['p6', 'income', 'p8', 'p_res', 'p7', 'p11']
+
+export function focusOrderSections(independent = false) {
+  const keys = independent ? FOCUS_ORDER_KEYS_INDEPENDENT : FOCUS_ORDER_KEYS
+  return keys.map(key => ({ key, label: labelFor(key, independent) }))
+}
+
+// Where one section id sits in an ordered {key,label} list, 1-indexed, for
+// phrasing like "section 2 of 11". Null when the id is not in the list at
+// all -- an unrecognized or stale value, which the caller should treat as
+// "no usable position" rather than guess or fall back to the raw id.
+function sectionPosition(ordered, key) {
+  const idx = ordered.findIndex(s => s.key === key)
+  return idx === -1 ? null : { label: ordered[idx].label, index: idx + 1, total: ordered.length }
+}
+
+export function focusSectionPosition(key, independent = false) {
+  return sectionPosition(focusOrderSections(independent), key)
+}
+
+// The Opportunity Playbook's own numbered sequence -- OP_COUNTED_SECTIONS
+// above, already the canonical order and labels for that card. Offer-only
+// sections (OP_OFFER_SECTIONS) are deliberately not numbered here, same
+// reasoning as their exclusion from the counted set: they are not part of
+// the sequence until an offer is actually on the table.
+export function opSectionPosition(key) {
+  return sectionPosition(OP_COUNTED_SECTIONS, key)
+}
+
 // Whether one section holds real content. Shape is not uniform across records:
 // door2 stores { content, builtAt } (and a bare string for p6 on older ones),
 // door1 stores a plain string on `outputs`. Both answered here so no caller has
