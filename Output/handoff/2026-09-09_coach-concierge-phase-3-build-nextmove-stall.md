@@ -49,6 +49,20 @@ Two design decisions this brief cannot make alone:
 
 Everything in Phase 4 (folding the pre-2a `seen*` flags into the catalog). BUILD on the Opportunity Playbook (door2) — Career Paths only, this phase. Any change to `MILESTONE_PROMPT_NOTE` itself — it stays exactly as-is for door2; Next move on Career Paths is a new, separate mechanism per the central question's recommendation, not a modification of the existing one.
 
+## Resolved 2026-09-09
+
+Bob: "I accept your recommendations." A = deterministic FOCUS_ORDER sequencing. B = BUILD + Next move ship together as Phase 3a; Stall becomes Phase 3b.
+
+## A scope reduction found while designing 3a's specifics
+
+Digging into exactly how Next move's tap needs to work turned up something that narrows Phase 3a from what "What Phase 3a needs" above assumed — worth flagging before finalizing specifics, since it changes what ships now versus later, not just how.
+
+Because Next move's target section is resolved **deterministically, client-side, before the model is ever called** (pre-flight #4's own design: the next unbuilt item in `FOCUS_ORDER`), the model never has to *name* which section to build — App.jsx already knows. That means Next move's tap needs none of the general BUILD-tap machinery this brief originally scoped: no `BUILD: {section}` trailer, no server-side validation of a model-claimed section against `situation.notBuilt`, no new response header, and no `SYSTEM_PROMPT_STABLE` amendment. It only needs a new `MOMENT_CATALOG` entry whose `onTap` calls the (still-necessary) refactored `genSec(section)` directly — the exact same shape `ptw-arrival`'s `onTap` already uses today (Phase 2a), just calling a generation function instead of `advance`/`addNewOpportunity`.
+
+The general capability — Coach naming a build opportunity **during an ordinary typed conversation**, not just inside a scripted moment — is real Section 6 scope, but Next move doesn't need it to work. It is also a materially different and larger piece: Coach deciding *on its own judgment* that a build is warranted mid-conversation, versus a scripted moment that always offers the one deterministic next section. That is exactly the kind of model-initiated judgment call the read-only rule exists to bound carefully.
+
+**Recommend narrowing Phase 3a to Next move only** (the refactored `genSec`, the new catalog entry, its `onTap`) — self-contained, low-risk, reuses an established pattern end to end. Defer the general opportunistic BUILD tap (the trailer, the header, the `SYSTEM_PROMPT_STABLE` amendment) to its own phase, sized and reviewed on its own terms rather than swept in as "what Next move needs," which it turns out not to be.
+
 ## Next step
 
-Answer the central question (A and B), or redirect either. Once resolved I'll draft file-level specifics for whichever phase(s) that unlocks — starting with 3a if B lands where I've recommended — and send that back for one more review pass before any code, same as every prior phase.
+Confirm the narrower 3a (Next move only), or say the general BUILD tap should ship alongside it after all. I'll finalize file-level specifics for whichever scope you confirm and send that back for one more review pass before any code, same as every prior phase.
