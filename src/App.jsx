@@ -17448,8 +17448,29 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             have silently dropped working Coach capabilities the moment the
             floating mount (which had them) stopped rendering underneath it.
             presence/setPresence (new) replace the floating mount's
-            open/maximized for this variant's own minimize affordance. */}
-        {conciergeEmbedded&&<div data-print="hide" style={{width:'min(38vw,460px)',minWidth:340,flexShrink:0,padding:'40px 56px 28px 24px'}}>
+            open/maximized for this variant's own minimize affordance.
+            Column width/padding collapse to 0 while minimized (2026-09-09:
+            Bob's screenshot showed the reserved column staying full width
+            with the panel shrunk to a one-line strip inside it, leaving the
+            right third of the screen empty next to a still-narrow playbook)
+            so contentColumnRef's own flex:1 reflows to fill the freed
+            width. The transition is on this wrapper, not the Chat panel
+            inside it -- Chat's own minimized render is a `position:absolute`
+            pill (see Chat.jsx) anchored to the flex row below (the
+            `position:relative` div a few lines up), not to this box, so it
+            holds a stable spot in the CONTENT AREA regardless of what this
+            box's own width animates to. Deliberately no overflow:hidden
+            here: an absolutely-positioned descendant is still clipped by an
+            ancestor's overflow even when that ancestor is not its
+            containing block, and this box is exactly such an ancestor once
+            its own width collapses to 0. */}
+        {conciergeEmbedded&&<div data-print="hide" style={{
+          width:coachPresence==='minimized'?0:'min(38vw,460px)',
+          minWidth:coachPresence==='minimized'?0:340,
+          flexShrink:0,
+          padding:coachPresence==='minimized'?0:'40px 56px 28px 24px',
+          transition:'width 0.2s ease, min-width 0.2s ease, padding 0.2s ease',
+        }}>
           <Chat embedded currentStep={step} C={C} presence={coachPresence} setPresence={setCoachPresence} messages={chatMessages} setMessages={setChatMessages} getSituation={computeSituation} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>
         </div>}
       </div>
