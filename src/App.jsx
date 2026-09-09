@@ -9291,6 +9291,11 @@ export default function PivotEngine(){
       // must not see it fire again just because coachMoments starts empty
       // for them.
       if(entry.key==='ptw-arrival'&&seenOrientationRouteRef.current)continue
+      // Eligibility gates BEFORE dedupeKey/dedupeValue run -- some entries'
+      // dedupeValue (e.g. next-move's ctx.nextMoveTarget.anchorLabel) assumes
+      // the invariant eligible() checks for (ctx.nextMoveTarget non-null) and
+      // will throw if evaluated on an ineligible ctx.
+      if(!entry.eligible(ctx))continue
       const subKey=entry.dedupeKey?entry.dedupeKey(ctx):'_'
       const dedupeValue=entry.dedupeValue?entry.dedupeValue(ctx):'fired'
       // A Phase 2a record (coachMoments[key] === {firedAt}) predates
@@ -9302,7 +9307,6 @@ export default function PivotEngine(){
       const stored=coachMoments[entry.key]&&coachMoments[entry.key][subKey]
       if(legacyFired||(stored&&stored.value===dedupeValue))continue
       if(momentFiredRef.current.has(`${entry.key}:${subKey}`))continue
-      if(!entry.eligible(ctx))continue
       candidates.push({entry,subKey,dedupeValue})
     }
     candidates.sort((a,b)=>(b.entry.priority||0)-(a.entry.priority||0))
