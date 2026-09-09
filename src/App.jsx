@@ -7441,6 +7441,20 @@ export default function PivotEngine(){
   const momentFetchingRef=useRef({}) // Phase 2b: in-flight guard for generated (model-reaction) moments, keyed the same way as coachMoments' sub-keys -- see fireMoment below.
   const[quietUntilReload,setQuietUntilReload]=useState(false)
   const[quietScreens,setQuietScreens]=useState({})
+  // Coach-as-Concierge Phase 3b (Stall, Output/handoff/2026-09-09_coach-
+  // concierge-phase-3-build-nextmove-stall.md): the two new signals nothing
+  // in the codebase tracked before this -- a per-identity visit count and an
+  // idle timer, both session-scoped (matching every other Moments entry's
+  // session-vs-durable split; durability is a tuning question for after real
+  // fire/dismiss data exists). focusVisitCounts increments once per actual
+  // navigation to 'focus' (the effect below fires on step/chosen/selectedLane
+  // change, not on every render). stallIdleReached flips true when 90
+  // seconds pass with nothing built and no generation in flight since the
+  // last navigation or build attempt on this screen -- see the arming effect
+  // near the Moments evaluator for what resets it.
+  const[focusVisitCounts,setFocusVisitCounts]=useState({})
+  const[stallIdleReached,setStallIdleReached]=useState(false)
+  const stallTimerRef=useRef(null)
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04):
   // the moment someone leaves Values, Reputation, or Life Story, Coach reads
   // what they actually wrote and reacts -- a real judgment call on
@@ -9168,6 +9182,33 @@ export default function PivotEngine(){
       }
     })()
   }
+  // Stall visit counting (Phase 3b): once per actual navigation to 'focus'
+  // for a chosen role, not once per render -- the effect's own dependency
+  // array (step/chosen/selectedLane) only changes on real navigation.
+  useEffect(()=>{
+    if(step!=='focus'||!chosen)return
+    const idKey=`${selectedLane}::${chosen}`
+    setFocusVisitCounts(c=>({...c,[idKey]:(c[idKey]||0)+1}))
+  },[step,chosen,selectedLane])
+  // Stall idle timer (Phase 3b): armed on arrival at 'focus' while nothing
+  // is built yet for this identity (matching the "nothing built at all"
+  // eligibility the Moments evaluator checks below -- arming it when
+  // something IS built would be wasted work, since Stall could never fire).
+  // Cleared and re-armed on navigation and on a generation starting, which
+  // both count as real activity, not idling. Chat sends are not wired as a
+  // reset yet -- a known simplification, not a correctness bug: Stall's own
+  // dedupe still means firing once here costs nothing but one message, and
+  // this is a starting point meant to be tuned from real fire/dismiss data,
+  // not a guess to get exactly right on the first try.
+  useEffect(()=>{
+    if(stallTimerRef.current){clearTimeout(stallTimerRef.current);stallTimerRef.current=null}
+    setStallIdleReached(false)
+    if(step!=='focus'||!chosen||generatingSection)return
+    const nothingBuiltYet=focusOrderFor(isIndependent).every(s=>!done.includes(s.id))
+    if(!nothingBuiltYet)return
+    stallTimerRef.current=setTimeout(()=>setStallIdleReached(true),90000)
+    return()=>{if(stallTimerRef.current)clearTimeout(stallTimerRef.current)}
+  },[step,chosen,selectedLane,isIndependent,generatingSection,done])
   // Coach-as-Concierge Phase 2a/2b: the Moments evaluator. One effect for
   // the whole catalog (src/coach-moments.js), not one per moment -- see
   // that file's header comment. Each entry owns its own eligibility and
@@ -9201,7 +9242,20 @@ export default function PivotEngine(){
       if(!nextSec)return null
       return{anchorLabel:order[anchorIdx].label,nextId:nextSec.id,nextLabel:nextSec.label}
     })()
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec}
+    // stallEligible (Phase 3b): "nothing built at all yet" is deliberately
+    // narrower than "some unbuilt section remains" -- Next move already owns
+    // the moment for someone who has made progress and paused; Stall is only
+    // for someone who has never started. The two are mutually exclusive by
+    // construction (nextMoveTarget requires an anchor, which requires
+    // something already built), so they can never compete for the same
+    // identity.
+    const stallEligible=(()=>{
+      if(!chosen)return false
+      if(!focusOrderFor(isIndependent).every(s=>!done.includes(s.id)))return false
+      const idKey=`${selectedLane}::${chosen}`
+      return(focusVisitCounts[idKey]||0)>=3||stallIdleReached
+    })()
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible}
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
       if(entry.screen!==step)continue
@@ -9239,7 +9293,7 @@ export default function PivotEngine(){
       if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
     }
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,outputs,selectedLane,chosen,coachMoments,quietUntilReload,quietScreens,isDemo,isTest,done,isIndependent])
+  },[step,signedInUser,hasOnboardingConcierge,outputs,selectedLane,chosen,coachMoments,quietUntilReload,quietScreens,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04,
   // extended 2026-09-04 to cover Resume/LinkedIn/Assessment): the moment
   // someone leaves a covered step with new content, Coach reads it and

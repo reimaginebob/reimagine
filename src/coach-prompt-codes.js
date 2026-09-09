@@ -30,6 +30,7 @@ export const PROMPT_CODES = [
   'delivery_p7',
   'delivery_income',
   'next_move',
+  'stall',
 ]
 
 // The MECHANISM that caused one particular firing of a prompt_code.

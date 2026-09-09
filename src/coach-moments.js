@@ -54,6 +54,13 @@
 // section is resolved deterministically client-side before the model is
 // ever called, so the model never names it (Phase 3's own scope-reduction
 // finding).
+//
+// Phase 3b adds `stall`, back to the static+actionable shape ptw-arrival
+// already established (a fixed message, a real onTap) -- nothing new
+// architecturally, unlike next-move. Its eligibility (`ctx.stallEligible`)
+// comes from two new pieces of client state next to the evaluator itself:
+// a per-identity visit counter and a 90-second idle timer, both computed
+// once per pass and handed in on ctx rather than derived inside the entry.
 export const MOMENT_CATALOG = [
   {
     key: 'ptw-arrival',
@@ -282,6 +289,38 @@ export const MOMENT_CATALOG = [
     actionReply: (ctx) => ({ label: `Build ${ctx.nextMoveTarget.nextLabel}`, value: `build_next:${ctx.nextMoveTarget.nextId}` }),
     onTap: (value, ctx) => {
       if (value.startsWith('build_next:')) ctx.genSec(value.slice('build_next:'.length))
+      return true
+    },
+  },
+  {
+    key: 'stall',
+    family: 'stall',
+    screen: 'focus',
+    significance: 'open',
+    dismissible: true,
+    // Lowest priority on 'focus' -- an absence signal, so anything real
+    // (Choice, Delivery, Next move) always wins a same-pass tie. In
+    // practice they rarely compete: stallEligible requires nothing built at
+    // all, which Delivery and Next move's own eligibility already rule out.
+    priority: 1,
+    promptCode: 'stall',
+    // Static, not generated: the design calls this "one question, not a
+    // nudge" -- a single line, not a judged read of specific content the
+    // way Delivery and Next move need a model call for. stallEligible
+    // itself (computed once in the evaluator from the 90s idle timer or 3
+    // visits with nothing built) is the signal; the question does not need
+    // to reference what's on the screen.
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.stallEligible,
+    // Fire once per identity, ever -- matches choice-lane's shape (key, no
+    // value). Nothing about a fresh visit some time later should be read as
+    // new content worth reacting to again the way a Delivery rebuild is.
+    dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
+    message: 'You\'ve come back to this a few times without building anything yet. What would make it worth doing right now — or would you rather look at something else?',
+    quickReplies: [
+      { label: 'Take me to Career Paths', value: 'stall-redirect' },
+    ],
+    onTap: (value, ctx) => {
+      if (value === 'stall-redirect') ctx.advance('focus', 'laneSelect')
       return true
     },
   },

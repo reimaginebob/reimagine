@@ -59,12 +59,13 @@ check(generatedCount === 12, `${MOMENTS}: expected 12 generated entries total (2
 // the same identity but ALSO compares content (dedupeValue), so a rebuild
 // re-fires it -- this is the load-bearing distinction from Choice.
 check(moments.includes('dedupeKey: (ctx) => ctx.selectedLane') , `${MOMENTS}: choice-lane's dedupeKey (fire once per lane) is missing or has drifted`)
-// +1 as of Phase 3a: next-move shares the identical role-identity dedupeKey
-// shape (its own dedupeVALUE is what makes it re-fire on a new target, same
-// as Delivery's own content comparison) -- test-coach-moments-next-move.mjs
-// covers next-move's own shape; this just keeps the count honest.
-check((moments.match(/dedupeKey: \(ctx\) => `\$\{ctx\.selectedLane\}::\$\{ctx\.chosen\}`/g) || []).length === 1 + DELIVERY_SECTIONS.length + 1,
-  `${MOMENTS}: expected the role-identity dedupeKey on choice-role, all ${DELIVERY_SECTIONS.length} Delivery entries, and next-move`)
+// +1 as of Phase 3a (next-move), +1 again as of Phase 3b (stall): both
+// share the identical role-identity dedupeKey shape (next-move's own
+// dedupeVALUE is what makes it re-fire on a new target; stall has no
+// dedupeValue at all, firing once per identity ever) -- their own test
+// files cover their own shapes; this just keeps the count honest.
+check((moments.match(/dedupeKey: \(ctx\) => `\$\{ctx\.selectedLane\}::\$\{ctx\.chosen\}`/g) || []).length === 1 + DELIVERY_SECTIONS.length + 1 + 1,
+  `${MOMENTS}: expected the role-identity dedupeKey on choice-role, all ${DELIVERY_SECTIONS.length} Delivery entries, next-move, and stall`)
 for (const s of DELIVERY_SECTIONS) {
   const expected = s === 'p6' ? 'dedupeValue: (ctx) => ctx.bridgeStoryToProse(ctx.outputs.p6)' : `dedupeValue: (ctx) => ctx.outputs.${s}`
   check(moments.includes(expected), `${MOMENTS}: delivery-${s}'s content-comparison dedupeValue is missing or has drifted`)
@@ -99,10 +100,11 @@ for (const key of ['choice-lane', 'choice-role', ...DELIVERY_SECTIONS.map(s => `
 check(moments.includes("promptCode: 'delivery_comp_read'"), `${MOMENTS}: delivery-salaryRead's promptCode should be 'delivery_comp_read', not the awkward delivery_salaryread`)
 
 // --- ctx carries what the new entries' functions need ---
-// nextMoveTarget and genSec appended Phase 3a -- Next move's own shape is
-// covered in test-coach-moments-next-move.mjs; this just confirms Career
+// nextMoveTarget and genSec appended Phase 3a, stallEligible appended
+// Phase 3b -- their own shapes are covered in test-coach-moments-next-
+// move.mjs and test-coach-moments-stall.mjs; this just confirms Career
 // Paths' own six fields are still present alongside them, not replaced.
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec}'),
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible}'),
   `${APP}: the evaluator's ctx is missing one of selectedLane/chosen/isIndependent/laneLabelFor/focusLabelFor/bridgeStoryToProse -- the catalog entries' eligible/dedupeKey/dedupeValue/momentContext functions need them`)
 
 // --- Server: shape validation, authoritative gate, dispatch ---
