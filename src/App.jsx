@@ -1400,8 +1400,9 @@ function bridgeStoryToProse(v){
 // heal that clears corruption on load.
 // _opAnyBuiltFor / _opAllBuiltFor (PR — op PDF export): top-level predicates
 // for the Save as PDF affordances. Hoisted from the inline opCardDone helper
-// inside the op case body so the footer gate (showPlaybookFooter) and the
-// inline "All five sections built" cue can share the same five-card definition.
+// inside the op case body so the title-row Save-as-PDF gate (showPlaybookFooter)
+// and the inline "All five sections built" cue can share the same five-card
+// definition.
 // Keys mirror the PR #114 / PR #115 op surface: p5, p6, p_res, p11, companyRead.
 // Counted op sections, in display order. Single source of truth for the "N of 6"
 // metric + the Save-as-PDF completion gates + the section rail. Interview Team
@@ -14229,11 +14230,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const savePlaybookPdf=()=>{playbookSavePendingRef.current=true;afterSaveRunRef.current=null;window.print()}
   const focusNumberedIds=focusGroupsFor(isIndependent).flatMap(g=>g.sectionIds)
   const playbookSectionsBuilt=focusNumberedIds.filter(k=>{const v=outputs[k];return v&&(typeof v==='string'?v.length>0:true)}).length
-  // showPlaybookFooter (op extension): the persistent gold Save as PDF footer
-  // fires on focus when at least one section is built, AND on op when at least
-  // one of the active opportunity's five cards is built. The op-side lookup is
-  // gated on step==='op' so it's a no-op on every other surface. _opAnyBuiltFor
-  // is the module-scope helper shared with the inline "all five built" cue.
+  // showPlaybookFooter (name predates the 2026-09-09 move off the global
+  // footer -- it now gates the "Save this playbook as PDF" button living
+  // next to the h1 on Focus/Opportunity Playbook, kept rather than renamed
+  // since every call site still reads the same "there's something built
+  // worth saving" question): true on focus when at least one section is
+  // built, AND on op when at least one of the active opportunity's five
+  // cards is built. The op-side lookup is gated on step==='op' so it's a
+  // no-op on every other surface. _opAnyBuiltFor is the module-scope helper
+  // shared with the inline "all five built" cue.
   const _opRecGlobal=step==='op'&&currentSavedSlotIdRef.current?savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current):null
   const _opAnyBuiltGlobal=step==='op'?_opAnyBuiltFor(_opRecGlobal):false
   const showPlaybookFooter=!isDemo&&((step==='focus'&&playbookSectionsBuilt>0)||(step==='op'&&_opAnyBuiltGlobal))
@@ -15116,7 +15121,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             it is always available, including for the pre-rerun login notice. */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap',marginBottom:18}}>
           {!isDemo&&outputs.p3_prev&&outputs.p3_prev.p3?<Btn small secondary onClick={restorePrevP3}><RotateCcw size={12}/>{p3RestoreLabel()}</Btn>:<span/>}
-          <Btn small secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={12}/>Save as PDF</Btn>
+          <Btn small secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={12}/>Save your Personal Brand as PDF</Btn>
         </div>
         {!isDemo&&<div data-print="hide" style={{marginBottom:18}}><Btn small secondary onClick={()=>openCoachWith(ASK_COACH_SEEDS.p3)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
         {!isDemo&&<RefineBox anchorId="p3-refine" openSignal={refineOpenSignal} guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{const prevBrand=outputs.p3||'';const prevPres=(outputs.p3_structured&&outputs.p3_structured.presentation)||null;recordCorrection('p3',v);out('p3','');refreshP3(v,prevBrand,prevPres)}}/>}
@@ -15411,7 +15416,22 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             positioning statement as a headline: the line is long, it is a
             sentence rather than a title, and the person just wrote it. It sits
             underneath as the thing everything is built on. */}
-        <h1 style={S.title}>{isIndependent?'Your practice plan':(chosen||'Your Focus Playbook')}</h1>
+        {/* Save this playbook as PDF moved off the global footer onto the
+            playbook itself (2026-09-09) -- a persistent bottom bar with no
+            named object on every screen made it unclear what "Save as PDF"
+            even saved (it saves the playbook you're on). Named and placed
+            next to the title it acts on instead; gated on showPlaybookFooter
+            (unchanged logic, misleading name -- see its own definition) so
+            it only appears once there's something built worth saving. The
+            Markdown download (independent/practice track only) moves here
+            too rather than disappearing with the footer it used to share. */}
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+          <h1 style={{...S.title,flex:1,minWidth:0}}>{isIndependent?'Your practice plan':(chosen||'Your Focus Playbook')}</h1>
+          {showPlaybookFooter&&<div data-print="hide" style={{display:'flex',gap:8,flexShrink:0,marginTop:4}}>
+            {isIndependent&&currentSavedSlotIdRef.current&&<Btn small secondary onClick={()=>{const r=savedPlaybooks.find(x=>x.id===currentSavedSlotIdRef.current);if(r)downloadPlaybookMarkdown(r)}}><Download size={12}/>Markdown</Btn>}
+            <Btn small secondary onClick={savePlaybookPdf}><Printer size={12}/>Save this playbook as PDF</Btn>
+          </div>}
+        </div>
         {isIndependent
           ?<>
             <p style={{...S.sub,marginBottom:14}}>Everything here builds on the one line you wrote. Find the companies worth pitching, get your pricing and your pitch right, and put it all to work.</p>
@@ -15560,7 +15580,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   sections with their numbers and completion state. The
                   intro paragraph above and the italic guidance below
                   stay; the rail is now the canonical structural map. */}
-              <p style={{fontSize:16,color:C.gray,fontStyle:'italic',lineHeight:1.55,margin:0}}>Generate in any order, or jump ahead if you have a specific reason. When you have what you need, the Save Playbook as PDF button at the bottom builds the one-file version you can keep, share, or come back to.</p>
+              <p style={{fontSize:16,color:C.gray,fontStyle:'italic',lineHeight:1.55,margin:0}}>Generate in any order, or jump ahead if you have a specific reason. When you have what you need, the Save this playbook as PDF button next to the title builds the one-file version you can keep, share, or come back to.</p>
             </div>}
             {FOCUS_GROUPS_ACTIVE.map((g,gi)=><div key={g.label}>
               {groupDivider(`Group ${gi+1} · ${g.label}`,C.gold)}
@@ -15975,7 +15995,18 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       if((outputs.op||_anyOpCardBuilt)&&!done.includes('op'))markDone('op')
       return <div>
       {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={()=>nav(opReturnStepRef.current||hubStep)} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to {NAV_LABELS[opReturnStepRef.current]||hubLabel}</button></div>}
-      <h1 style={S.title}>{isIndependent?((opIsV2||outputs.op)?'This Client Opportunity':'Add a Client Opportunity'):((opIsV2||outputs.op)?'Your Opportunity Playbook':'Add an Opportunity')}</h1>
+      {/* Save this playbook as PDF moved off the global footer onto the
+          playbook itself -- see the matching comment on the Focus Playbook
+          title for why. showPlaybookFooter is already step==='op'-aware
+          (true only once at least one of the five cards is built), so
+          nothing extra is needed to keep this off the empty "Add an
+          Opportunity" state. */}
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+        <h1 style={{...S.title,flex:1,minWidth:0}}>{isIndependent?((opIsV2||outputs.op)?'This Client Opportunity':'Add a Client Opportunity'):((opIsV2||outputs.op)?'Your Opportunity Playbook':'Add an Opportunity')}</h1>
+        {showPlaybookFooter&&<div data-print="hide" style={{display:'flex',gap:8,flexShrink:0,marginTop:4}}>
+          <Btn small secondary onClick={savePlaybookPdf}><Printer size={12}/>Save this playbook as PDF</Btn>
+        </div>}
+      </div>
       {loading?<Loading msg={loadMsg||'Building your Opportunity Playbook…'} step="op"/>:<>
         {(opIsV2||outputs.op)?<>
           {!isDemo&&!opIsV2&&<CoachingCallout>
@@ -17400,13 +17431,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <button type="button" onClick={()=>setUpstreamCheck(null)} aria-label="Dismiss" style={{background:'transparent',border:'none',color:'#8A5E1C',fontSize:18,lineHeight:1,cursor:'pointer',padding:'0 2px',fontFamily:'inherit'}}>×</button>
       </div>
     })()}
-    {showPlaybookFooter&&<div data-print="hide" style={{position:'fixed',left:0,right:0,bottom:0,zIndex:900,background:'#1A2540',borderTop:`2px solid ${C.gold}`,padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'flex-end',gap:16}}>
-      {/* Footer simplified post-PR5: per-section completion + the section
-          rail now show progress explicitly, so the progress text is gone.
-          Save as PDF stays as the only persistent footer action. */}
-      {isIndependent&&step==='focus'&&currentSavedSlotIdRef.current&&<Btn secondary onClick={()=>{const r=savedPlaybooks.find(x=>x.id===currentSavedSlotIdRef.current);if(r)downloadPlaybookMarkdown(r)}} style={{background:'transparent',border:`1.5px solid ${C.gold}`,color:'#FFFFFF'}}><Download size={14}/>Markdown</Btn>}
-      <Btn secondary onClick={savePlaybookPdf} style={{background:'transparent',border:`1.5px solid ${C.gold}`,color:'#FFFFFF'}}><Printer size={14}/>Save as PDF</Btn>
-    </div>}
     <div style={{height:'100dvh',background:C.bg,color:C.cream,fontFamily:'Outfit,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}}>
       {migrationOpen&&!signedInUser&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
         <div style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:520,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
@@ -17556,7 +17580,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             nested inside it, so its own bounded height (set inside the
             embedded Chat variant) is independent of how long the screen next
             to it runs. Still drops the floating-only layout props
-            (open/setOpen/maximized/openRequest/onOpen/showPulse/bottomOffset
+            (open/setOpen/maximized/openRequest/onOpen/showPulse
             -- the bubble pulse animation and floating position have no
             embedded equivalent), but now carries the SAME capture props the
             floating mount does (pipeline/opportunity capture, notes,
@@ -17605,7 +17629,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         concierge embedded panel above (2026-09-07) is the same exclusion for
         the same reason -- suppressed here too, or the floating bubble would
         mount right alongside it, showing the same conversation twice. */}
-    {signedInUser&&step!=='myCoach'&&!conciergeEmbedded&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} bottomOffset={showPlaybookFooter?72:0} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} getSituation={computeSituation} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>}
+    {signedInUser&&step!=='myCoach'&&!conciergeEmbedded&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} getSituation={computeSituation} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderTop:`4px solid ${C.gold}`,borderRadius:12,maxWidth:520,width:'100%',padding:'34px 38px',boxShadow:'0 12px 40px rgba(0,0,0,0.25)',fontFamily:'inherit'}}>

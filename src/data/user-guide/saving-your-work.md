@@ -20,7 +20,7 @@ Three things worth knowing.
 
 The Focus Playbook is where Reimagine builds everything for one role. Your work is saved to your Reimagine account and available on any device you sign in from, but the PDF gives you a portable copy you can share, send to a coach, or keep alongside your offline notes.
 
-**Where the button is.** Once you have generated at least one section past The Role, a footer bar appears at the bottom of the Focus Playbook with a **Save Playbook as PDF** button. It stays in view as you scroll, so it is there the moment you decide a playbook is worth keeping.
+**Where the button is.** Once you have generated at least one section past The Role, a **Save this playbook as PDF** button appears next to the Focus Playbook's title. The same button, named for the opportunity instead, appears on an Opportunity Playbook once one of its cards is built.
 
 **What it produces.** Clicking it assembles every section you have generated for this role (The Role, Bridge Story, and whatever else you built) into a single clean document and opens your browser's print dialog. Choose "Save as PDF" as the destination. The result is formatted for paper, with each section on its own page and Reimagine branding, so it reads well when you send it to a coach, a mentor, or someone you would like to refer you.
 

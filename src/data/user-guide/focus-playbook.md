@@ -6,7 +6,7 @@ This is the longest chapter in the guide because it is the biggest part of the t
 
 ## What is on the page
 
-**An orientation card at the top** names what the page is and how the sections fit together. It carries the eyebrow **How to use your playbook**, a one-sentence framing, and a short closer that points at the Save Playbook as PDF button at the bottom.
+**An orientation card at the top** names what the page is and how the sections fit together. It carries the eyebrow **How to use your playbook**, a one-sentence framing, and a short closer that points at the Save this playbook as PDF button next to the title.
 
 **A section rail down the left** lists every section with its number and a check once it is built, so you can see your progress at a glance. Click any entry to jump to it. The rail is the structural map of the page.
 
@@ -525,7 +525,7 @@ Each section is generated from a snapshot of your inputs at the time. If you cha
 
 ## Save your playbook as a PDF
 
-Once you have generated at least one section past The Role, a footer bar appears at the bottom of the page with a **Save Playbook as PDF** button. It stays in view as you scroll. When every section is built, an inline cue appears at the bottom offering the same thing.
+Once you have generated at least one section past The Role, a **Save this playbook as PDF** button appears next to the title. When every section is built, an inline cue also appears at the bottom of the page offering the same thing.
 
 Clicking it assembles every section you have generated for this role into one clean document, formatted for paper with each section on its own page.
 
