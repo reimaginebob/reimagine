@@ -65,8 +65,11 @@ check(evalIdx !== -1, `${APP}: the Moments evaluator loop is missing`)
 // computation sits between the quiet-state check and evalIdx too. Widened
 // again Phase 3b: stallEligible sits between nextMoveTarget and evalIdx.
 // Widened again for the engine guardrails brief: the mood-hold skip sits
-// inside the loop body now, ahead of the static-branch checks.
-const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 2400, evalIdx + 2700) : ''
+// inside the loop body now, ahead of the static-branch checks. Widened
+// again for the next-move dedupeValue-null-crash fix (2026-09-09): eligible()
+// now runs before dedupeKey/dedupeValue, pushing the static-branch checks a
+// bit further still.
+const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 2400, evalIdx + 3100) : ''
 check(evalBlock.includes('if(quietUntilReload||quietScreens[step])return'),
   `${APP}: the evaluator does not respect the two quiet states before considering any entry`)
 check(evalBlock.includes("if(entry.key==='ptw-arrival'&&seenOrientationRouteRef.current)continue"),
