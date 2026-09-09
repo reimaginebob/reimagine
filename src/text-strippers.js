@@ -452,6 +452,54 @@ export function stripMetaNarration(text) {
 }
 // voice-allow-end
 
+// --- stripSelfTalkPreamble --------------------------------------------------
+// p6 leak, Bob's production test on 268a812 (2026-09-09): a freshly built
+// Bridge Story opened with the model narrating its own process before the
+// story -- "Coaching myself before I write this: ... Here it is." -- then
+// the actual story. bridgeStoryToProse's ---COACHING NOTE--- split (src/
+// App.jsx) only looks for content AFTER that delimiter; this leaked BEFORE
+// it, so nothing caught it. P.p6 now tells the model directly not to do
+// this (see the OUTPUT FORMAT instruction added the same day), but a
+// self-talk preamble is the same kind of model-robust AI tell as the
+// meta-narration lines above -- instruction alone is not enough to trust,
+// so it gets a deterministic strip in the same universal cleanup chain.
+//
+// Anchored on the specific lead-ins seen live, matched only at the very
+// start of the text (never mid-paragraph, so a legitimate story that later
+// happens to use the word "before" is untouched). Cuts through the first
+// paragraph break if there is one within a bounded window -- the common
+// case, since the self-talk is its own paragraph -- otherwise through an
+// explicit handoff phrase ("Here it is") if one appears within that same
+// window. A preamble with no clean boundary in range is left alone rather
+// than mangled; that is what the voice gate's corrective retry is for.
+//
+// voice-allow
+const SELF_TALK_LEAD_RE = /^\s*(?:coaching myself|before i write this|before writing this)\b/i
+const SELF_TALK_WINDOW = 700
+const SELF_TALK_HANDOFF_RE = /^[\s\S]{0,700}?\bhere it is\b[:.]?\s*/i
+export function stripSelfTalkPreamble(text) {
+  if (typeof text !== 'string' || !text) return text
+  if (!SELF_TALK_LEAD_RE.test(text)) return text
+  const paraBreak = text.indexOf('\n\n')
+  if (paraBreak !== -1 && paraBreak < SELF_TALK_WINDOW) {
+    const rest = text.slice(paraBreak + 2).trim()
+    if (rest) {
+      console.warn('[stripSelfTalkPreamble] dropped a self-talk preamble paragraph from LLM output')
+      return rest
+    }
+  }
+  const handoff = text.match(SELF_TALK_HANDOFF_RE)
+  if (handoff) {
+    const rest = text.slice(handoff[0].length).trim()
+    if (rest) {
+      console.warn('[stripSelfTalkPreamble] dropped a self-talk preamble up to its handoff phrase from LLM output')
+      return rest
+    }
+  }
+  return text
+}
+// voice-allow-end
+
 // --- stripComparativeStanding ----------------------------------------------
 // Battery 2026-06-09 + voice-gate-fix re-run. Remove the unearned "rank the user
 // against a group" shape. Two-sentence forms (drop the group sentence, keep the
