@@ -647,15 +647,18 @@ function buildOrientationCheckTurnText(step, text) {
 // built/not-built rendering and the "[The user is currently looking at...]"
 // context line below, so these templates only need to say what just
 // happened, not re-embed what's already on the table.
-const MOMENT_KEYS = ['choice-lane', 'choice-role', 'delivery-p5', 'delivery-p6']
+const MOMENT_KEYS = ['choice-lane', 'choice-role', 'delivery-p5', 'delivery-p6', 'delivery-p9', 'delivery-salaryRead', 'delivery-p11', 'delivery-p_res', 'delivery-p8', 'delivery-p7', 'delivery-income']
 // Per-key required-field check, same reasoning as orientationCheckShapeOk's
 // text requirement above: each reaction template needs specific fields
 // present as non-empty strings before it is safe to build (an absent
-// `text` would otherwise reach clip() as undefined and throw).
+// `text` would otherwise reach clip() as undefined and throw). Every
+// Delivery key shares one check now that the client sends sectionLabel
+// directly (see buildMomentTurnText below) instead of the server looking
+// it up per key.
 function momentPayloadOk(key, m) {
   if (key === 'choice-lane') return typeof m.laneLabel === 'string' && !!m.laneLabel.trim()
   if (key === 'choice-role') return typeof m.roleTitle === 'string' && !!m.roleTitle.trim() && typeof m.laneLabel === 'string' && !!m.laneLabel.trim()
-  if (key === 'delivery-p5' || key === 'delivery-p6') return typeof m.text === 'string' && !!m.text.trim()
+  if (key.startsWith('delivery-')) return typeof m.text === 'string' && !!m.text.trim() && typeof m.sectionLabel === 'string' && !!m.sectionLabel.trim()
   return false
 }
 function buildChoiceLaneReactionText(laneLabel) {
@@ -670,8 +673,11 @@ function buildFocusDeliveryReactionText(sectionLabel, text) {
 function buildMomentTurnText(key, ctx) {
   if (key === 'choice-lane') return buildChoiceLaneReactionText(ctx.laneLabel)
   if (key === 'choice-role') return buildChoiceRoleReactionText(ctx.roleTitle, ctx.laneLabel)
-  if (key === 'delivery-p5') return buildFocusDeliveryReactionText(NAV_LABELS.p5, ctx.text)
-  if (key === 'delivery-p6') return buildFocusDeliveryReactionText(NAV_LABELS.p6, ctx.text)
+  // Every Delivery key shares one template. The client resolves sectionLabel
+  // (via focusLabelFor, which already accounts for the independent track --
+  // "Your Pitch" vs "Bridge Story" for the same p6 section) and sends it
+  // directly, rather than this file looking it up per key from NAV_LABELS.
+  if (key.startsWith('delivery-')) return buildFocusDeliveryReactionText(ctx.sectionLabel, ctx.text)
   return ''
 }
 // Post-capture coaching follow-up (2026-09-06). OPPORTUNITY_UPDATE_CAPTURE_NOTE's

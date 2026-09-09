@@ -9148,7 +9148,7 @@ export default function PivotEngine(){
     if(isDemo||isTest)return
     if(!signedInUser)return
     if(quietUntilReload||quietScreens[step])return
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,laneLabelFor,markDone,addNewOpportunity,advance}
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance}
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
       if(entry.screen!==step)continue

@@ -1,12 +1,20 @@
 // Coach-as-Concierge Phase 2b (Output/handoff/2026-09-08_coach-concierge-
-// phase-2b-career-paths.md): guards the four new Career Paths moments
-// (Choice on chose-lane/chose-role, Delivery on p5/p6) and the server-side
+// phase-2b-career-paths.md) + the Delivery fast-follow (Output/handoff/
+// 2026-09-09_coach-concierge-phase-2c-delivery-remaining-sections.md):
+// guards the Career Paths moments (Choice on chose-lane/chose-role,
+// Delivery on all 9 generating Focus Playbook sections) and the server-side
 // reaction dispatch they need -- the first entries in the Moments catalog
 // whose reaction comes from the model rather than static copy. The shared
 // evaluator mechanics (priority, generalized dedupe, fireMoment) that these
 // entries exercise are guarded in scripts/test-coach-moments.mjs; this file
 // covers what's specific to Career Paths: the catalog entries themselves,
 // and api/coach.js's per-key reaction-text dispatch.
+//
+// The fast-follow pass also fixed two real defects in delivery-p6: outputs.
+// p6 isn't reliably a string (bridgeStoryToProse normalizes it), and the
+// section label sent to the server ignored the independent track (every
+// Delivery entry now sends sectionLabel directly via focusLabelFor, so the
+// server has one template instead of a per-key NAV_LABELS lookup).
 import fs from 'node:fs'
 
 let failures = 0
@@ -28,59 +36,68 @@ check(!moments.includes("key: 'career-paths-arrival',\n    family: 'choice'"), `
 check(moments.includes('This is where we look at directions beyond the one you already have in hand'),
   `${MOMENTS}: career-paths-arrival's message text has drifted from the confirmed copy`)
 
-// --- The four generated entries ---
-for (const [key, screen, priority] of [['choice-lane', 'p4', 2], ['choice-role', 'focus', 2], ['delivery-p5', 'focus', 3], ['delivery-p6', 'focus', 3]]) {
+// --- The 2 Choice + 9 Delivery generated entries ---
+const DELIVERY_SECTIONS = ['p5', 'p6', 'p9', 'salaryRead', 'p11', 'p_res', 'p8', 'p7', 'income']
+for (const [key, screen, priority] of [['choice-lane', 'p4', 2], ['choice-role', 'focus', 2], ...DELIVERY_SECTIONS.map(s => [`delivery-${s}`, 'focus', 3])]) {
   check(moments.includes(`key: '${key}'`), `${MOMENTS}: the ${key} entry is missing`)
   check(moments.includes(`screen: '${screen}'`), `${MOMENTS}: ${key} is not scoped to the '${screen}' screen`)
   check(moments.includes(`priority: ${priority}`), `${MOMENTS}: ${key} does not carry priority ${priority}`)
 }
 check(moments.includes('generated: true,'), `${MOMENTS}: at least one entry should be marked generated: true`)
 const generatedCount = (moments.match(/generated: true,/g) || []).length
-check(generatedCount === 4, `${MOMENTS}: expected exactly 4 generated entries (choice-lane, choice-role, delivery-p5, delivery-p6), found ${generatedCount}`)
+check(generatedCount === 11, `${MOMENTS}: expected exactly 11 generated entries (2 Choice + 9 Delivery), found ${generatedCount}`)
 
 // dedupeKey: Choice keys off role/lane identity alone; Delivery keys off
 // the same identity but ALSO compares content (dedupeValue), so a rebuild
 // re-fires it -- this is the load-bearing distinction from Choice.
 check(moments.includes('dedupeKey: (ctx) => ctx.selectedLane') , `${MOMENTS}: choice-lane's dedupeKey (fire once per lane) is missing or has drifted`)
-check((moments.match(/dedupeKey: \(ctx\) => `\$\{ctx\.selectedLane\}::\$\{ctx\.chosen\}`/g) || []).length === 3,
-  `${MOMENTS}: expected the role-identity dedupeKey on choice-role, delivery-p5, and delivery-p6`)
-check(moments.includes('dedupeValue: (ctx) => ctx.outputs.p5') && moments.includes('dedupeValue: (ctx) => ctx.outputs.p6'),
-  `${MOMENTS}: Delivery's content-comparison dedupeValue (the re-fire-on-rebuild behavior) is missing for p5 and/or p6`)
+check((moments.match(/dedupeKey: \(ctx\) => `\$\{ctx\.selectedLane\}::\$\{ctx\.chosen\}`/g) || []).length === 1 + DELIVERY_SECTIONS.length,
+  `${MOMENTS}: expected the role-identity dedupeKey on choice-role and all ${DELIVERY_SECTIONS.length} Delivery entries`)
+for (const s of DELIVERY_SECTIONS) {
+  const expected = s === 'p6' ? 'dedupeValue: (ctx) => ctx.bridgeStoryToProse(ctx.outputs.p6)' : `dedupeValue: (ctx) => ctx.outputs.${s}`
+  check(moments.includes(expected), `${MOMENTS}: delivery-${s}'s content-comparison dedupeValue is missing or has drifted`)
+}
 check(!moments.includes("key: 'choice-lane',") || !/key: 'choice-lane',[\s\S]{0,400}dedupeValue:/.test(moments),
   `${MOMENTS}: choice-lane should NOT define dedupeValue -- Choice fires once per identity, it does not re-fire on any later change`)
 
-// momentContext: what each generated entry sends the server.
+// momentContext: what each generated entry sends the server. Every Delivery
+// entry sends sectionLabel (via focusLabelFor, independent-track-aware) and
+// text -- p6 through bridgeStoryToProse, the rest as-is.
 check(moments.includes('momentContext: (ctx) => ({ lane: ctx.selectedLane, laneLabel: ctx.laneLabelFor(ctx.selectedLane) })'),
   `${MOMENTS}: choice-lane's momentContext has drifted`)
 check(moments.includes('momentContext: (ctx) => ({ roleTitle: ctx.chosen, laneLabel: ctx.laneLabelFor(ctx.selectedLane) })'),
   `${MOMENTS}: choice-role's momentContext has drifted`)
-check(moments.includes("momentContext: (ctx) => ({ section: 'p5', text: ctx.outputs.p5 })"),
-  `${MOMENTS}: delivery-p5's momentContext has drifted`)
-check(moments.includes("momentContext: (ctx) => ({ section: 'p6', text: ctx.outputs.p6 })"),
-  `${MOMENTS}: delivery-p6's momentContext has drifted`)
+for (const s of DELIVERY_SECTIONS) {
+  const text = s === 'p6' ? 'ctx.bridgeStoryToProse(ctx.outputs.p6)' : `ctx.outputs.${s}`
+  const expected = `momentContext: (ctx) => ({ section: '${s}', sectionLabel: ctx.focusLabelFor('${s}', ctx.isIndependent), text: ${text} })`
+  check(moments.includes(expected), `${MOMENTS}: delivery-${s}'s momentContext has drifted`)
+}
 
-// None of the four generated entries should carry a message/quickReplies/
+// None of the 11 generated entries should carry a message/quickReplies/
 // onTap of their own -- they have nothing to route to, only the two
 // dismissal taps the evaluator/fireMoment already append generically.
-for (const key of ['choice-lane', 'choice-role', 'delivery-p5', 'delivery-p6']) {
+for (const key of ['choice-lane', 'choice-role', ...DELIVERY_SECTIONS.map(s => `delivery-${s}`)]) {
   const idx = moments.indexOf(`key: '${key}'`)
   const entryBlock = idx !== -1 ? moments.slice(idx, moments.indexOf('},', idx)) : ''
   check(!/\bmessage:/.test(entryBlock), `${MOMENTS}: ${key} should not carry a static message -- it is generated`)
   check(!/\bonTap:/.test(entryBlock), `${MOMENTS}: ${key} should not carry an onTap -- reflection-only, per the resolved Question C`)
 }
 
+// The one deliberate promptCode naming exception, confirmed with Bob.
+check(moments.includes("promptCode: 'delivery_comp_read'"), `${MOMENTS}: delivery-salaryRead's promptCode should be 'delivery_comp_read', not the awkward delivery_salaryread`)
+
 // --- ctx carries what the new entries' functions need ---
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,laneLabelFor,markDone,addNewOpportunity,advance}'),
-  `${APP}: the evaluator's ctx is missing selectedLane/chosen/laneLabelFor -- the new entries' eligible/dedupeKey/dedupeValue/momentContext functions need them`)
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance}'),
+  `${APP}: the evaluator's ctx is missing one of selectedLane/chosen/isIndependent/laneLabelFor/focusLabelFor/bridgeStoryToProse -- the catalog entries' eligible/dedupeKey/dedupeValue/momentContext functions need them`)
 
 // --- Server: shape validation, authoritative gate, dispatch ---
 check(coach.includes("const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck, postCaptureUpdate, returnSection, moment } = req.body || {}"),
   `${COACH}: moment is not destructured from the request body`)
-check(coach.includes("const MOMENT_KEYS = ['choice-lane', 'choice-role', 'delivery-p5', 'delivery-p6']"),
-  `${COACH}: MOMENT_KEYS is missing or has drifted from the four Career Paths keys`)
+check(coach.includes("const MOMENT_KEYS = ['choice-lane', 'choice-role', 'delivery-p5', 'delivery-p6', 'delivery-p9', 'delivery-salaryRead', 'delivery-p11', 'delivery-p_res', 'delivery-p8', 'delivery-p7', 'delivery-income']"),
+  `${COACH}: MOMENT_KEYS is missing or has drifted from the 2 Choice + 9 Delivery keys`)
 check(/function momentPayloadOk\(key, m\) \{/.test(coach), `${COACH}: momentPayloadOk (per-key required-field validation) is missing`)
-check(coach.includes("if (key === 'delivery-p5' || key === 'delivery-p6') return typeof m.text === 'string' && !!m.text.trim()"),
-  `${COACH}: Delivery's payload check does not require a non-empty text field -- an absent one would reach clip() as undefined and throw`)
+check(coach.includes("if (key.startsWith('delivery-')) return typeof m.text === 'string' && !!m.text.trim() && typeof m.sectionLabel === 'string' && !!m.sectionLabel.trim()"),
+  `${COACH}: Delivery's payload check does not require non-empty text AND sectionLabel fields for every delivery- key -- an absent one would reach clip() as undefined and throw, or leave the reaction unlabeled`)
 check(coach.includes('const momentShapeOk = !!(moment && typeof moment === \'object\' && typeof moment.key === \'string\' && MOMENT_KEYS.includes(moment.key) && momentPayloadOk(moment.key, moment))'),
   `${COACH}: momentShapeOk is missing or has drifted`)
 check(coach.includes('&& !momentShapeOk)') && coach.includes("return res.status(400).json({ error: 'message required' })"),
@@ -95,13 +112,13 @@ check(coach.includes("if (momentRequested) return 'moment'"), `${COACH}: compute
 check(coach.includes('const turnKind = computeTurnKind(rawMessage, { orientationCheckRequested, postCaptureUpdateRequested, momentRequested, sessionOpenRequested })'),
   `${COACH}: computeTurnKind is not called with momentRequested`)
 
-// --- The four reaction-text builders ---
+// --- The reaction-text builders: one template shared by all 9 Delivery keys ---
 check(/function buildChoiceLaneReactionText\(laneLabel\) \{/.test(coach), `${COACH}: buildChoiceLaneReactionText is missing`)
 check(/function buildChoiceRoleReactionText\(roleTitle, laneLabel\) \{/.test(coach), `${COACH}: buildChoiceRoleReactionText is missing`)
 check(/function buildFocusDeliveryReactionText\(sectionLabel, text\) \{/.test(coach), `${COACH}: buildFocusDeliveryReactionText is missing`)
 check(coach.includes('function buildMomentTurnText(key, ctx) {'), `${COACH}: buildMomentTurnText dispatch is missing`)
-check(coach.includes("if (key === 'delivery-p5') return buildFocusDeliveryReactionText(NAV_LABELS.p5, ctx.text)") && coach.includes("if (key === 'delivery-p6') return buildFocusDeliveryReactionText(NAV_LABELS.p6, ctx.text)"),
-  `${COACH}: buildMomentTurnText does not dispatch delivery-p5/delivery-p6 through the shared Delivery template with the right NAV_LABELS section label`)
+check(coach.includes("if (key.startsWith('delivery-')) return buildFocusDeliveryReactionText(ctx.sectionLabel, ctx.text)"),
+  `${COACH}: buildMomentTurnText no longer dispatches every delivery- key through the shared template using the client-supplied sectionLabel -- a per-key NAV_LABELS lookup here would miss the independent track`)
 // Delivery's template follows the Brand richness precedent: a genuine
 // strength, at most one invitation-framed suggestion, positive framing
 // throughout -- never a bare correction.
@@ -115,7 +132,7 @@ check(coach.includes("const isSilentTurn = turnKind && turnKind !== 'user'"), `$
 check(coach.includes("const effort = turnKind === 'user' ? 'medium' : 'low'"), `${COACH}: effort no longer generalizes over turnKind`)
 
 // --- Prompt codes ---
-for (const code of ['career_paths_arrival', 'choice_lane', 'choice_role', 'delivery_p5', 'delivery_p6']) {
+for (const code of ['career_paths_arrival', 'choice_lane', 'choice_role', 'delivery_p5', 'delivery_p6', 'delivery_p9', 'delivery_comp_read', 'delivery_p11', 'delivery_p_res', 'delivery_p8', 'delivery_p7', 'delivery_income']) {
   check(codes.includes(`'${code}'`), `${CODES}: PROMPT_CODES is missing '${code}'`)
 }
 
@@ -123,5 +140,5 @@ if (failures) {
   console.error(`test-coach-moments-career-paths: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-moments-career-paths: OK (career-paths-arrival static entry, the four generated Choice/Delivery entries with correct dedupe granularity and momentContext, ctx wiring, and the server-side moment turn kind reusing the existing silent-turn dispatch with new per-key reaction-text builders)')
+  console.log('test-coach-moments-career-paths: OK (career-paths-arrival static entry, 2 Choice + 9 Delivery generated entries with correct dedupe granularity and momentContext -- including the p6 bridgeStoryToProse fix and independent-track-aware sectionLabel on every Delivery entry -- ctx wiring, and the server-side moment turn kind reusing the existing silent-turn dispatch with one shared Delivery template)')
 }
