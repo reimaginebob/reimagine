@@ -48,15 +48,23 @@ for (const [key, screen, priority] of [['choice-lane', 'p4', 2], ['choice-role',
   check(moments.includes(`priority: ${priority}`), `${MOMENTS}: ${key} does not carry priority ${priority}`)
 }
 check(moments.includes('generated: true,'), `${MOMENTS}: at least one entry should be marked generated: true`)
+// 12 total as of Phase 3a: this file's own 11 (2 Choice + 9 Delivery) plus
+// next-move, which scripts/test-coach-moments-next-move.mjs covers on its
+// own terms -- counted here as a total-catalog sanity check, not a claim
+// that all 12 belong to Career Paths' own scope.
 const generatedCount = (moments.match(/generated: true,/g) || []).length
-check(generatedCount === 11, `${MOMENTS}: expected exactly 11 generated entries (2 Choice + 9 Delivery), found ${generatedCount}`)
+check(generatedCount === 12, `${MOMENTS}: expected 12 generated entries total (2 Choice + 9 Delivery + next-move), found ${generatedCount}`)
 
 // dedupeKey: Choice keys off role/lane identity alone; Delivery keys off
 // the same identity but ALSO compares content (dedupeValue), so a rebuild
 // re-fires it -- this is the load-bearing distinction from Choice.
 check(moments.includes('dedupeKey: (ctx) => ctx.selectedLane') , `${MOMENTS}: choice-lane's dedupeKey (fire once per lane) is missing or has drifted`)
-check((moments.match(/dedupeKey: \(ctx\) => `\$\{ctx\.selectedLane\}::\$\{ctx\.chosen\}`/g) || []).length === 1 + DELIVERY_SECTIONS.length,
-  `${MOMENTS}: expected the role-identity dedupeKey on choice-role and all ${DELIVERY_SECTIONS.length} Delivery entries`)
+// +1 as of Phase 3a: next-move shares the identical role-identity dedupeKey
+// shape (its own dedupeVALUE is what makes it re-fire on a new target, same
+// as Delivery's own content comparison) -- test-coach-moments-next-move.mjs
+// covers next-move's own shape; this just keeps the count honest.
+check((moments.match(/dedupeKey: \(ctx\) => `\$\{ctx\.selectedLane\}::\$\{ctx\.chosen\}`/g) || []).length === 1 + DELIVERY_SECTIONS.length + 1,
+  `${MOMENTS}: expected the role-identity dedupeKey on choice-role, all ${DELIVERY_SECTIONS.length} Delivery entries, and next-move`)
 for (const s of DELIVERY_SECTIONS) {
   const expected = s === 'p6' ? 'dedupeValue: (ctx) => ctx.bridgeStoryToProse(ctx.outputs.p6)' : `dedupeValue: (ctx) => ctx.outputs.${s}`
   check(moments.includes(expected), `${MOMENTS}: delivery-${s}'s content-comparison dedupeValue is missing or has drifted`)
@@ -91,14 +99,19 @@ for (const key of ['choice-lane', 'choice-role', ...DELIVERY_SECTIONS.map(s => `
 check(moments.includes("promptCode: 'delivery_comp_read'"), `${MOMENTS}: delivery-salaryRead's promptCode should be 'delivery_comp_read', not the awkward delivery_salaryread`)
 
 // --- ctx carries what the new entries' functions need ---
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance}'),
+// nextMoveTarget and genSec appended Phase 3a -- Next move's own shape is
+// covered in test-coach-moments-next-move.mjs; this just confirms Career
+// Paths' own six fields are still present alongside them, not replaced.
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec}'),
   `${APP}: the evaluator's ctx is missing one of selectedLane/chosen/isIndependent/laneLabelFor/focusLabelFor/bridgeStoryToProse -- the catalog entries' eligible/dedupeKey/dedupeValue/momentContext functions need them`)
 
 // --- Server: shape validation, authoritative gate, dispatch ---
 check(coach.includes("const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck, postCaptureUpdate, returnSection, moment } = req.body || {}"),
   `${COACH}: moment is not destructured from the request body`)
-check(coach.includes("const MOMENT_KEYS = ['choice-lane', 'choice-role', 'delivery-p5', 'delivery-p6', 'delivery-p9', 'delivery-salaryRead', 'delivery-p11', 'delivery-p_res', 'delivery-p8', 'delivery-p7', 'delivery-income']"),
-  `${COACH}: MOMENT_KEYS is missing or has drifted from the 2 Choice + 9 Delivery keys`)
+// next-move appended Phase 3a -- its own payload/dispatch shape is covered
+// in test-coach-moments-next-move.mjs.
+check(coach.includes("const MOMENT_KEYS = ['choice-lane', 'choice-role', 'delivery-p5', 'delivery-p6', 'delivery-p9', 'delivery-salaryRead', 'delivery-p11', 'delivery-p_res', 'delivery-p8', 'delivery-p7', 'delivery-income', 'next-move']"),
+  `${COACH}: MOMENT_KEYS is missing or has drifted from the 2 Choice + 9 Delivery keys plus next-move`)
 check(/function momentPayloadOk\(key, m\) \{/.test(coach), `${COACH}: momentPayloadOk (per-key required-field validation) is missing`)
 check(coach.includes("if (key.startsWith('delivery-')) return typeof m.text === 'string' && !!m.text.trim() && typeof m.sectionLabel === 'string' && !!m.sectionLabel.trim()"),
   `${COACH}: Delivery's payload check does not require non-empty text AND sectionLabel fields for every delivery- key -- an absent one would reach clip() as undefined and throw, or leave the reaction unlabeled`)

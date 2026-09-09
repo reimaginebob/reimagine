@@ -33,6 +33,27 @@
 // Existing seen* flags (onboarding framing, per-step narration, brand
 // delivery) are untouched here -- folding those into this catalog is
 // Phase 4's job, not this one's.
+//
+// Phase 3a (Output/handoff/2026-09-09_coach-concierge-phase-3-build-
+// nextmove-stall.md) adds `next-move`, the first entry that is both
+// `generated` AND actionable. Every entry above it is reflection-only: a
+// generated entry gets no `quickReplies` of its own and no `onTap`,
+// nothing to route to but the two dismissal taps. Next move breaks that --
+// it needs the model's one line of "why this follows" AND a real "Build
+// {label}" tap that starts a generation. `actionReply(ctx)` is the new,
+// additive field that makes this possible: when present, `fireMoment`
+// includes its `{label, value}` ahead of the two dismissal replies, and
+// the moment tap handler's normal `entry.onTap(value, ctx)` dispatch
+// handles the tap like any other (App.jsx passes `genSec` into that ctx
+// for exactly this). `ctx.nextMoveTarget` (computed once in the evaluator,
+// not re-derived per entry) is `{anchorLabel, nextId, nextLabel}` or
+// `null` -- the most recently Delivery-reacted-to section for the current
+// identity, and the next unbuilt one after it in Focus Playbook order
+// (`focusOrderFor`). No `BUILD` trailer, no server-side validation against
+// `situation.notBuilt`, no `SYSTEM_PROMPT_STABLE` change -- the target
+// section is resolved deterministically client-side before the model is
+// ever called, so the model never names it (Phase 3's own scope-reduction
+// finding).
 export const MOMENT_CATALOG = [
   {
     key: 'ptw-arrival',
@@ -234,5 +255,34 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.income,
     momentContext: (ctx) => ({ section: 'income', sectionLabel: ctx.focusLabelFor('income', ctx.isIndependent), text: ctx.outputs.income }),
+  },
+  {
+    key: 'next-move',
+    family: 'next_move',
+    screen: 'focus',
+    significance: 'open',
+    dismissible: true,
+    // Below Delivery's 3 -- not that they ever compete in the same pass
+    // (nextMoveTarget only exists once a delivery-* dedupe record already
+    // does, which is a later evaluator pass than the one that wrote it),
+    // but the ordering documents the intended precedence if that ever
+    // changes.
+    priority: 2,
+    promptCode: 'next_move',
+    generated: true,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.nextMoveTarget,
+    dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
+    // Re-fires when EITHER the anchor moves (they built another section,
+    // so "why this follows" should reference the new one) or the offered
+    // next section changes (they built the previously-offered one some
+    // other way, e.g. the page's own Generate button, so Next move should
+    // point at whatever is unbuilt now instead of repeating a stale offer).
+    dedupeValue: (ctx) => `${ctx.nextMoveTarget.anchorLabel}::${ctx.nextMoveTarget.nextId}`,
+    momentContext: (ctx) => ({ justBuiltLabel: ctx.nextMoveTarget.anchorLabel, nextLabel: ctx.nextMoveTarget.nextLabel }),
+    actionReply: (ctx) => ({ label: `Build ${ctx.nextMoveTarget.nextLabel}`, value: `build_next:${ctx.nextMoveTarget.nextId}` }),
+    onTap: (value, ctx) => {
+      if (value.startsWith('build_next:')) ctx.genSec(value.slice('build_next:'.length))
+      return true
+    },
   },
 ]

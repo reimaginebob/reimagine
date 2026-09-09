@@ -61,8 +61,9 @@ check(evalIdx !== -1, `${APP}: the Moments evaluator loop is missing`)
 // Window widened Phase 2b (2026-09-08): the candidates-array + priority-sort
 // restructure (needed once more than one entry can be eligible at once)
 // pushed the static-branch checks further from evalIdx than 2a's straight-
-// line loop did.
-const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 400, evalIdx + 2300) : ''
+// line loop did. Widened again Phase 3a (2026-09-09): the nextMoveTarget
+// computation sits between the quiet-state check and evalIdx too.
+const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 1600, evalIdx + 2300) : ''
 check(evalBlock.includes('if(quietUntilReload||quietScreens[step])return'),
   `${APP}: the evaluator does not respect the two quiet states before considering any entry`)
 check(evalBlock.includes("if(entry.key==='ptw-arrival'&&seenOrientationRouteRef.current)continue"),
@@ -112,13 +113,17 @@ check(fireMomentBlock.includes("setChatMessages(m=>[...m,{role:'assistant',banne
 // --- The generic tap handler ---
 const tapIdx = app.indexOf("checkinKey.startsWith('moment:')")
 check(tapIdx !== -1, `${APP}: the generic moment: tap handler is missing`)
-const tapBlock = tapIdx !== -1 ? app.slice(tapIdx - 100, tapIdx + 700) : ''
+// Window widened Phase 3a (2026-09-09): a new comment ahead of the onTap
+// dispatch line (explaining genSec) pushed it past the old +700 edge.
+const tapBlock = tapIdx !== -1 ? app.slice(tapIdx - 100, tapIdx + 900) : ''
 check(tapBlock.includes("const key=checkinKey.slice(7)"), `${APP}: the tap handler does not parse the moment key out of the checkinKey`)
 check(tapBlock.includes('const entry=MOMENT_CATALOG.find(e=>e.key===key)'), `${APP}: the tap handler does not resolve the fired entry from the catalog`)
 check(tapBlock.includes("quiet?'declined':'accepted'"), `${APP}: the tap handler does not log accept/decline based on which value was tapped`)
 check(tapBlock.includes("if(value==='moment-quiet-session'){setQuietUntilReload(true);return true}"), `${APP}: the 'I'm good for now' tap does not set the session-scoped quiet state`)
 check(tapBlock.includes("if(value==='moment-quiet-screen'){setQuietScreens(s=>({...s,[step]:true}));return true}"), `${APP}: the 'Not on this screen' tap does not set the per-screen quiet state`)
-check(tapBlock.includes('if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance})'),
+// genSec added Phase 3a (Next move): its onTap starts a build the same way
+// the Focus Playbook screen's own Generate button does.
+check(tapBlock.includes('if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec})'),
   `${APP}: the tap handler does not delegate to the entry's own onTap with the App-level actions it needs`)
 
 // --- Hydration (both paths) + autosave ---
