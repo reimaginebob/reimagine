@@ -96,9 +96,12 @@ check(targetBlock.includes('coachMoments[`delivery-${s.id}`]&&coachMoments[`deli
   `${APP}: nextMoveTarget no longer reads each section's own delivery-* dedupe record to find the most recently reacted-to one`)
 check(targetBlock.includes('const nextSec=order.slice(anchorIdx+1).find(s=>!done.includes(s.id))'),
   `${APP}: nextMoveTarget does not find the next unbuilt section strictly after the anchor -- this is what makes out-of-order builds resolve correctly`)
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec}'),
+// stallEligible appended Phase 3b -- next-move's own fields are still
+// present alongside it, not replaced; test-coach-moments-stall.mjs covers
+// stallEligible's own shape.
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible}'),
   `${APP}: the evaluator's ctx no longer carries nextMoveTarget and genSec -- next-move's own eligible/dedupeKey/dedupeValue/momentContext/actionReply/onTap all need them`)
-check(app.includes(',done,isIndependent])'),
+check(app.includes(',done,isIndependent,focusVisitCounts,stallIdleReached])'),
   `${APP}: the evaluator effect's dependency array no longer includes done -- a build completing without an accompanying outputs/coachMoments change would leave nextMoveTarget stale`)
 
 // --- Server: shape validation, dispatch ---

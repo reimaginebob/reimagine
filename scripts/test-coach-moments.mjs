@@ -62,8 +62,9 @@ check(evalIdx !== -1, `${APP}: the Moments evaluator loop is missing`)
 // restructure (needed once more than one entry can be eligible at once)
 // pushed the static-branch checks further from evalIdx than 2a's straight-
 // line loop did. Widened again Phase 3a (2026-09-09): the nextMoveTarget
-// computation sits between the quiet-state check and evalIdx too.
-const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 1600, evalIdx + 2300) : ''
+// computation sits between the quiet-state check and evalIdx too. Widened
+// again Phase 3b: stallEligible sits between nextMoveTarget and evalIdx.
+const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 2400, evalIdx + 2300) : ''
 check(evalBlock.includes('if(quietUntilReload||quietScreens[step])return'),
   `${APP}: the evaluator does not respect the two quiet states before considering any entry`)
 check(evalBlock.includes("if(entry.key==='ptw-arrival'&&seenOrientationRouteRef.current)continue"),
