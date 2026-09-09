@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import MD from './MD'
+import CoachMark from './CoachMark'
 import SpeechBtn, { hasSpeech } from './SpeechBtn'
 import { useIsMobile } from '../use-is-mobile.js'
 import { detectVoiceViolations } from '../voice-patterns.js'
@@ -13,6 +14,10 @@ import { CLOSE_REASON_LABEL } from '../pursuit-close-reasons.js'
 // banner:true specifically -- this is the generic greeting, not a "here's
 // what's coming" line worth surfacing as a popup.
 export const INTRO_MSG = { role: 'assistant', intro: true, content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
+
+// See the embedded-minimized branch below for what this clears and why it
+// is relative to the content area (position: absolute), not the viewport.
+const CONCIERGE_PILL_TOP = 108
 
 // Plain-language employment mentions. Deliberately conservative: it gates only
 // WHETHER to offer the save prompt (all three options are always shown, so the
@@ -1255,7 +1260,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 gold borderLeft + tint is the reserved signature for
                 instructions and guidance (CLAUDE.md sec. 8) -- Coach's own
                 conversation must not read as that same system callout. */}
-            <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 9, width: 8, height: 8, borderRadius: '50%', background: C.gold }} />
+            <CoachMark C={C} style={{ marginTop: 9 }} />
             <div ref={el => { if (m.id) contentRefs.current[m.id] = el }} style={{
               // The coach's prose holds a readable line length however wide
               // the panel gets: past roughly 75 characters the eye starts
@@ -1400,31 +1405,56 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     </div>
   )
 
-  // Embedded variant: full-width panel inside the content column (the My Coach
-  // sidebar view). No fixed positioning, no bubble, no close button.
+  // Embedded variant, minimized: a small top-right PILL, not a full-width
+  // strip inside a reserved column (2026-09-09 -- Bob's screenshot: the old
+  // strip still lived inside App.jsx's fixed-width concierge column, so
+  // minimizing left the right third of the screen empty and the playbook
+  // stuck narrow next to it). App.jsx now collapses that column's width to
+  // 0 whenever presence is 'minimized', so main content reflows to fill the
+  // freed space -- this pill has to hold its OWN screen position rather
+  // than living in that now-zero-width box, or it would collapse away with
+  // it.
+  //
+  // position: 'absolute', not 'fixed'. A fixed pixel offset from the
+  // viewport top does not clear the app header reliably: the header can
+  // carry an extra banner (the one-time "New: My Coach" announcement, an
+  // auth toast, a stale-build notice), each of which pushes the whole
+  // content area -- and the Focus/Opportunity Playbook's own sticky
+  // breadcrumb + Saved badge inside it -- further down, while a
+  // viewport-fixed pill would not move to follow it (caught live: a
+  // screenshot with the "New: My Coach" banner showing had the pill sitting
+  // on top of the breadcrumb it was supposed to clear). `absolute` anchors
+  // instead to the nearest positioned ancestor, which is the
+  // `position:relative` flex row in App.jsx holding the sidebar, the
+  // content column and this (collapsing) panel column -- i.e. the content
+  // area itself, below every banner whatever the current stack is. The top
+  // offset only has to clear the content column's own fixed 40px top
+  // padding plus the breadcrumb's own rendered height (measured, not
+  // guessed: ~59px including its margin), not anything above the content
+  // area, so 108 (with a small buffer) holds regardless of how many
+  // banners are stacked above the row it is anchored to -- that is what
+  // keeps it in the same spot on every screen, not a hardcoded distance
+  // from the very top of the viewport.
   if (embedded && setPresence && presence === 'minimized') {
-    // Collapsed strip (Phase 1b, Coach-as-Concierge): the embedded panel's
-    // own minimized state -- new in this phase, since before this the
-    // embedded variant had no minimize affordance at all (full size or not
-    // rendered). Deliberately lightweight: a tab at the panel's edge, not a
-    // second layout to maintain. Tapping it is the only way back to 'open'.
     const lastMsg = messages && messages.length ? messages[messages.length - 1] : null
-    const preview = lastMsg && typeof lastMsg.content === 'string' ? lastMsg.content.trim().slice(0, 60) : ''
+    const firstLine = lastMsg && typeof lastMsg.content === 'string' ? lastMsg.content.trim().split('\n')[0] : ''
+    const preview = firstLine.length > 60 ? `${firstLine.slice(0, 60)}…` : firstLine
     return (
       <button
         data-print="hide"
         onClick={() => setPresence('open')}
         aria-label="Open My Coach"
         style={{
-          display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-          background: '#fff', border: '1px solid #E2E5EA', borderRadius: 14,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.06)', padding: '14px 18px',
-          fontFamily: 'inherit', fontSize: 15, color: '#4A5568', cursor: 'pointer', textAlign: 'left',
+          position: 'absolute', top: CONCIERGE_PILL_TOP, right: 24, zIndex: 1000,
+          display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: 280,
+          background: '#fff', border: '1px solid #E2E5EA', borderRadius: 999,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.12)', padding: '10px 16px',
+          fontFamily: 'inherit', fontSize: 16, color: '#4A5568', cursor: 'pointer', textAlign: 'left',
         }}
       >
-        <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: C.gold, flexShrink: 0 }}/>
-        <span style={{ fontWeight: 600, color: '#1A2540', flexShrink: 0 }}>My Coach</span>
-        {preview && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#8A9BB8' }}>{preview}</span>}
+        <CoachMark C={C}/>
+        <span style={{ fontWeight: 600, color: '#1A2540', flexShrink: 0, fontSize: 16 }}>My Coach</span>
+        {preview && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#8A9BB8', fontSize: 16 }}>{preview}</span>}
       </button>
     )
   }
