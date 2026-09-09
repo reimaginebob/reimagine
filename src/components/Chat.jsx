@@ -1216,31 +1216,57 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               </span>
             </button>
           ) : (
+          m.role === 'user' ? (
           <div ref={el => { if (m.id) contentRefs.current[m.id] = el }} style={{
-            // The coach's prose holds a readable line length however wide the
-            // panel gets: past roughly 75 characters the eye starts losing its
-            // place on the return sweep, so a full-width answer would take
-            // fewer lines and be harder to read. The person's own messages are
-            // short and stay narrower still, which keeps the two sides visually
-            // distinct without a rule between them.
+            // The person's own messages are short and stay narrower than the
+            // coach's, which keeps the two sides visually distinct on width
+            // and alignment alone. Quiet neutral fill (not the brand gold
+            // reserved for CTAs, a finished build, and an offer worth
+            // noticing) with dark-on-light text -- the prior solid-gold/
+            // white-text combo measured 2.74:1, below the 4.5:1 floor for
+            // body text (2026-09-09 Coach styling pass).
             display: 'inline-block',
-            maxWidth: m.role === 'user' ? 'min(85%, 56ch)' : 'min(100%, 74ch)',
+            maxWidth: 'min(85%, 56ch)',
             padding: '10px 14px', borderRadius: 12,
-            background: m.role === 'user' ? C.gold : '#F4F6F9',
-            color: m.role === 'user' ? '#fff' : '#1A2540',
+            background: C.input, border: `1px solid ${C.border}`,
+            color: C.cream,
             fontSize: 18, lineHeight: 1.5, textAlign: 'left',
-            // User messages render as plain text (pre-wrap preserves
-            // newlines the user typed). Assistant messages route through
-            // MD, which emits its own paragraph and list structure, so
-            // pre-wrap would double-space its output.
-            whiteSpace: m.role === 'user' ? 'pre-wrap' : 'normal',
+            // Plain text (pre-wrap preserves the newlines the person typed).
+            whiteSpace: 'pre-wrap',
           }}>
-            {m.role === 'assistant' && !m.content && loading && i === messages.length - 1
-              ? <span style={{ color: '#8A9BB8', fontStyle: 'italic' }}>Thinking…</span>
-              : m.role === 'assistant'
-                ? <MD text={m.content} />
-                : m.content}
+            {m.content}
           </div>
+          ) : (
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            {/* Small gold-toned marker, not a border rule: CoachingCallout's
+                gold borderLeft + tint is the reserved signature for
+                instructions and guidance (CLAUDE.md sec. 8) -- Coach's own
+                conversation must not read as that same system callout. */}
+            <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 9, width: 8, height: 8, borderRadius: '50%', background: C.gold }} />
+            <div ref={el => { if (m.id) contentRefs.current[m.id] = el }} style={{
+              // The coach's prose holds a readable line length however wide
+              // the panel gets: past roughly 75 characters the eye starts
+              // losing its place on the return sweep, so a full-width answer
+              // would take fewer lines and be harder to read.
+              display: 'inline-block',
+              maxWidth: 'min(100%, 74ch)',
+              padding: '10px 14px', borderRadius: 12,
+              // The same warm tint CoachingCallout and the pipeline's own
+              // instructional box already carry (${C.gold}10, App.jsx) --
+              // reused verbatim rather than a new color, but without that
+              // component's border-left, which is what makes it read as a
+              // system callout rather than a conversation turn.
+              background: `${C.gold}10`,
+              color: C.grayL,
+              fontSize: 18, lineHeight: 1.5, textAlign: 'left',
+              whiteSpace: 'normal',
+            }}>
+              {!m.content && loading && i === messages.length - 1
+                ? <span style={{ color: '#8A9BB8', fontStyle: 'italic' }}>Thinking…</span>
+                : <MD text={m.content} />}
+            </div>
+          </div>
+          )
           )}
           {!isCollapsedBanner && isExpandableBanner && (
             <button onClick={() => toggleBannerExpanded(i)} style={{
@@ -1252,12 +1278,23 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           )}
           {!isCollapsedBanner && m.role === 'assistant' && Array.isArray(m.quickReplies) && m.quickReplies.length > 0 && (
             <div data-print="hide" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {m.quickReplies.map((opt, qi) => (
+              {m.quickReplies.map((opt, qi) => {
+                // Tap hierarchy (2026-09-09 Coach styling pass): the two quiet-
+                // state dismissals stand down to a neutral outline -- the same
+                // one the Helpful/Not helpful row below already uses -- so gold
+                // stays reserved for the tap that actually moves something
+                // forward (a moment's action reply, a doors-question answer, an
+                // accept/save tap). Gold on every chip stopped meaning anything.
+                const isDismissal = opt.value === 'moment-quiet-session' || opt.value === 'moment-quiet-screen'
+                return (
                 <button key={qi} onClick={() => tapQuickReply(i, opt, m.checkinKey)}
-                  style={{ background: '#fff', border: `1px solid ${C.gold}`, color: C.gold, borderRadius: 16, padding: '6px 16px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={isDismissal
+                    ? { background: '#fff', border: '1px solid #D8DEE8', color: '#8A9BB8', borderRadius: 16, padding: '6px 16px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
+                    : { background: '#fff', border: `1px solid ${C.gold}`, color: C.gold, borderRadius: 16, padding: '6px 16px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {opt.label}
                 </button>
-              ))}
+                )
+              })}
             </div>
           )}
           {m.role === 'assistant' && m.id && (
