@@ -45,6 +45,29 @@ Two design decisions this brief cannot make alone:
 - Bob's own numbers for both thresholds — the design deliberately does not propose starting values.
 - The one-question framing the design specifies ("what would make this worth their time, or would they rather look at something else") is itself new user-facing copy needing the same voice-rule pass every prior phase's new copy got.
 
+## Phase 3b (Stall), drafted 2026-09-09 against main at 4840dc2 (Phase 3a shipped)
+
+Premise re-verified: `grep` for `idleSeconds`/`visitCount`/`lastInteraction` in `src/App.jsx` still returns nothing -- pre-flight #5's finding holds, no idle-time or visit-count tracking exists anywhere in the codebase. Thresholds confirmed by Bob: **90 seconds idle**, **3 visits**.
+
+**Scope: `focus` only, same as Delivery and Next move.** The design's trigger condition ("a screen with an unbuilt primary action") maps cleanest onto the Focus Playbook, where an unbuilt section has a literal Generate button -- `laneSelect` and `p4` are choice screens (pick a lane, pick a role), not build screens, so "unbuilt primary action" does not describe them the same way. Keeping Stall to `focus` also reuses `FOCUS_ORDER`/`done`/`focusOrderFor` directly, no new signal needed for "what's unbuilt here."
+
+**Central question: does Stall fire on ANY unbuilt section, or only when NOTHING has been built yet for this record?** The design's `visitCount >= 3 with nothing built` phrasing reads as the latter to me -- someone who has built 5 of 9 sections and paused before a 6th is already engaged; Next move already covers that moment ("here's what's next"). Someone who has visited Focus Playbook three separate times and never built even the first section is a materially different, more genuine stall. Recommend: **Stall is eligible only when `FOCUS_ORDER.every(s=>!done.includes(s.id))`** -- nothing built at all for the current record. This also means Stall and Next move can never compete for the same moment (Next move requires a Delivery to have already fired, which requires something built).
+
+**The idle timer is new plumbing, not a reuse of the evaluator's existing effect-on-state-change pattern.** Every other Moments entry fires because some piece of React state changed (a build completed, a lane got picked). Idle time passing is not a state change -- nothing re-runs the evaluator just because 90 seconds elapsed with nothing else happening. Needs: a `setTimeout` armed on arrival at `focus` with nothing built (matching the "nothing built at all" eligibility above), cleared and re-armed on the interactions that should count as "not idle," firing a check when it elapses. Recommend resetting the timer only on Reimagine's own tracked actions already available at that screen -- navigating within `focus`, tapping a Generate button, sending a Coach chat message -- not a raw global mousemove/keypress listener, which is new surface area (event listener lifecycle, passive-listener perf) for a screen-scoped signal that doesn't need page-wide precision.
+
+**Visit counting:** increment a per-record counter (keyed the same way Delivery/Next move dedupe -- `${selectedLane}::${chosen}`) each time `step` becomes `'focus'` for that identity, in a `useEffect` on `[step, selectedLane, chosen]`. Session-scoped is enough to start (matches every other Moments entry's session-vs-durable split); whether it should persist across sessions is a tuning question for after real fire/dismiss data exists, not something to guess now.
+
+**The one question itself -- no `onTap` action needed, unlike Next move.** Static entry (`ptw-arrival`'s shape), not generated: the design calls it "one question, not a nudge," a single line rather than a judged read of specific content, and Stall firing at all is already the signal-carrying part -- it does not need to reference what's on the screen the way Delivery or Next move do. Draft copy, written with `PLAIN_ENGLISH` from the start:
+
+> "You've come back to this a few times without building anything yet. What would make it worth doing right now — or would you rather look at something else?"
+
+Quick replies: **"Take me to Career Paths"** (`value: 'stall-redirect'`, routes to `laneSelect` the same way `ptw-arrival`'s `fresh` branch already does) alongside the two standard dismissal taps. No "build it now" action tap -- if they want to build, typing that is the natural reply and Coach can point them to the Generate button same as any ordinary conversation; adding a second action mechanism here would be scope creep this phase does not need. Recommend against a hard-coded "stay building" alternative tap since Career Paths is the only real "something else" destination that exists at this point in the flow (the two-doors screen's other branch, Add an Opportunity, is a much bigger pivot than a quiet-question tap should invite silently).
+
+**Not resolved yet, need your call before I lock this in and build:**
+1. Nothing-built-at-all vs. any-unbuilt-section (recommend the former, above).
+2. The draft question + redirect copy (above) -- sign-off per the standing gate.
+3. Whether visit count should reset if they DO build something later and then stall again on a *different* record (recommend yes, implicitly, since the counter is keyed per-identity like everything else here -- flagging so it's a deliberate choice, not an accident of reusing the existing key shape).
+
 ## Out of scope
 
 Everything in Phase 4 (folding the pre-2a `seen*` flags into the catalog). BUILD on the Opportunity Playbook (door2) — Career Paths only, this phase. Any change to `MILESTONE_PROMPT_NOTE` itself — it stays exactly as-is for door2; Next move on Career Paths is a new, separate mechanism per the central question's recommendation, not a modification of the existing one.
